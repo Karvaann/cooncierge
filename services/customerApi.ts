@@ -19,3 +19,14 @@ export const getCustomers = async () => {
     throw error.response?.data || { message: "Something went wrong" };
   }
 };
+
+export const deleteCustomer = async (id: string) => {
+  try {
+    const response = await apiClient.delete(`/customer/delete-customer/${id}`);
+    return response.data; // backend sends { message: 'Customer deleted' }
+  } catch (error: any) {
+    console.error("Failed to delete customer:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+

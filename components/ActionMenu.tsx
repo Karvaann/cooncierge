@@ -2,10 +2,24 @@ import React, { useState, useRef, useEffect } from "react";
 import { PiDotsThreeBold } from "react-icons/pi";
 import { FaRegEdit } from "react-icons/fa";
 import { FaRegTrashAlt } from "react-icons/fa";
-
+import { deleteCustomer } from "@/services/customerApi";
 const ActionMenu = () => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const handleDelete = async (id: string) => {
+    const confirmDelete = window.confirm(
+      "Are you sure you want to delete this customer?"
+    );
+    if (!confirmDelete) return;
+    try {
+      const response = await deleteCustomer(id);
+      console.log(response.message); // "Customer deleted"
+      // Optionally, refresh the customer list or update UI here
+    } catch (error) {
+      console.error("Error deleting customer:", error);
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -51,7 +65,7 @@ const ActionMenu = () => {
 
                 <button
                   onClick={() => {
-                    console.log("Delete clicked");
+                    handleDelete;
                     setIsOpen(false);
                   }}
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
