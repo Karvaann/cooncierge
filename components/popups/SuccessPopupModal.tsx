@@ -19,12 +19,13 @@ const SuccessPopupModal: React.FC<SuccessPopupModalProps> = ({
       title=""
       size="sm"
       customWidth="w-[500px]"
+      customeHeight="h-[250px]"
       showCloseButton={true}
       closeOnOverlayClick={true}
       closeOnEscape={true}
       className="p-0"
     >
-      <div className="flex flex-col items-center justify-center -mt-5 py-6 px-6">
+      <div className="flex flex-col items-center justify-center -mt-8 px-3">
         <video
           src="/animations/tickmark-anim.mp4"
           width="100"

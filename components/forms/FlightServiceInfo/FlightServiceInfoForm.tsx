@@ -111,9 +111,12 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   const [roeVisibleFor, setRoeVisibleFor] = useState<null | "cost" | "selling">(
     null
   );
-  const [filesAdded, setFilesAdded] = useState({
-    voucher: false,
-    taxinvoice: false,
+  const [filesAdded, setFilesAdded] = useState<{
+    voucher?: File | null;
+    taxinvoice?: File | null;
+  }>({
+    voucher: null,
+    taxinvoice: null,
   });
 
   // Hard-coded exchange rate for demonstration
@@ -134,10 +137,17 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
     }
   };
 
-  const handleFileChange = (field: "voucher" | "taxinvoice") => {
-    let ref: React.RefObject<HTMLInputElement | null>;
-    if (field === "voucher") ref = voucherRef;
-    if (field === "taxinvoice") ref = taxinvoiceRef;
+  const handleFileChange = (
+    type: "voucher" | "taxinvoice",
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFilesAdded((prev) => ({
+        ...prev,
+        [type]: file,
+      }));
+    }
   };
 
   type FieldRule = {
@@ -649,31 +659,45 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                 <label className="block text-sm text-gray-500 mt-2">
                   Voucher <span className="text-red-500">*</span>
                 </label>
-                <div className="flex items-center">
-                  <div className="w-[250px]">
+
+                <div className="items-center mt-0.5">
+                  <div className="flex">
                     <input
                       type="text"
                       placeholder="Enter Voucher"
-                      className="w-[250px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className=" w-[250px] h-[40px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
-                  </div>
-                  <input
-                    type="file"
-                    ref={voucherRef}
-                    className="hidden"
-                    onChange={() => handleFileChange("voucher")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => voucherRef.current?.click()}
-                    className="px-3 py-2 -mt-1 flex gap-1  bg-[#126ACB] text-white rounded-md text-sm hover:bg-blue-700"
-                  >
-                    <MdOutlineFileUpload size={20} /> Upload
-                  </button>
-                  {filesAdded.voucher && (
-                    <div className="text-sm text-green-600 mt-1">
+
+                    <input
+                      type="file"
+                      ref={voucherRef}
+                      className="hidden"
+                      onChange={(e) => handleFileChange("voucher", e)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => voucherRef.current?.click()}
+                      className="px-3 py-2.5 h-[40px] flex gap-1  bg-[#126ACB] text-white rounded-md text-sm hover:bg-blue-700"
+                    >
                       {" "}
-                      File has been added{" "}
+                      <MdOutlineFileUpload size={20} /> Upload{" "}
+                    </button>
+                  </div>
+                  {filesAdded.voucher && (
+                    <div className="items-center ml-2 mt-2 text-sm text-green-600 w-[110px]">
+                      <span>📄 {filesAdded.voucher.name}</span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFilesAdded((prev) => ({
+                            ...prev,
+                            voucher: null,
+                          }))
+                        }
+                        className="text-red-500 hover:underline mt-2"
+                      >
+                        Remove
+                      </button>
                     </div>
                   )}
                 </div>
@@ -683,6 +707,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                 <label className="block text-sm text-gray-500 mt-2">
                   Tax Invoice <span className="text-red-500">*</span>
                 </label>
+
                 <div className="flex items-center">
                   <div className="w-[250px]">
                     <input
@@ -695,7 +720,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                     type="file"
                     ref={taxinvoiceRef}
                     className="hidden"
-                    onChange={() => handleFileChange("taxinvoice")}
+                    onChange={(e) => handleFileChange("taxinvoice", e)}
                   />
                   <button
                     type="button"
@@ -705,9 +730,8 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                     <MdOutlineFileUpload size={20} /> Upload
                   </button>
                   {filesAdded.taxinvoice && (
-                    <div className="text-sm text-green-600 mt-1">
-                      {" "}
-                      File has been added{" "}
+                    <div className="flex items-center gap-2 mt-1 text-sm text-green-600">
+                      <span>📄 {filesAdded.taxinvoice.name}</span>
                     </div>
                   )}
                 </div>

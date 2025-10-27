@@ -8,30 +8,20 @@ import { getRandomBgTextClass, getRandomDarkBgClass } from "@/utils/helper";
 import { useCalendar } from "@/context/CalendarContext";
 import { BookingProvider, useBooking } from "@/context/BookingContext";
 import CalendarSkeleton from "@/components/skeletons/CalendarSkeleton";
-import ModalSkeleton from "@/components/skeletons/ModalSkeleton";
-import SidesheetSkeleton from "@/components/skeletons/SidesheetSkeleton";
-import AddTaskModal from "@/components/AddTaskModal";
+import { IoIosExpand } from "react-icons/io";
+import AddTaskModal from "@/components/Modals/AddTaskModal";
+import { LuCalendarCog } from "react-icons/lu";
+import { FiAlertTriangle } from "react-icons/fi";
+import { GoClock } from "react-icons/go";
+import TaskCard from "@/components/TaskCard";
+import ViewTaskModal from "@/components/Modals/ViewTaskModal";
+import DueTodayTaskModal from "@/components/Modals/DueTodayTaskModal";
+import DayWiseTaskModal from "@/components/Modals/DayWiseTaskModal";
 
 const Calendar = dynamic(() => import("@/components/Calendar"), {
   loading: () => <CalendarSkeleton />,
   ssr: false,
 });
-
-const BookingFormModal = dynamic(
-  () => import("@/components/BookingFormModal"),
-  {
-    loading: () => <ModalSkeleton />,
-    ssr: false,
-  }
-);
-
-const BookingFormSidesheet = dynamic(
-  () => import("@/components/BookingFormSidesheet"),
-  {
-    loading: () => <SidesheetSkeleton />,
-    ssr: false,
-  }
-);
 
 type TaskLog = {
   activity: string;
@@ -55,18 +45,349 @@ interface SummaryData {
   recentLogs?: TaskLog[];
 }
 
+const CircularProgress = ({ percentage }: { percentage: number }) => {
+  const radius = 90;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="relative w-48 h-48 mx-auto">
+      <svg className="transform -rotate-90 w-full h-full">
+        {/* Background circle */}
+        <circle
+          cx="96"
+          cy="96"
+          r={radius}
+          stroke="#f3f4f6"
+          strokeWidth="16"
+          fill="none"
+        />
+        {/* Progress circle */}
+        <circle
+          cx="96"
+          cy="96"
+          r={radius}
+          stroke="#059669"
+          strokeWidth="16"
+          fill="none"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          className="transition-all duration-500 ease-out"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-4xl font-bold text-gray-900">{percentage}%</span>
+      </div>
+    </div>
+  );
+};
+
 const DashboardContent: React.FC = () => {
   const { calenderShow, setCalenderShow } = useCalendar();
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const openAddTaskModal = () => setIsAddTaskModalOpen(true);
   const closeAddTaskModal = () => setIsAddTaskModalOpen(false);
-  const { state, openModal, closeModal, closeSidesheet, selectService } =
-    useBooking();
   const [summaryData, setSummaryData] = useState<SummaryData>({
     currentUserPendingTaskCount: 0,
   });
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = React.useState("assigned-to-me");
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [isDueTodayModalOpen, setIsDueTodayModalOpen] = useState(false);
+  const [activePriority, setActivePriority] = useState<
+    "high" | "medium" | "low"
+  >("high");
+  const [isDayWiseModalOpen, setIsDayWiseModalOpen] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  const completionPercentage = 65;
+
+  interface Task {
+    title: string;
+    subtitle: string;
+    time: string;
+    code: string;
+    status: "pending" | "upcoming" | "completed";
+    completed: boolean;
+  }
+
+  interface TaskCardProps {
+    date: string;
+    day: string;
+    pendingCount: number;
+    onTaskClick?: (task: Task) => void;
+    onClick?: () => void;
+    tasks: Task[];
+  }
+
+  const daysData: TaskCardProps[] = [
+    {
+      date: "8th May",
+      day: "Wednesday",
+      pendingCount: 1,
+      tasks: [
+        {
+          title: "Directory - Team",
+          subtitle: "General",
+          time: "10:00",
+          code: "TE-ABC12",
+          status: "upcoming",
+          completed: false,
+        },
+        {
+          title: "Directory - Vendor",
+          subtitle: "Follow up",
+          time: "09:00",
+          code: "VE-AB001",
+          status: "completed",
+          completed: true,
+        },
+      ],
+    },
+    {
+      date: "9th May",
+      day: "Thursday",
+      pendingCount: 2,
+      tasks: [
+        {
+          title: "Bookings - Limitless",
+          subtitle: "Client Confirmation",
+          time: "11:30",
+          code: "BK-LIM23",
+          status: "upcoming",
+          completed: false,
+        },
+        {
+          title: "Sales - OS",
+          subtitle: "Payment Follow-up",
+          time: "14:00",
+          code: "SA-OS44",
+          status: "upcoming",
+          completed: false,
+        },
+        {
+          title: "Finance - Reports",
+          subtitle: "Monthly Closure",
+          time: "16:00",
+          code: "FI-RP99",
+          status: "completed",
+          completed: true,
+        },
+        {
+          title: "Finance - Reports",
+          subtitle: "Monthly Closure",
+          time: "16:00",
+          code: "FI-RP99",
+          status: "completed",
+          completed: true,
+        },
+        {
+          title: "Finance - Reports",
+          subtitle: "Monthly Closure",
+          time: "16:00",
+          code: "FI-RP99",
+          status: "pending",
+          completed: true,
+        },
+      ],
+    },
+    {
+      date: "10th May",
+      day: "Today",
+      pendingCount: 1,
+      tasks: [
+        {
+          title: "Leads - Campaign",
+          subtitle: "Email Outreach",
+          time: "10:15",
+          code: "LE-CM32",
+          status: "completed",
+          completed: true,
+        },
+        {
+          title: "Operations - Limitless",
+          subtitle: "Vendor Coordination",
+          time: "13:30",
+          code: "OP-LM07",
+          status: "pending",
+          completed: false,
+        },
+      ],
+    },
+    {
+      date: "11th May",
+      day: "Saturday",
+      pendingCount: 0,
+      tasks: [
+        {
+          title: "Dashboard Review",
+          subtitle: "Performance Summary",
+          time: "09:45",
+          code: "DB-REV01",
+          status: "completed",
+          completed: true,
+        },
+        {
+          title: "Team Meeting",
+          subtitle: "Weekly Wrap-up",
+          time: "12:00",
+          code: "TM-WR02",
+          status: "pending",
+          completed: true,
+        },
+      ],
+    },
+    {
+      date: "12th May",
+      day: "Sunday",
+      pendingCount: 2,
+      tasks: [
+        {
+          title: "Finance - OS",
+          subtitle: "Expense Verification",
+          time: "11:00",
+          code: "FI-OS23",
+          status: "upcoming",
+          completed: false,
+        },
+        {
+          title: "Bookings - OS",
+          subtitle: "Customer Follow-up",
+          time: "15:30",
+          code: "BK-OS77",
+          status: "pending",
+          completed: false,
+        },
+        {
+          title: "Bookings - OS",
+          subtitle: "Customer Follow-up",
+          time: "15:30",
+          code: "BK-OS77",
+          status: "upcoming",
+          completed: false,
+        },
+        {
+          title: "Bookings - OS",
+          subtitle: "Customer Follow-up",
+          time: "15:30",
+          code: "BK-OS77",
+          status: "upcoming",
+          completed: false,
+        },
+      ],
+    },
+  ];
+
+  const taskCards = [
+    {
+      title: "Tasks Overdue",
+      count: 2,
+      icon: <FiAlertTriangle className="w-5 h-5" />,
+      iconColor: "text-red-500",
+      tasks: [
+        {
+          priority: "High Priority",
+          count: 1,
+          color: "text-red-500",
+          dotColor: "bg-red-500",
+        },
+        {
+          priority: "Medium priority",
+          count: 1,
+          color: "text-orange-500",
+          dotColor: "bg-orange-500",
+        },
+        {
+          priority: "Low Priority",
+          count: 0,
+          color: "text-green-500",
+          dotColor: "bg-green-500",
+        },
+      ],
+    },
+    {
+      title: "Tasks due today",
+      count: 2,
+      icon: <LuCalendarCog className="w-5 h-5" />,
+      iconColor: "text-gray-600",
+      tasks: [
+        {
+          priority: "High Priority",
+          count: 1,
+          color: "text-red-500",
+          dotColor: "bg-red-500",
+        },
+        {
+          priority: "Medium priority",
+          count: 0,
+          color: "text-orange-500",
+          dotColor: "bg-orange-500",
+        },
+        {
+          priority: "Low Priority",
+          count: 1,
+          color: "text-green-500",
+          dotColor: "bg-green-500",
+        },
+      ],
+    },
+    {
+      title: "Upcoming Tasks",
+      count: 1,
+      icon: <GoClock className="w-5 h-5" />,
+      iconColor: "text-blue-500",
+      tasks: [
+        {
+          priority: "High Priority",
+          count: 0,
+          color: "text-red-500",
+          dotColor: "bg-red-500",
+        },
+        {
+          priority: "Medium priority",
+          count: 1,
+          color: "text-orange-500",
+          dotColor: "bg-orange-500",
+        },
+        {
+          priority: "Low Priority",
+          count: 0,
+          color: "text-green-500",
+          dotColor: "bg-green-500",
+        },
+      ],
+    },
+  ];
+
+  const handlePriorityClick = (priority: "high" | "medium" | "low") => {
+    setActivePriority(priority);
+    setIsDueTodayModalOpen(true);
+  };
+
+  const closeModal = () => setIsDueTodayModalOpen(false);
+
+  const handleViewTask = (task: any) => {
+    setSelectedTask(task);
+    setIsViewModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsViewModalOpen(false);
+    setSelectedTask(null);
+  };
+
+  const openDayWiseModal = (taskId: string) => {
+    setSelectedTaskId(taskId);
+    setIsDayWiseModalOpen(true);
+  };
+
+  const closeDayWiseModal = () => {
+    setSelectedTaskId(null);
+    setIsDayWiseModalOpen(false);
+  };
 
   const formatDate = useCallback((dateString: string): string => {
     const date = new Date(dateString);
@@ -165,59 +486,6 @@ const DashboardContent: React.FC = () => {
     );
   }, [summaryData.dateWiseLogs, formatDate]);
 
-  const teamPerformanceCards = useMemo(() => {
-    if (!summaryData.teamPercentCompleteLogs) return null;
-
-    return Object.entries(summaryData.teamPercentCompleteLogs).map(
-      ([member, percentage], idx) => {
-        const color = getRandomDarkBgClass();
-
-        return (
-          <div key={`${member}-${idx}`} className="mb-4">
-            <div className="flex items-center gap-2 mb-1">
-              <div
-                className={`w-6 h-6 text-white font-medium flex items-center justify-center rounded-full ${color}`}
-              >
-                {member[0]?.toUpperCase()}
-              </div>
-              <span className="text-gray-700 font-medium">{member}</span>
-              <span className="ml-auto text-gray-700 font-medium">
-                {percentage}%
-              </span>
-            </div>
-            <div className="w-full h-2 bg-gray-200 rounded-full">
-              <div
-                className={`h-full rounded-full ${color} transition-all duration-500`}
-                style={{ width: `${percentage}%` }}
-              />
-            </div>
-          </div>
-        );
-      }
-    );
-  }, [summaryData.teamPercentCompleteLogs]);
-
-  const recentActivityItems = useMemo(() => {
-    if (!summaryData.recentLogs) return null;
-
-    return summaryData.recentLogs.map((item, idx) => {
-      const color = getRandomDarkBgClass();
-
-      return (
-        <div
-          key={`${item.activity}-${idx}`}
-          className="flex flex-col items-start mb-4"
-        >
-          <div className="flex items-center gap-2">
-            <span className={`w-2 h-2 rounded-full ${color}`} />
-            <span className="font-semibold text-gray-800">{item.activity}</span>
-          </div>
-          <p className="text-xs text-gray-400 pl-4">{item.dateTime}</p>
-        </div>
-      );
-    });
-  }, [summaryData.recentLogs]);
-
   return (
     <div className="transition-all duration-500 ease-in-out space-y-6">
       {loading && (
@@ -227,113 +495,216 @@ const DashboardContent: React.FC = () => {
       )}
       {!calenderShow && (
         <>
-          <div className="flex flex-col items-start self-stretch rounded-[16px] border border-gray-100 bg-white shadow-sm">
-            <div className="flex justify-between items-center w-[100%] px-5 py-4 border-b border-[#E2E1E1]">
-              {statusBadge}
-              <div className="flex items-center justify-between gap-2">
-                <button
-                  type="button"
-                  onClick={openAddTaskModal}
-                  className="flex items-center justify-center h-10 px-5 py-2 rounded-lg bg-[#114958] text-white text-center font-poppins text-base font-normal leading-6 hover:bg-[#0d3a45] transition-colors"
-                >
-                  Tasks +
-                </button>
-                <button
-                  type="button"
-                  onClick={toggleCalendar}
-                  className="flex items-center justify-center h-10 px-5 py-2 rounded-lg border border-[#114958] bg-white text-[#114958] text-center font-poppins text-base font-normal leading-6 hover:bg-gray-50 transition-colors"
-                >
-                  {calenderShow ? "Collapse" : "Expand"}
-                </button>
+          <div className="bg-white shadow-sm border border-gray-100 rounded-xl p-6 gap-4">
+            <div className="h-[500px] bg-white p-4">
+              <div className="max-w-9xl mx-4">
+                {/* Tab Navigation */}
+                <div className="flex gap-2 mb-8 bg-[#F3F3F3] border border-gray-200 w-[330px] rounded-xl">
+                  <button
+                    onClick={() => setActiveTab("assigned-to-me")}
+                    className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                      activeTab === "assigned-to-me"
+                        ? "bg-emerald-800 text-white"
+                        : " text-gray-500 hover:bg-gray-100"
+                    }`}
+                  >
+                    Assigned to me
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("assigned-by-me")}
+                    className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                      activeTab === "assigned-by-me"
+                        ? "bg-emerald-800 text-white"
+                        : "text-gray-500 hover:bg-gray-100"
+                    }`}
+                  >
+                    Assigned by me
+                  </button>
+                </div>
+
+                {/* Main Content Grid */}
+                {activeTab === "assigned-to-me" && (
+                  <div className="grid grid-cols-1 lg:grid-cols-4 px-3 w-[1500px] rounded-xl gap-6 border border-gray-200 -mt-3 -ml-5">
+                    <div className="bg-white p-4 w-[300px] border-r border-gray-200">
+                      <div className="mb-4">
+                        <h3 className="text-green-600 font-medium text-sm mb-1">
+                          Almost there, just a few
+                        </h3>
+                        <p className="text-green-600 font-medium text-sm">
+                          left to complete!
+                        </p>
+                      </div>
+
+                      <CircularProgress percentage={completionPercentage} />
+
+                      <p className="text-center text-gray-500 text-sm font-medium mt-4">
+                        Task Completion Rate
+                      </p>
+
+                      <div className="bg-green-50 text-green-700 text-sm font-medium rounded-lg px-4 py-2 mt-4">
+                        {`13 out of 20 Tasks completed`}
+                      </div>
+                    </div>
+
+                    {/* Tasks in Hand */}
+                    <div className="lg:col-span-3 py-3 px-4">
+                      <div className="flex w-[170px] items-center gap-3 mb-1 mt-2 -ml-15 bg-[#F9F9F9] rounded-3xl px-3 py-2">
+                        <h2 className="text-gray-700 font-medium text-base">
+                          Tasks in Hand
+                        </h2>
+                        <span className="text-xl font-bold text-gray-900">
+                          5
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 -ml-15 mb-4">
+                        {taskCards.map((card, index) => (
+                          <div
+                            key={index}
+                            className="bg-white mt-4 rounded-xl p-6 shadow-sm border border-gray-200"
+                          >
+                            <div className="flex items-center gap-3 mb-6">
+                              <div className={card.iconColor}>{card.icon}</div>
+                              <h3 className="text-gray-600 font-bold text-sm">
+                                {card.title}
+                              </h3>
+                            </div>
+
+                            <div
+                              className={`text-5xl font-bold mb-6 ${
+                                index === 0
+                                  ? "text-red-500"
+                                  : index === 1
+                                  ? "text-gray-800"
+                                  : "text-blue-500"
+                              }`}
+                            >
+                              {card.count}
+                            </div>
+
+                            <div className="space-y-3">
+                              {card.tasks.map((task, taskIndex) => (
+                                <div
+                                  key={taskIndex}
+                                  className="flex items-center justify-between bg-[#F9F9F9] rounded-xl px-3 py-1.5"
+                                  onClick={() =>
+                                    handlePriorityClick(
+                                      task.priority
+                                        .toLowerCase()
+                                        .includes("high")
+                                        ? "high"
+                                        : task.priority
+                                            .toLowerCase()
+                                            .includes("medium")
+                                        ? "medium"
+                                        : "low"
+                                    )
+                                  }
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div
+                                      className={`w-2 h-2 rounded-full ${task.dotColor}`}
+                                    ></div>
+                                    <span className="text-gray-600 text-sm">
+                                      {task.priority}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <span
+                                      className={`font-semibold text-sm ${
+                                        task.count === 0
+                                          ? "text-gray-400"
+                                          : task.color
+                                      }`}
+                                    >
+                                      {task.count} task
+                                    </span>
+                                    <span className="text-gray-300">›</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === "assigned-by-me" && (
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    <div className="lg:col-span-4 bg-white rounded-xl p-12 shadow-sm border border-gray-200">
+                      <div className="text-center">
+                        <h3 className="text-xl font-semibold text-gray-700 mb-2">
+                          Assigned by me
+                        </h3>
+                        <p className="text-gray-500">
+                          Tasks you've assigned to others will appear here
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="flex w-full px-5 py-4">
-              <div className="flex justify-between items-center gap-4 w-full flex-wrap">
-                {dateWiseLogsCards}
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Task Overview */}
-            <div className="bg-white p-6 rounded-xl shadow flex-1 min-w-[280px]">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">
-                  Task Overview
-                </h2>
-                <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full">
-                  <input
-                    type="checkbox"
-                    checked
-                    readOnly
-                    className="accent-green-500"
-                    aria-label="Task overview status"
-                  />
+            <div className="flex flex-col items-start self-stretch bg-white">
+              <div className="flex justify-between items-center w-[100%] px-5 py-4">
+                <h3 className="font-semibold text-black text-lg">
+                  Task Timeline
+                </h3>
+                <div className="flex items-center justify-end gap-2 ml-auto">
+                  <button
+                    type="button"
+                    onClick={openAddTaskModal}
+                    className="flex items-center justify-center h-10 px-5 py-2 rounded-lg bg-[#0D4B37] text-white text-center font-poppins text-base font-normal leading-6 hover:bg-[#0D4B37] transition-colors"
+                  >
+                    + Task
+                  </button>
+                  <button
+                    type="button"
+                    onClick={toggleCalendar}
+                    className="flex items-center justify-center h-10 px-5 py-2 rounded-lg border border-[#114958] bg-white text-[#114958] text-center font-poppins text-base font-normal leading-6 hover:bg-gray-50 transition-colors"
+                  >
+                    {calenderShow ? "Collapse" : <IoIosExpand size={20} />}
+                  </button>
                 </div>
               </div>
-              <ul className="space-y-2 text-gray-700 mb-4">
-                <li className="flex justify-between">
-                  <span>Completed</span>
-                  <span className="text-green-500 font-semibold">
-                    {summaryData.percentageLogs?.completedCount || 0}
-                  </span>
-                </li>
-                <li className="flex justify-between">
-                  <span>In Progress</span>
-                  <span className="text-blue-500 font-semibold">
-                    {summaryData.percentageLogs?.inProgressCount || 0}
-                  </span>
-                </li>
-                <li className="flex justify-between">
-                  <span>Pending</span>
-                  <span className="text-orange-500 font-semibold">
-                    {summaryData.percentageLogs?.pendingCount || 0}
-                  </span>
-                </li>
-              </ul>
-              <div className="w-full h-2 bg-gray-200 rounded-full mb-2">
+
+              <div className="max-w-[1500px] mx-auto">
                 <div
-                  className="h-full bg-teal-900 rounded-full transition-all duration-500"
-                  style={{
-                    width: summaryData.percentageLogs?.completedPercent || "0%",
-                  }}
-                />
-              </div>
-              <p className="text-sm text-gray-500 text-center">
-                {summaryData.percentageLogs?.completedPercent || "0%"}{" "}
-                completion rate
-              </p>
-            </div>
+                  className="flex gap-5 overflow-x-auto pb-3 snap-x snap-mandatory scroll-smooth
+      no-scrollbar
+  [&::-webkit-scrollbar]:hidden
+  [-ms-overflow-style:'none']
+  [scrollbar-width:'none']"
+                >
+                  {daysData.map((day, idx) => {
+                    // ✅ Build the props object dynamically to avoid passing `undefined`
+                    const taskCardProps: TaskCardProps = {
+                      date: day.date,
+                      day: day.day,
+                      pendingCount: day.pendingCount,
+                      tasks: day.tasks,
+                    };
 
-            {/* Team Performance */}
-            <div className="bg-white p-6 rounded-xl shadow flex-1 min-w-[280px]">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">
-                  Team Performance
-                </h2>
-                <div className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-full text-green-700">
-                  <span role="img" aria-label="team">
-                    👥
-                  </span>
+                    // ✅ Conditionally add click handlers only when needed
+                    if (day.date === "10th May") {
+                      taskCardProps.onTaskClick = (task) =>
+                        handleViewTask(task);
+                    } else {
+                      taskCardProps.onClick = () => openDayWiseModal(day.date);
+                    }
+
+                    return (
+                      <div key={idx} className="snap-start">
+                        {/* ✅ Spread the props — no undefined passed anywhere */}
+                        <TaskCard key={day.date} {...taskCardProps} />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-              {teamPerformanceCards}
-            </div>
-
-            {/* Recent Activity */}
-            <div className="bg-white p-6 rounded-xl shadow flex-1 min-w-[280px]">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-gray-800">
-                  Recent Activity
-                </h2>
-                <div className="w-8 h-8 flex items-center justify-center bg-orange-100 text-orange-600 rounded-full">
-                  <span role="img" aria-label="clock">
-                    🕒
-                  </span>
-                </div>
-              </div>
-              {recentActivityItems}
             </div>
           </div>
         </>
@@ -347,6 +718,20 @@ const DashboardContent: React.FC = () => {
       )}
 
       <AddTaskModal isOpen={isAddTaskModalOpen} onClose={closeAddTaskModal} />
+      {/* View Task Modal */}
+      {selectedTask && (
+        <ViewTaskModal isOpen={isViewModalOpen} onClose={handleCloseModal} />
+      )}
+
+      <DueTodayTaskModal
+        isOpen={isDueTodayModalOpen}
+        onClose={closeModal}
+        onTaskClick={(taskId) => console.log("Task clicked:", taskId)}
+      />
+      <DayWiseTaskModal
+        isOpen={isDayWiseModalOpen}
+        onClose={closeDayWiseModal}
+      />
     </div>
   );
 };

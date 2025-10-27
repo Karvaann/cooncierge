@@ -23,12 +23,13 @@ const ConfirmPopupModal: React.FC<ConfirmPopupModalProps> = ({
       title=""
       size="sm"
       customWidth="w-[500px]"
+      customeHeight="h-[250px]"
       showCloseButton={true}
       closeOnOverlayClick={true}
       closeOnEscape={true}
       className="p-0 w-[500px]"
     >
-      <div className="flex flex-col items-center justify-center py-8 px-6">
+      <div className="flex flex-col items-center -mt-4 justify-center px-2">
         <div className="text-center mb-6 text-[#114958] text-base md:text-lg font-normal">
           {title}
         </div>

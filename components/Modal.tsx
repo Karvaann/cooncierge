@@ -10,6 +10,7 @@ interface ModalProps {
   children: React.ReactNode;
   title?: string;
   customWidth?: string;
+  customeHeight?: string;
   size?: "sm" | "md" | "lg" | "xl" | "full";
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
@@ -28,6 +29,7 @@ const Modal: React.FC<ModalProps> = ({
   title = "Modal Title",
   size = "sm",
   customWidth,
+  customeHeight,
   closeOnOverlayClick = true,
   closeOnEscape = true,
   showCloseButton = true,
@@ -85,9 +87,11 @@ const Modal: React.FC<ModalProps> = ({
         document.removeEventListener("keydown", handleEscape);
       };
     }
+    return;
   }, [isOpen, closeOnEscape, handleEscape]);
 
   const modalWidthClass = customWidth ? customWidth : sizeClasses[size];
+  const modalHeightClass = customeHeight ? customeHeight : "";
 
   // Memoized modal content
   const modalContent = useMemo(
@@ -102,17 +106,17 @@ const Modal: React.FC<ModalProps> = ({
         <div
           className={`
           bg-white rounded-t-2xl md:rounded-lg shadow-xl overflow-hidden
-          transition-all duration-300 transform ${modalWidthClass}
+          transition-all duration-300 transform ${modalWidthClass} ${modalHeightClass}
           ${isMobile ? "absolute bottom-0 w-full" : ``}
           ${className}
         `}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex justify-between -mt-3 items-center p-8">
+          <div className="flex justify-between mt-3 items-center p-4">
             <h2
               id="modal-title"
-              className="text-[#114958] text-xl md:text-2xl font-bold flex-1 text-center pr-2"
+              className="text-black text-xl md:text-2xl font-bold flex-1 text-center pr-2"
             >
               {title}
             </h2>

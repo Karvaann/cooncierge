@@ -19,15 +19,12 @@ interface ConsoleShellProps {
   children: React.ReactNode;
 }
 
-const EXPANDED_WIDTH = 216;
-const COLLAPSED_WIDTH = 64;
-
 export default function ConsoleShell({ children }: ConsoleShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const mainStyle = useMemo(
     () => ({
-      marginLeft: `${isSidebarOpen ? EXPANDED_WIDTH : COLLAPSED_WIDTH}px`,
+      marginLeft: "64px",
       transition: "margin-left 0.5s ease-in-out",
       minHeight: "100vh",
     }),
