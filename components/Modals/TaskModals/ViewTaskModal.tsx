@@ -1,7 +1,15 @@
 "use client";
 
-import React, { useEffect, useCallback, useMemo } from "react";
-import { FiClock, FiCheckCircle, FiUser } from "react-icons/fi";
+import React, { useEffect, useCallback } from "react";
+import { TbLuggage } from "react-icons/tb";
+import { MdOutlineKeyboardArrowLeft } from "react-icons/md";
+import { MdOutlineKeyboardArrowRight } from "react-icons/md";
+import { CiCirclePlus } from "react-icons/ci";
+import { TbSquareToggle } from "react-icons/tb";
+import { FaRegCalendar } from "react-icons/fa";
+import { FaRegClock } from "react-icons/fa";
+import { GoPerson } from "react-icons/go";
+import Image from "next/image";
 
 interface ViewTaskModalProps {
   isOpen: boolean;
@@ -25,8 +33,6 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
     status: "Pending Task",
     title: "Booking - OS",
     bookingId: "OS-ABC12",
-    description:
-      "Please upload required documents to Booking - OS with ID #OS-ABC12",
     dueDate: "May 10th 2025",
     dueTime: "10:00",
     dateCreated: "May 05th 2025",
@@ -69,7 +75,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "High Priority":
-        return "bg-red-100 text-red-600";
+        return "bg-red-100 text-red-800";
       case "Medium Priority":
         return "bg-yellow-100 text-yellow-600";
       case "Low Priority":
@@ -95,29 +101,23 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
         {/* Header */}
         <div className="px-6 py-4">
           <div className="flex justify-between items-center mb-3">
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </button>
-            <div className="flex-1 text-center">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {taskData.date}
-              </h2>
-              <p className="text-sm text-gray-500">Today</p>
+            <div className="flex-1 flex items-center justify-center gap-2">
+              <MdOutlineKeyboardArrowLeft
+                size={26}
+                className="text-gray-500 -mt-4 mr-1 cursor-pointer transition-colors"
+              />
+
+              <div className="text-center">
+                <h2 className="text-lg mt-2 font-semibold text-gray-900">
+                  {taskData.date}
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">Today</p>
+              </div>
+
+              <MdOutlineKeyboardArrowRight
+                size={26}
+                className="text-gray-500 -mt-4 ml-1 cursor-pointer transition-colors"
+              />
             </div>
             <button
               onClick={onClose}
@@ -142,19 +142,27 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <span className="text-gray-600 text-sm">Task ID:</span>
-              <span className="font-semibold text-gray-900">
+              <span className="ml-1 font-semibold text-gray-900">
                 {taskData.taskId}
               </span>
             </div>
-            <span
-              className={`px-3 py-1 rounded-full text-xs font-medium ${getPriorityColor(
-                taskData.priority
-              )}`}
-            >
-              {taskData.priority}
-            </span>
-            <div className="flex items-center gap-2 text-yellow-600">
-              <FiClock size={18} />
+            {activeTab === "info" && (
+              <span
+                className={`px-3 py-2 rounded-full text-xs font-semibold ${getPriorityColor(
+                  taskData.priority
+                )}`}
+              >
+                {taskData.priority}
+              </span>
+            )}
+
+            <div className="flex bg-[#FFFAF2] px-2 py-2 rounded-3xl items-center gap-2 text-[#818181]">
+              <Image
+                src="/icons/hour-glass-icon.svg"
+                alt="Clock Icon"
+                width={16}
+                height={16}
+              />
               <span className="text-sm font-medium">{taskData.status}</span>
             </div>
           </div>
@@ -191,13 +199,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5 text-blue-600"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-                    </svg>
+                    <TbLuggage className="text-[#126ACB] bg-blue-100 rounded-full px-1.5 py-1.5 w-8 h-8" />
                     <h3 className="font-semibold text-gray-900">
                       {taskData.title}
                     </h3>
@@ -213,10 +215,15 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                 <h4 className="text-sm font-medium text-gray-700 mb-2">
                   Description
                 </h4>
-                <p className="text-sm text-gray-600">{taskData.description}</p>
+                <span className="text-sm flex gap-1 text-gray-600">
+                  Please Upload required documents to{" "}
+                  <p className="text-[#020202] font-semibold">Booking-OS</p>{" "}
+                  with{" "}
+                  <p className="text-[#020202] font-semibold"> ID #OS-ABC12</p>{" "}
+                </span>
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-4 border-b border-gray-200 pb-4 mb-4">
                 <div>
                   <h4 className="text-sm font-medium text-gray-500 mb-1">
                     Due Date
@@ -225,7 +232,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                     {taskData.dueDate}
                   </p>
                 </div>
-                <div>
+                <div className="mx-auto">
                   <h4 className="text-sm font-medium text-gray-500 mb-1">
                     Due Time
                   </h4>
@@ -233,7 +240,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                     {taskData.dueTime}
                   </p>
                 </div>
-                <div>
+                <div className="ml-20">
                   <h4 className="text-sm font-medium text-gray-500 mb-1">
                     Date Created
                   </h4>
@@ -244,7 +251,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
               </div>
 
               {/* Assigned To and By */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 border-b border-gray-200 pb-4 mb-4">
                 <div>
                   <h4 className="text-sm font-medium text-gray-500 mb-2">
                     Assigned To
@@ -253,7 +260,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                     {taskData.assignedTo}
                   </p>
                 </div>
-                <div>
+                <div className="ml-47">
                   <h4 className="text-sm font-medium text-gray-500 mb-2">
                     Assigned By
                   </h4>
@@ -264,7 +271,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
               </div>
 
               <div>
-                <h4 className="text-sm font-medium text-gray-700 mb-3">
+                <h4 className="text-sm font-medium text-gray-500 mb-3">
                   Attached Files ({taskData.attachedFiles})
                 </h4>
                 <div className="flex gap-3">
@@ -318,19 +325,10 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                 {/* Task Added */}
                 <div className="relative flex gap-4 mb-8">
                   <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center z-10">
-                    <svg
-                      className="w-6 h-6 text-blue-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 4v16m8-8H4"
-                      />
-                    </svg>
+                    <CiCirclePlus
+                      size={24}
+                      className="text-blue-600 font-bold"
+                    />
                   </div>
                   <div className="flex-1 bg-blue-50 rounded-lg p-4 mt-1">
                     <h3 className="text-blue-600 font-semibold text-lg mb-3">
@@ -348,34 +346,18 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                     </p>
                     <div className="flex items-center gap-4 text-xs text-gray-500">
                       <div className="flex items-center gap-1">
-                        <svg
-                          className="w-4 h-4"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                        </svg>
+                        <GoPerson className="w-3 h-3" />
                         <span>Yash Manocha</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <svg
-                          className="w-4 h-4"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z" />
-                        </svg>
-                        <span>05-05-2025</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <svg
-                          className="w-4 h-4"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
-                        </svg>
-                        <span>10:45</span>
+                      <div className="ml-60 flex gap-2">
+                        <div className="flex items-center gap-1">
+                          <FaRegCalendar className="w-3 h-3" />
+                          <span>05-05-2025</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <FaRegClock className="w-3 h-3" />
+                          <span>10:45</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -384,19 +366,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                 {/* Task Modified 1 */}
                 <div className="relative flex gap-4 mb-8">
                   <div className="flex-shrink-0 w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center z-10">
-                    <svg
-                      className="w-6 h-6 text-orange-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
-                    </svg>
+                    <TbSquareToggle size={24} className="text-orange-600" />
                   </div>
                   <div className="flex-1 bg-orange-50 rounded-lg p-4 mt-1">
                     <h3 className="text-orange-600 font-semibold text-lg mb-3">
@@ -408,34 +378,18 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                     </p>
                     <div className="flex items-center gap-4 text-xs text-gray-500">
                       <div className="flex items-center gap-1">
-                        <svg
-                          className="w-4 h-4"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                        </svg>
+                        <GoPerson className="w-3 h-3" />
                         <span>Ravi Kumar</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <svg
-                          className="w-4 h-4"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z" />
-                        </svg>
-                        <span>06-05-2025</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <svg
-                          className="w-4 h-4"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
-                        </svg>
-                        <span>18:30</span>
+                      <div className="ml-65 flex gap-2">
+                        <div className="flex items-center gap-1">
+                          <FaRegCalendar className="w-3 h-3" />
+                          <span>06-05-2025</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <FaRegClock className="w-3 h-3" />
+                          <span>18:30</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -444,19 +398,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                 {/* Task Modified 2 */}
                 <div className="relative flex gap-4">
                   <div className="flex-shrink-0 w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center z-10">
-                    <svg
-                      className="w-6 h-6 text-orange-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
-                    </svg>
+                    <TbSquareToggle size={24} className="text-orange-600" />
                   </div>
                   <div className="flex-1 bg-orange-50 rounded-lg p-4 mt-1">
                     <h3 className="text-orange-600 font-semibold text-lg mb-3">
@@ -468,34 +410,18 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                     </p>
                     <div className="flex items-center gap-4 text-xs text-gray-500">
                       <div className="flex items-center gap-1">
-                        <svg
-                          className="w-4 h-4"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                        </svg>
+                        <GoPerson className="w-3 h-3" />
                         <span>Yash Manocha</span>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <svg
-                          className="w-4 h-4"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z" />
-                        </svg>
-                        <span>08-05-2025</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <svg
-                          className="w-4 h-4"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z" />
-                        </svg>
-                        <span>13:00</span>
+                      <div className="ml-59 flex gap-2">
+                        <div className="flex items-center gap-1">
+                          <FaRegCalendar className="w-3 h-3" />
+                          <span>08-05-2025</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <FaRegClock className="w-3 h-3" />
+                          <span>13:00</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -506,7 +432,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 px-6 py-4">
+        <div className="px-6 py-4">
           <div className="flex gap-3">
             <button
               onClick={onEdit}

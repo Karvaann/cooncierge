@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { IconType } from "react-icons";
 import { MdKeyboardArrowUp } from "react-icons/md";
-import { FaChartLine } from "react-icons/fa6";
+import { TbGraph } from "react-icons/tb";
 import { LuLayoutDashboard } from "react-icons/lu";
 import { GoPeople } from "react-icons/go";
 import { TbLuggage } from "react-icons/tb";
@@ -40,7 +40,7 @@ const menuItems: MenuItem[] = [
   },
   {
     label: "Sales",
-    icon: FaChartLine,
+    icon: TbGraph,
     subMenu: [
       { label: "Limitless", href: "/sales/limitless" },
       { label: "Other Services", href: "/sales/other-services" },
@@ -135,7 +135,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       <div
         ref={sidebarRef}
         className={`fixed top-0 left-0 h-screen text-white border-r border-gray-700 transition-all transform duration-500 ease-in-out z-50 ${
-          isOpen ? "w-54" : "w-16"
+          isOpen ? "w-54" : "w-[3.5rem]"
         }`}
         style={{
           background:
@@ -143,24 +143,25 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         }}
       >
         <div className="flex justify-center items-center w-full gap-3 pt-3 pr-3">
-          {isOpen && (
+          {isOpen ? (
             <Image
               src="/logo/cooncierge-wordmark.svg"
               alt="Cooncierge wordmark"
-              width={120}
+              width={150}
               height={30}
               className="h-[30px] w-auto"
               priority
             />
+          ) : (
+            <Image
+              src="/logo/cooncierge-logo-icon.svg"
+              alt="Cooncierge logo"
+              width={35}
+              height={35}
+              className="h-[35px] w-[35px] ml-2"
+              priority
+            />
           )}
-          <Image
-            src="/logo/cooncierge-logo-icon.svg"
-            alt="Cooncierge logo"
-            width={35}
-            height={35}
-            className="h-[35px] w-[35px]"
-            priority
-          />
         </div>
 
         <ul className="mt-12 space-y-1">

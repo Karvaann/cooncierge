@@ -1,11 +1,11 @@
 import React from "react";
-import Modal from "../Modal";
+import Modal from "../../Modal";
 
 interface ConfirmPopupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onDontSave: () => void;
-  onSaveAsDrafts: () => void;
+  onDontSave?: () => void;
+  onSaveAsDrafts?: () => void;
   title: string;
 }
 
@@ -22,15 +22,15 @@ const ConfirmPopupModal: React.FC<ConfirmPopupModalProps> = ({
       onClose={onClose}
       title=""
       size="sm"
-      customWidth="w-[500px]"
-      customeHeight="h-[250px]"
+      customWidth="w-[383px]"
+      customeHeight="h-[220px]"
       showCloseButton={true}
       closeOnOverlayClick={true}
       closeOnEscape={true}
       className="p-0 w-[500px]"
     >
-      <div className="flex flex-col items-center -mt-4 justify-center px-2">
-        <div className="text-center mb-6 text-[#114958] text-base md:text-lg font-normal">
+      <div className="flex flex-col items-center -mt-5 rounded-[12px] justify-center px-2">
+        <div className="text-center mb-6 text-black text-base md:text-lg font-normal">
           {title}
         </div>
 
@@ -41,12 +41,15 @@ const ConfirmPopupModal: React.FC<ConfirmPopupModalProps> = ({
           >
             Cancel
           </button>
+          {/* Conditional Buttons */}
+
           <button
             className="border border-[#D32F2F] text-white bg-[#D32F2F] rounded-lg px-6 py-2 font-medium hover:bg-[#b71c1c] transition-colors"
             onClick={onDontSave}
           >
             Don't Save
           </button>
+
           <button
             className="border border-[#1A7F64] text-white bg-[#1A7F64] rounded-lg px-6 py-2 font-medium hover:bg-[#145c47] transition-colors"
             onClick={onSaveAsDrafts}

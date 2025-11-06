@@ -7,44 +7,41 @@ import ActionMenu from "@/components/Menus/ActionMenu";
 import { FiSearch } from "react-icons/fi";
 import { CiFilter } from "react-icons/ci";
 import { HiArrowsUpDown } from "react-icons/hi2";
-import { IoMdArrowDropdown } from "react-icons/io";
 import { IoEllipsisHorizontal } from "react-icons/io5";
 import { getCustomers } from "@/services/customerApi";
 import type { JSX } from "react";
-import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
+import AddTeamSideSheet from "@/components/Sidesheets/AddTeamSideSheet";
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
 import DownloadMergeMenu from "@/components/Menus/DownloadMergeMenu";
-import { menu } from "framer-motion/client";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
   ssr: false,
 });
 
-type CustomerRow = {
-  customerID: string;
-  name: string;
-  rating: string;
-  owner: string;
-  dateCreated: string;
+type TeamRow = {
+  ID: string;
+  memberName: string;
+  alias: string;
+  userStatus: string;
+  joiningDate: string;
   actions: React.ComponentType<any> | string;
 };
 
 const columns: string[] = [
-  "Customer ID",
-  "Name",
-  "Owner",
-  "Rating",
-  "Date Modified",
+  "ID",
+  "Member Name",
+  "ALias",
+  "User Status",
+  "Joining Date",
   "Actions",
 ];
 
 const columnIconMap: Record<string, JSX.Element> = {
-  "Customer ID": <HiArrowsUpDown className="inline w-5 h-5 text-white" />,
-  Name: <CiFilter className="inline w-5 h-5 text-white" />,
-  Owner: <CiFilter className="inline w-5 h-5 text-white" />,
-  Rating: <HiArrowsUpDown className="inline w-5 h-5 text-white" />,
-  "Date Modified": <HiArrowsUpDown className="inline w-5 h-5 text-white" />,
+  ID: <HiArrowsUpDown className="inline w-5 h-5 text-white" />,
+  "Member Name": <CiFilter className="inline w-5 h-5 text-white" />,
+  "User Status": <CiFilter className="inline w-5 h-5 text-white" />,
+  "Joining Date": <HiArrowsUpDown className="inline w-5 h-5 text-white" />,
 };
 
 // const customerTableSeed: CustomerRow[] = [
@@ -92,21 +89,21 @@ const columnIconMap: Record<string, JSX.Element> = {
 
 const CustomerDirectory = () => {
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("Customers");
+  const [activeTab, setActiveTab] = useState("Current");
   const [searchValue, setSearchValue] = useState("");
-  const [customers, setCustomers] = useState<CustomerRow[]>([]);
-  const tabOptions = ["Customers", "Travellers", "Deleted"];
+  const [customers, setCustomers] = useState<TeamRow[]>([]);
+  const tabOptions = ["Current", "Former", "Deleted"];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuMode, setMenuMode] = useState<"main" | "action">("main");
 
   const [selectMode, setSelectMode] = useState(false);
-  const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
+  const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
 
-  // Sorting Of Customers
+  // Sorting Of Team members
   // const [sortAsc, setSortAsc] = useState(true);
 
   // const handleSort = (column: string) => {
-  //   if (column === "Customer ID") {
+  //   if (column === "ID") {
   //     const sortedCustomers = [...customers].reverse();
   //     setCustomers(sortedCustomers);
   //     setSortAsc(!sortAsc);
@@ -128,58 +125,58 @@ const CustomerDirectory = () => {
 
   const handleCancelSelectMode = () => {
     setSelectMode(false);
-    setSelectedCustomers([]);
+    setSelectedTeamMembers([]);
     setMenuMode("main"); // ✅ Revert menu to SelectUploadMenu
   };
 
-  useEffect(() => {
-    const fetchCustomers = async () => {
-      try {
-        const customers = await getCustomers();
-        console.log("Fetched customers:", customers);
+  //   useEffect(() => {
+  //     const fetchCustomers = async () => {
+  //       try {
+  //         const customers = await getCustomers();
+  //         console.log("Fetched customers:", customers);
 
-        const mappedRows: CustomerRow[] = customers.map(
-          (c: any, index: number) => ({
-            customerID: c._id || `#C00${index + 1}`,
-            name: c.name,
-            owner:
-              typeof c.ownerId === "object" && c.ownerId !== null
-                ? c.ownerId.name
-                : c.ownerId || "—",
-            rating: "⭐️⭐️⭐️⭐️",
-            dateCreated: new Date(c.createdAt).toLocaleDateString(),
-            actions: "⋮",
-          })
-        );
-        setCustomers(mappedRows);
-      } catch (err) {
-        console.error("Failed to fetch customers:", err);
-      } finally {
-        // Any cleanup or final steps
-      }
-    };
+  //         const mappedRows: TeamRow[] = customers.map(
+  //           (c: any, index: number) => ({
+  //             customerID: c._id || `#C00${index + 1}`,
+  //             name: c.name,
+  //             owner:
+  //               typeof c.ownerId === "object" && c.ownerId !== null
+  //                 ? c.ownerId.name
+  //                 : c.ownerId || "—",
+  //             rating: "⭐️⭐️⭐️⭐️",
+  //             dateCreated: new Date(c.createdAt).toLocaleDateString(),
+  //             actions: "⋮",
+  //           })
+  //         );
+  //         setCustomers(mappedRows);
+  //       } catch (err) {
+  //         console.error("Failed to fetch customers:", err);
+  //       } finally {
+  //         // Any cleanup or final steps
+  //       }
+  //     };
 
-    fetchCustomers();
-  }, []);
+  //     fetchCustomers();
+  //   }, []);
 
   const tableData = useMemo<JSX.Element[][]>(
     () =>
       customers.map((row, index) => [
-        <td key={`customerID-${index}`} className="px-4 py-3">
-          {row.customerID}
+        <td key={`ID-${index}`} className="px-4 py-3">
+          {row.ID}
         </td>,
-        <td key={`name-${index}`} className="px-4 py-3">
-          {row.name}
+        <td key={`memberName-${index}`} className="px-4 py-3">
+          {row.memberName}
         </td>,
-        <td key={`owner-${index}`} className="px-4 py-3">
-          {row.owner}
+        <td key={`alias-${index}`} className="px-4 py-3">
+          {row.alias}
         </td>,
 
-        <td key={`rating-${index}`} className="px-4 py-3">
-          {row.rating}
+        <td key={`userStatus-${index}`} className="px-4 py-3">
+          {row.userStatus}
         </td>,
-        <td key={`dateCreated-${index}`} className="px-4 py-3">
-          {row.dateCreated}
+        <td key={`joiningDate-${index}`} className="px-4 py-3">
+          {row.joiningDate}
         </td>,
         <td key={`actions-${index}`} className="px-4 py-3">
           <ActionMenu />
@@ -199,7 +196,7 @@ const CustomerDirectory = () => {
               onClick={() => setActiveTab(tab)}
               className={`px-9 py-2 rounded-xl font-semibold transition-all duration-200 ${
                 activeTab === tab
-                  ? "bg-[#0D4B37] text-white shadow-sm"
+                  ? "bg-green-900 text-white shadow-sm"
                   : "text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -221,7 +218,7 @@ const CustomerDirectory = () => {
             className="flex items-center cursor-pointer gap-2 border border-green-900 text-green-900 px-6 py-2 rounded-lg font-semibold transition-all duration-200"
             type="button"
           >
-            + Add Customer
+            + Add Team Member
           </button>
         </div>
       </div>
@@ -254,15 +251,15 @@ const CustomerDirectory = () => {
               </button>
               <button
                 onClick={() => {
-                  if (selectedCustomers.length === customers.length) {
-                    setSelectedCustomers([]); // deselect all
+                  if (selectedTeamMembers.length === customers.length) {
+                    setSelectedTeamMembers([]); // deselect all
                   } else {
-                    setSelectedCustomers(customers.map((c) => c.customerID)); // select all
+                    setSelectedTeamMembers(customers.map((c) => c.ID)); // select all
                   }
                 }}
                 className="px-3 py-2 w-[115px] mr-3 text-sm font-medium rounded-lg border border-gray-300 bg-white hover:bg-gray-100"
               >
-                {selectedCustomers.length === customers.length
+                {selectedTeamMembers.length === customers.length
                   ? "Select All"
                   : "Deselect All"}
               </button>
@@ -318,7 +315,7 @@ const CustomerDirectory = () => {
         />
       </div>
       {isSideSheetOpen && (
-        <AddCustomerSideSheet
+        <AddTeamSideSheet
           isOpen={isSideSheetOpen}
           onCancel={() => setIsSideSheetOpen(false)}
         />

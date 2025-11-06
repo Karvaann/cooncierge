@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useCallback, useMemo } from "react";
-import ConfirmPopupModal from "./popups/ConfirmPopupModal";
-import SuccessPopupModal from "./popups/SuccessPopupModal";
+import ConfirmPopupModal from "./popups/BookingPopups/ConfirmPopupModal";
+import SuccessPopupModal from "./popups/BookingPopups/SuccessPopupModal";
 import { BookingProvider, useBooking } from "@/context/BookingContext";
 import { BookingApiService } from "@/services/bookingApi";
 import SideSheet from "@/components/SideSheet";
@@ -440,6 +440,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       <ConfirmPopupModal
         isOpen={isConfirmModalOpen}
         title={confirmModalText}
+        showDontSave={true}
+        showSaveAsDrafts={true}
+        cancelText="Cancel"
         onClose={() => setIsConfirmModalOpen(false)}
         onDontSave={() => {
           setIsConfirmModalOpen(false);

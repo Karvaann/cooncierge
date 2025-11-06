@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useCallback } from "react";
+import { TbLuggage } from "react-icons/tb";
+import { TbArticle } from "react-icons/tb";
 
 interface DayWiseTaskModalProps {
   isOpen: boolean;
@@ -133,10 +135,10 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
 
   const getAvatarColor = (index: number) => {
     const colors = [
-      "bg-pink-200 text-pink-700",
-      "bg-purple-200 text-purple-700",
-      "bg-blue-200 text-blue-700",
-      "bg-cyan-200 text-cyan-700",
+      "bg-white text-pink-700 border-pink-700",
+      "bg-white text-[#AF52DE] border-[#AF52DE]",
+      "bg-white text-[#5856D6] border-[#5856D6]",
+      "bg-white text-cyan-700 border-cyan-700",
     ];
     return colors[index % colors.length];
   };
@@ -151,7 +153,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
       aria-modal="true"
     >
       <div
-        className="bg-white rounded-xl p-2 shadow-xl overflow-hidden w-[700px] h-[700px] mx-4 transition-all duration-300 transform flex flex-col"
+        className="bg-white rounded-xl p-2 shadow-xl overflow-hidden w-[39.93vw] h-[700px] mx-4 transition-all duration-300 transform flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -214,12 +216,12 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
           </div>
 
           {/* Task Stats */}
-          <div className="flex gap-4 mb-4 w-[260px] bg-white border border-gray-200 px-4 py-2 rounded-lg align-items-center">
-            <div className="flex items-center gap-2 border-r border-gray-300 pr-2 -mr-[2px]">
+          <div className="flex gap-4 mb-4 w-[17.1875rem] bg-white border border-gray-200 px-4 py-2 rounded-lg align-items-center">
+            <div className="flex items-center gap-3 border-r border-gray-300 pr-2 -mr-[2px]">
               <span className="text-gray-600 text-sm">Total Task</span>
-              <span className="font-bold text-gray-900 text-lg">4</span>
+              <span className="font-bold text-gray-900 text-lg mr-1">4</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               <span className="text-gray-600 text-sm">Task Overdue</span>
               <span className="font-bold text-red-600 text-lg">1</span>
             </div>
@@ -286,7 +288,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                   <div className="text-sm text-gray-500">09-05-2025, 15:30</div>
                 </div>
 
-                <div className="flex items-center w-[580px] rounded-lg bg-gray-100 p-2 justify-between mb-3">
+                <div className="flex items-center w-full rounded-lg bg-gray-100 p-2 justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <svg
                       className="w-5 h-5 text-blue-600"
@@ -384,32 +386,22 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                     </div>
                     <div className="flex-1 text-center text-sm text-gray-600">
                       Task ID:{" "}
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-semibold ml-1 text-[#414141]">
                         {task.id}
                       </span>
                     </div>
-                    <div className="text-sm text-gray-500">{task.dateTime}</div>
+                    <div className="text-sm text-gray-500 mr-4">
+                      {task.dateTime}
+                    </div>
                   </div>
 
                   {/* Task Info */}
-                  <div className="flex items-center justify-between w-[580px] rounded-lg bg-gray-100 p-2 mb-3">
+                  <div className="flex items-center justify-between w-full rounded-lg bg-gray-100 p-2 mb-3">
                     <div className="flex items-center gap-2">
                       {task.icon === "booking" ? (
-                        <svg
-                          className="w-5 h-5 text-blue-600"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-                        </svg>
+                        <TbLuggage className="text-[#126ACB] w-5 h-5 -mt-2" />
                       ) : (
-                        <svg
-                          className="w-5 h-5 text-gray-600"
-                          fill="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z" />
-                        </svg>
+                        <TbArticle className="text-[#A2845E] w-5 h-5 -mt-2" />
                       )}
                       <div>
                         <div className="font-semibold text-gray-900">
@@ -432,19 +424,21 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                   </p>
 
                   <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-[#818181]">
                       Assigned By:{" "}
-                      <span className="font-semibold">{task.assignedBy}</span>
+                      <span className="font-semibold text-[#414141]">
+                        {task.assignedBy}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 mr-3">
                       <span className="text-sm text-gray-600 mr-2">
                         Assignees:
                       </span>
                       {task.assignees.map((assignee, idx) => (
                         <div
                           key={idx}
-                          className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold border-2 border-white ${
-                            idx > 0 ? "-ml-2" : ""
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold border-2 ${
+                            idx > 0 ? "-ml-3" : ""
                           } ${getAvatarColor(idx)}`}
                         >
                           {assignee}
@@ -453,7 +447,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="absolute right-2 top-1/2 mt-3 -translate-y-1/2">
+                  <div className="absolute right-1 top-1/2 mt-3 -translate-y-1/2">
                     <svg
                       className="w-5 h-5 text-gray-400"
                       fill="none"

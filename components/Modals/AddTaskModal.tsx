@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Modal from "../Modal";
 import { MdOutlineFileUpload } from "react-icons/md";
-
+import { MdKeyboardArrowUp } from "react-icons/md";
+import { MdKeyboardArrowDown } from "react-icons/md";
+import { IoMdClose } from "react-icons/io";
 interface AddTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -29,17 +31,57 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
     ]
   );
   const [comments, setComments] = useState(initialData.comments || "");
-  const [assignee, setAssignee] = useState(initialData.assignee || "");
+
   const [assignedBy, setAssignedBy] = useState(initialData.assignedBy || "");
   const [startDate, setStartDate] = useState(initialData.startDate || "");
   const [dueDate, setDueDate] = useState(initialData.dueDate || "");
   const [priority, setPriority] = useState(initialData.priority || "");
   const [dueHours, setDueHours] = useState(initialData.dueHours || 14);
   const [dueMinutes, setDueMinutes] = useState(initialData.dueMinutes || 30);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const handleAddSubTask = () => {
-    setSubTasks([...subTasks, "Lorem Ipsum"]);
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  const assignees = ["John Doe", "Jane Smith", "Alex Johnson", "Emma Brown"];
+
+  const toggleAssignee = (assignee: string) => {
+    setSelectedAssignees((prev) =>
+      prev.includes(assignee)
+        ? prev.filter((item) => item !== assignee)
+        : [...prev, assignee]
+    );
   };
+
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset form fields when modal is closed
+
+      setDescription("");
+
+      setComments("");
+      setAssignedBy("");
+      setStartDate("");
+      setDueDate("");
+      setPriority("");
+      setDueHours(14);
+      setDueMinutes(30);
+      setSelectedAssignees([]);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const incrementHours = () => {
     setDueHours((prev: number) => (prev === 23 ? 0 : prev + 1));
@@ -63,7 +105,6 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
       description,
       subTasks,
       comments,
-      assignee,
       assignedBy,
       startDate,
       dueDate,
@@ -100,6 +141,12 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 onChange={(e) => setNature(e.target.value)}
               >
                 <option value="">Select Category</option>
+                <option value="">Bookings - OS</option>
+                <option value="">Bookings - Limitless Category</option>
+                <option value="">Directory - Customers</option>
+                <option value="">Directory - Vendors</option>
+                <option value="">Directory - Team</option>
+                <option value="">General</option>
               </select>
             </div>
 
@@ -176,20 +223,64 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 onChange={(e) => setPriority(e.target.value)}
               >
                 <option value="">Select Priority</option>
+                <option value="">High</option>
+                <option value="">Medium</option>
+                <option value="">Low</option>
               </select>
             </div>
             {/* Assigned To */}
-            <div>
+            <div className="relative">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Assigned To
               </label>
-              <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-md "
-                value={assignee}
-                onChange={(e) => setAssignee(e.target.value)}
+              {/* Input box */}
+              <div
+                className="w-full border border-gray-300 rounded-md px-3 py-2 min-h-[46px] flex items-center flex-wrap gap-2 cursor-pointer"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
               >
-                <option value="">Select Assignee</option>
-              </select>
+                {selectedAssignees.length > 0 ? (
+                  selectedAssignees.map((name) => (
+                    <span
+                      key={name}
+                      className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-1.5 rounded-full text-sm"
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleAssignee(name);
+                        }}
+                        className="text-black font-semibold"
+                      >
+                        <IoMdClose size={15} />
+                      </button>
+                      {name}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-400 text-sm">Select Assignee</span>
+                )}
+              </div>
+
+              {/* Dropdown */}
+              {dropdownOpen && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {assignees.map((assignee) => (
+                    <label
+                      key={assignee}
+                      className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedAssignees.includes(assignee)}
+                        onChange={() => toggleAssignee(assignee)}
+                        className="accent-emerald-600"
+                      />
+                      <span className="text-gray-700 text-sm">{assignee}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
             {/* Assigned By */}
             <div>
@@ -224,12 +315,12 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
               </label>
               <div className="flex items-center gap-2">
                 {/* Hours */}
-                <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-md px-3 py-2">
+                <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-md px-3 py-1">
                   <input
                     type="text"
                     value={dueHours.toString().padStart(2, "0")}
                     readOnly
-                    className="w-8 text-center font-medium text-gray-700 bg-transparent outline-none"
+                    className="w-6 text-center font-medium text-gray-700 bg-transparent outline-none"
                   />
                   <div className="flex flex-col gap-0.5">
                     <button
@@ -237,38 +328,14 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                       onClick={incrementHours}
                       className="p-0.5 hover:bg-gray-100 rounded transition-colors"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="18 15 12 9 6 15"></polyline>
-                      </svg>
+                      <MdKeyboardArrowUp size={18} className="" />
                     </button>
                     <button
                       type="button"
                       onClick={decrementHours}
                       className="p-0.5 hover:bg-gray-100 rounded transition-colors"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
+                      <MdKeyboardArrowDown size={18} />
                     </button>
                   </div>
                 </div>
@@ -277,12 +344,12 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 <span className="text-xl font-semibold text-gray-700">:</span>
 
                 {/* Minutes */}
-                <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-md px-3 py-2">
+                <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-md px-3 py-1">
                   <input
                     type="text"
                     value={dueMinutes.toString().padStart(2, "0")}
                     readOnly
-                    className="w-8 text-center font-medium text-gray-700 bg-transparent outline-none"
+                    className="w-6 text-center font-medium text-gray-700 bg-transparent outline-none"
                   />
                   <div className="flex flex-col gap-0.5">
                     <button
@@ -290,38 +357,14 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                       onClick={incrementMinutes}
                       className="p-0.5 hover:bg-gray-100 rounded transition-colors"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="18 15 12 9 6 15"></polyline>
-                      </svg>
+                      <MdKeyboardArrowUp size={18} className="" />
                     </button>
                     <button
                       type="button"
                       onClick={decrementMinutes}
                       className="p-0.5 hover:bg-gray-100 rounded transition-colors"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <polyline points="6 9 12 15 18 9"></polyline>
-                      </svg>
+                      <MdKeyboardArrowDown size={18} />
                     </button>
                   </div>
                 </div>
@@ -335,7 +378,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
             className="flex items-center gap-1 px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition"
             onClick={handleSave}
           >
-            Save Details
+            Create Task
           </button>
         </div>
       </div>

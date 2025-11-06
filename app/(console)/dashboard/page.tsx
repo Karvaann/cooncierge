@@ -6,17 +6,18 @@ import apiClient from "@/services/apiClient";
 import { getAuthToken } from "@/services/storage/authStorage";
 import { getRandomBgTextClass, getRandomDarkBgClass } from "@/utils/helper";
 import { useCalendar } from "@/context/CalendarContext";
-import { BookingProvider, useBooking } from "@/context/BookingContext";
+import { BookingProvider } from "@/context/BookingContext";
 import CalendarSkeleton from "@/components/skeletons/CalendarSkeleton";
 import { IoIosExpand } from "react-icons/io";
 import AddTaskModal from "@/components/Modals/AddTaskModal";
 import { LuCalendarCog } from "react-icons/lu";
 import { FiAlertTriangle } from "react-icons/fi";
-import { GoClock } from "react-icons/go";
+import { MdHistoryToggleOff } from "react-icons/md";
+import { MdOutlineKeyboardArrowRight } from "react-icons/md";
 import TaskCard from "@/components/TaskCard";
-import ViewTaskModal from "@/components/Modals/ViewTaskModal";
-import DueTodayTaskModal from "@/components/Modals/DueTodayTaskModal";
-import DayWiseTaskModal from "@/components/Modals/DayWiseTaskModal";
+import ViewTaskModal from "@/components/Modals/TaskModals/ViewTaskModal";
+import DueTodayTaskModal from "@/components/Modals/TaskModals/DueTodayTaskModal";
+import DayWiseTaskModal from "@/components/Modals/TaskModals/DayWiseTaskModal";
 
 const Calendar = dynamic(() => import("@/components/Calendar"), {
   loading: () => <CalendarSkeleton />,
@@ -46,20 +47,21 @@ interface SummaryData {
 }
 
 const CircularProgress = ({ percentage }: { percentage: number }) => {
-  const radius = 90;
+  const radius = 80;
+  const strokeWidth = 14;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
     <div className="relative w-48 h-48 mx-auto">
-      <svg className="transform -rotate-90 w-full h-full">
+      <svg viewBox="0 0 200 200" className="transform -rotate-90 w-full h-full">
         {/* Background circle */}
         <circle
           cx="96"
           cy="96"
           r={radius}
           stroke="#f3f4f6"
-          strokeWidth="16"
+          strokeWidth={strokeWidth}
           fill="none"
         />
         {/* Progress circle */}
@@ -67,8 +69,8 @@ const CircularProgress = ({ percentage }: { percentage: number }) => {
           cx="96"
           cy="96"
           r={radius}
-          stroke="#059669"
-          strokeWidth="16"
+          stroke="#4CA640"
+          strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
@@ -337,8 +339,8 @@ const DashboardContent: React.FC = () => {
     {
       title: "Upcoming Tasks",
       count: 1,
-      icon: <GoClock className="w-5 h-5" />,
-      iconColor: "text-blue-500",
+      icon: <MdHistoryToggleOff className="w-5 h-5" />,
+      iconColor: "text-[#126ACB]",
       tasks: [
         {
           priority: "High Priority",
@@ -495,64 +497,74 @@ const DashboardContent: React.FC = () => {
       )}
       {!calenderShow && (
         <>
-          <div className="bg-white shadow-sm border border-gray-100 rounded-xl p-6 gap-4">
+          <div className="bg-white shadow-sm border border-[#E2E1E1] rounded-xl p-4 gap-4">
             <div className="h-[500px] bg-white p-4">
               <div className="max-w-9xl mx-4">
-                {/* Tab Navigation */}
-                <div className="flex gap-2 mb-8 bg-[#F3F3F3] border border-gray-200 w-[330px] rounded-xl">
+                <div className="flex items-center justify-between mb-8">
+                  {/* Tab Navigation */}
+                  <div className="flex gap-2 bg-[#F3F3F3] border border-[#E2E1E1] w-[330px] rounded-xl">
+                    <button
+                      onClick={() => setActiveTab("assigned-to-me")}
+                      className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                        activeTab === "assigned-to-me"
+                          ? "bg-[#0D4B37] text-white"
+                          : " text-gray-500 hover:bg-gray-100"
+                      }`}
+                    >
+                      Assigned to me
+                    </button>
+                    <button
+                      onClick={() => setActiveTab("assigned-by-me")}
+                      className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                        activeTab === "assigned-by-me"
+                          ? "bg-[#0D4B37] text-white"
+                          : "text-gray-500 hover:bg-gray-100"
+                      }`}
+                    >
+                      Assigned by me
+                    </button>
+                  </div>
+
                   <button
-                    onClick={() => setActiveTab("assigned-to-me")}
-                    className={`px-4 py-2 rounded-full font-medium transition-colors ${
-                      activeTab === "assigned-to-me"
-                        ? "bg-emerald-800 text-white"
-                        : " text-gray-500 hover:bg-gray-100"
-                    }`}
+                    type="button"
+                    onClick={openAddTaskModal}
+                    className="flex items-center justify-center h-10 px-5 py-2 rounded-lg font-semibold border border-[#0D4B37] bg-white text-[#0D4B37] text-center font-poppins text-base leading-6 hover:bg-gray-200 transition-colors"
                   >
-                    Assigned to me
-                  </button>
-                  <button
-                    onClick={() => setActiveTab("assigned-by-me")}
-                    className={`px-4 py-2 rounded-full font-medium transition-colors ${
-                      activeTab === "assigned-by-me"
-                        ? "bg-emerald-800 text-white"
-                        : "text-gray-500 hover:bg-gray-100"
-                    }`}
-                  >
-                    Assigned by me
+                    + Task
                   </button>
                 </div>
 
                 {/* Main Content Grid */}
                 {activeTab === "assigned-to-me" && (
-                  <div className="grid grid-cols-1 lg:grid-cols-4 px-3 w-[1500px] rounded-xl gap-6 border border-gray-200 -mt-3 -ml-5">
-                    <div className="bg-white p-4 w-[300px] border-r border-gray-200">
+                  <div className="grid grid-cols-1 lg:grid-cols-4 px-3 w-[1500px] rounded-xl gap-6 border border-[#E2E1E1] -mt-3 -ml-5">
+                    <div className="bg-white p-4 w-[300px] border-r border-[#E2E1E1]">
                       <div className="mb-4">
-                        <h3 className="text-green-600 font-medium text-sm mb-1">
+                        <h3 className="text-green-600 font-medium text-md mb-1 ml-10 mt-1">
                           Almost there, just a few
                         </h3>
-                        <p className="text-green-600 font-medium text-sm">
+                        <p className="text-green-600 font-medium text-md ml-10 mt-2">
                           left to complete!
                         </p>
                       </div>
 
                       <CircularProgress percentage={completionPercentage} />
 
-                      <p className="text-center text-gray-500 text-sm font-medium mt-4">
+                      <p className="text-center text-gray-500 text-md font-medium mt-4">
                         Task Completion Rate
                       </p>
 
-                      <div className="bg-green-50 text-green-700 text-sm font-medium rounded-lg px-4 py-2 mt-4">
+                      <div className="bg-green-50 w-60 text-black text-sm font-medium rounded-lg px-4 ml-2 py-2 mt-4">
                         {`13 out of 20 Tasks completed`}
                       </div>
                     </div>
 
                     {/* Tasks in Hand */}
                     <div className="lg:col-span-3 py-3 px-4">
-                      <div className="flex w-[170px] items-center gap-3 mb-1 mt-2 -ml-15 bg-[#F9F9F9] rounded-3xl px-3 py-2">
+                      <div className="flex w-[180px] items-center gap-3 mb-1 mt-2 -ml-15 bg-[#F9F9F9] rounded-3xl px-3 py-2">
                         <h2 className="text-gray-700 font-medium text-base">
                           Tasks in Hand
                         </h2>
-                        <span className="text-xl font-bold text-gray-900">
+                        <span className="text-xl ml-4 font-semibold text-gray-900">
                           5
                         </span>
                       </div>
@@ -561,17 +573,16 @@ const DashboardContent: React.FC = () => {
                         {taskCards.map((card, index) => (
                           <div
                             key={index}
-                            className="bg-white mt-4 rounded-xl p-6 shadow-sm border border-gray-200"
+                            className={`bg-white mt-4 rounded-xl p-6 border 
+    ${
+      index === 1
+        ? "border-[rgba(235,56,43,0.30)] shadow-md shadow-red-200" // special card style
+        : "border-gray-200 shadow-sm"
+    } // default style
+  `}
                           >
-                            <div className="flex items-center gap-3 mb-6">
-                              <div className={card.iconColor}>{card.icon}</div>
-                              <h3 className="text-gray-600 font-bold text-sm">
-                                {card.title}
-                              </h3>
-                            </div>
-
                             <div
-                              className={`text-5xl font-bold mb-6 ${
+                              className={`text-5xl items-center justify-center flex font-bold mb-6 ${
                                 index === 0
                                   ? "text-red-500"
                                   : index === 1
@@ -582,11 +593,18 @@ const DashboardContent: React.FC = () => {
                               {card.count}
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="flex items-center justify-center gap-3 mb-6">
+                              <div className={card.iconColor}>{card.icon}</div>
+                              <h3 className="text-[#818181]  text-md">
+                                {card.title}
+                              </h3>
+                            </div>
+
+                            <div className="space-y-3 p-1">
                               {card.tasks.map((task, taskIndex) => (
                                 <div
                                   key={taskIndex}
-                                  className="flex items-center justify-between bg-[#F9F9F9] rounded-xl px-3 py-1.5"
+                                  className="flex items-center text-[#818181] justify-between bg-[#F9F9F9] rounded-xl px-3 py-1.5"
                                   onClick={() =>
                                     handlePriorityClick(
                                       task.priority
@@ -619,7 +637,7 @@ const DashboardContent: React.FC = () => {
                                     >
                                       {task.count} task
                                     </span>
-                                    <span className="text-gray-300">›</span>
+                                    <MdOutlineKeyboardArrowRight className="w-5 h-5 text-gray-400" />
                                   </div>
                                 </div>
                               ))}
@@ -656,15 +674,8 @@ const DashboardContent: React.FC = () => {
                 <div className="flex items-center justify-end gap-2 ml-auto">
                   <button
                     type="button"
-                    onClick={openAddTaskModal}
-                    className="flex items-center justify-center h-10 px-5 py-2 rounded-lg bg-[#0D4B37] text-white text-center font-poppins text-base font-normal leading-6 hover:bg-[#0D4B37] transition-colors"
-                  >
-                    + Task
-                  </button>
-                  <button
-                    type="button"
                     onClick={toggleCalendar}
-                    className="flex items-center justify-center h-10 px-5 py-2 rounded-lg border border-[#114958] bg-white text-[#114958] text-center font-poppins text-base font-normal leading-6 hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-center h-10 px-5 py-2 rounded-lg border border-[#114958] bg-white text-[#114958] text-center font-poppins text-base font-semibold leading-6 hover:bg-gray-50 transition-colors"
                   >
                     {calenderShow ? "Collapse" : <IoIosExpand size={20} />}
                   </button>

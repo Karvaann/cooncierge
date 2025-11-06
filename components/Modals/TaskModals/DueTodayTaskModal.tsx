@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useCallback } from "react";
+import { TbLuggage } from "react-icons/tb";
 
 interface DueTodayModalProps {
   isOpen: boolean;
@@ -77,7 +78,7 @@ const DueTodayModal: React.FC<DueTodayModalProps> = ({
       aria-modal="true"
     >
       <div
-        className="bg-white rounded-xl p-2 shadow-xl overflow-hidden max-w-3xl w-[700px] h-[700px] mx-4 transition-all duration-300 transform max-h-[90vh] flex flex-col"
+        className="bg-white rounded-xl p-2 shadow-xl overflow-hidden max-w-3xl w-[39.93vw] h-[700px] mx-4 transition-all duration-300 transform max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -147,32 +148,28 @@ const DueTodayModal: React.FC<DueTodayModalProps> = ({
             <div className="space-y-4">
               {/* Task Card */}
               <div
-                className="border-2 border-red-300 h-[210px] rounded-xl p-4 bg-white hover:shadow-md transition-shadow cursor-pointer relative"
+                className="border-2 border-red-300 h-fit ml-2 rounded-xl p-4 bg-white hover:shadow-md transition-shadow cursor-pointer relative"
                 onClick={() => onTaskClick?.("TA-ABC12")}
               >
-                <div className="absolute -left-4 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-blue-500 rounded-full border-4 border-white"></div>
+                <div className="absolute -left-5 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-4 bg-blue-500 rounded-full border-4 border-white"></div>
 
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
-                    <div className="text-sm text-gray-600 mb-1">
+                    <div className="text-sm text-[#818181] mb-1">
                       Task ID:{" "}
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-normal text-[#414141] ml-1">
                         TA-ABC12
                       </span>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500">10-05-2025, 10:00</div>
+                  <div className="text-sm text-gray-500 mr-4">
+                    10-05-2025, 10:00
+                  </div>
                 </div>
 
-                <div className="flex items-center w-[580px] rounded-lg bg-gray-100 p-2 justify-between mb-3">
+                <div className="flex items-center w-full rounded-lg bg-gray-100 p-2 justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5 text-blue-600"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
-                    </svg>
+                    <TbLuggage className="text-[#126ACB] w-5 h-5 -mt-4" />
                     <div>
                       <div className="font-semibold text-gray-900">
                         Booking - OS
@@ -187,30 +184,30 @@ const DueTodayModal: React.FC<DueTodayModalProps> = ({
 
                 <p className="text-sm text-gray-700 mb-4 mt-4">
                   Upload documents to{" "}
-                  <span className="font-semibold">Booking - OS</span> with ID{" "}
-                  <span className="font-semibold">#OS-ABC12</span>
+                  <span className="font-bold">Booking - OS</span> with ID{" "}
+                  <span className="font-bold">#OS-ABC12</span>
                 </p>
 
                 {/* assignee circles */}
                 <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-[#414141]">
                     Assigned By:{" "}
                     <span className="font-semibold">Yash Manocha</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm text-gray-600 mr-2">
+                  <div className="flex items-center gap-1 mr-4">
+                    <span className="text-sm text-[#414141] mr-2">
                       Assignees:
                     </span>
-                    <div className="w-8 h-8 rounded-full bg-pink-200 text-pink-700 flex items-center justify-center text-xs font-semibold border-2 border-white">
+                    <div className="w-9 h-9 rounded-full bg-white text-pink-700 flex items-center justify-center text-xs font-semibold border-2 border-pink-700">
                       AS
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-purple-200 text-purple-700 flex items-center justify-center text-xs font-semibold border-2 border-white -ml-2">
+                    <div className="w-9 h-9 rounded-full bg-white text-[#AF52DE] flex items-center justify-center text-xs font-semibold border-2 border-[#AF52DE] -ml-3">
                       AK
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center text-xs font-semibold border-2 border-white -ml-2">
+                    <div className="w-9 h-9 rounded-full bg-white text-[#5856D6] flex items-center justify-center text-xs font-semibold border-2 border-[#5856D6] -ml-3">
                       SR
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-cyan-200 text-cyan-700 flex items-center justify-center text-xs font-semibold border-2 border-white -ml-2">
+                    <div className="w-9 h-9 rounded-full bg-white text-cyan-700 flex items-center justify-center text-xs font-semibold border-2 border-cyan-700 -ml-3">
                       VG
                     </div>
                   </div>
@@ -250,17 +247,19 @@ const DueTodayModal: React.FC<DueTodayModalProps> = ({
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex-1">
-                    <div className="text-sm text-gray-600 mb-1">
+                    <div className="text-sm text-[#818181] mb-1">
                       Task ID:{" "}
-                      <span className="font-semibold text-gray-900">
+                      <span className="font-normal text-[#414141] ml-1">
                         TA-ABC12
                       </span>
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500">10-05-2025, 10:00</div>
+                  <div className="text-sm text-gray-500 mr-4">
+                    10-05-2025, 10:00
+                  </div>
                 </div>
 
-                <div className="flex items-center w-[580px] rounded-lg bg-gray-100 p-2 justify-between mb-3">
+                <div className="flex items-center w-full rounded-lg bg-gray-100 p-2 justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <svg
                       className="w-5 h-5 text-blue-600"
@@ -289,24 +288,24 @@ const DueTodayModal: React.FC<DueTodayModalProps> = ({
 
                 {/* assignees */}
                 <div className="flex items-center justify-between">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-[#414141]">
                     Assigned By:{" "}
                     <span className="font-semibold">Yash Manocha</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm text-gray-600 mr-2">
+                  <div className="flex items-center gap-1 mr-4">
+                    <span className="text-sm text-[#414141] mr-2">
                       Assignees:
                     </span>
-                    <div className="w-8 h-8 rounded-full bg-pink-200 text-pink-700 flex items-center justify-center text-xs font-semibold border-2 border-white">
+                    <div className="w-9 h-9 rounded-full bg-white text-pink-700 flex items-center justify-center text-xs font-semibold border-2 border-pink-700">
                       AS
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-purple-200 text-purple-700 flex items-center justify-center text-xs font-semibold border-2 border-white -ml-2">
+                    <div className="w-9 h-9 rounded-full bg-white text-[#AF52DE] flex items-center justify-center text-xs font-semibold border-2 border-[#AF52DE] -ml-3">
                       AK
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-blue-200 text-blue-700 flex items-center justify-center text-xs font-semibold border-2 border-white -ml-2">
+                    <div className="w-9 h-9 rounded-full bg-white text-[#5856D6] flex items-center justify-center text-xs font-semibold border-2 border-[#5856D6] -ml-3">
                       SR
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-cyan-200 text-cyan-700 flex items-center justify-center text-xs font-semibold border-2 border-white -ml-2">
+                    <div className="w-9 h-9 rounded-full bg-white text-cyan-700 flex items-center justify-center text-xs font-semibold border-2 border-cyan-700 -ml-3">
                       VG
                     </div>
                   </div>

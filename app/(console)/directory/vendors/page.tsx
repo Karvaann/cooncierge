@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { useMemo, useState, useEffect } from "react";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
-import ActionMenu from "@/components/ActionMenu";
+import ActionMenu from "@/components/Menus/ActionMenu";
 import { FiSearch } from "react-icons/fi";
 import { IoMdArrowDropdown } from "react-icons/io";
 import { BsThreeDotsVertical } from "react-icons/bs";
@@ -187,12 +187,7 @@ const VendorDirectory = () => {
           <FiSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-lg pointer-events-none" />
         </div>
 
-        <div className="flex items-center ml-[750px] gap-1 border border-gray-200 rounded-lg px-3 py-2 text-gray-600 cursor-pointer hover:bg-gray-50">
-          <span>Sort By</span>
-          <IoMdArrowDropdown className="text-xl" />
-        </div>
-
-        <button className="p-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-100">
+        <button className="p-2 ml-[870px] rounded-lg border border-gray-200 bg-white hover:bg-gray-100">
           <BsThreeDotsVertical className="text-xl text-gray-500" />
         </button>
       </div>

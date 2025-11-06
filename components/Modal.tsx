@@ -66,6 +66,7 @@ const Modal: React.FC<ModalProps> = ({
   // Handle overlay click
   const handleOverlayClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
+      console.log("Overlay clicked:", event.target, event.currentTarget);
       if (event.target === event.currentTarget && closeOnOverlayClick) {
         onClose();
       }
@@ -97,7 +98,7 @@ const Modal: React.FC<ModalProps> = ({
   const modalContent = useMemo(
     () => (
       <div
-        className="fixed inset-0 z-50 bg-black/50 flex justify-center items-center md:items-center transition-opacity duration-300"
+        className="fixed -mr-2 inset-0 z-50 bg-black/50 flex justify-center items-center md:items-center transition-opacity duration-300"
         onClick={handleOverlayClick}
         role="dialog"
         aria-modal="true"
@@ -116,7 +117,7 @@ const Modal: React.FC<ModalProps> = ({
           <div className="flex justify-between mt-3 items-center p-4">
             <h2
               id="modal-title"
-              className="text-black text-xl md:text-2xl font-bold flex-1 text-center pr-2"
+              className="text-black h-4 text-xl md:text-2xl font-semibold flex-1 text-center"
             >
               {title}
             </h2>

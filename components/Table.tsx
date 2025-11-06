@@ -8,13 +8,19 @@ interface TableProps {
   columns: string[];
   initialRowsPerPage?: number;
   maxRowsPerPageOptions?: number[];
+  columnIconMap?: Record<string, React.ReactNode>;
+  onSort?: (column: string) => void;
+  hideRowsPerPage?: boolean;
 }
 
 const Table: React.FC<TableProps> = ({
   data,
   columns,
   initialRowsPerPage = 10,
-  maxRowsPerPageOptions = [5, 10, 25, 50],
+  maxRowsPerPageOptions = [2, 5, 10, 25, 50],
+  columnIconMap,
+  onSort,
+  hideRowsPerPage,
 }) => {
   const [page, setPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
@@ -88,9 +94,12 @@ const Table: React.FC<TableProps> = ({
               {columns.map((col, index) => (
                 <th
                   key={`${col}-${index}`}
-                  className="px-4 py-3 font-semibold text-left"
+                  className="px-4 py-3 text-left text-gray-200 font-semibold text-sm"
                 >
-                  {col}
+                  <div className="flex items-center justify-center gap-2">
+                    <span> {col} </span>
+                    {columnIconMap?.[col]}
+                  </div>
                 </th>
               ))}
             </tr>
@@ -125,27 +134,33 @@ const Table: React.FC<TableProps> = ({
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex items-center justify-between mt-4 flex-wrap gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-gray-600">Rows per page:</span>
-          <select
-            className="border border-gray-300 rounded px-2 py-1 text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#155e75] transition-colors"
-            value={rowsPerPage}
-            onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
-          >
-            {maxRowsPerPageOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div
+        className={`flex items-center justify-between mt-4 flex-wrap gap-4 ${
+          hideRowsPerPage ? "justify-between" : ""
+        }`}
+      >
+        {!hideRowsPerPage && (
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600">Rows per page:</span>
+            <select
+              className="border border-gray-300 rounded px-2 py-1 text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#155e75] transition-colors"
+              value={rowsPerPage}
+              onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
+            >
+              {maxRowsPerPageOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="text-gray-600 text-sm">{displayText}</div>
 
         <div className="flex items-center gap-2">
           <button
-            className="w-8 h-8 rounded-full bg-white border border-gray-300 flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={page === 1}
             onClick={handlePreviousPage}
             aria-label="Previous page"
@@ -156,7 +171,7 @@ const Table: React.FC<TableProps> = ({
           {paginationButtons}
 
           <button
-            className="w-8 h-8 rounded-full bg-white border border-gray-300 flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={page === totalPages}
             onClick={handleNextPage}
             aria-label="Next page"

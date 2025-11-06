@@ -194,10 +194,11 @@ const BookingFormModal: React.FC<BookingFormModalProps> = ({
       onClose={onClose}
       title="Select Service"
       size="xl"
-      customWidth="w-[1200px]"
-      className="w-[90vw]"
+      customWidth="w-300"
+      customeHeight="h-fit"
+      // className="w-[90vw]"
     >
-      <div className="flex flex-col items-center w-full">
+      <div className="flex flex-col items-center w-full p-2 -mt-5 rounded-xl ">
         <div className="text-gray-500 text-sm text-center w-full mb-6">
           Choose from the range of services provided by{" "}
           <span className="text-[#114958] font-bold">Company ABC</span>

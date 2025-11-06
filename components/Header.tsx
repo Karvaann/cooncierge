@@ -152,9 +152,10 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
   // Memoized inline styles for performance
   const headerStyle = useMemo(
     () => ({
-      marginLeft: "64px",
+      marginLeft: "3.5rem",
       transition: "margin-left 0.5s ease-in-out",
       zIndex: 30,
+      // height: "fit-content",
     }),
     [isOpen]
   );
@@ -176,10 +177,10 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
     <>
       <div style={headerStyle}>
         {/* Header Main Row */}
-        <div className="flex justify-between items-center px-8 py-4 border-b border-gray-200 bg-white">
+        <div className="flex justify-between items-center px-6 py-3 border-b border-gray-200 bg-white">
           {/* Left: Page Title */}
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{headerTitle}</h1>
+            <h1 className="text-xl font-bold text-gray-900">{headerTitle}</h1>
           </div>
 
           {/* Right: Notification, Profile Avatar, Profile Settings */}
@@ -272,7 +273,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
         </div>
 
         {/* Breadcrumb Row */}
-        <div className="flex items-center px-8 py-3 bg-gray-100 border-b border-gray-200">
+        <div className="flex items-center px-6 py-4 bg-gray-100 border-b border-gray-200">
           <IoHomeOutline className="w-5 h-5 mr-2 text-[#114958]" />
           {breadcrumbElements}
         </div>

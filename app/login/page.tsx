@@ -13,6 +13,7 @@ export default function SignIn() {
   const router = useRouter();
   const [mode, setMode] = useState<"signin" | "otp" | "forgot">("signin");
   const [success, setSuccess] = useState(false);
+  const [checked, setChecked] = useState(false);
 
   const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
   const [email, setEmail] = useState("");
@@ -375,9 +376,33 @@ export default function SignIn() {
                   <div className="flex items-center gap-2 mt-1 mb-1">
                     <input
                       type="checkbox"
-                      className="accent-white border border-gray-100 w-[14px] h-[14px] cursor-pointer rounded-3xl"
+                      id="remember"
+                      className="hidden"
+                      checked={checked}
+                      onChange={() => setChecked(!checked)}
                     />
-                    <label className="text-black text-sm ">Remember Me</label>
+                    <label
+                      htmlFor="remember"
+                      className="w-5 h-5 border border-gray-400 rounded-md flex items-center justify-center cursor-pointer peer-checked:bg-green-600"
+                    >
+                      {checked && (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="12"
+                          height="11"
+                          viewBox="0 0 12 11"
+                          fill="none"
+                        >
+                          <path
+                            d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                            stroke="#0D4B37"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      )}
+                    </label>
+                    <span className="text-black text-sm ">Remember Me</span>
                   </div>
                   <div className="flex justify-end mt-[-30px]">
                     <button
@@ -393,7 +418,7 @@ export default function SignIn() {
 
               <button
                 type="submit"
-                className="w-full h-13 bg-[#0D4B37] text-white py-2 rounded-md font-medium hover:bg-green-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full h-13 bg-[#0D4B37] text-white py-2 rounded-md shadow-xl font-medium hover:bg-green-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Signing In..." : "Sign In"}

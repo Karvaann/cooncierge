@@ -451,9 +451,9 @@ const OSBookingsPage = () => {
 
   return (
     <>
-      <div className="flex justify-between items-center gap-4 p-6 w-full mx-[10px] mt-[-20px]">
-        {/* Draft count and sync button */}
-        <div className="flex items-center gap-4">
+      {/* <div className="flex justify-between items-center gap-4 p-6 w-full mx-[10px] mt-[-20px]"> */}
+      {/* Draft count and sync button */}
+      {/* <div className="flex items-center gap-4">
           {drafts.length > 0 && (
             <div className="text-sm text-gray-600">
               <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
@@ -469,10 +469,10 @@ const OSBookingsPage = () => {
           >
             🔄 Sync
           </button>
-        </div>
-      </div>
+        </div> */}
+      {/* </div> */}
 
-      <div className="min-h-screen mt-2">
+      <div className="min-h-screen">
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 mx-6">
             <strong>Error:</strong> {error}
