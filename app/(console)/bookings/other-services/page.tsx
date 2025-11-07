@@ -473,8 +473,8 @@ const OSBookingsPage = () => {
       {/* </div> */}
 
       <div className="min-h-screen">
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 mx-6">
+        {!error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             <strong>Error:</strong> {error}
             <button
               onClick={loadQuotations}

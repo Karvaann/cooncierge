@@ -136,8 +136,8 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
     const urlPieces = pathname.split("/").slice(1);
     return urlPieces.map((piece, index) => (
       <span key={`${piece}-${index}`} className="flex items-center">
-        <span className="text-gray-400 mx-2">/</span>
-        <span className="text-[#114958] font-medium mr-2">
+        <span className="text-gray-400 text-[0.75rem] mx-1">/</span>
+        <span className="text-[#114958] text-[0.55rem] mr-1">
           {PIECE_MAP[piece as PieceMapKey] || piece}
         </span>
       </span>
@@ -152,7 +152,6 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
   // Memoized inline styles for performance
   const headerStyle = useMemo(
     () => ({
-      marginLeft: "3.5rem",
       transition: "margin-left 0.5s ease-in-out",
       zIndex: 30,
       // height: "fit-content",
@@ -177,10 +176,10 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
     <>
       <div style={headerStyle}>
         {/* Header Main Row */}
-        <div className="flex justify-between items-center px-6 py-3 border-b border-gray-200 bg-white">
+        <div className="flex justify-between items-center px-5 py-1 border-b border-gray-200 bg-white">
           {/* Left: Page Title */}
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{headerTitle}</h1>
+            <h1 className="font-[Poppins] font-semibold text-[0.95rem] leading-[1.75rem] tracking-normal align-middle">{headerTitle}</h1>
           </div>
 
           {/* Right: Notification, Profile Avatar, Profile Settings */}
@@ -222,7 +221,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
                 aria-expanded={isDropDownOpen}
                 aria-haspopup="true"
               >
-                <div className="w-9 h-9 rounded-full bg-[#0D4B37] flex items-center justify-center">
+                <div className="w-7 h-7 rounded-full bg-[#0D4B37] flex items-center justify-center">
                   <IoPersonOutline className="text-white w-4 h-4 " />
                 </div>
                 <IoMdArrowDropdown className="text-gray-700" />
@@ -273,8 +272,8 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
         </div>
 
         {/* Breadcrumb Row */}
-        <div className="flex items-center px-6 py-4 bg-gray-100 border-b border-gray-200">
-          <IoHomeOutline className="w-5 h-5 mr-2 text-[#114958]" />
+        <div className="flex items-center px-5 py-1 bg-gray-100 border-b border-gray-200">
+          <IoHomeOutline className="w-[0.75rem] h-5 mr-2 text-[#114958]" />
           {breadcrumbElements}
         </div>
 

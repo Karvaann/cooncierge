@@ -24,7 +24,6 @@ export default function ConsoleShell({ children }: ConsoleShellProps) {
 
   const mainStyle = useMemo(
     () => ({
-      marginLeft: "64px",
       transition: "margin-left 0.5s ease-in-out",
       minHeight: "100vh",
     }),
@@ -34,13 +33,15 @@ export default function ConsoleShell({ children }: ConsoleShellProps) {
   return (
     <div className="min-h-screen bg-slate-100">
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      <Header isOpen={isSidebarOpen} />
-      <main
-        style={mainStyle}
-        className="pt-6 pb-10 pr-6 pl-6 bg-slate-100 min-h-screen"
-      >
-        {children}
-      </main>
+      <div className="ml-[3.125vw]">
+        <Header isOpen={isSidebarOpen} />
+        <main
+          style={mainStyle}
+          className="pt-1 pb-10 pr-6 pl-5 bg-slate-100 min-h-screen"
+        >
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

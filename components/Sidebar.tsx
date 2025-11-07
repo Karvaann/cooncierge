@@ -134,42 +134,42 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     >
       <div
         ref={sidebarRef}
-        className={`fixed top-0 left-0 h-screen text-white border-r border-gray-700 transition-all transform duration-500 ease-in-out z-50 ${
-          isOpen ? "w-54" : "w-[3.5rem]"
+        className={`fixed top-0 left-0 h-screen text-white border-r border-gray-700 transition-all transform duration-500 ease-in-out z-50 pt-3 ${
+          isOpen ? "w-54" : "w-[3.125vw]"
         }`}
         style={{
           background:
             "linear-gradient(175.12deg, #0D4B37 27.08%, #63BB9E 153.71%)",
         }}
       >
-        <div className="flex justify-center items-center w-full gap-3 pt-3 pr-3">
+        <div className="flex justify-center items-center w-full gap-3">
           {isOpen ? (
             <Image
               src="/logo/cooncierge-wordmark.svg"
               alt="Cooncierge wordmark"
-              width={150}
-              height={30}
-              className="h-[30px] w-auto"
+              width={120}
+              height={28}
+              className="h-[28px] w-auto"
               priority
             />
           ) : (
             <Image
               src="/logo/cooncierge-logo-icon.svg"
               alt="Cooncierge logo"
-              width={35}
-              height={35}
-              className="h-[35px] w-[35px] ml-2"
+              width={28}
+              height={28}
+              className="h-[28px] w-[28px]"
               priority
             />
           )}
         </div>
 
-        <ul className="mt-12 space-y-1">
+        <ul className="mt-4 space-y-1">
           {menuItems.map((item, index) => {
             const isActive = openSubMenuIndex === index;
             const showArrow = isOpen && Boolean(item.subMenu);
             const commonItemClasses =
-              "flex items-center gap-2 px-4 h-12 transition-colors";
+              "flex items-center gap-2 px-4 h-8 transition-colors";
 
             return (
               <li
