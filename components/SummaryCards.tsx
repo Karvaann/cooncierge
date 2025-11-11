@@ -65,7 +65,7 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ data }) => {
   return (
     <div className="flex flex-col md:flex-row mb-4 mx-[-2px] mt-4">
       {/* Total Card */}
-      <div className="bg-white border border-blue-100 rounded-2xl shadow p-3 flex flex-col justify-between h-fit w-[12.25rem] min-w-[220px] md:mr-[140px] hover:shadow-lg transition-shadow">
+      <div className="bg-white border border-blue-100 rounded-2xl shadow p-3 flex flex-col justify-between h-[6rem] w-[16.25rem] min-w-[220px] md:mr-[140px] hover:shadow-lg transition-shadow">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-gray-500 text-[0.75rem] mb-1">Total</div>
@@ -73,7 +73,7 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ data }) => {
               {summaryData.total.amount}
             </div>
           </div>
-         
+
           <div className="bg-blue-100 rounded-full p-3">
             <RiExchangeDollarLine className="text-[#114958]" size={14} />
           </div>
@@ -89,9 +89,8 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ data }) => {
               <div className="text-[1.15rem] font-medium text-black">
                 {summaryData.youGive.amount}
               </div>
-
             </div>
-            
+
             <div className="bg-red-100 rounded-full p-3">
               <FaArrowCircleLeft className="text-red-500" size={16} />
             </div>
@@ -107,7 +106,7 @@ const SummaryCards: React.FC<SummaryCardsProps> = ({ data }) => {
                 {summaryData.youGet.amount}
               </div>
             </div>
-            
+
             <div className="bg-green-100 rounded-full p-3">
               <FaRegArrowAltCircleRight className="text-green-500" size={14} />
             </div>

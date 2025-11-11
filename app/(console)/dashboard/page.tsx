@@ -53,7 +53,7 @@ const CircularProgress = ({ percentage }: { percentage: number }) => {
   const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
   return (
-    <div className="relative w-48 h-48 mx-auto">
+    <div className="relative w-[11.87rem] h-[8.75rem] -mt-2 -ml-6 mx-auto">
       <svg viewBox="0 0 200 200" className="transform -rotate-90 w-full h-full">
         {/* Background circle */}
         <circle
@@ -79,7 +79,9 @@ const CircularProgress = ({ percentage }: { percentage: number }) => {
         />
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-4xl font-bold text-gray-900">{percentage}%</span>
+        <span className="text-[1.75rem] w-[3.75rem] h-[2.5rem] font-semibold text-gray-900">
+          {percentage}%
+        </span>
       </div>
     </div>
   );
@@ -499,13 +501,13 @@ const DashboardContent: React.FC = () => {
         <>
           <div className="bg-white shadow-sm border border-[#E2E1E1] rounded-xl p-4 gap-4">
             <div className="h-[500px] bg-white p-4">
-              <div className="max-w-9xl mx-4">
+              <div className="max-w-9xl mx-2 ml-4">
                 <div className="flex items-center justify-between mb-8">
                   {/* Tab Navigation */}
-                  <div className="flex gap-2 bg-[#F3F3F3] border border-[#E2E1E1] w-[330px] rounded-xl">
+                  <div className="flex gap-2 -ml-5 bg-[#F3F3F3] border border-[#E2E1E1] w-[16.40625vw] rounded-xl">
                     <button
                       onClick={() => setActiveTab("assigned-to-me")}
-                      className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                      className={`px-4 py-2 rounded-xl font-medium text-[0.65rem] transition-colors ${
                         activeTab === "assigned-to-me"
                           ? "bg-[#0D4B37] text-white"
                           : " text-gray-500 hover:bg-gray-100"
@@ -515,7 +517,7 @@ const DashboardContent: React.FC = () => {
                     </button>
                     <button
                       onClick={() => setActiveTab("assigned-by-me")}
-                      className={`px-4 py-2 rounded-full font-medium transition-colors ${
+                      className={`px-4 py-2 rounded-xl font-medium text-[0.65rem] transition-colors ${
                         activeTab === "assigned-by-me"
                           ? "bg-[#0D4B37] text-white"
                           : "text-gray-500 hover:bg-gray-100"
@@ -525,42 +527,45 @@ const DashboardContent: React.FC = () => {
                     </button>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={openAddTaskModal}
-                    className="flex items-center justify-center h-10 px-5 py-2 rounded-lg font-semibold border border-[#0D4B37] bg-white text-[#0D4B37] text-center font-poppins text-base leading-6 hover:bg-gray-200 transition-colors"
-                  >
-                    + Task
-                  </button>
+                  <div className="">
+                    <button
+                      type="button"
+                      onClick={openAddTaskModal}
+                      className="flex items-center justify-center h-10 px-5 py-2 rounded-lg font-semibold border border-[#0D4B37] bg-white text-[#0D4B37] text-center font-poppins text-base leading-6 hover:bg-gray-200 transition-colors"
+                    >
+                      + Task
+                    </button>
+                  </div>
                 </div>
 
                 {/* Main Content Grid */}
                 {activeTab === "assigned-to-me" && (
-                  <div className="grid grid-cols-1 lg:grid-cols-4 px-3 w-[1500px] rounded-xl gap-6 border border-[#E2E1E1] -mt-3 -ml-5">
-                    <div className="bg-white p-4 w-[300px] border-r border-[#E2E1E1]">
-                      <div className="mb-4">
-                        <h3 className="text-green-600 font-medium text-md mb-1 ml-10 mt-1">
+                  <div className="grid grid-cols-1 lg:grid-cols-4 px-3 h-[21.87rem] w-[90vw] rounded-xl gap-6 border border-[#E2E1E1] -mt-3 -ml-6">
+                    <div className="bg-white px-7 py-6 w-[13vw] h-[21.7rem] border-r border-[#E2E1E1]">
+                      <div className="mb-4 w-[12vw] h-[2.62rem] -mt-2 -ml-2">
+                        <h3 className="text-green-600 font-medium text-[0.87rem] mb-1   mt-1">
                           Almost there, just a few
                         </h3>
-                        <p className="text-green-600 font-medium text-md ml-10 mt-2">
+                        <p className="text-green-600 font-medium text-[0.87rem]  mt-1">
                           left to complete!
                         </p>
                       </div>
 
                       <CircularProgress percentage={completionPercentage} />
+                      <div className="-ml-4">
+                        <p className="text-center w-[9.62rem] text-gray-500 text-md font-medium mt-2">
+                          Task Completion Rate
+                        </p>
 
-                      <p className="text-center text-gray-500 text-md font-medium mt-4">
-                        Task Completion Rate
-                      </p>
-
-                      <div className="bg-green-50 w-60 text-black text-sm font-medium rounded-lg px-4 ml-2 py-2 mt-4">
-                        {`13 out of 20 Tasks completed`}
+                        <div className="bg-green-50 w-[9.62rem] ml-4 text-black text-sm font-medium rounded-lg mt-2 px-4 py-2">
+                          {`13 out of 20 Tasks completed`}
+                        </div>
                       </div>
                     </div>
 
                     {/* Tasks in Hand */}
-                    <div className="lg:col-span-3 py-3 px-4">
-                      <div className="flex w-[180px] items-center gap-3 mb-1 mt-2 -ml-15 bg-[#F9F9F9] rounded-3xl px-3 py-2">
+                    <div className="lg:col-span-3 py-6 px-7 -mt-4">
+                      <div className="flex w-[11.25rem] items-center gap-3 mb-1 mt-2 -ml-30 bg-[#F9F9F9] rounded-3xl px-3 py-2">
                         <h2 className="text-gray-700 font-medium text-base">
                           Tasks in Hand
                         </h2>
@@ -569,11 +574,11 @@ const DashboardContent: React.FC = () => {
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 -ml-15 mb-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 -ml-38 mb-4 w-[70rem]">
                         {taskCards.map((card, index) => (
                           <div
                             key={index}
-                            className={`bg-white mt-4 rounded-xl p-6 border 
+                            className={`bg-white mt-4 rounded-xl p-6 border h-[15rem]  
     ${
       index === 1
         ? "border-[rgba(235,56,43,0.30)] shadow-md shadow-red-200" // special card style
@@ -582,7 +587,7 @@ const DashboardContent: React.FC = () => {
   `}
                           >
                             <div
-                              className={`text-5xl items-center justify-center flex font-bold mb-6 ${
+                              className={`text-3xl items-center justify-center flex font-bold mb-3 ${
                                 index === 0
                                   ? "text-red-500"
                                   : index === 1
@@ -593,18 +598,18 @@ const DashboardContent: React.FC = () => {
                               {card.count}
                             </div>
 
-                            <div className="flex items-center justify-center gap-3 mb-6">
+                            <div className="flex items-center justify-center gap-3 mb-3">
                               <div className={card.iconColor}>{card.icon}</div>
                               <h3 className="text-[#818181]  text-md">
                                 {card.title}
                               </h3>
                             </div>
 
-                            <div className="space-y-3 p-1">
+                            <div className="space-y-2 p-1">
                               {card.tasks.map((task, taskIndex) => (
                                 <div
                                   key={taskIndex}
-                                  className="flex items-center text-[#818181] justify-between bg-[#F9F9F9] rounded-xl px-3 py-1.5"
+                                  className="flex items-center text-[#818181] justify-between bg-[#F9F9F9] rounded-xl px-3 py-1"
                                   onClick={() =>
                                     handlePriorityClick(
                                       task.priority
@@ -666,7 +671,7 @@ const DashboardContent: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex flex-col items-start self-stretch bg-white">
+            <div className="flex flex-col items-start self-stretch bg-white w-full">
               <div className="flex justify-between items-center w-[100%] px-5 py-4">
                 <h3 className="font-semibold text-black text-lg">
                   Task Timeline
@@ -682,7 +687,7 @@ const DashboardContent: React.FC = () => {
                 </div>
               </div>
 
-              <div className="max-w-[1500px] mx-auto">
+              <div className="max-w-[1300px] mx-auto">
                 <div
                   className="flex gap-5 overflow-x-auto pb-3 snap-x snap-mandatory scroll-smooth
       no-scrollbar
@@ -691,7 +696,7 @@ const DashboardContent: React.FC = () => {
   [scrollbar-width:'none']"
                 >
                   {daysData.map((day, idx) => {
-                    // ✅ Build the props object dynamically to avoid passing `undefined`
+                    // Build the props object dynamically to avoid passing `undefined`
                     const taskCardProps: TaskCardProps = {
                       date: day.date,
                       day: day.day,
@@ -699,7 +704,7 @@ const DashboardContent: React.FC = () => {
                       tasks: day.tasks,
                     };
 
-                    // ✅ Conditionally add click handlers only when needed
+                    //
                     if (day.date === "10th May") {
                       taskCardProps.onTaskClick = (task) =>
                         handleViewTask(task);

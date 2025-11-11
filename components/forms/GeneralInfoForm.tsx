@@ -325,7 +325,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           min={min}
           disabled={isSubmitting || isValidating}
           className={`
-            w-full border rounded-md px-3 py-2 pr-10 text-sm transition-colors
+            w-full border rounded-md px-3 py-2 pr-10 text-[0.75rem]  transition-colors
             ${
               hasError
                 ? "border-red-300 focus:ring-red-200"
@@ -387,97 +387,83 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   };
 
   return (
-    <form className="space-y-6 p-6" onSubmit={handleSubmit}>
+    <form className="space-y-6 p-4" onSubmit={handleSubmit}>
       {/* Customer Section */}
-      <div className="border border-gray-200 rounded-[12px] p-4 mt-[-20px] ">
-        <h2 className="mt-[-5px]">Billed To</h2>
+      <div className="border border-gray-200 rounded-[12px] p-3">
+        <h2 className="text-[0.75rem] font-medium mb-2">Billed To</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
-        <label className="block text-sm font-medium text-gray-700">
-          Name / Customer ID <span className="text-red-500">*</span>
+        <label className="block text-[0.75rem] mt-3 font-medium text-gray-700">
+          Customer <span className="text-red-500">*</span>
         </label>
 
         <div className="flex items-center mt-1 w-full">
-          <div className="w-[600px]">
+          <div className="w-[30rem]">
             <InputField
               name="customer"
               placeholder="Search by Customer Name/ID"
               required
-              className=" w-full"
+              className=" w-full text-[0.75rem]  py-2"
             />
           </div>
-          <div className="flex space-x-2 ml-auto">
-            <button
-              type="button"
-              className="w-7 h-7 mt-1.5 flex items-center justify-center hover:bg-gray-200 rounded-md bg-gray-100  transition-colors"
-              aria-label="View customer details"
-            >
-              <IoEye size={22} className="text-gray-700" />
-            </button>
+          <div className="flex gap-1 ml-auto">
             <button
               type="button"
               onClick={openAddCustomer}
-              className="w-10 h-10 -ml-2 flex items-center justify-center rounded-md  transition-colors"
+              className="w-9 h-9 -ml-2 flex items-center justify-center rounded-md  transition-colors"
               aria-label="Add new customer"
             >
-              <BsPlusSquareFill size={26} className="" />
+              <BsPlusSquareFill size={22} className="" />
             </button>
           </div>
         </div>
         <button
           type="button"
-          className="mt-2 flex gap-1 text-[#818181] text-[14px] hover:text-gray-800 transition-colors"
+          className="mt-2 flex gap-1 text-[#818181] text-xs hover:text-gray-800 transition-colors"
         >
-          <CiCirclePlus size={20} /> Add Another Customer
+          <CiCirclePlus size={14} /> Add Another Customer
         </button>
       </div>
 
       {/* Vendor Section */}
-      <div className="border border-gray-200 rounded-[12px] p-4">
-        <h2 className="mt-[-5px]">Vendors</h2>
+      <div className="border border-gray-200 rounded-[12px] p-3">
+        <h2 className="text-[0.75rem]  font-medium mb-2">Vendors</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-        <label className="block text-sm font-medium text-gray-700">
-          Name / Vendor ID <span className="text-red-500">*</span>
+        <label className="block text-[0.75rem] mt-3 font-medium text-gray-700 mb-1">
+          Vendor <span className="text-red-500">*</span>
         </label>
 
-        <div className="flex items-center gap-2 mt-1">
-          <div className="w-[600px]">
+        <div className="flex items-center gap-2">
+          <div className="w-[30rem]">
             <InputField
               name="vendor"
               placeholder="Search by Vendor Name/ID"
               required
-              className="w-full"
+              className="w-full text-[0.75rem]  py-2"
             />
           </div>
-          <div className="flex space-x-2 ml-auto">
-            <button
-              type="button"
-              className="w-7 h-7 mt-1.5 flex items-center justify-center hover:bg-gray-200 rounded-md bg-gray-100  transition-colors"
-              aria-label="View customer details"
-            >
-              <IoEye size={22} className="text-gray-700" />
-            </button>
+          <div className="flex gap-1 ml-auto">
             <button
               type="button"
               onClick={openAddVendor}
-              className="w-10 h-10 -ml-2 flex items-center justify-center rounded-md  transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-md  transition-colors"
               aria-label="Add new vendor"
             >
-              <BsPlusSquareFill size={26} />
+              <BsPlusSquareFill size={22} />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Travellers Section */}
-      <div className="border border-gray-200 rounded-[12px] p-4">
-        <h2 className="mt-[-5px]">Travellers</h2>
+      {/* Travellers Counter Section */}
+      <div className="border border-gray-200 rounded-xl p-3">
+        <h2 className="text-[0.75rem]  font-medium mb-1">Travellers</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-        <div className="flex gap-6 mt-3">
-          <div>
-            <label className="block text-xs text-gray-500">Adults *</label>
-            <div className="flex items-center border border-gray-300 rounded-2xl px-2 py-1">
+        <div className="flex gap-6 mb-4 mt-3 ">
+          <div className="flex flex-col items-center">
+            <label className="block text-xs text-black mb-1">Adults</label>
+            <div className="flex items-center border border-black rounded-lg px-2 py-1">
               <button
                 type="button"
                 onClick={() =>
@@ -488,9 +474,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 }
                 className="px-1 text-lg font-semibold"
               >
-                <FiMinus size={15} />
+                <FiMinus size={12} />
               </button>
-              <span className="px-2">{formData.adults}</span>
+              <span className="px-2 text-[0.75rem] ">{formData.adults}</span>
               <button
                 type="button"
                 onClick={() =>
@@ -498,19 +484,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 }
                 className="px-1 text-lg font-semibold"
               >
-                <GoPlus size={15} />
+                <GoPlus size={12} />
               </button>
             </div>
           </div>
-          <div>
-            <label className="block text-xs text-gray-500">Children</label>
-            <button className="align-items-center border border-gray-200 border-radius-2 rounded-2xl px-6 py-2 text-sm">
-              ADD
-            </button>
-          </div>
-          <div>
-            <label className="block text-xs text-gray-500">Infants</label>
-            <div className="flex items-center border border-gray-300 rounded-2xl px-1 py-1">
+
+          <div className="flex flex-col items-center">
+            <label className="block text-xs text-black mb-1">Infants</label>
+            <div className="flex items-center border border-black rounded-lg px-1 py-1">
               <button
                 type="button"
                 onClick={() =>
@@ -519,19 +500,19 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     infants: Math.max(0, formData.infants - 1),
                   })
                 }
-                className="px-2 text-lg font-semibold"
+                className="px-1 text-[0.75rem] "
               >
-                <FiMinus size={15} />
+                <FiMinus size={12} />
               </button>
-              <span className="px-2">{formData.infants}</span>
+              <span className="px-2 text-[0.75rem] ">{formData.infants}</span>
               <button
                 type="button"
                 onClick={() =>
                   setFormData({ ...formData, infants: formData.infants + 1 })
                 }
-                className="px-2 text-lg font-semibold"
+                className="px-2 text-[0.75rem] "
               >
-                <GoPlus size={15} />
+                <GoPlus size={12} />
               </button>
             </div>
           </div>
@@ -540,80 +521,59 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         {/* Traveller Details */}
         <div className="mt-4 space-y-4">
           <div className="flex items-center gap-1">
-            <div className="w-[600px]">
+            <div className="w-[30rem] pr-1">
               <InputField
                 name="traveller1"
                 placeholder="Adult 1 (Lead Pax) *"
                 required
-                className="flex-1"
+                className="flex-1 text-[0.75rem]  py-2"
               />
             </div>
-            <div className="flex space-x-2 ml-auto">
+            <div className="flex gap-1 ml-auto">
               <button
                 type="button"
-                className="w-7 h-7 mt-1.5 flex items-center justify-center hover:bg-gray-200 rounded-md bg-gray-100  transition-colors"
-                aria-label="View customer details"
+                className="w-9 h-9 -ml-2 flex items-center justify-center rounded-md  transition-colors"
               >
-                <IoEye size={22} className="text-gray-700" />
-              </button>
-              <button
-                type="button"
-                className="w-10 h-10 -ml-2 flex items-center justify-center rounded-md  transition-colors"
-              >
-                <BsPlusSquareFill size={26} />
+                <BsPlusSquareFill size={22} />
               </button>
             </div>
           </div>
 
           {formData.adults > 1 && (
-            <div className="flex items-center gap-1">
-              <div className="w-[600px]">
+            <div className="flex items-center gap-2">
+              <div className="w-[30rem]">
                 <InputField
                   name="traveller2"
                   placeholder="Adult 2"
                   className="flex-1"
                 />
               </div>
-              <div className="flex space-x-2 ml-auto">
+              <div className="flex gap-1 ml-auto">
                 <button
                   type="button"
-                  className="w-7 h-7 mt-1.5 flex items-center justify-center hover:bg-gray-200 rounded-md bg-gray-100  transition-colors"
-                  aria-label="View customer details"
+                  className="w-9 h-9 -ml-2 flex items-center justify-center rounded-md  transition-colors"
                 >
-                  <IoEye size={22} className="text-gray-700" />
-                </button>
-                <button
-                  type="button"
-                  className="w-10 h-10 -ml-2 flex items-center justify-center rounded-md  transition-colors"
-                >
-                  <BsPlusSquareFill size={26} />
+                  <BsPlusSquareFill size={22} />
                 </button>
               </div>
             </div>
           )}
 
           {formData.infants > 0 && (
-            <div className="flex items-center gap-1">
-              <div className="w-[600px]">
+            <div className="flex items-center gap-2">
+              <div className="w-[30rem]">
                 <InputField
                   name="traveller3"
                   placeholder="Infant 1"
-                  className="flex-1"
+                  className="flex-1 text-[0.75rem]  py-2"
                 />
               </div>
-              <div className="flex space-x-2 ml-auto">
+              <div className="flex gap-1 ml-auto">
                 <button
                   type="button"
-                  className="w-7 h-7 mt-1.5 flex items-center justify-center hover:bg-gray-200 rounded-md bg-gray-100  transition-colors"
-                  aria-label="View customer details"
+                  className="w-9 h-9 -ml-2 flex items-center justify-center rounded-md  transition-colors"
                 >
-                  <IoEye size={22} className="text-gray-700" />
-                </button>
-                <button
-                  type="button"
-                  className="w-10 h-10 -ml-2 flex items-center justify-center rounded-md  transition-colors"
-                >
-                  <BsPlusSquareFill size={26} />
+                  <BsPlusSquareFill size={22} />
                 </button>
               </div>
             </div>
@@ -622,22 +582,24 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       </div>
 
       {/* Booking Owner */}
-      <div className="border border-gray-200 rounded-[12px] p-4">
-        <label className="block text-sm font-medium text-gray-700">
+      <div className="border border-gray-200 rounded-xl p-3">
+        <label className="block text-[0.75rem]  font-medium text-gray-700 mb-1">
           Booking Owner <span className="text-red-500">*</span>
         </label>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
-        <InputField
-          name="bookingOwner"
-          placeholder="Owner Name"
-          required
-          className="mt-1"
-        />
+        <div className="w-[30rem]">
+          <InputField
+            name="bookingOwner"
+            placeholder="Owner Name"
+            required
+            className="mt-1 text-[0.75rem]  py-2"
+          />
+        </div>
       </div>
 
       {/* Remarks */}
-      <div className="border border-gray-200 rounded-[12px] p-4">
-        <label className="block text-sm font-medium text-gray-700">
+      <div className="border border-gray-200 rounded-xl p-3">
+        <label className="block text-[0.75rem]  font-medium text-gray-700">
           Remarks
         </label>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -650,7 +612,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           placeholder="Enter Your Remarks Here"
           disabled={isSubmitting}
           className={`
-            w-full border border-gray-200 rounded-md px-3 py-2 text-sm mt-2 transition-colors
+            w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem]  mt-2 transition-colors
             focus:ring focus:ring-blue-200
             ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}
           `}
@@ -663,7 +625,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-6 py-2 bg-[#114958] text-white rounded-lg hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-[#114958] text-white text-[0.75rem] rounded-lg hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Saving..." : "Save General Info"}
           </button>

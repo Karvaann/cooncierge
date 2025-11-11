@@ -194,11 +194,11 @@ const BookingFormModal: React.FC<BookingFormModalProps> = ({
       onClose={onClose}
       title="Select Service"
       size="xl"
-      customWidth="w-300"
+      customWidth="w-[62.5vw]"
       customeHeight="h-fit"
       // className="w-[90vw]"
     >
-      <div className="flex flex-col items-center w-full p-2 -mt-5 rounded-xl ">
+      <div className="flex flex-col items-center w-full py-3 -mt-5 rounded-xl ">
         <div className="text-gray-500 text-sm text-center w-full mb-6">
           Choose from the range of services provided by{" "}
           <span className="text-[#114958] font-bold">Company ABC</span>
@@ -211,48 +211,8 @@ const BookingFormModal: React.FC<BookingFormModalProps> = ({
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-[90%] mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-[95%] mb-6">
               {serviceCards}
-            </div>
-
-            {/* Navigation arrows matching Figma design */}
-            <div className="flex items-center justify-center space-x-4">
-              <button
-                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:border-gray-400 transition-colors"
-                aria-label="Previous page"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 19l-7-7 7-7"
-                  />
-                </svg>
-              </button>
-              <button
-                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:border-gray-400 transition-colors"
-                aria-label="Next page"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 5l7 7-7 7"
-                  />
-                </svg>
-              </button>
             </div>
           </>
         )}

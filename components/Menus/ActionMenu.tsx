@@ -1,26 +1,21 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { PiDotsThreeBold } from "react-icons/pi";
-import { FaRegEdit } from "react-icons/fa";
-import { FaRegTrashAlt } from "react-icons/fa";
-import { deleteCustomer } from "@/services/customerApi";
-const ActionMenu = () => {
+
+type MenuAction = {
+  label: string;
+  icon?: React.ReactNode;
+  color?: string;
+  onClick: () => void;
+};
+
+interface ActionMenuProps {
+  actions: MenuAction[];
+}
+
+const ActionMenu: React.FC<ActionMenuProps> = ({ actions }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-
-  const handleDelete = async (id: string) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this customer?"
-    );
-    if (!confirmDelete) return;
-    try {
-      const response = await deleteCustomer(id);
-      console.log(response.message); // "Customer deleted"
-      // Optionally, refresh the customer list or update UI here
-    } catch (error) {
-      console.error("Error deleting customer:", error);
-    }
-  };
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -37,48 +32,68 @@ const ActionMenu = () => {
   }, [isOpen]);
 
   return (
-    <div className="flex items-center justify-center border border-gray-200">
-      <div className="rounded-lg p-1">
-        <div className="flex items-center justify-between">
-          <div className="relative" ref={menuRef}>
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="More actions"
-            >
-              <PiDotsThreeBold className="w-5 h-5 text-gray-600" />
-            </button>
+    <div className="relative flex items-center justify-center z-[50]">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-1.5 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+        aria-label="More actions"
+      >
+        <PiDotsThreeBold className="w-4 h-4 text-gray-600" />
+      </button>
 
-            {isOpen && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-10">
+      {isOpen && (
+        <div
+          ref={menuRef}
+          className="
+            absolute right-14 top-1/2 -translate-y-1/2
+            bg-white border border-gray-200 rounded-md shadow-xl 
+            w-25 z-[100] 
+          "
+        >
+          {/* Longer, more visible arrow tail */}
+          <div
+            className="
+    absolute 
+    -right-2
+    top-1/2 -translate-y-1/2
+    w-3 h-3
+    bg-white 
+    border-t border-r border-gray-200
+    rotate-45
+  "
+          ></div>
+
+          {/* Menu items */}
+          <div className="flex flex-col py-0.5 px-1 text-xs">
+            {actions.map((action, index) => (
+              <React.Fragment key={index}>
                 <button
                   onClick={() => {
-                    console.log("Edit clicked");
+                    action.onClick();
                     setIsOpen(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
+                  className={`
+                    flex items-center justify-center gap-1 px-2 py-0.5 
+                    hover:bg-gray-50 transition-colors
+                    ${action.color ?? "text-gray-700"}
+                  `}
                 >
-                  <FaRegEdit className="w-4 h-4 text-blue-600" />
-                  <span className="text-blue-600 font-medium">Edit</span>
+                  {action.icon && (
+                    <span className="w-4 h-4 flex items-center justify-center">
+                      {action.icon}
+                    </span>
+                  )}
+                  <span className="font-medium">{action.label}</span>
                 </button>
 
-                <hr className="border border-gray-100" />
-
-                <button
-                  onClick={() => {
-                    handleDelete;
-                    setIsOpen(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left"
-                >
-                  <FaRegTrashAlt className="w-4 h-4 text-red-600" />
-                  <span className="text-red-600 font-medium">Delete</span>
-                </button>
-              </div>
-            )}
+                {index < actions.length - 1 && (
+                  <hr className="my-1 border-t border-gray-200" />
+                )}
+              </React.Fragment>
+            ))}
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

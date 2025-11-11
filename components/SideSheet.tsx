@@ -40,8 +40,8 @@ const SideSheet: React.FC<SideSheetProps> = ({
     () => ({
       sm: "w-80",
       md: "w-96",
-      lg: "w-[800px]",
-      xl: "w-[1000px]",
+      lg: "w-[41.664vw]",
+      xl: "w-[52.08vw]",
       full: "w-full",
     }),
     []
@@ -130,10 +130,10 @@ const SideSheet: React.FC<SideSheetProps> = ({
           aria-labelledby={title ? "sidesheet-title" : undefined}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
+          <div className="flex items-center justify-between px-2 py-2 ml-2">
             <h2
               id="sidesheet-title"
-              className="text-lg font-semibold text-gray-900 flex-1"
+              className="text-[1rem] font-semibold text-gray-900 flex-1"
             >
               {title}
             </h2>

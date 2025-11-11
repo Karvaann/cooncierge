@@ -3,6 +3,9 @@
 import React, { useState, useCallback, useMemo } from "react";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { RiRefreshLine } from "react-icons/ri";
+import { FaRegCalendar } from "react-icons/fa6";
+import { IoClose } from "react-icons/io5";
+import DateRangeInput from "./DateRangeInput";
 
 interface FilterOption {
   id?: string;
@@ -127,7 +130,7 @@ const Filter: React.FC<FilterProps> = ({
         <h2 className="text-[0.85rem] font-semibold text-[#1F2937]">Filters</h2>
         <button
           onClick={() => setCreateOpen?.(true)}
-          className="border border-[#0D4B37] text-white bg-[#0D4B37] text-[0.75rem] px-3 py-1 rounded-lg hover:bg-gray-200 transition"
+          className="border border-[#0D4B37] text-white bg-[#0D4B37] text-[0.75rem] px-3 py-1.5 rounded-md font-medium hover:bg-gray-200 transition"
           type="button"
         >
           + Create
@@ -137,10 +140,9 @@ const Filter: React.FC<FilterProps> = ({
       <hr className="mb-2 mt-2 border-t-1 border-[#e4dfdb]" />
 
       <div className="flex flex-wrap items-end justify-between">
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-              {/* Service Type */}
-              {/* <div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {/* Service Type */}
+          {/* <div>
                 <label className="block text-gray-700 mb-1 text-[0.75rem]">Service Type</label>
                 <div className="relative">
                   <select
@@ -154,88 +156,52 @@ const Filter: React.FC<FilterProps> = ({
                 </div>
               </div> */}
 
-              {/* Status */}
-              <div>
-                <label className="block text-gray-700 mb-1 text-[0.75rem]">Status</label>
-                <div className="relative">
-                  <select
-                    value={filters.status}
-                    onChange={(e) => updateFilter("status", e.target.value)}
-                    className="w-[12.75rem] text-[0.75rem] border border-gray-300 rounded-lg px-3 py-2 text-gray-600 focus:ring-2 focus:ring-[#0D4B37] pr-8"
-                  >
-                    <option value="">Status</option>
-                    {statusOptions}
-                  </select>
-                </div>
-              </div>
+          {/* Status */}
 
-              {/* Booking Time Period (combined box) */}
-              <div>
-                <label className="block text-gray-700 mb-1 text-[0.75rem]">
-                  Booking Time Period
-                </label>
-                <div className="flex items-center w-[12.75rem] gap-3 border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-[#0D4B37] transition overflow-hidden">
-                  <input
-                    type={showBookingStartAsDate ? "date" : "text"}
-                    placeholder="Start Date"
-                    value={filters.bookingStartDate}
-                    onFocus={() => setShowBookingStartAsDate(true)}
-                    onBlur={(e) => {
-                      if (!e.target.value) setShowBookingStartAsDate(false);
-                    }}
-                    onChange={(e) => updateFilter("bookingStartDate", e.target.value)}
-                    className="flex-1 min-w-0 border-none outline-none text-[0.75rem] text-gray-600 bg-transparent"
-                  />
-                  <span className="mx-1 text-gray-400">→</span>
-                  <input
-                    type={showBookingEndAsDate ? "date" : "text"}
-                    value={filters.bookingEndDate}
-                    onFocus={() => setShowBookingEndAsDate(true)}
-                    onBlur={(e) => {
-                      if (!e.target.value) setShowBookingEndAsDate(false);
-                    }}
-                    placeholder="End Date"
-                    onChange={(e) => updateFilter("bookingEndDate", e.target.value)}
-                    className="flex-1 min-w-0 border-none text-[0.75rem] outline-none text-gray-600 bg-transparent pr-2"
-                  />
-                </div>
-              </div>
+          {/* Booking Time Period (combined box) */}
+          <DateRangeInput
+            label="Booking Date"
+            startDate={filters.bookingStartDate}
+            endDate={filters.bookingEndDate}
+            onChange={(start, end) => {
+              updateFilter("bookingStartDate", start);
+              updateFilter("bookingEndDate", end);
+            }}
+          />
 
-              {/* Trip Time Period (combined box) */}
-              <div>
-                <label className="block text-gray-700 mb-1 text-[0.75rem]">Trip Time Period</label>
-                <div className="flex items-center w-[12.75rem] gap-3 border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-[#0D4B37] transition overflow-hidden">
-                  <input
-                    type={showTripStartAsDate ? "date" : "text"}
-                    value={filters.tripStartDate}
-                    onFocus={() => setShowTripStartAsDate(true)}
-                    onBlur={(e) => {
-                      if (!e.target.value) setShowTripStartAsDate(false);
-                    }}
-                    placeholder="Start Date"
-                    onChange={(e) => updateFilter("tripStartDate", e.target.value)}
-                    className="flex-1 min-w-0 border-none outline-none text-[0.75rem] text-gray-600 bg-transparent pr-2"
-                  />
-                  <span className="mx-[1px] text-gray-400">→</span>
-                  <input
-                    type={showTripEndAsDate ? "date" : "text"}
-                    value={filters.tripEndDate}
-                    onFocus={() => setShowTripEndAsDate(true)}
-                    onBlur={(e) => {
-                      if (!e.target.value) setShowTripEndAsDate(false);
-                    }}
-                    placeholder="End Date"
-                    onChange={(e) => updateFilter("tripEndDate", e.target.value)}
-                    className="flex-1 min-w-0 border-none outline-none text-[0.75rem] text-gray-600 bg-transparent pr-2"
-                  />
-                </div>
-              </div>
+          <DateRangeInput
+            label="Travel Date"
+            startDate={filters.tripStartDate}
+            endDate={filters.tripEndDate}
+            onChange={(start, end) => {
+              updateFilter("tripStartDate", start);
+              updateFilter("tripEndDate", end);
+            }}
+          />
+
+          {/* Booking Owner */}
+
+          <div>
+            <label className="block text-gray-700 mb-1 text-[0.75rem]">
+              Booking Owner
+            </label>
+            <div className="relative">
+              <select
+                value={filters.owner}
+                onChange={(e) => updateFilter("owner", e.target.value)}
+                className="w-[12.75rem] text-[0.75rem] border border-gray-300 rounded-lg px-3 py-2 text-gray-600 focus:ring-2 focus:ring-[#0D4B37] pr-8"
+              >
+                <option value="">Select Owner</option>
+                {ownerOptions}
+              </select>
+            </div>
           </div>
+        </div>
 
-          {/* Second Row: Owner + Search + Buttons */}
-          <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
-            {/* Owner */}
-            {/* <div>
+        {/* Second Row: Owner + Search + Buttons */}
+        <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+          {/* Owner */}
+          {/* <div>
               <label className="block text-gray-700 mb-1">Select Owner</label>
               <div className="relative">
                 <select
@@ -250,45 +216,41 @@ const Filter: React.FC<FilterProps> = ({
               </div>
             </div> */}
 
-            <div className="flex items-end gap-3 w-[100%]">
-              {/* Search */}
+          <div className="flex items-end gap-3 w-[100%]">
+            {/* Search */}
 
-              <div>
-                <label className="block text-gray-700 mb-1 text-[0.75rem]">
-                  Search Booking / Lead Pax
-                </label>
-                <input
-                  type="text"
-                  placeholder="Search by Booking ID / Lead Pax"
-                  value={filters.search}
-                  onChange={(e) => updateFilter("search", e.target.value)}
-                  className="w-80 border border-gray-300 text-[0.75rem] rounded-lg px-3 py-2 text-gray-600 focus:ring-2 focus:ring-[#0D4B37]"
-                />
-              </div>
+            <div>
+              <label className="block text-gray-700 mb-1 text-[0.75rem]">
+                Search Booking / Lead Pax
+              </label>
+              <input
+                type="text"
+                placeholder="Search by Booking ID / Lead Pax"
+                value={filters.search}
+                onChange={(e) => updateFilter("search", e.target.value)}
+                className="w-80 border border-gray-300 text-[0.75rem] rounded-lg px-3 py-2 text-gray-600 focus:ring-2 focus:ring-[#0D4B37]"
+              />
+            </div>
 
-              {/* Buttons */}
-              <div className="flex items-center gap-3">
-                {/* <button
+            {/* Buttons */}
+            <div className="flex items-center gap-3">
+              {/* <button
                   onClick={handleReset}
                   className="flex items-center justify-center bg-gray-100 text-[#0D4B37] px-3 py-2 rounded-lg hover:bg-gray-200 transition"
                 >
                   
                 </button> */}
-                <button
-                  onClick={handleApply}
-                  className="bg-white flex items-center text-[0.75rem] font-semibold gap-1 justify-center text-[#0D4B37] border border-[#0D4B37] px-3 py-1 rounded-lg hover:bg-gray-200 transition"
-                >
-                  <RiRefreshLine size={16} />
-                  Reset
-                </button>
-              </div>
+              <button
+                onClick={handleApply}
+                className="bg-white flex items-center text-[0.75rem] font-semibold gap-1 justify-center text-[#0D4B37] border border-[#0D4B37] px-3 py-2 rounded-lg hover:bg-gray-200 transition"
+              >
+                <RiRefreshLine size={16} />
+                Reset
+              </button>
             </div>
           </div>
+        </div>
       </div>
-
-      
-
-      
     </div>
   );
 };

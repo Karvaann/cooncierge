@@ -35,9 +35,7 @@ interface CustomerFrom {
   dateofbirth: number;
   gstin: number;
   companyname: string;
-  adhaarnumber: number;
-  pan: number | string;
-  passport: number | string;
+  documents: File | "";
   billingaddress: string | number;
   remarks: string;
 }
@@ -452,18 +450,6 @@ export const validateCustomerForm = (data: CustomerFrom): Record<string, string>
 
   if (data.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/.test(String(data.gstin))) {
     errors.gstin = 'Invalid GSTIN format';
-  }
-
-  if (data.adhaarnumber && !/^\d{12}$/.test(String(data.adhaarnumber))) {
-    errors.adhaarnumber = 'Aadhaar number must be 12 digits';
-  }
-
-  if (data.pan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(String(data.pan))) {
-    errors.pan = 'Invalid PAN format';
-  }
-
-  if (data.passport && !/^[A-PR-WYa-pr-wy][1-9]\\d\\s?\\d{4}[1-9]$/.test(String(data.passport))) {
-    errors.passport = 'Invalid Passport number format';
   }
 
   if (!data.billingaddress) {

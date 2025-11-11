@@ -76,9 +76,7 @@ interface CustomerForm {
   dateofbirth: number;
   gstin: number;
   companyname: string;
-  adhaarnumber: number;
-  pan: number | string;
-  passport: number | string;
+  documents: File | "";
   billingaddress: string | number;
   remarks: string;
 }
@@ -304,9 +302,7 @@ const initialState: BookingState = {
     dateofbirth: 0,
     gstin: 0,
     companyname: "",
-    adhaarnumber: 0,
-    pan: "",
-    passport: "",
+    documents: "",
     billingaddress: "",
     remarks: "",
   },

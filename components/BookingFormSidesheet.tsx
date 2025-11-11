@@ -279,13 +279,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         <button
           key={tab.id}
           className={`
-          px-4 py-2 text-sm font-medium border-b-2 transition-colors
+          px-4 py-2 text-[0.75rem] font-medium border-b-2 transition-colors
           ${
             activeTab === tab.id
               ? "border-[#0D4B37] text-[#0D4B37]"
               : tab.isEnabled
-              ? "border-transparent text-gray-500 hover:text-gray-700"
-              : "border-transparent text-gray-300 cursor-not-allowed"
+              ? "border-transparent  text-gray-500 hover:text-gray-700"
+              : "border-transparent  text-gray-300 cursor-not-allowed"
           }
         `}
           onClick={() => handleTabClick(tab.id)}
@@ -346,7 +346,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       >
         <div className="flex flex-col h-full">
           {/* Tabs */}
-          <div className="flex space-x-0 p-6" role="tablist">
+          <div
+            className="flex w-full border-b border-gray-200 space-x-0 px-6 -mt-2 -ml-2"
+            role="tablist"
+          >
             {tabButtons}
           </div>
 
@@ -360,7 +363,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
             <div className="flex justify-between">
               <button
                 onClick={() => setIsConfirmModalOpen(true)}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-3 py-1 text-[0.85rem] text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 disabled={isSubmitting}
               >
                 Cancel
@@ -378,7 +381,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                         setActiveTab(prevTab.id);
                       }
                     }}
-                    className="px-4 py-2 text-[#114958] border border-[#114958] rounded-lg hover:bg-[#114958] hover:text-white transition-colors"
+                    className="px-3 text-[#114958] text-[0.85rem] border border-[#114958] rounded-lg hover:bg-[#114958] hover:text-white transition-colors"
                     disabled={isSubmitting}
                   >
                     Previous
@@ -396,7 +399,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                         setActiveTab(nextTab.id);
                       }
                     }}
-                    className="px-4 py-2 bg-[#114958] text-white rounded-lg hover:bg-[#0d3a45] transition-colors"
+                    className="px-3 bg-[#114958] text-[0.85rem] text-white rounded-lg hover:bg-[#0d3a45] transition-colors"
                     disabled={isSubmitting}
                   >
                     Next
@@ -416,7 +419,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           console.error("Error saving draft:", error);
                         }
                       }}
-                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+                      className="px-3 py-2  text-[0.75rem] bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
                       disabled={isSubmitting}
                     >
                       Save Draft
@@ -439,10 +442,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       {/* Confirm Popup Modal */}
       <ConfirmPopupModal
         isOpen={isConfirmModalOpen}
-        title={confirmModalText}
-        showDontSave={true}
-        showSaveAsDrafts={true}
-        cancelText="Cancel"
+        title="Do you want to save the data to drafts before closing?"
         onClose={() => setIsConfirmModalOpen(false)}
         onDontSave={() => {
           setIsConfirmModalOpen(false);

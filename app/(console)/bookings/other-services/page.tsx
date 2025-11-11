@@ -10,7 +10,15 @@ import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ModalSkeleton from "@/components/skeletons/ModalSkeleton";
 import SidesheetSkeleton from "@/components/skeletons/SidesheetSkeleton";
+import ActionMenu from "@/components/Menus/ActionMenu";
 import type { JSX } from "react";
+import { FaRegTrashAlt } from "react-icons/fa";
+import { MdOutlineEdit } from "react-icons/md";
+import { TbArrowAutofitRight } from "react-icons/tb";
+import { FiCopy } from "react-icons/fi";
+import { CiFilter } from "react-icons/ci";
+import { HiArrowsUpDown } from "react-icons/hi2";
+import Image from "next/image";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -130,7 +138,18 @@ const columns: string[] = [
   "Amount",
   "Voucher",
   "Tasks",
+  "Actions",
 ];
+
+const columnIconMap: Record<string, JSX.Element> = {
+  "Travel Date": (
+    <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold" />
+  ),
+  Service: <CiFilter className="inline w-3 h-3 text-white font-semibold" />,
+  "Booking Status": (
+    <CiFilter className="inline w-3 h-3 text-white font-semibold" />
+  ),
+};
 
 const tableSeed: BookingRow[] = [
   {
@@ -204,6 +223,8 @@ const OSBookingsPage = () => {
   const [selectedService, setSelectedService] = useState<BookingService | null>(
     null
   );
+  const tabOptions = ["Approved", "Pending", "Drafts", "Denied", "Deleted"];
+  const [activeTab, setActiveTab] = useState("Approved");
 
   // Data State
   const [quotations, setQuotations] = useState<QuotationData[]>([]);
@@ -367,7 +388,15 @@ const OSBookingsPage = () => {
           quotation.quotationType,
         bookingStatus: mapStatus(quotation.status),
         amount: `₹ ${quotation.totalAmount?.toLocaleString("en-IN") || "0"}`,
-        voucher: "📄",
+        voucher: (
+          <Image
+            src="/icons/voucher-icon.svg"
+            alt="voucher"
+            width={17}
+            height={17}
+            className="cursor-pointer"
+          />
+        ),
         tasks: Math.floor(Math.random() * 5) + 1, // Random tasks for demo
         isReal: true,
         originalIndex: index,
@@ -375,27 +404,48 @@ const OSBookingsPage = () => {
     ];
 
     return combinedData.map((row, index) => [
-      <td key={`id-${index}`} className="px-4 py-3">
+      <td
+        key={`id-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
         {row.id}
       </td>,
-      <td key={`lead-${index}`} className="px-4 py-3">
+      <td
+        key={`lead-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
         {row.leadPax}
       </td>,
-      <td key={`date-${index}`} className="px-4 py-3">
+      <td
+        key={`date-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
         {row.travelDate}
       </td>,
-      <td key={`service-${index}`} className="px-4 py-3">
+      <td
+        key={`service-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
         {row.service}
       </td>,
-      <td key={`status-${index}`} className="px-4 py-3">
+      <td
+        key={`status-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
         <span className={getStatusBadgeClass(row.bookingStatus)}>
           {row.bookingStatus}
         </span>
       </td>,
-      <td key={`amount-${index}`} className="px-4 py-3">
+      <td
+        key={`amount-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
         {row.amount}
       </td>,
-      <td key={`voucher-${index}`} className="px-4 py-3">
+      <td
+        key={`voucher-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
         <button
           className="hover:scale-110 transition-transform"
           aria-label="View voucher"
@@ -413,10 +463,50 @@ const OSBookingsPage = () => {
           {row.voucher}
         </button>
       </td>,
-      <td key={`tasks-${index}`} className="px-4 py-3">
+      <td
+        key={`tasks-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
         <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
           {row.tasks}
         </span>
+      </td>,
+
+      // ✅ ✅ ACTIONS COLUMN (NEW!)
+      <td
+        key={`actions-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
+        <ActionMenu
+          actions={[
+            {
+              label: "Edit",
+              icon: <MdOutlineEdit />,
+              color: "text-blue-600",
+              onClick: () => console.log("Edit", row.id),
+            },
+            {
+              label: "Delete",
+              icon: <FaRegTrashAlt />,
+              color: "text-red-600",
+              onClick: () => console.log("Delete", row.id),
+            },
+
+            {
+              label: "Move",
+              onClick: () => console.log("View clicked"),
+              icon: <TbArrowAutofitRight />,
+              color: "text-gray-400",
+            },
+
+            {
+              label: "Duplicate",
+              onClick: () => console.log("Duplicate clicked"),
+              icon: <FiCopy />,
+              color: "text-gray-400",
+            },
+          ]}
+        />
       </td>,
     ]);
   }, [quotations, handleViewQuotation]);
@@ -473,7 +563,7 @@ const OSBookingsPage = () => {
       {/* </div> */}
 
       <div className="min-h-screen">
-        {!error && (
+        {/* {!error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             <strong>Error:</strong> {error}
             <button
@@ -484,7 +574,7 @@ const OSBookingsPage = () => {
               Retry
             </button>
           </div>
-        )}
+        )} */}
 
         <Filter
           onFilterChange={handleFilterChange}
@@ -501,11 +591,48 @@ const OSBookingsPage = () => {
           <SummaryCards data={summaryData ?? undefined} />
         )}
 
-        {isLoading ? (
-          <TableSkeleton />
-        ) : (
-          <Table data={tableData} columns={columns} />
-        )}
+        <div className="bg-white rounded-2xl shadow pt-4 pb-3 px-3 relative">
+          {/* Tabs + Total Count Row */}
+          <div className="flex w-full justify-between items-center mb-2">
+            {/* ✅ Left side — Tabs */}
+            <div className="flex w-[32rem] ml-2 items-center bg-[#F3F3F3] rounded-2xl">
+              {tabOptions.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-6 py-2 rounded-xl text-[0.85rem] font-semibold transition-all duration-200 ${
+                    activeTab === tab
+                      ? "bg-[#0D4B37] text-white shadow-sm"
+                      : "text-[#818181] hover:bg-gray-200"
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            {/* ✅ Right side — Total Count Box */}
+            <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
+              <span className="text-gray-600 text-[0.85rem] font-medium">
+                Total
+              </span>
+              <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
+                78
+              </span>
+            </div>
+          </div>
+          <div className="p-2">
+            {isLoading ? (
+              <TableSkeleton />
+            ) : (
+              <Table
+                data={tableData}
+                columns={columns}
+                columnIconMap={columnIconMap}
+              />
+            )}
+          </div>
+        </div>
       </div>
 
       {isCreateOpen && (

@@ -94,7 +94,7 @@ const Table: React.FC<TableProps> = ({
               {columns.map((col, index) => (
                 <th
                   key={`${col}-${index}`}
-                  className="px-4 py-3 text-left text-gray-200 font-semibold text-sm"
+                  className="px-4 py-2 text-center text-gray-200 font-semibold leading-4 tracking-[0.6px] text-[0.65rem]"
                 >
                   <div className="flex items-center justify-center gap-2">
                     <span> {col} </span>
@@ -110,7 +110,7 @@ const Table: React.FC<TableProps> = ({
                 key={`row-${page}-${idx}`}
                 className={`${
                   idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                } hover:bg-gray-100 transition-colors`}
+                } hover:bg-gray-100 transition-colors h-[4rem]`}
               >
                 {row}
               </tr>
@@ -124,7 +124,7 @@ const Table: React.FC<TableProps> = ({
                   (paginatedRows.length + idx) % 2 === 0
                     ? "bg-white"
                     : "bg-gray-50"
-                } h-14`}
+                } h-[4rem]`}
               >
                 <td className="px-4 py-3" colSpan={columns.length}></td>
               </tr>

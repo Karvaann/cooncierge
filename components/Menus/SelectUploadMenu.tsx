@@ -48,7 +48,7 @@ const SelectUploadMenu: React.FC<SelectUploadMenuProps> = ({
         <div
           className="absolute right-12 -mt-4 -translate-y-1/2 
                  bg-white border border-gray-200 rounded-lg shadow-xl 
-                 w-30 z-50"
+                 w-[5.5rem] h-[4rem] z-50"
         >
           {/* Arrow Tail */}
           <div
@@ -58,22 +58,28 @@ const SelectUploadMenu: React.FC<SelectUploadMenuProps> = ({
           ></div>
           <button
             onClick={handleSelectClick}
-            className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 transition-colors text-left"
+            className="w-full flex items-center gap-1.5 px-3 py-1.5 hover:bg-gray-50 transition-colors text-left"
           >
             <div className="flex items-center justify-center">
-              <TbClick size={20} className="text-gray-800" />
+              <TbClick size={16} className="text-gray-800" />
             </div>
-            <span className="text-gray-800 font-medium">Select</span>
+            <span className="text-gray-800 text-[0.75rem] font-medium">
+              Select
+            </span>
           </button>
 
           <hr className="border border-gray-100" />
 
           <button
             onClick={handleUploadClick}
-            className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 transition-colors text-left"
+            className="w-full flex items-center gap-1.5 px-3 py-1.5 hover:bg-gray-50 transition-colors text-left"
           >
-            <MdOutlineFileUpload size={20} className="text-blue-600" />
-            <span className="text-blue-600 font-medium">Upload</span>
+            <div className="flex items-center justify-center">
+              <MdOutlineFileUpload size={16} className="text-blue-600" />
+            </div>
+            <span className="text-blue-600 text-[0.75rem] font-medium">
+              Upload
+            </span>
           </button>
         </div>
       )}
