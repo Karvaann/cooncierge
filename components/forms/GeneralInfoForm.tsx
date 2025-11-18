@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { IoEye } from "react-icons/io5";
-import { CiCirclePlus } from "react-icons/ci";
+import { LuEye } from "react-icons/lu";
+import { GoPlusCircle } from "react-icons/go";
 import { BsPlusSquareFill } from "react-icons/bs";
+import { CiSearch } from "react-icons/ci";
 import { FiMinus } from "react-icons/fi";
 import { GoPlus } from "react-icons/go";
 import { validateGeneralInfo } from "@/services/bookingApi";
@@ -16,9 +17,8 @@ interface GeneralInfoFormData {
   adults: number;
   children: number;
   infants: number;
-  traveller1: string;
-  traveller2: string;
-  traveller3: string;
+  adultTravellers: string[];
+  infantTravellers: string[];
   bookingOwner: string;
   remarks: string;
 }
@@ -46,12 +46,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const [formData, setFormData] = useState<GeneralInfoFormData>({
     customer: "",
     vendor: "",
-    adults: 0,
+    adults: 1,
     children: 0,
-    infants: 0,
-    traveller1: "",
-    traveller2: "",
-    traveller3: "",
+    infants: 1,
+    adultTravellers: [""], // Adult 1 (Lead Pax)
+    infantTravellers: [""],
     bookingOwner: "",
     remarks: "",
     ...externalFormData,
@@ -62,6 +61,134 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const [validatingCustomer, setValidatingCustomer] = useState<boolean>(false);
   const [validatingVendor, setValidatingVendor] = useState<boolean>(false);
   const { openAddCustomer, openAddVendor } = useBooking();
+  const [customerList, setCustomerList] = useState<string[]>([""]);
+
+  // when adults change
+  useEffect(() => {
+    setFormData((prev) => {
+      let adults = [...prev.adultTravellers];
+
+      // always at least 1 adult input
+      if (adults.length === 0) adults.push("");
+
+      while (adults.length < prev.adults) adults.push("");
+      while (adults.length > prev.adults && adults.length > 1) adults.pop();
+
+      return { ...prev, adultTravellers: adults };
+    });
+  }, [formData.adults]);
+
+  useEffect(() => {
+    setFormData((prev) => {
+      let infants = [...prev.infantTravellers];
+
+      // always at least one infant input
+      if (infants.length === 0) infants.push("");
+
+      while (infants.length < prev.infants) infants.push("");
+      while (infants.length > prev.infants && infants.length > 1) infants.pop();
+
+      return { ...prev, infantTravellers: infants };
+    });
+  }, [formData.infants]);
+
+  const addCustomerField = () => {
+    setCustomerList([...customerList, ""]);
+  };
+
+  const removeCustomerField = (index: number) => {
+    setCustomerList(customerList.filter((_, i) => i !== index));
+  };
+
+  // update customer field from customer array
+  const updateCustomerField = (index: number, value: string) => {
+    const updated = [...customerList];
+    updated[index] = value;
+    setCustomerList(updated);
+    if (index === 0) {
+      setFormData({ ...formData, customer: value });
+    }
+  };
+
+  // update traveller field from traveller array
+  const updateTraveller = (
+    type: "adultTravellers" | "infantTravellers",
+    index: number,
+    value: string
+  ) => {
+    const updated = [...formData[type]];
+    updated[index] = value;
+
+    setFormData((prev) => ({ ...prev, [type]: updated }));
+  };
+
+  const clearField = (fieldName: string) => {
+    setFormData((prev) => ({ ...prev, [fieldName]: "" }));
+    setErrors((prev) => ({ ...prev, [fieldName]: "" }));
+    setTouched((prev) => ({ ...prev, [fieldName]: false }));
+  };
+
+  const getFieldValue = (fieldName: string, overrideValue?: string) => {
+    if (overrideValue !== undefined) return overrideValue;
+    return formData[fieldName as keyof GeneralInfoFormData] ?? "";
+  };
+
+  // clearInput() helper
+  const clearInput = (
+    fieldName: string,
+    overrideHandler?: (value: string) => void
+  ) => {
+    if (overrideHandler) {
+      overrideHandler("");
+    } else {
+      clearField(fieldName);
+    }
+  };
+
+  const RightSideIcons: React.FC<{
+    fieldName: string;
+    value?: string | undefined; // override value
+    overrideSetter?: (val: string) => void;
+    onClickPlus?: () => void; // for add customer/vendor modal
+  }> = ({ fieldName, value, overrideSetter, onClickPlus }) => {
+    const actualValue = getFieldValue(fieldName, value);
+    const valueString = String(actualValue ?? "");
+    const isEmpty = valueString.trim() === "";
+
+    return (
+      <div className="flex items-center gap-2 ml-auto">
+        {isEmpty && (
+          <button
+            type="button"
+            onClick={onClickPlus}
+            className="w-9 h-9 flex items-center justify-center rounded-md transition-colors"
+          >
+            <BsPlusSquareFill size={22} className="" />
+          </button>
+        )}
+
+        {/* EYE and MINUS when value exists */}
+        {!isEmpty && (
+          <>
+            <button
+              type="button"
+              className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+            >
+              <LuEye size={20} className="text-gray-400" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => clearInput(fieldName, overrideSetter)}
+              className="w-6.5 h-6.5 flex items-center justify-center bg-[#414141] rounded-md cursor-pointer transition-colors"
+            >
+              <FiMinus size={16} className="text-white" />
+            </button>
+          </>
+        )}
+      </div>
+    );
+  };
 
   // Get validation functions from booking context
   const { validateCustomer, validateVendor } = useBooking();
@@ -297,6 +424,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     required?: boolean;
     className?: string;
     min?: number;
+    value?: string; // ADD THIS
+    onChange?: (e: any) => void;
+    skipValidation?: boolean;
   }> = ({
     name,
     type = "text",
@@ -304,21 +434,27 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     required,
     className = "",
     min,
+    value,
+    onChange,
+    skipValidation = false,
   }) => {
     const isValidating =
       (name === "customer" && validatingCustomer) ||
       (name === "vendor" && validatingVendor);
+
+    const fieldValue = value !== undefined ? value : formData[name];
+    const handleChangeLocal = onChange ? onChange : handleChange;
     const hasError = errors[name] && touched[name];
     const hasValue = formData[name] && String(formData[name]).trim();
-    const isValid = hasValue && !hasError && !isValidating;
+    const isValid = !skipValidation && hasValue && !hasError && !isValidating;
 
     return (
       <div className="relative">
         <input
           type={type}
           name={name}
-          value={formData[name]}
-          onChange={handleChange}
+          value={fieldValue}
+          onChange={handleChangeLocal}
           onBlur={handleBlur}
           placeholder={placeholder}
           required={required}
@@ -344,6 +480,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
         {/* Validation indicator */}
         <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+          <CiSearch size={18} className="text-gray-400" />
           {isValidating && (
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
           )}
@@ -387,40 +524,65 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   };
 
   return (
-    <form className="space-y-6 p-4" onSubmit={handleSubmit}>
+    <form className="space-y-4 p-4" onSubmit={handleSubmit}>
       {/* Customer Section */}
       <div className="border border-gray-200 rounded-[12px] p-3">
         <h2 className="text-[0.75rem] font-medium mb-2">Billed To</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
-        <label className="block text-[0.75rem] mt-3 font-medium text-gray-700">
-          Customer <span className="text-red-500">*</span>
-        </label>
 
-        <div className="flex items-center mt-1 w-full">
-          <div className="w-[30rem]">
-            <InputField
-              name="customer"
-              placeholder="Search by Customer Name/ID"
-              required
-              className=" w-full text-[0.75rem]  py-2"
-            />
+        {customerList.map((customer, index) => (
+          <div key={index} className="mb-4">
+            <div className="flex items-center gap-2 mt-3">
+              <label className="text-[0.75rem] font-medium text-gray-700">
+                <span className="text-red-500">*</span> Customer {index + 1}
+              </label>
+
+              {index > 0 && (
+                <button
+                  type="button"
+                  onClick={() => removeCustomerField(index)}
+                  className="w-4 h-4 mb-1 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-100 transition-colors"
+                >
+                  <FiMinus size={14} className="text-black" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center mt-1 w-full">
+              <div className="w-[30rem]">
+                <InputField
+                  name={"customer"}
+                  placeholder="Search by Customer Name/ID"
+                  required
+                  className="w-full text-[0.75rem] py-2"
+                  // override value and change handler
+                  type="text"
+                  value={customerList[index] || ""}
+                  onChange={(e: any) =>
+                    updateCustomerField(index, e.target.value)
+                  }
+                />
+              </div>
+
+              <RightSideIcons
+                fieldName="customer"
+                value={customerList[index]}
+                overrideSetter={(val: string) =>
+                  updateCustomerField(index, val)
+                }
+                onClickPlus={openAddCustomer}
+              />
+            </div>
           </div>
-          <div className="flex gap-1 ml-auto">
-            <button
-              type="button"
-              onClick={openAddCustomer}
-              className="w-9 h-9 -ml-2 flex items-center justify-center rounded-md  transition-colors"
-              aria-label="Add new customer"
-            >
-              <BsPlusSquareFill size={22} className="" />
-            </button>
-          </div>
-        </div>
+        ))}
+
         <button
           type="button"
-          className="mt-2 flex gap-1 text-[#818181] text-xs hover:text-gray-800 transition-colors"
+          onClick={addCustomerField}
+          className="-mt-1 flex gap-1 text-[#818181] text-[0.65rem] hover:text-gray-800 transition-colors"
         >
-          <CiCirclePlus size={14} /> Add Another Customer
+          <GoPlusCircle size={17} />
+          <p className="mt-0.5"> Add Another Customer </p>
         </button>
       </div>
 
@@ -430,7 +592,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         <hr className="mt-1 mb-2 border-t border-gray-200" />
 
         <label className="block text-[0.75rem] mt-3 font-medium text-gray-700 mb-1">
-          Vendor <span className="text-red-500">*</span>
+          <span className="text-red-500">*</span> Vendor
         </label>
 
         <div className="flex items-center gap-2">
@@ -442,16 +604,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               className="w-full text-[0.75rem]  py-2"
             />
           </div>
-          <div className="flex gap-1 ml-auto">
-            <button
-              type="button"
-              onClick={openAddVendor}
-              className="w-9 h-9 flex items-center justify-center rounded-md  transition-colors"
-              aria-label="Add new vendor"
-            >
-              <BsPlusSquareFill size={22} />
-            </button>
-          </div>
+          <RightSideIcons fieldName="vendor" onClickPlus={openAddVendor} />
         </div>
       </div>
 
@@ -490,7 +643,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           </div>
 
           <div className="flex flex-col items-center">
-            <label className="block text-xs text-black mb-1">Infants</label>
+            <label className="block text-xs text-black mb-1">Children</label>
             <div className="flex items-center border border-black rounded-lg px-1 py-1">
               <button
                 type="button"
@@ -520,77 +673,78 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
         {/* Traveller Details */}
         <div className="mt-4 space-y-4">
-          <div className="flex items-center gap-1">
-            <div className="w-[30rem] pr-1">
-              <InputField
-                name="traveller1"
-                placeholder="Adult 1 (Lead Pax) *"
-                required
-                className="flex-1 text-[0.75rem]  py-2"
+          <label className="block text-[0.75rem] mt-3 font-medium text-gray-700 mb-1">
+            <span className="text-red-500">*</span> Adult
+          </label>
+
+          {formData.adultTravellers.map((trav, index) => (
+            <div key={index} className="flex items-center gap-2 my-2">
+              <div className="w-[30rem]">
+                <InputField
+                  name="adultTravellers"
+                  placeholder={`Adult ${index + 1}`}
+                  required={index === 0}
+                  value={trav}
+                  onChange={(e) =>
+                    updateTraveller("adultTravellers", index, e.target.value)
+                  }
+                  skipValidation
+                />
+              </div>
+
+              <RightSideIcons
+                fieldName="adultTravellers"
+                value={trav}
+                overrideSetter={(val) =>
+                  updateTraveller("adultTravellers", index, val)
+                }
               />
             </div>
-            <div className="flex gap-1 ml-auto">
-              <button
-                type="button"
-                className="w-9 h-9 -ml-2 flex items-center justify-center rounded-md  transition-colors"
-              >
-                <BsPlusSquareFill size={22} />
-              </button>
-            </div>
-          </div>
+          ))}
 
-          {formData.adults > 1 && (
-            <div className="flex items-center gap-2">
+          <label className="block text-[0.75rem] mt-3 font-medium text-gray-700 mb-1">
+            <span className="text-red-500">*</span> Children
+          </label>
+
+          {formData.infantTravellers.map((trav, index) => (
+            <div key={index} className="flex items-center gap-2 my-2">
               <div className="w-[30rem]">
                 <InputField
-                  name="traveller2"
-                  placeholder="Adult 2"
-                  className="flex-1"
+                  name="infantTravellers"
+                  placeholder={`Child ${index + 1}`}
+                  required={index === 0}
+                  value={trav}
+                  onChange={(e) =>
+                    updateTraveller("infantTravellers", index, e.target.value)
+                  }
+                  skipValidation
                 />
               </div>
-              <div className="flex gap-1 ml-auto">
-                <button
-                  type="button"
-                  className="w-9 h-9 -ml-2 flex items-center justify-center rounded-md  transition-colors"
-                >
-                  <BsPlusSquareFill size={22} />
-                </button>
-              </div>
-            </div>
-          )}
 
-          {formData.infants > 0 && (
-            <div className="flex items-center gap-2">
-              <div className="w-[30rem]">
-                <InputField
-                  name="traveller3"
-                  placeholder="Infant 1"
-                  className="flex-1 text-[0.75rem]  py-2"
-                />
-              </div>
-              <div className="flex gap-1 ml-auto">
-                <button
-                  type="button"
-                  className="w-9 h-9 -ml-2 flex items-center justify-center rounded-md  transition-colors"
-                >
-                  <BsPlusSquareFill size={22} />
-                </button>
-              </div>
+              <RightSideIcons
+                fieldName="infantTravellers"
+                value={trav}
+                overrideSetter={(val) =>
+                  updateTraveller("infantTravellers", index, val)
+                }
+              />
             </div>
-          )}
+          ))}
         </div>
       </div>
 
       {/* Booking Owner */}
       <div className="border border-gray-200 rounded-xl p-3">
-        <label className="block text-[0.75rem]  font-medium text-gray-700 mb-1">
-          Booking Owner <span className="text-red-500">*</span>
-        </label>
+        <h2 className="text-[0.75rem]  font-medium mb-2">Booking Owner</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
+        <label className="block text-[0.75rem]  font-medium text-gray-700 mb-1">
+          <span className="text-red-500">*</span> User
+        </label>
+
         <div className="w-[30rem]">
           <InputField
             name="bookingOwner"
-            placeholder="Owner Name"
+            placeholder="Search by Name/Username/ID"
             required
             className="mt-1 text-[0.75rem]  py-2"
           />

@@ -315,7 +315,6 @@ export default function DateRangeInput({
 
     return (
       <div className="flex-1">
-        {/* ✅ CHANGE: Reduced padding from py-2 to py-1.5 for more compact layout */}
         <hr className="mb-1 -mt-2 border-t border-gray-200" />
         <div className="grid grid-cols-7 gap-0 mb-1">
           {weekDays.map((day) => (
@@ -328,7 +327,6 @@ export default function DateRangeInput({
           ))}
         </div>
         <div className="grid grid-cols-7 gap-0">
-          {/* ✅ CHANGE: Now rendering all dates including adjacent months with isCurrentMonth flag */}
           {days.map((dayObj, index) => {
             const day = dayObj.date;
             const isCurrentMonth = dayObj.isCurrentMonth;
@@ -402,7 +400,7 @@ export default function DateRangeInput({
       </label>
 
       <div
-        className="relative flex items-center w-57 gap-2 border border-gray-300 rounded-lg px-3 py-2 cursor-pointer bg-white hover:border-gray-400 transition-colors"
+        className="relative flex items-center w-[14.75rem] gap-2 border border-gray-300 rounded-lg px-3 py-2 cursor-pointer bg-white hover:border-gray-400 transition-colors"
         onClick={() => setOpen(!open)}
       >
         <span className="text-[0.75rem] text-gray-500">
@@ -423,9 +421,7 @@ export default function DateRangeInput({
       {open && (
         <div className="absolute mt-2 z-50 rounded-lg shadow-2xl bg-white border border-gray-200 p-1 pr-2 w-[33rem] h-[16.25rem]">
           {" "}
-          {/* ✅ CHANGE: Reduced padding from p-4 to p-3 */}
           <div className="flex gap-4">
-            {/* ✅ CHANGE: Added horizontal separator lines between range groups */}
             <div className="w-34 border-r border-gray-200">
               {/* Today & Yesterday */}
               <button
@@ -454,7 +450,6 @@ export default function DateRangeInput({
                 {predefinedRanges[1]?.label ?? ""}
               </button>
 
-              {/* ✅ CHANGE: Separator line */}
               {/* This Week & Last Week */}
               <button
                 onClick={() => {
@@ -481,7 +476,6 @@ export default function DateRangeInput({
                 {predefinedRanges[3]?.label ?? ""}
               </button>
 
-              {/* ✅ CHANGE: Separator line */}
               {/* This Month & Last Month */}
               <button
                 onClick={() => {
@@ -509,7 +503,6 @@ export default function DateRangeInput({
                 {predefinedRanges[5]?.label ?? ""}
               </button>
 
-              {/* ✅ CHANGE: Separator line */}
               {/* Last 30 Days & This Year */}
               <button
                 onClick={() => {

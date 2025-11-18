@@ -76,7 +76,7 @@ interface CustomerForm {
   dateofbirth: number;
   gstin: number;
   companyname: string;
-  documents: File | "";
+  documents?: string | File;
   billingaddress: string | number;
   remarks: string;
 }
@@ -91,7 +91,7 @@ interface VendorForm {
   nickname: string;
   emailId: string;
   dateofbirth: number;
-  document: number;
+  documents?: string | File;
   billingaddress: string | number;
   remarks: string;
 }
@@ -134,8 +134,6 @@ interface FlightInfoForm {
   returnSegments: ReturnFlightSegment[]; // array for return segments
   samePNRForAllSegments: boolean;
   flightType: "One Way" | "Round Trip" | "Multi-City";
-  voucher: File | null;
-  taxinvoice: File | null;
   remarks: string;
 }
 interface AccommodationInfoForm {
@@ -165,8 +163,7 @@ interface AccommodationInfoForm {
   segments: RoomSegment[];
   costprice: number | string;
   sellingprice: number | string;
-  voucher: File | null;
-  taxinvoice: File | null;
+
   remarks: string;
 }
 
@@ -311,7 +308,7 @@ const initialState: BookingState = {
     lastname: "",
     companyemail: "",
     nickname: "",
-    document: 0,
+    documents: "",
     contactnumber: 0,
     emailId: "",
     dateofbirth: 0,
@@ -346,8 +343,6 @@ const initialState: BookingState = {
     pnrEnabled: false,
     samePNRForAllSegments: false,
     flightType: "One Way",
-    voucher: null,
-    taxinvoice: null,
     remarks: "",
   },
   accommodationinfoform: {
@@ -375,8 +370,6 @@ const initialState: BookingState = {
       },
     ],
     accommodationType: "",
-    voucher: null,
-    taxinvoice: null,
     remarks: "",
   },
   currentStep: "service-selection",

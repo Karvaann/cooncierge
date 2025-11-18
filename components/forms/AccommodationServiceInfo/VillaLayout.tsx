@@ -143,94 +143,93 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
 
   return (
     <>
-      <label className="block text-lg font-semibold text-gray-700 mb-2">
+      <label className="block text-[0.8rem] font-medium text-gray-700 mb-1">
         Total Rooms
       </label>
-      <div className="flex gap-60">
+
+      <div className="flex items-center justify-between mb-2">
         {/* Entire Villa Room Counter */}
-        <div className="mb-6">
-          <div className="flex items-center">
-            <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-              <input
-                type="text"
-                value={roomcount}
-                onChange={(e) => setRoomcount(parseInt(e.target.value) || 0)}
-                className="w-16 py-1 text-center border-none focus:outline-none focus:ring-0"
-                min="1"
-                style={{
-                  WebkitAppearance: "none",
-                  MozAppearance: "textfield",
-                }}
-              />
-              <div className="flex flex-col">
-                <button
-                  type="button"
-                  onClick={() => setRoomcount(roomcount + 1)}
-                  className="w-8 h-6 flex items-center justify-center bg-white hover:bg-gray-100"
-                  style={{
-                    borderBottomLeftRadius: 0,
-                    borderBottomRightRadius: 0,
-                  }}
-                >
-                  <span style={{ fontSize: "18px", lineHeight: "1" }}>▲</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRoomcount(roomcount - 1)}
-                  className="w-8 h-6 flex items-center justify-center bg-white hover:bg-gray-100"
-                  style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
-                >
-                  <span style={{ fontSize: "18px", lineHeight: "1" }}>▼</span>
-                </button>
-              </div>
+        <div className="flex items-center gap-2">
+          <div className="flex border border-gray-300 rounded-md overflow-hidden">
+            <input
+              type="text"
+              value={roomcount}
+              onChange={(e) => setRoomcount(parseInt(e.target.value) || 0)}
+              min="1"
+              className="w-[3.5rem] py-1 text-center text-[0.75rem] border-none focus:outline-none focus:ring-0"
+              style={{
+                WebkitAppearance: "none",
+                MozAppearance: "textfield",
+              }}
+            />
+            <div className="flex flex-col">
+              <button
+                type="button"
+                onClick={() => setRoomcount(roomcount + 1)}
+                className="w-[1.5rem] h-[1.1rem] flex items-center justify-center bg-white hover:bg-gray-100 text-[0.75rem] border-b border-gray-300"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                onClick={() => setRoomcount(roomcount - 1)}
+                className="w-[1.5rem] h-[1.1rem] flex items-center justify-center bg-white hover:bg-gray-100 text-[0.75rem]"
+              >
+                ▼
+              </button>
             </div>
           </div>
         </div>
-        {/* Villa Type radio buttons */}
-        <div className="flex items-center space-x-6 ml-60">
-          <label className="flex items-center space-x-2 cursor-pointer">
+
+        {/* Villa Type Radio Buttons */}
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-1 cursor-pointer">
             <input
               type="radio"
               name="villaType"
               value="entire"
               checked={villaType === "entire"}
               onChange={() => setVillaType("entire")}
-              className="form-radio text-blue-600 focus:ring-0"
+              className="w-3 h-3 accent-blue-600"
             />
-            <span className="text-gray-700 font-medium">Entire Villa</span>
+            <span className="text-[0.75rem] text-gray-700 font-medium">
+              Entire Villa
+            </span>
           </label>
 
-          <label className="flex items-center space-x-2 cursor-pointer">
+          <label className="flex items-center gap-1 cursor-pointer">
             <input
               type="radio"
               name="villaType"
               value="shared"
               checked={villaType === "shared"}
               onChange={() => setVillaType("shared")}
-              className="form-radio text-blue-600 focus:ring-0"
+              className="w-3 h-3 accent-blue-600"
             />
-            <span className="text-gray-700 font-medium">Shared Villa</span>
+            <span className="text-[0.75rem] text-gray-700 font-medium">
+              Shared Villa
+            </span>
           </label>
         </div>
       </div>
 
       {villaType === "shared" && (
-        <div className="w-full max-w-6xl mx-auto p-6 mt-2">
+        <div className="w-full max-w-6xl mx-auto p-3 mt-2">
           {/* Room Counter */}
-          <div className="mb-6">
-            <label className="block text-lg font-semibold text-gray-700 mb-2">
+          <div className="mb-3">
+            <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
               No. of Rooms
             </label>
-            <div className="flex items-center">
-              <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+            <div className="flex items-center gap-2">
+              <div className="flex border border-gray-300 rounded-md overflow-hidden">
                 <input
                   type="text"
                   value={numRooms}
                   onChange={(e) =>
                     handleRoomCountChange(parseInt(e.target.value) || 1)
                   }
-                  className="w-16 py-1 text-center border-none focus:outline-none focus:ring-0"
                   min="1"
+                  className="w-[3.5rem] py-1 text-center text-[0.75rem] border-none focus:outline-none focus:ring-0"
                   style={{
                     WebkitAppearance: "none",
                     MozAppearance: "textfield",
@@ -240,21 +239,16 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange(numRooms + 1)}
-                    className="w-8 h-6 flex items-center justify-center bg-white hover:bg-gray-100"
-                    style={{
-                      borderBottomLeftRadius: 0,
-                      borderBottomRightRadius: 0,
-                    }}
+                    className="w-[1.5rem] h-[1.1rem] flex items-center justify-center bg-white hover:bg-gray-100 text-[0.75rem] border-b border-gray-300"
                   >
-                    <span style={{ fontSize: "18px", lineHeight: "1" }}>▲</span>
+                    ▲
                   </button>
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange(numRooms - 1)}
-                    className="w-8 h-6 flex items-center justify-center bg-white hover:bg-gray-100"
-                    style={{ borderTopLeftRadius: 0, borderTopRightRadius: 0 }}
+                    className="w-[1.5rem] h-[1.1rem] flex items-center justify-center bg-white hover:bg-gray-100 text-[0.75rem]"
                   >
-                    <span style={{ fontSize: "18px", lineHeight: "1" }}>▼</span>
+                    ▼
                   </button>
                 </div>
               </div>
@@ -262,7 +256,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
           </div>
 
           {/* Room Segments */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {segments.map((segment, index) => {
               const roomId = segment.id || `room-${index + 1}`;
               const pax = paxData[roomId] || {
@@ -274,28 +268,29 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
               return (
                 <div
                   key={roomId}
-                  className="bg-gray-50 p-6 rounded-lg shadow-sm border border-gray-200"
+                  className="bg-gray-50 p-3 rounded-md border border-gray-200"
                 >
                   {/* Room Header */}
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-[0.8rem] font-medium text-gray-800">
                       Room {index + 1}
                     </h3>
                     {index === 0 && (
-                      <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+                      <label className="flex items-center gap-1 text-[0.7rem] text-gray-600 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={copyToOthers}
                           onChange={(e) => setCopyToOthers(e.target.checked)}
-                          className="w-4 h-4"
+                          className="w-3 h-3 accent-blue-600"
                         />
                         Copy to Other Rooms
                       </label>
                     )}
                   </div>
 
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {/* Room Category */}
+                  <div className="mb-2">
+                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
                       Room Category
                     </label>
                     <input
@@ -305,12 +300,13 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                         updateSegment(index, "roomCategory", e.target.value)
                       }
                       placeholder="Super Deluxe"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
 
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                  {/* Bed Type */}
+                  <div className="mb-2">
+                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
                       Bed Type
                     </label>
                     <input
@@ -320,17 +316,19 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                         updateSegment(index, "bedType", e.target.value)
                       }
                       placeholder="King Size Bed"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
 
-                  <div className="mb-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                  {/* Pax Section */}
+                  <div className="mb-1">
+                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
                       Pax
                     </label>
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-3 gap-2">
+                      {/* Adults */}
                       <div>
-                        <label className="block text-xs text-gray-600 mb-2">
+                        <label className="block text-[0.65rem] text-gray-600 mb-1">
                           Adults
                         </label>
                         <div className="flex items-center border border-gray-300 rounded-md">
@@ -338,7 +336,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                             onClick={() =>
                               updatePaxCount(roomId, "adults", false)
                             }
-                            className="px-3 py-2 hover:bg-gray-100"
+                            className="px-2 py-1 text-[0.75rem] hover:bg-gray-100"
                           >
                             −
                           </button>
@@ -346,21 +344,22 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                             type="number"
                             value={pax.adults}
                             readOnly
-                            className="w-full text-right border-x border-gray-300 py-2"
+                            className="w-full text-center border-x border-gray-300 py-1 text-[0.75rem]"
                           />
                           <button
                             onClick={() =>
                               updatePaxCount(roomId, "adults", true)
                             }
-                            className="px-3 py-2 hover:bg-gray-100"
+                            className="px-2 py-1 text-[0.75rem] hover:bg-gray-100"
                           >
                             +
                           </button>
                         </div>
                       </div>
 
+                      {/* Children */}
                       <div>
-                        <label className="block text-xs text-gray-600 mb-2">
+                        <label className="block text-[0.65rem] text-gray-600 mb-1">
                           Children
                         </label>
                         <div className="flex flex-col items-center">
@@ -368,15 +367,16 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                             onClick={() =>
                               updatePaxCount(roomId, "children", true)
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-100"
+                            className="w-full px-2 py-1 border border-gray-300 rounded-md bg-white text-[0.7rem] hover:bg-gray-100"
                           >
                             ADD
                           </button>
                         </div>
                       </div>
 
+                      {/* Infant */}
                       <div>
-                        <label className="block text-xs text-gray-600 mb-2">
+                        <label className="block text-[0.65rem] text-gray-600 mb-1">
                           Infant
                         </label>
                         <div className="flex items-center border border-gray-300 rounded-md">
@@ -384,7 +384,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                             onClick={() =>
                               updatePaxCount(roomId, "infant", false)
                             }
-                            className="px-3 py-2 hover:bg-gray-100"
+                            className="px-2 py-1 text-[0.75rem] hover:bg-gray-100"
                           >
                             −
                           </button>
@@ -392,13 +392,13 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                             type="number"
                             value={pax.infant}
                             readOnly
-                            className="w-full text-right border-x border-gray-300 py-2"
+                            className="w-full text-center border-x border-gray-300 py-1 text-[0.75rem]"
                           />
                           <button
                             onClick={() =>
                               updatePaxCount(roomId, "infant", true)
                             }
-                            className="px-3 py-2 hover:bg-gray-100"
+                            className="px-2 py-1 text-[0.75rem] hover:bg-gray-100"
                           >
                             +
                           </button>

@@ -212,12 +212,12 @@ const CustomerDirectory = () => {
     <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
       <div className="flex items-center justify-between rounded-2xl px-4 py-3">
         {/*  Tabs */}
-        <div className="flex w-[21rem] -ml-2 items-center bg-[#F3F3F3] rounded-2xl">
+        <div className="flex w-[21rem] -ml-2 items-center bg-[#F3F3F3] rounded-2xl space-x-4">
           {tabOptions.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-6 py-2 rounded-xl text-[0.85rem] font-semibold transition-all duration-200 ${
+              className={`px-4 py-1.5 rounded-xl text-[0.85rem] font-semibold transition-all duration-200 ${
                 activeTab === tab
                   ? "bg-[#0D4B37] text-white shadow-sm"
                   : "text-[#818181] hover:bg-gray-200"
@@ -252,7 +252,7 @@ const CustomerDirectory = () => {
 
       {/* SEARCH & SORT */}
       <div className="flex items-center justify-between mb-4 px-2">
-        <div className="relative w-[26rem] ">
+        <div className="relative w-[24rem] ">
           <input
             type="text"
             value={searchValue}
@@ -270,7 +270,7 @@ const CustomerDirectory = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleCancelSelectMode}
-                className="px-3 py-2 w-[83px] text-sm font-medium text-[#414141] border border-gray-200 bg-[#F9F9F9] hover:bg-gray-100 rounded-lg"
+                className="px-2 py-1.5 w-[5rem] text-[0.75rem] font-medium text-[#414141] border border-gray-200 bg-[#F9F9F9] hover:bg-gray-100 rounded-md"
               >
                 Cancel
               </button>
@@ -282,7 +282,7 @@ const CustomerDirectory = () => {
                     setSelectedCustomers(customers.map((c) => c.customerID)); // select all
                   }
                 }}
-                className="px-3 py-2 w-[115px] mr-3 text-sm font-medium rounded-lg border border-gray-300 bg-white hover:bg-gray-100"
+                className="px-2 py-1.5 w-[6rem] mr-3 text-[0.75rem] font-medium rounded-md border border-gray-300 bg-white hover:bg-gray-100"
               >
                 {selectedCustomers.length === customers.length
                   ? "Select All"

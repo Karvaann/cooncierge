@@ -238,23 +238,24 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
       onClose={onClose}
       title="Upload Files"
       size="xl"
-      customWidth="w-[650px]"
+      customWidth="w-[34vw]"
+      customeHeight="h-[58vh]"
       className="max-w-3xl"
     >
-      <div className="space-y-4 p-3 ">
-        <p className="text-gray-500 text-center mb-6 -mt-8">
+      <div className="space-y-2 p-2">
+        <p className="text-gray-500 text-center mb-3 -mt-7 text-[0.75rem]">
           Please upload the required file here
         </p>
 
-        <div className="border border-gray-200 rounded-[12px] py-6 px-6">
+        <div className="border border-gray-200 rounded-[10px] py-3 px-3">
           {/* Download Template Section */}
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-2 mb-4">
             <button
               onClick={handleDownloadTemplate}
-              className="flex items-center gap-2 px-4 py-2 border-2 border-[#5856D6] text-[#5856D6] rounded-lg hover:bg-blue-50 transition-colors font-medium"
+              className="flex items-center gap-1.5 px-3 py-1 border border-[#5856D6] text-[#5856D6] rounded-md hover:bg-blue-50 transition-colors text-[0.75rem] font-medium"
             >
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -274,14 +275,14 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
               <select
                 value={selectedFormat}
                 onChange={(e) => setSelectedFormat(e.target.value)}
-                className="appearance-none px-4 py-2 pr-10 border-2 border-gray-300 rounded-lg bg-white cursor-pointer hover:border-gray-400 transition-colors font-medium"
+                className="appearance-none px-3 py-1 pr-8 border border-gray-300 rounded-md bg-white cursor-pointer hover:border-gray-400 transition-colors text-[0.75rem] font-medium w-[8rem]"
               >
                 <option value="CSV">CSV</option>
                 <option value="PDF">PDF</option>
                 <option value="DOCX">DOCX</option>
               </select>
               <svg
-                className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none text-gray-600"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none text-gray-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -302,18 +303,15 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`
-            border-2 border-dashed rounded-xl p-6 mb-2 text-center transition-colors
-            ${
+            className={`border-2 border-dashed rounded-md p-4 mb-2 text-center transition-colors ${
               isDragging
                 ? "border-blue-500 bg-blue-50"
                 : "border-gray-300 bg-gray-50"
-            }
-          `}
+            }`}
           >
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-center gap-3">
               <svg
-                className="w-12 h-12 text-gray-400"
+                className="w-10 h-10 text-gray-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -326,13 +324,13 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
                 />
               </svg>
               <div>
-                <p className="text-gray-700 font-medium mb-1">
+                <p className="text-gray-700 font-medium mb-0.5 text-[0.75rem]">
                   Drag and drop files here
                 </p>
-                <p className="text-gray-500 mb-3">OR</p>
+                <p className="text-gray-500 mb-2 text-[0.7rem]">OR</p>
                 <button
                   onClick={handleBrowseClick}
-                  className="text-blue-600 hover:text-blue-700 font-medium underline"
+                  className="text-blue-600 hover:text-blue-700 font-medium underline text-[0.75rem]"
                 >
                   Browse Files
                 </button>
@@ -348,22 +346,24 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
             </div>
           </div>
 
-          <p className="text-sm text-gray-500 mb-3">
+          <p className="text-[0.7rem] text-gray-500 mb-3">
             Accepted File Types: {acceptedTypes.join(", ")}
           </p>
 
           {/* Uploaded Files List */}
           {uploadedFiles.length > 0 && (
-            <div className="space-y-2 mt-3">
-              <h3 className="font-medium text-gray-700">Uploaded Files:</h3>
+            <div className="space-y-1.5 mt-2">
+              <h3 className="font-medium text-gray-700 text-[0.75rem]">
+                Uploaded Files:
+              </h3>
               {uploadedFiles.map((file, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between p-2 bg-gray-50 rounded-md border border-gray-200"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <svg
-                      className="w-5 h-5 text-blue-600"
+                      className="w-4 h-4 text-blue-600"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -375,17 +375,19 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
                         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                       />
                     </svg>
-                    <span className="text-sm text-gray-700">{file.name}</span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-[0.75rem] text-gray-700 truncate max-w-[10rem]">
+                      {file.name}
+                    </span>
+                    <span className="text-[0.7rem] text-gray-500">
                       ({(file.size / 1024).toFixed(2)} KB)
                     </span>
                   </div>
                   <button
                     onClick={() => removeFile(index)}
-                    className="text-red-500 hover:text-red-700 p-1"
+                    className="text-red-500 hover:text-red-700 p-0.5"
                   >
                     <svg
-                      className="w-5 h-5"
+                      className="w-4 h-4"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -402,24 +404,16 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
               ))}
             </div>
           )}
-
-          <div className="flex justify-between pt-4 -mb-2">
-            <button
-              onClick={handleUpload}
-              disabled={uploadedFiles.length === 0}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
-            >
-              Upload
-            </button>
-          </div>
         </div>
+
+        {/* Save Button */}
         <div className="flex justify-end">
           <button
             onClick={handleSaveFiles}
             disabled={uploadedFiles.length === 0}
-            className="px-6 py-2   bg-green-700 text-white rounded-lg hover:bg-green-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+            className="px-4 py-1.5 bg-green-700 text-white rounded-md hover:bg-green-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-[0.75rem] font-medium"
           >
-            Save Uploaded Files
+            Uploaded File(s)
           </button>
         </div>
       </div>

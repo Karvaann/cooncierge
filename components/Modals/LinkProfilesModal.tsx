@@ -33,9 +33,9 @@ const LinkProfilesModal: React.FC<LinkProfilesModalProps> = ({
       customWidth="w-[700px]"
       showCloseButton={true}
     >
-      <div className="space-y-6 px-3 py-2">
+      <div className="space-y-4 px-3 py-2">
         {/* Subtitle */}
-        <p className="text-gray-500 text-center -mt-5">
+        <p className="text-gray-500 text-center text-[0.75rem] -mt-4">
           Link one profile with another here
         </p>
 
@@ -43,28 +43,30 @@ const LinkProfilesModal: React.FC<LinkProfilesModalProps> = ({
         <div className="border-t border-gray-200"></div>
 
         {/* Two Column Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 relative">
           {/* Left Profile */}
-          <div className="space-y-4 mr-3">
+          <div className="space-y-3 mr-2">
             {/* Profile Type */}
             <div>
-              <label className="block text-gray-700 font-medium mb-2">
+              <label className="block text-gray-700 font-medium text-[0.75rem] mb-1">
                 Profile Type
               </label>
               <div className="relative">
                 <select
                   value={leftProfileType}
                   onChange={(e) => setLeftProfileType(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-[12rem] px-3 py-1.5 border border-gray-300 rounded-md bg-white appearance-none text-[0.75rem] text-gray-600 focus:outline-none focus:ring-1 focus:ring-green-500"
                 >
                   <option value="">Select Profile Type</option>
                   <option value="user">User</option>
                   <option value="business">Business</option>
                   <option value="organization">Organization</option>
                 </select>
-                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+
+                {/* Arrow */}
+                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
                   <svg
-                    className="w-4 h-4 text-gray-400"
+                    className="w-3 h-3 text-gray-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -82,7 +84,7 @@ const LinkProfilesModal: React.FC<LinkProfilesModalProps> = ({
 
             {/* Name/ID */}
             <div>
-              <label className="block text-gray-700 font-medium mb-2">
+              <label className="block text-gray-700 font-medium text-[0.75rem] mb-1">
                 Name/ID
               </label>
               <div className="relative">
@@ -91,48 +93,49 @@ const LinkProfilesModal: React.FC<LinkProfilesModalProps> = ({
                   value={leftNameId}
                   onChange={(e) => setLeftNameId(e.target.value)}
                   placeholder="Enter Name/ID/Nickname"
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-700 placeholder-gray-400"
+                  className="w-[12rem] px-3 py-1.5 pr-10 border border-gray-300 rounded-md text-[0.75rem] text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-green-500"
                 />
-                <button className="absolute inset-y-0 right-4 flex items-center text-gray-400 hover:text-gray-600">
-                  <FiSearch className="w-5 h-5" />
+                <button className="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600">
+                  <FiSearch className="w-4 h-4" />
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Copy Icon in the Middle */}
+          {/* Copy Icon Divider */}
           <div
             onClick={(e) => e.stopPropagation()}
             className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-10"
           >
-            <div className=" p-3">
-              <div className="w-px h-15 mb-4 ml-2 bg-gray-300"></div>
-              <FiCopy className="w-5 h-5 text-gray-500" />
-              <div className="w-px h-15 mt-4 ml-2 bg-gray-300"></div>
+            <div className="flex flex-col items-center">
+              <div className="w-px h-10 bg-gray-300 mb-1"></div>
+              <FiCopy className="w-4 h-4 text-gray-500" />
+              <div className="w-px h-10 bg-gray-300 mt-1"></div>
             </div>
           </div>
 
           {/* Right Profile */}
-          <div className="space-y-4 ml-3">
+          <div className="space-y-3 ml-2">
             {/* Profile Type */}
             <div>
-              <label className="block text-gray-700 font-medium mb-2">
+              <label className="block text-gray-700 font-medium text-[0.75rem] mb-1">
                 Profile Type
               </label>
               <div className="relative">
                 <select
                   value={rightProfileType}
                   onChange={(e) => setRightProfileType(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg appearance-none bg-white text-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-[12rem] px-3 py-1.5 border border-gray-300 rounded-md appearance-none bg-white text-[0.75rem] text-gray-600 focus:outline-none focus:ring-1 focus:ring-green-500"
                 >
                   <option value="">Select Profile Type</option>
                   <option value="user">User</option>
                   <option value="business">Business</option>
                   <option value="organization">Organization</option>
                 </select>
-                <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none">
+
+                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none">
                   <svg
-                    className="w-4 h-4 text-gray-400"
+                    className="w-3 h-3 text-gray-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -150,7 +153,7 @@ const LinkProfilesModal: React.FC<LinkProfilesModalProps> = ({
 
             {/* Name/ID */}
             <div>
-              <label className="block text-gray-700 font-medium mb-2">
+              <label className="block text-gray-700 font-medium text-[0.75rem] mb-1">
                 Name/ID
               </label>
               <div className="relative">
@@ -159,21 +162,21 @@ const LinkProfilesModal: React.FC<LinkProfilesModalProps> = ({
                   value={rightNameId}
                   onChange={(e) => setRightNameId(e.target.value)}
                   placeholder="Enter Name/ID/Nickname"
-                  className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-gray-700 placeholder-gray-400"
+                  className="w-[12rem] px-3 py-1.5 pr-10 border border-gray-300 rounded-md text-[0.75rem] text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-green-500"
                 />
-                <button className="absolute inset-y-0 right-4 flex items-center text-gray-400 hover:text-gray-600">
-                  <FiSearch className="w-5 h-5" />
+                <button className="absolute inset-y-0 right-2 flex items-center text-gray-400 hover:text-gray-600">
+                  <FiSearch className="w-4 h-4" />
                 </button>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Merge Button */}
-        <div className="flex justify-end pt-4">
+        {/* Link Button */}
+        <div className="flex justify-end pt-2">
           <button
             onClick={handleLink}
-            className="px-8 py-3 bg-[#0D4B37] hover:bg-green-900 text-white font-medium rounded-lg transition-colors duration-200"
+            className="px-4 py-1.5 bg-[#0D4B37] hover:bg-[#093C2C] text-white text-[0.75rem] font-medium rounded-md transition-colors"
           >
             Link Profiles
           </button>

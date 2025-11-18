@@ -114,10 +114,10 @@ const Modal: React.FC<ModalProps> = ({
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex justify-between mt-3 items-center p-4">
+          <div className="flex justify-between mt-3 items-center p-2">
             <h2
               id="modal-title"
-              className="text-black h-6 text-[3rem] md:text-2xl font-semibold flex-1 text-center"
+              className="text-black ml-2 text-[0.75rem] md:text-[1.15rem] font-semibold flex-1 text-center"
             >
               {title}
             </h2>

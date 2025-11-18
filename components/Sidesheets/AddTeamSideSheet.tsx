@@ -151,8 +151,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
         width="xl"
         position="right"
       >
-        <form className="space-y-6 p-6">
-          {/* Customer Section */}
+        <form className="space-y-6 p-4">
+          {/* ================= STATUS DROPDOWN ================ */}
           <div className="flex flex-col gap-1">
             <select
               name="status"
@@ -161,69 +161,66 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 if (e.target.value === "former") {
                   handleConfirmModalOpen();
                 }
-                // optional: update formData.status if you need it
                 setFormData({ ...formData, status: e.target.value });
               }}
-              className="flex-1 w-[250px] border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none"
+              className="w-[250px] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="disabled">Select Status</option>
               <option value="current">Current</option>
               <option value="former">Former</option>
             </select>
           </div>
-          <div className="border border-gray-200 rounded-[12px] p-4">
-            <h2>Basic Details</h2>
-            <hr className="mt-1 mb-4 border-t border-gray-200" />
 
-            {/* First row: 2 fields side-by-side */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          {/* ================= BASIC DETAILS ================ */}
+          <div className="border border-gray-200 rounded-[12px] p-3">
+            <h2 className="text-[0.75rem] font-medium mb-2">Basic Details</h2>
+            <hr className="mt-1 mb-2 border-t border-gray-200" />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
               <div className="flex flex-col gap-1">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
                   First Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   name="firstname"
                   placeholder="Enter First Name"
                   required
-                  className="flex-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 hover:border-[#0D4B37] focus:outline-none"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
                   Last Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   name="lastname"
                   placeholder="Enter Last Name"
                   required
-                  className="flex-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 hover:border-[#0D4B37] focus:outline-none"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
             </div>
 
-            {/* Second row: next 3 fields side-by-side */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
                   Date of Birth
                 </label>
                 <input
                   name="dateofbirth"
                   placeholder="DD-MM-YYYY"
-                  required
-                  className="flex-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 hover:border-[#0D4B37] focus:outline-none"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
+
               <div className="flex flex-col gap-1">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
                   Gender
                 </label>
-
                 <select
-                  name="contactnumber"
-                  required
-                  className="flex-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 hover:border-[#0D4B37] focus:outline-none"
+                  name="gender"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 >
                   <option value="disabled">Select Gender</option>
                   <option value="male">Male</option>
@@ -232,9 +229,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </select>
               </div>
 
-              <div className="flex flex-col gap-1">
-                <label className="block text-sm font-medium text-gray-700">
-                  Emergency Contact Number{" "}
+              {/* Emergency Contact */}
+              <div className="flex flex-col gap-1 md:col-span-2">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
+                  Emergency Contact Number
                 </label>
                 <div className="relative">
                   <select
@@ -242,8 +240,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     onChange={(e) =>
                       setFormData({ ...formData, countryCode: e.target.value })
                     }
-                    className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer"
-                    style={{ width: "75px" }}
+                    className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    style={{ width: "70px" }}
                   >
                     <option value="+91">+91</option>
                     <option value="+1">+1</option>
@@ -260,32 +258,32 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     }
                     placeholder="Enter Contact Number"
                     required
-                    className="w-full border border-gray-300 rounded-lg pl-20 pr-3 py-2 text-gray-700 hover:border-[#0D4B37] focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-[22.3rem] border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Work Info Section */}
-          <div className="border border-gray-200 rounded-[12px] p-4">
-            <h2>Work Info</h2>
+          {/* ================= WORK INFO ================ */}
+          <div className="border border-gray-200 rounded-[12px] p-3">
+            <h2 className="text-[0.75rem] font-medium mb-2">Work Info</h2>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
                   Alias
                 </label>
                 <input
-                  name="firstname"
-                  placeholder="Enter First Name"
-                  required
-                  className="flex-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 hover:border-[#0D4B37] focus:outline-none"
+                  name="alias"
+                  placeholder="Enter Alias"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
                   Work Contact Number
                 </label>
                 <div className="relative">
@@ -294,8 +292,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     onChange={(e) =>
                       setFormData({ ...formData, countryCode: e.target.value })
                     }
-                    className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer"
-                    style={{ width: "75px" }}
+                    className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    style={{ width: "70px" }}
                   >
                     <option value="+91">+91</option>
                     <option value="+1">+1</option>
@@ -305,65 +303,65 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     name="workContactNumber"
                     placeholder="Enter Contact Number"
                     required
-                    className="flex-1 w-full pl-20 border border-gray-300 rounded-lg px-3 py-2 text-gray-700 hover:border-[#0D4B37] focus:outline-none"
+                    className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
                   Work Email ID
                 </label>
                 <input
                   name="workEmailId"
                   placeholder="Enter Email ID"
                   required
-                  className="flex-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 hover:border-[#0D4B37] focus:outline-none"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
                   Designation
                 </label>
                 <input
                   name="designation"
                   placeholder="Enter Designation"
                   required
-                  className="flex-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 hover:border-[#0D4B37] focus:outline-none"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
                   Date Of Joining
                 </label>
                 <input
                   name="dateOfJoining"
                   placeholder="DD-MM-YYYY"
-                  required
-                  className="flex-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 hover:border-[#0D4B37] focus:outline-none"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
+
               <div className="flex flex-col gap-1">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
                   Date Of Leaving
                 </label>
                 <input
                   name="dateOfLeaving"
                   placeholder="DD-MM-YYYY"
-                  required
-                  className="flex-1 w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 hover:border-[#0D4B37] focus:outline-none"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
             </div>
           </div>
-          {/* Documents Section */}
-          <div className="border border-gray-200 rounded-[12px] p-4">
-            <h2>Documents</h2>
-            <hr className="mt-2 mb-2 border-t border-gray-200" />
 
-            <div className="flex flex-col gap-3 mt-4 items-start">
+          {/* ================= DOCUMENTS ================ */}
+          <div className="border border-gray-200 rounded-[12px] p-3">
+            <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
+            <hr className="mt-1 mb-2 border-t border-gray-200" />
+
+            <div className="flex flex-col gap-3 mt-2 items-start">
               <input
                 type="file"
                 ref={fileRef}
@@ -374,14 +372,14 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="px-3 py-2 flex gap-1 bg-white text-[#126ACB] border border-[#126ACB] rounded-md text-sm hover:bg-gray-200"
+                className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border border-[#126ACB] rounded-md text-[0.75rem] hover:bg-gray-200"
               >
-                <MdOutlineFileUpload size={20} /> Attach Files
+                <MdOutlineFileUpload size={16} /> Attach Files
               </button>
 
               {attachedFile && (
-                <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 w-fit">
-                  <span className="text-gray-700 text-sm font-medium truncate">
+                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md px-2 py-1.5 w-fit">
+                  <span className="text-gray-700 text-[0.7rem] font-medium truncate">
                     📎 {attachedFile.name}
                   </span>
                   <button
@@ -389,20 +387,20 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     className="ml-auto text-red-500 hover:text-red-700 transition-all"
                     title="Remove file"
                   >
-                    <FiTrash2 size={18} />
+                    <FiTrash2 size={14} />
                   </button>
                 </div>
               )}
 
-              <div className="text-red-600 text-sm">
+              <div className="text-red-600 text-[0.65rem]">
                 Note: Maximum of 3 files can be uploaded
               </div>
             </div>
           </div>
 
-          {/* Remarks */}
-          <div className="border border-gray-200 rounded-[12px] p-4">
-            <label className="block text-sm font-medium text-gray-700">
+          {/* ================= REMARKS ================ */}
+          <div className="border border-gray-200 rounded-[12px] p-3">
+            <label className="block text-[0.75rem] font-medium text-gray-700">
               Remarks
             </label>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -410,27 +408,22 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
               name="remarks"
               rows={5}
               placeholder="Enter Your Remarks Here"
-              className={`
-            w-full border border-gray-200 rounded-md px-3 py-2 text-sm mt-2 transition-colors
-            focus:ring focus:ring-blue-200
-            
-          `}
+              className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem] mt-2 transition-colors focus:ring focus:ring-blue-200"
             />
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-4 pt-4">
+          {/* ================= ACTION BUTTONS ================ */}
+          <div className="flex justify-end gap-2 pt-2">
             <button
               type="button"
-              className="px-6 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
+              className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
               onClick={onCancel}
             >
               Cancel
             </button>
             <button
               type="button"
-              className="px-6 py-2 rounded-md bg-[#114958] text-white hover:bg-[#0f3d44]"
-              //   onClick={handleSubmit}
+              className="px-4 py-1.5 rounded-md bg-[#114958] text-white text-[0.75rem] hover:bg-[#0f3d44]"
             >
               Add New Team Member
             </button>

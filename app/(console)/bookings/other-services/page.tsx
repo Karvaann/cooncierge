@@ -6,7 +6,7 @@ import { BookingApiService, DraftManager } from "@/services/bookingApi";
 import type { DraftBooking } from "@/services/bookingApi";
 import { getAuthUser } from "@/services/storage/authStorage";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
-import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
+// import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ModalSkeleton from "@/components/skeletons/ModalSkeleton";
 import SidesheetSkeleton from "@/components/skeletons/SidesheetSkeleton";
@@ -19,16 +19,17 @@ import { FiCopy } from "react-icons/fi";
 import { CiFilter } from "react-icons/ci";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import Image from "next/image";
+import AvatarTooltip from "@/components/AvatarToolTip";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
   ssr: false,
 });
 
-const SummaryCards = dynamic(() => import("@/components/SummaryCards"), {
-  loading: () => <SummaryCardsSkeleton />,
-  ssr: false,
-});
+// const SummaryCards = dynamic(() => import("@/components/SummaryCards"), {
+//   loading: () => <SummaryCardsSkeleton />,
+//   ssr: false,
+// });
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -58,19 +59,6 @@ type BookingStatus =
   | "confirmed"
   | "draft"
   | "cancelled";
-
-type BookingRow = {
-  id: string;
-  leadPax: string;
-  travelDate: string;
-  service: string;
-  bookingStatus: BookingStatus;
-  amount: string;
-  voucher: string;
-  tasks: number;
-  isReal?: boolean;
-  originalIndex?: number;
-};
 
 type BookingService = {
   id: string;
@@ -111,23 +99,23 @@ interface QuotationData {
   updatedAt: string;
 }
 
-interface SummaryData {
-  total: {
-    amount: string;
-    change: string;
-    isPositive: boolean;
-  };
-  youGive: {
-    amount: string;
-    change: string;
-    isPositive: boolean;
-  };
-  youGet: {
-    amount: string;
-    change: string;
-    isPositive: boolean;
-  };
-}
+// interface SummaryData {
+//   total: {
+//     amount: string;
+//     change: string;
+//     isPositive: boolean;
+//   };
+//   youGive: {
+//     amount: string;
+//     change: string;
+//     isPositive: boolean;
+//   };
+//   youGet: {
+//     amount: string;
+//     change: string;
+//     isPositive: boolean;
+//   };
+// }
 
 const columns: string[] = [
   "#ID",
@@ -136,73 +124,26 @@ const columns: string[] = [
   "Service",
   "Booking Status",
   "Amount",
-  "Voucher",
+  "Owners",
   "Tasks",
   "Actions",
 ];
 
+interface Owner {
+  short: string;
+  full: string;
+  color: string;
+}
+
 const columnIconMap: Record<string, JSX.Element> = {
   "Travel Date": (
-    <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold" />
+    <HiArrowsUpDown className="inline w-3 h-3 text-white stroke-[1.5]" />
   ),
-  Service: <CiFilter className="inline w-3 h-3 text-white font-semibold" />,
+  Service: <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />,
   "Booking Status": (
-    <CiFilter className="inline w-3 h-3 text-white font-semibold" />
+    <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
   ),
 };
-
-const tableSeed: BookingRow[] = [
-  {
-    id: "#001",
-    leadPax: "Anand Mishra",
-    travelDate: "12-09-2025",
-    service: "✈️ Flight",
-    bookingStatus: "Successful",
-    amount: "₹ 24,580",
-    voucher: "📄",
-    tasks: 3,
-  },
-  {
-    id: "#002",
-    leadPax: "Priya Sharma",
-    travelDate: "15-09-2025",
-    service: "🏨 Hotel",
-    bookingStatus: "Pending",
-    amount: "₹ 18,200",
-    voucher: "📄",
-    tasks: 2,
-  },
-  {
-    id: "#003",
-    leadPax: "Rajesh Kumar",
-    travelDate: "20-09-2025",
-    service: "🚗 Car Rental",
-    bookingStatus: "Successful",
-    amount: "₹ 12,500",
-    voucher: "📄",
-    tasks: 1,
-  },
-  {
-    id: "#004",
-    leadPax: "Sneha Patel",
-    travelDate: "25-09-2025",
-    service: "🎫 Package",
-    bookingStatus: "Failed",
-    amount: "₹ 45,000",
-    voucher: "📄",
-    tasks: 5,
-  },
-  {
-    id: "#005",
-    leadPax: "Vikram Singh",
-    travelDate: "30-09-2025",
-    service: "✈️ Flight",
-    bookingStatus: "Successful",
-    amount: "₹ 32,100",
-    voucher: "📄",
-    tasks: 2,
-  },
-];
 
 const getStatusBadgeClass = (status: BookingStatus): string => {
   switch (status) {
@@ -231,7 +172,7 @@ const OSBookingsPage = () => {
   const [drafts, setDrafts] = useState<DraftBooking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
+  // const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
 
   // Load quotations from backend
   const loadQuotations = useCallback(async () => {
@@ -243,7 +184,7 @@ const OSBookingsPage = () => {
 
       if (response.success && response.data) {
         setQuotations(response.data?.quotations || response.data);
-        calculateSummaryData(response.data?.quotations);
+        // calculateSummaryData(response.data?.quotations);
       } else {
         throw new Error(response.message || "Failed to load quotations");
       }
@@ -268,43 +209,43 @@ const OSBookingsPage = () => {
   }, []);
 
   // Calculate summary data from quotations
-  const calculateSummaryData = useCallback((quotationData: QuotationData[]) => {
-    const total = quotationData.reduce(
-      (sum, q) => sum + (q.totalAmount || 0),
-      0
-    );
-    const confirmed = quotationData.filter((q) => q.status === "confirmed");
-    const pending = quotationData.filter(
-      (q) => q.status === "draft" || q.status === "pending"
-    );
+  // const calculateSummaryData = useCallback((quotationData: QuotationData[]) => {
+  //   const total = quotationData.reduce(
+  //     (sum, q) => sum + (q.totalAmount || 0),
+  //     0
+  //   );
+  //   const confirmed = quotationData.filter((q) => q.status === "confirmed");
+  //   const pending = quotationData.filter(
+  //     (q) => q.status === "draft" || q.status === "pending"
+  //   );
 
-    const confirmedAmount = confirmed.reduce(
-      (sum, q) => sum + (q.totalAmount || 0),
-      0
-    );
-    const pendingAmount = pending.reduce(
-      (sum, q) => sum + (q.totalAmount || 0),
-      0
-    );
+  //   const confirmedAmount = confirmed.reduce(
+  //     (sum, q) => sum + (q.totalAmount || 0),
+  //     0
+  //   );
+  //   const pendingAmount = pending.reduce(
+  //     (sum, q) => sum + (q.totalAmount || 0),
+  //     0
+  //   );
 
-    setSummaryData({
-      total: {
-        amount: `₹ ${total.toLocaleString("en-IN")}`,
-        change: `${quotationData.length} total bookings`,
-        isPositive: true,
-      },
-      youGive: {
-        amount: `₹ ${pendingAmount.toLocaleString("en-IN")}`,
-        change: `${pending.length} pending bookings`,
-        isPositive: false,
-      },
-      youGet: {
-        amount: `₹ ${confirmedAmount.toLocaleString("en-IN")}`,
-        change: `${confirmed.length} confirmed bookings`,
-        isPositive: true,
-      },
-    });
-  }, []);
+  //   setSummaryData({
+  //     total: {
+  //       amount: `₹ ${total.toLocaleString("en-IN")}`,
+  //       change: `${quotationData.length} total bookings`,
+  //       isPositive: true,
+  //     },
+  //     youGive: {
+  //       amount: `₹ ${pendingAmount.toLocaleString("en-IN")}`,
+  //       change: `${pending.length} pending bookings`,
+  //       isPositive: false,
+  //     },
+  //     youGet: {
+  //       amount: `₹ ${confirmedAmount.toLocaleString("en-IN")}`,
+  //       change: `${confirmed.length} confirmed bookings`,
+  //       isPositive: true,
+  //     },
+  //   });
+  // }, []);
 
   // Sync drafts with backend
   const syncDrafts = useCallback(async () => {
@@ -368,6 +309,29 @@ const OSBookingsPage = () => {
   }, []);
 
   console.log(quotations);
+
+  const ownersList: Owner[] = [
+    {
+      short: "AS",
+      full: "Avanish Sharma",
+      color: "border-pink-700 text-pink-700",
+    },
+    {
+      short: "AK",
+      full: "Ankit Kumar",
+      color: "border-[#AF52DE] text-[#AF52DE]",
+    },
+    {
+      short: "SR",
+      full: "Suresh Raj",
+      color: "border-[#5856D6] text-[#5856D6]",
+    },
+    {
+      short: "VG",
+      full: "Vijay Gupta",
+      color: "border-cyan-700 text-cyan-700",
+    },
+  ];
 
   // Convert quotations to table data
   const tableData = useMemo<JSX.Element[][]>(() => {
@@ -443,36 +407,32 @@ const OSBookingsPage = () => {
         {row.amount}
       </td>,
       <td
-        key={`voucher-${index}`}
-        className="px-4 py-2 text-center align-middle h-[4rem]"
+        key={`owners-${index}`}
+        className="px-4 py-2 text-center align-middle h-[2.5rem]"
       >
-        <button
-          className="hover:scale-110 transition-transform"
-          aria-label="View voucher"
-          type="button"
-          onClick={() => {
-            if (
-              row.isReal &&
-              row.originalIndex !== undefined &&
-              quotations[row.originalIndex]
-            ) {
-              handleViewQuotation(quotations[row.originalIndex]!);
-            }
-          }}
-        >
-          {row.voucher}
-        </button>
+        <div className="flex items-center justify-center">
+          <div className="flex items-center">
+            {ownersList.map((owner, i) => (
+              <AvatarTooltip
+                key={i}
+                short={owner.short}
+                full={owner.full}
+                color={owner.color}
+              />
+            ))}
+          </div>
+        </div>
       </td>,
       <td
         key={`tasks-${index}`}
-        className="px-4 py-2 text-center align-middle h-[4rem]"
+        className="px-4 py-2 text-center align-middle h-[2.5rem]"
       >
         <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
           {row.tasks}
         </span>
       </td>,
 
-      // ✅ ✅ ACTIONS COLUMN (NEW!)
+      // ACTIONS COLUMN
       <td
         key={`actions-${index}`}
         className="px-4 py-2 text-center align-middle h-[4rem]"
@@ -585,22 +545,15 @@ const OSBookingsPage = () => {
           setCreateOpen={setIsCreateOpen}
         />
 
-        {isLoading ? (
-          <SummaryCardsSkeleton />
-        ) : (
-          <SummaryCards data={summaryData ?? undefined} />
-        )}
-
-        <div className="bg-white rounded-2xl shadow pt-4 pb-3 px-3 relative">
-          {/* Tabs + Total Count Row */}
+        <div className="bg-white rounded-2xl shadow mt-4 pt-4 pb-3 px-3 relative">
+          {/* Tabs and Total Count Row */}
           <div className="flex w-full justify-between items-center mb-2">
-            {/* ✅ Left side — Tabs */}
-            <div className="flex w-[32rem] ml-2 items-center bg-[#F3F3F3] rounded-2xl">
+            <div className="flex w-[32rem] ml-2 items-center bg-[#F3F3F3] rounded-2xl space-x-4">
               {tabOptions.map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-6 py-2 rounded-xl text-[0.85rem] font-semibold transition-all duration-200 ${
+                  className={`px-4 py-2 rounded-xl text-[0.85rem] font-medium transition-all duration-200 ${
                     activeTab === tab
                       ? "bg-[#0D4B37] text-white shadow-sm"
                       : "text-[#818181] hover:bg-gray-200"
@@ -611,7 +564,6 @@ const OSBookingsPage = () => {
               ))}
             </div>
 
-            {/* ✅ Right side — Total Count Box */}
             <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
               <span className="text-gray-600 text-[0.85rem] font-medium">
                 Total

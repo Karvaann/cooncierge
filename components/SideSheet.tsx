@@ -133,7 +133,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
           <div className="flex items-center justify-between px-2 py-2 ml-2">
             <h2
               id="sidesheet-title"
-              className="text-[1rem] font-semibold text-gray-900 flex-1"
+              className="text-[1rem] ml-2 font-semibold text-gray-900 flex-1"
             >
               {title}
             </h2>

@@ -20,7 +20,7 @@ interface VendorFormData {
   nickname: string;
   emailId: string;
   dateofbirth: number | "";
-  document: number | "";
+  documents?: string | File;
   billingaddress: string | number;
   remarks: string;
 }
@@ -49,7 +49,7 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
     emailId: "",
     dateofbirth: "",
     companyemail: "",
-    document: "",
+    documents: "",
     gstin: "",
     companyname: "",
     billingaddress: "",
@@ -140,7 +140,7 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
         emailId: "",
         dateofbirth: 0,
         companyemail: "",
-        document: "",
+        documents: "",
         gstin: 0,
         companyname: "",
         billingaddress: "",

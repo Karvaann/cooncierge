@@ -35,7 +35,7 @@ interface CustomerFrom {
   dateofbirth: number;
   gstin: number;
   companyname: string;
-  documents: File | "";
+  documents?: string | File;
   billingaddress: string | number;
   remarks: string;
 }
@@ -50,7 +50,7 @@ interface VendorForm {
   nickname: string;
   emailId: string;
   dateofbirth: number;
-  document: number | "";
+  documents?: string | File;
   billingaddress: string | number;
   remarks: string;
 }
@@ -89,8 +89,6 @@ interface FlightInfoForm {
   
   samePNRForAllSegments: boolean; // For the toggle
   flightType: "One Way" | "Round Trip" | "Multi-City"; // For the flight type tabs
-  voucher: File | null;
-  taxinvoice: File | null;
   remarks: string;
 }
 
@@ -121,8 +119,6 @@ mealPlan: "EPAI" | "CPAI" | "MAPAI" | "APAI" | string;
     segments: RoomSegment[];
   costprice: number | string;
   sellingprice: number | string;
-  voucher: File | null;
-  taxinvoice: File | null;
   remarks: string;
 }
 
@@ -515,10 +511,6 @@ export const validateVendorForm = (data: VendorForm): Record<string, string> => 
     }
   }
 
-  if (!data.document) {
-    errors.document = "Document is required";
-  }
-
   
   if (!data.billingaddress || String(data.billingaddress).trim() === "") {
     errors.billingaddress = "Billing address is required";
@@ -587,14 +579,6 @@ export const validateFlightInfoForm = (data: FlightInfoForm): Record<string, str
   // Flight type validation (optional)
   if (!data.flightType) {
     errors.flightType = "Flight type is required";
-  }
-
-  if (!data.voucher) {
-    errors.voucher = "Voucher file is required";
-  }
-
-  if (!data.taxinvoice) {
-    errors.taxinvoice = "Tax invoice file is required";
   }
 
   if (data.remarks && data.remarks.length > 500) {
@@ -678,16 +662,6 @@ export const validateAccommodationInfoForm = (
   } else if (isNaN(Number(data.sellingprice)) || Number(data.sellingprice) < 0) {
     errors.sellingprice = "Selling price must be a valid positive number";
   }
-
-  if (data.voucher && !(data.voucher instanceof File)) {
-    errors.voucher = "Voucher must be a valid file";
-  }
-
-  if (data.taxinvoice && !(data.taxinvoice instanceof File)) {
-    errors.taxinvoice = "Tax invoice must be a valid file";
-  }
-
-  // remarks is optional, so no strict check
 
   // date logic check
   if (data.checkindate && data.checkoutdate) {

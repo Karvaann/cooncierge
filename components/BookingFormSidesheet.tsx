@@ -142,9 +142,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           dateofbirth: Number(formValues.dateofbirth || 0),
           gstin: Number(formValues.gstin || 0),
           companyname: formValues.companyname || "",
-          adhaarnumber: Number(formValues.adhaarnumber || 0),
-          pan: formValues.pan || "",
-          passport: formValues.passport || "",
+          documents: formValues.documents || "",
           billingaddress: formValues.billingaddress || "",
           remarks: formValues.customerRemarks || "",
         },
@@ -158,7 +156,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           nickname: formValues.vendorNickname || "",
           emailId: formValues.vendorEmailId || "",
           dateofbirth: Number(formValues.vendorDob || 0),
-          document: formValues.vendorDocument || "",
+          documents: "",
           billingaddress: formValues.vendorBillingAddress || "",
           remarks: formValues.vendorRemarks || "",
         },
@@ -174,8 +172,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           returnSegments: formValues.returnSegments || [],
           samePNRForAllSegments: formValues.samePNRForAllSegments || false,
           flightType: formValues.flightType || "One Way",
-          voucher: formValues.voucher || null,
-          taxinvoice: formValues.taxinvoice || null,
+          documents: "",
           remarks: formValues.flightRemarks || "",
         },
         accommodationform: {
@@ -197,14 +194,21 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           segments: formValues.accommodationSegments || [],
           costprice: Number(formValues.accomCost || 0),
           sellingprice: Number(formValues.accomSell || 0),
-          voucher: formValues.accomVoucher || null,
-          taxinvoice: formValues.accomTaxInvoice || null,
           remarks: formValues.accomRemarks || "",
         },
         timestamp: new Date().toISOString(),
       };
 
       try {
+        const formData = new FormData();
+
+        // append JSON payload
+        formData.append("bookingData", JSON.stringify(bookingData));
+
+        formData.append("customerDocument", formValues.customerDocument);
+        formData.append("vendorDocument", formValues.vendorDocument);
+        formData.append("flightDocument", formValues.flightDocument);
+
         const response = await BookingApiService.createQuotation(bookingData);
 
         if (response.success) {

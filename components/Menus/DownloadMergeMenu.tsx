@@ -81,43 +81,60 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
     <>
       <div
         ref={menuRef}
-        className="absolute right-12 -mt-4 -translate-y-1/2 bg-white border border-gray-200 rounded-xl shadow-xl w-34 z-50"
+        className="absolute right-12 -mt-4 -translate-y-1/2 
+               bg-white border border-gray-200 rounded-md shadow-xl 
+               w-[5.8rem] h-[4.8rem] z-50"
       >
         {/* Arrow Tail */}
-        <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-t border-r border-gray-200 rotate-45"></div>
+        <div
+          className="absolute -right-2 top-1/2 -translate-y-1/2 
+                 w-3 h-3 bg-white border-t border-r border-gray-200 
+                 rotate-45"
+        ></div>
 
         {/* Menu Items */}
-        <div className="flex flex-col py-2 text-sm">
-          <button
-            onClick={handleDownloadClick}
-            className="flex items-center gap-2 px-3 py-1 hover:bg-gray-50 text-blue-600 font-medium transition-colors"
-          >
-            <FiDownload className="text-lg" />
+        <button
+          onClick={handleDownloadClick}
+          className="w-full flex items-center gap-1 px-3 py-1 hover:bg-gray-50 transition-colors text-left"
+        >
+          <div className="flex items-center justify-center">
+            <FiDownload size={14} className="text-blue-600" />
+          </div>
+          <span className="text-blue-600 text-[0.65rem] font-medium">
             Download
-          </button>
+          </span>
+        </button>
 
-          <hr className="mb-1 mt-1 border-t border-gray-200" />
+        <hr className="border border-gray-100" />
 
-          <button
-            onClick={handleMergeClick}
-            className="flex items-center gap-2 px-3 py-1 text-gray-400"
-          >
-            <FiCopy className="w-5 h-5 text-gray-500" />
+        <button
+          onClick={handleMergeClick}
+          className="w-full flex items-center gap-1 px-3 py-1 hover:bg-gray-50 transition-colors text-left"
+        >
+          <div className="flex items-center justify-center">
+            <FiCopy size={14} className="text-gray-800" />
+          </div>
+          <span className="text-gray-800 text-[0.65rem] font-medium">
             Merge
-          </button>
+          </span>
+        </button>
 
-          <hr className="mb-1 mt-1 border-t border-gray-200" />
+        <hr className="border border-gray-100" />
 
-          <button
-            onClick={onDelete}
-            className="flex items-center gap-2 px-3 py-1 hover:bg-gray-50 text-red-600 font-medium transition-colors"
-          >
-            <FiTrash2 className="text-lg" />
+        <button
+          onClick={onDelete}
+          className="w-full flex items-center gap-1 px-3 py-1 hover:bg-gray-50 transition-colors text-left"
+        >
+          <div className="flex items-center justify-center">
+            <FiTrash2 size={14} className="text-red-600" />
+          </div>
+          <span className="text-red-600 text-[0.65rem] font-medium">
             Delete
-          </button>
-        </div>
+          </span>
+        </button>
       </div>
 
+      {/* Modals */}
       <MergeModal
         isOpen={isMergeModalOpen}
         onClose={() => setIsMergeModalOpen(false)}

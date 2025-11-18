@@ -50,9 +50,9 @@ const Table: React.FC<TableProps> = ({
       Array.from({ length: totalPages }).map((_, idx) => (
         <button
           key={idx}
-          className={`w-8 h-8 rounded-full font-bold border border-gray-300 flex items-center justify-center transition-colors ${
+          className={`w-6 h-6 rounded-md font-normal border border-gray-300 flex items-center justify-center transition-colors ${
             page === idx + 1
-              ? "bg-[#155e75] text-white"
+              ? "bg-gray-100 text-black"
               : "bg-white text-[#155e75] hover:bg-gray-50"
           }`}
           onClick={() => setPage(idx + 1)}
@@ -110,7 +110,7 @@ const Table: React.FC<TableProps> = ({
                 key={`row-${page}-${idx}`}
                 className={`${
                   idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                } hover:bg-gray-100 transition-colors h-[4rem]`}
+                } hover:bg-gray-100 transition-colors h-[2.8rem]`}
               >
                 {row}
               </tr>
@@ -124,7 +124,7 @@ const Table: React.FC<TableProps> = ({
                   (paginatedRows.length + idx) % 2 === 0
                     ? "bg-white"
                     : "bg-gray-50"
-                } h-[4rem]`}
+                } h-[2.8rem]`}
               >
                 <td className="px-4 py-3" colSpan={columns.length}></td>
               </tr>
@@ -141,7 +141,7 @@ const Table: React.FC<TableProps> = ({
       >
         {!hideRowsPerPage && (
           <div className="flex items-center gap-2">
-            <span className="text-gray-600">Rows per page:</span>
+            <span className="text-gray-600 text-[0.75rem]">Rows per page:</span>
             <select
               className="border border-gray-300 rounded px-2 py-1 text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#155e75] transition-colors"
               value={rowsPerPage}
@@ -156,7 +156,7 @@ const Table: React.FC<TableProps> = ({
           </div>
         )}
 
-        <div className="text-gray-600 text-sm">{displayText}</div>
+        <div className="text-gray-600 text-[0.75rem]">{displayText}</div>
 
         <div className="flex items-center gap-2">
           <button

@@ -19,8 +19,6 @@ interface FlightInfoFormData {
   returnSegments: ReturnFlightSegment[];
   samePNRForAllSegments: boolean;
   flightType: "One Way" | "Round Trip" | "Multi-City";
-  voucher: File | null;
-  taxinvoice: File | null;
   remarks: string;
 }
 
@@ -136,113 +134,50 @@ export default function RoundTripLayout({
     });
   };
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 text-[0.75rem] text-gray-700">
       {/* Onwards Section */}
       <div>
-        <div className="mb-4">
-          <span className="text-sm font-medium text-gray-700">
-            Onwards (3h 40m)
-          </span>
+        <div className="mb-3">
+          <span className="font-medium text-gray-600">Onwards (3h 40m)</span>
         </div>
 
-        {/* Onwards Flight Segments */}
-        <div className="space-y-6">
-          {formData.segments.map((segment, index) => (
-            <div
-              key={segment.id}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-4"
-            >
-              {/* Flight Segment */}
-              <div className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-sm font-medium text-gray-700">
-                    Flight Segment {index + 1}
-                  </h4>
-                  {formData.segments.length > 1 && (
-                    <button
-                      onClick={() => removeSegment(segment.id!)}
-                      className="text-gray-400 hover:text-red-500"
-                    >
-                      <FiMinusCircle size={22} />
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Flight Number
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="A320"
-                      value={segment.flightnumber}
-                      onChange={(e) => {
-                        const updatedSegments = formData.segments.map((s) =>
-                          s.id === segment.id
-                            ? { ...s, flightnumber: e.target.value }
-                            : s
-                        );
-                        setFormData({
-                          ...formData,
-                          segments: updatedSegments,
-                        });
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+        <div className="border border-gray-200 p-4 rounded-lg">
+          <div className="space-y-4">
+            {formData.segments.map((segment, index) => (
+              <div
+                key={segment.id}
+                className="grid grid-cols-1 lg:grid-cols-2 gap-3"
+              >
+                {/* Flight Segment */}
+                <div className="border border-gray-200 rounded-lg px-3 py-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-[0.85rem] font-semibold text-gray-800">
+                      Flight Segment {index + 1}
+                    </h4>
+                    {formData.segments.length > 1 && (
+                      <button
+                        onClick={() => removeSegment(segment.id!)}
+                        className="text-gray-400 hover:text-red-500"
+                      >
+                        <FiMinusCircle size={16} />
+                      </button>
+                    )}
                   </div>
 
-                  {!formData.pnrEnabled && (
-                    <div className="mt-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        PNR
+                  <div className="grid grid-cols-1 gap-3">
+                    {/* Flight Number */}
+                    <div>
+                      <label className="block mb-1 font-medium text-gray-600">
+                        Flight Number
                       </label>
                       <input
                         type="text"
-                        placeholder="Enter PNR"
-                        value={segment.pnr || ""}
-                        onChange={(e) =>
-                          handleSegmentPnr(index, e.target.value, "segments")
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                      />
-                    </div>
-                  )}
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Travel Date
-                    </label>
-                    <input
-                      type="date"
-                      placeholder="DD-MM-YYY"
-                      value={segment.traveldate}
-                      onChange={(e) => {
-                        const updatedSegments = formData.segments.map((s) =>
-                          s.id === segment.id
-                            ? { ...s, traveldate: e.target.value }
-                            : s
-                        );
-                        setFormData({
-                          ...formData,
-                          segments: updatedSegments,
-                        });
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Cabin Class
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={segment.cabinclass}
+                        placeholder="A320"
+                        value={segment.flightnumber}
                         onChange={(e) => {
                           const updatedSegments = formData.segments.map((s) =>
                             s.id === segment.id
-                              ? { ...s, cabinclass: e.target.value }
+                              ? { ...s, flightnumber: e.target.value }
                               : s
                           );
                           setFormData({
@@ -250,298 +185,279 @@ export default function RoundTripLayout({
                             segments: updatedSegments,
                           });
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
-                      >
-                        <option value="">Choose Cabin Class</option>
-                        <option value="economy">Economy</option>
-                        <option value="business">Business</option>
-                        <option value="first">First Class</option>
-                      </select>
-                      <MdKeyboardArrowDown className="absolute right-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* preview section */}
-
-              <div className="border-3 border-dotted border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-sm font-medium text-gray-700">Preview</h4>
-                  <button className="text-blue-600 hover:text-blue-700">
-                    <MdOutlineEdit size={20} />
-                  </button>
-                </div>
-
-                <div className="bg-white border border-gray-200 rounded-md p-4 min-h-[200px]">
-                  {index === 0 ? (
-                    <>
-                      {/* Airline Header */}
-                      <div className="bg-blue-100 border border-blue-200 rounded-md p-3 mb-4 flex items-center gap-3">
-                        {/* airline icon */}
-                        <div className="w-8 h-8 bg-blue-600 rounded-sm flex items-center justify-center">
-                          {/* Airline Icon */}
-                        </div>
-                        <span className="text-sm font-medium text-gray-800">
-                          {previewData.airline}
-                        </span>
-                      </div>
-
-                      {/* Flight Route Layout */}
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="text-xs text-gray-500 mb-1">
-                              Origin
-                            </div>
-                            <div className="font-semibold text-gray-900">
-                              {previewData.origin}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xs text-gray-500 mb-1">
-                              STD
-                            </div>
-                            <div className="font-semibold text-gray-900">
-                              {previewData.departureTime}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-between items-center py-2">
-                          <div>
-                            <div className="text-xs text-gray-500 mb-1">
-                              Flight Number
-                            </div>
-                            <div className="font-semibold text-gray-900">
-                              {previewData.flightNumber}
-                            </div>
-                          </div>
-
-                          {/* flight path visual */}
-                          <div className="flex-1 mx-4 flex items-center justify-center">
-                            {/* Vertical dotted line and plane icon will go here */}
-                            <div className="text-center">
-                              <div className="w-2 h-2 bg-gray-400 rounded-full mb-2"></div>
-                              <div className="h-8 border-l-2 border-dotted border-gray-300 mx-auto"></div>
-                              {/* Plane icon space */}
-                              <div className="my-2">{/* Plane icon */}</div>
-                              <div className="h-8 border-l-2 border-dotted border-gray-300 mx-auto"></div>
-                              <div className="w-2 h-2 bg-gray-400 rounded-full mt-2"></div>
-                            </div>
-                          </div>
-
-                          <div className="text-right">
-                            <div className="text-xs text-gray-500 mb-1">
-                              Duration
-                            </div>
-                            <div className="font-semibold text-gray-900">
-                              {previewData.duration}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Destination Section */}
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="text-xs text-gray-500 mb-1">
-                              Destination
-                            </div>
-                            <div className="font-semibold text-gray-900">
-                              {previewData.destination}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-xs text-gray-500 mb-1">
-                              STA
-                            </div>
-                            <div className="font-semibold text-gray-900">
-                              {previewData.arrivalTime}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-gray-500">
-                      <p className="text-sm">Preview data will appear here</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <button
-          onClick={addSegment}
-          className="flex items-center gap-2 px-4 py-2 mt-4 bg-[#126ACB] text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-        >
-          <CiCirclePlus className="h-4 w-4" />
-          Add Segment
-        </button>
-      </div>
-
-      {/* Return Section */}
-      <div>
-        <div className="mb-4">
-          <span className="text-sm font-medium text-gray-700">
-            Return (3h 40m)
-          </span>
-        </div>
-
-        <div className="space-y-6">
-          {formData.returnSegments.map((segment, index) => (
-            <div
-              key={segment.id}
-              className="grid grid-cols-1 lg:grid-cols-2 gap-4"
-            >
-              <div className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-sm font-medium text-gray-700">
-                    Flight Segment {index + 1}
-                  </h4>
-                  {formData.returnSegments.length > 1 && (
-                    <button
-                      onClick={() => removeReturnSegment(segment.id!)}
-                      className="text-gray-400 hover:text-red-500"
-                    >
-                      <FiMinusCircle size={22} />
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Flight Number
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="A320"
-                      value={segment.flightnumber}
-                      onChange={(e) => {
-                        const updatedSegments = formData.returnSegments.map(
-                          (s) =>
-                            s.id === segment.id
-                              ? { ...s, flightnumber: e.target.value }
-                              : s
-                        );
-                        setFormData({
-                          ...formData,
-                          returnSegments: updatedSegments,
-                        });
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  {/*  Show  PNR input  when toggle is OFF */}
-                  {!formData.pnrEnabled && (
-                    <div className="mt-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        PNR
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Enter PNR"
-                        value={segment.pnr || ""}
-                        onChange={(e) =>
-                          handleSegmentPnr(
-                            index,
-                            e.target.value,
-                            "returnSegments"
-                          )
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        className="w-[16rem] px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
                     </div>
-                  )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Travel Date
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="07-10-2025"
-                      value={segment.traveldate}
-                      onChange={(e) => {
-                        const updatedSegments = formData.returnSegments.map(
-                          (s) =>
+                    {/* PNR (toggle off) */}
+                    {!formData.pnrEnabled && (
+                      <div>
+                        <label className="block mb-1 font-medium text-gray-600">
+                          PNR
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Enter PNR"
+                          value={segment.pnr || ""}
+                          onChange={(e) =>
+                            handleSegmentPnr(index, e.target.value, "segments")
+                          }
+                          className="w-[16rem] px-2 py-1.5 border border-gray-300 rounded-md"
+                        />
+                      </div>
+                    )}
+
+                    {/* Travel Date */}
+                    <div>
+                      <label className="block mb-1 font-medium text-gray-600">
+                        Travel Date
+                      </label>
+                      <input
+                        type="date"
+                        value={segment.traveldate}
+                        onChange={(e) => {
+                          const updatedSegments = formData.segments.map((s) =>
                             s.id === segment.id
                               ? { ...s, traveldate: e.target.value }
                               : s
-                        );
-                        setFormData({
-                          ...formData,
-                          returnSegments: updatedSegments,
-                        });
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Cabin Class
-                    </label>
-                    <div className="relative">
-                      <select
-                        value={segment.cabinclass}
-                        onChange={(e) => {
-                          const updatedSegments = formData.returnSegments.map(
-                            (s) =>
-                              s.id === segment.id
-                                ? { ...s, cabinclass: e.target.value }
-                                : s
                           );
                           setFormData({
                             ...formData,
-                            returnSegments: updatedSegments,
+                            segments: updatedSegments,
                           });
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
-                      >
-                        <option value="">Choose Cabin Class</option>
-                        <option value="economy">Economy</option>
-                        <option value="business">Business</option>
-                        <option value="first">First Class</option>
-                      </select>
-                      <MdKeyboardArrowDown className="absolute right-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                        className="w-[16rem] px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    {/* Cabin Class */}
+                    <div>
+                      <label className="block mb-1 font-medium text-gray-600">
+                        Cabin Class
+                      </label>
+                      <div className="relative w-[16rem]">
+                        <select
+                          value={segment.cabinclass}
+                          onChange={(e) => {
+                            const updatedSegments = formData.segments.map((s) =>
+                              s.id === segment.id
+                                ? { ...s, cabinclass: e.target.value }
+                                : s
+                            );
+                            setFormData({
+                              ...formData,
+                              segments: updatedSegments,
+                            });
+                          }}
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                        >
+                          <option value="">Choose Cabin Class</option>
+                          <option value="Economy">Economy</option>
+                          <option value="Premium Economy">
+                            Premium Economy
+                          </option>
+                          <option value="Business">Business</option>
+                          <option value="First Class">First Class</option>
+                        </select>
+                        <MdKeyboardArrowDown className="absolute right-2 top-2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Preview Section */}
+                <div className="border border-dotted border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-[0.85rem] font-semibold text-gray-800">
+                      Preview
+                    </h4>
+                    <button className="text-blue-600 hover:text-blue-700">
+                      <MdOutlineEdit size={16} />
+                    </button>
+                  </div>
+
+                  <div className="bg-white border border-gray-200 rounded-md p-3 min-h-[180px]">
+                    <div className="flex items-center justify-center text-gray-500 h-full">
+                      <p>Preview data will appear here</p>
                     </div>
                   </div>
                 </div>
               </div>
+            ))}
 
-              {/* Return Preview Section */}
-              <div className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-sm font-medium text-gray-700">Preview</h4>
-                  <button className="text-blue-600 hover:text-blue-700">
-                    <MdOutlineEdit className="h-4 w-4" />
-                  </button>
-                </div>
+            {/* Add Segment */}
+            <button
+              onClick={addSegment}
+              className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-[#126ACB] text-white text-[0.75rem] rounded-md hover:bg-blue-700 transition"
+            >
+              <CiCirclePlus size={16} />
+              Add Segment
+            </button>
+          </div>
 
-                <div className="bg-white border border-gray-200 rounded-md p-4 min-h-[200px]">
-                  <div className="flex items-center justify-center h-full text-gray-500">
-                    <p className="text-sm">
-                      Return flight preview will appear here
-                    </p>
+          {/* Return Section */}
+          <div>
+            <div className="mb-3 mt-3">
+              <span className="font-medium text-gray-600">Return (3h 40m)</span>
+            </div>
+
+            <div className="space-y-4">
+              {formData.returnSegments.map((segment, index) => (
+                <div
+                  key={segment.id}
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-3"
+                >
+                  {/* Return Segment */}
+                  <div className="border border-gray-200 rounded-lg px-3 py-5">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-[0.85rem] font-semibold text-gray-800">
+                        Flight Segment {index + 1}
+                      </h4>
+                      {formData.returnSegments.length > 1 && (
+                        <button
+                          onClick={() => removeReturnSegment(segment.id!)}
+                          className="text-gray-400 hover:text-red-500"
+                        >
+                          <FiMinusCircle size={16} />
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3">
+                      {/* Flight Number */}
+                      <div>
+                        <label className="block mb-1 font-medium text-gray-600">
+                          Flight Number
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="A320"
+                          value={segment.flightnumber}
+                          onChange={(e) => {
+                            const updated = formData.returnSegments.map((s) =>
+                              s.id === segment.id
+                                ? { ...s, flightnumber: e.target.value }
+                                : s
+                            );
+                            setFormData({
+                              ...formData,
+                              returnSegments: updated,
+                            });
+                          }}
+                          className="w-[16rem] px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      {/* PNR */}
+                      {!formData.pnrEnabled && (
+                        <div>
+                          <label className="block mb-1 font-medium text-gray-600">
+                            PNR
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="Enter PNR"
+                            value={segment.pnr || ""}
+                            onChange={(e) =>
+                              handleSegmentPnr(
+                                index,
+                                e.target.value,
+                                "returnSegments"
+                              )
+                            }
+                            className="w-[16rem] px-2 py-1.5 border border-gray-300 rounded-md"
+                          />
+                        </div>
+                      )}
+
+                      {/* Travel Date */}
+                      <div>
+                        <label className="block mb-1 font-medium text-gray-600">
+                          Travel Date
+                        </label>
+                        <input
+                          type="date"
+                          value={segment.traveldate}
+                          onChange={(e) => {
+                            const updated = formData.returnSegments.map((s) =>
+                              s.id === segment.id
+                                ? { ...s, traveldate: e.target.value }
+                                : s
+                            );
+                            setFormData({
+                              ...formData,
+                              returnSegments: updated,
+                            });
+                          }}
+                          className="w-[16rem] px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      {/* Cabin Class */}
+                      <div>
+                        <label className="block mb-1 font-medium text-gray-600">
+                          Cabin Class
+                        </label>
+                        <div className="relative w-[16rem]">
+                          <select
+                            value={segment.cabinclass}
+                            onChange={(e) => {
+                              const updated = formData.returnSegments.map((s) =>
+                                s.id === segment.id
+                                  ? { ...s, cabinclass: e.target.value }
+                                  : s
+                              );
+                              setFormData({
+                                ...formData,
+                                returnSegments: updated,
+                              });
+                            }}
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                          >
+                            <option value="">Choose Cabin Class</option>
+                            <option value="Economy">Economy</option>
+                            <option value="Premium Economy">
+                              Premium Economy
+                            </option>
+                            <option value="Business">Business</option>
+                            <option value="First Class">First Class</option>
+                          </select>
+                          <MdKeyboardArrowDown className="absolute right-2 top-2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Return Preview */}
+                  <div className="border border-dotted border-gray-200 rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-[0.85rem] font-semibold text-gray-800">
+                        Preview
+                      </h4>
+                      <button className="text-blue-600 hover:text-blue-700">
+                        <MdOutlineEdit size={16} />
+                      </button>
+                    </div>
+
+                    <div className="bg-white border border-gray-200 rounded-md p-3 min-h-[180px]">
+                      <div className="flex items-center justify-center text-gray-500 h-full">
+                        <p>Return flight preview will appear here</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
+            {/* Add Return Segment */}
+            <button
+              onClick={addReturnSegment}
+              className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-[#126ACB] text-white text-[0.75rem] rounded-md hover:bg-blue-700 transition"
+            >
+              <CiCirclePlus size={16} />
+              Add Segment
+            </button>
+          </div>
         </div>
-
-        <button
-          onClick={addReturnSegment}
-          className="flex items-center gap-2 px-4 py-2 mt-4 bg-[#126ACB] text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
-        >
-          <CiCirclePlus className="h-4 w-4" />
-          Add Segment
-        </button>
       </div>
     </div>
   );

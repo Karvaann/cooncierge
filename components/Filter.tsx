@@ -130,7 +130,7 @@ const Filter: React.FC<FilterProps> = ({
         <h2 className="text-[0.85rem] font-semibold text-[#1F2937]">Filters</h2>
         <button
           onClick={() => setCreateOpen?.(true)}
-          className="border border-[#0D4B37] text-white bg-[#0D4B37] text-[0.75rem] px-3 py-1.5 rounded-md font-medium hover:bg-gray-200 transition"
+          className="border border-[#0D4B37] text-white bg-[#0D4B37] text-[0.75rem] px-3 py-1.5 rounded-md font-medium hover:bg-green-800 transition"
           type="button"
         >
           + Create
@@ -189,7 +189,7 @@ const Filter: React.FC<FilterProps> = ({
               <select
                 value={filters.owner}
                 onChange={(e) => updateFilter("owner", e.target.value)}
-                className="w-[12.75rem] text-[0.75rem] border border-gray-300 rounded-lg px-3 py-2 text-gray-600 focus:ring-2 focus:ring-[#0D4B37] pr-8"
+                className="w-[14.75rem] text-[0.75rem] border border-gray-300 rounded-md px-2 py-2 text-gray-600 focus:ring-2 focus:ring-[#0D4B37] pr-8"
               >
                 <option value="">Select Owner</option>
                 {ownerOptions}

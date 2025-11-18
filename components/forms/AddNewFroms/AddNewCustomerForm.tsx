@@ -19,7 +19,7 @@ interface CustomerFormData {
   dateofbirth: number | "";
   gstin: number | "";
   companyname: string;
-  documents: File | "";
+  documents?: string | File;
   billingaddress: string | number;
   remarks: string;
 }
