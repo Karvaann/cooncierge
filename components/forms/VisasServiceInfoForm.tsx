@@ -1,92 +1,53 @@
 "use client";
 
 import React, { useState, useCallback, useMemo } from "react";
-import { validateAccommodationInfoForm } from "@/services/bookingApi";
+import { validateOtherServiceInfoForm } from "@/services/bookingApi";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
-import HotelLayout from "./HotelLayout";
 import { useRef } from "react";
-import VillaLayout from "./VillaLayout";
+import StyledDescription from "../StyledDescription";
+
 // Type definitions
-interface AccommodationInfoFormData {
+interface OtherServiceInfoFormData {
   bookingdate: string;
   traveldate: string; // This can be the main/first travel date
   bookingstatus: "Confirmed" | "Canceled" | "In Progress" | string;
-  checkindate: string;
-  checkintime: string;
-  checkoutdate: string;
-  checkouttime: string;
-  checkOutPeriod: "AM" | "PM";
-  pax: number | string;
-  mealPlan: "EPAI" | "CPAI" | "MAPAI" | "APAI" | string;
-  confirmationNumber: number | string;
-  accommodationType:
-    | "Hotel"
-    | "Resort"
-    | "Hostel"
-    | "Villa"
-    | "Apartment"
-    | "Homestay"
-    | "Experiental Stay"
-    | string;
-  propertyName: string;
-  propertyAddress: string;
-  googleMapsLink: string;
-  segments: RoomSegment[];
   costprice: number | string;
   sellingprice: number | string;
+  confirmationNumber: number | string;
+  title: string;
+  description: string;
+  documents?: string | File;
   remarks: string;
-}
-
-interface RoomSegment {
-  id?: string | null;
-  roomCategory: string;
-  bedType: string;
 }
 
 interface ValidationErrors {
   [key: string]: string;
 }
 
-interface AccommodationInfoFormProps {
-  onSubmit?: (data: AccommodationInfoFormData) => void;
+interface OtherInfoFormProps {
+  onSubmit?: (data: OtherServiceInfoFormData) => void;
   isSubmitting?: boolean;
   showValidation?: boolean;
 }
 
-const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
+const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   onSubmit,
   isSubmitting = false,
   showValidation = true,
 }) => {
   // Internal form state
-  const [formData, setFormData] = useState<AccommodationInfoFormData>({
+  const [formData, setFormData] = useState<OtherServiceInfoFormData>({
     bookingdate: "",
     traveldate: "",
     bookingstatus: "",
     costprice: "",
     sellingprice: "",
     confirmationNumber: "",
-    checkindate: "",
-    checkintime: "",
-    checkoutdate: "",
-    checkouttime: "",
-    checkOutPeriod: "AM",
-    pax: "",
-    mealPlan: "",
-    propertyName: "",
-    propertyAddress: "",
-    googleMapsLink: "",
-    segments: [
-      {
-        id: "room-1",
-        roomCategory: "",
-        bedType: "",
-      },
-    ],
-    accommodationType: "",
-
+    title: "",
+    description: "",
+    documents: "",
     remarks: "",
   });
 
@@ -116,13 +77,6 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   });
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
 
-  const handleSegmentsChange = (updatedSegments: RoomSegment[]) => {
-    setFormData((prev) => ({
-      ...prev,
-      segments: updatedSegments,
-    }));
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -148,7 +102,6 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     pattern?: RegExp;
   };
 
-  // Validation rules
   const validationRules: Record<string, FieldRule> = useMemo(
     () => ({
       firstname: {
@@ -178,36 +131,21 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   // Enhanced validation function using API validation
   const validateField = useCallback(
     (name: string, value: any): string => {
-      // Use API validation for comprehensive checks
-      const apiErrors = validateAccommodationInfoForm({
+      // API-level validation only for OtherServiceInfoForm fields
+      const apiErrors = validateOtherServiceInfoForm({
         bookingdate: "",
         traveldate: "",
         bookingstatus: "",
-        costprice: "",
-        sellingprice: "",
         confirmationNumber: "",
-        checkindate: "",
-        checkintime: "",
-        checkoutdate: "",
-        checkouttime: "",
-        checkOutPeriod: "AM",
-        pax: "",
-        mealPlan: "",
-        propertyName: "",
-        propertyAddress: "",
-        googleMapsLink: "",
-        segments: [
-          {
-            id: "room-1",
-            roomCategory: "",
-            bedType: "",
-          },
-        ],
-        accommodationType: "",
+        title: "",
+        description: "",
+        documents: "",
         remarks: "",
       });
+
       if (apiErrors[name]) return apiErrors[name];
 
+      // Local field-level validation (firstname, lastname, etc.)
       const rule = validationRules[name as keyof typeof validationRules];
       if (!rule) return "";
 
@@ -247,7 +185,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     Object.keys(validationRules).forEach((fieldName) => {
       const error = validateField(
         fieldName,
-        formData[fieldName as keyof AccommodationInfoFormData]
+        formData[fieldName as keyof OtherServiceInfoFormData]
       );
       if (error) {
         newErrors[fieldName] = error;
@@ -270,7 +208,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     setFormData((prev) => ({ ...prev, [name]: processedValue }));
 
     // Clear error when user types
-    if (errors[name as keyof AccommodationInfoFormData]) {
+    if (errors[name as keyof OtherServiceInfoFormData]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
 
@@ -314,7 +252,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
   // Enhanced input field component with validation indicators
   const InputField: React.FC<{
-    name: keyof AccommodationInfoFormData;
+    name: keyof OtherServiceInfoFormData;
     id?: string;
     type?: string;
     placeholder?: string;
@@ -585,81 +523,277 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   Vendor Payment Summary
                 </h4>
 
-                {/* Container */}
-                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                  {/* Row */}
-                  {[
-                    "Vendor Invoice (Base)",
-                    "Supplier Incentive Received",
-                    "Partner Payout",
-                    "Cost Price",
-                  ].map((label, index) => (
-                    <div
-                      key={index}
-                      className="grid grid-cols-12 border-b last:border-b-0 border-gray-200"
-                    >
-                      {/* Left label */}
-                      <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
-                        {label}
-                      </div>
-
-                      {/* Right inputs */}
-                      <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
-                        {/* Rupee icon */}
-                        <div className="text-gray-600 text-[0.85rem] font-medium">
-                          ₹
-                        </div>
-
-                        {/* Amount Input */}
-                        <input
-                          type="text"
-                          placeholder="Enter Amount"
-                          className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                        />
-
-                        {/* Notes Input (only for rows that have it in screenshot) */}
-                        {label !== "Cost Price" && (
-                          <input
-                            type="text"
-                            placeholder="Enter notes here..."
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                          />
-                        )}
-
-                        {/* Cost Price Blue Value */}
-                        {label === "Cost Price" && (
-                          <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">
-                            ₹ 0.00
-                          </div>
-                        )}
+                <div className="border border-gray-200 rounded-lg bg-white overflow-hidden">
+                  {/* Vendor Amount */}
+                  <div className="grid grid-cols-12 border-b border-gray-200">
+                    <div className="col-span-3 bg-[#F8F8F8] border-r border-gray-200 flex items-center justify-center">
+                      <div className="text-[0.75rem] text-gray-700 font-medium text-center">
+                        Vendor Amount (Invoice Value)
                       </div>
                     </div>
-                  ))}
+                    <div className="col-span-9 rounded-md p-3 mb-2 bg-white">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-1 flex gap-2 items-center flex-wrap">
+                          <select
+                            value={vendorCurrency}
+                            onChange={(e) => setVendorCurrency(e.target.value)}
+                            className="px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                          >
+                            <option>USD</option>
+                            <option>INR</option>
+                          </select>
+                          <input
+                            type="text"
+                            value={vendorAmount}
+                            onChange={(e) => setVendorAmount(e.target.value)}
+                            placeholder="Enter Cost Price"
+                            className="w-[12rem] min-w-[120px] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                          <div className="flex items-center border border-gray-300 rounded-md overflow-hidden text-[0.75rem] font-medium">
+                            {/* Left side label */}
+                            <div className="px-3 py-1.5 bg-[#F8F8F8] text-gray-700 border-r border-gray-300">
+                              ROE
+                            </div>
+
+                            {/* Right side value */}
+                            <div className="px-3 py-1.5 bg-white text-gray-800">
+                              {vendorROE}
+                            </div>
+                          </div>
+
+                          <div className="px-3 py-1.5 bg-[#F6F2E8] border border-gray-300 rounded-md text-[0.75rem] text-gray-700 whitespace-nowrap">
+                            INR {vendorINR}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bank Charges */}
+                  <div className="grid grid-cols-12 border-b border-gray-200">
+                    <div className="col-span-3 bg-[#F8F8F8] border-r border-gray-200 flex items-center justify-center">
+                      <div className="text-[0.75rem] text-gray-700 font-medium text-center">
+                        Bank Charges
+                      </div>
+                    </div>
+                    <div className="col-span-9 rounded-md p-3 mb-2 bg-white">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex gap-2 items-center flex-wrap">
+                            <select
+                              value={bankChargesCurrency}
+                              onChange={(e) =>
+                                setBankChargesCurrency(e.target.value)
+                              }
+                              className="px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                            >
+                              <option>INR</option>
+                              <option>USD</option>
+                            </select>
+                            <input
+                              type="text"
+                              value={bankChargesAmount}
+                              onChange={(e) =>
+                                setBankChargesAmount(e.target.value)
+                              }
+                              placeholder="Enter Selling Price"
+                              className="w-[12rem] min-w-[120px] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div className="text-[0.65rem] text-gray-500">
+                            <label className="block mb-1 font-medium">
+                              Notes
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="Type here..."
+                              className="w-full px-2 py-1.5 text-[0.65rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cashback / Commission Received */}
+                  <div className="grid grid-cols-12 border-b border-gray-200">
+                    <div className="col-span-3 bg-[#F8F8F8] border-r border-gray-200 flex items-center justify-center">
+                      <div className="text-[0.75rem] text-gray-700 font-medium text-center">
+                        Cashback / Commission Received
+                      </div>
+                    </div>
+                    <div className="col-span-9 rounded-md p-3 mb-2 bg-white">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex gap-2 items-center flex-wrap">
+                            <select
+                              value={cashbackCurrency}
+                              onChange={(e) =>
+                                setCashbackCurrency(e.target.value)
+                              }
+                              className="px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                            >
+                              <option>INR</option>
+                              <option>USD</option>
+                            </select>
+                            <input
+                              type="text"
+                              value={cashbackAmount}
+                              onChange={(e) =>
+                                setCashbackAmount(e.target.value)
+                              }
+                              placeholder="Enter Selling Price"
+                              className="w-[12rem] min-w-[120px] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div className="flex gap-4 items-center">
+                            <label className="flex items-center gap-1.5">
+                              <input
+                                type="radio"
+                                name="cashbackMethod"
+                                value="Wallet"
+                                checked={cashbackMethod === "Wallet"}
+                                onChange={(e) =>
+                                  setCashbackMethod(e.target.value)
+                                }
+                                className="w-3.5 h-3.5 text-blue-600"
+                              />
+                              <span className="text-[0.75rem] text-gray-700">
+                                Wallet
+                              </span>
+                            </label>
+                            <label className="flex items-center gap-1.5">
+                              <input
+                                type="radio"
+                                name="cashbackMethod"
+                                value="Bank"
+                                checked={cashbackMethod === "Bank"}
+                                onChange={(e) =>
+                                  setCashbackMethod(e.target.value)
+                                }
+                                className="w-3.5 h-3.5 text-blue-600"
+                              />
+                              <span className="text-[0.75rem] text-gray-700">
+                                Bank
+                              </span>
+                            </label>
+                          </div>
+                          <div className="text-[0.65rem] text-gray-500">
+                            <label className="block mb-1 font-medium">
+                              Notes
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="Type here..."
+                              className="w-full px-2 py-1.5 text-[0.65rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Cost Price */}
+                  <div className="grid grid-cols-12">
+                    <div className="col-span-3 bg-[#F8F8F8] border-r border-gray-200 flex items-center justify-center">
+                      <div className="text-[0.75rem] text-gray-700 font-medium text-center">
+                        Cost Price
+                      </div>
+                    </div>
+                    <div className="col-span-9 rounded-md p-3 bg-white">
+                      <div className="flex items-center gap-4">
+                        <div className="w-[3.5rem] px-3 py-1.5 bg-[#F6F2E8] border border-gray-300 rounded-md text-[0.75rem] text-gray-700">
+                          INR 0
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Customer Revenue Summary */}
-                <h4 className="text-[0.8rem] font-semibold text-gray-700">
+
+                <h4 className="text-[0.75rem] font-medium text-gray-700 mb-3">
                   Customer Revenue Summary
                 </h4>
 
-                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                  <div className="grid grid-cols-12">
-                    {/* Label */}
-                    <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
-                      Selling Price
-                    </div>
-
-                    {/* Inputs */}
-                    <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
-                      <div className="text-gray-600 text-[0.85rem] font-medium">
-                        ₹
+                <div className="border border-gray-200 rounded-lg bg-white overflow-hidden">
+                  {/* Selling Price */}
+                  <div className="grid grid-cols-12 border-b border-gray-200">
+                    <div className="col-span-3 bg-[#F8F8F8] border-r border-gray-200 flex items-center justify-center">
+                      <div className="text-[0.75rem] text-gray-700 font-medium text-center">
+                        Selling Price
                       </div>
+                    </div>
+                    <div className="col-span-9 rounded-md p-3 mb-2 bg-white">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-1 flex gap-2 items-center flex-wrap">
+                          <select
+                            value={customerSellingCurrency}
+                            onChange={(e) =>
+                              setCustomerSellingCurrency(e.target.value)
+                            }
+                            className="px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                          >
+                            <option>INR</option>
+                            <option>USD</option>
+                          </select>
+                          <input
+                            type="text"
+                            value={customerSellingAmount}
+                            onChange={(e) =>
+                              setCustomerSellingAmount(e.target.value)
+                            }
+                            placeholder="Enter Selling Price"
+                            className="flex-1 min-w-[120px] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-                      <input
-                        type="text"
-                        placeholder="Enter Amount"
-                        className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                      />
+                  {/* Commission / Partner Payable */}
+                  <div className="grid grid-cols-12">
+                    <div className="col-span-3 bg-[#F8F8F8] border-r border-gray-200 flex items-center justify-center">
+                      <div className="text-[0.75rem] text-gray-700 font-medium text-center">
+                        Commission / Partner Payable
+                      </div>
+                    </div>
+                    <div className="col-span-9 rounded-md p-3 bg-white">
+                      <div className="flex items-start gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex gap-2 items-center flex-wrap">
+                            <select
+                              value={commissionCurrency}
+                              onChange={(e) =>
+                                setCommissionCurrency(e.target.value)
+                              }
+                              className="px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                            >
+                              <option>INR</option>
+                              <option>USD</option>
+                            </select>
+                            <input
+                              type="text"
+                              value={commissionAmount}
+                              onChange={(e) =>
+                                setCommissionAmount(e.target.value)
+                              }
+                              placeholder="Enter Selling Price"
+                              className="flex-1 min-w-[120px] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div className="text-[0.65rem] text-gray-500">
+                            <label className="block mb-1 font-medium">
+                              Notes
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="Type here..."
+                              className="w-full px-2 py-1.5 text-[0.65rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -684,290 +818,52 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             )}
           </div>
 
+          {/* ================= Visas INFO ================ */}
           <div className="w-[48vw] border border-gray-200 rounded-[12px] p-3 mt-4">
-            <h1 className="text-[0.75rem] font-medium text-gray-700 mb-2">
-              Accommodation Info
+            <h1 className="text-[0.85rem] font-medium text-gray-800 mb-2">
+              Visas Info
             </h1>
-            <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-            {/* Confirmation Number */}
-            <div className="mb-3">
-              <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                Confirmation Number
-              </label>
-              <input
-                type="text"
-                placeholder="Enter Confirmation Number"
-                className="w-[18rem] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
+            <hr className="mt-1 mb-3 border-t border-gray-200" />
 
-            {/* Check-in / Check-out Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-              {/* Check-In Date */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-In Date
+            {/* Confirmation number + Title */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-0 w-full mb-4">
+              {/* Confirmation number */}
+              <div className="flex flex-col w-[13rem]">
+                <label className="text-[0.75rem] font-medium text-gray-700 mb-1">
+                  Confirmation number
                 </label>
                 <input
                   type="text"
-                  value={formData.checkindate}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      checkindate: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  name="confirmationNumber"
+                  value={formData.confirmationNumber}
+                  onChange={handleChange}
+                  placeholder="Abc12345"
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem]
+        focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
-              {/* Check-In Time */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-In Time
-                </label>
-                <div className="flex items-center gap-1 border border-gray-300 rounded-md px-2 py-1 w-fit">
-                  <input
-                    type="text"
-                    value={formData.checkintime}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        checkintime: e.target.value,
-                      }))
-                    }
-                    placeholder="12:00"
-                    className="w-16 text-center border-none bg-transparent text-[0.75rem] focus:outline-none"
-                  />
-                  <select
-                    value={formData.checkOutPeriod}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        checkOutPeriod: e.target.value as "AM" | "PM",
-                      }))
-                    }
-                    className="border-none bg-transparent text-center text-[0.75rem] focus:outline-none"
-                  >
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Check-Out Date */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-Out Date
+              {/* Title */}
+              <div className="flex flex-col w-[13rem] -ml-35">
+                <label className="text-[0.75rem] font-medium text-gray-700 mb-1">
+                  Title
                 </label>
                 <input
                   type="text"
-                  value={formData.checkoutdate}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      checkoutdate: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  placeholder="Title …"
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem]
+        focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
-              </div>
-
-              {/* Check-Out Time */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-Out Time
-                </label>
-                <div className="flex items-center gap-1 border border-gray-300 rounded-md px-2 py-1 w-fit">
-                  <input
-                    type="text"
-                    value={formData.checkouttime}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        checkouttime: e.target.value,
-                      }))
-                    }
-                    placeholder="11:00"
-                    className="w-16 text-center border-none bg-transparent text-[0.75rem] focus:outline-none"
-                  />
-                  <select
-                    value={formData.checkOutPeriod}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        checkOutPeriod: e.target.value as "AM" | "PM",
-                      }))
-                    }
-                    className="border-none bg-transparent text-center text-[0.75rem] focus:outline-none"
-                  >
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                  </select>
-                </div>
               </div>
             </div>
 
-            {/* Pax & Meal Plan */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Pax
-                </label>
-                <input
-                  type="text"
-                  value={formData.pax}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, pax: e.target.value }))
-                  }
-                  className="w-[10rem] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
+            {/* Description */}
 
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Select Meal Plan
-                </label>
-                <select
-                  value={formData.mealPlan}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      mealPlan: e.target.value,
-                    }))
-                  }
-                  className="w-[14rem] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "right 10px center",
-                  }}
-                >
-                  <option value="EPAI">EPAI</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Accommodation Type Section */}
-            <div className="border border-gray-200 rounded-[12px] p-3 mt-3">
-              <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                Select Accommodation Type
-              </label>
-              <div className="relative w-[14rem] mb-2">
-                <select
-                  defaultValue=""
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      accommodationType: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-1.5 pr-10 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
-                >
-                  <option value="" disabled>
-                    Select Stay Type
-                  </option>
-                  <option>Hotel</option>
-                  <option>Resort</option>
-                  <option>Hostel</option>
-                  <option>Villa</option>
-                </select>
-                <MdKeyboardArrowDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-              </div>
-
-              {formData.accommodationType && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                  <div>
-                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                      {formData.accommodationType} Name
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.propertyName}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          propertyName: e.target.value,
-                        }))
-                      }
-                      placeholder={`Enter ${formData.accommodationType} Name`}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                      {formData.accommodationType} Address
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.propertyAddress}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          propertyAddress: e.target.value,
-                        }))
-                      }
-                      placeholder={`Enter ${formData.accommodationType} Address`}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                      Google Maps Link
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={formData.googleMapsLink}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            googleMapsLink: e.target.value,
-                          }))
-                        }
-                        placeholder="Paste Google Maps Link"
-                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      />
-                      <button
-                        type="button"
-                        className="px-3 py-1.5 flex items-center gap-1 bg-[#126ACB] text-white rounded-md text-[0.75rem] hover:bg-blue-700"
-                      >
-                        <MdOutlineFileUpload size={16} /> Copy Link
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Layout Components */}
-              {formData.accommodationType === "Hotel" && (
-                <HotelLayout
-                  segments={formData.segments}
-                  onSegmentsChange={handleSegmentsChange}
-                />
-              )}
-              {formData.accommodationType === "Resort" && (
-                <HotelLayout
-                  segments={formData.segments}
-                  onSegmentsChange={handleSegmentsChange}
-                />
-              )}
-              {formData.accommodationType === "Hostel" && (
-                <HotelLayout
-                  segments={formData.segments}
-                  onSegmentsChange={handleSegmentsChange}
-                />
-              )}
-              {formData.accommodationType === "Villa" && (
-                <VillaLayout
-                  segments={formData.segments}
-                  onSegmentsChange={handleSegmentsChange}
-                />
-              )}
-            </div>
+            <StyledDescription />
           </div>
         </div>
 
@@ -1054,4 +950,4 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   );
 };
 
-export default React.memo(AccommodationServiceInfoForm);
+export default React.memo(VisasServiceInfoForm);

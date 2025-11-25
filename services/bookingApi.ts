@@ -9,7 +9,15 @@ interface Service {
   id: string;
   title: string;
   image: string;
-  category: 'travel' | 'accommodation' | 'transport' | 'activity';
+  category: | "travel"
+    | "accommodation"
+    | "transport-land"
+    | "activity"
+    | "transport-maritime"
+    | "tickets"
+    | "travel insurance"
+    | "visas"
+    | "others";
   description?: string;
 }
 
@@ -37,6 +45,16 @@ interface CustomerFrom {
   companyname: string;
   documents?: string | File;
   billingaddress: string | number;
+  remarks: string;
+}
+
+interface TravellerForm {
+  firstname: string;
+  lastname: string;
+  nickname: string;
+  contactnumber: number | string;
+  emailId: string;
+  dateofbirth: number | string;
   remarks: string;
 }
 
@@ -129,6 +147,17 @@ interface RoomSegment {
   
 }
 
+interface OtherServiceInfoForm {
+  bookingdate: string;
+  traveldate: string; // This can be the main/first travel date
+  bookingstatus: "Confirmed" | "Canceled" | "In Progress" | string;
+  confirmationNumber: number | string;
+  title: string;
+  description: string;
+  documents?: string | File;
+  remarks: string;
+}
+
 
 interface ServiceInfo {
   serviceType: string;
@@ -149,6 +178,7 @@ interface BookingData {
   vendorform: VendorForm;
   flightinfoform: FlightInfoForm;
   accommodationform: AccommodationInfoForm;
+  otherServiceInfoform: OtherServiceInfoForm;
   timestamp: string;
 }
 
@@ -461,6 +491,60 @@ export const validateCustomerForm = (data: CustomerFrom): Record<string, string>
   return errors;
 };
 
+export const validateTravellerForm = (
+  data: TravellerForm
+): Record<string, string> => {
+  const errors: Record<string, string> = {};
+
+  // First Name
+  if (!data.firstname?.trim()) {
+    errors.firstname = "First name is required";
+  } else if (data.firstname.trim().length < 2) {
+    errors.firstname = "First name must be at least 2 characters";
+  }
+
+  // Last Name
+  if (!data.lastname?.trim()) {
+    errors.lastname = "Last name is required";
+  } else if (data.lastname.trim().length < 2) {
+    errors.lastname = "Last name must be at least 2 characters";
+  }
+
+  // Nickname (optional but validate structure)
+  if (data.nickname && data.nickname.trim().length < 2) {
+    errors.nickname = "Nickname must be at least 2 characters";
+  }
+
+  // Contact Number
+  if (!data.contactnumber) {
+    errors.contactnumber = 'Contact number is required';
+  } else if (!/^\d{10}$/.test(String(data.contactnumber))) {
+    errors.contactnumber = 'Contact number must be 10 digits';
+  }
+
+  // Email
+  if (!data.emailId?.trim()) {
+    errors.emailId = "Email is required";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.emailId)) {
+    errors.emailId = "Invalid email format";
+  }
+
+  // Date of birth
+  if (data.dateofbirth) {
+    if (new Date(data.dateofbirth) > new Date()) {
+      errors.dateofbirth = 'Date of birth cannot be in the future';
+    }
+  }
+
+  // Remarks (optional, but check if too short)
+  if (data.remarks && data.remarks.trim().length < 3) {
+    errors.remarks = "Remarks must be at least 3 characters";
+  }
+
+  return errors;
+};
+
+
 export const validateVendorForm = (data: VendorForm): Record<string, string> => {
   const errors: Record<string, string> = {};
 
@@ -674,6 +758,67 @@ export const validateAccommodationInfoForm = (
 
   return errors;
 };
+
+
+export const validateOtherServiceInfoForm = (
+  data: OtherServiceInfoForm
+): Record<string, string> => {
+  const errors: Record<string, string> = {};
+
+  // Booking Date
+  if (!data.bookingdate) {
+    errors.bookingdate = "Booking date is required";
+  }
+
+  // Travel Date
+  if (!data.traveldate) {
+    errors.traveldate = "Travel date is required";
+  }
+
+  // Booking Status
+  if (!data.bookingstatus?.trim()) {
+    errors.bookingstatus = "Booking status is required";
+  }
+
+  // Confirmation Number
+  if (!data.confirmationNumber) {
+    errors.confirmationNumber = "Confirmation number is required";
+  } else if (
+    isNaN(Number(data.confirmationNumber)) ||
+    Number(data.confirmationNumber) <= 0
+  ) {
+    errors.confirmationNumber =
+      "Confirmation number must be a valid positive number";
+  }
+
+  // Title
+  if (!data.title?.trim()) {
+    errors.title = "Title is required";
+  }
+
+  // Description
+  if (!data.description?.trim()) {
+    errors.description = "Description is required";
+  }
+
+  // Remarks
+  if (!data.remarks?.trim()) {
+    errors.remarks = "Remarks are required";
+  }
+
+  // Documents (optional but validate type if provided)
+  if (data.documents) {
+    if (
+      typeof data.documents !== "string" &&
+      !(data.documents instanceof File)
+    ) {
+      errors.documents = "Invalid file format";
+    }
+  }
+
+  return errors;
+};
+
 
 
 
@@ -894,6 +1039,7 @@ export class BookingApiService {
         vendorform: draft.vendorform!,
         accommodationform: draft.accommodationform!,
         flightinfoform: draft.flightinfoform!,
+        otherServiceInfoform: draft.otherServiceInfoform!,
         timestamp: new Date().toISOString(),
       };
 

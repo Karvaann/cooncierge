@@ -5,14 +5,16 @@ import { useMemo, useState, useEffect } from "react";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import { FiSearch } from "react-icons/fi";
-import { IoMdArrowDropdown } from "react-icons/io";
-import { BsThreeDotsVertical } from "react-icons/bs";
-import { getVendors } from "@/services/vendorApi";
+import { CiFilter } from "react-icons/ci";
+import { HiArrowsUpDown } from "react-icons/hi2";
+import { getVendors, deleteVendor } from "@/services/vendorApi";
 import { IoEllipsisHorizontal } from "react-icons/io5";
 import type { JSX } from "react";
 import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
+import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
 import DownloadMergeMenu from "@/components/Menus/DownloadMergeMenu";
+import ConfirmationModal from "@/components/popups/ConfirmationModal";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -21,21 +23,36 @@ const Table = dynamic(() => import("@/components/Table"), {
 
 type VendorRow = {
   vendorID: string;
-  name: string;
+  vendorName: string;
   rating: string;
-  owner: string;
-  dateCreated: string;
+  poc: string;
+  dateModified: string;
   actions: React.ComponentType<any> | string;
 };
 
 const columns: string[] = [
   "Vendor ID",
-  "Name",
-  "Owner",
-  "Date Created",
+  "Vendor Name",
+  "POC",
+  "Date Modified",
   "Rating",
   "Actions",
 ];
+
+const columnIconMap: Record<string, JSX.Element> = {
+  "Vendor Name": (
+    <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+  ),
+  POC: (
+    <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+  ),
+  Rating: (
+    <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+  ),
+  "Date Modified": (
+    <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+  ),
+};
 
 // const VendorTableSeed: VendorRow[] = [
 //   {
@@ -91,8 +108,30 @@ const VendorDirectory = () => {
   const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
   const [menuMode, setMenuMode] = useState<"main" | "action">("main");
 
+  const [selectedVendor, setSelectedVendor] = useState<any | null>(null);
+  const [mode, setMode] = useState<"create" | "edit">("create");
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+
+  const filteredVendors = useMemo(() => {
+    if (!searchValue.trim()) return vendors;
+
+    return vendors.filter((v) => {
+      const search = searchValue.toLowerCase();
+
+      return (
+        v.vendorName?.toLowerCase().includes(search) ||
+        v.vendorID?.toLowerCase().includes(search) ||
+        v.poc?.toLowerCase().includes(search)
+      );
+    });
+  }, [vendors, searchValue]);
+
   const handleMenuToggle = () => {
     setIsMenuOpen(!isMenuOpen);
+  };
+
+  const handleOpenConfirmDeleteModal = () => {
+    setIsConfirmModalOpen(true);
   };
 
   const handleCloseMenu = () => setIsMenuOpen(false);
@@ -107,7 +146,33 @@ const VendorDirectory = () => {
   const handleCancelSelectMode = () => {
     setSelectMode(false);
     setSelectedVendors([]);
-    setMenuMode("main"); // ✅ Revert menu to SelectUploadMenu
+    setMenuMode("main");
+  };
+
+  const handleSort = (column: string) => {
+    const sorted = [...vendors];
+
+    if (column === "Rating") {
+      sorted.reverse();
+    }
+
+    if (column === "Date Modified") {
+      sorted.reverse();
+    }
+
+    setVendors(sorted);
+  };
+
+  // Handle Delete Vendor
+  const handleDeleteVendor = async (vendorId: string) => {
+    try {
+      await deleteVendor(vendorId);
+      // Refresh your vendor list or remove from state
+      // Example: setVendors(vendors.filter(v => v.id !== vendorId));
+    } catch (error: any) {
+      console.error("Error deleting vendor:", error);
+      throw error;
+    }
   };
 
   useEffect(() => {
@@ -115,12 +180,13 @@ const VendorDirectory = () => {
       try {
         const data = await getVendors();
 
-        const mappedRows: VendorRow[] = data.map((c: any, index: number) => ({
-          customerID: c._id || `#C00${index + 1}`,
-          name: c.name,
-          owner: c.ownerId || "—",
+        const mappedRows: VendorRow[] = data.map((v: any, index: number) => ({
+          ...v,
+          vendorID: v._id || `#C00${index + 1}`,
+          vendorname: v.companyName || v.name || "—",
+          poc: v.contactPerson || "—",
           rating: "⭐️⭐️⭐️⭐️",
-          dateCreated: new Date(c.createdAt).toLocaleDateString(),
+          dateModified: new Date(v.createdAt).toLocaleDateString(),
           actions: "⋮",
         }));
         setVendors(mappedRows);
@@ -136,27 +202,109 @@ const VendorDirectory = () => {
 
   const tableData = useMemo<JSX.Element[][]>(
     () =>
-      vendors.map((row, index) => [
-        <td key={`customerID-${index}`} className="px-4 py-3">
-          {row.vendorID}
-        </td>,
-        <td key={`name-${index}`} className="px-4 py-3">
-          {row.name}
-        </td>,
-        <td key={`owner-${index}`} className="px-4 py-3">
-          {row.owner}
-        </td>,
-        <td key={`dateCreated-${index}`} className="px-4 py-3">
-          {row.dateCreated}
-        </td>,
-        <td key={`rating-${index}`} className="px-4 py-3">
-          {row.rating}
-        </td>,
-        <td key={`actions-${index}`} className="px-4 py-3">
-          {/* <ActionMenu /> */}
-        </td>,
-      ]),
-    []
+      filteredVendors.map((row, index) => {
+        const cells: JSX.Element[] = [];
+
+        // Checkbox column when selectMode ON
+        if (selectMode) {
+          const isSelected = selectedVendors.includes(row.vendorID);
+
+          cells.push(
+            <td key={`select-${index}`} className="px-4 py-3 text-center">
+              <div className="flex items-center justify-center">
+                {/* Hidden checkbox */}
+                <input
+                  type="checkbox"
+                  id={`vendor-select-${row.vendorID}`}
+                  className="hidden peer"
+                  checked={isSelected}
+                  onChange={() => {
+                    setSelectedVendors(
+                      (prev) =>
+                        isSelected
+                          ? prev.filter((id) => id !== row.vendorID) // deselect
+                          : [...prev, row.vendorID] // select
+                    );
+                  }}
+                />
+
+                {/* Styled custom checkbox */}
+                <label
+                  htmlFor={`vendor-select-${row.vendorID}`}
+                  className={`w-5 h-5 border border-gray-400 rounded-md flex items-center justify-center cursor-pointer transition 
+        `}
+                >
+                  {isSelected && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="12"
+                      height="11"
+                      viewBox="0 0 12 11"
+                      fill="none"
+                    >
+                      <path
+                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                        stroke="#0D4B37"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  )}
+                </label>
+              </div>
+            </td>
+          );
+        }
+
+        // Normal Table Columns
+        cells.push(
+          <td key={`vendorID-${index}`} className="px-4 py-3  text-center">
+            {row.vendorID}
+          </td>,
+          <td key={`vendorname-${index}`} className="px-4 py-3  text-center">
+            {row.vendorName}
+          </td>,
+          <td key={`poc-${index}`} className="px-4 py-3  text-center">
+            {row.poc}
+          </td>,
+          <td key={`dateModified-${index}`} className="px-4 py-3  text-center">
+            {row.dateModified}
+          </td>,
+          <td key={`rating-${index}`} className="px-4 py-3  text-center">
+            {row.rating}
+          </td>,
+
+          // Action menu
+          <td key={`actions-${index}`} className="px-4 py-3  text-center">
+            <ActionMenu
+              actions={[
+                {
+                  label: "Edit",
+                  icon: <FaRegEdit />,
+                  color: "text-green-600",
+                  onClick: () => {
+                    setSelectedVendor(row);
+                    setIsSideSheetOpen(true);
+                    setMode("edit");
+                  },
+                },
+                {
+                  label: "Delete",
+                  icon: <FaRegTrashAlt />,
+                  color: "text-red-600",
+                  onClick: () => {
+                    setSelectedVendor(row);
+                    handleOpenConfirmDeleteModal();
+                  },
+                },
+              ]}
+            />
+          </td>
+        );
+
+        return cells;
+      }),
+    [filteredVendors, selectMode, selectedVendors]
   );
 
   return (
@@ -186,7 +334,7 @@ const VendorDirectory = () => {
               Total
             </span>
             <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
-              78
+              {vendors.length}
             </span>
           </div>
           <button
@@ -216,7 +364,7 @@ const VendorDirectory = () => {
         </div>
 
         <div className="flex items-center gap-2 relative">
-          {/* Show these two only in select mode ---- selecting functionality of customer array */}
+          {/* Show these two only in select mode selecting functionality of customer array */}
           {selectMode && (
             <div className="flex items-center gap-3">
               <button
@@ -262,32 +410,52 @@ const VendorDirectory = () => {
       "
               style={{ pointerEvents: "auto" }}
             >
-              {menuMode === "main" ? (
-                <SelectUploadMenu
-                  isOpen={isMenuOpen}
-                  onClose={handleCloseMenu}
-                  onSelect={handleSelectClick}
-                />
-              ) : (
-                <DownloadMergeMenu
-                  isOpen={isMenuOpen}
-                  onClose={handleCloseMenu}
-                  onDownload={() => console.log("Download clicked")}
-                  onDelete={() => console.log("Delete clicked")}
-                />
-              )}
+              <SelectUploadMenu
+                isOpen={isMenuOpen}
+                onClose={handleCloseMenu}
+                onSelect={handleSelectClick}
+              />
             </div>
           )}
         </div>
       </div>
 
       <div className="min-h-screen mt-2 px-2">
-        <Table data={tableData} columns={columns} />
+        <Table
+          data={tableData}
+          columns={columns}
+          columnIconMap={columnIconMap}
+          showCheckboxColumn={selectMode}
+          onSort={handleSort}
+        />
       </div>
       {isSideSheetOpen && (
         <AddVendorSideSheet
           isOpen={isSideSheetOpen}
-          onCancel={() => setIsSideSheetOpen(false)}
+          onCancel={() => {
+            setIsSideSheetOpen(false);
+            setSelectedVendor(null);
+            setMode("create");
+          }}
+          data={selectedVendor} // REQUIRED
+          mode={mode}
+        />
+      )}
+
+      {isConfirmModalOpen && (
+        <ConfirmationModal
+          isOpen={isConfirmModalOpen}
+          onClose={() => setIsConfirmModalOpen(false)}
+          title="Are you sure you want to delete the selected vendor?"
+          confirmText="Yes, Delete"
+          cancelText="Cancel"
+          confirmButtonColor="bg-red-600"
+          onConfirm={() => {
+            if (!selectedVendor) return;
+
+            handleDeleteVendor(selectedVendor.vendorID);
+            setIsConfirmModalOpen(false);
+          }}
         />
       )}
     </div>

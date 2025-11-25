@@ -3,12 +3,12 @@
 import React, { useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 
-// Type definitions
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
   title?: string;
+  subtitle?: string; // ✅ Added optional subtitle for better structure
   customWidth?: string;
   customeHeight?: string;
   size?: "sm" | "md" | "lg" | "xl" | "full";
@@ -27,6 +27,7 @@ const Modal: React.FC<ModalProps> = ({
   onClose,
   children,
   title = "Modal Title",
+  subtitle,
   size = "sm",
   customWidth,
   customeHeight,
@@ -35,7 +36,6 @@ const Modal: React.FC<ModalProps> = ({
   showCloseButton = true,
   className = "",
 }) => {
-  // Memoized size classes
   const sizeClasses: ModalSize = useMemo(
     () => ({
       sm: "max-w-sm",
@@ -47,42 +47,30 @@ const Modal: React.FC<ModalProps> = ({
     []
   );
 
-  // Memoized responsive behavior
   const isMobile = useMemo(() => {
     if (typeof window === "undefined") return false;
     return window.innerWidth < 768;
   }, []);
 
-  // Handle escape key
   const handleEscape = useCallback(
     (event: KeyboardEvent) => {
-      if (event.key === "Escape" && closeOnEscape) {
-        onClose();
-      }
+      if (event.key === "Escape" && closeOnEscape) onClose();
     },
     [onClose, closeOnEscape]
   );
 
-  // Handle overlay click
   const handleOverlayClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      console.log("Overlay clicked:", event.target, event.currentTarget);
-      if (event.target === event.currentTarget && closeOnOverlayClick) {
+      if (event.target === event.currentTarget && closeOnOverlayClick)
         onClose();
-      }
     },
     [onClose, closeOnOverlayClick]
   );
 
-  // // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
-
-      if (closeOnEscape) {
-        document.addEventListener("keydown", handleEscape);
-      }
-
+      if (closeOnEscape) document.addEventListener("keydown", handleEscape);
       return () => {
         document.body.style.overflow = "unset";
         document.removeEventListener("keydown", handleEscape);
@@ -94,80 +82,73 @@ const Modal: React.FC<ModalProps> = ({
   const modalWidthClass = customWidth ? customWidth : sizeClasses[size];
   const modalHeightClass = customeHeight ? customeHeight : "";
 
-  // Memoized modal content
-  const modalContent = useMemo(
-    () => (
+  const modalContent = (
+    <div
+      className="fixed inset-0 z-[140]  bg-black/50 flex justify-center items-center transition-opacity duration-300"
+      onClick={handleOverlayClick}
+      role="dialog"
+      aria-modal="true"
+    >
       <div
-        className="fixed -mr-2 inset-0 z-50 bg-black/50 flex justify-center items-center md:items-center transition-opacity duration-300"
-        onClick={handleOverlayClick}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={title ? "modal-title" : undefined}
-      >
-        <div
-          className={`
-          bg-white rounded-t-2xl md:rounded-lg shadow-xl overflow-hidden
+        className={`
+          relative bg-white rounded-lg shadow-xl overflow-hidden 
           transition-all duration-300 transform ${modalWidthClass} ${modalHeightClass}
-          ${isMobile ? "absolute bottom-0 w-full" : ``}
+          ${isMobile ? "absolute bottom-0 w-full rounded-t-2xl" : ""}
           ${className}
         `}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="flex justify-between mt-3 items-center p-2">
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* ✅ HEADER FIXED LAYOUT */}
+
+        <div className="relative flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100">
+          <div className="flex-1 text-center px-6">
             <h2
               id="modal-title"
-              className="text-black ml-2 text-[0.75rem] md:text-[1.15rem] font-semibold flex-1 text-center"
+              className="text-black text-[1rem] md:text-[1.15rem] font-semibold leading-snug m-0"
             >
               {title}
             </h2>
-            {showCloseButton && (
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
-                aria-label="Close modal"
-              >
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+
+            {subtitle && (
+              <p className="text-gray-500 text-[0.8rem] mt-1 leading-tight">
+                {subtitle}
+              </p>
             )}
           </div>
 
-          {/* Content */}
-          <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
-            {children}
-          </div>
+          {showCloseButton && (
+            <button
+              onClick={onClose}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition p-1 rounded-full hover:bg-gray-100"
+              aria-label="Close modal"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* ✅ CONTENT AREA */}
+        <div className="relative mt-[-0.25rem] z-10 p-4 overflow-y-auto max-h-[calc(90vh-80px)] bg-white">
+          {children}
         </div>
       </div>
-    ),
-    [
-      handleOverlayClick,
-      title,
-      isMobile,
-      sizeClasses,
-      size,
-      className,
-      showCloseButton,
-      onClose,
-      children,
-    ]
+    </div>
   );
 
-  // Don't render if not open
   if (!isOpen) return null;
 
-  // Use portal for better accessibility and z-index management
   if (typeof window !== "undefined") {
     return createPortal(modalContent, document.body);
   }

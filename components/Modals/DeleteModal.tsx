@@ -1,266 +1,8 @@
 "use client";
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
-
-// ============================================================================
-// EXAMPLE MODAL COMPONENT (Comment out when using your own Modal component)
-// ============================================================================
-interface ModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  children: React.ReactNode;
-  title?: string;
-  customWidth?: string;
-  className?: string;
-}
-
-const Modal: React.FC<ModalProps> = ({
-  isOpen,
-  onClose,
-  children,
-  title = "Modal Title",
-  customWidth,
-  className = "",
-}) => {
-  const handleEscape = useCallback(
-    (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    },
-    [onClose]
-  );
-
-  const handleOverlayClick = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      if (event.target === event.currentTarget) {
-        onClose();
-      }
-    },
-    [onClose]
-  );
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-      document.addEventListener("keydown", handleEscape);
-      return () => {
-        document.body.style.overflow = "unset";
-        document.removeEventListener("keydown", handleEscape);
-      };
-    }
-    return;
-  }, [isOpen, handleEscape]);
-
-  if (!isOpen) return null;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 bg-black/50 flex justify-center items-center transition-opacity duration-300"
-      onClick={handleOverlayClick}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className={`bg-white rounded-lg shadow-xl overflow-hidden transition-all duration-300 transform ${customWidth} ${className}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex justify-between mt-3 items-center px-6 py-4">
-          <h2 className="text-black text-xl md:text-2xl font-semibold flex-1 text-center">
-            {title}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
-            aria-label="Close modal"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
-        <div className="px-6 py-4 overflow-y-auto max-h-[60vh]">{children}</div>
-      </div>
-    </div>
-  );
-};
-
-// ============================================================================
-// EXAMPLE TABLE COMPONENT (Comment out when using your own Table component)
-// ============================================================================
-interface TableProps {
-  data: React.ReactNode[][];
-  columns: string[];
-  initialRowsPerPage?: number;
-  maxRowsPerPageOptions?: number[];
-  hideRowsPerPage?: boolean;
-}
-
-const Table: React.FC<TableProps> = ({
-  data,
-  columns,
-  initialRowsPerPage = 10,
-  maxRowsPerPageOptions = [5, 10, 25, 50],
-  hideRowsPerPage,
-}) => {
-  const [page, setPage] = useState<number>(1);
-  const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
-
-  const totalRows = useMemo(() => data.length, [data.length]);
-  const totalPages = useMemo(
-    () => Math.ceil(totalRows / rowsPerPage),
-    [totalRows, rowsPerPage]
-  );
-  const paginatedRows = useMemo(
-    () => data.slice((page - 1) * rowsPerPage, page * rowsPerPage),
-    [data, page, rowsPerPage]
-  );
-
-  const emptyRows = useMemo(
-    () =>
-      Array.from({ length: Math.max(0, rowsPerPage - paginatedRows.length) }),
-    [rowsPerPage, paginatedRows.length]
-  );
-
-  const paginationButtons = useMemo(
-    () =>
-      Array.from({ length: totalPages }).map((_, idx) => (
-        <button
-          key={idx}
-          className={`w-8 h-8 rounded-full font-bold border border-gray-300 flex items-center justify-center transition-colors ${
-            page === idx + 1
-              ? "bg-[#155e75] text-white"
-              : "bg-white text-[#155e75] hover:bg-gray-50"
-          }`}
-          onClick={() => setPage(idx + 1)}
-        >
-          {idx + 1}
-        </button>
-      )),
-    [totalPages, page]
-  );
-
-  const handlePreviousPage = useCallback(() => {
-    setPage((prev) => Math.max(1, prev - 1));
-  }, []);
-
-  const handleNextPage = useCallback(() => {
-    setPage((prev) => Math.min(totalPages, prev + 1));
-  }, [totalPages]);
-
-  const handleRowsPerPageChange = useCallback((newRowsPerPage: number) => {
-    setRowsPerPage(newRowsPerPage);
-    setPage(1);
-  }, []);
-
-  const displayText = useMemo(() => {
-    const start = (page - 1) * rowsPerPage + 1;
-    const end = Math.min(page * rowsPerPage, totalRows);
-    return `Showing ${start}-${end} of ${totalRows} entries`;
-  }, [page, rowsPerPage, totalRows]);
-
-  return (
-    <>
-      <div className="overflow-x-auto rounded-xl border border-gray-100">
-        <table className="min-w-full text-sm rounded-xl overflow-hidden">
-          <thead>
-            <tr className="bg-[#0D4B37] text-white rounded-t-xl">
-              {columns.map((col, index) => (
-                <th
-                  key={`${col}-${index}`}
-                  className="px-4 py-3 text-center text-gray-200 font-semibold text-sm"
-                >
-                  {col}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedRows.map((row, idx) => (
-              <tr
-                key={`row-${page}-${idx}`}
-                className={`${
-                  idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                } hover:bg-gray-100 transition-colors`}
-              >
-                {row}
-              </tr>
-            ))}
-            {emptyRows.map((_, idx) => (
-              <tr
-                key={`empty-${idx}`}
-                className={`${
-                  (paginatedRows.length + idx) % 2 === 0
-                    ? "bg-white"
-                    : "bg-gray-50"
-                } h-14`}
-              >
-                <td className="px-4 py-3" colSpan={columns.length}></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div
-        className={`flex items-center justify-between mt-4 flex-wrap gap-4 ${
-          hideRowsPerPage ? "justify-between" : ""
-        }`}
-      >
-        {!hideRowsPerPage && (
-          <div className="flex items-center gap-2">
-            <span className="text-gray-600">Rows per page:</span>
-            <select
-              className="border border-gray-300 rounded px-2 py-1 text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#155e75] transition-colors"
-              value={rowsPerPage}
-              onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
-            >
-              {maxRowsPerPageOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        <div className="text-gray-600 text-sm">{displayText}</div>
-
-        <div className="flex items-center gap-2">
-          <button
-            className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={page === 1}
-            onClick={handlePreviousPage}
-          >
-            {"<"}
-          </button>
-          {paginationButtons}
-          <button
-            className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={page === totalPages}
-            onClick={handleNextPage}
-          >
-            {">"}
-          </button>
-        </div>
-      </div>
-    </>
-  );
-};
-
-// ============================================================================
-// DELETE CUSTOMERS MODAL - YOUR ACTUAL COMPONENT
-// ============================================================================
+import Modal from "@/components/Modal";
+import Table from "@/components/Table";
 
 interface Customer {
   id: string;
@@ -273,9 +15,12 @@ interface Customer {
   isLinked: boolean;
 }
 
-const DeleteCustomersModal: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(true);
+interface DeleteModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
 
+const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose }) => {
   // Sample customer data matching the screenshot
   const customers: Customer[] = [
     {
@@ -363,7 +108,7 @@ const DeleteCustomersModal: React.FC = () => {
   ];
 
   const tableData = customers.map((customer) => [
-    <td key="id" className="px-4 py-3">
+    <td key="id" className="px-3 py-1.5 text-[0.75rem]">
       <div className="flex items-center gap-3">
         {customer.isLinked && (
           <svg
@@ -379,12 +124,12 @@ const DeleteCustomersModal: React.FC = () => {
         </span>
       </div>
     </td>,
-    <td key="name" className="px-4 py-3">
+    <td key="name" className="px-3 py-1.5 text-[0.75rem]">
       <div className="flex items-center gap-3">
         <img
           src={customer.avatar}
           alt={customer.name}
-          className="w-10 h-10 rounded-full object-cover"
+          className="w-7 h-7 rounded-full object-cover"
         />
         <div>
           <div
@@ -416,9 +161,9 @@ const DeleteCustomersModal: React.FC = () => {
       </span>
     </td>,
     <td key="history" className="px-4 py-3">
-      <button className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 text-sm transition-colors">
+      <button className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 text-[0.7rem] transition-colors">
         <svg
-          className="w-4 h-4"
+          className="w-3.5 h-3.5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -439,25 +184,19 @@ const DeleteCustomersModal: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <button
-        onClick={() => setIsModalOpen(true)}
-        className="px-6 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
-      >
-        Open Delete Customers Modal
-      </button>
-
       <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isOpen}
+        onClose={onClose}
         title="Delete Customers"
-        customWidth="w-[90vw]"
-        className="max-w-[1400px]"
+        customWidth="w-[75vw]"
+        customeHeight="h-[85vh]"
+        className="max-w-[1100px]"
       >
-        <div className="space-y-6">
+        <div className="space-y-4 text-[0.75rem]">
           {/* Warning Message */}
-          <div className="flex items-center justify-center gap-2 text-red-500 text-sm">
+          <div className="flex items-center justify-center gap-1 text-red-500 text-[0.7rem]">
             <span>Entries with</span>
-            <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
             </svg>
             <span>cannot be deleted as they are linked</span>
@@ -473,24 +212,25 @@ const DeleteCustomersModal: React.FC = () => {
           />
 
           {/* Footer Message */}
-          <div className="text-right text-gray-600 text-sm pt-2">
+          <div className="text-right text-gray-600 text-[0.7rem] pt-1">
             <span className="font-semibold">{linkedCustomers.join(", ")}</span>{" "}
             are linked and cannot be deleted.
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-4">
+          <div className="flex justify-end gap-2 pt-2">
             <button
-              onClick={() => setIsModalOpen(false)}
-              className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-[0.7rem]"
             >
               No, Cancel
             </button>
+
             <button
               onClick={() => {
                 alert("Deleting non-linked customers...");
               }}
-              className="px-6 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors font-medium"
+              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors text-[0.7rem]"
             >
               Remove & Delete
             </button>
@@ -501,4 +241,4 @@ const DeleteCustomersModal: React.FC = () => {
   );
 };
 
-export default DeleteCustomersModal;
+export default DeleteModal;

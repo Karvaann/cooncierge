@@ -111,7 +111,7 @@ export default function OneWayLayout({
             className="grid grid-cols-1 lg:grid-cols-2 gap-1"
           >
             {/* Flight Segment */}
-            <div className="border border-gray-200 rounded-lg w-[22.5rem] p-3">
+            <div className="border border-gray-200 rounded-lg w-[21rem] p-3">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-[0.85rem] font-semibold text-gray-800">
                   Flight Segment {index + 1}
@@ -201,7 +201,7 @@ export default function OneWayLayout({
             </div>
 
             {/* Preview Section */}
-            <div className="border border-dotted border-gray-200 w-[23.5rem] rounded-lg p-3">
+            <div className="border border-dotted border-gray-200 w-[21rem] rounded-lg p-3">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-[0.85rem] font-semibold text-gray-800">
                   Preview
@@ -216,7 +216,7 @@ export default function OneWayLayout({
                   <>
                     {/* Airline Header */}
                     <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 mb-3 flex items-center gap-2">
-                      <div className="w-6 h-6 bg-blue-600 rounded-sm"></div>
+                      {/* <div className="w-6 h-6 bg-blue-600 rounded-sm"></div> */}
                       <span className="font-medium text-gray-800">
                         {previewData.airline}
                       </span>

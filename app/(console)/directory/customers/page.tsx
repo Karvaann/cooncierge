@@ -9,11 +9,12 @@ import { CiFilter } from "react-icons/ci";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import { IoEllipsisHorizontal } from "react-icons/io5";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
-import { getCustomers } from "@/services/customerApi";
+import { getCustomers, deleteCustomer } from "@/services/customerApi";
 import type { JSX } from "react";
 import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
 import DownloadMergeMenu from "@/components/Menus/DownloadMergeMenu";
+import ConfirmationModal from "@/components/popups/ConfirmationModal";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -40,15 +41,19 @@ const columns: string[] = [
 
 const columnIconMap: Record<string, JSX.Element> = {
   "Customer ID": (
-    <HiArrowsUpDown className="inline w-5 h-5 text-white font-semibold " />
+    <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1] " />
   ),
-  Name: <CiFilter className="inline w-5 h-5 text-white font-semibold" />,
-  Owner: <CiFilter className="inline w-5 h-5 text-white font-semibold" />,
+  Name: (
+    <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+  ),
+  Owner: (
+    <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+  ),
   Rating: (
-    <HiArrowsUpDown className="inline w-5 h-5 text-white font-semibold" />
+    <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
   ),
   "Date Modified": (
-    <HiArrowsUpDown className="inline w-5 h-5 text-white font-semibold" />
+    <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
   ),
 };
 
@@ -107,16 +112,44 @@ const CustomerDirectory = () => {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
 
-  // Sorting Of Customers
-  // const [sortAsc, setSortAsc] = useState(true);
+  const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
+  const [mode, setMode] = useState<"create" | "edit">("create");
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
-  // const handleSort = (column: string) => {
-  //   if (column === "Customer ID") {
-  //     const sortedCustomers = [...customers].reverse();
-  //     setCustomers(sortedCustomers);
-  //     setSortAsc(!sortAsc);
-  //   }
-  // };
+  const filteredCustomers = useMemo(() => {
+    if (!searchValue.trim()) return customers;
+
+    const search = searchValue.toLowerCase();
+
+    return customers.filter(
+      (c) =>
+        (c.customerID || "").toLowerCase().includes(search) ||
+        (c.name || "").toLowerCase().includes(search) ||
+        (c.owner || "").toLowerCase().includes(search)
+    );
+  }, [customers, searchValue]);
+
+  const handleSort = (column: string) => {
+    const sorted = [...customers];
+
+    if (column === "Customer ID") {
+      sorted.reverse();
+    }
+
+    if (column === "Rating") {
+      sorted.reverse();
+    }
+
+    if (column === "Date Modified") {
+      sorted.reverse();
+    }
+
+    setCustomers(sorted);
+  };
+
+  const handleOpenConfirmDeleteModal = () => {
+    setIsConfirmModalOpen(true);
+  };
 
   const handleMenuToggle = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -134,7 +167,21 @@ const CustomerDirectory = () => {
   const handleCancelSelectMode = () => {
     setSelectMode(false);
     setSelectedCustomers([]);
-    setMenuMode("main"); // ✅ Revert menu to SelectUploadMenu
+    setMenuMode("main"); // Revert menu to SelectUploadMenu
+  };
+
+  const handleDeleteCustomer = async (customerID: string) => {
+    try {
+      // Call your API
+      const response = await deleteCustomer(customerID);
+
+      console.log("Customer deleted successfully:", response.message);
+
+      // Optional: Refresh list after delete
+      setCustomers((prev) => prev.filter((c) => c.customerID !== customerID));
+    } catch (error: any) {
+      console.error("Error deleting customer:", error.message || error);
+    }
   };
 
   useEffect(() => {
@@ -145,6 +192,7 @@ const CustomerDirectory = () => {
 
         const mappedRows: CustomerRow[] = customers.map(
           (c: any, index: number) => ({
+            ...c,
             customerID: c._id || `#C00${index + 1}`,
             name: c.name,
             owner:
@@ -169,43 +217,103 @@ const CustomerDirectory = () => {
 
   const tableData = useMemo<JSX.Element[][]>(
     () =>
-      customers.map((row, index) => [
-        <td key={`customerID-${index}`} className="px-4 py-3">
-          {row.customerID}
-        </td>,
-        <td key={`name-${index}`} className="px-4 py-3">
-          {row.name}
-        </td>,
-        <td key={`owner-${index}`} className="px-4 py-3">
-          {row.owner}
-        </td>,
+      filteredCustomers.map((row, index) => {
+        const cells: JSX.Element[] = [];
 
-        <td key={`rating-${index}`} className="px-4 py-3">
-          {row.rating}
-        </td>,
-        <td key={`dateCreated-${index}`} className="px-4 py-3">
-          {row.dateCreated}
-        </td>,
-        <td key={`actions-${index}`} className="px-4 py-3">
-          <ActionMenu
-            actions={[
-              {
-                label: "Edit",
-                icon: <FaRegEdit />,
-                color: "text-green-600",
-                onClick: () => console.log("Edit"),
-              },
-              {
-                label: "Delete",
-                icon: <FaRegTrashAlt />,
-                color: "text-red-600",
-                onClick: () => console.log("Delete"),
-              },
-            ]}
-          />
-        </td>,
-      ]),
-    [customers]
+        // If select mode is ON, insert checkbox column
+        if (selectMode) {
+          const isSelected = selectedCustomers.includes(row.customerID);
+
+          cells.push(
+            <td key={`select-${index}`} className="px-4 py-3 text-center">
+              <div className="flex items-center justify-center">
+                {/* Hidden checkbox */}
+                <input
+                  type="checkbox"
+                  id={`customer-select-${row.customerID}`}
+                  className="hidden peer"
+                  checked={isSelected}
+                  onChange={() => {
+                    setSelectedCustomers(
+                      (prev) =>
+                        isSelected
+                          ? prev.filter((id) => id !== row.customerID) // deselect
+                          : [...prev, row.customerID] // select
+                    );
+                  }}
+                />
+
+                {/* Styled checkbox UI */}
+                <label
+                  htmlFor={`customer-select-${row.customerID}`}
+                  className={`w-5 h-5 border border-gray-400 rounded-md flex items-center justify-center cursor-pointer transition 
+        `}
+                >
+                  {isSelected && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="12"
+                      height="11"
+                      viewBox="0 0 12 11"
+                      fill="none"
+                    >
+                      <path
+                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                        stroke="#0D4B37"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  )}
+                </label>
+              </div>
+            </td>
+          );
+        }
+        cells.push(
+          <td key={`customerID-${index}`} className="px-4 py-3  text-center">
+            {row.customerID}
+          </td>,
+          <td key={`name-${index}`} className="px-4 py-3  text-center">
+            {row.name}
+          </td>,
+          <td key={`owner-${index}`} className="px-4 py-3  text-center">
+            {row.owner}
+          </td>,
+
+          <td key={`rating-${index}`} className="px-4 py-3  text-center">
+            {row.rating}
+          </td>,
+          <td key={`dateCreated-${index}`} className="px-4 py-3  text-center">
+            {row.dateCreated}
+          </td>,
+          <td key={`actions-${index}`} className="px-4 py-3  text-center">
+            <ActionMenu
+              actions={[
+                {
+                  label: "Edit",
+                  icon: <FaRegEdit />,
+                  color: "text-green-600",
+                  onClick: () => {
+                    setSelectedCustomer(row); // full data
+                    setIsSideSheetOpen(true);
+                    setMode("edit");
+                  },
+                },
+                {
+                  label: "Delete",
+                  icon: <FaRegTrashAlt />,
+                  color: "text-red-600",
+                  onClick: handleOpenConfirmDeleteModal,
+                },
+              ]}
+            />
+          </td>
+        );
+
+        return cells;
+      }),
+    [filteredCustomers, selectMode, selectedCustomers]
   );
 
   return (
@@ -235,7 +343,7 @@ const CustomerDirectory = () => {
               Total
             </span>
             <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
-              78
+              {customers.length}
             </span>
           </div>
           <button
@@ -265,7 +373,7 @@ const CustomerDirectory = () => {
         </div>
 
         <div className="flex items-center gap-2 relative">
-          {/* Show these two only in select mode ---- selecting functionality of customer array */}
+          {/* Show these two only in select mode selecting functionality of customer array */}
           {selectMode && (
             <div className="flex items-center gap-3">
               <button
@@ -285,8 +393,8 @@ const CustomerDirectory = () => {
                 className="px-2 py-1.5 w-[6rem] mr-3 text-[0.75rem] font-medium rounded-md border border-gray-300 bg-white hover:bg-gray-100"
               >
                 {selectedCustomers.length === customers.length
-                  ? "Select All"
-                  : "Deselect All"}
+                  ? "Deselect All"
+                  : "Select All"}
               </button>
             </div>
           )}
@@ -306,43 +414,56 @@ const CustomerDirectory = () => {
         absolute
         top-full
         right-0
-        
+        w-max
         z-[40]
       "
               style={{ pointerEvents: "auto" }}
             >
-              {menuMode === "main" ? (
-                <SelectUploadMenu
-                  isOpen={isMenuOpen}
-                  onClose={handleCloseMenu}
-                  onSelect={handleSelectClick} // 🔥 triggers the switch
-                />
-              ) : (
-                <DownloadMergeMenu
-                  isOpen={isMenuOpen}
-                  onClose={handleCloseMenu}
-                  onDownload={() => console.log("Download clicked")}
-                  onDelete={() => console.log("Delete clicked")}
-                />
-              )}
+              <SelectUploadMenu
+                isOpen={isMenuOpen}
+                onClose={handleCloseMenu}
+                onSelect={handleSelectClick}
+              />
             </div>
           )}
         </div>
       </div>
 
-      {/* onSelect={() => setSelectMode((prev) => !prev)} ---- to enable select mode to select customers */}
-
-      <div className="min-h-screen mt-2 px-2">
+      <div className="mt-2">
         <Table
           data={tableData}
           columns={columns}
           columnIconMap={columnIconMap}
+          showCheckboxColumn={selectMode}
+          onSort={handleSort}
         />
       </div>
       {isSideSheetOpen && (
         <AddCustomerSideSheet
           isOpen={isSideSheetOpen}
-          onCancel={() => setIsSideSheetOpen(false)}
+          onCancel={() => {
+            setIsSideSheetOpen(false);
+            setSelectedCustomer(null);
+            setMode("create");
+          }}
+          data={selectedCustomer} // REQUIRED
+          mode={mode}
+        />
+      )}
+      {isConfirmModalOpen && (
+        <ConfirmationModal
+          isOpen={isConfirmModalOpen}
+          onClose={() => setIsConfirmModalOpen(false)}
+          title="Are you sure you want to delete the selected customer(s)? This action cannot be undone."
+          confirmText="Yes, Delete"
+          cancelText="Cancel"
+          confirmButtonColor="bg-red-600"
+          onConfirm={() => {
+            if (!selectedCustomer) return;
+
+            handleDeleteCustomer(selectedCustomer.customerID);
+            setIsConfirmModalOpen(false);
+          }}
         />
       )}
     </div>

@@ -7,17 +7,34 @@ import { BookingProvider, useBooking } from "@/context/BookingContext";
 import { BookingApiService } from "@/services/bookingApi";
 import SideSheet from "@/components/SideSheet";
 import GeneralInfoForm from "./forms/GeneralInfoForm";
-import AddNewCustomerForm from "./forms/AddNewFroms/AddNewCustomerForm";
-import AddNewVendorForm from "./forms/AddNewFroms/AddNewVendorForm";
+import AddNewCustomerForm from "./forms/AddNewForms/AddNewCustomerForm";
+import AddNewVendorForm from "./forms/AddNewForms/AddNewVendorForm";
+import AddNewTravellerForm from "./forms/AddNewForms/AddNewTravellerForm";
 import FlightServiceInfoForm from "./forms/FlightServiceInfo/FlightServiceInfoForm";
 import AccommodationServiceInfo from "./forms/AccommodationServiceInfo/AccommodationServiceInfo";
+import LandTransportServiceInfoForm from "./forms/LandTransportServiceInfoForm";
+import MaritimeTransportServiceInfoForm from "./forms/MaritimeTransportServiceInfoForm";
+import TicketsServiceInfoForm from "./forms/TicketsServiceInfoForm";
+import ActivityServiceInfoForm from "./forms/ActivityServiceInfoForm";
+import InsuranceServiceInfoForm from "./forms/InsuranceServiceInfoForm";
+import VisasServiceInfoForm from "./forms/VisasServiceInfoForm";
+import OthersServiceInfoForm from "./forms/OthersServiceInfoForm";
 
 // Type definitions
 interface Service {
   id: string;
   title: string;
   image: string;
-  category: "travel" | "accommodation" | "transport" | "activity";
+  category:
+    | "travel"
+    | "accommodation"
+    | "transport-land"
+    | "activity"
+    | "transport-maritime"
+    | "tickets"
+    | "travel insurance"
+    | "visas"
+    | "others";
   description?: string;
 }
 
@@ -40,6 +57,7 @@ interface TabConfig {
 
 function ServiceInfoFormSwitcher(props: any) {
   const { selectedService } = props;
+  console.log("CATEGORY:", selectedService?.category);
 
   if (!selectedService) return null;
 
@@ -49,6 +67,26 @@ function ServiceInfoFormSwitcher(props: any) {
 
     case "accommodation":
       return <AccommodationServiceInfo {...props} />;
+
+    case "transport-land":
+      return <LandTransportServiceInfoForm {...props} />;
+
+    case "transport-maritime":
+      return <MaritimeTransportServiceInfoForm {...props} />;
+    case "tickets":
+      return <TicketsServiceInfoForm {...props} />;
+
+    case "activity":
+      return <ActivityServiceInfoForm {...props} />;
+
+    case "travel insurance":
+      return <InsuranceServiceInfoForm {...props} />;
+
+    case "visas":
+      return <VisasServiceInfoForm {...props} />;
+
+    case "others":
+      return <OthersServiceInfoForm {...props} />;
 
     // you can keep adding cases for "transport" or "activity" later
     default:
@@ -72,7 +110,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-  const { isAddCustomerOpen, isAddVendorOpen } = useBooking();
+  const { isAddCustomerOpen, isAddVendorOpen, isAddTravellerOpen } =
+    useBooking();
   const { submitBooking, saveDraft } = useBooking();
 
   // Memoized tab configuration
@@ -196,6 +235,17 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           sellingprice: Number(formValues.accomSell || 0),
           remarks: formValues.accomRemarks || "",
         },
+        otherServiceInfoform: {
+          bookingdate: formValues.bookingdate || "",
+          traveldate: formValues.traveldate || "",
+          bookingstatus: formValues.bookingstatus || "Confirmed",
+          confirmationNumber: formValues.confirmationNumber || "",
+          title: formValues.title || "",
+          description: formValues.description || "",
+          documents: formValues.documents || "",
+          remarks: formValues.remarks || "",
+        },
+
         timestamp: new Date().toISOString(),
       };
 
@@ -478,6 +528,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
       {isAddCustomerOpen && <AddNewCustomerForm />}
       {isAddVendorOpen && <AddNewVendorForm />}
+      {isAddTravellerOpen && <AddNewTravellerForm />}
     </>
   );
 };

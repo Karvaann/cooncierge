@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import Modal from "../Modal"; // ✅ your existing modal
-import Table from "../Table"; // ✅ your existing table
+import Modal from "../Modal";
+import Table from "../Table";
 
 import { FiEye } from "react-icons/fi";
 import { FiEdit } from "react-icons/fi";
@@ -34,7 +34,6 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
   onClose,
   bookings,
 }) => {
-  // ✅ Table Column Titles
   const columns = [
     "ID",
     "Booking Date",
@@ -44,14 +43,12 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
     "Actions",
   ];
 
-  // ✅ Dropdown Icons Above Table Tabs (Customer / Traveller / Vendor)
   const tabs = [
     { label: "Customer", icon: <CiUser size={20} /> },
     { label: "Traveller", icon: <MdOutlinePersonSearch size={20} /> },
     { label: "Vendor", icon: <FaStore size={18} /> },
   ];
 
-  // ✅ Prepare Table Rows
   const rows = bookings.map((item) => [
     <td key={`${item.id}-id`} className="px-4 py-3 font-medium">
       {item.id}
@@ -103,7 +100,7 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
       customeHeight="max-h-[90vh]"
       className="pb-4"
     >
-      {/* ✅ Tabs */}
+      {/* Tabs */}
       <div className="flex items-center gap-4 mb-4 border-b pb-2">
         {tabs.map((t) => (
           <div
@@ -124,7 +121,7 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
         ))}
       </div>
 
-      {/* ✅ Table */}
+      {/* Table */}
       <Table
         data={rows}
         columns={columns}

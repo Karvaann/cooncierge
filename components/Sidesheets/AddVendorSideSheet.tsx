@@ -8,29 +8,31 @@ import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
 
 type VendorData = {
-  companyname: string;
-  companyemail: string;
-  contactnumber: number | "";
-  gstin: number | "";
   firstname: string;
   lastname: string;
-  nickname: string;
-  emailId: string;
-  dateofbirth: number | "";
-  document: number | "";
-  billingaddress: string | number;
+  alias: string;
+  email: string;
+  phone: string;
+  dateOfBirth: string;
+  GSTIN: string;
+  companyName: string;
+  address: string;
+  openingBalance: string;
+  balanceType: "credit" | "debit";
 };
 
 type AddVendorSideSheetProps = {
   data?: VendorData | null;
   onCancel: () => void;
   isOpen: boolean;
+  mode?: "create" | "edit";
 };
 
 const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   data,
   onCancel,
   isOpen,
+  mode,
 }) => {
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
@@ -62,15 +64,15 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   const [formData, setFormData] = useState<VendorData>({
     firstname: "",
     lastname: "",
-    nickname: "",
-    contactnumber: "",
-    emailId: "",
-    dateofbirth: "",
-    companyemail: "",
-    document: "",
-    gstin: "",
-    companyname: "",
-    billingaddress: "",
+    alias: "",
+    email: "",
+    phone: "",
+    dateOfBirth: "",
+    GSTIN: "",
+    companyName: "",
+    address: "",
+    openingBalance: "",
+    balanceType: "debit",
   });
 
   useEffect(() => {
@@ -78,30 +80,29 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       setFormData({
         firstname: data.firstname || "",
         lastname: data.lastname || "",
-        nickname: data.nickname || "",
-        contactnumber: data.contactnumber || "",
-        emailId: data.emailId || "",
-        dateofbirth: data.dateofbirth || "",
-        companyemail: data.companyemail || "",
-        document: data.document || "",
-        gstin: data.gstin || "",
-        companyname: data.companyname || "",
-        billingaddress: data.billingaddress || "",
+        alias: data.alias || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        dateOfBirth: data.dateOfBirth || "",
+        GSTIN: data.GSTIN || "",
+        companyName: data.companyName || "",
+        address: data.address || "",
+        openingBalance: data.openingBalance?.toString() || "",
+        balanceType: data.balanceType || "debit",
       });
     } else {
-      // Reset on unmount or data clear
       setFormData({
         firstname: "",
         lastname: "",
-        nickname: "",
-        contactnumber: "",
-        emailId: "",
-        dateofbirth: "",
-        companyemail: "",
-        document: "",
-        gstin: "",
-        companyname: "",
-        billingaddress: "",
+        alias: "",
+        email: "",
+        phone: "",
+        dateOfBirth: "",
+        GSTIN: "",
+        companyName: "",
+        address: "",
+        openingBalance: "",
+        balanceType: "debit",
       });
     }
   }, [data]);
@@ -109,21 +110,27 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   const handleSubmit = async () => {
     try {
       const vendorData = {
-        name,
-        email,
-        phone: `${phoneCode}${phone}`,
-        company,
+        companyName: formData.companyName,
+        contactPerson: `${formData.firstname} ${formData.lastname}`.trim(),
+        alias: formData.alias || undefined,
+        dateOfBirth: formData.dateOfBirth || undefined,
+        openingBalance: formData.openingBalance
+          ? Number(formData.openingBalance)
+          : undefined,
+        balanceType: formData.balanceType,
+        email: formData.email,
+        phone: `${phoneCode}${formData.phone}`,
+        GSTIN: formData.GSTIN,
+        address: formData.address,
+        businessId: "507f1f77bcf86cd799439012", // replace with real ID
       };
 
       const response = await createVendor(vendorData);
-      console.log("Customer created successfully:", response);
+      console.log("Vendor created successfully:", response);
 
-      // close the sidesheet after success
       onCancel();
-
-      // trigger refresh or toast notification
     } catch (error: any) {
-      console.error("Error creating customer:", error.message || error);
+      console.error("Error creating vendor:", error.message || error);
     }
   };
 
@@ -190,14 +197,14 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 <input
                   name="gstin"
                   placeholder="Please Provide Your GST No."
-                  className="w-[20rem] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-[14.5rem] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
-                <button
+                {/* <button
                   type="button"
                   className="px-3 py-1.5 bg-[#126ACB] text-white text-[0.75rem] rounded-md hover:bg-blue-800"
                 >
                   Fetch
-                </button>
+                </button> */}
               </div>
             </div>
           </div>
@@ -289,7 +296,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
           </div>
 
           {/* ================= DOCUMENTS ================ */}
-          <div className="border border-gray-200 rounded-[12px] p-3">
+          {/* <div className="border border-gray-200 rounded-[12px] p-3">
             <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
@@ -328,7 +335,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 Note: Maximum of 3 files can be uploaded
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* ================= BILLING ADDRESS ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
@@ -407,19 +414,22 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
           {/* ================= ACTION BUTTONS ================ */}
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
-              onClick={onCancel}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-1.5 rounded-md bg-[#114958] text-white text-[0.75rem] hover:bg-[#0f3d44]"
-            >
-              Add New Vendor
-            </button>
+            {mode === "edit" ? (
+              <button
+                // onClick={handleUpdateCustomer}
+                className="px-4 py-2 bg-[#0D4B37] text-white rounded-lg hover:bg-green-900 text-[0.75rem]"
+              >
+                Update Vendor
+              </button>
+            ) : (
+              <button
+                type="submit"
+                onClick={handleSubmit}
+                className="px-4 py-1.5 rounded-md bg-[#114958] text-white text-[0.75rem] hover:bg-[#0f3d44]"
+              >
+                Add New Vendor
+              </button>
+            )}
           </div>
         </form>
       </SideSheet>

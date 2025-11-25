@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FiSearch, FiCopy } from "react-icons/fi";
-import Modal from "../Modal"; // Adjust the import path as needed
+import Modal from "../Modal";
 
 interface LinkProfilesModalProps {
   isOpen: boolean;

@@ -185,3 +185,40 @@ export const throttle = <T extends (...args: any[]) => any>(
     }
   };
 };
+
+export const formatServiceType = (type: string): string => {
+  const normalized = type?.toLowerCase().trim();
+
+  const map: Record<string, string> = {
+    
+    flight: "Flight",
+    flights: "Flight",
+
+    
+    hotel: "Accommodation",
+    accommodation: "Accommodation",
+
+    
+    car: "Car Rental",
+    "land transportation": "Transportation (Land)",
+    "land-transportation": "Transportation (Land)",
+    "land_transportation": "Transportation (Land)",
+    transportation: "Transportation (Land)",
+    land: "Transportation (Land)",
+
+    
+    package: "Package",
+
+   
+    activity: "Activity",
+
+    
+    insurance: "Insurance",
+
+   
+    visa: "Visa",
+  };
+
+  return map[normalized] || type;
+};
+

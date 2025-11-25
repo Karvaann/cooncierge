@@ -8,11 +8,13 @@ import { FiSearch } from "react-icons/fi";
 import { CiFilter } from "react-icons/ci";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import { IoEllipsisHorizontal } from "react-icons/io5";
-import { getCustomers } from "@/services/customerApi";
+import { getUsers, deleteUser } from "@/services/userApi";
 import type { JSX } from "react";
 import AddTeamSideSheet from "@/components/Sidesheets/AddTeamSideSheet";
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
 import DownloadMergeMenu from "@/components/Menus/DownloadMergeMenu";
+import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
+import ConfirmationModal from "@/components/popups/ConfirmationModal";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -38,10 +40,11 @@ const columns: string[] = [
 ];
 
 const columnIconMap: Record<string, JSX.Element> = {
-  ID: <HiArrowsUpDown className="inline w-5 h-5 text-white" />,
-  "Member Name": <CiFilter className="inline w-5 h-5 text-white" />,
-  "User Status": <CiFilter className="inline w-5 h-5 text-white" />,
-  "Joining Date": <HiArrowsUpDown className="inline w-5 h-5 text-white" />,
+  "Member Name": <CiFilter className="inline w-3 h-3 text-white stroke-[1]" />,
+  "User Status": <CiFilter className="inline w-3 h-3 text-white stroke-[1]" />,
+  "Joining Date": (
+    <HiArrowsUpDown className="inline w-3 h-3 text-white stroke-[1]" />
+  ),
 };
 
 // const customerTableSeed: CustomerRow[] = [
@@ -87,11 +90,11 @@ const columnIconMap: Record<string, JSX.Element> = {
 //   },
 // ];
 
-const CustomerDirectory = () => {
+const TeamDirectory = () => {
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Current");
   const [searchValue, setSearchValue] = useState("");
-  const [customers, setCustomers] = useState<TeamRow[]>([]);
+  const [teams, setTeams] = useState<TeamRow[]>([]);
   const tabOptions = ["Current", "Former", "Deleted"];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuMode, setMenuMode] = useState<"main" | "action">("main");
@@ -99,22 +102,42 @@ const CustomerDirectory = () => {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
 
-  // Sorting Of Team members
-  // const [sortAsc, setSortAsc] = useState(true);
+  const [selectedTeam, setSelectedTeam] = useState<any | null>(null);
+  const [mode, setMode] = useState<"create" | "edit">("create");
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
-  // const handleSort = (column: string) => {
-  //   if (column === "ID") {
-  //     const sortedCustomers = [...customers].reverse();
-  //     setCustomers(sortedCustomers);
-  //     setSortAsc(!sortAsc);
-  //   }
-  // };
+  const filteredTeams = useMemo(() => {
+    if (!searchValue.trim()) return teams;
+
+    const search = searchValue.toLowerCase();
+
+    return teams.filter(
+      (t) =>
+        (t.ID || "").toLowerCase().includes(search) ||
+        (t.memberName || "").toLowerCase().includes(search) ||
+        (t.alias || "").toLowerCase().includes(search)
+    );
+  }, [teams, searchValue]);
+
+  const handleSort = (column: string) => {
+    const sorted = [...teams];
+
+    if (column === "Joining Date") {
+      sorted.reverse();
+    }
+
+    setTeams(sorted);
+  };
 
   const handleMenuToggle = () => {
     setIsMenuOpen(!isMenuOpen);
   };
 
   const handleCloseMenu = () => setIsMenuOpen(false);
+
+  const handleOpenConfirmDeleteModal = () => {
+    setIsConfirmModalOpen(true);
+  };
 
   const handleSelectClick = () => {
     setSelectMode(true);
@@ -129,60 +152,158 @@ const CustomerDirectory = () => {
     setMenuMode("main"); // ✅ Revert menu to SelectUploadMenu
   };
 
-  //   useEffect(() => {
-  //     const fetchCustomers = async () => {
-  //       try {
-  //         const customers = await getCustomers();
-  //         console.log("Fetched customers:", customers);
+  // Handle Delete User
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      await deleteUser(userId);
+      // Refresh your user list or remove from state
+      // Example: setUsers(users.filter(u => u.id !== userId));
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      throw error;
+    }
+  };
 
-  //         const mappedRows: TeamRow[] = customers.map(
-  //           (c: any, index: number) => ({
-  //             customerID: c._id || `#C00${index + 1}`,
-  //             name: c.name,
-  //             owner:
-  //               typeof c.ownerId === "object" && c.ownerId !== null
-  //                 ? c.ownerId.name
-  //                 : c.ownerId || "—",
-  //             rating: "⭐️⭐️⭐️⭐️",
-  //             dateCreated: new Date(c.createdAt).toLocaleDateString(),
-  //             actions: "⋮",
-  //           })
-  //         );
-  //         setCustomers(mappedRows);
-  //       } catch (err) {
-  //         console.error("Failed to fetch customers:", err);
-  //       } finally {
-  //         // Any cleanup or final steps
-  //       }
-  //     };
+  useEffect(() => {
+    const fetchTeamsData = async () => {
+      try {
+        const teamsResponse = await getUsers();
 
-  //     fetchCustomers();
-  //   }, []);
+        console.log("Fetched user list:", teamsResponse);
+
+        // Ensure response.data exists
+        const users = teamsResponse?.data || [];
+
+        const mappedRows: TeamRow[] = users.map((u: any, index: number) => {
+          const fullName = u.name || "—";
+          const alias = u.alias || "—";
+
+          return {
+            ...u,
+            ID: u._id || `#T00${index + 1}`,
+            memberName: fullName,
+            alias: alias,
+            userStatus: u.userStatus || u.status || "Active",
+            joiningDate: u.dateOfJoining
+              ? new Date(u.dateOfJoining).toLocaleDateString()
+              : "—",
+            actions: "⋮",
+          };
+        });
+
+        setTeams(mappedRows);
+      } catch (err) {
+        console.error("Failed to fetch team members:", err);
+      }
+    };
+
+    fetchTeamsData();
+  }, []);
 
   const tableData = useMemo<JSX.Element[][]>(
     () =>
-      customers.map((row, index) => [
-        <td key={`ID-${index}`} className="px-4 py-3">
-          {row.ID}
-        </td>,
-        <td key={`memberName-${index}`} className="px-4 py-3">
-          {row.memberName}
-        </td>,
-        <td key={`alias-${index}`} className="px-4 py-3">
-          {row.alias}
-        </td>,
+      filteredTeams.map((row, index) => {
+        const cells: JSX.Element[] = [];
 
-        <td key={`userStatus-${index}`} className="px-4 py-3">
-          {row.userStatus}
-        </td>,
-        <td key={`joiningDate-${index}`} className="px-4 py-3">
-          {row.joiningDate}
-        </td>,
-        <td key={`actions-${index}`} className="px-4 py-3">
-          {/* <ActionMenu /> */}
-        </td>,
-      ]),
-    [customers]
+        // Checkbox column when selectMode is ON
+        if (selectMode) {
+          const isSelected = selectedTeamMembers.includes(row.ID);
+
+          cells.push(
+            <td key={`select-${index}`} className="px-4 py-3 text-center">
+              <div className="flex items-center justify-center">
+                {/* Hidden checkbox */}
+                <input
+                  type="checkbox"
+                  id={`select-${row.ID}`}
+                  className="hidden peer"
+                  checked={isSelected}
+                  onChange={() => {
+                    setSelectedTeamMembers((prev) =>
+                      isSelected
+                        ? prev.filter((id) => id !== row.ID)
+                        : [...prev, row.ID]
+                    );
+                  }}
+                />
+
+                {/* Styled label */}
+                <label
+                  htmlFor={`select-${row.ID}`}
+                  className={`w-5 h-5 border border-gray-400 rounded-md flex items-center justify-center cursor-pointer 
+          `}
+                >
+                  {isSelected && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="12"
+                      height="11"
+                      viewBox="0 0 12 11"
+                      fill="none"
+                    >
+                      <path
+                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                        stroke="#0D4B37"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  )}
+                </label>
+              </div>
+            </td>
+          );
+        }
+
+        // Normal Table Fields
+        cells.push(
+          <td key={`ID-${index}`} className="px-4 py-3 text-center">
+            {row.ID}
+          </td>,
+          <td key={`memberName-${index}`} className="px-4 py-3  text-center">
+            {row.memberName}
+          </td>,
+          <td key={`alias-${index}`} className="px-4 py-3  text-center">
+            {row.alias}
+          </td>,
+          <td key={`userStatus-${index}`} className="px-4 py-3  text-center">
+            {row.userStatus}
+          </td>,
+          <td key={`joiningDate-${index}`} className="px-4 py-3  text-center">
+            {row.joiningDate}
+          </td>,
+
+          // Action Menu
+          <td key={`actions-${index}`} className="px-4 py-3  text-center">
+            <ActionMenu
+              actions={[
+                {
+                  label: "Edit",
+                  icon: <FaRegEdit />,
+                  color: "text-green-600",
+                  onClick: () => {
+                    setSelectedTeam(row); // full row data
+                    setIsSideSheetOpen(true);
+                    setMode("edit");
+                  },
+                },
+                {
+                  label: "Delete",
+                  icon: <FaRegTrashAlt />,
+                  color: "text-red-600",
+                  onClick: () => {
+                    setSelectedTeam(row);
+                    handleOpenConfirmDeleteModal();
+                  },
+                },
+              ]}
+            />
+          </td>
+        );
+
+        return cells;
+      }),
+    [filteredTeams, selectMode, selectedTeamMembers]
   );
 
   return (
@@ -212,7 +333,7 @@ const CustomerDirectory = () => {
               Total
             </span>
             <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
-              78
+              {teams.length}
             </span>
           </div>
           <button
@@ -242,7 +363,7 @@ const CustomerDirectory = () => {
         </div>
 
         <div className="flex items-center gap-2 relative">
-          {/* Show these two only in select mode ---- selecting functionality of customer array */}
+          {/* Show these two only in select mode  selecting functionality of customer array */}
           {selectMode && (
             <div className="flex items-center gap-3">
               <button
@@ -253,17 +374,17 @@ const CustomerDirectory = () => {
               </button>
               <button
                 onClick={() => {
-                  if (selectedTeamMembers.length === customers.length) {
+                  if (selectedTeamMembers.length === teams.length) {
                     setSelectedTeamMembers([]); // deselect all
                   } else {
-                    setSelectedTeamMembers(customers.map((c) => c.ID)); // select all
+                    setSelectedTeamMembers(teams.map((c) => c.ID)); // select all
                   }
                 }}
-                className="px-2 py-1.5 w-[6rem] mr-3 text-sm font-medium rounded-lg border border-gray-300 bg-white hover:bg-gray-100"
+                className="px-2 py-1.5 w-[6rem] mr-3 text-[0.75rem] font-medium rounded-lg border border-gray-300 bg-white hover:bg-gray-100"
               >
-                {selectedTeamMembers.length === customers.length
-                  ? "Select All"
-                  : "Deselect All"}
+                {selectedTeamMembers.length === teams.length
+                  ? "Deselect All"
+                  : "Select All"}
               </button>
             </div>
           )}
@@ -288,42 +409,58 @@ const CustomerDirectory = () => {
       "
               style={{ pointerEvents: "auto" }}
             >
-              {menuMode === "main" ? (
-                <SelectUploadMenu
-                  isOpen={isMenuOpen}
-                  onClose={handleCloseMenu}
-                  onSelect={handleSelectClick} // 🔥 triggers the switch
-                />
-              ) : (
-                <DownloadMergeMenu
-                  isOpen={isMenuOpen}
-                  onClose={handleCloseMenu}
-                  onDownload={() => console.log("Download clicked")}
-                  onDelete={() => console.log("Delete clicked")}
-                />
-              )}
+              <SelectUploadMenu
+                isOpen={isMenuOpen}
+                onClose={handleCloseMenu}
+                onSelect={handleSelectClick} // triggers the switch
+              />
             </div>
           )}
         </div>
       </div>
-
-      {/* onSelect={() => setSelectMode((prev) => !prev)} ---- to enable select mode to select customers */}
 
       <div className="min-h-screen mt-2 px-2">
         <Table
           data={tableData}
           columns={columns}
           columnIconMap={columnIconMap}
+          showCheckboxColumn={selectMode}
+          onSort={handleSort}
         />
       </div>
       {isSideSheetOpen && (
         <AddTeamSideSheet
           isOpen={isSideSheetOpen}
-          onCancel={() => setIsSideSheetOpen(false)}
+          onCancel={() => {
+            setIsSideSheetOpen(false);
+            setSelectedTeam(null);
+            setMode("create");
+          }}
+          data={selectedTeam} // REQUIRED
+          mode={mode}
+        />
+      )}
+
+      {isConfirmModalOpen && (
+        <ConfirmationModal
+          isOpen={isConfirmModalOpen}
+          onClose={() => setIsConfirmModalOpen(false)}
+          title="Are you sure you want to delete this team member? This action cannot be undone."
+          confirmText="Yes, Delete"
+          cancelText="Cancel"
+          confirmButtonColor="bg-red-600"
+          onConfirm={() => {
+            if (!selectedTeam) return;
+
+            handleDeleteUser(selectedTeam.ID);
+            setTeams((prev) => prev.filter((t) => t.ID !== selectedTeam.ID));
+
+            setIsConfirmModalOpen(false);
+          }}
         />
       )}
     </div>
   );
 };
 
-export default CustomerDirectory;
+export default TeamDirectory;

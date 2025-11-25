@@ -11,6 +11,7 @@ interface TableProps {
   columnIconMap?: Record<string, React.ReactNode>;
   onSort?: (column: string) => void;
   hideRowsPerPage?: boolean;
+  showCheckboxColumn?: boolean;
 }
 
 const Table: React.FC<TableProps> = ({
@@ -21,6 +22,7 @@ const Table: React.FC<TableProps> = ({
   columnIconMap,
   onSort,
   hideRowsPerPage,
+  showCheckboxColumn = false,
 }) => {
   const [page, setPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
@@ -87,14 +89,40 @@ const Table: React.FC<TableProps> = ({
 
   return (
     <>
-      <div className="overflow-x-auto rounded-xl border border-gray-100">
-        <table className="min-w-full text-sm rounded-xl overflow-hidden">
+      <div className="overflow-visible rounded-xl border border-gray-100">
+        <table className="w-full text-sm rounded-xl overflow-hidden">
           <thead>
             <tr className="bg-[#0D4B37] text-white rounded-t-xl">
+              {showCheckboxColumn && (
+                <th className="px-3 py-2 w-[3rem] text-center"></th>
+              )}
               {columns.map((col, index) => (
                 <th
                   key={`${col}-${index}`}
-                  className="px-4 py-2 text-center text-gray-200 font-semibold leading-4 tracking-[0.6px] text-[0.65rem]"
+                  onClick={() => {
+                    if (!onSort) return;
+
+                    if (
+                      col === "Customer ID" ||
+                      col === "Rating" ||
+                      col === "Date Modified" ||
+                      col === "Travel Date" ||
+                      col === "Joining Date"
+                    ) {
+                      onSort(col);
+                    }
+                  }}
+                  className={`px-4 py-2 text-center text-gray-200 font-semibold leading-4 tracking-[0.6px] text-[0.65rem]
+          ${
+            col === "Customer ID" ||
+            col === "Rating" ||
+            col === "Date Modified" ||
+            col === "Travel Date" ||
+            col === "Joining Date"
+              ? "cursor-pointer hover:bg-[#0f5a43]"
+              : ""
+          }
+        `}
                 >
                   <div className="flex items-center justify-center gap-2">
                     <span> {col} </span>
@@ -110,7 +138,7 @@ const Table: React.FC<TableProps> = ({
                 key={`row-${page}-${idx}`}
                 className={`${
                   idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                } hover:bg-gray-100 transition-colors h-[2.8rem]`}
+                } hover:bg-gray-100 transition-colors h-[2.8rem] text-[0.75rem]`}
               >
                 {row}
               </tr>
@@ -124,9 +152,12 @@ const Table: React.FC<TableProps> = ({
                   (paginatedRows.length + idx) % 2 === 0
                     ? "bg-white"
                     : "bg-gray-50"
-                } h-[2.8rem]`}
+                } h-[2.8rem] text-[0.75rem]`}
               >
-                <td className="px-4 py-3" colSpan={columns.length}></td>
+                <td
+                  className="px-4 py-3"
+                  colSpan={columns.length + (showCheckboxColumn ? 1 : 0)}
+                ></td>
               </tr>
             ))}
           </tbody>

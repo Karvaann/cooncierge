@@ -38,7 +38,16 @@ interface Service {
   id: string;
   title: string;
   image: string;
-  category: "travel" | "accommodation" | "transport" | "activity";
+  category:
+    | "travel"
+    | "accommodation"
+    | "transport-land"
+    | "activity"
+    | "transport-maritime"
+    | "tickets"
+    | "travel insurance"
+    | "visas"
+    | "others";
   description?: string;
 }
 
@@ -81,6 +90,16 @@ interface CustomerForm {
   remarks: string;
 }
 
+interface TravellerForm {
+  firstname: string;
+  lastname: string;
+  nickname: string;
+  contactnumber: number | string;
+  emailId: string;
+  dateofbirth: number | string;
+  remarks: string;
+}
+
 interface VendorForm {
   companyname: string;
   companyemail: string;
@@ -110,7 +129,7 @@ interface FlightSegment {
 }
 
 interface ReturnFlightSegment {
-  id: string | null;
+  id?: string | null;
   flightnumber: number | string;
   traveldate: string;
   cabinclass:
@@ -173,6 +192,19 @@ interface RoomSegment {
   bedType: string;
 }
 
+interface OtherServiceInfoForm {
+  bookingdate: string;
+  traveldate: string; // This can be the main/first travel date
+  bookingstatus: "Confirmed" | "Canceled" | "In Progress" | string;
+  costprice: number | string;
+  sellingprice: number | string;
+  confirmationNumber: number | string;
+  title: string;
+  description: string;
+  documents?: string | File;
+  remarks: string;
+}
+
 interface BookingState {
   // UI State
   isModalOpen: boolean;
@@ -187,6 +219,9 @@ interface BookingState {
   vendorForm: VendorForm;
   flightinfoform: FlightInfoForm;
   accommodationinfoform: AccommodationInfoForm;
+  otherServiceInfoForm: OtherServiceInfoForm;
+
+  travellerForm: TravellerForm;
 
   // Form Progress
   currentStep: "service-selection" | "general-info" | "service-info" | "review";
@@ -218,6 +253,7 @@ type BookingAction =
   | { type: "UPDATE_SERVICE_INFO"; payload: Partial<ServiceInfo> }
   | { type: "SET_CUSTOMER_FORM"; payload: CustomerForm }
   | { type: "SET_VENDOR_FORM"; payload: VendorForm }
+  | { type: "SET_TRAVELLER_FORM"; payload: TravellerForm }
   | { type: "SET_CURRENT_STEP"; payload: BookingState["currentStep"] }
   | { type: "COMPLETE_STEP"; payload: string }
   | { type: "SET_ERRORS"; payload: Record<string, string> }
@@ -246,7 +282,7 @@ interface BookingContextType {
   // Form Actions
   selectService: (service: Service) => void;
   updateGeneralInfo: (info: Partial<GeneralInfo>) => void;
-  updateServiceInfo: (info: Partial<ServiceInfo>) => void;
+  // updateServiceInfo: (info: Partial<ServiceInfo>) => void;
   setCustomerForm: (form: CustomerForm) => void;
   setCurrentStep: (step: BookingState["currentStep"]) => void;
   completeStep: (step: string) => void;
@@ -257,6 +293,10 @@ interface BookingContextType {
   isAddVendorOpen: boolean;
   openAddVendor: () => void;
   closeAddVendor: () => void;
+  isAddTravellerOpen: boolean;
+  openAddTraveller: () => void;
+  closeAddTraveller: () => void;
+  setTravellerForm: (form: TravellerForm) => void;
 
   // Validation Actions
   setErrors: (errors: Record<string, string>) => void;
@@ -372,6 +412,28 @@ const initialState: BookingState = {
     accommodationType: "",
     remarks: "",
   },
+  otherServiceInfoForm: {
+    bookingdate: "",
+    traveldate: "",
+    bookingstatus: "",
+    costprice: "",
+    sellingprice: "",
+    confirmationNumber: "",
+    title: "",
+    description: "",
+    documents: "",
+    remarks: "",
+  },
+  travellerForm: {
+    firstname: "",
+    lastname: "",
+    nickname: "",
+    contactnumber: 0,
+    emailId: "",
+    dateofbirth: 0,
+    remarks: "",
+  },
+
   currentStep: "service-selection",
   completedSteps: [],
   errors: {},
@@ -432,6 +494,9 @@ const bookingReducer = (
 
     case "SET_VENDOR_FORM":
       return { ...state, vendorForm: action.payload };
+
+    case "SET_TRAVELLER_FORM":
+      return { ...state, travellerForm: action.payload };
 
     case "SET_CURRENT_STEP":
       return { ...state, currentStep: action.payload };
@@ -508,12 +573,15 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
   const [state, dispatch] = useReducer(bookingReducer, initialState);
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const [isAddVendorOpen, setIsAddVendorOpen] = useState(false);
+  const [isAddTravellerOpen, setIsAddTravellerOpen] = useState(false);
 
   const openAddCustomer = useCallback(() => setIsAddCustomerOpen(true), []);
   const closeAddCustomer = useCallback(() => setIsAddCustomerOpen(false), []);
 
   const openAddVendor = useCallback(() => setIsAddVendorOpen(true), []);
   const closeAddVendor = useCallback(() => setIsAddVendorOpen(false), []);
+  const openAddTraveller = useCallback(() => setIsAddTravellerOpen(true), []);
+  const closeAddTraveller = useCallback(() => setIsAddTravellerOpen(false), []);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -590,6 +658,10 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
     dispatch({ type: "SET_VENDOR_FORM", payload: form });
   }, []);
 
+  const setTravellerForm = useCallback((form: TravellerForm) => {
+    dispatch({ type: "SET_TRAVELLER_FORM", payload: form });
+  }, []);
+
   const setCurrentStep = useCallback((step: BookingState["currentStep"]) => {
     dispatch({ type: "SET_CURRENT_STEP", payload: step });
   }, []);
@@ -644,6 +716,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
         customerform: state.customerForm,
         vendorform: state.vendorForm,
         flightinfoform: state.flightinfoform,
+        accommodationinfoform: state.accommodationinfoform,
+        otherServiceInfoForm: state.otherServiceInfoForm,
         timestamp: new Date().toISOString(),
       };
 
@@ -699,6 +773,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
           customerform: state.customerForm,
           vendorform: state.vendorForm,
           flightinfoform: state.flightinfoform,
+          accommodationinfoform: state.accommodationinfoform,
+          otherServiceInfoForm: state.otherServiceInfoForm,
           timestamp: new Date().toISOString(),
         };
 
@@ -733,6 +809,8 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
       state.customerForm,
       state.vendorForm,
       state.flightinfoform,
+      state.accommodationinfoform,
+      state.otherServiceInfoForm,
     ]
   );
 
@@ -919,6 +997,10 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
       isAddVendorOpen,
       openAddVendor,
       closeAddVendor,
+      setTravellerForm,
+      isAddTravellerOpen,
+      openAddTraveller,
+      closeAddTraveller,
       completeStep,
       setErrors,
       clearErrors,
@@ -954,6 +1036,10 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
       isAddVendorOpen,
       openAddVendor,
       closeAddVendor,
+      setTravellerForm,
+      isAddTravellerOpen,
+      openAddTraveller,
+      closeAddTraveller,
       setCurrentStep,
       completeStep,
       setErrors,

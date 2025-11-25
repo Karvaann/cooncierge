@@ -1,27 +1,23 @@
-import React, { useRef, useEffect, useCallback } from "react";
+import React, { useRef, useEffect, useCallback, useState } from "react";
 import { FiDownload, FiTrash2 } from "react-icons/fi";
 import { FiCopy } from "react-icons/fi";
 import DownloadModal from "../Modals/DownloadModal";
 import MergeModal from "../Modals/MergeModal";
+import DeleteModal from "../Modals/DeleteModal";
 
 type DownloadMergeMenuProps = {
   isOpen: boolean;
   onClose: () => void;
-  onDownload: () => void;
-  onDelete: () => void;
-  onMerge?: () => void;
 };
 
 const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
   isOpen,
-  onDownload,
   onClose,
-  onDelete,
-  onMerge,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = React.useState(false);
   const [isMergeModalOpen, setIsMergeModalOpen] = React.useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const handleMergeClick = () => {
     setIsMergeModalOpen(true);
@@ -63,12 +59,10 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = "hidden";
       document.addEventListener("keydown", handleEscape);
       document.addEventListener("mousedown", handleClickOutside);
 
       return () => {
-        document.body.style.overflow = "unset";
         document.removeEventListener("keydown", handleEscape);
         document.removeEventListener("mousedown", handleClickOutside);
       };
@@ -81,7 +75,7 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
     <>
       <div
         ref={menuRef}
-        className="absolute right-12 -mt-4 -translate-y-1/2 
+        className="absolute right-6 -mt-4 -translate-y-1/2 
                bg-white border border-gray-200 rounded-md shadow-xl 
                w-[5.8rem] h-[4.8rem] z-50"
       >
@@ -122,7 +116,7 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
         <hr className="border border-gray-100" />
 
         <button
-          onClick={onDelete}
+          onClick={() => setIsDeleteModalOpen(true)}
           className="w-full flex items-center gap-1 px-3 py-1 hover:bg-gray-50 transition-colors text-left"
         >
           <div className="flex items-center justify-center">
@@ -142,6 +136,10 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
       <DownloadModal
         isOpen={isDownloadModalOpen}
         onClose={() => setIsDownloadModalOpen(false)}
+      />
+      <DeleteModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
       />
     </>
   );

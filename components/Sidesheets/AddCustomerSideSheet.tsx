@@ -8,18 +8,16 @@ import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
 
 type CustomerData = {
+  name?: string;
   firstname: string;
   lastname: string;
-  nickname: string;
-  contactnumber: string | "";
-  emailId: string;
-  dateofbirth: number | "";
+  alias: string;
+  phone: string | "";
+  email: string;
+  dateOfBirth: "" | string;
   gstin: number | "";
-  companyname: string;
-  adhaarnumber: number | "";
-  pan: number | string;
-  passport: number | string;
-  billingaddress: string | number;
+  companyName: string;
+  address: string | number;
   remarks: string;
 };
 
@@ -27,12 +25,14 @@ type AddCustomerSideSheetProps = {
   data?: CustomerData | null;
   onCancel: () => void;
   isOpen: boolean;
+  mode?: "create" | "edit";
 };
 
 const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   data,
   onCancel,
   isOpen,
+  mode,
 }) => {
   const [phoneCode, setPhoneCode] = useState<string>("+91");
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -42,18 +42,16 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   const [balanceAmount, setBalanceAmount] = useState<string>("");
 
   const [formData, setFormData] = useState<CustomerData>({
+    name: "",
     firstname: "",
     lastname: "",
-    nickname: "",
-    contactnumber: "",
-    emailId: "",
-    dateofbirth: "",
+    alias: "",
+    phone: "",
+    email: "",
+    dateOfBirth: "",
     gstin: "",
-    companyname: "",
-    adhaarnumber: "",
-    pan: "",
-    passport: "",
-    billingaddress: "",
+    companyName: "",
+    address: "",
     remarks: "",
   });
 
@@ -75,36 +73,32 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
   useEffect(() => {
     if (data) {
+      // Split full name safely
+      const [firstname = "", lastname = ""] = data.name?.split(" ") || [];
+
       setFormData({
-        firstname: data.firstname || "",
-        lastname: data.lastname || "",
-        nickname: data.nickname || "",
-        contactnumber: data.contactnumber || "",
-        emailId: data.emailId || "",
-        dateofbirth: data.dateofbirth || "",
+        firstname,
+        lastname,
+        alias: data.alias || "",
+        phone: data.phone || "",
+        email: data.email || "",
+        dateOfBirth: data.dateOfBirth ? data.dateOfBirth.slice(0, 10) : "",
         gstin: data.gstin || "",
-        companyname: data.companyname || "",
-        adhaarnumber: data.adhaarnumber || "",
-        pan: data.pan || "",
-        passport: data.passport || "",
-        billingaddress: data.billingaddress || "",
+        companyName: data.companyName || "",
+        address: data.address || "",
         remarks: data.remarks || "",
       });
     } else {
-      // reset on unmount or data clear
       setFormData({
         firstname: "",
         lastname: "",
-        nickname: "",
-        contactnumber: "",
-        emailId: "",
-        dateofbirth: "",
+        alias: "",
+        phone: "",
+        email: "",
+        dateOfBirth: "",
         gstin: "",
-        companyname: "",
-        adhaarnumber: "",
-        pan: "",
-        passport: "",
-        billingaddress: "",
+        companyName: "",
+        address: "",
         remarks: "",
       });
     }
@@ -112,14 +106,23 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
   const handleSubmit = async () => {
     try {
-      // Combine form data with derived/fixed fields
-      const customerData = {
-        ...formData,
-        contactnumber: `${phoneCode}${formData.contactnumber}`, // prepend phone code
-        ownerId: "507f1f77bcf86cd799439012", // Replace with actual ownerId
+      const customerPayload = {
+        name: `${formData.firstname} ${formData.lastname}`.trim(), // full name
+        email: formData.email,
+        phone: `${phoneCode}${formData.phone}`,
+        alias: formData.alias || undefined,
+        dateOfBirth: formData.dateOfBirth || undefined,
+        gstin: formData.gstin || undefined,
+        companyName: formData.companyName || undefined,
+        address: formData.address || undefined,
+        openingBalance: balanceAmount ? Number(balanceAmount) : undefined,
+        balanceType: balanceAmount ? balanceType : undefined,
+        businessId: "BUSINESS_ID_HERE", // put actual business id
+        ownerId: "507f1f77bcf86cd799439012",
+        tier: undefined,
       };
 
-      const response = await createCustomer(customerData);
+      const response = await createCustomer(customerPayload);
       console.log("Customer created successfully:", response);
 
       onCancel();
@@ -127,6 +130,17 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       console.error("Error creating customer:", error.message || error);
     }
   };
+
+  //   const handleUpdateCustomer = async () => {
+  //   try {
+  //     const updated = await CustomerApiService.updateCustomer(data._id, formData);
+
+  //     console.log("Customer updated:", updated);
+  //     onCancel(); // close sheet
+  //   } catch (error) {
+  //     console.error("Update error:", error);
+  //   }
+  // };
 
   return (
     <>
@@ -265,7 +279,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
           </div>
 
           {/* ================= DOCUMENTS ================ */}
-          <div className="border border-gray-200 rounded-[12px] p-3">
+          {/* <div className="border border-gray-200 rounded-[12px] p-3">
             <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
@@ -304,7 +318,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 Note: Maximum of 3 files can be uploaded
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* ================= BILLING ADDRESS ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
@@ -390,12 +404,22 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             >
               Cancel
             </button>
-            <button
-              type="submit"
-              className="px-4 py-1.5 rounded-md bg-[#114958] text-white text-[0.75rem] hover:bg-[#0f3d44]"
-            >
-              Add New Customer
-            </button>
+            {mode === "edit" ? (
+              <button
+                // onClick={handleUpdateCustomer}
+                className="px-4 py-2 bg-[#0D4B37] text-white rounded-lg hover:bg-green-900 text-[0.75rem]"
+              >
+                Update Customer
+              </button>
+            ) : (
+              <button
+                type="submit"
+                onClick={handleSubmit}
+                className="px-4 py-1.5 rounded-md bg-[#114958] text-white text-[0.75rem] hover:bg-[#0f3d44]"
+              >
+                Add New Customer
+              </button>
+            )}
           </div>
         </form>
       </SideSheet>

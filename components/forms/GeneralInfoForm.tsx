@@ -9,6 +9,10 @@ import { FiMinus } from "react-icons/fi";
 import { GoPlus } from "react-icons/go";
 import { validateGeneralInfo } from "@/services/bookingApi";
 import { useBooking } from "@/context/BookingContext";
+import Fuse from "fuse.js";
+import { getCustomers } from "@/services/customerApi";
+import { getVendors } from "@/services/vendorApi";
+import { getUsers } from "@/services/userApi";
 
 // Type definitions
 interface GeneralInfoFormData {
@@ -60,8 +64,54 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [validatingCustomer, setValidatingCustomer] = useState<boolean>(false);
   const [validatingVendor, setValidatingVendor] = useState<boolean>(false);
-  const { openAddCustomer, openAddVendor } = useBooking();
+  const { openAddCustomer, openAddVendor, openAddTraveller } = useBooking();
   const [customerList, setCustomerList] = useState<string[]>([""]);
+
+  // Search data states
+  const [allCustomers, setAllCustomers] = useState<any[]>([]);
+  const [allVendors, setAllVendors] = useState<any[]>([]);
+  const [allTeams, setAllTeams] = useState<any[]>([]);
+
+  const [customerResults, setCustomerResults] = useState<any[]>([]);
+  const [vendorResults, setVendorResults] = useState<any[]>([]);
+  const [teamResults, setTeamResults] = useState<any[]>([]);
+
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [showVendorDropdown, setShowVendorDropdown] = useState(false);
+  const [showTeamDropdown, setShowTeamDropdown] = useState(false);
+
+  // Fetch all customers, vendors, teams on mount
+  useEffect(() => {
+    const fetchLists = async () => {
+      try {
+        const [cRes, vRes, tRes] = await Promise.all([
+          getCustomers(),
+          getVendors(),
+          getUsers(),
+        ]);
+
+        setAllCustomers(cRes || []);
+        setAllVendors(vRes || []);
+        setAllTeams(tRes || []);
+      } catch (err) {
+        console.error("Failed loading lists", err);
+      }
+    };
+
+    fetchLists();
+  }, []);
+
+  // Fuzzy search helper
+  const runFuzzySearch = (list: any[], term: string, keys: string[]) => {
+    if (!term.trim()) return [];
+
+    const fuse = new Fuse(list, {
+      threshold: 0.3,
+      keys: keys,
+    });
+
+    return fuse.search(term).map((r) => r.item);
+  };
 
   // when adults change
   useEffect(() => {
@@ -558,10 +608,37 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   // override value and change handler
                   type="text"
                   value={customerList[index] || ""}
-                  onChange={(e: any) =>
-                    updateCustomerField(index, e.target.value)
-                  }
+                  onChange={(e: any) => {
+                    const value = e.target.value;
+                    updateCustomerField(index, value);
+
+                    const results = runFuzzySearch(allCustomers, value, [
+                      "name",
+                      "email",
+                      "phone",
+                    ]);
+                    setCustomerResults(results);
+                    setShowCustomerDropdown(true);
+                  }}
                 />
+
+                {/* {showCustomerDropdown && customerResults.length > 0 && (
+                  <div className="absolute bg-white border rounded-md w-[30rem] max-h-60 mt-1 overflow-y-auto shadow-md z-50">
+                    {customerResults.map((cust: any) => (
+                      <div
+                        key={cust._id}
+                        className="p-2 cursor-pointer hover:bg-gray-100"
+                        onClick={() => {
+                          updateCustomerField(index, cust.name);
+                          setShowCustomerDropdown(false);
+                        }}
+                      >
+                        <p className="font-medium">{cust.name}</p>
+                        <p className="text-xs text-gray-500">{cust.email}</p>
+                      </div>
+                    ))}
+                  </div>
+                )} */}
               </div>
 
               <RightSideIcons
@@ -602,7 +679,34 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               placeholder="Search by Vendor Name/ID"
               required
               className="w-full text-[0.75rem]  py-2"
+              onChange={(e) => {
+                handleChange(e);
+                const results = runFuzzySearch(allVendors, e.target.value, [
+                  "name",
+                  "email",
+                ]);
+                setVendorResults(results);
+                setShowVendorDropdown(true);
+              }}
             />
+
+            {/* {showVendorDropdown && vendorResults.length > 0 && (
+              <div className="absolute bg-white border rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+                {vendorResults.map((v: any) => (
+                  <div
+                    key={v._id}
+                    className="p-2 cursor-pointer hover:bg-gray-100"
+                    onClick={() => {
+                      setFormData((prev) => ({ ...prev, vendor: v.name }));
+                      setShowVendorDropdown(false);
+                    }}
+                  >
+                    <p className="font-medium">{v.name}</p>
+                    <p className="text-xs text-gray-500">{v.email}</p>
+                  </div>
+                ))}
+              </div>
+            )} */}
           </div>
           <RightSideIcons fieldName="vendor" onClickPlus={openAddVendor} />
         </div>
@@ -698,6 +802,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 overrideSetter={(val) =>
                   updateTraveller("adultTravellers", index, val)
                 }
+                onClickPlus={openAddTraveller}
               />
             </div>
           ))}
@@ -727,6 +832,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 overrideSetter={(val) =>
                   updateTraveller("infantTravellers", index, val)
                 }
+                onClickPlus={openAddTraveller}
               />
             </div>
           ))}
@@ -741,13 +847,41 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           <span className="text-red-500">*</span> User
         </label>
 
-        <div className="w-[30rem]">
+        <div className="w-[66%]">
           <InputField
             name="bookingOwner"
             placeholder="Search by Name/Username/ID"
             required
             className="mt-1 text-[0.75rem]  py-2"
+            onChange={(e) => {
+              handleChange(e);
+              const results = runFuzzySearch(allTeams, e.target.value, [
+                "name",
+                "email",
+                "username",
+              ]);
+              setTeamResults(results);
+              setShowTeamDropdown(true);
+            }}
           />
+
+          {/* {showTeamDropdown && teamResults.length > 0 && (
+            <div className="absolute bg-white border rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+              {teamResults.map((t: any) => (
+                <div
+                  key={t._id}
+                  className="p-2 cursor-pointer hover:bg-gray-100"
+                  onClick={() => {
+                    setFormData((prev) => ({ ...prev, bookingOwner: t.name }));
+                    setShowTeamDropdown(false);
+                  }}
+                >
+                  <p className="font-medium">{t.name}</p>
+                  <p className="text-xs text-gray-500">{t.email}</p>
+                </div>
+              ))}
+            </div>
+          )} */}
         </div>
       </div>
 
@@ -774,7 +908,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       </div>
 
       {/* Submit Button (if standalone) */}
-      {onSubmit && (
+      {/* {onSubmit && (
         <div className="flex justify-end">
           <button
             type="submit"
@@ -784,7 +918,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             {isSubmitting ? "Saving..." : "Save General Info"}
           </button>
         </div>
-      )}
+      )} */}
     </form>
   );
 };

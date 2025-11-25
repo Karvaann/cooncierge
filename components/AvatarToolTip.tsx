@@ -27,6 +27,16 @@ const AvatarTooltip: React.FC<AvatarTooltipProps> = ({
       "
       >
         {full}
+
+        {/* Tail */}
+        <div
+          className="
+            absolute left-1/2 translate-x-[-50%] 
+            -bottom-1 w-2.5 h-2.5 
+            bg-gray-800 rotate-45
+            shadow
+          "
+        ></div>
       </div>
     </div>
   );

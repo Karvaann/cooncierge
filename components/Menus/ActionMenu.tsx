@@ -47,7 +47,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({ actions }) => {
           className="
             absolute right-14 top-1/2 -translate-y-1/2
             bg-white border border-gray-200 rounded-md shadow-xl 
-            w-25 z-[100] 
+            w-31 z-[100] 
           "
         >
           <div
@@ -72,9 +72,10 @@ const ActionMenu: React.FC<ActionMenuProps> = ({ actions }) => {
                     setIsOpen(false);
                   }}
                   className={`
-                    flex items-center justify-center gap-1 px-2 py-0.5 
-                    hover:bg-gray-50 transition-colors
-                    ${action.color ?? "text-gray-700"}
+                    flex items-center gap-1 px-2 py-0.5 
+  hover:bg-gray-50 transition-colors
+  whitespace-nowrap
+  ${action.color ?? "text-gray-700"}
                   `}
                 >
                   {action.icon && (

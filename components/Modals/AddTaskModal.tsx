@@ -123,20 +123,20 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
       onClose={onClose}
       title="Tasks"
       size="sm"
-      customWidth="w-[1000px]"
-      customeHeight="h-[720px]"
+      customWidth="w-[55vw]"
+      customeHeight="h-[75vh]"
     >
-      <div className="p-3 -mt-4">
-        <div className="flex flex-col md:flex-row gap-6 p-4 rounded-lg border border-gray-200">
+      <div className="p-2 -mt-2">
+        <div className="flex flex-col md:flex-row gap-4 p-3 rounded-lg border border-gray-200">
           {/* Left Section */}
-          <div className="flex-1 bg-white rounded-lg -mt-4 p-4">
+          <div className="flex-1 bg-white rounded-lg p-3">
             {/* Category */}
-            <div className="mb-4">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+            <div className="mb-3">
+              <label className="block text-[0.75rem] text-gray-700 mb-1">
                 Category
               </label>
               <select
-                className="w-[400px] px-3 py-2 border border-gray-300 rounded-md "
+                className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
                 value={nature}
                 onChange={(e) => setNature(e.target.value)}
               >
@@ -150,24 +150,26 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
               </select>
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+            {/* Category ID */}
+            <div className="mb-3">
+              <label className="block text-[0.75rem] text-gray-700 mb-1">
                 Category ID
               </label>
               <input
-                className="w-[400px] px-3 py-2 border border-gray-300 rounded-md "
-                value={nature}
+                className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
                 placeholder="Enter Category ID"
+                value={nature}
                 onChange={(e) => setNature(e.target.value)}
               />
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+            {/* Task Type */}
+            <div className="mb-3">
+              <label className="block text-[0.75rem] text-gray-700 mb-1">
                 Task Type
               </label>
               <select
-                className="w-[400px] px-3 py-2 border border-gray-300 rounded-md "
+                className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
                 value={nature}
                 onChange={(e) => setNature(e.target.value)}
               >
@@ -182,43 +184,43 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-[0.75rem] text-gray-700 mb-1">
                 Description
               </label>
               <textarea
-                className="w-[400px] h-[100px] px-3 py-2 mb-2 border border-gray-300 rounded-md  resize-none min-h-[60px]"
+                className="w-[18rem] h-[5rem] px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem] resize-none"
                 placeholder="Enter description here..."
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
               />
             </div>
-            <label className="border-2 h-[100px] border-dashed border-gray-300 rounded-xl p-8 text-center bg-[#F9F9F9] hover:border-gray-400 transition-colors cursor-pointer flex flex-col items-center justify-center">
-              <div className="flex items-center justify-center gap-2">
-                <MdOutlineFileUpload
-                  className="text-2xl text-gray-400"
-                  size={25}
-                />
-                <h3 className="text-gray-700 font-medium text-base">
+
+            {/* File Upload Box */}
+            <label className="border-2 mt-3 border-dashed border-gray-300 rounded-md p-4 text-center bg-[#F9F9F9] hover:border-gray-400 transition-colors cursor-pointer flex flex-col items-center justify-center">
+              <div className="flex items-center gap-1">
+                <MdOutlineFileUpload className="text-gray-400" size={20} />
+                <h3 className="text-gray-700 text-[0.75rem] font-medium">
                   Attach File
                 </h3>
               </div>
 
-              <p className="text-gray-500 text-sm mt-1">
+              <p className="text-gray-500 text-[0.65rem] mt-1">
                 Drag and drop files here
               </p>
+
               <input type="file" className="hidden" />
             </label>
           </div>
 
           {/* Right Section */}
-          <div className="w-[600px] h-[498px] bg-[#F9F9F9] rounded-lg p-4 flex flex-col gap-4">
+          <div className="w-[27vw] bg-[#F9F9F9] rounded-lg p-3 flex flex-col gap-3">
             {/* Priority */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-[0.75rem] text-gray-700 mb-1">
                 Priority
               </label>
               <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-md "
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
               >
@@ -228,21 +230,22 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 <option value="">Low</option>
               </select>
             </div>
+
             {/* Assigned To */}
             <div className="relative">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-[0.75rem] text-gray-700 mb-1">
                 Assigned To
               </label>
-              {/* Input box */}
+
               <div
-                className="w-full border border-gray-300 rounded-md px-3 py-2 min-h-[46px] flex items-center flex-wrap gap-2 cursor-pointer"
+                className="w-full border border-gray-300 rounded-md px-2 py-1.5 min-h-[2.2rem] flex items-center flex-wrap gap-1 cursor-pointer"
                 onClick={() => setDropdownOpen(!dropdownOpen)}
               >
                 {selectedAssignees.length > 0 ? (
                   selectedAssignees.map((name) => (
                     <span
                       key={name}
-                      className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-1.5 rounded-full text-sm"
+                      className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[0.65rem]"
                     >
                       <button
                         type="button"
@@ -250,25 +253,25 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                           e.stopPropagation();
                           toggleAssignee(name);
                         }}
-                        className="text-black font-semibold"
                       >
-                        <IoMdClose size={15} />
+                        <IoMdClose size={12} />
                       </button>
                       {name}
                     </span>
                   ))
                 ) : (
-                  <span className="text-gray-400 text-sm">Select Assignee</span>
+                  <span className="text-gray-400 text-[0.65rem]">
+                    Select Assignee
+                  </span>
                 )}
               </div>
 
-              {/* Dropdown */}
               {dropdownOpen && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
                   {assignees.map((assignee) => (
                     <label
                       key={assignee}
-                      className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                      className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 cursor-pointer"
                     >
                       <input
                         type="checkbox"
@@ -276,95 +279,85 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                         onChange={() => toggleAssignee(assignee)}
                         className="accent-emerald-600"
                       />
-                      <span className="text-gray-700 text-sm">{assignee}</span>
+                      <span className="text-gray-700 text-[0.75rem]">
+                        {assignee}
+                      </span>
                     </label>
                   ))}
                 </div>
               )}
             </div>
+
             {/* Assigned By */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-[0.75rem] text-gray-700 mb-1">
                 Assigned By
               </label>
               <select
-                className="w-full px-3 py-2 border border-gray-300 rounded-md "
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
                 value={assignedBy}
                 onChange={(e) => setAssignedBy(e.target.value)}
               >
                 <option value="">Select Assigned by</option>
               </select>
             </div>
+
             {/* Due Date */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-[0.75rem] text-gray-700 mb-1">
                 Due Date
               </label>
               <input
                 type="date"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md "
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
               />
             </div>
+
             {/* Due Time */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Due Time{" "}
-                <span className="text-gray-500 font-normal">(hh:mm)</span>
+              <label className="block text-[0.75rem] text-gray-700 mb-1">
+                Due Time <span className="text-gray-500">(hh:mm)</span>
               </label>
+
               <div className="flex items-center gap-2">
                 {/* Hours */}
-                <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-md px-3 py-1">
+                <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-md px-2 py-1">
                   <input
                     type="text"
                     value={dueHours.toString().padStart(2, "0")}
                     readOnly
-                    className="w-6 text-center font-medium text-gray-700 bg-transparent outline-none"
+                    className="w-5 text-center text-[0.75rem] bg-transparent outline-none"
                   />
-                  <div className="flex flex-col gap-0.5">
-                    <button
-                      type="button"
-                      onClick={incrementHours}
-                      className="p-0.5 hover:bg-gray-100 rounded transition-colors"
-                    >
-                      <MdKeyboardArrowUp size={18} className="" />
+                  <div className="flex flex-col">
+                    <button onClick={incrementHours} className="p-0.5">
+                      <MdKeyboardArrowUp size={14} />
                     </button>
-                    <button
-                      type="button"
-                      onClick={decrementHours}
-                      className="p-0.5 hover:bg-gray-100 rounded transition-colors"
-                    >
-                      <MdKeyboardArrowDown size={18} />
+                    <button onClick={decrementHours} className="p-0.5">
+                      <MdKeyboardArrowDown size={14} />
                     </button>
                   </div>
                 </div>
 
-                {/* Colon Separator */}
-                <span className="text-xl font-semibold text-gray-700">:</span>
+                <span className="text-[1rem] font-semibold text-gray-700">
+                  :
+                </span>
 
                 {/* Minutes */}
-                <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-md px-3 py-1">
+                <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-md px-2 py-1">
                   <input
                     type="text"
                     value={dueMinutes.toString().padStart(2, "0")}
                     readOnly
-                    className="w-6 text-center font-medium text-gray-700 bg-transparent outline-none"
+                    className="w-5 text-center text-[0.75rem] bg-transparent outline-none"
                   />
-                  <div className="flex flex-col gap-0.5">
-                    <button
-                      type="button"
-                      onClick={incrementMinutes}
-                      className="p-0.5 hover:bg-gray-100 rounded transition-colors"
-                    >
-                      <MdKeyboardArrowUp size={18} className="" />
+                  <div className="flex flex-col">
+                    <button onClick={incrementMinutes} className="p-0.5">
+                      <MdKeyboardArrowUp size={14} />
                     </button>
-                    <button
-                      type="button"
-                      onClick={decrementMinutes}
-                      className="p-0.5 hover:bg-gray-100 rounded transition-colors"
-                    >
-                      <MdKeyboardArrowDown size={18} />
+                    <button onClick={decrementMinutes} className="p-0.5">
+                      <MdKeyboardArrowDown size={14} />
                     </button>
                   </div>
                 </div>
@@ -372,10 +365,12 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
             </div>
           </div>
         </div>
-        <div className="flex justify-end mt-4 mr-2">
+
+        {/* Footer */}
+        <div className="flex justify-end mt-2 mr-2">
           <button
             type="button"
-            className="flex items-center gap-1 px-4 py-2 bg-green-900 text-white rounded-md hover:bg-green-800 transition"
+            className="px-4 py-1.5 bg-green-900 text-white text-[0.75rem] rounded-md hover:bg-green-800 transition"
             onClick={handleSave}
           >
             Create Task

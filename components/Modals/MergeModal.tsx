@@ -139,7 +139,6 @@ const MergeModal: React.FC<MergeModalProps> = ({ isOpen, onClose }) => {
         </button>
       </td>,
     ],
-    /* second row unchanged just CSS applied */
   ];
 
   return (

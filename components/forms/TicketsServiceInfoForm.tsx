@@ -1,92 +1,53 @@
 "use client";
 
 import React, { useState, useCallback, useMemo } from "react";
-import { validateAccommodationInfoForm } from "@/services/bookingApi";
+import { validateOtherServiceInfoForm } from "@/services/bookingApi";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
-import HotelLayout from "./HotelLayout";
 import { useRef } from "react";
-import VillaLayout from "./VillaLayout";
+import StyledDescription from "../StyledDescription";
+
 // Type definitions
-interface AccommodationInfoFormData {
+interface OtherServiceInfoFormData {
   bookingdate: string;
   traveldate: string; // This can be the main/first travel date
   bookingstatus: "Confirmed" | "Canceled" | "In Progress" | string;
-  checkindate: string;
-  checkintime: string;
-  checkoutdate: string;
-  checkouttime: string;
-  checkOutPeriod: "AM" | "PM";
-  pax: number | string;
-  mealPlan: "EPAI" | "CPAI" | "MAPAI" | "APAI" | string;
-  confirmationNumber: number | string;
-  accommodationType:
-    | "Hotel"
-    | "Resort"
-    | "Hostel"
-    | "Villa"
-    | "Apartment"
-    | "Homestay"
-    | "Experiental Stay"
-    | string;
-  propertyName: string;
-  propertyAddress: string;
-  googleMapsLink: string;
-  segments: RoomSegment[];
   costprice: number | string;
   sellingprice: number | string;
+  confirmationNumber: number | string;
+  title: string;
+  description: string;
+  documents?: string | File;
   remarks: string;
-}
-
-interface RoomSegment {
-  id?: string | null;
-  roomCategory: string;
-  bedType: string;
 }
 
 interface ValidationErrors {
   [key: string]: string;
 }
 
-interface AccommodationInfoFormProps {
-  onSubmit?: (data: AccommodationInfoFormData) => void;
+interface OtherInfoFormProps {
+  onSubmit?: (data: OtherServiceInfoFormData) => void;
   isSubmitting?: boolean;
   showValidation?: boolean;
 }
 
-const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
+const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   onSubmit,
   isSubmitting = false,
   showValidation = true,
 }) => {
   // Internal form state
-  const [formData, setFormData] = useState<AccommodationInfoFormData>({
+  const [formData, setFormData] = useState<OtherServiceInfoFormData>({
     bookingdate: "",
     traveldate: "",
     bookingstatus: "",
     costprice: "",
     sellingprice: "",
     confirmationNumber: "",
-    checkindate: "",
-    checkintime: "",
-    checkoutdate: "",
-    checkouttime: "",
-    checkOutPeriod: "AM",
-    pax: "",
-    mealPlan: "",
-    propertyName: "",
-    propertyAddress: "",
-    googleMapsLink: "",
-    segments: [
-      {
-        id: "room-1",
-        roomCategory: "",
-        bedType: "",
-      },
-    ],
-    accommodationType: "",
-
+    title: "",
+    description: "",
+    documents: "",
     remarks: "",
   });
 
@@ -116,13 +77,6 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   });
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
 
-  const handleSegmentsChange = (updatedSegments: RoomSegment[]) => {
-    setFormData((prev) => ({
-      ...prev,
-      segments: updatedSegments,
-    }));
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -148,7 +102,6 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     pattern?: RegExp;
   };
 
-  // Validation rules
   const validationRules: Record<string, FieldRule> = useMemo(
     () => ({
       firstname: {
@@ -178,36 +131,21 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   // Enhanced validation function using API validation
   const validateField = useCallback(
     (name: string, value: any): string => {
-      // Use API validation for comprehensive checks
-      const apiErrors = validateAccommodationInfoForm({
+      // API-level validation only for OtherServiceInfoForm fields
+      const apiErrors = validateOtherServiceInfoForm({
         bookingdate: "",
         traveldate: "",
         bookingstatus: "",
-        costprice: "",
-        sellingprice: "",
         confirmationNumber: "",
-        checkindate: "",
-        checkintime: "",
-        checkoutdate: "",
-        checkouttime: "",
-        checkOutPeriod: "AM",
-        pax: "",
-        mealPlan: "",
-        propertyName: "",
-        propertyAddress: "",
-        googleMapsLink: "",
-        segments: [
-          {
-            id: "room-1",
-            roomCategory: "",
-            bedType: "",
-          },
-        ],
-        accommodationType: "",
+        title: "",
+        description: "",
+        documents: "",
         remarks: "",
       });
+
       if (apiErrors[name]) return apiErrors[name];
 
+      // Local field-level validation (firstname, lastname, etc.)
       const rule = validationRules[name as keyof typeof validationRules];
       if (!rule) return "";
 
@@ -247,7 +185,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     Object.keys(validationRules).forEach((fieldName) => {
       const error = validateField(
         fieldName,
-        formData[fieldName as keyof AccommodationInfoFormData]
+        formData[fieldName as keyof OtherServiceInfoFormData]
       );
       if (error) {
         newErrors[fieldName] = error;
@@ -270,7 +208,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     setFormData((prev) => ({ ...prev, [name]: processedValue }));
 
     // Clear error when user types
-    if (errors[name as keyof AccommodationInfoFormData]) {
+    if (errors[name as keyof OtherServiceInfoFormData]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
 
@@ -314,7 +252,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
   // Enhanced input field component with validation indicators
   const InputField: React.FC<{
-    name: keyof AccommodationInfoFormData;
+    name: keyof OtherServiceInfoFormData;
     id?: string;
     type?: string;
     placeholder?: string;
@@ -684,290 +622,52 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             )}
           </div>
 
+          {/* ================= Tickets INFO ================ */}
           <div className="w-[48vw] border border-gray-200 rounded-[12px] p-3 mt-4">
-            <h1 className="text-[0.75rem] font-medium text-gray-700 mb-2">
-              Accommodation Info
+            <h1 className="text-[0.85rem] font-medium text-gray-800 mb-2">
+              Tickets Info
             </h1>
-            <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-            {/* Confirmation Number */}
-            <div className="mb-3">
-              <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                Confirmation Number
-              </label>
-              <input
-                type="text"
-                placeholder="Enter Confirmation Number"
-                className="w-[18rem] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
+            <hr className="mt-1 mb-3 border-t border-gray-200" />
 
-            {/* Check-in / Check-out Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-              {/* Check-In Date */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-In Date
+            {/* Confirmation number + Title */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-0 w-full mb-4">
+              {/* Confirmation number */}
+              <div className="flex flex-col w-[13rem]">
+                <label className="text-[0.75rem] font-medium text-gray-700 mb-1">
+                  Confirmation number
                 </label>
                 <input
                   type="text"
-                  value={formData.checkindate}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      checkindate: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  name="confirmationNumber"
+                  value={formData.confirmationNumber}
+                  onChange={handleChange}
+                  placeholder="Abc12345"
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem]
+        focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
-              {/* Check-In Time */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-In Time
-                </label>
-                <div className="flex items-center gap-1 border border-gray-300 rounded-md px-2 py-1 w-fit">
-                  <input
-                    type="text"
-                    value={formData.checkintime}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        checkintime: e.target.value,
-                      }))
-                    }
-                    placeholder="12:00"
-                    className="w-16 text-center border-none bg-transparent text-[0.75rem] focus:outline-none"
-                  />
-                  <select
-                    value={formData.checkOutPeriod}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        checkOutPeriod: e.target.value as "AM" | "PM",
-                      }))
-                    }
-                    className="border-none bg-transparent text-center text-[0.75rem] focus:outline-none"
-                  >
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Check-Out Date */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-Out Date
+              {/* Title */}
+              <div className="flex flex-col w-[13rem] -ml-35">
+                <label className="text-[0.75rem] font-medium text-gray-700 mb-1">
+                  Title
                 </label>
                 <input
                   type="text"
-                  value={formData.checkoutdate}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      checkoutdate: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  placeholder="Title …"
+                  className="px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem]
+        focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
-              </div>
-
-              {/* Check-Out Time */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-Out Time
-                </label>
-                <div className="flex items-center gap-1 border border-gray-300 rounded-md px-2 py-1 w-fit">
-                  <input
-                    type="text"
-                    value={formData.checkouttime}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        checkouttime: e.target.value,
-                      }))
-                    }
-                    placeholder="11:00"
-                    className="w-16 text-center border-none bg-transparent text-[0.75rem] focus:outline-none"
-                  />
-                  <select
-                    value={formData.checkOutPeriod}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        checkOutPeriod: e.target.value as "AM" | "PM",
-                      }))
-                    }
-                    className="border-none bg-transparent text-center text-[0.75rem] focus:outline-none"
-                  >
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                  </select>
-                </div>
               </div>
             </div>
 
-            {/* Pax & Meal Plan */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Pax
-                </label>
-                <input
-                  type="text"
-                  value={formData.pax}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, pax: e.target.value }))
-                  }
-                  className="w-[10rem] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
+            {/* Description */}
 
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Select Meal Plan
-                </label>
-                <select
-                  value={formData.mealPlan}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      mealPlan: e.target.value,
-                    }))
-                  }
-                  className="w-[14rem] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "right 10px center",
-                  }}
-                >
-                  <option value="EPAI">EPAI</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Accommodation Type Section */}
-            <div className="border border-gray-200 rounded-[12px] p-3 mt-3">
-              <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                Select Accommodation Type
-              </label>
-              <div className="relative w-[14rem] mb-2">
-                <select
-                  defaultValue=""
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      accommodationType: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-1.5 pr-10 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
-                >
-                  <option value="" disabled>
-                    Select Stay Type
-                  </option>
-                  <option>Hotel</option>
-                  <option>Resort</option>
-                  <option>Hostel</option>
-                  <option>Villa</option>
-                </select>
-                <MdKeyboardArrowDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
-              </div>
-
-              {formData.accommodationType && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                  <div>
-                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                      {formData.accommodationType} Name
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.propertyName}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          propertyName: e.target.value,
-                        }))
-                      }
-                      placeholder={`Enter ${formData.accommodationType} Name`}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                      {formData.accommodationType} Address
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.propertyAddress}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          propertyAddress: e.target.value,
-                        }))
-                      }
-                      placeholder={`Enter ${formData.accommodationType} Address`}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
-                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                      Google Maps Link
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={formData.googleMapsLink}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            googleMapsLink: e.target.value,
-                          }))
-                        }
-                        placeholder="Paste Google Maps Link"
-                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      />
-                      <button
-                        type="button"
-                        className="px-3 py-1.5 flex items-center gap-1 bg-[#126ACB] text-white rounded-md text-[0.75rem] hover:bg-blue-700"
-                      >
-                        <MdOutlineFileUpload size={16} /> Copy Link
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Layout Components */}
-              {formData.accommodationType === "Hotel" && (
-                <HotelLayout
-                  segments={formData.segments}
-                  onSegmentsChange={handleSegmentsChange}
-                />
-              )}
-              {formData.accommodationType === "Resort" && (
-                <HotelLayout
-                  segments={formData.segments}
-                  onSegmentsChange={handleSegmentsChange}
-                />
-              )}
-              {formData.accommodationType === "Hostel" && (
-                <HotelLayout
-                  segments={formData.segments}
-                  onSegmentsChange={handleSegmentsChange}
-                />
-              )}
-              {formData.accommodationType === "Villa" && (
-                <VillaLayout
-                  segments={formData.segments}
-                  onSegmentsChange={handleSegmentsChange}
-                />
-              )}
-            </div>
+            <StyledDescription />
           </div>
         </div>
 
@@ -1054,4 +754,4 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   );
 };
 
-export default React.memo(AccommodationServiceInfoForm);
+export default React.memo(TicketsServiceInfoForm);

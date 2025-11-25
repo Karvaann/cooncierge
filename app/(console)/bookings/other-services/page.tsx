@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { BookingApiService, DraftManager } from "@/services/bookingApi";
 import type { DraftBooking } from "@/services/bookingApi";
-import { getAuthUser } from "@/services/storage/authStorage";
+import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
 // import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
@@ -12,6 +12,7 @@ import ModalSkeleton from "@/components/skeletons/ModalSkeleton";
 import SidesheetSkeleton from "@/components/skeletons/SidesheetSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import type { JSX } from "react";
+import { formatServiceType } from "@/utils/helper";
 import { FaRegTrashAlt } from "react-icons/fa";
 import { MdOutlineEdit } from "react-icons/md";
 import { TbArrowAutofitRight } from "react-icons/tb";
@@ -20,6 +21,8 @@ import { CiFilter } from "react-icons/ci";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
+import { MdOutlineDirectionsCarFilled } from "react-icons/md";
+import TaskButton from "@/components/TaskButton";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -64,7 +67,16 @@ type BookingService = {
   id: string;
   title: string;
   image: string;
-  category: "travel" | "accommodation" | "transport" | "activity";
+  category:
+    | "travel"
+    | "accommodation"
+    | "activity"
+    | "transport-land"
+    | "transport-maritime"
+    | "tickets"
+    | "travel insurance"
+    | "visas"
+    | "others";
   description?: string;
 };
 
@@ -167,12 +179,23 @@ const OSBookingsPage = () => {
   const tabOptions = ["Approved", "Pending", "Drafts", "Denied", "Deleted"];
   const [activeTab, setActiveTab] = useState("Approved");
 
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
+
   // Data State
   const [quotations, setQuotations] = useState<QuotationData[]>([]);
   const [drafts, setDrafts] = useState<DraftBooking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
+
+  const [reverse, setReverse] = useState(false);
+
+  const handleSort = (column: string) => {
+    if (column === "Travel Date") {
+      setReverse((prev) => !prev);
+    }
+  };
 
   // Load quotations from backend
   const loadQuotations = useCallback(async () => {
@@ -276,15 +299,51 @@ const OSBookingsPage = () => {
     setIsSideSheetOpen(false);
   }, [loadQuotations, loadDrafts]);
 
-  const getServiceIcon = (quotationType: string): string => {
-    const iconMap: Record<string, string> = {
-      flight: "✈️",
-      flights: "✈️",
-      hotel: "🏨",
-      accommodation: "🏨",
+  const getServiceIcon = (
+    quotationType: string
+  ): React.ReactElement | string => {
+    const iconMap: Record<string, any> = {
+      flight: (
+        <Image
+          src="/icons/service-icons/flight.svg"
+          alt="Flights"
+          width={18}
+          height={18}
+        />
+      ),
+      flights: (
+        <Image
+          src="/icons/service-icons/flight.svg"
+          alt="Flights"
+          width={18}
+          height={18}
+        />
+      ),
+      accommodation: (
+        <Image
+          src="/icons/service-icons/accommodation.svg"
+          alt="Accommodation"
+          width={18}
+          height={18}
+        />
+      ),
       car: "🚗",
-      transportation: "🚗",
-      package: "🎫",
+      "land transportation": (
+        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      ),
+      "land-transportation": (
+        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      ),
+      land_transportation: (
+        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      ),
+      land: (
+        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      ),
+      transportation: (
+        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      ),
+
       activity: "🎯",
       insurance: "🛡️",
       visa: "📋",
@@ -310,6 +369,31 @@ const OSBookingsPage = () => {
 
   console.log(quotations);
 
+  const handleDeleteClick = (quotationId: string) => {
+    setSelectedDeleteId(quotationId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedDeleteId) return;
+
+    try {
+      const response = await BookingApiService.deleteQuotation(
+        selectedDeleteId
+      );
+
+      if (response.success) {
+        // Remove from UI
+        setQuotations((prev) => prev.filter((q) => q._id !== selectedDeleteId));
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+
+    setIsDeleteModalOpen(false);
+    setSelectedDeleteId(null);
+  };
+
   const ownersList: Owner[] = [
     {
       short: "AS",
@@ -333,6 +417,76 @@ const OSBookingsPage = () => {
     },
   ];
 
+  const getActionsForTab = (tab: string, row: any) => {
+    const id = quotations?.[row.originalIndex]?._id;
+
+    const baseActions = [
+      {
+        label: "Edit",
+        icon: <MdOutlineEdit />,
+        color: "text-blue-600",
+        onClick: () => console.log("Edit", row.id),
+      },
+      {
+        label: "Delete",
+        icon: <FaRegTrashAlt />,
+        color: "text-red-600",
+        onClick: () => {
+          if (id) handleDeleteClick(id);
+        },
+      },
+    ];
+
+    // Denied
+    if (tab === "Denied") {
+      baseActions.push({
+        label: "Request again",
+        icon: <TbArrowAutofitRight />,
+        color: "text-gray-400",
+        onClick: () => console.log("Request again", row.id),
+      });
+      baseActions.push({
+        label: "Duplicate",
+        icon: <FiCopy />,
+        color: "text-gray-400",
+        onClick: () => console.log("Duplicate", row.id),
+      });
+      return baseActions;
+    }
+
+    // Deleted
+    if (tab === "Deleted") {
+      return [
+        {
+          label: "Recover",
+          icon: <TbArrowAutofitRight />,
+          color: "text-gray-400",
+          onClick: () => console.log("Recover", row.id),
+        },
+      ];
+    }
+
+    // Approved
+    if (tab === "Approved") {
+      baseActions.push({
+        label: "Move",
+        icon: <TbArrowAutofitRight />,
+        color: "text-gray-400",
+        onClick: () => console.log("Move", row.id),
+      });
+    }
+
+    // Default for Pending + Drafts
+    baseActions.push({
+      label: "Duplicate",
+      icon: <FiCopy />,
+      color: "text-gray-400",
+      onClick: () => console.log("Duplicate", row.id),
+    });
+
+    return baseActions;
+  };
+
   // Convert quotations to table data
   const tableData = useMemo<JSX.Element[][]>(() => {
     const combinedData = [
@@ -346,28 +500,22 @@ const OSBookingsPage = () => {
         travelDate:
           quotation.formFields?.departureDate ||
           new Date(quotation.createdAt).toLocaleDateString("en-GB"),
-        service:
-          getServiceIcon(quotation.quotationType) +
-          " " +
-          quotation.quotationType,
+        service: (
+          <div className="flex items-center gap-1">
+            {getServiceIcon(quotation.quotationType)}
+            <span>{formatServiceType(quotation.quotationType)}</span>
+          </div>
+        ),
+
         bookingStatus: mapStatus(quotation.status),
         amount: `₹ ${quotation.totalAmount?.toLocaleString("en-IN") || "0"}`,
-        voucher: (
-          <Image
-            src="/icons/voucher-icon.svg"
-            alt="voucher"
-            width={17}
-            height={17}
-            className="cursor-pointer"
-          />
-        ),
         tasks: Math.floor(Math.random() * 5) + 1, // Random tasks for demo
         isReal: true,
         originalIndex: index,
       })),
     ];
 
-    return combinedData.map((row, index) => [
+    const rows = combinedData.map((row, index) => [
       <td
         key={`id-${index}`}
         className="px-4 py-2 text-center align-middle h-[4rem]"
@@ -427,49 +575,21 @@ const OSBookingsPage = () => {
         key={`tasks-${index}`}
         className="px-4 py-2 text-center align-middle h-[2.5rem]"
       >
-        <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
-          {row.tasks}
-        </span>
+        <div className="flex justify-center">
+          <TaskButton count={row.tasks} />
+        </div>
       </td>,
 
       // ACTIONS COLUMN
       <td
         key={`actions-${index}`}
-        className="px-4 py-2 text-center align-middle h-[4rem]"
+        className="px-4 py-2  text-left align-middle h-[4rem]"
       >
-        <ActionMenu
-          actions={[
-            {
-              label: "Edit",
-              icon: <MdOutlineEdit />,
-              color: "text-blue-600",
-              onClick: () => console.log("Edit", row.id),
-            },
-            {
-              label: "Delete",
-              icon: <FaRegTrashAlt />,
-              color: "text-red-600",
-              onClick: () => console.log("Delete", row.id),
-            },
-
-            {
-              label: "Move",
-              onClick: () => console.log("View clicked"),
-              icon: <TbArrowAutofitRight />,
-              color: "text-gray-400",
-            },
-
-            {
-              label: "Duplicate",
-              onClick: () => console.log("Duplicate clicked"),
-              icon: <FiCopy />,
-              color: "text-gray-400",
-            },
-          ]}
-        />
+        <ActionMenu actions={getActionsForTab(activeTab, row)} />
       </td>,
     ]);
-  }, [quotations, handleViewQuotation]);
+    return reverse ? rows.reverse() : rows;
+  }, [quotations, handleViewQuotation, activeTab, reverse]);
 
   // Helper functions
 
@@ -548,7 +668,7 @@ const OSBookingsPage = () => {
         <div className="bg-white rounded-2xl shadow mt-4 pt-4 pb-3 px-3 relative">
           {/* Tabs and Total Count Row */}
           <div className="flex w-full justify-between items-center mb-2">
-            <div className="flex w-[32rem] ml-2 items-center bg-[#F3F3F3] rounded-2xl space-x-4">
+            <div className="flex w-[30.5rem] ml-2 items-center bg-[#F3F3F3] rounded-2xl space-x-4">
               {tabOptions.map((tab) => (
                 <button
                   key={tab}
@@ -581,11 +701,22 @@ const OSBookingsPage = () => {
                 data={tableData}
                 columns={columns}
                 columnIconMap={columnIconMap}
+                onSort={handleSort}
               />
             )}
           </div>
         </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Do you want to delete this quotation?"
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        confirmButtonColor="bg-red-600"
+        onConfirm={confirmDelete}
+      />
 
       {isCreateOpen && (
         <BookingFormModal

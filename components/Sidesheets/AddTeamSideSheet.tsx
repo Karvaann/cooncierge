@@ -6,22 +6,23 @@ import { CiCirclePlus } from "react-icons/ci";
 import { FiTrash2 } from "react-icons/fi";
 import { MdOutlineFileUpload } from "react-icons/md";
 import ConfirmationModal from "../popups/ConfirmationModal";
+import TransferDataModal from "../Modals/TransferDataModal";
+import { createOrUpdateUser } from "@/services/userApi";
 
 type TeamData = {
   firstname: string;
   lastname: string;
-  gender: string;
   alias: string;
-  status: string;
-  emergencyContactNumber: string | "";
-  countryCode: string | "+91";
-  workContactNumber: string | "";
+  gender: string;
+  emergencyContactNumber: string;
+  countryCode: string;
+  workContactNumber: string;
   workEmailId: string;
-  dateOfBirth: number | "";
-  designation: string | "";
-  dateOfJoining: number | "";
-  dateOfLeaving: number | "";
-  document: number | "";
+  dateOfBirth: string;
+  designation: string;
+  dateOfJoining: string;
+  dateOfLeaving: string;
+  address: string;
   remarks: string;
 };
 
@@ -29,42 +30,44 @@ type AddTeamSideSheetProps = {
   data?: TeamData | null;
   onCancel: () => void;
   isOpen: boolean;
+  mode?: "create" | "edit";
 };
 
 const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
   data,
   onCancel,
   isOpen,
+  mode,
 }) => {
-  const [phoneCode, setPhoneCode] = useState<string>("+91");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
 
-  const [balanceType, setBalanceType] = useState<"debit" | "credit">("debit");
-  const [balanceAmount, setBalanceAmount] = useState<string>("");
-
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   const [formData, setFormData] = useState<TeamData>({
     firstname: "",
     lastname: "",
     alias: "",
-    status: "",
+    gender: "",
     emergencyContactNumber: "",
     countryCode: "+91",
     workContactNumber: "",
     workEmailId: "",
     dateOfBirth: "",
-    gender: "",
+    designation: "",
     dateOfJoining: "",
     dateOfLeaving: "",
-    document: "",
-    designation: "",
+    address: "",
     remarks: "",
   });
 
   const handleConfirmModalOpen = () => {
     setIsConfirmationModalOpen(true);
+  };
+
+  const handleTransferModalOpen = () => {
+    setIsTransferModalOpen(true);
   };
 
   // Handle file selection
@@ -88,59 +91,72 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
       setFormData({
         firstname: data.firstname || "",
         lastname: data.lastname || "",
-        gender: data.gender || "",
         alias: data.alias || "",
-        status: data.status || "",
+        gender: data.gender || "",
         emergencyContactNumber: data.emergencyContactNumber || "",
         countryCode: data.countryCode || "+91",
         workContactNumber: data.workContactNumber || "",
         workEmailId: data.workEmailId || "",
         dateOfBirth: data.dateOfBirth || "",
-        dateOfLeaving: data.dateOfLeaving || "",
         designation: data.designation || "",
         dateOfJoining: data.dateOfJoining || "",
-        document: data.document || "",
+        dateOfLeaving: data.dateOfLeaving || "",
+        address: data.address || "",
         remarks: data.remarks || "",
       });
     } else {
-      // reset on unmount or data clear
       setFormData({
         firstname: "",
         lastname: "",
-        gender: "",
         alias: "",
-        status: "",
+        gender: "",
         emergencyContactNumber: "",
         countryCode: "+91",
         workContactNumber: "",
         workEmailId: "",
         dateOfBirth: "",
-        dateOfLeaving: "",
         designation: "",
         dateOfJoining: "",
-        document: "",
+        dateOfLeaving: "",
+        address: "",
         remarks: "",
       });
     }
   }, [data]);
 
-  //   const handleSubmit = async () => {
-  //     try {
-  //       // Combine form data with derived/fixed fields
-  //       const customerData = {
-  //         ...formData,
-  //         contactnumber: `${phoneCode}${formData.contactnumber}`, // prepend phone code
-  //         ownerId: "507f1f77bcf86cd799439012", // Replace with actual ownerId
-  //       };
+  const handleSubmit = async () => {
+    try {
+      const payload = {
+        name: `${formData.firstname} ${formData.lastname}`.trim(),
+        email: formData.workEmailId,
+        phone: `${formData.countryCode}${formData.workContactNumber}`,
+        alias: formData.alias || undefined,
+        gender: formData.gender || undefined,
+        emergencyContact: formData.emergencyContactNumber || undefined,
+        dateOfBirth: formData.dateOfBirth || undefined,
+        designation: formData.designation,
+        dateOfJoining: formData.dateOfJoining || undefined,
+        dateOfLeaving: formData.dateOfLeaving || undefined,
+        address: formData.address || undefined,
 
-  //       const response = await createCustomer(customerData);
-  //       console.log("Customer created successfully:", response);
+        businessId: "507f1f77bcf86cd799439012", // ✔ replace with actual
+        roleId: "ROLE_ID_HERE", // ✔ assign real role (e.g. Team Member)
+      };
 
-  //       onCancel();
-  //     } catch (error: any) {
-  //       console.error("Error creating customer:", error.message || error);
-  //     }
-  //   };
+      console.log("FINAL USER PAYLOAD:", payload);
+
+      const response = await createOrUpdateUser(payload);
+
+      if (response.success) {
+        console.log("Team(user) created successfully", response.data);
+        onCancel();
+      } else {
+        console.error("Failed to create team user", response);
+      }
+    } catch (err: any) {
+      console.error("Unexpected error:", err.message || err);
+    }
+  };
 
   return (
     <>
@@ -152,24 +168,24 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
         position="right"
       >
         <form className="space-y-6 p-4">
-          {/* ================= STATUS DROPDOWN ================ */}
+          {/* ================= STATUS DROPDOWN ================
           <div className="flex flex-col gap-1">
             <select
               name="status"
               required
               onChange={(e) => {
                 if (e.target.value === "former") {
-                  handleConfirmModalOpen();
+                  handleTransferModalOpen();
                 }
                 setFormData({ ...formData, status: e.target.value });
               }}
-              className="w-[250px] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-[15rem] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="disabled">Select Status</option>
               <option value="current">Current</option>
               <option value="former">Former</option>
             </select>
-          </div>
+          </div> */}
 
           {/* ================= BASIC DETAILS ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
@@ -183,6 +199,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </label>
                 <input
                   name="firstname"
+                  value={formData.firstname}
+                  onChange={(e) =>
+                    setFormData({ ...formData, firstname: e.target.value })
+                  }
                   placeholder="Enter First Name"
                   required
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -196,6 +216,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 <input
                   name="lastname"
                   placeholder="Enter Last Name"
+                  value={formData.lastname}
+                  onChange={(e) =>
+                    setFormData({ ...formData, lastname: e.target.value })
+                  }
                   required
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
@@ -208,8 +232,12 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   Date of Birth
                 </label>
                 <input
-                  name="dateofbirth"
+                  name="dateOfBirth"
                   placeholder="DD-MM-YYYY"
+                  value={formData.dateOfBirth}
+                  onChange={(e) =>
+                    setFormData({ ...formData, dateOfBirth: e.target.value })
+                  }
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -220,7 +248,11 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </label>
                 <select
                   name="gender"
+                  value={formData.gender}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  onChange={(e) =>
+                    setFormData({ ...formData, gender: e.target.value })
+                  }
                 >
                   <option value="disabled">Select Gender</option>
                   <option value="male">Male</option>
@@ -238,7 +270,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   <select
                     value={formData.countryCode}
                     onChange={(e) =>
-                      setFormData({ ...formData, countryCode: e.target.value })
+                      setFormData({
+                        ...formData,
+                        countryCode: e.target.value,
+                      })
                     }
                     className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
                     style={{ width: "70px" }}
@@ -277,6 +312,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </label>
                 <input
                   name="alias"
+                  value={formData.alias}
+                  onChange={(e) =>
+                    setFormData({ ...formData, alias: e.target.value })
+                  }
                   placeholder="Enter Alias"
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
@@ -290,7 +329,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   <select
                     value={formData.countryCode}
                     onChange={(e) =>
-                      setFormData({ ...formData, countryCode: e.target.value })
+                      setFormData({
+                        ...formData,
+                        countryCode: e.target.value,
+                      })
                     }
                     className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
                     style={{ width: "70px" }}
@@ -301,6 +343,13 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   </select>
                   <input
                     name="workContactNumber"
+                    value={formData.workContactNumber}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        workContactNumber: e.target.value,
+                      })
+                    }
                     placeholder="Enter Contact Number"
                     required
                     className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -314,6 +363,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </label>
                 <input
                   name="workEmailId"
+                  value={formData.workEmailId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, workEmailId: e.target.value })
+                  }
                   placeholder="Enter Email ID"
                   required
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -326,6 +379,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </label>
                 <input
                   name="designation"
+                  value={formData.designation}
+                  onChange={(e) =>
+                    setFormData({ ...formData, designation: e.target.value })
+                  }
                   placeholder="Enter Designation"
                   required
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -338,6 +395,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </label>
                 <input
                   name="dateOfJoining"
+                  value={formData.dateOfJoining}
+                  onChange={(e) =>
+                    setFormData({ ...formData, dateOfJoining: e.target.value })
+                  }
                   placeholder="DD-MM-YYYY"
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
@@ -349,6 +410,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </label>
                 <input
                   name="dateOfLeaving"
+                  value={formData.dateOfLeaving}
+                  onChange={(e) =>
+                    setFormData({ ...formData, dateOfLeaving: e.target.value })
+                  }
                   placeholder="DD-MM-YYYY"
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
@@ -357,7 +422,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
           </div>
 
           {/* ================= DOCUMENTS ================ */}
-          <div className="border border-gray-200 rounded-[12px] p-3">
+          {/* <div className="border border-gray-200 rounded-[12px] p-3">
             <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
@@ -396,7 +461,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 Note: Maximum of 3 files can be uploaded
               </div>
             </div>
-          </div>
+          </div> */}
 
           {/* ================= REMARKS ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
@@ -406,6 +471,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
             <hr className="mt-1 mb-2 border-t border-gray-200" />
             <textarea
               name="remarks"
+              value={formData.remarks}
+              onChange={(e) =>
+                setFormData({ ...formData, remarks: e.target.value })
+              }
               rows={5}
               placeholder="Enter Your Remarks Here"
               className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem] mt-2 transition-colors focus:ring focus:ring-blue-200"
@@ -421,25 +490,39 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
             >
               Cancel
             </button>
-            <button
-              type="button"
-              className="px-4 py-1.5 rounded-md bg-[#114958] text-white text-[0.75rem] hover:bg-[#0f3d44]"
-            >
-              Add New Team Member
-            </button>
+            {mode === "edit" ? (
+              <button
+                // onClick={handleUpdateCustomer}
+                className="px-4 py-2 bg-[#0D4B37] text-white rounded-lg hover:bg-green-900 text-[0.75rem]"
+              >
+                Update Team Member
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleSubmit}
+                className="px-4 py-1.5 rounded-md bg-[#114958] text-white text-[0.75rem] hover:bg-[#0f3d44]"
+              >
+                Add New Team Member
+              </button>
+            )}
           </div>
         </form>
-
-        <ConfirmationModal
-          isOpen={isConfirmationModalOpen}
-          onClose={() => setIsConfirmationModalOpen(false)}
-          title="Are you sure Arun Srivastava is no longer part of Company ABC?"
-          cancelText="No"
-          confirmText="Yes"
-          onConfirm={() => console.log("Confirm clicked")}
-          confirmButtonColor="bg-green-600"
-        />
       </SideSheet>
+      <ConfirmationModal
+        isOpen={isConfirmationModalOpen}
+        onClose={() => setIsConfirmationModalOpen(false)}
+        title="Are you sure Arun Srivastava is no longer part of Company ABC?"
+        cancelText="No"
+        confirmText="Yes"
+        onConfirm={() => console.log("Confirm clicked")}
+        confirmButtonColor="bg-green-600"
+      />
+
+      <TransferDataModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+      />
     </>
   );
 };
