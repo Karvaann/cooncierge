@@ -9,6 +9,7 @@ import { FiTrash2 } from "react-icons/fi";
 import OneWayLayout from "./OneWayLayout";
 import RoundTripLayout from "./RoundTripLayout";
 import MultiCityLayout from "./MultiCityLayout";
+import DateRangeInput from "@/components/DateRangeInput";
 // Type definitions
 interface FlightInfoFormData {
   bookingdate: string;
@@ -59,12 +60,14 @@ interface FlightInfoFormProps {
   onSubmit?: (data: FlightInfoFormData) => void;
   isSubmitting?: boolean;
   showValidation?: boolean;
+  formRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   onSubmit,
   isSubmitting = false,
   showValidation = true,
+  formRef,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<FlightInfoFormData>({
@@ -437,7 +440,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 
   return (
     <>
-      <form className="space-y-4 p-4 -mt-1" onSubmit={handleSubmit}>
+      <div className="space-y-4 p-4 -mt-1" ref={formRef as any}>
         <div className="px-2 py-1">
           {/* Booking and Travel Date */}
           <div className="flex flex-wrap items-end justify-between mb-3 px-5 -mx-5">
@@ -692,19 +695,25 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                 </div>
 
                 {/* Net */}
-                <div className="border border-gray-200 w-[9rem] rounded-lg p-3 bg-white">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[0.75rem] font-medium text-gray-700">
-                      Net
+
+                {/* Net */}
+                <div className="w-[9rem] rounded-lg p-1 bg-white">
+                  {/* Label on top */}
+                  <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
+                    Net
+                  </span>
+
+                  {/* Amount + percentage row */}
+                  <div className="flex items-center gap-3">
+                    {/* Blue pill amount */}
+                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
+                      ₹ 0.00
                     </span>
-                    <div className="flex gap-4 items-center">
-                      <span className="text-[0.75rem] text-gray-700">
-                        INR 0
-                      </span>
-                      <span className="text-[0.75rem] text-gray-700 font-medium">
-                        23%
-                      </span>
-                    </div>
+
+                    {/* Percentage */}
+                    <span className="text-[0.75rem] text-gray-700 font-medium">
+                      23%
+                    </span>
                   </div>
                 </div>
               </div>
@@ -800,14 +809,14 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         </div>
 
         {/* ================= ID PROOFS ================ */}
-        <div className="border border-gray-200  w-[48vw] ml-2.5 -mt-3 rounded-[12px] p-3">
+        {/* <div className="border border-gray-200  w-[48vw] ml-2.5 -mt-3 rounded-[12px] p-3">
           <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
           <div className="flex flex-col gap-4">
-            <div className="flex gap-5">
-              {/* Documents */}
-              <div className="flex flex-col gap-1">
+            <div className="flex gap-5"> */}
+        {/* Documents */}
+        {/* <div className="flex flex-col gap-1">
                 <div className="flex flex-col gap-3 items-start">
                   <input
                     type="file"
@@ -845,7 +854,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Remarks Section */}
         <div className="border border-gray-200 w-[48vw] ml-2.5 rounded-[12px] p-3 mt-4">
@@ -867,7 +876,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
           />
         </div>
 
-        {/* Submit Button */}
+        {/* Submit Button
         <div className="flex justify-end mt-3">
           <button
             type="submit"
@@ -876,8 +885,8 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
           >
             {isSubmitting ? "Saving..." : "Save"}
           </button>
-        </div>
-      </form>
+        </div> */}
+      </div>
     </>
   );
 };

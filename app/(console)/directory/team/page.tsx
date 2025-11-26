@@ -33,7 +33,7 @@ type TeamRow = {
 const columns: string[] = [
   "ID",
   "Member Name",
-  "ALias",
+  "Alias",
   "User Status",
   "Joining Date",
   "Actions",
@@ -409,11 +409,18 @@ const TeamDirectory = () => {
       "
               style={{ pointerEvents: "auto" }}
             >
-              <SelectUploadMenu
-                isOpen={isMenuOpen}
-                onClose={handleCloseMenu}
-                onSelect={handleSelectClick} // triggers the switch
-              />
+              {/* {menuMode === "main" ? (
+                <SelectUploadMenu
+                  isOpen={isMenuOpen}
+                  onClose={handleCloseMenu}
+                  onSelect={handleSelectClick} // triggers the switch
+                />
+              ) : (
+                <DownloadMergeMenu
+                  isOpen={isMenuOpen}
+                  onClose={handleCloseMenu}
+                />
+              )} */}
             </div>
           )}
         </div>

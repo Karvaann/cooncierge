@@ -2,12 +2,16 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import SideSheet from "../SideSheet";
-import { createVendor } from "@/services/vendorApi";
+import { createVendor, updateVendor } from "@/services/vendorApi";
+import { getAuthUser } from "@/services/storage/authStorage";
+
 import { CiCirclePlus } from "react-icons/ci";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
 
 type VendorData = {
+  _id?: string;
+  contactPerson?: string;
   firstname: string;
   lastname: string;
   alias: string;
@@ -77,9 +81,11 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
   useEffect(() => {
     if (data) {
+      const [firstname = "", lastname = ""] =
+        data.contactPerson?.split(" ") || [];
       setFormData({
-        firstname: data.firstname || "",
-        lastname: data.lastname || "",
+        firstname,
+        lastname,
         alias: data.alias || "",
         email: data.email || "",
         phone: data.phone || "",
@@ -107,7 +113,11 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
     }
   }, [data]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const user = getAuthUser() as any;
+    const businessId = user?.businessId;
+
     try {
       const vendorData = {
         companyName: formData.companyName,
@@ -122,7 +132,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         phone: `${phoneCode}${formData.phone}`,
         GSTIN: formData.GSTIN,
         address: formData.address,
-        businessId: "507f1f77bcf86cd799439012", // replace with real ID
+        businessId: businessId,
       };
 
       const response = await createVendor(vendorData);
@@ -131,6 +141,39 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       onCancel();
     } catch (error: any) {
       console.error("Error creating vendor:", error.message || error);
+    }
+  };
+
+  const handleUpdateVendor = async () => {
+    try {
+      const vendorId = data?._id;
+
+      if (!vendorId) {
+        console.error("No vendor ID found");
+        return;
+      }
+
+      const vendorData = {
+        companyName: formData.companyName,
+        contactPerson: `${formData.firstname} ${formData.lastname}`.trim(),
+        alias: formData.alias || undefined,
+        dateOfBirth: formData.dateOfBirth || undefined,
+        openingBalance: formData.openingBalance
+          ? Number(formData.openingBalance)
+          : undefined,
+        balanceType: formData.balanceType,
+        email: formData.email,
+        phone: `${phoneCode}${formData.phone}`,
+        GSTIN: formData.GSTIN,
+        address: formData.address,
+      };
+
+      const response = await updateVendor(vendorId, vendorData);
+      console.log("Vendor updated successfully:", response);
+
+      onCancel(); // close sheet
+    } catch (error: any) {
+      console.error("Error updating vendor:", error.message || error);
     }
   };
 
@@ -151,61 +194,78 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
             {/* First row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+              {/* Company Name */}
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Company Name <span className="text-red-500">*</span>
                 </label>
                 <input
-                  name="companyname"
+                  name="companyName"
+                  value={formData.companyName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, companyName: e.target.value })
+                  }
                   placeholder="Enter Company Name"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
                 />
               </div>
 
+              {/* Email */}
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Company Email ID <span className="text-red-500">*</span>
                 </label>
                 <input
-                  name="companyemail"
+                  name="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
                   placeholder="Enter Email ID"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
                 />
               </div>
 
+              {/* Phone */}
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Contact Number <span className="text-red-500">*</span>
                 </label>
                 <input
-                  name="contactnumber"
+                  name="phone"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
                   placeholder="Enter Contact Number"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
                 />
               </div>
             </div>
 
-            {/* GSTIN row */}
+            {/* GSTIN */}
             <div className="flex flex-col gap-1 mt-2">
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 GSTIN
               </label>
-              <div className="flex gap-2">
-                <input
-                  name="gstin"
-                  placeholder="Please Provide Your GST No."
-                  className="w-[14.5rem] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-                {/* <button
+              <input
+                name="GSTIN"
+                value={formData.GSTIN}
+                onChange={(e) =>
+                  setFormData({ ...formData, GSTIN: e.target.value })
+                }
+                placeholder="Please Provide Your GST No."
+                className="w-[14.5rem] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+              />
+              {/* <button
                   type="button"
                   className="px-3 py-1.5 bg-[#126ACB] text-white text-[0.75rem] rounded-md hover:bg-blue-800"
                 >
                   Fetch
                 </button> */}
-              </div>
             </div>
           </div>
 
@@ -218,81 +278,128 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
             {/* First row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+              {/* Firstname */}
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   First Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   name="firstname"
+                  value={formData.firstname}
+                  onChange={(e) =>
+                    setFormData({ ...formData, firstname: e.target.value })
+                  }
                   placeholder="Enter First Name"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
                 />
               </div>
 
+              {/* Lastname */}
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Last Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   name="lastname"
+                  value={formData.lastname}
+                  onChange={(e) =>
+                    setFormData({ ...formData, lastname: e.target.value })
+                  }
                   placeholder="Enter Last Name"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
                 />
               </div>
 
+              {/* Alias */}
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Nickname/Alias <span className="text-red-500">*</span>
                 </label>
                 <input
-                  name="nickname"
+                  name="alias"
+                  value={formData.alias}
+                  onChange={(e) =>
+                    setFormData({ ...formData, alias: e.target.value })
+                  }
                   placeholder="Enter Nickname/Alias"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
                 />
               </div>
             </div>
 
             {/* Second row */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Contact number AGAIN??? (duplicate) */}
+              {/* Keep it exactly as your UI → but map to correct type field */}
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Contact Number <span className="text-red-500">*</span>
                 </label>
                 <input
-                  name="contactnumber"
                   placeholder="Enter Contact Number"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
                 />
               </div>
 
+              {/* Email AGAIN */}
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Email ID <span className="text-red-500">*</span>
                 </label>
                 <input
-                  name="emailId"
                   placeholder="Enter Email ID"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
                 />
               </div>
 
+              {/* DOB */}
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Date of Birth <span className="text-red-500">*</span>
                 </label>
                 <input
-                  name="dateofbirth"
+                  name="dateOfBirth"
+                  value={formData.dateOfBirth}
+                  onChange={(e) =>
+                    setFormData({ ...formData, dateOfBirth: e.target.value })
+                  }
                   placeholder="DD-MM-YYYY"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
                 />
               </div>
             </div>
+          </div>
+
+          {/* ================= BILLING ADDRESS ================ */}
+          <div className="border border-gray-200 rounded-[12px] p-3">
+            <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+              Billing Address
+            </label>
+            <hr className="mt-1 mb-3 border-t border-gray-200" />
+
+            <input
+              name="address"
+              value={formData.address}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
+              }
+              placeholder="Enter Billing Address"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+            />
           </div>
 
           {/* ================= DOCUMENTS ================ */}
@@ -337,35 +444,23 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
             </div>
           </div> */}
 
-          {/* ================= BILLING ADDRESS ================ */}
-          <div className="border border-gray-200 rounded-[12px] p-3">
-            <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-              Billing Address
-            </label>
-            <hr className="mt-1 mb-3 border-t border-gray-200" />
-
-            <button
-              type="button"
-              className="px-2 py-2 bg-[#126ACB] text-white text-[0.75rem] rounded-md hover:bg-blue-800 flex items-center gap-1"
-            >
-              <CiCirclePlus size={14} /> Billing Address
-            </button>
-          </div>
-
           {/* ================= OPENING BALANCE ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
             <h2 className="text-[0.75rem] font-medium mb-2">Opening Balance</h2>
             <hr className="mt-1 mb-3 border-t border-gray-200" />
 
+            {/* Balance type */}
             <div className="flex items-center gap-6 mb-3">
               <label className="flex items-center gap-2 cursor-pointer text-[0.75rem]">
                 <input
                   type="radio"
                   name="balanceType"
                   value="debit"
-                  checked={balanceType === "debit"}
-                  onChange={() => setBalanceType("debit")}
-                  className="w-3 h-3 text-blue-600"
+                  checked={formData.balanceType === "debit"}
+                  onChange={() =>
+                    setFormData({ ...formData, balanceType: "debit" })
+                  }
+                  className="w-3 h-3"
                 />
                 <span className="text-gray-700">Debit</span>
               </label>
@@ -375,40 +470,32 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   type="radio"
                   name="balanceType"
                   value="credit"
-                  checked={balanceType === "credit"}
-                  onChange={() => setBalanceType("credit")}
-                  className="w-3 h-3 text-blue-600"
+                  checked={formData.balanceType === "credit"}
+                  onChange={() =>
+                    setFormData({ ...formData, balanceType: "credit" })
+                  }
+                  className="w-3 h-3"
                 />
                 <span className="text-gray-700">Credit</span>
               </label>
             </div>
 
-            <div className="relative">
-              <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-blue-500">
-                <span className="text-gray-500 mr-2 text-[0.75rem]">₹</span>
-                <input
-                  type="text"
-                  value={balanceAmount}
-                  onChange={(e) => setBalanceAmount(e.target.value)}
-                  placeholder={
-                    balanceType === "debit"
-                      ? "Enter Debit Amount"
-                      : "Enter Credit Amount"
-                  }
-                  className="flex-1 outline-none text-gray-700 text-[0.75rem]"
-                />
-              </div>
-              <div className="absolute right-3 top-2 text-[0.7rem] font-medium">
-                {balanceType === "debit" ? (
-                  <span className="text-red-500">
-                    Customer pays you ₹{balanceAmount || ""}
-                  </span>
-                ) : (
-                  <span className="text-green-500">
-                    You pay the customer ₹{balanceAmount || ""}
-                  </span>
-                )}
-              </div>
+            {/* Amount */}
+            <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2">
+              <span className="text-gray-500 mr-2 text-[0.75rem]">₹</span>
+              <input
+                type="text"
+                value={formData.openingBalance}
+                onChange={(e) =>
+                  setFormData({ ...formData, openingBalance: e.target.value })
+                }
+                placeholder={
+                  formData.balanceType === "debit"
+                    ? "Enter Debit Amount"
+                    : "Enter Credit Amount"
+                }
+                className="flex-1 outline-none text-[0.75rem]"
+              />
             </div>
           </div>
 
@@ -416,16 +503,16 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
           <div className="flex justify-end gap-2 pt-2">
             {mode === "edit" ? (
               <button
-                // onClick={handleUpdateCustomer}
-                className="px-4 py-2 bg-[#0D4B37] text-white rounded-lg hover:bg-green-900 text-[0.75rem]"
+                type="submit"
+                onClick={handleUpdateVendor}
+                className="px-4 py-2 bg-[#0D4B37] text-white rounded-lg text-[0.75rem]"
               >
                 Update Vendor
               </button>
             ) : (
               <button
                 type="submit"
-                onClick={handleSubmit}
-                className="px-4 py-1.5 rounded-md bg-[#114958] text-white text-[0.75rem] hover:bg-[#0f3d44]"
+                className="px-4 py-1.5 rounded-md bg-[#114958] text-white text-[0.75rem]"
               >
                 Add New Vendor
               </button>

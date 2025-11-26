@@ -13,6 +13,7 @@ import Fuse from "fuse.js";
 import { getCustomers } from "@/services/customerApi";
 import { getVendors } from "@/services/vendorApi";
 import { getUsers } from "@/services/userApi";
+import { div } from "framer-motion/client";
 
 // Type definitions
 interface GeneralInfoFormData {
@@ -82,17 +83,13 @@ const InputField: React.FC<InputFieldProps> = ({
               ? "border-green-300 focus:ring-green-200"
               : "border-gray-200 focus:ring-blue-200"
           }
-          ${
-            disabled || isValidating
-              ? "opacity-50 cursor-not-allowed"
-              : ""
-          }
+          ${disabled || isValidating ? "opacity-50 cursor-not-allowed" : ""}
           ${className}
         `}
       />
 
       {/* Validation indicator */}
-      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+      <div className="absolute inset-y-0 right-0 flex items-center pr-3 gap-1 translate-y-[1px]">
         <CiSearch size={18} className="text-gray-400" />
         {isValidating && (
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
@@ -128,10 +125,13 @@ const InputField: React.FC<InputFieldProps> = ({
           </svg>
         )}
       </div>
-
-      {hasError && errorMessage && (
-        <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
-      )}
+      <div className="">
+        {hasError && errorMessage && (
+          <p className="absolute -bottom-4 left-0 text-red-500 text-xs px-1">
+            {errorMessage}
+          </p>
+        )}
+      </div>
     </div>
   );
 };
@@ -146,6 +146,7 @@ interface GeneralInfoFormProps {
   onSubmit?: (data: GeneralInfoFormData) => void;
   isSubmitting?: boolean;
   showValidation?: boolean;
+  formRef?: React.RefObject<HTMLFormElement>;
 }
 
 const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
@@ -154,6 +155,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   onSubmit,
   isSubmitting = false,
   showValidation = true,
+  formRef,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<GeneralInfoFormData>({
@@ -174,7 +176,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const [validatingCustomer, setValidatingCustomer] = useState<boolean>(false);
   const [validatingVendor, setValidatingVendor] = useState<boolean>(false);
   const { openAddCustomer, openAddVendor, openAddTraveller } = useBooking();
-  const [customerList, setCustomerList] = useState<string[]>([""]);
+  const [customerList, setCustomerList] = useState<
+    { id: string; name: string }[]
+  >([{ id: "", name: "" }]);
+
+  const [vendorData, setVendorData] = useState<{ id: string; name: string }>({
+    id: "",
+    name: "",
+  });
 
   // Search data states
   const [allCustomers, setAllCustomers] = useState<any[]>([]);
@@ -252,7 +261,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   }, [formData.infants]);
 
   const addCustomerField = () => {
-    setCustomerList([...customerList, ""]);
+    setCustomerList([...customerList, { id: "", name: "" }]);
   };
 
   const removeCustomerField = (index: number) => {
@@ -260,12 +269,17 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   };
 
   // update customer field from customer array
-  const updateCustomerField = (index: number, value: string) => {
+  const updateCustomerField = (
+    index: number,
+    data: { id: string; name: string }
+  ) => {
     const updated = [...customerList];
-    updated[index] = value;
+    updated[index] = data;
     setCustomerList(updated);
+
+    // Sync to main form
     if (index === 0) {
-      setFormData({ ...formData, customer: value });
+      setFormData((prev) => ({ ...prev, customer: data.id })); // VALIDATION USES ID
     }
   };
 
@@ -505,10 +519,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     const processedValue = type === "number" ? value : value;
 
     // build next state from current formData
-    const next = { ...formData, [name]: processedValue };
-    setFormData(next);
-
-    onFormDataUpdate?.(next);
+    if (name !== "vendor") {
+      const next = { ...formData, [name]: processedValue };
+      setFormData(next);
+      onFormDataUpdate?.(next);
+    }
 
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
@@ -527,9 +542,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
         // Trigger API validation for customer and vendor
         if (name === "customer" && value.trim()) {
-          await handleCustomerValidation(value.trim());
+          const custId = customerList?.[0]?.id?.trim() ?? "";
+          if (custId) {
+            await handleCustomerValidation(custId);
+          }
         } else if (name === "vendor" && value.trim()) {
-          await handleVendorValidation(value.trim());
+          if (vendorData.id.trim()) {
+            await handleVendorValidation(vendorData.id);
+          }
         }
       }
 
@@ -540,6 +560,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       showValidation,
       handleCustomerValidation,
       handleVendorValidation,
+      customerList,
     ]
   );
 
@@ -588,10 +609,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       (name === "customer" && validatingCustomer) ||
       (name === "vendor" && validatingVendor);
 
-    const fieldValue = options?.value !== undefined ? options.value : formData[name];
+    const fieldValue =
+      options?.value !== undefined ? options.value : formData[name];
     const hasError = !!(errors[name] && touched[name]);
     const hasValue = formData[name] && String(formData[name]).trim();
-    const isValid = !options?.skipValidation && !!hasValue && !hasError && !isValidating;
+    const isValid =
+      !options?.skipValidation && !!hasValue && !hasError && !isValidating;
 
     return {
       value: fieldValue as string | number,
@@ -606,7 +629,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   };
 
   return (
-    <form className="space-y-4 p-4" onSubmit={handleSubmit}>
+    <div
+      className="space-y-4 p-4"
+      ref={formRef as any}
+      onSubmit={(e) => e.preventDefault()}
+    >
       {/* Customer Section */}
       <div className="border border-gray-200 rounded-[12px] p-3">
         <h2 className="text-[0.75rem] font-medium mb-2">Billed To</h2>
@@ -639,10 +666,15 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   className="w-full text-[0.75rem] py-2"
                   type="text"
                   {...getInputProps("customer", {
-                    value: customerList[index] || "",
-                    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                    value: customerList[index]?.name ?? "", // SHOW NAME (safe access)
+                    onChange: (e) => {
                       const value = e.target.value;
-                      updateCustomerField(index, value);
+
+                      // Update name only, ID stays same until selected from dropdown
+                      updateCustomerField(index, {
+                        id: customerList[index]?.id ?? "",
+                        name: value,
+                      });
 
                       const results = runFuzzySearch(allCustomers, value, [
                         "name",
@@ -655,15 +687,24 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   })}
                 />
 
-                {/* {showCustomerDropdown && customerResults.length > 0 && (
+                {showCustomerDropdown && customerResults.length > 0 && (
                   <div className="absolute bg-white border rounded-md w-[30rem] max-h-60 mt-1 overflow-y-auto shadow-md z-50">
-                    {customerResults.map((cust: any) => (
+                    {customerResults.map((cust) => (
                       <div
                         key={cust._id}
                         className="p-2 cursor-pointer hover:bg-gray-100"
                         onClick={() => {
-                          updateCustomerField(index, cust.name);
+                          updateCustomerField(index, {
+                            id: cust._id,
+                            name: cust.name,
+                          });
                           setShowCustomerDropdown(false);
+
+                          // Sync main form
+                          setFormData((prev) => ({
+                            ...prev,
+                            customer: cust._id,
+                          }));
                         }}
                       >
                         <p className="font-medium">{cust.name}</p>
@@ -671,14 +712,17 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       </div>
                     ))}
                   </div>
-                )} */}
+                )}
               </div>
 
               <RightSideIcons
                 fieldName="customer"
-                value={customerList[index]}
+                value={customerList[index]?.name ?? ""}
                 overrideSetter={(val: string) =>
-                  updateCustomerField(index, val)
+                  updateCustomerField(index, {
+                    id: customerList[index]?.id ?? "",
+                    name: val,
+                  })
                 }
                 onClickPlus={openAddCustomer}
               />
@@ -689,7 +733,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         <button
           type="button"
           onClick={addCustomerField}
-          className="-mt-1 flex gap-1 text-[#818181] text-[0.65rem] hover:text-gray-800 transition-colors"
+          className="mt-1 flex gap-1 text-[#818181] text-[0.65rem] hover:text-gray-800 transition-colors"
         >
           <GoPlusCircle size={17} />
           <p className="mt-0.5"> Add Another Customer </p>
@@ -697,7 +741,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       </div>
 
       {/* Vendor Section */}
-      <div className="border border-gray-200 rounded-[12px] p-3">
+      <div className="border border-gray-200 rounded-[12px] px-3 py-4">
         <h2 className="text-[0.75rem]  font-medium mb-2">Vendors</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
 
@@ -711,11 +755,15 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               name="vendor"
               placeholder="Search by Vendor Name/ID"
               required
-              className="w-full text-[0.75rem]  py-2"
+              className="w-full text-[0.75rem] py-2"
               {...getInputProps("vendor", {
-                onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                  handleChange(e);
-                  const results = runFuzzySearch(allVendors, e.target.value, [
+                value: vendorData.name,
+                onChange: (e) => {
+                  const value = e.target.value;
+
+                  // update name only
+                  setVendorData({ id: vendorData.id, name: value });
+                  const results = runFuzzySearch(allVendors, value, [
                     "name",
                     "email",
                   ]);
@@ -725,14 +773,16 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               })}
             />
 
-            {/* {showVendorDropdown && vendorResults.length > 0 && (
+            {showVendorDropdown && vendorResults.length > 0 && (
               <div className="absolute bg-white border rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-                {vendorResults.map((v: any) => (
+                {vendorResults.map((v) => (
                   <div
                     key={v._id}
                     className="p-2 cursor-pointer hover:bg-gray-100"
                     onClick={() => {
-                      setFormData((prev) => ({ ...prev, vendor: v.name }));
+                      setVendorData({ id: v._id, name: v.name });
+
+                      setFormData((prev) => ({ ...prev, vendor: v._id })); // SEND ID
                       setShowVendorDropdown(false);
                     }}
                   >
@@ -741,7 +791,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   </div>
                 ))}
               </div>
-            )} */}
+            )}
           </div>
           <RightSideIcons fieldName="vendor" onClickPlus={openAddVendor} />
         </div>
@@ -857,7 +907,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   {...getInputProps("infantTravellers", {
                     value: trav,
                     onChange: (e) =>
-                      updateTraveller("infantTravellers", index, e.target.value),
+                      updateTraveller(
+                        "infantTravellers",
+                        index,
+                        e.target.value
+                      ),
                     skipValidation: true,
                   })}
                 />
@@ -904,7 +958,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             })}
           />
 
-          {/* {showTeamDropdown && teamResults.length > 0 && (
+          {showTeamDropdown && teamResults.length > 0 && (
             <div className="absolute bg-white border rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
               {teamResults.map((t: any) => (
                 <div
@@ -920,7 +974,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 </div>
               ))}
             </div>
-          )} */}
+          )}
         </div>
       </div>
 
@@ -958,7 +1012,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           </button>
         </div>
       )} */}
-    </form>
+    </div>
   );
 };
 

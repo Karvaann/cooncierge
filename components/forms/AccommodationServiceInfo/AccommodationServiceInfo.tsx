@@ -8,6 +8,7 @@ import { FiTrash2 } from "react-icons/fi";
 import HotelLayout from "./HotelLayout";
 import { useRef } from "react";
 import VillaLayout from "./VillaLayout";
+import { CiSearch } from "react-icons/ci";
 // Type definitions
 interface AccommodationInfoFormData {
   bookingdate: string;
@@ -39,6 +40,110 @@ interface AccommodationInfoFormData {
   remarks: string;
 }
 
+interface InputFieldProps {
+  name: string;
+  type?: string;
+  placeholder?: string;
+  required?: boolean;
+  className?: string;
+  min?: number;
+  value: string | number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  disabled?: boolean;
+  hasError?: boolean;
+  errorMessage?: string | undefined;
+  isValidating?: boolean;
+  isValid?: boolean;
+}
+
+const InputField: React.FC<InputFieldProps> = ({
+  name,
+  type = "text",
+  placeholder,
+  required,
+  className = "",
+  min,
+  value,
+  onChange,
+  onBlur,
+  disabled = false,
+  hasError = false,
+  errorMessage,
+  isValidating = false,
+  isValid = false,
+}) => {
+  return (
+    <div className="relative">
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        required={required}
+        min={min}
+        disabled={disabled || isValidating}
+        className={`
+          w-full border rounded-md px-3 py-2 pr-10 text-[0.75rem]  transition-colors
+          ${
+            hasError
+              ? "border-red-300 focus:ring-red-200"
+              : isValid
+              ? "border-green-300 focus:ring-green-200"
+              : "border-gray-200 focus:ring-blue-200"
+          }
+          ${disabled || isValidating ? "opacity-50 cursor-not-allowed" : ""}
+          ${className}
+        `}
+      />
+
+      {/* Validation indicator */}
+      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+        <CiSearch size={18} className="text-gray-400" />
+        {isValidating && (
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
+        )}
+        {!isValidating && isValid && (
+          <svg
+            className="h-4 w-4 text-green-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+        )}
+        {!isValidating && hasError && (
+          <svg
+            className="h-4 w-4 text-red-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        )}
+      </div>
+
+      {hasError && errorMessage && (
+        <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
+      )}
+    </div>
+  );
+};
+
 interface RoomSegment {
   id?: string | null;
   roomCategory: string;
@@ -53,12 +158,14 @@ interface AccommodationInfoFormProps {
   onSubmit?: (data: AccommodationInfoFormData) => void;
   isSubmitting?: boolean;
   showValidation?: boolean;
+  formRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   onSubmit,
   isSubmitting = false,
   showValidation = true,
+  formRef,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<AccommodationInfoFormData>({
@@ -312,105 +419,39 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     [formData, validateForm, onSubmit, validationRules]
   );
 
-  // Enhanced input field component with validation indicators
-  const InputField: React.FC<{
-    name: keyof AccommodationInfoFormData;
-    id?: string;
-    type?: string;
-    placeholder?: string;
-    required?: boolean;
-    className?: string;
-    min?: number;
-  }> = ({
-    name,
-    type = "text",
-    placeholder,
-    required,
-    className = "",
-    min,
-  }) => {
+  // Helper to get input field props
+  const getInputProps = (
+    name: keyof AccommodationInfoFormData,
+    options?: {
+      value?: string | number;
+      onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+      skipValidation?: boolean;
+    }
+  ) => {
     const isValidatingField = name === "bookingdate" && isValidating;
-    const hasError = errors[name] && touched[name];
+
+    const fieldValue =
+      options?.value !== undefined ? options.value : formData[name];
+    const hasError = !!(errors[name] && touched[name]);
     const hasValue = formData[name] && String(formData[name]).trim();
-    const isValid = hasValue && !hasError && !isValidatingField;
+    const isValid =
+      !options?.skipValidation && !!hasValue && !hasError && !isValidating;
 
-    return (
-      <div className="relative">
-        <input
-          type={type}
-          name={name}
-          value={type === "file" ? undefined : String(formData[name] ?? "")}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          placeholder={placeholder}
-          required={required}
-          min={min}
-          disabled={isSubmitting || isValidatingField}
-          className={`
-            w-full border rounded-md px-3 py-2 pr-10 text-sm transition-colors
-            ${
-              hasError
-                ? "border-red-300 focus:ring-red-200"
-                : isValid && touched[name]
-                ? "border-green-300 focus:ring-green-200"
-                : "border-gray-200 focus:ring-blue-200"
-            }
-            ${
-              isSubmitting || isValidatingField
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }
-            ${className}
-          `}
-        />
-
-        {/* Validation indicator */}
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-          {isValidatingField && (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
-          )}
-          {!isValidatingField && isValid && touched[name] && (
-            <svg
-              className="h-4 w-4 text-green-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          )}
-          {!isValidatingField && hasError && (
-            <svg
-              className="h-4 w-4 text-red-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          )}
-        </div>
-
-        {hasError && (
-          <p className="text-red-500 text-xs mt-1">{errors[name]}</p>
-        )}
-      </div>
-    );
+    return {
+      value: fieldValue as string | number,
+      onChange: options?.onChange || handleChange,
+      onBlur: handleBlur,
+      disabled: isSubmitting || isValidating,
+      hasError,
+      errorMessage: errors[name],
+      isValidating,
+      isValid,
+    };
   };
 
   return (
     <>
-      <form className="space-y-4 p-4 -mt-1" onSubmit={handleSubmit}>
+      <div className="space-y-4 p-4 -mt-1" ref={formRef as any}>
         <div className="px-2 py-1">
           {/* Booking and Travel Date */}
           <div className="flex flex-wrap items-end justify-between mb-3 px-5 -mx-5">
@@ -423,6 +464,9 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 </label>
                 <input
                   type="date"
+                  name="bookingdate"
+                  value={formData.bookingdate}
+                  onChange={handleChange}
                   placeholder="DD-MM-YYYY"
                   className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -972,14 +1016,14 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
         </div>
 
         {/* ID PROOFS */}
-        <div className="border border-gray-200  w-[48vw] ml-2.5 -mt-3 rounded-[12px] p-3">
+        {/* <div className="border border-gray-200  w-[48vw] ml-2.5 -mt-3 rounded-[12px] p-3">
           <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
           <div className="flex flex-col gap-4">
-            <div className="flex gap-5">
-              {/* Documents */}
-              <div className="flex flex-col gap-1">
+            <div className="flex gap-5"> */}
+        {/* Documents */}
+        {/* <div className="flex flex-col gap-1">
                 <div className="flex flex-col gap-3 items-start">
                   <input
                     type="file"
@@ -1017,7 +1061,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Remarks Section */}
         <div className="border border-gray-200 w-[48vw] ml-2.5 rounded-[12px] p-3 mt-4">
@@ -1040,7 +1084,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
         </div>
 
         {/* Submit Button */}
-        <div className="flex justify-end mt-3">
+        {/* <div className="flex justify-end mt-3">
           <button
             type="submit"
             disabled={isSubmitting}
@@ -1048,8 +1092,8 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
           >
             {isSubmitting ? "Saving..." : "Save"}
           </button>
-        </div>
-      </form>
+        </div> */}
+      </div>
     </>
   );
 };

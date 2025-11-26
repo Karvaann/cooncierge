@@ -15,6 +15,7 @@ import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
 import DownloadMergeMenu from "@/components/Menus/DownloadMergeMenu";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
+import { FaRegStar } from "react-icons/fa";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -163,6 +164,51 @@ const VendorDirectory = () => {
     setVendors(sorted);
   };
 
+  const getRatingBadge = (ratingString: string) => {
+    // Convert "⭐️⭐️⭐️" OR "4" to a number
+    const rating =
+      typeof ratingString === "string"
+        ? ratingString.match(/⭐️/g)?.length || Number(ratingString)
+        : Number(ratingString);
+
+    // Map rating → background color
+    const bgMap: Record<number, string> = {
+      1: "bg-red-100 text-red-600",
+      2: "bg-orange-100 text-orange-600",
+      3: "bg-yellow-100 text-yellow-600",
+      4: "bg-green-100 text-green-600",
+      5: "bg-emerald-100 text-emerald-600",
+    };
+
+    const bgClass = bgMap[rating] || "bg-gray-100 text-gray-600";
+
+    return (
+      <div className="flex items-center gap-2 justify-center">
+        {/* Circle around star */}
+        <div
+          className={`w-7 h-7 rounded-full flex items-center justify-center ${bgClass}`}
+        >
+          <FaRegStar size={14} />
+        </div>
+
+        {/* Rating number OUTSIDE the circle */}
+        <span className="text-[0.8rem] font-semibold text-gray-700">
+          {rating}
+        </span>
+      </div>
+    );
+  };
+
+  const formatDMY = (dateString: string) => {
+    const date = new Date(dateString);
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+
+    return `${day}-${month}-${year}`;
+  };
+
   // Handle Delete Vendor
   const handleDeleteVendor = async (vendorId: string) => {
     try {
@@ -179,14 +225,15 @@ const VendorDirectory = () => {
     const fetchVendors = async () => {
       try {
         const data = await getVendors();
+        console.log("RAW VENDORS RESPONSE:", data);
 
         const mappedRows: VendorRow[] = data.map((v: any, index: number) => ({
           ...v,
           vendorID: v._id || `#C00${index + 1}`,
-          vendorname: v.companyName || v.name || "—",
+          vendorName: v.companyName || v.name || "—",
           poc: v.contactPerson || "—",
-          rating: "⭐️⭐️⭐️⭐️",
-          dateModified: new Date(v.createdAt).toLocaleDateString(),
+          rating: v.rating || "4",
+          dateModified: formatDMY(v.createdAt),
           actions: "⋮",
         }));
         setVendors(mappedRows);
@@ -261,7 +308,7 @@ const VendorDirectory = () => {
           <td key={`vendorID-${index}`} className="px-4 py-3  text-center">
             {row.vendorID}
           </td>,
-          <td key={`vendorname-${index}`} className="px-4 py-3  text-center">
+          <td key={`vendorName-${index}`} className="px-4 py-3  text-center">
             {row.vendorName}
           </td>,
           <td key={`poc-${index}`} className="px-4 py-3  text-center">
@@ -271,7 +318,7 @@ const VendorDirectory = () => {
             {row.dateModified}
           </td>,
           <td key={`rating-${index}`} className="px-4 py-3  text-center">
-            {row.rating}
+            {getRatingBadge(row.rating)}
           </td>,
 
           // Action menu
@@ -410,11 +457,18 @@ const VendorDirectory = () => {
       "
               style={{ pointerEvents: "auto" }}
             >
-              <SelectUploadMenu
-                isOpen={isMenuOpen}
-                onClose={handleCloseMenu}
-                onSelect={handleSelectClick}
-              />
+              {/* {menuMode === "main" ? (
+                <SelectUploadMenu
+                  isOpen={isMenuOpen}
+                  onClose={handleCloseMenu}
+                  onSelect={handleSelectClick} // triggers the switch
+                />
+              ) : (
+                <DownloadMergeMenu
+                  isOpen={isMenuOpen}
+                  onClose={handleCloseMenu}
+                />
+              )} */}
             </div>
           )}
         </div>

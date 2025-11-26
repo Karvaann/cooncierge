@@ -2,14 +2,14 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import SideSheet from "../SideSheet";
-import { CiCirclePlus } from "react-icons/ci";
-import { FiTrash2 } from "react-icons/fi";
-import { MdOutlineFileUpload } from "react-icons/md";
 import ConfirmationModal from "../popups/ConfirmationModal";
 import TransferDataModal from "../Modals/TransferDataModal";
 import { createOrUpdateUser } from "@/services/userApi";
+import { getAuthUser } from "@/services/storage/authStorage";
 
 type TeamData = {
+  _id?: string;
+  name?: string;
   firstname: string;
   lastname: string;
   alias: string;
@@ -88,9 +88,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
 
   useEffect(() => {
     if (data) {
+      const [firstname = "", lastname = ""] = data.name?.split(" ") || [];
       setFormData({
-        firstname: data.firstname || "",
-        lastname: data.lastname || "",
+        firstname,
+        lastname,
         alias: data.alias || "",
         gender: data.gender || "",
         emergencyContactNumber: data.emergencyContactNumber || "",
@@ -124,23 +125,31 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
     }
   }, [data]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const user = getAuthUser() as any;
+    const roleId = user?.roleId;
+
+    const businessId = user?.businessId;
     try {
       const payload = {
-        name: `${formData.firstname} ${formData.lastname}`.trim(),
+        mobile: formData.workContactNumber,
+        phoneCode: Number(formData.countryCode.replace("+", "")),
+
         email: formData.workEmailId,
-        phone: `${formData.countryCode}${formData.workContactNumber}`,
+        gender: formData.gender,
+        designation: formData.designation,
+
+        name: `${formData.firstname} ${formData.lastname}`.trim(),
         alias: formData.alias || undefined,
-        gender: formData.gender || undefined,
         emergencyContact: formData.emergencyContactNumber || undefined,
         dateOfBirth: formData.dateOfBirth || undefined,
-        designation: formData.designation,
         dateOfJoining: formData.dateOfJoining || undefined,
         dateOfLeaving: formData.dateOfLeaving || undefined,
         address: formData.address || undefined,
 
-        businessId: "507f1f77bcf86cd799439012", // ✔ replace with actual
-        roleId: "ROLE_ID_HERE", // ✔ assign real role (e.g. Team Member)
+        businessId: businessId, // ✔ replace with actual
+        roleId: roleId, // ✔ assign real role (e.g. Team Member)
       };
 
       console.log("FINAL USER PAYLOAD:", payload);
@@ -152,6 +161,55 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
         onCancel();
       } else {
         console.error("Failed to create team user", response);
+      }
+    } catch (err: any) {
+      console.error("Unexpected error:", err.message || err);
+    }
+  };
+
+  const handleUpdateUser = async () => {
+    try {
+      const userId = data?._id;
+
+      if (!userId) {
+        console.error("No user ID found");
+        return;
+      }
+
+      const user = getAuthUser() as any;
+      const roleId = user?.roleId;
+      const businessId = user?.businessId;
+
+      const payload = {
+        _id: userId, // Include the user ID for update
+        mobile: formData.workContactNumber,
+        phoneCode: Number(formData.countryCode.replace("+", "")),
+        email: formData.workEmailId,
+        gender: formData.gender,
+        designation: formData.designation,
+        name: `${formData.firstname} ${formData.lastname}`.trim(),
+        alias: formData.alias || undefined,
+        emergencyContact: formData.emergencyContactNumber || undefined,
+        dateOfBirth: formData.dateOfBirth || undefined,
+        dateOfJoining: formData.dateOfJoining || undefined,
+        dateOfLeaving: formData.dateOfLeaving || undefined,
+        address: formData.address || undefined,
+        businessId: businessId,
+        roleId: roleId,
+        // REQUIRED FIELDS
+        password: "TempPassword@123",
+        userType: "business_user",
+      };
+
+      console.log("UPDATING USER WITH PAYLOAD:", payload);
+
+      const response = await createOrUpdateUser(payload);
+
+      if (response.success) {
+        console.log("Team member updated successfully", response.data);
+        onCancel();
+      } else {
+        console.error("Failed to update team member", response);
       }
     } catch (err: any) {
       console.error("Unexpected error:", err.message || err);
@@ -492,7 +550,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
             </button>
             {mode === "edit" ? (
               <button
-                // onClick={handleUpdateCustomer}
+                type="button"
+                onClick={handleUpdateUser}
                 className="px-4 py-2 bg-[#0D4B37] text-white rounded-lg hover:bg-green-900 text-[0.75rem]"
               >
                 Update Team Member

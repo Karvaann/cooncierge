@@ -30,12 +30,14 @@ interface OtherInfoFormProps {
   onSubmit?: (data: OtherServiceInfoFormData) => void;
   isSubmitting?: boolean;
   showValidation?: boolean;
+  formRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   onSubmit,
   isSubmitting = false,
   showValidation = true,
+  formRef,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<OtherServiceInfoFormData>({
@@ -348,7 +350,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   return (
     <>
-      <form className="space-y-4 p-4 -mt-1" onSubmit={handleSubmit}>
+      <div className="space-y-4 p-4 -mt-1" ref={formRef as any}>
         <div className="px-2 py-1">
           {/* Booking and Travel Date */}
           <div className="flex flex-wrap items-end justify-between mb-3 px-5 -mx-5">
@@ -740,7 +742,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         </div>
 
         {/* Submit Button */}
-        <div className="flex justify-end mt-3">
+        {/* <div className="flex justify-end mt-3">
           <button
             type="submit"
             disabled={isSubmitting}
@@ -748,8 +750,8 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
           >
             {isSubmitting ? "Saving..." : "Save"}
           </button>
-        </div>
-      </form>
+        </div> */}
+      </div>
     </>
   );
 };

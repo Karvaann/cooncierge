@@ -689,7 +689,7 @@ const OSBookingsPage = () => {
                 Total
               </span>
               <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
-                78
+                {quotations.length}
               </span>
             </div>
           </div>

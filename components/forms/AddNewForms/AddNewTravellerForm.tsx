@@ -23,21 +23,23 @@ interface AddNewTravellerFormProps {
   onSubmit?: (data: TravellerFormData) => void;
   isSubmitting?: boolean;
   showValidation?: boolean;
+  formRef?: React.RefObject<HTMLFormElement | null>;
 }
 
 const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
   onSubmit,
   isSubmitting = false,
   showValidation = true,
+  formRef,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<TravellerFormData>({
     firstname: "",
     lastname: "",
     nickname: "",
-    contactnumber: 0,
+    contactnumber: "",
     emailId: "",
-    dateofbirth: 0,
+    dateofbirth: "",
     remarks: "",
   });
 
@@ -315,7 +317,11 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
       title={"Add Traveller"}
       width="xl"
     >
-      <form className="space-y-6 p-4" onSubmit={handleSubmit}>
+      <div
+        className="space-y-6 p-4"
+        ref={formRef as any}
+        onSubmit={(e) => e.preventDefault()}
+      >
         {/* ================= BASIC DETAILS ================ */}
         <div className="border border-gray-200 rounded-[12px] p-3">
           <h2 className="text-[0.75rem] font-medium mb-2">Basic Details</h2>
@@ -366,6 +372,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 Contact Number <span className="text-red-500">*</span>
               </label>
               <InputField
+                type="text"
                 name="contactnumber"
                 placeholder="Enter Contact Number"
                 required
@@ -390,6 +397,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 Date of Birth <span className="text-red-500">*</span>
               </label>
               <InputField
+                type="date"
                 name="dateofbirth"
                 placeholder="DD-MM-YYYY"
                 required
@@ -420,7 +428,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           />
         </div>
 
-        <div className="flex justify-end">
+        {/* <div className="flex justify-end">
           <button
             type="submit"
             disabled={isSubmitting}
@@ -428,8 +436,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           >
             {isSubmitting ? "Saving..." : "Save"}
           </button>
-        </div>
-      </form>
+        </div> */}
+      </div>
     </SideSheet>
   );
 };

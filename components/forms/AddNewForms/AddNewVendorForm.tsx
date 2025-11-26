@@ -33,12 +33,14 @@ interface AddNewVendorFormProps {
   onSubmit?: (data: VendorFormData) => void;
   isSubmitting?: boolean;
   showValidation?: boolean;
+  formRef?: React.RefObject<HTMLFormElement | null>;
 }
 
 const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
   onSubmit,
   isSubmitting = false,
   showValidation = true,
+  formRef,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<VendorFormData>({
@@ -359,7 +361,11 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
       title={"Add Vendor"}
       width="xl"
     >
-      <form className="space-y-6 p-4" onSubmit={handleSubmit}>
+      <div
+        className="space-y-6 p-4"
+        ref={formRef as any}
+        onSubmit={(e) => e.preventDefault()}
+      >
         {/* ================= BASIC DETAILS ================ */}
         <div className="border border-gray-200 rounded-[12px] p-3">
           <h2 className="text-[0.75rem] font-medium mb-2">Basic Details</h2>
@@ -675,7 +681,7 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
         </div>
 
         {/* Submit Button */}
-        <div className="flex justify-end">
+        {/* <div className="flex justify-end">
           <button
             type="submit"
             disabled={isSubmitting}
@@ -683,8 +689,8 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
           >
             {isSubmitting ? "Saving..." : "Save"}
           </button>
-        </div>
-      </form>
+        </div> */}
+      </div>
     </SideSheet>
   );
 };

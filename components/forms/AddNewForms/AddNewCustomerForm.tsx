@@ -32,12 +32,14 @@ interface AddNewCustomerFormProps {
   onSubmit?: (data: CustomerFormData) => void;
   isSubmitting?: boolean;
   showValidation?: boolean;
+  formRef?: React.RefObject<HTMLFormElement | null>;
 }
 
 const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
   onSubmit,
   isSubmitting = false,
   showValidation = true,
+  formRef,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<CustomerFormData>({
@@ -346,7 +348,11 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
       title={"Add Customer"}
       width="xl"
     >
-      <form className="space-y-6 p-4" onSubmit={handleSubmit}>
+      <div
+        className="space-y-6 p-4"
+        onSubmit={(e) => e.preventDefault()}
+        ref={formRef as any}
+      >
         {/* ================= BASIC DETAILS ================ */}
         <div className="border border-gray-200 rounded-[12px] p-3">
           <h2 className="text-[0.75rem] font-medium mb-2">Basic Details</h2>
@@ -626,7 +632,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
           />
         </div>
 
-        <div className="flex justify-end">
+        {/* <div className="flex justify-end">
           <button
             type="submit"
             disabled={isSubmitting}
@@ -634,8 +640,8 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
           >
             {isSubmitting ? "Saving..." : "Save"}
           </button>
-        </div>
-      </form>
+        </div> */}
+      </div>
     </SideSheet>
   );
 };

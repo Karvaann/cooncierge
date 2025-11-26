@@ -30,3 +30,13 @@ export const deleteCustomer = async (id: string) => {
   }
 };
 
+export const updateCustomer = async (id: string, customerData: any) => {
+  try {
+    const response = await apiClient.put(`/customer/update-customer/${id}`, customerData);    
+    return response.data.customer;
+  } catch (error: any) {
+    console.error("Failed to update customer:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+
