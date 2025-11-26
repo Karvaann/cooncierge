@@ -27,6 +27,115 @@ interface GeneralInfoFormData {
   remarks: string;
 }
 
+// InputField component moved OUTSIDE of GeneralInfoForm to prevent re-creation on each render
+interface InputFieldProps {
+  name: string;
+  type?: string;
+  placeholder?: string;
+  required?: boolean;
+  className?: string;
+  min?: number;
+  value: string | number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  disabled?: boolean;
+  hasError?: boolean;
+  errorMessage?: string | undefined;
+  isValidating?: boolean;
+  isValid?: boolean;
+}
+
+const InputField: React.FC<InputFieldProps> = ({
+  name,
+  type = "text",
+  placeholder,
+  required,
+  className = "",
+  min,
+  value,
+  onChange,
+  onBlur,
+  disabled = false,
+  hasError = false,
+  errorMessage,
+  isValidating = false,
+  isValid = false,
+}) => {
+  return (
+    <div className="relative">
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        placeholder={placeholder}
+        required={required}
+        min={min}
+        disabled={disabled || isValidating}
+        className={`
+          w-full border rounded-md px-3 py-2 pr-10 text-[0.75rem]  transition-colors
+          ${
+            hasError
+              ? "border-red-300 focus:ring-red-200"
+              : isValid
+              ? "border-green-300 focus:ring-green-200"
+              : "border-gray-200 focus:ring-blue-200"
+          }
+          ${
+            disabled || isValidating
+              ? "opacity-50 cursor-not-allowed"
+              : ""
+          }
+          ${className}
+        `}
+      />
+
+      {/* Validation indicator */}
+      <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+        <CiSearch size={18} className="text-gray-400" />
+        {isValidating && (
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
+        )}
+        {!isValidating && isValid && (
+          <svg
+            className="h-4 w-4 text-green-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M5 13l4 4L19 7"
+            />
+          </svg>
+        )}
+        {!isValidating && hasError && (
+          <svg
+            className="h-4 w-4 text-red-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        )}
+      </div>
+
+      {hasError && errorMessage && (
+        <p className="text-red-500 text-xs mt-1">{errorMessage}</p>
+      )}
+    </div>
+  );
+};
+
 interface ValidationErrors {
   [key: string]: string;
 }
@@ -466,111 +575,34 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     [formData.adults, formData.children, formData.infants]
   );
 
-  // Enhanced input field component with validation indicators
-  const InputField: React.FC<{
-    name: keyof GeneralInfoFormData;
-    type?: string;
-    placeholder?: string;
-    required?: boolean;
-    className?: string;
-    min?: number;
-    value?: string; // ADD THIS
-    onChange?: (e: any) => void;
-    skipValidation?: boolean;
-  }> = ({
-    name,
-    type = "text",
-    placeholder,
-    required,
-    className = "",
-    min,
-    value,
-    onChange,
-    skipValidation = false,
-  }) => {
+  // Helper to get input field props
+  const getInputProps = (
+    name: keyof GeneralInfoFormData,
+    options?: {
+      value?: string | number;
+      onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+      skipValidation?: boolean;
+    }
+  ) => {
     const isValidating =
       (name === "customer" && validatingCustomer) ||
       (name === "vendor" && validatingVendor);
 
-    const fieldValue = value !== undefined ? value : formData[name];
-    const handleChangeLocal = onChange ? onChange : handleChange;
-    const hasError = errors[name] && touched[name];
+    const fieldValue = options?.value !== undefined ? options.value : formData[name];
+    const hasError = !!(errors[name] && touched[name]);
     const hasValue = formData[name] && String(formData[name]).trim();
-    const isValid = !skipValidation && hasValue && !hasError && !isValidating;
+    const isValid = !options?.skipValidation && !!hasValue && !hasError && !isValidating;
 
-    return (
-      <div className="relative">
-        <input
-          type={type}
-          name={name}
-          value={fieldValue}
-          onChange={handleChangeLocal}
-          onBlur={handleBlur}
-          placeholder={placeholder}
-          required={required}
-          min={min}
-          disabled={isSubmitting || isValidating}
-          className={`
-            w-full border rounded-md px-3 py-2 pr-10 text-[0.75rem]  transition-colors
-            ${
-              hasError
-                ? "border-red-300 focus:ring-red-200"
-                : isValid
-                ? "border-green-300 focus:ring-green-200"
-                : "border-gray-200 focus:ring-blue-200"
-            }
-            ${
-              isSubmitting || isValidating
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }
-            ${className}
-          `}
-        />
-
-        {/* Validation indicator */}
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-          <CiSearch size={18} className="text-gray-400" />
-          {isValidating && (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
-          )}
-          {!isValidating && isValid && (
-            <svg
-              className="h-4 w-4 text-green-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          )}
-          {!isValidating && hasError && (
-            <svg
-              className="h-4 w-4 text-red-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          )}
-        </div>
-
-        {hasError && (
-          <p className="text-red-500 text-xs mt-1">{errors[name]}</p>
-        )}
-      </div>
-    );
+    return {
+      value: fieldValue as string | number,
+      onChange: options?.onChange || handleChange,
+      onBlur: handleBlur,
+      disabled: isSubmitting || isValidating,
+      hasError,
+      errorMessage: errors[name],
+      isValidating,
+      isValid,
+    };
   };
 
   return (
@@ -601,25 +633,26 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             <div className="flex items-center mt-1 w-full">
               <div className="w-[30rem]">
                 <InputField
-                  name={"customer"}
+                  name="customer"
                   placeholder="Search by Customer Name/ID"
                   required
                   className="w-full text-[0.75rem] py-2"
-                  // override value and change handler
                   type="text"
-                  value={customerList[index] || ""}
-                  onChange={(e: any) => {
-                    const value = e.target.value;
-                    updateCustomerField(index, value);
+                  {...getInputProps("customer", {
+                    value: customerList[index] || "",
+                    onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                      const value = e.target.value;
+                      updateCustomerField(index, value);
 
-                    const results = runFuzzySearch(allCustomers, value, [
-                      "name",
-                      "email",
-                      "phone",
-                    ]);
-                    setCustomerResults(results);
-                    setShowCustomerDropdown(true);
-                  }}
+                      const results = runFuzzySearch(allCustomers, value, [
+                        "name",
+                        "email",
+                        "phone",
+                      ]);
+                      setCustomerResults(results);
+                      setShowCustomerDropdown(true);
+                    },
+                  })}
                 />
 
                 {/* {showCustomerDropdown && customerResults.length > 0 && (
@@ -679,15 +712,17 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               placeholder="Search by Vendor Name/ID"
               required
               className="w-full text-[0.75rem]  py-2"
-              onChange={(e) => {
-                handleChange(e);
-                const results = runFuzzySearch(allVendors, e.target.value, [
-                  "name",
-                  "email",
-                ]);
-                setVendorResults(results);
-                setShowVendorDropdown(true);
-              }}
+              {...getInputProps("vendor", {
+                onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                  handleChange(e);
+                  const results = runFuzzySearch(allVendors, e.target.value, [
+                    "name",
+                    "email",
+                  ]);
+                  setVendorResults(results);
+                  setShowVendorDropdown(true);
+                },
+              })}
             />
 
             {/* {showVendorDropdown && vendorResults.length > 0 && (
@@ -788,11 +823,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   name="adultTravellers"
                   placeholder={`Adult ${index + 1}`}
                   required={index === 0}
-                  value={trav}
-                  onChange={(e) =>
-                    updateTraveller("adultTravellers", index, e.target.value)
-                  }
-                  skipValidation
+                  {...getInputProps("adultTravellers", {
+                    value: trav,
+                    onChange: (e) =>
+                      updateTraveller("adultTravellers", index, e.target.value),
+                    skipValidation: true,
+                  })}
                 />
               </div>
 
@@ -818,11 +854,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   name="infantTravellers"
                   placeholder={`Child ${index + 1}`}
                   required={index === 0}
-                  value={trav}
-                  onChange={(e) =>
-                    updateTraveller("infantTravellers", index, e.target.value)
-                  }
-                  skipValidation
+                  {...getInputProps("infantTravellers", {
+                    value: trav,
+                    onChange: (e) =>
+                      updateTraveller("infantTravellers", index, e.target.value),
+                    skipValidation: true,
+                  })}
                 />
               </div>
 
@@ -853,16 +890,18 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             placeholder="Search by Name/Username/ID"
             required
             className="mt-1 text-[0.75rem]  py-2"
-            onChange={(e) => {
-              handleChange(e);
-              const results = runFuzzySearch(allTeams, e.target.value, [
-                "name",
-                "email",
-                "username",
-              ]);
-              setTeamResults(results);
-              setShowTeamDropdown(true);
-            }}
+            {...getInputProps("bookingOwner", {
+              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
+                handleChange(e);
+                const results = runFuzzySearch(allTeams, e.target.value, [
+                  "name",
+                  "email",
+                  "username",
+                ]);
+                setTeamResults(results);
+                setShowTeamDropdown(true);
+              },
+            })}
           />
 
           {/* {showTeamDropdown && teamResults.length > 0 && (
