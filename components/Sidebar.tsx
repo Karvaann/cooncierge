@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { IconType } from "react-icons";
 import { MdKeyboardArrowUp } from "react-icons/md";
-import { FaChartLine } from "react-icons/fa6";
+import { TbGraph } from "react-icons/tb";
 import { LuLayoutDashboard } from "react-icons/lu";
 import { GoPeople } from "react-icons/go";
 import { TbLuggage } from "react-icons/tb";
@@ -40,7 +40,7 @@ const menuItems: MenuItem[] = [
   },
   {
     label: "Sales",
-    icon: FaChartLine,
+    icon: TbGraph,
     subMenu: [
       { label: "Limitless", href: "/sales/limitless" },
       { label: "Other Services", href: "/sales/other-services" },
@@ -134,41 +134,42 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     >
       <div
         ref={sidebarRef}
-        className={`fixed top-0 left-0 h-screen text-white border-r border-gray-700 transition-all transform duration-500 ease-in-out z-50 ${
-          isOpen ? "w-54" : "w-16"
+        className={`fixed top-0 left-0 h-screen text-white border-r border-gray-700 transition-all transform duration-500 ease-in-out z-50 pt-3 ${
+          isOpen ? "w-54" : "w-[3.125vw]"
         }`}
         style={{
           background:
             "linear-gradient(175.12deg, #0D4B37 27.08%, #63BB9E 153.71%)",
         }}
       >
-        <div className="flex justify-center items-center w-full gap-3 pt-3 pr-3">
-          {isOpen && (
+        <div className="flex justify-center items-center w-full gap-3">
+          {isOpen ? (
             <Image
               src="/logo/cooncierge-wordmark.svg"
               alt="Cooncierge wordmark"
               width={120}
-              height={30}
-              className="h-[30px] w-auto"
+              height={28}
+              className="h-[28px] w-auto"
+              priority
+            />
+          ) : (
+            <Image
+              src="/logo/cooncierge-logo-icon.svg"
+              alt="Cooncierge logo"
+              width={28}
+              height={28}
+              className="h-[28px] w-[28px]"
               priority
             />
           )}
-          <Image
-            src="/logo/cooncierge-logo-icon.svg"
-            alt="Cooncierge logo"
-            width={35}
-            height={35}
-            className="h-[35px] w-[35px]"
-            priority
-          />
         </div>
 
-        <ul className="mt-12 space-y-1">
+        <ul className="mt-4 space-y-1">
           {menuItems.map((item, index) => {
             const isActive = openSubMenuIndex === index;
             const showArrow = isOpen && Boolean(item.subMenu);
             const commonItemClasses =
-              "flex items-center gap-2 px-4 h-12 transition-colors";
+              "flex items-center gap-2 px-4 h-8 transition-colors";
 
             return (
               <li

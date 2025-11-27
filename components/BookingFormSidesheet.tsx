@@ -1,23 +1,40 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
-import ConfirmPopupModal from "./popups/ConfirmPopupModal";
-import SuccessPopupModal from "./popups/SuccessPopupModal";
+import React, { useState, useCallback, useMemo, useRef } from "react";
+import ConfirmPopupModal from "./popups/BookingPopups/ConfirmPopupModal";
+import SuccessPopupModal from "./popups/BookingPopups/SuccessPopupModal";
 import { BookingProvider, useBooking } from "@/context/BookingContext";
 import { BookingApiService } from "@/services/bookingApi";
 import SideSheet from "@/components/SideSheet";
 import GeneralInfoForm from "./forms/GeneralInfoForm";
-import AddNewCustomerForm from "./forms/AddNewFroms/AddNewCustomerForm";
-import AddNewVendorForm from "./forms/AddNewFroms/AddNewVendorForm";
+import AddNewCustomerForm from "./forms/AddNewForms/AddNewCustomerForm";
+import AddNewVendorForm from "./forms/AddNewForms/AddNewVendorForm";
+import AddNewTravellerForm from "./forms/AddNewForms/AddNewTravellerForm";
 import FlightServiceInfoForm from "./forms/FlightServiceInfo/FlightServiceInfoForm";
 import AccommodationServiceInfo from "./forms/AccommodationServiceInfo/AccommodationServiceInfo";
+import LandTransportServiceInfoForm from "./forms/LandTransportServiceInfoForm";
+import MaritimeTransportServiceInfoForm from "./forms/MaritimeTransportServiceInfoForm";
+import TicketsServiceInfoForm from "./forms/TicketsServiceInfoForm";
+import ActivityServiceInfoForm from "./forms/ActivityServiceInfoForm";
+import InsuranceServiceInfoForm from "./forms/InsuranceServiceInfoForm";
+import VisasServiceInfoForm from "./forms/VisasServiceInfoForm";
+import OthersServiceInfoForm from "./forms/OthersServiceInfoForm";
 
 // Type definitions
 interface Service {
   id: string;
   title: string;
   image: string;
-  category: "travel" | "accommodation" | "transport" | "activity";
+  category:
+    | "travel"
+    | "accommodation"
+    | "transport-land"
+    | "activity"
+    | "transport-maritime"
+    | "tickets"
+    | "travel insurance"
+    | "visas"
+    | "others";
   description?: string;
 }
 
@@ -40,6 +57,7 @@ interface TabConfig {
 
 function ServiceInfoFormSwitcher(props: any) {
   const { selectedService } = props;
+  console.log("CATEGORY:", selectedService?.category);
 
   if (!selectedService) return null;
 
@@ -49,6 +67,26 @@ function ServiceInfoFormSwitcher(props: any) {
 
     case "accommodation":
       return <AccommodationServiceInfo {...props} />;
+
+    case "transport-land":
+      return <LandTransportServiceInfoForm {...props} />;
+
+    case "transport-maritime":
+      return <MaritimeTransportServiceInfoForm {...props} />;
+    case "tickets":
+      return <TicketsServiceInfoForm {...props} />;
+
+    case "activity":
+      return <ActivityServiceInfoForm {...props} />;
+
+    case "travel insurance":
+      return <InsuranceServiceInfoForm {...props} />;
+
+    case "visas":
+      return <VisasServiceInfoForm {...props} />;
+
+    case "others":
+      return <OthersServiceInfoForm {...props} />;
 
     // you can keep adding cases for "transport" or "activity" later
     default:
@@ -72,8 +110,64 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-  const { isAddCustomerOpen, isAddVendorOpen } = useBooking();
+  const { isAddCustomerOpen, isAddVendorOpen, isAddTravellerOpen } =
+    useBooking();
   const { submitBooking, saveDraft } = useBooking();
+
+  // refs for form data collection
+  const generalFormRef = useRef<HTMLFormElement | null>(null);
+  const serviceFormRef = useRef<HTMLFormElement | HTMLDivElement | null>(null);
+  const addCustomerFormRef = useRef<HTMLFormElement | null>(null);
+  const addVendorFormRef = useRef<HTMLFormElement | null>(null);
+  const addTravellerFormRef = useRef<HTMLFormElement | null>(null);
+
+  // Update collectAllFormData
+  const collectAllFormData = useCallback(() => {
+    const allFormData: Record<string, any> = {};
+
+    // Get data from General Info form
+    if (generalFormRef.current instanceof HTMLFormElement) {
+      const generalData = new FormData(generalFormRef.current);
+      generalData.forEach((value, key) => {
+        allFormData[key] = value;
+      });
+    }
+
+    // Get data from Service Info form
+    if (serviceFormRef.current instanceof HTMLFormElement) {
+      const serviceData = new FormData(serviceFormRef.current as any);
+
+      serviceData.forEach((value, key) => {
+        allFormData[key] = value;
+      });
+    }
+
+    // Get data from Add Customer form (if open/filled)
+    if (addCustomerFormRef.current instanceof HTMLElement) {
+      const customerData = new FormData(addCustomerFormRef.current as any);
+      customerData.forEach((value, key) => {
+        allFormData[key] = value;
+      });
+    }
+
+    // Get data from Add Vendor form (if open/filled)
+    if (addVendorFormRef.current instanceof HTMLElement) {
+      const vendorData = new FormData(addVendorFormRef.current as any);
+      vendorData.forEach((value, key) => {
+        allFormData[key] = value;
+      });
+    }
+
+    // Get data from Add Traveller form (if open/filled)
+    if (addTravellerFormRef.current instanceof HTMLElement) {
+      const travellerData = new FormData(addTravellerFormRef.current as any);
+      travellerData.forEach((value, key) => {
+        allFormData[key] = value;
+      });
+    }
+
+    return allFormData;
+  }, []);
 
   // Memoized tab configuration
   const tabs: TabConfig[] = useMemo(
@@ -94,29 +188,26 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     [selectedService]
   );
 
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
+  const handleSubmit = useCallback(async () => {
+    setIsSubmitting(true);
 
-      const formData = new FormData(e.currentTarget);
-      const formValues = Object.fromEntries(formData.entries()) as Record<
-        string,
-        any
-      >;
+    if (!selectedService) {
+      console.error("No service selected");
+      alert("Please select a service");
+      setIsSubmitting(false);
+      return;
+    }
 
-      if (!selectedService) {
-        console.error("No service selected");
-        return;
-      }
-
-      const { totalAmount, ...restFields } = formValues;
+    try {
+      // Collect data from all forms
+      const formValues = collectAllFormData();
 
       const selectedServiceObj: Service = {
         id: "",
-        title: "",
-        image: "",
+        title: selectedService.title || "",
+        image: selectedService.image || "",
         category: selectedService.category,
-        description: "",
+        description: selectedService.description || "",
       };
 
       const bookingData = {
@@ -127,6 +218,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           adults: Number(formValues.adults || 0),
           children: Number(formValues.children || 0),
           infants: Number(formValues.infants || 0),
+          adultTravellers: formValues.adultTravellers || [],
+          infantTravellers: formValues.infantTravellers || [],
+          // add required traveller fields (default to empty string so types align)
           traveller1: formValues.traveller1 || "",
           traveller2: formValues.traveller2 || "",
           traveller3: formValues.traveller3 || "",
@@ -137,28 +231,24 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           firstname: formValues.firstname || "",
           lastname: formValues.lastname || "",
           nickname: formValues.nickname || "",
-          contactnumber: Number(formValues.contactnumber || 0),
+          contactnumber: formValues.contactnumber || "",
           emailId: formValues.emailId || "",
-          dateofbirth: Number(formValues.dateofbirth || 0),
-          gstin: Number(formValues.gstin || 0),
+          dateofbirth: formValues.dateofbirth || "",
+          gstin: formValues.gstin || "",
           companyname: formValues.companyname || "",
-          adhaarnumber: Number(formValues.adhaarnumber || 0),
-          pan: formValues.pan || "",
-          passport: formValues.passport || "",
           billingaddress: formValues.billingaddress || "",
           remarks: formValues.customerRemarks || "",
         },
         vendorform: {
           companyname: formValues.vendorCompanyName || "",
           companyemail: formValues.vendorCompanyEmail || "",
-          contactnumber: Number(formValues.vendorContact || 0),
-          gstin: Number(formValues.vendorGstin || 0),
+          contactnumber: formValues.vendorContact || "",
+          gstin: formValues.vendorGstin || "",
           firstname: formValues.vendorFirstname || "",
           lastname: formValues.vendorLastname || "",
           nickname: formValues.vendorNickname || "",
           emailId: formValues.vendorEmailId || "",
-          dateofbirth: Number(formValues.vendorDob || 0),
-          document: formValues.vendorDocument || "",
+          dateofbirth: formValues.vendorDob || "",
           billingaddress: formValues.vendorBillingAddress || "",
           remarks: formValues.vendorRemarks || "",
         },
@@ -169,13 +259,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           costprice: Number(formValues.costprice || 0),
           sellingprice: Number(formValues.sellingprice || 0),
           PNR: formValues.PNR || "",
-          pnrEnabled: formValues.pnrEnabled || false,
+          pnrEnabled:
+            formValues.pnrEnabled === "true" || formValues.pnrEnabled === true,
           segments: formValues.segments || [],
           returnSegments: formValues.returnSegments || [],
-          samePNRForAllSegments: formValues.samePNRForAllSegments || false,
+          samePNRForAllSegments:
+            formValues.samePNRForAllSegments === "true" ||
+            formValues.samePNRForAllSegments === true,
           flightType: formValues.flightType || "One Way",
-          voucher: formValues.voucher || null,
-          taxinvoice: formValues.taxinvoice || null,
           remarks: formValues.flightRemarks || "",
         },
         accommodationform: {
@@ -197,35 +288,68 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           segments: formValues.accommodationSegments || [],
           costprice: Number(formValues.accomCost || 0),
           sellingprice: Number(formValues.accomSell || 0),
-          voucher: formValues.accomVoucher || null,
-          taxinvoice: formValues.accomTaxInvoice || null,
           remarks: formValues.accomRemarks || "",
+        },
+        otherServiceInfoform: {
+          bookingdate: formValues.bookingdate || "",
+          traveldate: formValues.traveldate || "",
+          bookingstatus: formValues.bookingstatus || "Confirmed",
+          confirmationNumber: formValues.confirmationNumber || "",
+          title: formValues.title || "",
+          description: formValues.description || "",
+          remarks: formValues.remarks || "",
+        },
+        travellerform: {
+          firstname: formData.firstname || "",
+          lastname: formData.lastname || "",
+          nickname: formData.nickname || "",
+          contactnumber: formData.contactnumber || "",
+          emailId: formData.emailId || "",
+          dateofbirth: formData.dateofbirth || "",
+          remarks: formData.remarks || "",
         },
         timestamp: new Date().toISOString(),
       };
 
-      try {
-        const response = await BookingApiService.createQuotation(bookingData);
+      console.log("Submitting Booking Data:", bookingData);
 
-        if (response.success) {
-          console.log("Quotation created successfully!", response.data);
-          e.currentTarget.reset();
-        } else {
-          console.error(
-            "Failed to create quotation:",
-            response.message,
-            response.errors
-          );
+      const response = await BookingApiService.createQuotation(bookingData);
+
+      if (response.success) {
+        console.log("Booking created successfully!", response.data);
+        setIsSuccessModalOpen(true);
+
+        // Reset all forms
+        generalFormRef.current?.reset();
+        if (serviceFormRef.current instanceof HTMLFormElement) {
+          serviceFormRef.current.reset();
         }
-      } catch (err: any) {
+
+        addCustomerFormRef.current?.reset();
+        addVendorFormRef.current?.reset();
+        addTravellerFormRef.current?.reset();
+
+        // Auto-close after 2 seconds
+        setTimeout(() => {
+          onClose();
+        }, 2000);
+      } else {
         console.error(
-          "Unexpected error creating quotation:",
-          err.message || err
+          "Failed to create booking:",
+          response.message,
+          response.errors
+        );
+        alert(
+          `Failed to create booking: ${response.message || "Unknown error"}`
         );
       }
-    },
-    [selectedService]
-  );
+    } catch (err: any) {
+      console.error("Unexpected error creating booking:", err.message || err);
+      alert(`Error creating booking: ${err.message || "Please try again"}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [selectedService, collectAllFormData, onClose]);
 
   // Optimized tab click handler
   const handleTabClick = useCallback(
@@ -279,13 +403,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         <button
           key={tab.id}
           className={`
-          px-4 py-2 text-sm font-medium border-b-2 transition-colors
+          px-4 py-1.5 text-[0.75rem] font-medium border-b-2 transition-colors
           ${
             activeTab === tab.id
               ? "border-[#0D4B37] text-[#0D4B37]"
               : tab.isEnabled
-              ? "border-transparent text-gray-500 hover:text-gray-700"
-              : "border-transparent text-gray-300 cursor-not-allowed"
+              ? "border-transparent  text-gray-500 hover:text-gray-700"
+              : "border-transparent  text-gray-300 cursor-not-allowed"
           }
         `}
           onClick={() => handleTabClick(tab.id)}
@@ -314,7 +438,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       isSubmitting,
     };
 
-    return <Component {...commonProps} />;
+    return <Component {...commonProps} formRef={serviceFormRef} />;
   }, [
     activeTab,
     tabs,
@@ -344,92 +468,129 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         title={title}
         width="xl"
       >
-        <div className="flex flex-col h-full">
-          {/* Tabs */}
-          <div className="flex space-x-0 p-6" role="tablist">
-            {tabButtons}
-          </div>
+        <div>
+          <div className="flex flex-col h-full">
+            {/* Tabs */}
+            <div
+              className="flex w-full border-b border-gray-200 space-x-0 px-6 -mt-2 -ml-2"
+              role="tablist"
+            >
+              {tabButtons}
+            </div>
 
-          {/* Tab Content */}
-          <div className="flex-1 overflow-y-auto" role="tabpanel">
-            {activeTabContent}
-          </div>
+            {/* Tab Content */}
+            <div className="flex-1 overflow-y-auto" role="tabpanel">
+              {activeTabContent}
+            </div>
 
-          {/* Footer Actions */}
-          <div className="border-t border-gray-200 p-4 mt-4">
-            <div className="flex justify-between">
-              <button
-                onClick={() => setIsConfirmModalOpen(true)}
-                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                disabled={isSubmitting}
-              >
-                Cancel
-              </button>
+            {/* Footer Actions */}
 
-              <div className="flex space-x-2">
-                {activeTab !== "general" && (
+            <div className="border-t border-gray-200 p-4 mt-4">
+              <div className="flex justify-between">
+                {/* LEFT SIDE BUTTON — General: Cancel | Service: Previous */}
+                {activeTab === "general" ? (
+                  // Cancel Button (General Tab)
+                  <button
+                    onClick={() => setIsConfirmModalOpen(true)}
+                    className="px-3 py-1 text-[0.85rem] text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </button>
+                ) : (
+                  // Previous Button (Service Tab)
                   <button
                     onClick={() => {
                       const currentIndex = tabs.findIndex(
                         (tab) => tab.id === activeTab
                       );
                       const prevTab = tabs[currentIndex - 1];
-                      if (prevTab?.isEnabled) {
-                        setActiveTab(prevTab.id);
-                      }
+                      if (prevTab?.isEnabled) setActiveTab(prevTab.id);
                     }}
-                    className="px-4 py-2 text-[#114958] border border-[#114958] rounded-lg hover:bg-[#114958] hover:text-white transition-colors"
+                    className="px-3 py-1 text-[#114958] text-[0.85rem] border border-[#114958] rounded-lg hover:bg-[#114958] hover:text-white transition-colors"
                     disabled={isSubmitting}
                   >
                     Previous
                   </button>
                 )}
 
-                {activeTab !== "review" ? (
-                  <button
-                    onClick={() => {
-                      const currentIndex = tabs.findIndex(
-                        (tab) => tab.id === activeTab
-                      );
-                      const nextTab = tabs[currentIndex + 1];
-                      if (nextTab?.isEnabled) {
-                        setActiveTab(nextTab.id);
-                      }
-                    }}
-                    className="px-4 py-2 bg-[#114958] text-white rounded-lg hover:bg-[#0d3a45] transition-colors"
-                    disabled={isSubmitting}
-                  >
-                    Next
-                  </button>
-                ) : (
-                  <div className="flex gap-3">
-                    <button
-                      onClick={async () => {
-                        try {
-                          const draftName = `${
-                            selectedService?.title || "Booking"
-                          } - ${formData?.generalInfo?.customer || "Draft"}`;
-                          await saveDraft(draftName);
-                          // Show success message or close
-                          onClose();
-                        } catch (error) {
-                          console.error("Error saving draft:", error);
-                        }
-                      }}
-                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
-                      disabled={isSubmitting}
-                    >
-                      Save Draft
-                    </button>
-                    <button
-                      onClick={() => handleFormSubmit(formData)}
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                      disabled={isSubmitting || !selectedService}
-                    >
-                      {isSubmitting ? "Submitting..." : "Submit Booking"}
-                    </button>
-                  </div>
-                )}
+                {/* RIGHT SIDE BUTTONS */}
+                <div className="flex space-x-2">
+                  {/* GENERAL TAB BUTTONS */}
+                  {activeTab === "general" && (
+                    <>
+                      {/* Save Draft */}
+                      <button
+                        onClick={async () => {
+                          try {
+                            const draftName = `${
+                              selectedService?.title || "Booking"
+                            } - ${formData?.generalInfo?.customer || "Draft"}`;
+                            await saveDraft(draftName);
+                            onClose();
+                          } catch (error) {
+                            console.error("Error saving draft:", error);
+                          }
+                        }}
+                        className="px-3 py-2 text-[0.75rem] bg-[#114958] text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+                        disabled={isSubmitting}
+                      >
+                        Save Draft
+                      </button>
+
+                      {/* Next (go to service tab) */}
+                      <button
+                        onClick={() => {
+                          const currentIndex = tabs.findIndex(
+                            (tab) => tab.id === activeTab
+                          );
+                          const nextTab = tabs[currentIndex + 1];
+                          if (nextTab?.isEnabled) setActiveTab(nextTab.id);
+                        }}
+                        className="px-3 bg-[#114958] text-[0.85rem] text-white rounded-lg hover:bg-[#0d3a45] transition-colors"
+                        disabled={isSubmitting}
+                      >
+                        Next
+                      </button>
+                    </>
+                  )}
+
+                  {/* SERVICE TAB BUTTONS */}
+                  {activeTab === "service" && (
+                    <>
+                      {/* Save Draft */}
+                      <button
+                        onClick={async () => {
+                          try {
+                            const draftName = `${
+                              selectedService?.title || "Booking"
+                            } - ${formData?.generalInfo?.customer || "Draft"}`;
+                            await saveDraft(draftName);
+                            onClose();
+                          } catch (error) {
+                            console.error("Error saving draft:", error);
+                          }
+                        }}
+                        className="px-3 py-2 text-[0.75rem] bg-[#114958] text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+                        disabled={isSubmitting}
+                      >
+                        Save Draft
+                      </button>
+
+                      {/* Create Booking */}
+                      <button
+                        type="button"
+                        onClick={handleSubmit}
+                        className="px-4 py-2 bg-[#114958] text-[0.75rem] text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                        disabled={isSubmitting || !selectedService}
+                      >
+                        {isSubmitting
+                          ? "Creating Booking..."
+                          : "Create Booking"}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -439,7 +600,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       {/* Confirm Popup Modal */}
       <ConfirmPopupModal
         isOpen={isConfirmModalOpen}
-        title={confirmModalText}
+        title="Do you want to save the data to drafts before closing?"
         onClose={() => setIsConfirmModalOpen(false)}
         onDontSave={() => {
           setIsConfirmModalOpen(false);
@@ -469,8 +630,11 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         title="Yaay! The Data - #1234 has been successfully saved to drafts!"
       />
 
-      {isAddCustomerOpen && <AddNewCustomerForm />}
-      {isAddVendorOpen && <AddNewVendorForm />}
+      {isAddCustomerOpen && <AddNewCustomerForm formRef={addCustomerFormRef} />}
+      {isAddVendorOpen && <AddNewVendorForm formRef={addVendorFormRef} />}
+      {isAddTravellerOpen && (
+        <AddNewTravellerForm formRef={addTravellerFormRef} />
+      )}
     </>
   );
 };

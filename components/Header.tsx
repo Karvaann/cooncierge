@@ -1,28 +1,60 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { FaUser, FaCog, FaChartBar, FaSignOutAlt } from "react-icons/fa";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
+import { GoSignOut } from "react-icons/go";
 import { IoMdArrowDropdown } from "react-icons/io";
 import { IoHomeOutline, IoPersonOutline } from "react-icons/io5";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
+import { HiOutlineHandRaised } from "react-icons/hi2";
+import { SlSettings } from "react-icons/sl";
+import RaiseRequestModal from "./Modals/RaiseRequestModal";
 
 // Type definitions
 interface HeaderProps {
   isOpen: boolean;
 }
 
-type PieceMapKey = 
-  | "other-services" | "limitless" | "sales" | "tasks" | "leads" 
-  | "dashboard" | "operations" | "bookings" | "finance" | "directory" 
-  | "customers" | "team" | "vendors" | "settings";
+type PieceMapKey =
+  | "other-services"
+  | "limitless"
+  | "sales"
+  | "tasks"
+  | "leads"
+  | "dashboard"
+  | "operations"
+  | "bookings"
+  | "finance"
+  | "directory"
+  | "customers"
+  | "team"
+  | "vendors"
+  | "ProfileSettings"
+  | "UserProfile";
 
-type HeaderMapKey = 
-  | "/sales/limitless" | "/sales/other-services" | "/bookings/limitless" 
-  | "/bookings/other-services" | "/operations/limitless" | "/operations/other-services"
-  | "/finance/limitless" | "/finance/other-services" | "/leads" | "/tasks"
-  | "/directory/vendors" | "/directory/customers" | "/directory/team"
-  | "/dashboard" | "/settings";
+type HeaderMapKey =
+  | "/sales/limitless"
+  | "/sales/other-services"
+  | "/bookings/limitless"
+  | "/bookings/other-services"
+  | "/operations/limitless"
+  | "/operations/other-services"
+  | "/finance/limitless"
+  | "/finance/other-services"
+  | "/leads"
+  | "/tasks"
+  | "/directory/vendors"
+  | "/directory/customers"
+  | "/directory/team"
+  | "/dashboard"
+  | "/ProfileSettings"
+  | "/ProfileSettings/UserProfile";
 
 // Optimized constants with proper typing
 const PIECE_MAP: Record<PieceMapKey, string> = {
@@ -39,7 +71,8 @@ const PIECE_MAP: Record<PieceMapKey, string> = {
   customers: "Customers",
   team: "Team",
   vendors: "Vendors",
-  settings: "Settings",
+  ProfileSettings: "Profile Settings",
+  UserProfile: "User Profile",
 } as const;
 
 const HEADER_MAP: Record<HeaderMapKey, string> = {
@@ -57,13 +90,19 @@ const HEADER_MAP: Record<HeaderMapKey, string> = {
   "/directory/customers": "Directory - Customers",
   "/directory/team": "Directory - Team",
   "/dashboard": "Dashboard",
-  "/settings": "Settings",
+  "/ProfileSettings": "Profile Settings",
+  "/ProfileSettings/UserProfile": "User Profile",
 } as const;
 
 const Header: React.FC<HeaderProps> = ({ isOpen }) => {
   const [isDropDownOpen, setIsDropDownOpen] = useState<boolean>(false);
+  const [isRaiseRequestModalOpen, setIsRaiseRequestModalOpen] =
+    useState<boolean>(false);
+  const openRaiseRequestModal = () => setIsRaiseRequestModalOpen(true);
+  const closeRaiseRequestModal = () => setIsRaiseRequestModalOpen(false);
   const router = useRouter();
   const pathname = usePathname();
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // Memoized handlers for better performance
   const handleLogOut = useCallback(() => {
@@ -71,20 +110,34 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
   }, [router]);
 
   const handleSettingsClick = useCallback(() => {
-    router.push("/settings");
+    router.push("/ProfileSettings/UserProfile");
   }, [router]);
 
   const toggleDropdown = useCallback(() => {
-    setIsDropDownOpen(prev => !prev);
+    setIsDropDownOpen((prev) => !prev);
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setIsDropDownOpen(false);
+      }
+    };
+
+    if (isDropDownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isDropDownOpen]);
 
   // Memoized breadcrumb generation
   const breadcrumbElements = useMemo(() => {
     const urlPieces = pathname.split("/").slice(1);
     return urlPieces.map((piece, index) => (
       <span key={`${piece}-${index}`} className="flex items-center">
-        <span className="text-gray-400 mx-2">/</span>
-        <span className="text-[#114958] font-medium mr-2">
+        <span className="text-gray-400 text-[0.75rem] mx-1">/</span>
+        <span className="text-[#114958] text-[0.55rem] mr-1">
           {PIECE_MAP[piece as PieceMapKey] || piece}
         </span>
       </span>
@@ -97,15 +150,21 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
   }, [pathname]);
 
   // Memoized inline styles for performance
-  const headerStyle = useMemo(() => ({
-    marginLeft: isOpen ? "216px" : "64px",
-    transition: "margin-left 0.5s ease-in-out",
-  }), [isOpen]);
+  const headerStyle = useMemo(
+    () => ({
+      transition: "margin-left 0.5s ease-in-out",
+      zIndex: 30,
+      // height: "fit-content",
+    }),
+    [isOpen]
+  );
 
-  const dropdownClasses = useMemo(() => 
-    `absolute right-0 top-full mt-2 w-48 bg-gray-100 rounded-lg shadow-lg z-50 overflow-hidden transition-all duration-700 ease-in-out scroll-smooth ${
-      isDropDownOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-    }`, [isDropDownOpen]
+  const dropdownClasses = useMemo(
+    () =>
+      `absolute right-0 top-full mt-6 -mr-3 w-81 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden transition-all duration-300 ease-in-out ${
+        isDropDownOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+      }`,
+    [isDropDownOpen]
   );
 
   useEffect(() => {
@@ -114,92 +173,116 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
   }, [pathname]);
 
   return (
-    <div style={headerStyle}>
-      {/* Header Main Row */}
-      <div className="flex justify-between items-center px-8 py-4 border-b border-gray-200 bg-white">
-        {/* Left: Page Title */}
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {headerTitle}
-          </h1>
-        </div>
+    <>
+      <div style={headerStyle}>
+        {/* Header Main Row */}
+        <div className="flex justify-between items-center px-5 py-1 border-b border-gray-200 bg-white">
+          {/* Left: Page Title */}
+          <div>
+            <h1 className="font-[Poppins] font-semibold text-[0.95rem] leading-[1.75rem] tracking-normal align-middle">{headerTitle}</h1>
+          </div>
 
-        {/* Right: Notification, Profile Avatar, Profile Settings */}
-        <div className="flex items-center gap-3">
-          {/* Notification Bell with red dot */}
-          <div className="relative">
-            <button 
-              className="text-gray-500 hover:text-[#114958] transition-colors"
-              aria-label="Notifications"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-6 h-6"
+          {/* Right: Notification, Profile Avatar, Profile Settings */}
+          <div className="flex items-center gap-3">
+            {/* Notification Bell with red dot */}
+            <div className="relative">
+              <button
+                className="text-gray-500 hover:text-[#114958] transition-colors"
+                aria-label="Notifications"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-              </svg>
-              <span className="absolute top-0 right-0 block w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-          </div>
-          
-          {/* Profile Avatar */}
-          <div className="w-8 h-8 rounded-full bg-[#114958] flex items-center justify-center">
-            <IoPersonOutline className="text-white w-4 h-4" />
-          </div>
-          
-          {/* Profile Settings Text with dropdown */}
-          <div className="flex items-center cursor-pointer relative">
-            <button
-              onClick={toggleDropdown}
-              className="flex items-center gap-2 text-gray-700 font-medium focus:outline-none hover:text-[#114958] transition-colors"
-              aria-expanded={isDropDownOpen}
-              aria-haspopup="true"
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                  className="w-6 h-6"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                  />
+                </svg>
+                <span className="absolute top-0 right-0 block w-2 h-2 bg-red-500 rounded-full"></span>
+              </button>
+            </div>
+
+            <div className="w-px h-7 bg-gray-300"></div>
+
+            {/* Profile Avatar with dropdown */}
+            <div
+              className="flex items-center cursor-pointer relative"
+              ref={menuRef}
             >
-              <span>Profile Settings</span>
-              <IoMdArrowDropdown className="text-gray-700" />
-            </button>
-            
-            {/* Dropdown menu */}
-            <div className={dropdownClasses}>
-              <div className="border-t border-gray-100 py-2">
-                <button className="flex items-center w-full px-4 py-2 text-sm hover:text-blue-400 transition-colors">
-                  <FaUser className="mr-2" /> Profile
-                </button>
-                <button
-                  onClick={handleSettingsClick}
-                  className="flex items-center w-full px-4 py-2 text-sm hover:text-blue-400 transition-colors"
-                >
-                  <FaCog className="mr-2" /> Settings
-                </button>
-                <button className="flex items-center w-full px-4 py-2 text-sm hover:text-blue-400 transition-colors">
-                  <FaChartBar className="mr-2" /> Reports
-                </button>
-                <button
-                  className="flex items-center w-full px-4 py-2 text-sm hover:text-blue-400 transition-colors"
-                  onClick={handleLogOut}
-                >
-                  <FaSignOutAlt className="mr-2" /> Log Out
-                </button>
+              <button
+                onClick={toggleDropdown}
+                className="flex items-center gap-2 text-gray-700 font-medium focus:outline-none hover:text-[#114958] transition-colors"
+                aria-expanded={isDropDownOpen}
+                aria-haspopup="true"
+              >
+                <div className="w-7 h-7 rounded-full bg-[#0D4B37] flex items-center justify-center">
+                  <IoPersonOutline className="text-white w-4 h-4 " />
+                </div>
+                <IoMdArrowDropdown className="text-gray-700" />
+              </button>
+
+              {/* Dropdown menu */}
+              <div className={dropdownClasses}>
+                <div className="border-t border-gray-100 py-4 px-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-[#0D4B37] rounded-full flex items-center justify-center text-white">
+                      <IoPersonOutline className="w-7 h-7 p-1" />
+                    </div>
+                    <div>
+                      <div className="text-gray-900 text-lg">Yash Manocha</div>
+                      <div className="text-xs text-gray-500">
+                        yash@karvaann.com
+                      </div>
+                    </div>
+                  </div>
+                  <hr className="mb-2 mt-3 border-t border-gray-200" />
+                  <button
+                    type="button"
+                    onClick={handleSettingsClick}
+                    className="flex mb-1 items-center w-full px-2 py-2 text-md hover:text-gray-700 transition-colors"
+                  >
+                    <SlSettings className="mr-2 text-gray-600" /> Profile
+                    Settings
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openRaiseRequestModal}
+                    className="flex items-center w-full px-2 py-2 text-md hover:text-gray-700 transition-colors"
+                  >
+                    <HiOutlineHandRaised className="mr-2 text-gray-600" /> Raise
+                    Request
+                  </button>
+                  <hr className="mb-2 border-t border-gray-200" />
+                  <button
+                    className="flex items-center w-full px-2 py-2 text-red-500 text-md transition-colors"
+                    onClick={handleLogOut}
+                  >
+                    <GoSignOut className="mr-2 font-semibold" /> Sign Out
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Breadcrumb Row */}
-      <div className="flex items-center px-8 py-3 bg-gray-100 border-b border-gray-200">
-        <IoHomeOutline className="w-5 h-5 mr-2 text-[#114958]" />
-        {breadcrumbElements}
+        {/* Breadcrumb Row */}
+        <div className="flex items-center px-5 py-1 bg-gray-100 border-b border-gray-200">
+          <IoHomeOutline className="w-[0.75rem] h-5 mr-2 text-[#114958]" />
+          {breadcrumbElements}
+        </div>
+
+        <RaiseRequestModal
+          isOpen={isRaiseRequestModalOpen}
+          onClose={closeRaiseRequestModal}
+        />
       </div>
-    </div>
+    </>
   );
 };
 

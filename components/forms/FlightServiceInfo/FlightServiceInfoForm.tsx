@@ -5,9 +5,11 @@ import { validateFlightInfoForm } from "@/services/bookingApi";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { useRef } from "react";
+import { FiTrash2 } from "react-icons/fi";
 import OneWayLayout from "./OneWayLayout";
 import RoundTripLayout from "./RoundTripLayout";
 import MultiCityLayout from "./MultiCityLayout";
+import DateRangeInput from "@/components/DateRangeInput";
 // Type definitions
 interface FlightInfoFormData {
   bookingdate: string;
@@ -21,8 +23,6 @@ interface FlightInfoFormData {
   returnSegments: ReturnFlightSegment[];
   samePNRForAllSegments: boolean;
   flightType: "One Way" | "Round Trip" | "Multi-City";
-  voucher: File | null;
-  taxinvoice: File | null;
   remarks: string;
 }
 
@@ -60,12 +60,14 @@ interface FlightInfoFormProps {
   onSubmit?: (data: FlightInfoFormData) => void;
   isSubmitting?: boolean;
   showValidation?: boolean;
+  formRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   onSubmit,
   isSubmitting = false,
   showValidation = true,
+  formRef,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<FlightInfoFormData>({
@@ -94,51 +96,78 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
     pnrEnabled: true,
     samePNRForAllSegments: false,
     flightType: "One Way",
-    voucher: null,
-    taxinvoice: null,
     remarks: "",
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
+
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isValidating, setIsValidating] = useState<boolean>(false);
-  const voucherRef = useRef<HTMLInputElement | null>(null);
-  const taxinvoiceRef = useRef<HTMLInputElement | null>(null);
-  const [costPriceCurrency, setCostPriceCurrency] = useState("INR");
-  const [sellingPriceCurrency, setSellingPriceCurrency] = useState("INR");
-  const [showCostDropdown, setShowCostDropdown] = useState(false);
-  const [showSellingDropdown, setShowSellingDropdown] = useState(false);
-  const [roeVisibleFor, setRoeVisibleFor] = useState<null | "cost" | "selling">(
-    null
-  );
+  // const [costPriceCurrency, setCostPriceCurrency] = useState("INR");
+  // const [sellingPriceCurrency, setSellingPriceCurrency] = useState("INR");
+  // const [showCostDropdown, setShowCostDropdown] = useState(false);
+  // const [showSellingDropdown, setShowSellingDropdown] = useState(false);
+  // const [roeVisibleFor, setRoeVisibleFor] = useState<null | "cost" | "selling">(
+  //   null
+  // );
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [filesAdded, setFilesAdded] = useState({
-    voucher: false,
-    taxinvoice: false,
+    document: false,
   });
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+
+  // Advanced Pricing State
+  const [showAdvancedPricing, setShowAdvancedPricing] = useState(false);
+  const [vendorCurrency, setVendorCurrency] = useState("USD");
+  const [vendorAmount, setVendorAmount] = useState("");
+  const [vendorROE, setVendorROE] = useState("88.05");
+  const [vendorINR, setVendorINR] = useState("0");
+  const [bankChargesCurrency, setBankChargesCurrency] = useState("INR");
+  const [bankChargesAmount, setBankChargesAmount] = useState("");
+  const [cashbackCurrency, setCashbackCurrency] = useState("INR");
+  const [cashbackAmount, setCashbackAmount] = useState("");
+  const [cashbackMethod, setCashbackMethod] = useState("Wallet");
+  const [customerSellingCurrency, setCustomerSellingCurrency] = useState("INR");
+  const [customerSellingAmount, setCustomerSellingAmount] = useState("");
+  const [commissionCurrency, setCommissionCurrency] = useState("INR");
+  const [commissionAmount, setCommissionAmount] = useState("");
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAttachedFile(file);
+
+    setFilesAdded((prev) => ({
+      ...prev,
+      document: true,
+    }));
+  };
+
+  // Handle file removal
+  const handleDeleteFile = () => {
+    setAttachedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
 
   // Hard-coded exchange rate for demonstration
-  const exchangeRate = 88.05;
+  // const exchangeRate = 88.05;
 
-  const handleCurrencyChange = (
-    type: "cost" | "selling",
-    currency: "INR" | "USD"
-  ) => {
-    if (type === "cost") {
-      setCostPriceCurrency(currency);
-      setShowCostDropdown(false);
-      setRoeVisibleFor(currency === "USD" ? "cost" : null);
-    } else {
-      setSellingPriceCurrency(currency);
-      setShowSellingDropdown(false);
-      setRoeVisibleFor(currency === "USD" ? "selling" : null);
-    }
-  };
-
-  const handleFileChange = (field: "voucher" | "taxinvoice") => {
-    let ref: React.RefObject<HTMLInputElement | null>;
-    if (field === "voucher") ref = voucherRef;
-    if (field === "taxinvoice") ref = taxinvoiceRef;
-  };
+  // const handleCurrencyChange = (
+  //   type: "cost" | "selling",
+  //   currency: "INR" | "USD"
+  // ) => {
+  //   if (type === "cost") {
+  //     setCostPriceCurrency(currency);
+  //     setShowCostDropdown(false);
+  //     setRoeVisibleFor(currency === "USD" ? "cost" : null);
+  //   } else {
+  //     setSellingPriceCurrency(currency);
+  //     setShowSellingDropdown(false);
+  //     setRoeVisibleFor(currency === "USD" ? "selling" : null);
+  //   }
+  // };
 
   type FieldRule = {
     required: boolean;
@@ -204,8 +233,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         pnrEnabled: false,
         samePNRForAllSegments: false,
         flightType: "One Way",
-        voucher: null,
-        taxinvoice: null,
+
         remarks: "",
       });
       if (apiErrors[name]) return apiErrors[name];
@@ -412,161 +440,298 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 
   return (
     <>
-      <form className="space-y-6 p-6 -mt-10" onSubmit={handleSubmit}>
-        <div className="p-6">
+      <div className="space-y-4 p-4 -mt-1" ref={formRef as any}>
+        <div className="px-2 py-1">
           {/* Booking and Travel Date */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4 -mx-5">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Booking Date
-              </label>
-              <input
-                type="date"
-                placeholder="DD-MM-YYYY"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+          <div className="flex flex-wrap items-end justify-between mb-3 px-5 -mx-5">
+            {/* Left section: Booking + Travel Date */}
+            <div className="flex items-end gap-2">
+              {/* Booking Date */}
+              <div>
+                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                  Booking Date
+                </label>
+                <input
+                  type="date"
+                  placeholder="DD-MM-YYYY"
+                  className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Travel Date */}
+              <div>
+                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                  Travel Date
+                </label>
+                <input
+                  type="date"
+                  name="traveldate"
+                  value={formData.traveldate}
+                  onChange={handleChange}
+                  className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
             </div>
+
+            {/* Right section: Booking Status */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Travel Date
-              </label>
-              <input
-                type="date"
-                placeholder="DD-MM-YYYY"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
                 Booking Status
               </label>
               <div className="relative">
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none">
+                <select
+                  name="bookingstatus"
+                  className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                >
                   <option>Select Status</option>
                   <option>Confirmed</option>
                   <option>Pending</option>
                   <option>Cancelled</option>
                 </select>
-                <MdKeyboardArrowDown className="absolute right-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                <MdKeyboardArrowDown className="absolute right-2 top-2 h-4 w-4 text-gray-400 pointer-events-none" />
               </div>
             </div>
           </div>
 
-          {/* Amount */}
-          <div className="mb-6 border border-gray-200 rounded-[12px] p-5 mt-6 -mx-5">
-            <h3 className="text-sm font-medium text-gray-700 mb-4">Amount</h3>
+          {/* Amount Section */}
 
-            {/* Cost Price */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cost Price
-              </label>
-              <div className="flex gap-2">
-                <div className="relative">
-                  <button
-                    onClick={() => setShowCostDropdown(!showCostDropdown)}
-                    className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-l-md bg-gray-50 text-sm font-medium text-gray-700 hover:bg-gray-100"
-                  >
-                    {costPriceCurrency}
-                    <MdKeyboardArrowDown className="h-4 w-4" />
-                  </button>
-                  {showCostDropdown && (
-                    <div className="absolute z-10 mt-1 w-20 bg-white border border-gray-300 rounded-md shadow-lg">
-                      <button
-                        onClick={() => handleCurrencyChange("cost", "INR")}
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
-                      >
-                        INR
-                      </button>
-                      <button
-                        onClick={() => handleCurrencyChange("cost", "USD")}
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
-                      >
-                        USD
-                      </button>
-                    </div>
-                  )}
-                </div>
+          <div className="mb-4 border border-gray-200 rounded-lg w-[48vw] p-3">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[0.75rem] font-medium text-gray-700">
+                Amount
+              </h3>
+
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
-                  type="text"
-                  placeholder="Enter Cost Price"
-                  className="flex px-3 py-2 border border-l-0 border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  type="checkbox"
+                  id="remember"
+                  className="hidden"
+                  checked={showAdvancedPricing}
+                  onChange={() => setShowAdvancedPricing(!showAdvancedPricing)}
                 />
-                {roeVisibleFor == "cost" && (
-                  <>
-                    <button className="px-4 py-2 bg-blue-100 text-blue-700 text-sm font-medium rounded-md hover:bg-blue-200">
-                      ROE: {exchangeRate}
-                    </button>
-                    <div className="flex items-center px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm text-gray-700">
-                      INR: 0
-                    </div>
-                  </>
-                )}
-              </div>
+                <label
+                  htmlFor="remember"
+                  className="w-5 h-5 border border-gray-400 rounded-md flex items-center justify-center cursor-pointer peer-checked:bg-green-600"
+                >
+                  {showAdvancedPricing && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="12"
+                      height="11"
+                      viewBox="0 0 12 11"
+                      fill="none"
+                    >
+                      <path
+                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                        stroke="#0D4B37"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  )}
+                </label>
+                <span className="text-[0.75rem] text-gray-700">
+                  Show Advanced Pricing
+                </span>
+              </label>
             </div>
 
-            {/* Selling Price */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Selling Price
-              </label>
-              <div className="flex gap-2">
-                <div className="relative">
-                  <button
-                    onClick={() => setShowSellingDropdown(!showSellingDropdown)}
-                    className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-l-md bg-gray-50 text-sm font-medium text-gray-700 hover:bg-gray-100"
-                  >
-                    {sellingPriceCurrency}
-                    <MdKeyboardArrowDown className="h-4 w-4" />
-                  </button>
-                  {showSellingDropdown && (
-                    <div className="absolute z-10 mt-1 w-20 bg-white border border-gray-300 rounded-md shadow-lg">
+            <hr className="mb-3 -mt-1 border-t border-gray-200" />
+
+            {!showAdvancedPricing ? (
+              <>
+                {/* Cost Price */}
+                <div className="mb-3">
+                  <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                    Cost Price
+                  </label>
+                  <div className="flex">
+                    <div className="relative">
                       <button
-                        onClick={() => handleCurrencyChange("selling", "INR")}
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
+                        type="button"
+                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[0.75rem] font-medium text-gray-700 hover:bg-gray-100"
                       >
-                        INR
-                      </button>
-                      <button
-                        onClick={() => handleCurrencyChange("selling", "USD")}
-                        className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100"
-                      >
-                        USD
+                        ₹
                       </button>
                     </div>
-                  )}
+                    <input
+                      type="text"
+                      name="costprice"
+                      value={formData.costprice}
+                      onChange={handleChange}
+                      placeholder="Enter Cost Price"
+                      className="w-[20rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md focus:outline-none"
+                    />
+                  </div>
                 </div>
-                <input
-                  type="text"
-                  placeholder="Enter Selling Price"
-                  className="flex px-3 py-2 border border-l-0 border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                {roeVisibleFor == "selling" && (
-                  <>
-                    <button className="px-4 py-2 bg-blue-100 text-blue-700 text-sm font-medium rounded-md hover:bg-blue-200">
-                      ROE: {exchangeRate}
-                    </button>
-                    <div className="flex px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm text-gray-700">
-                      INR: 0
+
+                {/* Selling Price */}
+                <div>
+                  <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                    Selling Price
+                  </label>
+                  <div className="flex">
+                    <div className="relative">
+                      <button
+                        type="button"
+                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[0.75rem] font-medium text-gray-700 hover:bg-gray-100"
+                      >
+                        ₹
+                      </button>
                     </div>
-                  </>
-                )}
+                    <input
+                      type="text"
+                      name="sellingprice"
+                      value={formData.sellingprice}
+                      onChange={handleChange}
+                      placeholder="Enter Selling Price"
+                      className="w-[20rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="border border-gray-200 w-[9rem] rounded-lg mt-4 p-3 bg-white">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[0.75rem] font-medium text-gray-700">
+                      Net
+                    </span>
+                    <div className="flex gap-4 items-center">
+                      <span className="text-[0.75rem] text-gray-700">
+                        INR 0
+                      </span>
+                      <span className="text-[0.75rem] text-gray-700 font-medium">
+                        23%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* Advanced Pricing Component */
+              <div className="space-y-3">
+                {/* Vendor Payment Summary */}
+
+                <h4 className="text-[0.75rem] font-medium text-gray-700 mb-3">
+                  Vendor Payment Summary
+                </h4>
+
+                {/* Container */}
+                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                  {/* Row */}
+                  {[
+                    "Vendor Invoice (Base)",
+                    "Supplier Incentive Received",
+                    "Partner Payout",
+                    "Cost Price",
+                  ].map((label, index) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-12 border-b last:border-b-0 border-gray-200"
+                    >
+                      {/* Left label */}
+                      <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
+                        {label}
+                      </div>
+
+                      {/* Right inputs */}
+                      <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
+                        {/* Rupee icon */}
+                        <div className="text-gray-600 text-[0.85rem] font-medium">
+                          ₹
+                        </div>
+
+                        {/* Amount Input */}
+                        <input
+                          type="text"
+                          placeholder="Enter Amount"
+                          className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                        />
+
+                        {/* Notes Input (only for rows that have it in screenshot) */}
+                        {label !== "Cost Price" && (
+                          <input
+                            type="text"
+                            placeholder="Enter notes here..."
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                          />
+                        )}
+
+                        {/* Cost Price Blue Value */}
+                        {label === "Cost Price" && (
+                          <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">
+                            ₹ 0.00
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Customer Revenue Summary */}
+                <h4 className="text-[0.8rem] font-semibold text-gray-700">
+                  Customer Revenue Summary
+                </h4>
+
+                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                  <div className="grid grid-cols-12">
+                    {/* Label */}
+                    <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
+                      Selling Price
+                    </div>
+
+                    {/* Inputs */}
+                    <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
+                      <div className="text-gray-600 text-[0.85rem] font-medium">
+                        ₹
+                      </div>
+
+                      <input
+                        type="text"
+                        placeholder="Enter Amount"
+                        className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Net */}
+
+                {/* Net */}
+                <div className="w-[9rem] rounded-lg p-1 bg-white">
+                  {/* Label on top */}
+                  <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
+                    Net
+                  </span>
+
+                  {/* Amount + percentage row */}
+                  <div className="flex items-center gap-3">
+                    {/* Blue pill amount */}
+                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
+                      ₹ 0.00
+                    </span>
+
+                    {/* Percentage */}
+                    <span className="text-[0.75rem] text-gray-700 font-medium">
+                      23%
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Flight Info */}
-          <div className="mb-6 border border-gray-200 rounded-[12px] p-5 mt-6 -mx-5">
-            <h2 className="text-sm font-medium text-gray-700 mb-4">
+          <div className="mb-4 w-[48vw] border border-gray-200 rounded-md p-3 mt-4 ml-0.5 -mx-4">
+            <h2 className="text-[0.75rem] font-medium text-gray-700 mb-2">
               Flight Info
             </h2>
 
-            <hr className="-mt-3 mb-3 border-t border-gray-200" />
+            <hr className="-mt-1 mb-2 border-t border-gray-200" />
 
             {/* PNR and Toggle */}
-            <div className="flex items-center mb-4">
+            <div className="flex items-center mb-3 ml-2">
               <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-[0.7rem] font-medium text-gray-700 mb-1">
                   PNR
                 </label>
                 <input
@@ -576,10 +741,12 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                     setFormData((prev) => ({ ...prev, PNR: e.target.value }))
                   }
                   placeholder="Enter PNR"
-                  className="w-[220px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-[12rem] px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]
+        focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
-              <div className="flex items-center gap-1 mt-6 mr-90">
+
+              <div className="flex items-center gap-1 mt-6">
                 <button
                   onClick={() =>
                     setFormData((prev) => ({
@@ -587,37 +754,38 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                       pnrEnabled: !prev.pnrEnabled,
                     }))
                   }
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
                     formData.pnrEnabled ? "bg-blue-600" : "bg-gray-300"
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      formData.pnrEnabled ? "translate-x-6" : "translate-x-1"
+                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
+                      formData.pnrEnabled ? "translate-x-5" : "translate-x-1"
                     }`}
                   />
                 </button>
-                <span className="text-sm text-gray-700">
+
+                <span className="text-[0.7rem] text-gray-700">
                   Same PNR for all Segments
                 </span>
               </div>
             </div>
 
             {/* Flight Type Tabs */}
-            <div className="inline-flex mb-4 rounded-md border border-gray-300 overflow-hidden">
+            <div className="inline-flex mb-3 ml-2 rounded-md border border-gray-300 overflow-hidden">
               {(["One Way", "Round Trip", "Multi-City"] as const).map(
-                (type, idx) => (
+                (type) => (
                   <button
                     key={type}
                     onClick={() =>
                       setFormData((prev) => ({ ...prev, flightType: type }))
                     }
-                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                      formData.flightType === type
-                        ? "bg-green-100 text-green-700 font-semibold border border-green-700"
-                        : "bg-white text-gray-700 hover:bg-gray-50"
-                    }
-                    `}
+                    className={`px-3 py-1.5 text-[0.7rem] font-medium transition-colors 
+        ${
+          formData.flightType === type
+            ? "bg-green-100 text-green-700 font-semibold border border-green-700"
+            : "bg-white text-gray-700 hover:bg-gray-50"
+        }`}
                   >
                     {type}
                   </button>
@@ -625,6 +793,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
               )}
             </div>
 
+            {/* Layouts */}
             {formData.flightType === "One Way" && (
               <OneWayLayout formData={formData} setFormData={setFormData} />
             )}
@@ -639,116 +808,85 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
           </div>
         </div>
 
-        <div className="border border-gray-200 rounded-[12px] p-5 -mt-10">
-          <h2>Vendor Documents</h2>
+        {/* ================= ID PROOFS ================ */}
+        {/* <div className="border border-gray-200  w-[48vw] ml-2.5 -mt-3 rounded-[12px] p-3">
+          <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-          <div className="flex flex-col gap-6 mt-2">
-            <div className="flex gap-5">
-              <div className="flex flex-col gap-1 w-full">
-                <label className="block text-sm text-gray-500 mt-2">
-                  Voucher <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center">
-                  <div className="w-[250px]">
-                    <input
-                      type="text"
-                      placeholder="Enter Voucher"
-                      className="w-[250px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
+          <div className="flex flex-col gap-4">
+            <div className="flex gap-5"> */}
+        {/* Documents */}
+        {/* <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-3 items-start">
                   <input
                     type="file"
-                    ref={voucherRef}
+                    ref={fileInputRef}
                     className="hidden"
-                    onChange={() => handleFileChange("voucher")}
+                    onChange={handleFileChange}
                   />
                   <button
                     type="button"
-                    onClick={() => voucherRef.current?.click()}
-                    className="px-3 py-2 -mt-1 flex gap-1  bg-[#126ACB] text-white rounded-md text-sm hover:bg-blue-700"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-1 bg-white text-[#126ACB] border border-[#126ACB]  text-[0.725rem] mt-2 rounded-md hover:bg-gray-200 flex items-center gap-1"
                   >
-                    <MdOutlineFileUpload size={20} /> Upload
+                    <MdOutlineFileUpload size={16} /> Attach Files
                   </button>
-                  {filesAdded.voucher && (
-                    <div className="text-sm text-green-600 mt-1">
-                      {" "}
-                      File has been added{" "}
-                    </div>
-                  )}
-                </div>
-              </div>
 
-              <div className="flex flex-col gap-1 w-full">
-                <label className="block text-sm text-gray-500 mt-2">
-                  Tax Invoice <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center">
-                  <div className="w-[250px]">
-                    <input
-                      type="text"
-                      placeholder="Enter Invoice"
-                      className="w-[250px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                  <input
-                    type="file"
-                    ref={taxinvoiceRef}
-                    className="hidden"
-                    onChange={() => handleFileChange("taxinvoice")}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => taxinvoiceRef.current?.click()}
-                    className="px-3 py-2 -mt-1 flex gap-1 bg-[#126ACB] text-white rounded-md text-sm hover:bg-blue-700"
-                  >
-                    <MdOutlineFileUpload size={20} /> Upload
-                  </button>
-                  {filesAdded.taxinvoice && (
-                    <div className="text-sm text-green-600 mt-1">
-                      {" "}
-                      File has been added{" "}
+                  {attachedFile && (
+                    <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 w-[8rem]">
+                      <span className="text-gray-700 text-[0.65rem] font-medium truncate">
+                        📎 {attachedFile.name}
+                      </span>
+                      <button
+                        onClick={handleDeleteFile}
+                        className="ml-auto text-red-500 hover:text-red-700 transition-all"
+                        title="Remove file"
+                      >
+                        <FiTrash2 size={14} />
+                      </button>
                     </div>
                   )}
+
+                  <div className="text-red-600 -mt-1 text-[0.65rem]">
+                    Note: Maximum of 3 files can be uploaded
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
-        <div className="border border-gray-200 rounded-[12px] p-4">
-          <label className="block text-sm font-medium text-gray-700">
+        {/* Remarks Section */}
+        <div className="border border-gray-200 w-[48vw] ml-2.5 rounded-[12px] p-3 mt-4">
+          <label className="block text-[0.75rem] font-medium text-gray-700">
             Remarks
           </label>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
           <textarea
             name="remarks"
-            rows={5}
+            rows={4}
             value={formData.remarks}
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder="Enter Your Remarks Here"
             disabled={isSubmitting}
-            className={`
-            w-full border border-gray-200 rounded-md px-3 py-2 text-sm mt-2 transition-colors
-            focus:ring focus:ring-blue-200
-            ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}
-          `}
+            className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[0.75rem] mt-1 transition-colors focus:ring focus:ring-blue-200 ${
+              isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           />
         </div>
 
-        {/* Submit Button (if standalone) */}
-
-        <div className="flex justify-end gap-2">
+        {/* Submit Button
+        <div className="flex justify-end mt-3">
           <button
             type="submit"
             disabled={isSubmitting}
-            className="px-6 py-2 text-right  bg-[#114958] text-white rounded-lg hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-5 py-1.5 bg-[#114958] text-[0.8rem] text-white rounded-md hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Saving..." : "Save"}
           </button>
-        </div>
-      </form>
+        </div> */}
+      </div>
     </>
   );
 };

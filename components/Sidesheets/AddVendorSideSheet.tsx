@@ -1,69 +1,179 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import SideSheet from "../SideSheet";
-import { createVendor } from "@/services/vendorApi";
+import { createVendor, updateVendor } from "@/services/vendorApi";
+import { getAuthUser } from "@/services/storage/authStorage";
+
+import { CiCirclePlus } from "react-icons/ci";
+import { MdOutlineFileUpload } from "react-icons/md";
+import { FiTrash2 } from "react-icons/fi";
 
 type VendorData = {
-  name?: string;
-  email?: string;
-  phone?: string;
-  companyName?: string;
+  _id?: string;
+  contactPerson?: string;
+  firstname: string;
+  lastname: string;
+  alias: string;
+  email: string;
+  phone: string;
+  dateOfBirth: string;
+  GSTIN: string;
+  companyName: string;
+  address: string;
+  openingBalance: string;
+  balanceType: "credit" | "debit";
 };
 
 type AddVendorSideSheetProps = {
   data?: VendorData | null;
   onCancel: () => void;
   isOpen: boolean;
+  mode?: "create" | "edit";
 };
 
 const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   data,
   onCancel,
   isOpen,
+  mode,
 }) => {
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [phoneCode, setPhoneCode] = useState<string>("+91");
   const [phone, setPhone] = useState<string>("");
   const [company, setcompany] = useState<string>("");
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+
+  const [balanceType, setBalanceType] = useState<"debit" | "credit">("debit");
+  const [balanceAmount, setBalanceAmount] = useState<string>("");
+
+  // Handle file selection
+  const handleFileChange = () => {
+    const file = fileRef.current?.files?.[0];
+    if (file) {
+      setAttachedFile(file);
+    }
+    // Reset input value to allow re-uploading same file
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  // Handle file removal
+  const handleDeleteFile = () => {
+    setAttachedFile(null);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const [formData, setFormData] = useState<VendorData>({
+    firstname: "",
+    lastname: "",
+    alias: "",
+    email: "",
+    phone: "",
+    dateOfBirth: "",
+    GSTIN: "",
+    companyName: "",
+    address: "",
+    openingBalance: "",
+    balanceType: "debit",
+  });
 
   useEffect(() => {
     if (data) {
-      setName(data.name || "");
-      setEmail(data.email || "");
-      setPhone(data.phone?.slice(3) || "");
-      setPhoneCode(data.phone?.slice(0, 3) || "+91");
-      setcompany(data.companyName || "");
+      const [firstname = "", lastname = ""] =
+        data.contactPerson?.split(" ") || [];
+      setFormData({
+        firstname,
+        lastname,
+        alias: data.alias || "",
+        email: data.email || "",
+        phone: data.phone || "",
+        dateOfBirth: data.dateOfBirth || "",
+        GSTIN: data.GSTIN || "",
+        companyName: data.companyName || "",
+        address: data.address || "",
+        openingBalance: data.openingBalance?.toString() || "",
+        balanceType: data.balanceType || "debit",
+      });
+    } else {
+      setFormData({
+        firstname: "",
+        lastname: "",
+        alias: "",
+        email: "",
+        phone: "",
+        dateOfBirth: "",
+        GSTIN: "",
+        companyName: "",
+        address: "",
+        openingBalance: "",
+        balanceType: "debit",
+      });
     }
-
-    return () => {
-      setName("");
-      setEmail("");
-      setPhone("");
-      setPhoneCode("+91");
-      setcompany("");
-    };
   }, [data]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const user = getAuthUser() as any;
+    const businessId = user?.businessId;
+
     try {
       const vendorData = {
-        name,
-        email,
-        phone: `${phoneCode}${phone}`,
-        company,
+        companyName: formData.companyName,
+        contactPerson: `${formData.firstname} ${formData.lastname}`.trim(),
+        alias: formData.alias || undefined,
+        dateOfBirth: formData.dateOfBirth || undefined,
+        openingBalance: formData.openingBalance
+          ? Number(formData.openingBalance)
+          : undefined,
+        balanceType: formData.balanceType,
+        email: formData.email,
+        phone: `${phoneCode}${formData.phone}`,
+        GSTIN: formData.GSTIN,
+        address: formData.address,
+        businessId: businessId,
       };
 
       const response = await createVendor(vendorData);
-      console.log("Customer created successfully:", response);
+      console.log("Vendor created successfully:", response);
 
-      // close the sidesheet after success
       onCancel();
-
-      // trigger refresh or toast notification
     } catch (error: any) {
-      console.error("Error creating customer:", error.message || error);
+      console.error("Error creating vendor:", error.message || error);
+    }
+  };
+
+  const handleUpdateVendor = async () => {
+    try {
+      const vendorId = data?._id;
+
+      if (!vendorId) {
+        console.error("No vendor ID found");
+        return;
+      }
+
+      const vendorData = {
+        companyName: formData.companyName,
+        contactPerson: `${formData.firstname} ${formData.lastname}`.trim(),
+        alias: formData.alias || undefined,
+        dateOfBirth: formData.dateOfBirth || undefined,
+        openingBalance: formData.openingBalance
+          ? Number(formData.openingBalance)
+          : undefined,
+        balanceType: formData.balanceType,
+        email: formData.email,
+        phone: `${phoneCode}${formData.phone}`,
+        GSTIN: formData.GSTIN,
+        address: formData.address,
+      };
+
+      const response = await updateVendor(vendorId, vendorData);
+      console.log("Vendor updated successfully:", response);
+
+      onCancel(); // close sheet
+    } catch (error: any) {
+      console.error("Error updating vendor:", error.message || error);
     }
   };
 
@@ -73,83 +183,342 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         isOpen={isOpen}
         onClose={onCancel}
         title="Add Vendor"
-        width="lg"
+        width="xl"
         position="right"
       >
-        <div className="p-6 w-[780px] space-y-4">
-          <div className="text-left">
-            <label className="block mb-2 font-medium">Full Name</label>
+        <form className="space-y-6 p-4" onSubmit={handleSubmit}>
+          {/* ================= BASIC DETAILS ================ */}
+          <div className="border border-gray-200 rounded-[12px] p-3">
+            <h2 className="text-[0.75rem] font-medium mb-2">Basic Details</h2>
+            <hr className="mt-1 mb-2 border-t border-gray-200" />
+
+            {/* First row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+              {/* Company Name */}
+              <div className="flex flex-col gap-1">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
+                  Company Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  name="companyName"
+                  value={formData.companyName}
+                  onChange={(e) =>
+                    setFormData({ ...formData, companyName: e.target.value })
+                  }
+                  placeholder="Enter Company Name"
+                  required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                />
+              </div>
+
+              {/* Email */}
+              <div className="flex flex-col gap-1">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
+                  Company Email ID <span className="text-red-500">*</span>
+                </label>
+                <input
+                  name="email"
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  placeholder="Enter Email ID"
+                  required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                />
+              </div>
+
+              {/* Phone */}
+              <div className="flex flex-col gap-1">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
+                  Contact Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  name="phone"
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                  placeholder="Enter Contact Number"
+                  required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                />
+              </div>
+            </div>
+
+            {/* GSTIN */}
+            <div className="flex flex-col gap-1 mt-2">
+              <label className="block text-[0.75rem] font-medium text-gray-700">
+                GSTIN
+              </label>
+              <input
+                name="GSTIN"
+                value={formData.GSTIN}
+                onChange={(e) =>
+                  setFormData({ ...formData, GSTIN: e.target.value })
+                }
+                placeholder="Please Provide Your GST No."
+                className="w-[14.5rem] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+              />
+              {/* <button
+                  type="button"
+                  className="px-3 py-1.5 bg-[#126ACB] text-white text-[0.75rem] rounded-md hover:bg-blue-800"
+                >
+                  Fetch
+                </button> */}
+            </div>
+          </div>
+
+          {/* ================= POC DETAILS ================ */}
+          <div className="border border-gray-200 rounded-[12px] p-3">
+            <h2 className="text-[0.75rem] font-medium mb-2">
+              POC Details (Optional)
+            </h2>
+            <hr className="mt-1 mb-2 border-t border-gray-200" />
+
+            {/* First row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
+              {/* Firstname */}
+              <div className="flex flex-col gap-1">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
+                  First Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  name="firstname"
+                  value={formData.firstname}
+                  onChange={(e) =>
+                    setFormData({ ...formData, firstname: e.target.value })
+                  }
+                  placeholder="Enter First Name"
+                  required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                />
+              </div>
+
+              {/* Lastname */}
+              <div className="flex flex-col gap-1">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
+                  Last Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  name="lastname"
+                  value={formData.lastname}
+                  onChange={(e) =>
+                    setFormData({ ...formData, lastname: e.target.value })
+                  }
+                  placeholder="Enter Last Name"
+                  required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                />
+              </div>
+
+              {/* Alias */}
+              <div className="flex flex-col gap-1">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
+                  Nickname/Alias <span className="text-red-500">*</span>
+                </label>
+                <input
+                  name="alias"
+                  value={formData.alias}
+                  onChange={(e) =>
+                    setFormData({ ...formData, alias: e.target.value })
+                  }
+                  placeholder="Enter Nickname/Alias"
+                  required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                />
+              </div>
+            </div>
+
+            {/* Second row */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Contact number AGAIN??? (duplicate) */}
+              {/* Keep it exactly as your UI → but map to correct type field */}
+              <div className="flex flex-col gap-1">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
+                  Contact Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  placeholder="Enter Contact Number"
+                  required
+                  value={formData.phone}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                />
+              </div>
+
+              {/* Email AGAIN */}
+              <div className="flex flex-col gap-1">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
+                  Email ID <span className="text-red-500">*</span>
+                </label>
+                <input
+                  placeholder="Enter Email ID"
+                  required
+                  value={formData.email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                />
+              </div>
+
+              {/* DOB */}
+              <div className="flex flex-col gap-1">
+                <label className="block text-[0.75rem] font-medium text-gray-700">
+                  Date of Birth <span className="text-red-500">*</span>
+                </label>
+                <input
+                  name="dateOfBirth"
+                  value={formData.dateOfBirth}
+                  onChange={(e) =>
+                    setFormData({ ...formData, dateOfBirth: e.target.value })
+                  }
+                  placeholder="DD-MM-YYYY"
+                  required
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ================= BILLING ADDRESS ================ */}
+          <div className="border border-gray-200 rounded-[12px] p-3">
+            <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+              Billing Address
+            </label>
+            <hr className="mt-1 mb-3 border-t border-gray-200" />
+
             <input
-              type="text"
-              placeholder="Enter Name"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              name="address"
+              value={formData.address}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
+              }
+              placeholder="Enter Billing Address"
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
             />
           </div>
 
-          <div className="text-left">
-            <label className="block mb-2 font-medium">Email ID</label>
-            <input
-              type="email"
-              placeholder="Enter Email ID"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
+          {/* ================= DOCUMENTS ================ */}
+          {/* <div className="border border-gray-200 rounded-[12px] p-3">
+            <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
+            <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-          <div className="text-left">
-            <label className="block mb-2 font-medium">Contact Number</label>
-            <div className="flex gap-2">
-              <select
-                className="border border-gray-300 rounded-lg px-2 py-2 bg-white text-gray-700"
-                value={phoneCode}
-                onChange={(e) => setPhoneCode(e.target.value)}
+            <div className="flex flex-col gap-3 mt-2 items-start">
+              <input
+                type="file"
+                ref={fileRef}
+                className="hidden"
+                onChange={handleFileChange}
+                accept=".pdf,.jpg,.jpeg,.png"
+              />
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border border-[#126ACB] rounded-md text-[0.75rem] hover:bg-gray-200"
               >
-                <option value="+91">+91</option>
-                <option value="+1">+1</option>
-                <option value="+44">+44</option>
-              </select>
+                <MdOutlineFileUpload size={16} /> Attach Files
+              </button>
+
+              {attachedFile && (
+                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md px-2 py-1.5 w-fit">
+                  <span className="text-gray-700 text-[0.7rem] font-medium truncate">
+                    📎 {attachedFile.name}
+                  </span>
+                  <button
+                    onClick={handleDeleteFile}
+                    className="ml-auto text-red-500 hover:text-red-700 transition-all"
+                    title="Remove file"
+                  >
+                    <FiTrash2 size={14} />
+                  </button>
+                </div>
+              )}
+
+              <div className="text-red-600 text-[0.65rem]">
+                Note: Maximum of 3 files can be uploaded
+              </div>
+            </div>
+          </div> */}
+
+          {/* ================= OPENING BALANCE ================ */}
+          <div className="border border-gray-200 rounded-[12px] p-3">
+            <h2 className="text-[0.75rem] font-medium mb-2">Opening Balance</h2>
+            <hr className="mt-1 mb-3 border-t border-gray-200" />
+
+            {/* Balance type */}
+            <div className="flex items-center gap-6 mb-3">
+              <label className="flex items-center gap-2 cursor-pointer text-[0.75rem]">
+                <input
+                  type="radio"
+                  name="balanceType"
+                  value="debit"
+                  checked={formData.balanceType === "debit"}
+                  onChange={() =>
+                    setFormData({ ...formData, balanceType: "debit" })
+                  }
+                  className="w-3 h-3"
+                />
+                <span className="text-gray-700">Debit</span>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer text-[0.75rem]">
+                <input
+                  type="radio"
+                  name="balanceType"
+                  value="credit"
+                  checked={formData.balanceType === "credit"}
+                  onChange={() =>
+                    setFormData({ ...formData, balanceType: "credit" })
+                  }
+                  className="w-3 h-3"
+                />
+                <span className="text-gray-700">Credit</span>
+              </label>
+            </div>
+
+            {/* Amount */}
+            <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2">
+              <span className="text-gray-500 mr-2 text-[0.75rem]">₹</span>
               <input
                 type="text"
-                placeholder="Enter Contact Number"
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                value={formData.openingBalance}
+                onChange={(e) =>
+                  setFormData({ ...formData, openingBalance: e.target.value })
+                }
+                placeholder={
+                  formData.balanceType === "debit"
+                    ? "Enter Debit Amount"
+                    : "Enter Credit Amount"
+                }
+                className="flex-1 outline-none text-[0.75rem]"
               />
             </div>
           </div>
 
-          <div className="text-left">
-            <label className="block mb-2 font-medium">Company Name</label>
-            <input
-              type="text"
-              placeholder="Enter Company Name"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-700 focus:outline-none bg-white"
-              value={company}
-              onChange={(e) => setcompany(e.target.value)}
-            />
+          {/* ================= ACTION BUTTONS ================ */}
+          <div className="flex justify-end gap-2 pt-2">
+            {mode === "edit" ? (
+              <button
+                type="submit"
+                onClick={handleUpdateVendor}
+                className="px-4 py-2 bg-[#0D4B37] text-white rounded-lg text-[0.75rem]"
+              >
+                Update Vendor
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className="px-4 py-1.5 rounded-md bg-[#114958] text-white text-[0.75rem]"
+              >
+                Add New Vendor
+              </button>
+            )}
           </div>
-
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-4 pt-4">
-            <button
-              type="button"
-              className="px-6 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-100"
-              onClick={onCancel}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="px-6 py-2 rounded-md bg-[#114958] text-white hover:bg-[#0f3d44]"
-              onClick={handleSubmit}
-            >
-              Add New Vendor
-            </button>
-          </div>
-        </div>
+        </form>
       </SideSheet>
     </>
   );

@@ -8,13 +8,21 @@ interface TableProps {
   columns: string[];
   initialRowsPerPage?: number;
   maxRowsPerPageOptions?: number[];
+  columnIconMap?: Record<string, React.ReactNode>;
+  onSort?: (column: string) => void;
+  hideRowsPerPage?: boolean;
+  showCheckboxColumn?: boolean;
 }
 
 const Table: React.FC<TableProps> = ({
   data,
   columns,
   initialRowsPerPage = 10,
-  maxRowsPerPageOptions = [5, 10, 25, 50],
+  maxRowsPerPageOptions = [2, 5, 10, 25, 50],
+  columnIconMap,
+  onSort,
+  hideRowsPerPage,
+  showCheckboxColumn = false,
 }) => {
   const [page, setPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
@@ -44,9 +52,9 @@ const Table: React.FC<TableProps> = ({
       Array.from({ length: totalPages }).map((_, idx) => (
         <button
           key={idx}
-          className={`w-8 h-8 rounded-full font-bold border border-gray-300 flex items-center justify-center transition-colors ${
+          className={`w-6 h-6 rounded-md font-normal border border-gray-300 flex items-center justify-center transition-colors ${
             page === idx + 1
-              ? "bg-[#155e75] text-white"
+              ? "bg-gray-100 text-black"
               : "bg-white text-[#155e75] hover:bg-gray-50"
           }`}
           onClick={() => setPage(idx + 1)}
@@ -81,16 +89,45 @@ const Table: React.FC<TableProps> = ({
 
   return (
     <>
-      <div className="overflow-x-auto rounded-xl border border-gray-100">
-        <table className="min-w-full text-sm rounded-xl overflow-hidden">
+      <div className="overflow-visible rounded-xl border border-gray-100">
+        <table className="w-full text-sm rounded-xl overflow-hidden">
           <thead>
             <tr className="bg-[#0D4B37] text-white rounded-t-xl">
+              {showCheckboxColumn && (
+                <th className="px-3 py-2 w-[3rem] text-center"></th>
+              )}
               {columns.map((col, index) => (
                 <th
                   key={`${col}-${index}`}
-                  className="px-4 py-3 font-semibold text-left"
+                  onClick={() => {
+                    if (!onSort) return;
+
+                    if (
+                      col === "Customer ID" ||
+                      col === "Rating" ||
+                      col === "Date Modified" ||
+                      col === "Travel Date" ||
+                      col === "Joining Date"
+                    ) {
+                      onSort(col);
+                    }
+                  }}
+                  className={`px-4 py-2 text-center text-gray-200 font-semibold leading-4 tracking-[0.6px] text-[0.65rem]
+          ${
+            col === "Customer ID" ||
+            col === "Rating" ||
+            col === "Date Modified" ||
+            col === "Travel Date" ||
+            col === "Joining Date"
+              ? "cursor-pointer hover:bg-[#0f5a43]"
+              : ""
+          }
+        `}
                 >
-                  {col}
+                  <div className="flex items-center justify-center gap-2">
+                    <span> {col} </span>
+                    {columnIconMap?.[col]}
+                  </div>
                 </th>
               ))}
             </tr>
@@ -101,7 +138,7 @@ const Table: React.FC<TableProps> = ({
                 key={`row-${page}-${idx}`}
                 className={`${
                   idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                } hover:bg-gray-100 transition-colors`}
+                } hover:bg-gray-100 transition-colors h-[2.8rem] text-[0.75rem]`}
               >
                 {row}
               </tr>
@@ -115,9 +152,12 @@ const Table: React.FC<TableProps> = ({
                   (paginatedRows.length + idx) % 2 === 0
                     ? "bg-white"
                     : "bg-gray-50"
-                } h-14`}
+                } h-[2.8rem] text-[0.75rem]`}
               >
-                <td className="px-4 py-3" colSpan={columns.length}></td>
+                <td
+                  className="px-4 py-3"
+                  colSpan={columns.length + (showCheckboxColumn ? 1 : 0)}
+                ></td>
               </tr>
             ))}
           </tbody>
@@ -125,27 +165,33 @@ const Table: React.FC<TableProps> = ({
       </div>
 
       {/* Pagination Controls */}
-      <div className="flex items-center justify-between mt-4 flex-wrap gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-gray-600">Rows per page:</span>
-          <select
-            className="border border-gray-300 rounded px-2 py-1 text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#155e75] transition-colors"
-            value={rowsPerPage}
-            onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
-          >
-            {maxRowsPerPageOptions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div
+        className={`flex items-center justify-between mt-4 flex-wrap gap-4 ${
+          hideRowsPerPage ? "justify-between" : ""
+        }`}
+      >
+        {!hideRowsPerPage && (
+          <div className="flex items-center gap-2">
+            <span className="text-gray-600 text-[0.75rem]">Rows per page:</span>
+            <select
+              className="border border-gray-300 rounded px-2 py-1 text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#155e75] transition-colors"
+              value={rowsPerPage}
+              onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
+            >
+              {maxRowsPerPageOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
-        <div className="text-gray-600 text-sm">{displayText}</div>
+        <div className="text-gray-600 text-[0.75rem]">{displayText}</div>
 
         <div className="flex items-center gap-2">
           <button
-            className="w-8 h-8 rounded-full bg-white border border-gray-300 flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={page === 1}
             onClick={handlePreviousPage}
             aria-label="Previous page"
@@ -156,7 +202,7 @@ const Table: React.FC<TableProps> = ({
           {paginationButtons}
 
           <button
-            className="w-8 h-8 rounded-full bg-white border border-gray-300 flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={page === totalPages}
             onClick={handleNextPage}
             aria-label="Next page"

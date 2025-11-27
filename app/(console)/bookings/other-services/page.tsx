@@ -4,23 +4,35 @@ import dynamic from "next/dynamic";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { BookingApiService, DraftManager } from "@/services/bookingApi";
 import type { DraftBooking } from "@/services/bookingApi";
-import { getAuthUser } from "@/services/storage/authStorage";
+import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
-import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
+// import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ModalSkeleton from "@/components/skeletons/ModalSkeleton";
 import SidesheetSkeleton from "@/components/skeletons/SidesheetSkeleton";
+import ActionMenu from "@/components/Menus/ActionMenu";
 import type { JSX } from "react";
+import { formatServiceType } from "@/utils/helper";
+import { FaRegTrashAlt } from "react-icons/fa";
+import { MdOutlineEdit } from "react-icons/md";
+import { TbArrowAutofitRight } from "react-icons/tb";
+import { FiCopy } from "react-icons/fi";
+import { CiFilter } from "react-icons/ci";
+import { HiArrowsUpDown } from "react-icons/hi2";
+import Image from "next/image";
+import AvatarTooltip from "@/components/AvatarToolTip";
+import { MdOutlineDirectionsCarFilled } from "react-icons/md";
+import TaskButton from "@/components/TaskButton";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
   ssr: false,
 });
 
-const SummaryCards = dynamic(() => import("@/components/SummaryCards"), {
-  loading: () => <SummaryCardsSkeleton />,
-  ssr: false,
-});
+// const SummaryCards = dynamic(() => import("@/components/SummaryCards"), {
+//   loading: () => <SummaryCardsSkeleton />,
+//   ssr: false,
+// });
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -51,24 +63,20 @@ type BookingStatus =
   | "draft"
   | "cancelled";
 
-type BookingRow = {
-  id: string;
-  leadPax: string;
-  travelDate: string;
-  service: string;
-  bookingStatus: BookingStatus;
-  amount: string;
-  voucher: string;
-  tasks: number;
-  isReal?: boolean;
-  originalIndex?: number;
-};
-
 type BookingService = {
   id: string;
   title: string;
   image: string;
-  category: "travel" | "accommodation" | "transport" | "activity";
+  category:
+    | "travel"
+    | "accommodation"
+    | "activity"
+    | "transport-land"
+    | "transport-maritime"
+    | "tickets"
+    | "travel insurance"
+    | "visas"
+    | "others";
   description?: string;
 };
 
@@ -103,23 +111,23 @@ interface QuotationData {
   updatedAt: string;
 }
 
-interface SummaryData {
-  total: {
-    amount: string;
-    change: string;
-    isPositive: boolean;
-  };
-  youGive: {
-    amount: string;
-    change: string;
-    isPositive: boolean;
-  };
-  youGet: {
-    amount: string;
-    change: string;
-    isPositive: boolean;
-  };
-}
+// interface SummaryData {
+//   total: {
+//     amount: string;
+//     change: string;
+//     isPositive: boolean;
+//   };
+//   youGive: {
+//     amount: string;
+//     change: string;
+//     isPositive: boolean;
+//   };
+//   youGet: {
+//     amount: string;
+//     change: string;
+//     isPositive: boolean;
+//   };
+// }
 
 const columns: string[] = [
   "#ID",
@@ -128,62 +136,26 @@ const columns: string[] = [
   "Service",
   "Booking Status",
   "Amount",
-  "Voucher",
+  "Owners",
   "Tasks",
+  "Actions",
 ];
 
-const tableSeed: BookingRow[] = [
-  {
-    id: "#001",
-    leadPax: "Anand Mishra",
-    travelDate: "12-09-2025",
-    service: "✈️ Flight",
-    bookingStatus: "Successful",
-    amount: "₹ 24,580",
-    voucher: "📄",
-    tasks: 3,
-  },
-  {
-    id: "#002",
-    leadPax: "Priya Sharma",
-    travelDate: "15-09-2025",
-    service: "🏨 Hotel",
-    bookingStatus: "Pending",
-    amount: "₹ 18,200",
-    voucher: "📄",
-    tasks: 2,
-  },
-  {
-    id: "#003",
-    leadPax: "Rajesh Kumar",
-    travelDate: "20-09-2025",
-    service: "🚗 Car Rental",
-    bookingStatus: "Successful",
-    amount: "₹ 12,500",
-    voucher: "📄",
-    tasks: 1,
-  },
-  {
-    id: "#004",
-    leadPax: "Sneha Patel",
-    travelDate: "25-09-2025",
-    service: "🎫 Package",
-    bookingStatus: "Failed",
-    amount: "₹ 45,000",
-    voucher: "📄",
-    tasks: 5,
-  },
-  {
-    id: "#005",
-    leadPax: "Vikram Singh",
-    travelDate: "30-09-2025",
-    service: "✈️ Flight",
-    bookingStatus: "Successful",
-    amount: "₹ 32,100",
-    voucher: "📄",
-    tasks: 2,
-  },
-];
+interface Owner {
+  short: string;
+  full: string;
+  color: string;
+}
+
+const columnIconMap: Record<string, JSX.Element> = {
+  "Travel Date": (
+    <HiArrowsUpDown className="inline w-3 h-3 text-white stroke-[1.5]" />
+  ),
+  Service: <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />,
+  "Booking Status": (
+    <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
+  ),
+};
 
 const getStatusBadgeClass = (status: BookingStatus): string => {
   switch (status) {
@@ -204,13 +176,26 @@ const OSBookingsPage = () => {
   const [selectedService, setSelectedService] = useState<BookingService | null>(
     null
   );
+  const tabOptions = ["Approved", "Pending", "Drafts", "Denied", "Deleted"];
+  const [activeTab, setActiveTab] = useState("Approved");
+
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
 
   // Data State
   const [quotations, setQuotations] = useState<QuotationData[]>([]);
   const [drafts, setDrafts] = useState<DraftBooking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
+  // const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
+
+  const [reverse, setReverse] = useState(false);
+
+  const handleSort = (column: string) => {
+    if (column === "Travel Date") {
+      setReverse((prev) => !prev);
+    }
+  };
 
   // Load quotations from backend
   const loadQuotations = useCallback(async () => {
@@ -222,7 +207,7 @@ const OSBookingsPage = () => {
 
       if (response.success && response.data) {
         setQuotations(response.data?.quotations || response.data);
-        calculateSummaryData(response.data?.quotations);
+        // calculateSummaryData(response.data?.quotations);
       } else {
         throw new Error(response.message || "Failed to load quotations");
       }
@@ -247,43 +232,43 @@ const OSBookingsPage = () => {
   }, []);
 
   // Calculate summary data from quotations
-  const calculateSummaryData = useCallback((quotationData: QuotationData[]) => {
-    const total = quotationData.reduce(
-      (sum, q) => sum + (q.totalAmount || 0),
-      0
-    );
-    const confirmed = quotationData.filter((q) => q.status === "confirmed");
-    const pending = quotationData.filter(
-      (q) => q.status === "draft" || q.status === "pending"
-    );
+  // const calculateSummaryData = useCallback((quotationData: QuotationData[]) => {
+  //   const total = quotationData.reduce(
+  //     (sum, q) => sum + (q.totalAmount || 0),
+  //     0
+  //   );
+  //   const confirmed = quotationData.filter((q) => q.status === "confirmed");
+  //   const pending = quotationData.filter(
+  //     (q) => q.status === "draft" || q.status === "pending"
+  //   );
 
-    const confirmedAmount = confirmed.reduce(
-      (sum, q) => sum + (q.totalAmount || 0),
-      0
-    );
-    const pendingAmount = pending.reduce(
-      (sum, q) => sum + (q.totalAmount || 0),
-      0
-    );
+  //   const confirmedAmount = confirmed.reduce(
+  //     (sum, q) => sum + (q.totalAmount || 0),
+  //     0
+  //   );
+  //   const pendingAmount = pending.reduce(
+  //     (sum, q) => sum + (q.totalAmount || 0),
+  //     0
+  //   );
 
-    setSummaryData({
-      total: {
-        amount: `₹ ${total.toLocaleString("en-IN")}`,
-        change: `${quotationData.length} total bookings`,
-        isPositive: true,
-      },
-      youGive: {
-        amount: `₹ ${pendingAmount.toLocaleString("en-IN")}`,
-        change: `${pending.length} pending bookings`,
-        isPositive: false,
-      },
-      youGet: {
-        amount: `₹ ${confirmedAmount.toLocaleString("en-IN")}`,
-        change: `${confirmed.length} confirmed bookings`,
-        isPositive: true,
-      },
-    });
-  }, []);
+  //   setSummaryData({
+  //     total: {
+  //       amount: `₹ ${total.toLocaleString("en-IN")}`,
+  //       change: `${quotationData.length} total bookings`,
+  //       isPositive: true,
+  //     },
+  //     youGive: {
+  //       amount: `₹ ${pendingAmount.toLocaleString("en-IN")}`,
+  //       change: `${pending.length} pending bookings`,
+  //       isPositive: false,
+  //     },
+  //     youGet: {
+  //       amount: `₹ ${confirmedAmount.toLocaleString("en-IN")}`,
+  //       change: `${confirmed.length} confirmed bookings`,
+  //       isPositive: true,
+  //     },
+  //   });
+  // }, []);
 
   // Sync drafts with backend
   const syncDrafts = useCallback(async () => {
@@ -314,15 +299,51 @@ const OSBookingsPage = () => {
     setIsSideSheetOpen(false);
   }, [loadQuotations, loadDrafts]);
 
-  const getServiceIcon = (quotationType: string): string => {
-    const iconMap: Record<string, string> = {
-      flight: "✈️",
-      flights: "✈️",
-      hotel: "🏨",
-      accommodation: "🏨",
+  const getServiceIcon = (
+    quotationType: string
+  ): React.ReactElement | string => {
+    const iconMap: Record<string, any> = {
+      flight: (
+        <Image
+          src="/icons/service-icons/flight.svg"
+          alt="Flights"
+          width={18}
+          height={18}
+        />
+      ),
+      flights: (
+        <Image
+          src="/icons/service-icons/flight.svg"
+          alt="Flights"
+          width={18}
+          height={18}
+        />
+      ),
+      accommodation: (
+        <Image
+          src="/icons/service-icons/accommodation.svg"
+          alt="Accommodation"
+          width={18}
+          height={18}
+        />
+      ),
       car: "🚗",
-      transportation: "🚗",
-      package: "🎫",
+      "land transportation": (
+        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      ),
+      "land-transportation": (
+        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      ),
+      land_transportation: (
+        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      ),
+      land: (
+        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      ),
+      transportation: (
+        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      ),
+
       activity: "🎯",
       insurance: "🛡️",
       visa: "📋",
@@ -348,6 +369,124 @@ const OSBookingsPage = () => {
 
   console.log(quotations);
 
+  const handleDeleteClick = (quotationId: string) => {
+    setSelectedDeleteId(quotationId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedDeleteId) return;
+
+    try {
+      const response = await BookingApiService.deleteQuotation(
+        selectedDeleteId
+      );
+
+      if (response.success) {
+        // Remove from UI
+        setQuotations((prev) => prev.filter((q) => q._id !== selectedDeleteId));
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+    }
+
+    setIsDeleteModalOpen(false);
+    setSelectedDeleteId(null);
+  };
+
+  const ownersList: Owner[] = [
+    {
+      short: "AS",
+      full: "Avanish Sharma",
+      color: "border-pink-700 text-pink-700",
+    },
+    {
+      short: "AK",
+      full: "Ankit Kumar",
+      color: "border-[#AF52DE] text-[#AF52DE]",
+    },
+    {
+      short: "SR",
+      full: "Suresh Raj",
+      color: "border-[#5856D6] text-[#5856D6]",
+    },
+    {
+      short: "VG",
+      full: "Vijay Gupta",
+      color: "border-cyan-700 text-cyan-700",
+    },
+  ];
+
+  const getActionsForTab = (tab: string, row: any) => {
+    const id = quotations?.[row.originalIndex]?._id;
+
+    const baseActions = [
+      {
+        label: "Edit",
+        icon: <MdOutlineEdit />,
+        color: "text-blue-600",
+        onClick: () => console.log("Edit", row.id),
+      },
+      {
+        label: "Delete",
+        icon: <FaRegTrashAlt />,
+        color: "text-red-600",
+        onClick: () => {
+          if (id) handleDeleteClick(id);
+        },
+      },
+    ];
+
+    // Denied
+    if (tab === "Denied") {
+      baseActions.push({
+        label: "Request again",
+        icon: <TbArrowAutofitRight />,
+        color: "text-gray-400",
+        onClick: () => console.log("Request again", row.id),
+      });
+      baseActions.push({
+        label: "Duplicate",
+        icon: <FiCopy />,
+        color: "text-gray-400",
+        onClick: () => console.log("Duplicate", row.id),
+      });
+      return baseActions;
+    }
+
+    // Deleted
+    if (tab === "Deleted") {
+      return [
+        {
+          label: "Recover",
+          icon: <TbArrowAutofitRight />,
+          color: "text-gray-400",
+          onClick: () => console.log("Recover", row.id),
+        },
+      ];
+    }
+
+    // Approved
+    if (tab === "Approved") {
+      baseActions.push({
+        label: "Move",
+        icon: <TbArrowAutofitRight />,
+        color: "text-gray-400",
+        onClick: () => console.log("Move", row.id),
+      });
+    }
+
+    // Default for Pending + Drafts
+    baseActions.push({
+      label: "Duplicate",
+      icon: <FiCopy />,
+      color: "text-gray-400",
+      onClick: () => console.log("Duplicate", row.id),
+    });
+
+    return baseActions;
+  };
+
   // Convert quotations to table data
   const tableData = useMemo<JSX.Element[][]>(() => {
     const combinedData = [
@@ -361,65 +500,96 @@ const OSBookingsPage = () => {
         travelDate:
           quotation.formFields?.departureDate ||
           new Date(quotation.createdAt).toLocaleDateString("en-GB"),
-        service:
-          getServiceIcon(quotation.quotationType) +
-          " " +
-          quotation.quotationType,
+        service: (
+          <div className="flex items-center gap-1">
+            {getServiceIcon(quotation.quotationType)}
+            <span>{formatServiceType(quotation.quotationType)}</span>
+          </div>
+        ),
+
         bookingStatus: mapStatus(quotation.status),
         amount: `₹ ${quotation.totalAmount?.toLocaleString("en-IN") || "0"}`,
-        voucher: "📄",
         tasks: Math.floor(Math.random() * 5) + 1, // Random tasks for demo
         isReal: true,
         originalIndex: index,
       })),
     ];
 
-    return combinedData.map((row, index) => [
-      <td key={`id-${index}`} className="px-4 py-3">
+    const rows = combinedData.map((row, index) => [
+      <td
+        key={`id-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
         {row.id}
       </td>,
-      <td key={`lead-${index}`} className="px-4 py-3">
+      <td
+        key={`lead-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
         {row.leadPax}
       </td>,
-      <td key={`date-${index}`} className="px-4 py-3">
+      <td
+        key={`date-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
         {row.travelDate}
       </td>,
-      <td key={`service-${index}`} className="px-4 py-3">
+      <td
+        key={`service-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
         {row.service}
       </td>,
-      <td key={`status-${index}`} className="px-4 py-3">
+      <td
+        key={`status-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
         <span className={getStatusBadgeClass(row.bookingStatus)}>
           {row.bookingStatus}
         </span>
       </td>,
-      <td key={`amount-${index}`} className="px-4 py-3">
+      <td
+        key={`amount-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
         {row.amount}
       </td>,
-      <td key={`voucher-${index}`} className="px-4 py-3">
-        <button
-          className="hover:scale-110 transition-transform"
-          aria-label="View voucher"
-          type="button"
-          onClick={() => {
-            if (
-              row.isReal &&
-              row.originalIndex !== undefined &&
-              quotations[row.originalIndex]
-            ) {
-              handleViewQuotation(quotations[row.originalIndex]!);
-            }
-          }}
-        >
-          {row.voucher}
-        </button>
+      <td
+        key={`owners-${index}`}
+        className="px-4 py-2 text-center align-middle h-[2.5rem]"
+      >
+        <div className="flex items-center justify-center">
+          <div className="flex items-center">
+            {ownersList.map((owner, i) => (
+              <AvatarTooltip
+                key={i}
+                short={owner.short}
+                full={owner.full}
+                color={owner.color}
+              />
+            ))}
+          </div>
+        </div>
       </td>,
-      <td key={`tasks-${index}`} className="px-4 py-3">
-        <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
-          {row.tasks}
-        </span>
+      <td
+        key={`tasks-${index}`}
+        className="px-4 py-2 text-center align-middle h-[2.5rem]"
+      >
+        <div className="flex justify-center">
+          <TaskButton count={row.tasks} />
+        </div>
+      </td>,
+
+      // ACTIONS COLUMN
+      <td
+        key={`actions-${index}`}
+        className="px-4 py-2  text-left align-middle h-[4rem]"
+      >
+        <ActionMenu actions={getActionsForTab(activeTab, row)} />
       </td>,
     ]);
-  }, [quotations, handleViewQuotation]);
+    return reverse ? rows.reverse() : rows;
+  }, [quotations, handleViewQuotation, activeTab, reverse]);
 
   // Helper functions
 
@@ -451,9 +621,9 @@ const OSBookingsPage = () => {
 
   return (
     <>
-      <div className="flex justify-between items-center gap-4 p-6 w-full mx-[10px] mt-[-20px]">
-        {/* Draft count and sync button */}
-        <div className="flex items-center gap-4">
+      {/* <div className="flex justify-between items-center gap-4 p-6 w-full mx-[10px] mt-[-20px]"> */}
+      {/* Draft count and sync button */}
+      {/* <div className="flex items-center gap-4">
           {drafts.length > 0 && (
             <div className="text-sm text-gray-600">
               <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
@@ -469,12 +639,12 @@ const OSBookingsPage = () => {
           >
             🔄 Sync
           </button>
-        </div>
-      </div>
+        </div> */}
+      {/* </div> */}
 
-      <div className="min-h-screen mt-2">
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 mx-6">
+      <div className="min-h-screen">
+        {/* {!error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             <strong>Error:</strong> {error}
             <button
               onClick={loadQuotations}
@@ -484,7 +654,7 @@ const OSBookingsPage = () => {
               Retry
             </button>
           </div>
-        )}
+        )} */}
 
         <Filter
           onFilterChange={handleFilterChange}
@@ -495,18 +665,58 @@ const OSBookingsPage = () => {
           setCreateOpen={setIsCreateOpen}
         />
 
-        {isLoading ? (
-          <SummaryCardsSkeleton />
-        ) : (
-          <SummaryCards data={summaryData ?? undefined} />
-        )}
+        <div className="bg-white rounded-2xl shadow mt-4 pt-4 pb-3 px-3 relative">
+          {/* Tabs and Total Count Row */}
+          <div className="flex w-full justify-between items-center mb-2">
+            <div className="flex w-[30.5rem] ml-2 items-center bg-[#F3F3F3] rounded-2xl space-x-4">
+              {tabOptions.map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2 rounded-xl text-[0.85rem] font-medium transition-all duration-200 ${
+                    activeTab === tab
+                      ? "bg-[#0D4B37] text-white shadow-sm"
+                      : "text-[#818181] hover:bg-gray-200"
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
 
-        {isLoading ? (
-          <TableSkeleton />
-        ) : (
-          <Table data={tableData} columns={columns} />
-        )}
+            <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
+              <span className="text-gray-600 text-[0.85rem] font-medium">
+                Total
+              </span>
+              <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
+                {quotations.length}
+              </span>
+            </div>
+          </div>
+          <div className="p-2">
+            {isLoading ? (
+              <TableSkeleton />
+            ) : (
+              <Table
+                data={tableData}
+                columns={columns}
+                columnIconMap={columnIconMap}
+                onSort={handleSort}
+              />
+            )}
+          </div>
+        </div>
       </div>
+
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Do you want to delete this quotation?"
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        confirmButtonColor="bg-red-600"
+        onConfirm={confirmDelete}
+      />
 
       {isCreateOpen && (
         <BookingFormModal
