@@ -118,7 +118,8 @@ const SideSheet: React.FC<SideSheetProps> = ({
         <div
           className={`
           absolute top-0 h-full bg-white shadow-xl
-          transition-transform duration-300 ease-in-out rounded-[24px] overflow-hidden
+          transition-transform duration-300 ease-in-out rounded-l-[24px]
+ overflow-hidden
           ${positionClasses[position].container}
           ${positionClasses[position].transform}
           ${positionClasses[position].rounded}

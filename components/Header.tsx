@@ -161,7 +161,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
 
   const dropdownClasses = useMemo(
     () =>
-      `absolute right-0 top-full mt-6 -mr-3 w-81 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden transition-all duration-300 ease-in-out ${
+      `absolute right-0 top-full mt-4 -mr-3 w-75 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden transition-all duration-300 ease-in-out ${
         isDropDownOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
       }`,
     [isDropDownOpen]
@@ -179,7 +179,9 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
         <div className="flex justify-between items-center px-5 py-1 border-b border-gray-200 bg-white">
           {/* Left: Page Title */}
           <div>
-            <h1 className="font-[Poppins] font-semibold text-[0.95rem] leading-[1.75rem] tracking-normal align-middle">{headerTitle}</h1>
+            <h1 className="font-[Poppins] font-semibold text-[0.95rem] leading-[1.75rem] tracking-normal align-middle">
+              {headerTitle}
+            </h1>
           </div>
 
           {/* Right: Notification, Profile Avatar, Profile Settings */}
@@ -217,53 +219,65 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
             >
               <button
                 onClick={toggleDropdown}
-                className="flex items-center gap-2 text-gray-700 font-medium focus:outline-none hover:text-[#114958] transition-colors"
+                className="flex items-center gap-1 text-gray-700 font-medium text-[0.75rem] hover:text-[#114958] transition-colors"
                 aria-expanded={isDropDownOpen}
                 aria-haspopup="true"
               >
-                <div className="w-7 h-7 rounded-full bg-[#0D4B37] flex items-center justify-center">
-                  <IoPersonOutline className="text-white w-4 h-4 " />
+                <div className="w-6 h-6 rounded-full bg-[#0D4B37] flex items-center justify-center">
+                  <IoPersonOutline className="text-white w-3.5 h-3.5" />
                 </div>
-                <IoMdArrowDropdown className="text-gray-700" />
+                <IoMdArrowDropdown className="text-gray-700 w-3.5 h-3.5" />
               </button>
 
               {/* Dropdown menu */}
               <div className={dropdownClasses}>
-                <div className="border-t border-gray-100 py-4 px-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#0D4B37] rounded-full flex items-center justify-center text-white">
-                      <IoPersonOutline className="w-7 h-7 p-1" />
+                <div className="border-t border-gray-100 py-2 px-3 text-[0.75rem]">
+                  {/* User Info */}
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-[#0D4B37] rounded-full flex items-center justify-center text-white">
+                      <IoPersonOutline className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="text-gray-900 text-lg">Yash Manocha</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-gray-900 text-[0.8rem] font-medium">
+                        Yash Manocha
+                      </div>
+                      <div className="text-[0.65rem] text-gray-500">
                         yash@karvaann.com
                       </div>
                     </div>
                   </div>
-                  <hr className="mb-2 mt-3 border-t border-gray-200" />
+
+                  <hr className="my-1.5 border-t border-gray-200" />
+
+                  {/* Profile Settings */}
                   <button
                     type="button"
                     onClick={handleSettingsClick}
-                    className="flex mb-1 items-center w-full px-2 py-2 text-md hover:text-gray-700 transition-colors"
+                    className="flex items-center w-full px-2 py-1.5 text-[0.75rem] hover:text-gray-700 transition-colors"
                   >
-                    <SlSettings className="mr-2 text-gray-600" /> Profile
-                    Settings
+                    <SlSettings className="mr-2 text-gray-600 w-3.5 h-3.5" />
+                    Profile Settings
                   </button>
+
+                  {/* Raise Request */}
                   <button
                     type="button"
                     onClick={openRaiseRequestModal}
-                    className="flex items-center w-full px-2 py-2 text-md hover:text-gray-700 transition-colors"
+                    className="flex items-center w-full px-2 py-1.5 text-[0.75rem] hover:text-gray-700 transition-colors"
                   >
-                    <HiOutlineHandRaised className="mr-2 text-gray-600" /> Raise
-                    Request
+                    <HiOutlineHandRaised className="mr-2 text-gray-600 w-3.5 h-3.5" />
+                    Raise Request
                   </button>
-                  <hr className="mb-2 border-t border-gray-200" />
+
+                  <hr className="my-1.5 border-t border-gray-200" />
+
+                  {/* Logout */}
                   <button
-                    className="flex items-center w-full px-2 py-2 text-red-500 text-md transition-colors"
+                    className="flex items-center w-full px-2 py-1.5 text-red-500 text-[0.75rem] transition-colors"
                     onClick={handleLogOut}
                   >
-                    <GoSignOut className="mr-2 font-semibold" /> Sign Out
+                    <GoSignOut className="mr-2 w-3.5 h-3.5" />
+                    Sign Out
                   </button>
                 </div>
               </div>

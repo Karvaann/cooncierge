@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { validateOtherServiceInfoForm } from "@/services/bookingApi";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineFileUpload } from "react-icons/md";
@@ -30,12 +30,16 @@ interface OtherInfoFormProps {
   onSubmit?: (data: OtherServiceInfoFormData) => void;
   isSubmitting?: boolean;
   showValidation?: boolean;
+  formRef?: React.RefObject<HTMLDivElement | null>;
+  onFormDataUpdate: (data: any) => void;
 }
 
 const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   onSubmit,
   isSubmitting = false,
   showValidation = true,
+  formRef,
+  onFormDataUpdate,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<OtherServiceInfoFormData>({
@@ -94,6 +98,10 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     setAttachedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  useEffect(() => {
+    onFormDataUpdate({ activityinfoform: formData });
+  }, [formData]);
 
   type FieldRule = {
     required: boolean;
@@ -348,7 +356,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   return (
     <>
-      <form className="space-y-4 p-4 -mt-1" onSubmit={handleSubmit}>
+      <div className="space-y-4 p-4 -mt-1" ref={formRef as any}>
         <div className="px-2 py-1">
           {/* Booking and Travel Date */}
           <div className="flex flex-wrap items-end justify-between mb-3 px-5 -mx-5">
@@ -361,6 +369,9 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 </label>
                 <input
                   type="date"
+                  name="bookingdate"
+                  value={formData.bookingdate}
+                  onChange={handleChange}
                   placeholder="DD-MM-YYYY"
                   className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
@@ -740,7 +751,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         </div>
 
         {/* Submit Button */}
-        <div className="flex justify-end mt-3">
+        {/* <div className="flex justify-end mt-3">
           <button
             type="submit"
             disabled={isSubmitting}
@@ -748,8 +759,8 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
           >
             {isSubmitting ? "Saving..." : "Save"}
           </button>
-        </div>
-      </form>
+        </div> */}
+      </div>
     </>
   );
 };

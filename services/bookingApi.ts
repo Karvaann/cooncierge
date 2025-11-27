@@ -255,24 +255,21 @@ export class DraftManager {
         draft.generalInfo?.customer === bookingData.generalInfo?.customer
       );
 
-      const existingDraft = existingDraftIndex >= 0 ? drafts[existingDraftIndex] : null;
-      const draftId = existingDraft?.id || this.generateId();
+      // const existingDraft = existingDraftIndex >= 0 ? drafts[existingDraftIndex] : null;
+      // const draftId = existingDraft?.id || this.generateId();
 
       const draft: DraftBooking = {
-        id: draftId,
+        id: this.generateId(),
         draftName: draftName || `Draft - ${bookingData.service?.title || 'Unknown Service'}`,
-        createdAt: existingDraft?.createdAt || now,
+        createdAt: now,
         updatedAt: now,
         status: 'draft',
         ...bookingData,
         timestamp: now,
       };
 
-      if (existingDraftIndex >= 0) {
-        drafts[existingDraftIndex] = draft;
-      } else {
-        drafts.push(draft);
-      }
+      drafts.push(draft);
+
 
       if (typeof window !== 'undefined') {
         localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(drafts));
