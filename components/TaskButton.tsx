@@ -5,14 +5,14 @@ import DayWiseTaskModal from "./Modals/TaskModals/DayWiseTaskModal";
 const TaskButton = ({ count }: { count: number }) => {
   const [isDayWiseModalOpen, setIsDayWiseModalOpen] = React.useState(false);
 
-  const handleOpenModal = () => {
-    setIsDayWiseModalOpen(true);
-  };
+  // const handleOpenModal = () => {
+  //   setIsDayWiseModalOpen(true);
+  // };
   return (
     <div className="relative flex items-center justify-center">
       {/* Button box */}
       <button
-        onClick={handleOpenModal}
+        // onClick={handleOpenModal}
         className="p-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-100 transition-colors"
         type="button"
       >
