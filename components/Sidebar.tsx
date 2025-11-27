@@ -79,8 +79,8 @@ const menuItems: MenuItem[] = [
     label: "Directory",
     icon: RiContactsBook3Line,
     subMenu: [
-      { label: "Vendors", href: "/directory/vendors" },
       { label: "Customers", href: "/directory/customers" },
+      { label: "Vendors", href: "/directory/vendors" },
       { label: "Team", href: "/directory/team" },
     ],
   },
