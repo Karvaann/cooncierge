@@ -284,8 +284,8 @@ const OSBookingsPage = () => {
   useEffect(() => {
     loadQuotations();
     loadDrafts();
-    syncDrafts();
-  }, [loadQuotations, loadDrafts, syncDrafts]);
+    // syncDrafts();
+  }, [loadQuotations, loadDrafts]);
 
   const handleServiceSelect = (service: BookingService) => {
     setSelectedService(service);
@@ -418,7 +418,9 @@ const OSBookingsPage = () => {
   ];
 
   const getActionsForTab = (tab: string, row: any) => {
-    const id = quotations?.[row.originalIndex]?._id;
+    const id = row.isReal
+      ? quotations?.[row.originalIndex]?._id
+      : finalQuotations[row.originalIndex]?.id;
 
     const baseActions = [
       {
@@ -487,30 +489,90 @@ const OSBookingsPage = () => {
     return baseActions;
   };
 
+  const formatDMY = (dateString: string) => {
+    const date = new Date(dateString);
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+
+    return `${day}-${month}-${year}`;
+  };
+
+  const normalizeDraft = (draft: any) => {
+    const travelDate =
+      draft.flightinfoform?.traveldate ||
+      draft.accommodationinfoform?.traveldate ||
+      draft.otherServiceInfoForm?.traveldate ||
+      draft.landTransportInfoForm?.traveldate ||
+      draft.maritimeinfoform?.traveldate ||
+      draft.ticketsinfoform?.traveldate ||
+      "";
+
+    const amount =
+      draft.flightinfoform?.sellingprice ||
+      draft.accommodationinfoform?.sellingprice ||
+      draft.otherServiceInfoForm?.sellingprice ||
+      draft.landTransportInfoForm?.sellingprice ||
+      draft.maritimeinfoform?.sellingprice ||
+      draft.ticketsinfoform?.sellingprice ||
+      0;
+
+    return {
+      _id: null,
+      quotationType: draft.draftName?.split(" - ")[0]?.toLowerCase() || "draft",
+
+      formFields: {
+        customer:
+          draft.customerform?.firstname ||
+          draft.generalInfo?.customer ||
+          "Unknown",
+        departureDate: travelDate,
+        budget: amount,
+      },
+
+      totalAmount: amount,
+      status: "draft",
+      createdAt: draft.timestamp,
+      isDraft: true,
+    };
+  };
+
+  const finalQuotations = (
+    activeTab === "Drafts" ? drafts.map(normalizeDraft) : quotations
+  ) as any[];
+
   // Convert quotations to table data
   const tableData = useMemo<JSX.Element[][]>(() => {
     const combinedData = [
       // Real quotations from API
-      ...quotations.map((quotation, index) => ({
-        id: `#${quotation._id}`,
+      ...finalQuotations.map((item, index) => ({
+        id: item._id ? `#${item._id}` : `Draft-${index + 1}`,
         leadPax:
-          quotation.formFields?.customer ||
-          quotation.formFields?.traveller1 ||
-          "Unknown",
-        travelDate:
-          quotation.formFields?.departureDate ||
-          new Date(quotation.createdAt).toLocaleDateString("en-GB"),
+          item.formFields?.customer || item.formFields?.traveller1 || "Unknown",
+        travelDate: item.formFields?.departureDate
+          ? formatDMY(item.formFields?.departureDate)
+          : item.createdAt
+          ? formatDMY(item.createdAt)
+          : "Not Selected",
         service: (
           <div className="flex items-center gap-1">
-            {getServiceIcon(quotation.quotationType)}
-            <span>{formatServiceType(quotation.quotationType)}</span>
+            {getServiceIcon(item.quotationType || item.serviceType || "draft")}
+            <span>
+              {formatServiceType(
+                item.quotationType || item.serviceType || "draft"
+              )}
+            </span>
           </div>
         ),
 
-        bookingStatus: mapStatus(quotation.status),
-        amount: `₹ ${quotation.totalAmount?.toLocaleString("en-IN") || "0"}`,
+        bookingStatus: mapStatus(item.status),
+        amount: item.totalAmount
+          ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
+          : `₹ ${item.formFields?.budget || "0"}`,
+
         tasks: Math.floor(Math.random() * 5) + 1, // Random tasks for demo
-        isReal: true,
+        isReal: Boolean(item._id),
         originalIndex: index,
       })),
     ];
@@ -589,7 +651,7 @@ const OSBookingsPage = () => {
       </td>,
     ]);
     return reverse ? rows.reverse() : rows;
-  }, [quotations, handleViewQuotation, activeTab, reverse]);
+  }, [finalQuotations, drafts, activeTab, reverse]);
 
   // Helper functions
 

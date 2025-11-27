@@ -304,7 +304,7 @@ interface BookingContextType {
 
   // API Actions
   submitBooking: () => Promise<void>;
-  saveDraft: (draftName?: string) => Promise<void>;
+  saveDraft: (formValues: any, draftName?: string) => Promise<void>;
   validateCustomer: (customerId: string) => Promise<boolean>;
   validateVendor: (vendorId: string) => Promise<boolean>;
   resetBooking: () => void;
@@ -762,19 +762,15 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Save draft function
   const saveDraft = useCallback(
-    async (draftName?: string) => {
+    async (formValues: any, draftName?: string) => {
       dispatch({ type: "SET_DRAFT_LOADING", payload: true });
 
       try {
         const draftData = {
-          service: state.selectedService,
-          generalInfo: state.generalInfo,
-          serviceInfo: state.serviceInfo,
-          customerform: state.customerForm,
-          vendorform: state.vendorForm,
-          flightinfoform: state.flightinfoform,
-          accommodationinfoform: state.accommodationinfoform,
-          otherServiceInfoForm: state.otherServiceInfoForm,
+          ...formValues,
+          flightinfoform: formValues.flightinfoform || {},
+          accommodationinfoform: formValues.accommodationinfoform || {},
+          otherServiceInfoForm: formValues.otherServiceInfoForm || {},
           timestamp: new Date().toISOString(),
         };
 

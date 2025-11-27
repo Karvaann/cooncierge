@@ -18,18 +18,18 @@ const SuccessPopupModal: React.FC<SuccessPopupModalProps> = ({
       onClose={onClose}
       title=""
       size="sm"
-      customWidth="w-[500px]"
-      customeHeight="h-[250px]"
+      customWidth="w-[26vw]"
+      customeHeight="h-[19vh]"
       showCloseButton={true}
       closeOnOverlayClick={true}
       closeOnEscape={true}
       className="p-0"
     >
-      <div className="flex flex-col items-center justify-center -mt-8 px-3">
+      <div className="flex flex-col items-center justify-center -mt-4 px-2">
         <video
           src="/animations/tickmark-anim.mp4"
-          width="100"
-          height="100"
+          width="70"
+          height="70"
           autoPlay
           loop
           muted
@@ -37,9 +37,10 @@ const SuccessPopupModal: React.FC<SuccessPopupModalProps> = ({
           onLoadedMetadata={(e) => {
             (e.currentTarget as HTMLVideoElement).playbackRate = 0.75;
           }}
+          className="w-[3.5rem] h-[3.5rem]"
         />
 
-        <div className="text-center mb-2 mt-2 text-[#1A7F64] text-lg font-semibold">
+        <div className="text-center mt-2 text-[#1A7F64] text-[0.75rem] font-semibold">
           {title}
         </div>
       </div>

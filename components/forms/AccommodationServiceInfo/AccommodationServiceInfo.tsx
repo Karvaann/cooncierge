@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { validateAccommodationInfoForm } from "@/services/bookingApi";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineFileUpload } from "react-icons/md";
@@ -159,6 +159,7 @@ interface AccommodationInfoFormProps {
   isSubmitting?: boolean;
   showValidation?: boolean;
   formRef?: React.RefObject<HTMLDivElement | null>;
+  onFormDataUpdate: (data: any) => void;
 }
 
 const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
@@ -166,6 +167,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   isSubmitting = false,
   showValidation = true,
   formRef,
+  onFormDataUpdate,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<AccommodationInfoFormData>({
@@ -230,23 +232,27 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  useEffect(() => {
+    onFormDataUpdate({ accommodationinfoform: formData });
+  }, [formData]);
 
-    setAttachedFile(file);
+  // const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (!file) return;
 
-    setFilesAdded((prev) => ({
-      ...prev,
-      document: true,
-    }));
-  };
+  //   setAttachedFile(file);
+
+  //   setFilesAdded((prev) => ({
+  //     ...prev,
+  //     document: true,
+  //   }));
+  // };
 
   // Handle file removal
-  const handleDeleteFile = () => {
-    setAttachedFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
+  // const handleDeleteFile = () => {
+  //   setAttachedFile(null);
+  //   if (fileInputRef.current) fileInputRef.current.value = "";
+  // };
 
   type FieldRule = {
     required: boolean;

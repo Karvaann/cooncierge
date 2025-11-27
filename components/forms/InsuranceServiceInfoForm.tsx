@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { validateOtherServiceInfoForm } from "@/services/bookingApi";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineFileUpload } from "react-icons/md";
@@ -31,6 +31,7 @@ interface OtherInfoFormProps {
   isSubmitting?: boolean;
   showValidation?: boolean;
   formRef?: React.RefObject<HTMLDivElement | null>;
+  onFormDataUpdate: (data: any) => void;
 }
 
 const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
@@ -38,6 +39,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   isSubmitting = false,
   showValidation = true,
   formRef,
+  onFormDataUpdate,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<OtherServiceInfoFormData>({
@@ -96,6 +98,10 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     setAttachedFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  useEffect(() => {
+    onFormDataUpdate({ insuranceinfoform: formData });
+  }, [formData]);
 
   type FieldRule = {
     required: boolean;
@@ -363,6 +369,9 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 </label>
                 <input
                   type="date"
+                  name="bookingdate"
+                  value={formData.bookingdate}
+                  onChange={handleChange}
                   placeholder="DD-MM-YYYY"
                   className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />

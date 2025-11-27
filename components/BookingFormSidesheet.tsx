@@ -523,10 +523,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                       <button
                         onClick={async () => {
                           try {
+                            const formValues = {
+                              ...collectAllFormData(),
+                              ...formData,
+                            };
                             const draftName = `${
                               selectedService?.title || "Booking"
-                            } - ${formData?.generalInfo?.customer || "Draft"}`;
-                            await saveDraft(draftName);
+                            } - ${formValues.customer || "Draft"}`;
+                            await saveDraft(formValues, draftName);
                             onClose();
                           } catch (error) {
                             console.error("Error saving draft:", error);
@@ -535,7 +539,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                         className="px-3 py-2 text-[0.75rem] bg-[#114958] text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
                         disabled={isSubmitting}
                       >
-                        Save Draft
+                        Save As Draft
                       </button>
 
                       {/* Next (go to service tab) */}
@@ -562,10 +566,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                       <button
                         onClick={async () => {
                           try {
+                            const formValues = {
+                              ...collectAllFormData(),
+                              ...formData,
+                            };
                             const draftName = `${
                               selectedService?.title || "Booking"
-                            } - ${formData?.generalInfo?.customer || "Draft"}`;
-                            await saveDraft(draftName);
+                            } - ${formValues.customer || "Draft"}`;
+                            await saveDraft(formValues, draftName);
                             onClose();
                           } catch (error) {
                             console.error("Error saving draft:", error);
@@ -574,14 +582,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                         className="px-3 py-2 text-[0.75rem] bg-[#114958] text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
                         disabled={isSubmitting}
                       >
-                        Save Draft
+                        Save As Draft
                       </button>
 
                       {/* Create Booking */}
                       <button
                         type="button"
                         onClick={handleSubmit}
-                        className="px-4 py-2 bg-[#114958] text-[0.75rem] text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                        className="px-4 py-2 bg-[#114958] text-[0.75rem] text-white rounded-lg hover:cursor-pointer transition-colors disabled:opacity-50"
                         disabled={isSubmitting || !selectedService}
                       >
                         {isSubmitting
@@ -608,10 +616,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         }}
         onSaveAsDrafts={async () => {
           try {
+            const formValues = {
+              ...collectAllFormData(),
+              ...formData,
+            };
             const draftName = `${selectedService?.title || "Booking"} - ${
-              formData?.generalInfo?.customer || "Draft"
+              formValues.customer || "Draft"
             }`;
-            await saveDraft(draftName);
+            await saveDraft(formValues, draftName);
             setIsSuccessModalOpen(true);
           } catch (error) {
             console.error("Error saving draft:", error);
