@@ -7,13 +7,12 @@ import { BsPlusSquareFill } from "react-icons/bs";
 import { CiSearch } from "react-icons/ci";
 import { FiMinus } from "react-icons/fi";
 import { GoPlus } from "react-icons/go";
-import { validateGeneralInfo } from "@/services/bookingApi";
+// import { validateGeneralInfo } from "@/services/bookingApi";
 import { useBooking } from "@/context/BookingContext";
 import Fuse from "fuse.js";
 import { getCustomers } from "@/services/customerApi";
 import { getVendors } from "@/services/vendorApi";
 import { getUsers } from "@/services/userApi";
-import { div } from "framer-motion/client";
 
 // Type definitions
 interface GeneralInfoFormData {
@@ -79,10 +78,9 @@ const InputField: React.FC<InputFieldProps> = ({
           ${
             hasError
               ? "border-red-300 focus:ring-red-200"
-              : isValid
-              ? "border-green-300 focus:ring-green-200"
               : "border-gray-200 focus:ring-blue-200"
           }
+
           ${disabled || isValidating ? "opacity-50 cursor-not-allowed" : ""}
           ${className}
         `}
@@ -94,7 +92,7 @@ const InputField: React.FC<InputFieldProps> = ({
         {isValidating && (
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
         )}
-        {!isValidating && isValid && (
+        {/* {!isValidating && isValid && (
           <svg
             className="h-4 w-4 text-green-500"
             fill="none"
@@ -108,7 +106,7 @@ const InputField: React.FC<InputFieldProps> = ({
               d="M5 13l4 4L19 7"
             />
           </svg>
-        )}
+        )} */}
         {!isValidating && hasError && (
           <svg
             className="h-4 w-4 text-red-500"
@@ -173,8 +171,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [validatingCustomer, setValidatingCustomer] = useState<boolean>(false);
-  const [validatingVendor, setValidatingVendor] = useState<boolean>(false);
   const { openAddCustomer, openAddVendor, openAddTraveller } = useBooking();
   const [customerList, setCustomerList] = useState<
     { id: string; name: string }[]
@@ -188,17 +184,21 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Search data states
   const [allCustomers, setAllCustomers] = useState<any[]>([]);
   const [allVendors, setAllVendors] = useState<any[]>([]);
-  const [allTeams, setAllTeams] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
 
   const [customerResults, setCustomerResults] = useState<any[]>([]);
   const [vendorResults, setVendorResults] = useState<any[]>([]);
-  const [teamResults, setTeamResults] = useState<any[]>([]);
+  const [usersResults, setUsersResults] = useState<any[]>([]);
 
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
-  const [showTeamDropdown, setShowTeamDropdown] = useState(false);
+  const [showusersDropdown, setShowUsersDropdown] = useState(false);
 
-  // Fetch all customers, vendors, teams on mount
+  const [activeCustomerIndex, setActiveCustomerIndex] = useState<number | null>(
+    null
+  );
+
+  // Fetch all customers, vendors, Userss on mount
   useEffect(() => {
     const fetchLists = async () => {
       try {
@@ -210,7 +210,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
         setAllCustomers(cRes || []);
         setAllVendors(vRes || []);
-        setAllTeams(tRes || []);
+        setAllUsers(tRes || []);
       } catch (err) {
         console.error("Failed loading lists", err);
       }
@@ -369,16 +369,15 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Validation rules
   const validationRules = useMemo(
     () => ({
-      customer: {
-        required: true,
-        minLength: 2,
-        message: "Customer name is required (minimum 2 characters)",
-      },
-      vendor: {
-        required: true,
-        minLength: 2,
-        message: "Vendor name is required (minimum 2 characters)",
-      },
+      // customer: {
+      //   required: true,
+      //   message: "Customer name is required",
+      // },
+      // vendor: {
+      //   required: true,
+      //   message: "Vendor name is required",
+      // },
+
       adults: {
         required: true,
         minLength: 1,
@@ -389,11 +388,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         minLength: 2,
         message: "Lead passenger name is required",
       },
-      bookingOwner: {
-        required: true,
-        minLength: 2,
-        message: "Booking owner is required",
-      },
+      // bookingOwner: {
+      //   required: true,
+      //   message: "Booking owner is required",
+      // },
     }),
     []
   );
@@ -402,10 +400,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const validateField = useCallback(
     (name: string, value: any): string => {
       // Use API validation for comprehensive checks
-      if (name === "customer" || name === "vendor") {
-        const apiErrors = validateGeneralInfo({ [name]: value });
-        return apiErrors[name] || "";
-      }
+      // if (name === "customer" || name === "vendor") {
+      //   const apiErrors = validateGeneralInfo({ [name]: value });
+      //   return apiErrors[name] || "";
+      // }
 
       const rule = validationRules[name as keyof typeof validationRules];
       if (!rule) return "";
@@ -417,21 +415,21 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         return rule.message;
       }
 
-      if (
-        rule.minLength &&
-        typeof value === "string" &&
-        value.length < rule.minLength
-      ) {
-        return rule.message;
-      }
+      // if (
+      //   rule.minLength &&
+      //   typeof value === "string" &&
+      //   value.length < rule.minLength
+      // ) {
+      //   return rule.message;
+      // }
 
-      if (
-        rule.minLength &&
-        typeof value === "number" &&
-        value < rule.minLength
-      ) {
-        return rule.message;
-      }
+      // if (
+      //   rule.minLength &&
+      //   typeof value === "number" &&
+      //   value < rule.minLength
+      // ) {
+      //   return rule.message;
+      // }
 
       return "";
     },
@@ -439,57 +437,57 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   );
 
   // Customer validation handler
-  const handleCustomerValidation = useCallback(
-    async (customerId: string) => {
-      if (!customerId.trim()) return;
+  // const handleCustomerValidation = useCallback(
+  //   async (customerId: string) => {
+  //     if (!customerId.trim()) return;
 
-      setValidatingCustomer(true);
-      try {
-        const isValid = await validateCustomer(customerId);
-        if (!isValid) {
-          setErrors((prev) => ({
-            ...prev,
-            customer: "Customer not found or invalid",
-          }));
-        } else {
-          setErrors((prev) => ({ ...prev, customer: "" }));
-        }
-      } catch (error) {
-        setErrors((prev) => ({
-          ...prev,
-          customer: "Error validating customer",
-        }));
-      } finally {
-        setValidatingCustomer(false);
-      }
-    },
-    [validateCustomer]
-  );
+  //     setValidatingCustomer(true);
+  //     try {
+  //       const isValid = await validateCustomer(customerId);
+  //       if (!isValid) {
+  //         setErrors((prev) => ({
+  //           ...prev,
+  //           customer: "Customer not found or invalid",
+  //         }));
+  //       } else {
+  //         setErrors((prev) => ({ ...prev, customer: "" }));
+  //       }
+  //     } catch (error) {
+  //       setErrors((prev) => ({
+  //         ...prev,
+  //         customer: "Error validating customer",
+  //       }));
+  //     } finally {
+  //       setValidatingCustomer(false);
+  //     }
+  //   },
+  //   [validateCustomer]
+  // );
 
   // Vendor validation handler
-  const handleVendorValidation = useCallback(
-    async (vendorId: string) => {
-      if (!vendorId.trim()) return;
+  // const handleVendorValidation = useCallback(
+  //   async (vendorId: string) => {
+  //     if (!vendorId.trim()) return;
 
-      setValidatingVendor(true);
-      try {
-        const isValid = await validateVendor(vendorId);
-        if (!isValid) {
-          setErrors((prev) => ({
-            ...prev,
-            vendor: "Vendor not found or invalid",
-          }));
-        } else {
-          setErrors((prev) => ({ ...prev, vendor: "" }));
-        }
-      } catch (error) {
-        setErrors((prev) => ({ ...prev, vendor: "Error validating vendor" }));
-      } finally {
-        setValidatingVendor(false);
-      }
-    },
-    [validateVendor]
-  );
+  //     setValidatingVendor(true);
+  //     try {
+  //       const isValid = await validateVendor(vendorId);
+  //       if (!isValid) {
+  //         setErrors((prev) => ({
+  //           ...prev,
+  //           vendor: "Vendor not found or invalid",
+  //         }));
+  //       } else {
+  //         setErrors((prev) => ({ ...prev, vendor: "" }));
+  //       }
+  //     } catch (error) {
+  //       setErrors((prev) => ({ ...prev, vendor: "Error validating vendor" }));
+  //     } finally {
+  //       setValidatingVendor(false);
+  //     }
+  //   },
+  //   [validateVendor]
+  // );
 
   // Validate all fields
   const validateForm = useCallback((): boolean => {
@@ -541,27 +539,21 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         setErrors((prev) => ({ ...prev, [name]: error }));
 
         // Trigger API validation for customer and vendor
-        if (name === "customer" && value.trim()) {
-          const custId = customerList?.[0]?.id?.trim() ?? "";
-          if (custId) {
-            await handleCustomerValidation(custId);
-          }
-        } else if (name === "vendor" && value.trim()) {
-          if (vendorData.id.trim()) {
-            await handleVendorValidation(vendorData.id);
-          }
-        }
+        // if (name === "customer" && value.trim()) {
+        //   const custId = customerList?.[0]?.id?.trim() ?? "";
+        //   if (custId) {
+        //     await handleCustomerValidation(custId);
+        //   }
+        // } else if (name === "vendor" && value.trim()) {
+        //   if (vendorData.id.trim()) {
+        //     await handleVendorValidation(vendorData.id);
+        //   }
+        // }
       }
 
       setTouched((prev) => ({ ...prev, [name]: true }));
     },
-    [
-      validateField,
-      showValidation,
-      handleCustomerValidation,
-      handleVendorValidation,
-      customerList,
-    ]
+    [validateField, showValidation, customerList]
   );
 
   // Handle form submission
@@ -605,25 +597,19 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       skipValidation?: boolean;
     }
   ) => {
-    const isValidating =
-      (name === "customer" && validatingCustomer) ||
-      (name === "vendor" && validatingVendor);
-
     const fieldValue =
       options?.value !== undefined ? options.value : formData[name];
     const hasError = !!(errors[name] && touched[name]);
     const hasValue = formData[name] && String(formData[name]).trim();
-    const isValid =
-      !options?.skipValidation && !!hasValue && !hasError && !isValidating;
+    const isValid = !options?.skipValidation && !!hasValue && !hasError;
 
     return {
       value: fieldValue as string | number,
       onChange: options?.onChange || handleChange,
       onBlur: handleBlur,
-      disabled: isSubmitting || isValidating,
+      disabled: isSubmitting,
       hasError,
       errorMessage: errors[name],
-      isValidating,
       isValid,
     };
   };
@@ -676,6 +662,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         name: value,
                       });
 
+                      // IF FIELD CLEARED → also clear stored value so validation becomes empty
+                      if (value.trim() === "") {
+                        setFormData((prev) => ({ ...prev, customer: "" }));
+                      }
+
                       const results = runFuzzySearch(allCustomers, value, [
                         "name",
                         "email",
@@ -683,36 +674,38 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       ]);
                       setCustomerResults(results);
                       setShowCustomerDropdown(true);
+                      setActiveCustomerIndex(index);
                     },
                   })}
                 />
 
-                {showCustomerDropdown && customerResults.length > 0 && (
-                  <div className="absolute bg-white border rounded-md w-[30rem] max-h-60 mt-1 overflow-y-auto shadow-md z-50">
-                    {customerResults.map((cust) => (
-                      <div
-                        key={cust._id}
-                        className="p-2 cursor-pointer hover:bg-gray-100"
-                        onClick={() => {
-                          updateCustomerField(index, {
-                            id: cust._id,
-                            name: cust.name,
-                          });
-                          setShowCustomerDropdown(false);
+                {activeCustomerIndex === index &&
+                  customerResults.length > 0 && (
+                    <div className="absolute bg-white border rounded-md w-[30rem] max-h-60 mt-1 overflow-y-auto shadow-md z-50">
+                      {customerResults.map((cust) => (
+                        <div
+                          key={cust._id}
+                          className="p-2 cursor-pointer hover:bg-gray-100"
+                          onClick={() => {
+                            updateCustomerField(index, {
+                              id: cust._id,
+                              name: cust.name,
+                            });
+                            setActiveCustomerIndex(null);
 
-                          // Sync main form
-                          setFormData((prev) => ({
-                            ...prev,
-                            customer: cust._id,
-                          }));
-                        }}
-                      >
-                        <p className="font-medium">{cust.name}</p>
-                        <p className="text-xs text-gray-500">{cust.email}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                            // Sync main form
+                            setFormData((prev) => ({
+                              ...prev,
+                              customer: cust._id,
+                            }));
+                          }}
+                        >
+                          <p className="font-medium">{cust.name}</p>
+                          <p className="text-xs text-gray-500">{cust.email}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
               </div>
 
               <RightSideIcons
@@ -947,26 +940,26 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             {...getInputProps("bookingOwner", {
               onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                 handleChange(e);
-                const results = runFuzzySearch(allTeams, e.target.value, [
+                const results = runFuzzySearch(allUsers, e.target.value, [
                   "name",
                   "email",
                   "username",
                 ]);
-                setTeamResults(results);
-                setShowTeamDropdown(true);
+                setUsersResults(results);
+                setShowUsersDropdown(true);
               },
             })}
           />
 
-          {showTeamDropdown && teamResults.length > 0 && (
+          {showusersDropdown && usersResults.length > 0 && (
             <div className="absolute bg-white border rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-              {teamResults.map((t: any) => (
+              {usersResults.map((t: any) => (
                 <div
                   key={t._id}
                   className="p-2 cursor-pointer hover:bg-gray-100"
                   onClick={() => {
                     setFormData((prev) => ({ ...prev, bookingOwner: t.name }));
-                    setShowTeamDropdown(false);
+                    setShowUsersDropdown(false);
                   }}
                 >
                   <p className="font-medium">{t.name}</p>

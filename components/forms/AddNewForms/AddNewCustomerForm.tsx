@@ -363,11 +363,13 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 First Name <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="firstname"
+                value={formData.firstname}
+                onChange={handleChange}
                 placeholder="Enter First Name"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
@@ -375,11 +377,13 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Last Name <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="lastname"
+                value={formData.lastname}
+                onChange={handleChange}
                 placeholder="Enter Last Name"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
@@ -387,11 +391,13 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Nickname/Alias <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="nickname"
+                value={formData.nickname}
+                onChange={handleChange}
                 placeholder="Enter Nickname/Alias"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -402,11 +408,13 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Contact Number <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="contactnumber"
+                value={formData.contactnumber}
+                onChange={handleChange}
                 placeholder="Enter Contact Number"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
@@ -414,11 +422,13 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Email ID <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="emailId"
+                value={formData.emailId}
+                onChange={handleChange}
                 placeholder="Enter Email ID"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
@@ -426,11 +436,13 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Date of Birth <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="dateofbirth"
+                value={formData.dateofbirth}
+                onChange={handleChange}
                 placeholder="DD-MM-YYYY"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -444,20 +456,22 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
           </h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-          <div className="flex gap-6">
+          <div className="flex gap-2">
             <div className="flex flex-col w-[20rem] relative">
               <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
                 GSTIN
               </label>
 
               <div className="relative">
-                <InputField
+                <input
                   name="gstin"
+                  value={formData.gstin}
+                  onChange={handleChange}
                   placeholder="Please Provide Your GST No."
-                  className="w-full text-[0.75rem] py-2 pr-20"
+                  className="w-[18rem] text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
 
-                <button
+                {/* <button
                   type="button"
                   className="
             absolute w-[4rem] right-0 top-1/2 -translate-y-1/2
@@ -466,7 +480,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
           "
                 >
                   Fetch
-                </button>
+                </button> */}
               </div>
             </div>
 
@@ -474,24 +488,26 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
                 Company Name
               </label>
-              <InputField
+              <input
+                value={formData.companyname}
+                onChange={handleChange}
                 name="companyname"
                 placeholder="Enter Company Name"
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
           </div>
         </div>
 
         {/* ================= ID PROOFS ================ */}
-        <div className="border border-gray-200 rounded-[12px] p-3">
+        {/* <div className="border border-gray-200 rounded-[12px] p-3">
           <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
           <div className="flex flex-col gap-4">
-            <div className="flex gap-5">
-              {/* Documents */}
-              <div className="flex flex-col gap-1">
+            <div className="flex gap-5"> */}
+        {/* Documents */}
+        {/* <div className="flex flex-col gap-1">
                 <div className="flex flex-col gap-3 items-start">
                   <input
                     type="file"
@@ -529,7 +545,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* ================= BILLING ADDRESS ================ */}
         <div className="border border-gray-200 rounded-[12px] p-3">
@@ -632,15 +648,15 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
           />
         </div>
 
-        {/* <div className="flex justify-end">
+        <div className="flex justify-end">
           <button
             type="submit"
-            disabled={isSubmitting}
+            // disabled={isSubmitting}
             className="px-4 py-2 bg-[#114958] text-white text-[0.75rem] rounded-lg hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSubmitting ? "Saving..." : "Save"}
           </button>
-        </div> */}
+        </div>
       </div>
     </SideSheet>
   );

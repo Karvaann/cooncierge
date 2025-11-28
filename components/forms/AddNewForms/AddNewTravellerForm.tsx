@@ -332,11 +332,14 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 First Name <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
+                type="text"
+                value={formData.firstname}
+                onChange={handleChange}
                 name="firstname"
                 placeholder="Enter First Name"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
@@ -344,11 +347,14 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Last Name <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="lastname"
+                value={formData.lastname}
+                onChange={handleChange}
+                type="text"
                 placeholder="Enter Last Name"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
@@ -356,11 +362,14 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Nickname/Alias <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="nickname"
+                value={formData.nickname}
+                onChange={handleChange}
+                type="text"
                 placeholder="Enter Nickname/Alias"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -371,12 +380,14 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Contact Number <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 type="text"
                 name="contactnumber"
+                value={formData.contactnumber}
+                onChange={handleChange}
                 placeholder="Enter Contact Number"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
@@ -384,11 +395,14 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Email ID <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="emailId"
+                value={formData.emailId}
+                onChange={handleChange}
+                type="email"
                 placeholder="Enter Email ID"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
@@ -396,12 +410,14 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Date of Birth <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 type="date"
                 name="dateofbirth"
+                value={formData.dateofbirth}
+                onChange={handleChange}
                 placeholder="DD-MM-YYYY"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
           </div>

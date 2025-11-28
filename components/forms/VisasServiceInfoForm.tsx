@@ -99,6 +99,13 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handleBookingStatusChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const bookingStatus = e.target.value;
+    setFormData((prev) => ({ ...prev, bookingstatus: bookingStatus }));
+  };
+
   useEffect(() => {
     onFormDataUpdate({ visainfoform: formData });
   }, [formData]);
@@ -354,6 +361,8 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     );
   };
 
+  const today = new Date().toISOString().split("T")[0];
+
   return (
     <>
       <div className="space-y-4 p-4 -mt-1" ref={formRef as any}>
@@ -386,6 +395,7 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   type="date"
                   name="traveldate"
                   value={formData.traveldate}
+                  min={today}
                   onChange={handleChange}
                   className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
@@ -400,6 +410,8 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
               <div className="relative">
                 <select
                   name="bookingstatus"
+                  value={formData.bookingstatus}
+                  onChange={handleBookingStatusChange}
                   className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
                 >
                   <option>Select Status</option>
@@ -509,19 +521,33 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   </div>
                 </div>
 
-                <div className="border border-gray-200 w-[9rem] rounded-lg mt-4 p-3 bg-white">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[0.75rem] font-medium text-gray-700">
-                      Net
+                <div className="w-[9rem] rounded-lg p-1 mt-1 bg-white">
+                  {/* Label on top */}
+                  <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
+                    Net
+                  </span>
+
+                  {/* Amount + percentage row */}
+                  <div className="flex items-center gap-3">
+                    {/* Blue pill amount */}
+                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
+                      {`INR ${
+                        Number(formData.sellingprice) -
+                        Number(formData.costprice)
+                      }`}
                     </span>
-                    <div className="flex gap-4 items-center">
-                      <span className="text-[0.75rem] text-gray-700">
-                        INR 0
-                      </span>
-                      <span className="text-[0.75rem] text-gray-700 font-medium">
-                        23%
-                      </span>
-                    </div>
+
+                    {/* Percentage */}
+                    <span className="text-[0.75rem] text-gray-700 font-medium">
+                      {formData.costprice && formData.sellingprice
+                        ? `${(
+                            ((Number(formData.sellingprice) -
+                              Number(formData.costprice)) /
+                              Number(formData.costprice)) *
+                            100
+                          ).toFixed(2)}%`
+                        : "0%"}
+                    </span>
                   </div>
                 </div>
               </>
@@ -534,295 +560,113 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   Vendor Payment Summary
                 </h4>
 
-                <div className="border border-gray-200 rounded-lg bg-white overflow-hidden">
-                  {/* Vendor Amount */}
-                  <div className="grid grid-cols-12 border-b border-gray-200">
-                    <div className="col-span-3 bg-[#F8F8F8] border-r border-gray-200 flex items-center justify-center">
-                      <div className="text-[0.75rem] text-gray-700 font-medium text-center">
-                        Vendor Amount (Invoice Value)
+                {/* Container */}
+                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+                  {/* Row */}
+                  {[
+                    "Vendor Invoice (Base)",
+                    "Supplier Incentive Received",
+                    "Partner Payout",
+                    "Cost Price",
+                  ].map((label, index) => (
+                    <div
+                      key={index}
+                      className="grid grid-cols-12 border-b last:border-b-0 border-gray-200"
+                    >
+                      {/* Left label */}
+                      <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
+                        {label}
                       </div>
-                    </div>
-                    <div className="col-span-9 rounded-md p-3 mb-2 bg-white">
-                      <div className="flex items-start gap-4">
-                        <div className="flex-1 flex gap-2 items-center flex-wrap">
-                          <select
-                            value={vendorCurrency}
-                            onChange={(e) => setVendorCurrency(e.target.value)}
-                            className="px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-                          >
-                            <option>USD</option>
-                            <option>INR</option>
-                          </select>
+
+                      {/* Right inputs */}
+                      <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
+                        {/* Rupee icon */}
+                        <div className="text-gray-600 text-[0.85rem] font-medium">
+                          ₹
+                        </div>
+
+                        {/* Amount Input */}
+                        <input
+                          type="text"
+                          placeholder="Enter Amount"
+                          className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                        />
+
+                        {/* Notes Input (only for rows that have it in screenshot) */}
+                        {label !== "Cost Price" && (
                           <input
                             type="text"
-                            value={vendorAmount}
-                            onChange={(e) => setVendorAmount(e.target.value)}
-                            placeholder="Enter Cost Price"
-                            className="w-[12rem] min-w-[120px] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            placeholder="Enter notes here..."
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
                           />
-                          <div className="flex items-center border border-gray-300 rounded-md overflow-hidden text-[0.75rem] font-medium">
-                            {/* Left side label */}
-                            <div className="px-3 py-1.5 bg-[#F8F8F8] text-gray-700 border-r border-gray-300">
-                              ROE
-                            </div>
+                        )}
 
-                            {/* Right side value */}
-                            <div className="px-3 py-1.5 bg-white text-gray-800">
-                              {vendorROE}
-                            </div>
+                        {/* Cost Price Blue Value */}
+                        {label === "Cost Price" && (
+                          <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">
+                            ₹ 0.00
                           </div>
-
-                          <div className="px-3 py-1.5 bg-[#F6F2E8] border border-gray-300 rounded-md text-[0.75rem] text-gray-700 whitespace-nowrap">
-                            INR {vendorINR}
-                          </div>
-                        </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-
-                  {/* Bank Charges */}
-                  <div className="grid grid-cols-12 border-b border-gray-200">
-                    <div className="col-span-3 bg-[#F8F8F8] border-r border-gray-200 flex items-center justify-center">
-                      <div className="text-[0.75rem] text-gray-700 font-medium text-center">
-                        Bank Charges
-                      </div>
-                    </div>
-                    <div className="col-span-9 rounded-md p-3 mb-2 bg-white">
-                      <div className="flex items-start gap-4">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex gap-2 items-center flex-wrap">
-                            <select
-                              value={bankChargesCurrency}
-                              onChange={(e) =>
-                                setBankChargesCurrency(e.target.value)
-                              }
-                              className="px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-                            >
-                              <option>INR</option>
-                              <option>USD</option>
-                            </select>
-                            <input
-                              type="text"
-                              value={bankChargesAmount}
-                              onChange={(e) =>
-                                setBankChargesAmount(e.target.value)
-                              }
-                              placeholder="Enter Selling Price"
-                              className="w-[12rem] min-w-[120px] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            />
-                          </div>
-                          <div className="text-[0.65rem] text-gray-500">
-                            <label className="block mb-1 font-medium">
-                              Notes
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="Type here..."
-                              className="w-full px-2 py-1.5 text-[0.65rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Cashback / Commission Received */}
-                  <div className="grid grid-cols-12 border-b border-gray-200">
-                    <div className="col-span-3 bg-[#F8F8F8] border-r border-gray-200 flex items-center justify-center">
-                      <div className="text-[0.75rem] text-gray-700 font-medium text-center">
-                        Cashback / Commission Received
-                      </div>
-                    </div>
-                    <div className="col-span-9 rounded-md p-3 mb-2 bg-white">
-                      <div className="flex items-start gap-4">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex gap-2 items-center flex-wrap">
-                            <select
-                              value={cashbackCurrency}
-                              onChange={(e) =>
-                                setCashbackCurrency(e.target.value)
-                              }
-                              className="px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-                            >
-                              <option>INR</option>
-                              <option>USD</option>
-                            </select>
-                            <input
-                              type="text"
-                              value={cashbackAmount}
-                              onChange={(e) =>
-                                setCashbackAmount(e.target.value)
-                              }
-                              placeholder="Enter Selling Price"
-                              className="w-[12rem] min-w-[120px] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            />
-                          </div>
-                          <div className="flex gap-4 items-center">
-                            <label className="flex items-center gap-1.5">
-                              <input
-                                type="radio"
-                                name="cashbackMethod"
-                                value="Wallet"
-                                checked={cashbackMethod === "Wallet"}
-                                onChange={(e) =>
-                                  setCashbackMethod(e.target.value)
-                                }
-                                className="w-3.5 h-3.5 text-blue-600"
-                              />
-                              <span className="text-[0.75rem] text-gray-700">
-                                Wallet
-                              </span>
-                            </label>
-                            <label className="flex items-center gap-1.5">
-                              <input
-                                type="radio"
-                                name="cashbackMethod"
-                                value="Bank"
-                                checked={cashbackMethod === "Bank"}
-                                onChange={(e) =>
-                                  setCashbackMethod(e.target.value)
-                                }
-                                className="w-3.5 h-3.5 text-blue-600"
-                              />
-                              <span className="text-[0.75rem] text-gray-700">
-                                Bank
-                              </span>
-                            </label>
-                          </div>
-                          <div className="text-[0.65rem] text-gray-500">
-                            <label className="block mb-1 font-medium">
-                              Notes
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="Type here..."
-                              className="w-full px-2 py-1.5 text-[0.65rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Cost Price */}
-                  <div className="grid grid-cols-12">
-                    <div className="col-span-3 bg-[#F8F8F8] border-r border-gray-200 flex items-center justify-center">
-                      <div className="text-[0.75rem] text-gray-700 font-medium text-center">
-                        Cost Price
-                      </div>
-                    </div>
-                    <div className="col-span-9 rounded-md p-3 bg-white">
-                      <div className="flex items-center gap-4">
-                        <div className="w-[3.5rem] px-3 py-1.5 bg-[#F6F2E8] border border-gray-300 rounded-md text-[0.75rem] text-gray-700">
-                          INR 0
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  ))}
                 </div>
 
                 {/* Customer Revenue Summary */}
-
-                <h4 className="text-[0.75rem] font-medium text-gray-700 mb-3">
+                <h4 className="text-[0.8rem] font-semibold text-gray-700">
                   Customer Revenue Summary
                 </h4>
 
-                <div className="border border-gray-200 rounded-lg bg-white overflow-hidden">
-                  {/* Selling Price */}
-                  <div className="grid grid-cols-12 border-b border-gray-200">
-                    <div className="col-span-3 bg-[#F8F8F8] border-r border-gray-200 flex items-center justify-center">
-                      <div className="text-[0.75rem] text-gray-700 font-medium text-center">
-                        Selling Price
-                      </div>
-                    </div>
-                    <div className="col-span-9 rounded-md p-3 mb-2 bg-white">
-                      <div className="flex items-start gap-4">
-                        <div className="flex-1 flex gap-2 items-center flex-wrap">
-                          <select
-                            value={customerSellingCurrency}
-                            onChange={(e) =>
-                              setCustomerSellingCurrency(e.target.value)
-                            }
-                            className="px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-                          >
-                            <option>INR</option>
-                            <option>USD</option>
-                          </select>
-                          <input
-                            type="text"
-                            value={customerSellingAmount}
-                            onChange={(e) =>
-                              setCustomerSellingAmount(e.target.value)
-                            }
-                            placeholder="Enter Selling Price"
-                            className="flex-1 min-w-[120px] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Commission / Partner Payable */}
+                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
                   <div className="grid grid-cols-12">
-                    <div className="col-span-3 bg-[#F8F8F8] border-r border-gray-200 flex items-center justify-center">
-                      <div className="text-[0.75rem] text-gray-700 font-medium text-center">
-                        Commission / Partner Payable
-                      </div>
+                    {/* Label */}
+                    <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
+                      Selling Price
                     </div>
-                    <div className="col-span-9 rounded-md p-3 bg-white">
-                      <div className="flex items-start gap-4">
-                        <div className="flex-1 space-y-2">
-                          <div className="flex gap-2 items-center flex-wrap">
-                            <select
-                              value={commissionCurrency}
-                              onChange={(e) =>
-                                setCommissionCurrency(e.target.value)
-                              }
-                              className="px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
-                            >
-                              <option>INR</option>
-                              <option>USD</option>
-                            </select>
-                            <input
-                              type="text"
-                              value={commissionAmount}
-                              onChange={(e) =>
-                                setCommissionAmount(e.target.value)
-                              }
-                              placeholder="Enter Selling Price"
-                              className="flex-1 min-w-[120px] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            />
-                          </div>
-                          <div className="text-[0.65rem] text-gray-500">
-                            <label className="block mb-1 font-medium">
-                              Notes
-                            </label>
-                            <input
-                              type="text"
-                              placeholder="Type here..."
-                              className="w-full px-2 py-1.5 text-[0.65rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                            />
-                          </div>
-                        </div>
+
+                    {/* Inputs */}
+                    <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
+                      <div className="text-gray-600 text-[0.85rem] font-medium">
+                        ₹
                       </div>
+
+                      <input
+                        type="text"
+                        placeholder="Enter Amount"
+                        className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                      />
                     </div>
                   </div>
                 </div>
 
                 {/* Net */}
-                <div className="border border-gray-200 w-[9rem] rounded-lg p-3 bg-white">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[0.75rem] font-medium text-gray-700">
-                      Net
+                <div className="w-[9rem] rounded-lg p-1 mt-1 bg-white">
+                  {/* Label on top */}
+                  <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
+                    Net
+                  </span>
+
+                  {/* Amount + percentage row */}
+                  <div className="flex items-center gap-3">
+                    {/* Blue pill amount */}
+                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
+                      {`INR ${
+                        Number(formData.sellingprice) -
+                        Number(formData.costprice)
+                      }`}
                     </span>
-                    <div className="flex gap-4 items-center">
-                      <span className="text-[0.75rem] text-gray-700">
-                        INR 0
-                      </span>
-                      <span className="text-[0.75rem] text-gray-700 font-medium">
-                        23%
-                      </span>
-                    </div>
+
+                    {/* Percentage */}
+                    <span className="text-[0.75rem] text-gray-700 font-medium">
+                      {formData.costprice && formData.sellingprice
+                        ? `${(
+                            ((Number(formData.sellingprice) -
+                              Number(formData.costprice)) /
+                              Number(formData.costprice)) *
+                            100
+                          ).toFixed(2)}%`
+                        : "0%"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -879,14 +723,14 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         </div>
 
         {/* ID PROOFS */}
-        <div className="border border-gray-200  w-[48vw] ml-2.5 -mt-3 rounded-[12px] p-3">
+        {/* <div className="border border-gray-200  w-[48vw] ml-2.5 -mt-3 rounded-[12px] p-3">
           <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
           <div className="flex flex-col gap-4">
-            <div className="flex gap-5">
-              {/* Documents */}
-              <div className="flex flex-col gap-1">
+            <div className="flex gap-5"> */}
+        {/* Documents */}
+        {/* <div className="flex flex-col gap-1">
                 <div className="flex flex-col gap-3 items-start">
                   <input
                     type="file"
@@ -924,7 +768,7 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Remarks Section */}
         <div className="border border-gray-200 w-[48vw] ml-2.5 rounded-[12px] p-3 mt-4">

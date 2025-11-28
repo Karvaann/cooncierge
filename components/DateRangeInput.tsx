@@ -112,7 +112,7 @@ export default function DateRangeInput({
     },
   ];
 
-  // ✅ CHANGE: Fixed date comparison to handle dates without time component
+  // Fixed date comparison to handle dates without time component
   const handleDateClick = (date: Date) => {
     const dateOnly = new Date(
       date.getFullYear(),
@@ -135,10 +135,11 @@ export default function DateRangeInput({
         onChange(startOnly.toISOString(), dateOnly.toISOString());
       }
       setHoveredDate(null);
+      setOpen(false);
     }
   };
 
-  // ✅ CHANGE: Added calendar navigation when clicking predefined ranges
+  // Added calendar navigation when clicking predefined ranges
   const handleRangeClick = (range: { start: Date; end: Date }) => {
     onChange(range.start.toISOString(), range.end.toISOString());
     // Set the calendar to show the range months
@@ -147,7 +148,7 @@ export default function DateRangeInput({
     );
   };
 
-  // ✅ CHANGE: Improved range detection with proper date comparison
+  // Improved range detection with proper date comparison
   const isInRange = (date: Date) => {
     const dateOnly = new Date(
       date.getFullYear(),
@@ -189,7 +190,7 @@ export default function DateRangeInput({
     return false;
   };
 
-  // ✅ CHANGE: Improved start/end detection with proper date comparison
+  // Improved start/end detection with proper date comparison
   const isStartOrEnd = (date: Date) => {
     const dateOnly = new Date(
       date.getFullYear(),

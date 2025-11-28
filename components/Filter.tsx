@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { RiRefreshLine } from "react-icons/ri";
 import { FaRegCalendar } from "react-icons/fa6";
@@ -18,7 +24,7 @@ interface FilterOption {
 interface FilterState {
   serviceType: string;
   status: string;
-  owner: string;
+  owner: string | string[];
   search: string;
   bookingStartDate: string;
   bookingEndDate: string;
@@ -68,8 +74,48 @@ const Filter: React.FC<FilterProps> = ({
   const [showTripStartAsDate, setShowTripStartAsDate] = useState(false);
   const [showTripEndAsDate, setShowTripEndAsDate] = useState(false);
 
+  const [ownerDropdownOpen, setOwnerDropdownOpen] = useState(false);
+  const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
+  const [ownerSearch, setOwnerSearch] = useState("");
+
+  const ownerDropdownRef = useRef<HTMLDivElement>(null);
+
+  const toggleOwner = (name: string) => {
+    setSelectedOwners((prev) => {
+      const newSelected = prev.includes(name)
+        ? prev.filter((p) => p !== name)
+        : [...prev, name];
+      updateFilter("owner", newSelected); // SEND TO FILTERS
+      return newSelected;
+    });
+  };
+
+  // Convert owners prop into a plain array:
+  const ownersList = owners.map(
+    (o: any) => o.label || o.name || o.value || String(o)
+  );
+
+  // Filtered by search:
+  const filteredOwnersList = ownersList.filter((o: string) =>
+    o.toLowerCase().includes(ownerSearch.toLowerCase())
+  );
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        ownerDropdownRef.current &&
+        !ownerDropdownRef.current.contains(e.target as Node)
+      ) {
+        setOwnerDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
   const updateFilter = useCallback(
-    (key: keyof FilterState, value: string) => {
+    (key: keyof FilterState, value: string | string[]) => {
       setFilters((prev) => {
         const newFilters = { ...prev, [key]: value };
         onFilterChange?.(newFilters);
@@ -185,15 +231,80 @@ const Filter: React.FC<FilterProps> = ({
             <label className="block text-gray-700 mb-1 text-[0.75rem]">
               Booking Owner
             </label>
-            <div className="relative">
-              <select
-                value={filters.owner}
-                onChange={(e) => updateFilter("owner", e.target.value)}
-                className="w-[14.75rem] text-[0.75rem] border border-gray-300 rounded-md px-2 py-2 text-gray-600 focus:ring-2 focus:ring-[#0D4B37] pr-8"
+
+            <div className="relative" ref={ownerDropdownRef}>
+              {/* Input area with pills */}
+              <div
+                className="w-[14.75rem] min-h-[2.25rem] border border-gray-300 rounded-md px-2 py-2 flex items-center flex-wrap gap-1 cursor-pointer"
+                onClick={() => setOwnerDropdownOpen(!ownerDropdownOpen)}
               >
-                <option value="">Select Owner</option>
-                {ownerOptions}
-              </select>
+                {selectedOwners.length > 0 ? (
+                  selectedOwners.map((o) => (
+                    <span
+                      key={o}
+                      className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[0.65rem]"
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleOwner(o);
+                        }}
+                      >
+                        <IoClose size={12} />
+                      </button>
+                      {o}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-400 text-[0.7rem] flex items-center w-full">
+                    Select Owner
+                    <MdOutlineKeyboardArrowDown className="ml-auto text-gray-400 pointer-events-none" />
+                  </span>
+                )}
+              </div>
+
+              {/* Dropdown */}
+              {ownerDropdownOpen && (
+                <div className="absolute left-0 w-[14.75rem] mt-1 bg-white border border-gray-200 rounded-md shadow-xl z-20 max-h-48 overflow-y-auto">
+                  {/* Options */}
+                  {filteredOwnersList.map((owner) => {
+                    const checked = selectedOwners.includes(owner);
+
+                    return (
+                      <label
+                        key={owner}
+                        className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
+                        onClick={() => toggleOwner(owner)}
+                      >
+                        {/* Custom Checkbox */}
+                        <div className="w-4 h-4 border border-gray-400 rounded-md flex items-center justify-center">
+                          {checked && (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="12"
+                              height="11"
+                              viewBox="0 0 12 11"
+                              fill="none"
+                            >
+                              <path
+                                d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                                stroke="#0D4B37"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          )}
+                        </div>
+
+                        <span className="text-gray-700 text-[0.75rem]">
+                          {owner}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>

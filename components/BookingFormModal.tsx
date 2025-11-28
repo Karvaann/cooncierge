@@ -3,6 +3,8 @@
 import React, { useCallback, useMemo, useState } from "react";
 import Image from "next/image";
 import Modal from "./Modal";
+import { MdKeyboardArrowRight } from "react-icons/md";
+import { MdKeyboardArrowLeft } from "react-icons/md";
 
 // Type definitions
 interface Service {
@@ -44,6 +46,11 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(
         onClick(service);
       }
     }, [service, onClick, isLoading]);
+
+    // Skip rendering if it's a placeholder
+    if (!service.title || !service.image) {
+      return <div className="w-full aspect-[4/3]" />; // Invisible spacer
+    }
 
     // Service icons mapping
     const serviceIcons = {
@@ -185,6 +192,16 @@ const BookingFormModal: React.FC<BookingFormModalProps> = ({
       category: "others",
       description: "Other services",
     },
+    // Add 7 invisible placeholders to match page 1's 8 cards
+    ...Array(7)
+      .fill(null)
+      .map((_, i) => ({
+        id: `placeholder-${i}`,
+        title: "",
+        image: "",
+        category: "others" as const,
+        description: "",
+      })),
   ];
 
   const cardsToShow = page === 1 ? page1 : page2;
@@ -205,10 +222,10 @@ const BookingFormModal: React.FC<BookingFormModalProps> = ({
       title="Select Service"
       size="xl"
       customWidth="w-[62.5vw]"
-      customeHeight="h-[70vh]"
+      customeHeight="h-[68vh]"
       // className="w-[90vw]"
     >
-      <div className="h-full justify between flex flex-col">
+      <div className="h-full justify between flex flex-col -mt-3">
         {/* HEADER TEXT */}
         <div className="text-gray-500 text-sm text-center w-full mb-4">
           Choose from the range of services provided by{" "}
@@ -255,7 +272,7 @@ const BookingFormModal: React.FC<BookingFormModalProps> = ({
 
         {/* BOTTOM ARROWS FIXED */}
         {!isLoading && services.length > 0 && (
-          <div className="h-[60px] flex items-center justify-center gap-6 pb-2 mt-4">
+          <div className="h-[60px] flex items-center justify-center gap-2 pb-2 mt-4">
             <button
               onClick={() => setPage(1)}
               disabled={page === 1}
@@ -265,7 +282,10 @@ const BookingFormModal: React.FC<BookingFormModalProps> = ({
                   : "hover:text-[#114958]"
               }`}
             >
-              <span className="text-2xl">‹</span>
+              <span className="text-2xl">
+                {" "}
+                <MdKeyboardArrowLeft size={30} />{" "}
+              </span>
             </button>
 
             <button
@@ -277,7 +297,10 @@ const BookingFormModal: React.FC<BookingFormModalProps> = ({
                   : "hover:text-[#114958]"
               }`}
             >
-              <span className="text-2xl">›</span>
+              <span className="text-2xl">
+                {" "}
+                <MdKeyboardArrowRight size={30} />
+              </span>
             </button>
           </div>
         )}

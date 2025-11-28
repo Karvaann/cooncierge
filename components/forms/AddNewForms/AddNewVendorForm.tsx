@@ -377,11 +377,14 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Company Name <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="companyname"
+                type="text"
+                value={formData.companyname}
+                onChange={handleChange}
                 placeholder="Enter Company Name"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
@@ -390,11 +393,14 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Company Email ID <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="companyemail"
+                type="email"
+                value={formData.companyemail}
+                onChange={handleChange}
                 placeholder="Enter Email ID"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -405,11 +411,14 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Contact Number <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="contactnumber"
+                type="text"
+                value={formData.contactnumber}
+                onChange={handleChange}
                 placeholder="Enter Contact Number"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
@@ -419,13 +428,16 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
               </label>
 
               <div className="relative">
-                <InputField
+                <input
                   name="gstin"
+                  type="text"
+                  value={formData.gstin}
+                  onChange={handleChange}
                   placeholder="Please Provide Your GST No."
-                  className="w-full text-[0.75rem] py-2 pr-20"
+                  className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
 
-                <button
+                {/* <button
                   type="button"
                   className="
               absolute right-1 top-1/2 -translate-y-1/2
@@ -434,7 +446,7 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
             "
                 >
                   Fetch
-                </button>
+                </button> */}
               </div>
             </div>
           </div>
@@ -452,11 +464,11 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 First Name <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="firstname"
                 placeholder="Enter First Name"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
@@ -465,11 +477,11 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Last Name <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="lastname"
                 placeholder="Enter Last Name"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -480,11 +492,11 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Nickname/Alias <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="nickname"
                 placeholder="Enter Nickname/Alias"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
@@ -493,11 +505,11 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Contact Number <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="contactnumber"
                 placeholder="Enter Contact Number"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -508,11 +520,11 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Email ID <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="emailId"
                 placeholder="Enter Email ID"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
@@ -521,25 +533,25 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700">
                 Date of Birth <span className="text-red-500">*</span>
               </label>
-              <InputField
+              <input
                 name="dateofbirth"
                 placeholder="DD-MM-YYYY"
                 required
-                className="w-full text-[0.75rem] py-2"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
           </div>
         </div>
 
         {/* Documents Section */}
-        <div className="border border-gray-200 rounded-[12px] p-3">
+        {/* <div className="border border-gray-200 rounded-[12px] p-3">
           <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
           <div className="flex flex-col gap-4">
-            <div className="flex gap-5">
-              {/* Documents */}
-              <div className="flex flex-col gap-1">
+            <div className="flex gap-5"> */}
+        {/* Documents */}
+        {/* <div className="flex flex-col gap-1">
                 <div className="flex flex-col gap-3 items-start">
                   <input
                     type="file"
@@ -577,7 +589,7 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Billing Address */}
         <div className="border border-gray-200 rounded-[12px] p-3">

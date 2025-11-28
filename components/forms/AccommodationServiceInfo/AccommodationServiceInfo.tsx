@@ -254,6 +254,13 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   //   if (fileInputRef.current) fileInputRef.current.value = "";
   // };
 
+  const handleBookingStatusChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const bookingStatus = e.target.value;
+    setFormData((prev) => ({ ...prev, bookingstatus: bookingStatus }));
+  };
+
   type FieldRule = {
     required: boolean;
     message: string;
@@ -455,6 +462,8 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     };
   };
 
+  const today = new Date().toISOString().split("T")[0];
+
   return (
     <>
       <div className="space-y-4 p-4 -mt-1" ref={formRef as any}>
@@ -488,6 +497,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   name="traveldate"
                   value={formData.traveldate}
                   onChange={handleChange}
+                  min={today}
                   className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -502,6 +512,8 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 <select
                   name="bookingstatus"
                   className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                  value={formData.bookingstatus}
+                  onChange={handleBookingStatusChange}
                 >
                   <option>Select Status</option>
                   <option>Confirmed</option>
@@ -610,19 +622,33 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   </div>
                 </div>
 
-                <div className="border border-gray-200 w-[9rem] rounded-lg mt-4 p-3 bg-white">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[0.75rem] font-medium text-gray-700">
-                      Net
+                <div className="w-[9rem] rounded-lg p-1 mt-1 bg-white">
+                  {/* Label on top */}
+                  <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
+                    Net
+                  </span>
+
+                  {/* Amount + percentage row */}
+                  <div className="flex items-center gap-3">
+                    {/* Blue pill amount */}
+                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
+                      {`INR ${
+                        Number(formData.sellingprice) -
+                        Number(formData.costprice)
+                      }`}
                     </span>
-                    <div className="flex gap-4 items-center">
-                      <span className="text-[0.75rem] text-gray-700">
-                        INR 0
-                      </span>
-                      <span className="text-[0.75rem] text-gray-700 font-medium">
-                        23%
-                      </span>
-                    </div>
+
+                    {/* Percentage */}
+                    <span className="text-[0.75rem] text-gray-700 font-medium">
+                      {formData.costprice && formData.sellingprice
+                        ? `${(
+                            ((Number(formData.sellingprice) -
+                              Number(formData.costprice)) /
+                              Number(formData.costprice)) *
+                            100
+                          ).toFixed(2)}%`
+                        : "0%"}
+                    </span>
                   </div>
                 </div>
               </>
@@ -667,10 +693,13 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                           className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
                         />
 
-                        {/* Notes Input (only for rows that have it in screenshot) */}
+                        {/* Notes Input */}
                         {label !== "Cost Price" && (
                           <input
                             type="text"
+                            name="costprice"
+                            value={formData.costprice}
+                            onChange={handleChange}
                             placeholder="Enter notes here..."
                             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
                           />
@@ -707,6 +736,9 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
                       <input
                         type="text"
+                        name="sellingprice"
+                        value={formData.sellingprice}
+                        onChange={handleChange}
                         placeholder="Enter Amount"
                         className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       />
@@ -715,19 +747,33 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 </div>
 
                 {/* Net */}
-                <div className="border border-gray-200 w-[9rem] rounded-lg p-3 bg-white">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[0.75rem] font-medium text-gray-700">
-                      Net
+                <div className="w-[9rem] rounded-lg p-1 mt-1 bg-white">
+                  {/* Label on top */}
+                  <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
+                    Net
+                  </span>
+
+                  {/* Amount + percentage row */}
+                  <div className="flex items-center gap-3">
+                    {/* Blue pill amount */}
+                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
+                      {`INR ${
+                        Number(formData.sellingprice) -
+                        Number(formData.costprice)
+                      }`}
                     </span>
-                    <div className="flex gap-4 items-center">
-                      <span className="text-[0.75rem] text-gray-700">
-                        INR 0
-                      </span>
-                      <span className="text-[0.75rem] text-gray-700 font-medium">
-                        23%
-                      </span>
-                    </div>
+
+                    {/* Percentage */}
+                    <span className="text-[0.75rem] text-gray-700 font-medium">
+                      {formData.costprice && formData.sellingprice
+                        ? `${(
+                            ((Number(formData.sellingprice) -
+                              Number(formData.costprice)) /
+                              Number(formData.costprice)) *
+                            100
+                          ).toFixed(2)}%`
+                        : "0%"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -760,8 +806,9 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   Check-In Date
                 </label>
                 <input
-                  type="text"
+                  type="date"
                   value={formData.checkindate}
+                  min={today}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
@@ -779,7 +826,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 </label>
                 <div className="flex items-center gap-1 border border-gray-300 rounded-md px-2 py-1 w-fit">
                   <input
-                    type="text"
+                    type="time"
                     value={formData.checkintime}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -812,8 +859,9 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   Check-Out Date
                 </label>
                 <input
-                  type="text"
+                  type="date"
                   value={formData.checkoutdate}
+                  min={today}
                   onChange={(e) =>
                     setFormData((prev) => ({
                       ...prev,
@@ -831,7 +879,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 </label>
                 <div className="flex items-center gap-1 border border-gray-300 rounded-md px-2 py-1 w-fit">
                   <input
-                    type="text"
+                    type="time"
                     value={formData.checkouttime}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -866,7 +914,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   Pax
                 </label>
                 <input
-                  type="text"
+                  type="number"
                   value={formData.pax}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, pax: e.target.value }))
@@ -895,6 +943,10 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   }}
                 >
                   <option value="EPAI">EPAI</option>
+                  <option value="CPAI">CPAI</option>
+                  <option value="MAPAI">MAPAI</option>
+                  <option value="APAI">APAI</option>
+                  <option value="Room Only">Room Only</option>
                 </select>
               </div>
             </div>

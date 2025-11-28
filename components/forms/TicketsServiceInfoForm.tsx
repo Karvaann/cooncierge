@@ -99,6 +99,13 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handleBookingStatusChange = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const bookingStatus = e.target.value;
+    setFormData((prev) => ({ ...prev, bookingstatus: bookingStatus }));
+  };
+
   useEffect(() => {
     onFormDataUpdate({ ticketsinfoform: formData });
   }, [formData]);
@@ -354,6 +361,8 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     );
   };
 
+  const today = new Date().toISOString().split("T")[0];
+
   return (
     <>
       <div className="space-y-4 p-4 -mt-1" ref={formRef as any}>
@@ -386,6 +395,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   type="date"
                   name="traveldate"
                   value={formData.traveldate}
+                  min={today}
                   onChange={handleChange}
                   className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
@@ -400,6 +410,8 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
               <div className="relative">
                 <select
                   name="bookingstatus"
+                  value={formData.bookingstatus}
+                  onChange={handleBookingStatusChange}
                   className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
                 >
                   <option>Select Status</option>
@@ -509,19 +521,33 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   </div>
                 </div>
 
-                <div className="border border-gray-200 w-[9rem] rounded-lg mt-4 p-3 bg-white">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[0.75rem] font-medium text-gray-700">
-                      Net
+                <div className="w-[9rem] rounded-lg p-1 mt-1 bg-white">
+                  {/* Label on top */}
+                  <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
+                    Net
+                  </span>
+
+                  {/* Amount + percentage row */}
+                  <div className="flex items-center gap-3">
+                    {/* Blue pill amount */}
+                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
+                      {`INR ${
+                        Number(formData.sellingprice) -
+                        Number(formData.costprice)
+                      }`}
                     </span>
-                    <div className="flex gap-4 items-center">
-                      <span className="text-[0.75rem] text-gray-700">
-                        INR 0
-                      </span>
-                      <span className="text-[0.75rem] text-gray-700 font-medium">
-                        23%
-                      </span>
-                    </div>
+
+                    {/* Percentage */}
+                    <span className="text-[0.75rem] text-gray-700 font-medium">
+                      {formData.costprice && formData.sellingprice
+                        ? `${(
+                            ((Number(formData.sellingprice) -
+                              Number(formData.costprice)) /
+                              Number(formData.costprice)) *
+                            100
+                          ).toFixed(2)}%`
+                        : "0%"}
+                    </span>
                   </div>
                 </div>
               </>
@@ -614,19 +640,33 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 </div>
 
                 {/* Net */}
-                <div className="border border-gray-200 w-[9rem] rounded-lg p-3 bg-white">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[0.75rem] font-medium text-gray-700">
-                      Net
+                <div className="w-[9rem] rounded-lg p-1 mt-1 bg-white">
+                  {/* Label on top */}
+                  <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
+                    Net
+                  </span>
+
+                  {/* Amount + percentage row */}
+                  <div className="flex items-center gap-3">
+                    {/* Blue pill amount */}
+                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
+                      {`INR ${
+                        Number(formData.sellingprice) -
+                        Number(formData.costprice)
+                      }`}
                     </span>
-                    <div className="flex gap-4 items-center">
-                      <span className="text-[0.75rem] text-gray-700">
-                        INR 0
-                      </span>
-                      <span className="text-[0.75rem] text-gray-700 font-medium">
-                        23%
-                      </span>
-                    </div>
+
+                    {/* Percentage */}
+                    <span className="text-[0.75rem] text-gray-700 font-medium">
+                      {formData.costprice && formData.sellingprice
+                        ? `${(
+                            ((Number(formData.sellingprice) -
+                              Number(formData.costprice)) /
+                              Number(formData.costprice)) *
+                            100
+                          ).toFixed(2)}%`
+                        : "0%"}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -683,14 +723,14 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         </div>
 
         {/* ID PROOFS */}
-        <div className="border border-gray-200  w-[48vw] ml-2.5 -mt-3 rounded-[12px] p-3">
+        {/* <div className="border border-gray-200  w-[48vw] ml-2.5 -mt-3 rounded-[12px] p-3">
           <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
           <div className="flex flex-col gap-4">
-            <div className="flex gap-5">
-              {/* Documents */}
-              <div className="flex flex-col gap-1">
+            <div className="flex gap-5"> */}
+        {/* Documents */}
+        {/* <div className="flex flex-col gap-1">
                 <div className="flex flex-col gap-3 items-start">
                   <input
                     type="file"
@@ -728,7 +768,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         {/* Remarks Section */}
         <div className="border border-gray-200 w-[48vw] ml-2.5 rounded-[12px] p-3 mt-4">
