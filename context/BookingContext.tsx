@@ -320,6 +320,12 @@ interface BookingContextType {
   canProceedToNext: boolean;
   totalSteps: number;
   currentStepIndex: number;
+
+  // Cross-component sync helpers
+  lastAddedCustomer: { id: string; name: string } | null;
+  setLastAddedCustomer: (c: { id: string; name: string } | null) => void;
+  lastAddedVendor: { id: string; name: string } | null;
+  setLastAddedVendor: (v: { id: string; name: string } | null) => void;
 }
 
 // Initial state
@@ -653,6 +659,18 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
   const setCustomerForm = useCallback((form: CustomerForm) => {
     dispatch({ type: "SET_CUSTOMER_FORM", payload: form });
   }, []);
+
+  // Recently created customer for UI hydration (e.g., update GeneralInfoForm input)
+  const [lastAddedCustomer, setLastAddedCustomer] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  // Recently created vendor for UI hydration
+  const [lastAddedVendor, setLastAddedVendor] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
 
   const setVendorForm = useCallback((form: VendorForm) => {
     dispatch({ type: "SET_VENDOR_FORM", payload: form });
@@ -1013,6 +1031,10 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
       canProceedToNext,
       totalSteps,
       currentStepIndex,
+      lastAddedCustomer,
+      setLastAddedCustomer,
+      lastAddedVendor,
+      setLastAddedVendor,
     }),
     [
       state,
@@ -1053,6 +1075,10 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
       canProceedToNext,
       totalSteps,
       currentStepIndex,
+      lastAddedCustomer,
+      setLastAddedCustomer,
+      lastAddedVendor,
+      setLastAddedVendor,
     ]
   );
 

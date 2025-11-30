@@ -7,8 +7,8 @@ import { BookingProvider, useBooking } from "@/context/BookingContext";
 import { BookingApiService } from "@/services/bookingApi";
 import SideSheet from "@/components/SideSheet";
 import GeneralInfoForm from "./forms/GeneralInfoForm";
-import AddNewCustomerForm from "./forms/AddNewForms/AddNewCustomerForm";
-import AddNewVendorForm from "./forms/AddNewForms/AddNewVendorForm";
+import AddCustomerSideSheet from "./Sidesheets/AddCustomerSideSheet";
+import AddVendorSideSheet from "./Sidesheets/AddVendorSideSheet";
 import AddNewTravellerForm from "./forms/AddNewForms/AddNewTravellerForm";
 import FlightServiceInfoForm from "./forms/FlightServiceInfo/FlightServiceInfoForm";
 import AccommodationServiceInfo from "./forms/AccommodationServiceInfo/AccommodationServiceInfo";
@@ -112,6 +112,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const { isAddCustomerOpen, isAddVendorOpen, isAddTravellerOpen } =
     useBooking();
+  const { closeAddCustomer, closeAddVendor } = useBooking();
   const { submitBooking, saveDraft } = useBooking();
 
   // refs for form data collection
@@ -220,7 +221,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           infants: Number(formValues.infants || 0),
           adultTravellers: formValues.adultTravellers || [],
           infantTravellers: formValues.infantTravellers || [],
-          // add required traveller fields (default to empty string so types align)
           traveller1: formValues.traveller1 || "",
           traveller2: formValues.traveller2 || "",
           traveller3: formValues.traveller3 || "",
@@ -230,27 +230,29 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         customerform: {
           firstname: formValues.firstname || "",
           lastname: formValues.lastname || "",
-          nickname: formValues.nickname || "",
-          contactnumber: formValues.contactnumber || "",
-          emailId: formValues.emailId || "",
-          dateofbirth: formValues.dateofbirth || "",
+          nickname: formValues.nickname || formValues.alias || "",
+          contactnumber: formValues.contactnumber || formValues.phone || "",
+          emailId: formValues.emailId || formValues.email || "",
+          dateofbirth: formValues.dateofbirth || formValues.dateOfBirth || "",
           gstin: formValues.gstin || "",
-          companyname: formValues.companyname || "",
-          billingaddress: formValues.billingaddress || "",
-          remarks: formValues.customerRemarks || "",
+          companyname: formValues.companyname || formValues.companyName || "",
+          billingaddress: formValues.billingaddress || formValues.address || "",
+          remarks: formValues.customerRemarks || formValues.remarks || "",
         },
         vendorform: {
-          companyname: formValues.vendorCompanyName || "",
-          companyemail: formValues.vendorCompanyEmail || "",
-          contactnumber: formValues.vendorContact || "",
-          gstin: formValues.vendorGstin || "",
-          firstname: formValues.vendorFirstname || "",
-          lastname: formValues.vendorLastname || "",
-          nickname: formValues.vendorNickname || "",
-          emailId: formValues.vendorEmailId || "",
-          dateofbirth: formValues.vendorDob || "",
-          billingaddress: formValues.vendorBillingAddress || "",
-          remarks: formValues.vendorRemarks || "",
+          companyname:
+            formValues.vendorCompanyName || formValues.companyName || "",
+          companyemail: formValues.vendorCompanyEmail || formValues.email || "",
+          contactnumber: formValues.vendorContact || formValues.phone || "",
+          gstin: formValues.vendorGstin || formValues.GSTIN || "",
+          firstname: formValues.vendorFirstname || formValues.firstname || "",
+          lastname: formValues.vendorLastname || formValues.lastname || "",
+          nickname: formValues.vendorNickname || formValues.alias || "",
+          emailId: formValues.vendorEmailId || formValues.email || "",
+          dateofbirth: formValues.vendorDob || formValues.dateOfBirth || "",
+          billingaddress:
+            formValues.vendorBillingAddress || formValues.address || "",
+          remarks: formValues.vendorRemarks || formValues.remarks || "",
         },
         flightinfoform: {
           bookingdate: formValues.bookingdate || "",
@@ -424,30 +426,35 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   );
 
   // Memoized active tab content
-  const activeTabContent = useMemo(() => {
-    const activeTabConfig = tabs.find((tab) => tab.id === activeTab);
-    if (!activeTabConfig) return null;
+  // const activeTabContent = useMemo(() => {
+  //   const activeTabConfig = tabs.find((tab) => tab.id === activeTab);
+  //   if (!activeTabConfig) return null;
 
-    const Component = activeTabConfig.component;
+  //   const Component = activeTabConfig.component;
 
-    const commonProps = {
-      formData,
-      onFormDataUpdate: handleFormDataUpdate,
-      onSubmit: handleFormSubmit,
-      selectedService,
-      isSubmitting,
-    };
+  //   const commonProps = {
+  //     formData,
+  //     onFormDataUpdate: handleFormDataUpdate,
+  //     onSubmit: handleFormSubmit,
+  //     selectedService,
+  //     isSubmitting,
+  //   };
 
-    return <Component {...commonProps} formRef={serviceFormRef} />;
-  }, [
-    activeTab,
-    tabs,
-    formData,
-    handleFormDataUpdate,
-    handleFormSubmit,
-    selectedService,
-    isSubmitting,
-  ]);
+  //   return (
+  //     <Component
+  //       {...commonProps}
+  //       formRef={activeTab === "general" ? generalFormRef : serviceFormRef}
+  //     />
+  //   );
+  // }, [
+  //   activeTab,
+  //   tabs,
+  //   formData,
+  //   handleFormDataUpdate,
+  //   handleFormSubmit,
+  //   selectedService,
+  //   isSubmitting,
+  // ]);
 
   // Memoized title
   const title = useMemo(() => {
@@ -480,14 +487,36 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
             {/* Tab Content */}
             <div className="flex-1 overflow-y-auto" role="tabpanel">
-              {activeTabContent}
+              {/* dont unmount General Info */}
+              <div
+                style={{ display: activeTab === "general" ? "block" : "none" }}
+              >
+                <GeneralInfoForm
+                  formData={formData}
+                  onFormDataUpdate={handleFormDataUpdate}
+                  isSubmitting={isSubmitting}
+                  formRef={generalFormRef as React.RefObject<HTMLFormElement>}
+                />
+              </div>
+
+              {/* Always mount Service Info */}
+              <div
+                style={{ display: activeTab === "service" ? "block" : "none" }}
+              >
+                <ServiceInfoFormSwitcher
+                  formData={formData}
+                  onFormDataUpdate={handleFormDataUpdate}
+                  isSubmitting={isSubmitting}
+                  formRef={serviceFormRef}
+                  selectedService={selectedService}
+                />
+              </div>
             </div>
 
             {/* Footer Actions */}
 
             <div className="border-t border-gray-200 p-4 mt-4">
               <div className="flex justify-between">
-                {/* LEFT SIDE BUTTON — General: Cancel | Service: Previous */}
                 {activeTab === "general" ? (
                   // Cancel Button (General Tab)
                   <button
@@ -542,7 +571,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                         Save As Draft
                       </button>
 
-                      {/* Next (go to service tab) */}
+                      {/* Next */}
                       <button
                         onClick={() => {
                           const currentIndex = tabs.findIndex(
@@ -642,8 +671,24 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         title="Yaay! The Data - #1234 has been successfully saved to drafts!"
       />
 
-      {isAddCustomerOpen && <AddNewCustomerForm formRef={addCustomerFormRef} />}
-      {isAddVendorOpen && <AddNewVendorForm formRef={addVendorFormRef} />}
+      {isAddCustomerOpen && (
+        <AddCustomerSideSheet
+          isOpen={isAddCustomerOpen}
+          onCancel={closeAddCustomer}
+          mode="create"
+          data={null}
+          formRef={addCustomerFormRef}
+        />
+      )}
+      {isAddVendorOpen && (
+        <AddVendorSideSheet
+          isOpen={isAddVendorOpen}
+          onCancel={closeAddVendor}
+          mode="create"
+          data={null}
+          formRef={addVendorFormRef}
+        />
+      )}
       {isAddTravellerOpen && (
         <AddNewTravellerForm formRef={addTravellerFormRef} />
       )}

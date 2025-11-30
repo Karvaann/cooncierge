@@ -134,6 +134,17 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   const [customerSellingAmount, setCustomerSellingAmount] = useState("");
   const [commissionCurrency, setCommissionCurrency] = useState("INR");
   const [commissionAmount, setCommissionAmount] = useState("");
+  // Vendor payment summary fields
+  const [commissionPaid, setCommissionPaid] = useState<string>("");
+  const [commissionReceived, setCommissionReceived] = useState<string>("");
+  const [partnerPayout, setPartnerPayout] = useState<string>("");
+
+  const derivedCostPrice = useMemo(() => {
+    const a = Number(commissionPaid) || 0;
+    const b = Number(commissionReceived) || 0;
+    const c = Number(partnerPayout) || 0;
+    return a + b + c;
+  }, [commissionPaid, commissionReceived, partnerPayout]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -570,7 +581,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                     <div className="relative">
                       <button
                         type="button"
-                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[0.75rem] font-medium text-gray-700 hover:bg-gray-100"
+                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md text-[0.75rem] font-medium text-gray-700 hover:bg-gray-100"
                       >
                         ₹
                       </button>
@@ -581,7 +592,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                       value={formData.costprice}
                       onChange={handleChange}
                       placeholder="Enter Cost Price"
-                      className="w-[20rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md focus:outline-none"
+                      className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md focus:outline-none"
                     />
                   </div>
                 </div>
@@ -595,7 +606,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                     <div className="relative">
                       <button
                         type="button"
-                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[0.75rem] font-medium text-gray-700 hover:bg-gray-100"
+                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md text-[0.75rem] font-medium text-gray-700 hover:bg-gray-100"
                       >
                         ₹
                       </button>
@@ -606,7 +617,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                       value={formData.sellingprice}
                       onChange={handleChange}
                       placeholder="Enter Selling Price"
-                      className="w-[20rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md focus:outline-none"
+                      className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md focus:outline-none"
                     />
                   </div>
                 </div>
@@ -619,9 +630,9 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                     Net
                   </span>
 
-                  {/* Amount + percentage row */}
+                  {/* Amount and percentage row */}
                   <div className="flex items-center gap-3">
-                    {/* Blue pill amount */}
+                    {/* pill amount */}
                     <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
                       {`INR ${
                         Number(formData.sellingprice) -
@@ -654,50 +665,58 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 
                 {/* Container */}
                 <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                  {/* Row */}
                   {[
-                    "Vendor Invoice (Base)",
-                    "Supplier Incentive Received",
-                    "Partner Payout",
-                    "Cost Price",
-                  ].map((label, index) => (
+                    { label: "Comission Paid", key: "paid" },
+                    { label: "Comission Received", key: "received" },
+                    { label: "Partner Payout", key: "payout" },
+                    { label: "Cost Price", key: "cost" },
+                  ].map((item, index) => (
                     <div
                       key={index}
                       className="grid grid-cols-12 border-b last:border-b-0 border-gray-200"
                     >
-                      {/* Left label */}
                       <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
-                        {label}
+                        {item.label}
                       </div>
-
-                      {/* Right inputs */}
                       <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
-                        {/* Rupee icon */}
-                        <div className="text-gray-600 text-[0.85rem] font-medium">
-                          ₹
-                        </div>
+                        {item.key !== "cost" && (
+                          <div className="text-gray-600 text-[0.85rem] font-medium">
+                            ₹
+                          </div>
+                        )}
 
-                        {/* Amount Input */}
-                        <input
-                          type="text"
-                          placeholder="Enter Amount"
-                          className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                        />
+                        {item.key !== "cost" ? (
+                          <input
+                            type="text"
+                            placeholder="Enter Amount"
+                            value={
+                              item.key === "paid"
+                                ? commissionPaid
+                                : item.key === "received"
+                                ? commissionReceived
+                                : partnerPayout
+                            }
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (item.key === "paid") setCommissionPaid(val);
+                              else if (item.key === "received")
+                                setCommissionReceived(val);
+                              else setPartnerPayout(val);
+                            }}
+                            className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                          />
+                        ) : (
+                          <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">
+                            {`₹ ${derivedCostPrice.toFixed(2)}`}
+                          </div>
+                        )}
 
-                        {/* Notes Input (only for rows that have it in screenshot) */}
-                        {label !== "Cost Price" && (
+                        {item.key !== "cost" && (
                           <input
                             type="text"
                             placeholder="Enter notes here..."
                             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
                           />
-                        )}
-
-                        {/* Cost Price Blue Value */}
-                        {label === "Cost Price" && (
-                          <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">
-                            ₹ 0.00
-                          </div>
                         )}
                       </div>
                     </div>
@@ -725,6 +744,13 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                       <input
                         type="text"
                         placeholder="Enter Amount"
+                        value={String(formData.sellingprice ?? "")}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            sellingprice: e.target.value,
+                          }))
+                        }
                         className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       />
                     </div>
@@ -732,7 +758,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                 </div>
 
                 {/* Net */}
-                <div className="w-[9rem] rounded-lg p-1 mt-1 bg-white">
+                <div className="w-[12rem] rounded-lg p-1 mt-1 bg-white">
                   {/* Label on top */}
                   <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
                     Net
@@ -742,19 +768,18 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                   <div className="flex items-center gap-3">
                     {/* Blue pill amount */}
                     <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
-                      {`INR ${
-                        Number(formData.sellingprice) -
-                        Number(formData.costprice)
-                      }`}
+                      {`INR ${(
+                        (Number(formData.sellingprice) || 0) - derivedCostPrice
+                      ).toFixed(2)}`}
                     </span>
 
                     {/* Percentage */}
                     <span className="text-[0.75rem] text-gray-700 font-medium">
-                      {formData.costprice && formData.sellingprice
+                      {derivedCostPrice > 0 && formData.sellingprice
                         ? `${(
-                            ((Number(formData.sellingprice) -
-                              Number(formData.costprice)) /
-                              Number(formData.costprice)) *
+                            (((Number(formData.sellingprice) || 0) -
+                              derivedCostPrice) /
+                              derivedCostPrice) *
                             100
                           ).toFixed(2)}%`
                         : "0%"}

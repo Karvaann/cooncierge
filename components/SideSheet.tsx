@@ -16,6 +16,7 @@ interface SideSheetProps {
   closeOnEscape?: boolean;
   showCloseButton?: boolean;
   className?: string;
+  showLinkButton?: boolean;
 }
 
 type SideSheetWidth = {
@@ -34,6 +35,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
   closeOnEscape = true,
   showCloseButton = true,
   className = "",
+  showLinkButton = false,
 }) => {
   // Memoized width classes
   const widthClasses: SideSheetWidth = useMemo(
@@ -131,33 +133,45 @@ const SideSheet: React.FC<SideSheetProps> = ({
           aria-labelledby={title ? "sidesheet-title" : undefined}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-2 py-2 ml-2">
-            <h2
-              id="sidesheet-title"
-              className="text-[1rem] ml-2 font-semibold text-gray-900 flex-1"
-            >
-              {title}
-            </h2>
-            {showCloseButton && (
-              <button
-                onClick={onCloseButtonClick ? onCloseButtonClick : onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-full hover:bg-gray-100"
-                aria-label="Close side sheet"
-              >
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+          <div className="flex items-center justify-between px-2 py-2">
+            <div className="flex items-center gap-2 flex-1">
+              {showCloseButton && (
+                <button
+                  onClick={onCloseButtonClick ? onCloseButtonClick : onClose}
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-full hover:bg-gray-100"
+                  aria-label="Close side sheet"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              )}
+              <h2
+                id="sidesheet-title"
+                className="text-[1rem] -ml-1 font-semibold text-gray-900"
+              >
+                {title}
+              </h2>
+            </div>
+            {showLinkButton && (
+              <div className="ml-auto mr-1">
+                <button
+                  type="button"
+                  className="text-[#126ACB] text-[0.8rem] font-medium hover:underline"
+                >
+                  Link to a User
+                </button>
+              </div>
             )}
           </div>
 

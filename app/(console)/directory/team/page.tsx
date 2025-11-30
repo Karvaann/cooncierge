@@ -8,11 +8,12 @@ import { FiSearch } from "react-icons/fi";
 import { CiFilter } from "react-icons/ci";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import { IoEllipsisHorizontal } from "react-icons/io5";
-import { getUsers, deleteUser } from "@/services/userApi";
+import { getTeams, deleteTeam } from "@/services/teamsApi";
 import type { JSX } from "react";
 import AddTeamSideSheet from "@/components/Sidesheets/AddTeamSideSheet";
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
 import DownloadMergeMenu from "@/components/Menus/DownloadMergeMenu";
+import type { DeletableItem } from "@/components/Modals/DeleteModal";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 
@@ -105,6 +106,8 @@ const TeamDirectory = () => {
   const [selectedTeam, setSelectedTeam] = useState<any | null>(null);
   const [mode, setMode] = useState<"create" | "edit">("create");
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
 
   const filteredTeams = useMemo(() => {
     if (!searchValue.trim()) return teams;
@@ -152,10 +155,10 @@ const TeamDirectory = () => {
     setMenuMode("main"); // ✅ Revert menu to SelectUploadMenu
   };
 
-  // Handle Delete User
+  // Handle Delete Team Member
   const handleDeleteUser = async (userId: string) => {
     try {
-      await deleteUser(userId);
+      await deleteTeam(userId);
       // Refresh your user list or remove from state
       // Example: setUsers(users.filter(u => u.id !== userId));
     } catch (error: any) {
@@ -164,17 +167,26 @@ const TeamDirectory = () => {
     }
   };
 
+  const formatDMY = (dateString: string) => {
+    const date = new Date(dateString);
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+
+    return `${day}-${month}-${year}`;
+  };
+
   useEffect(() => {
     const fetchTeamsData = async () => {
       try {
-        const teamsResponse = await getUsers();
+        const teamsResponse = await getTeams();
 
-        console.log("Fetched user list:", teamsResponse);
+        console.log("Fetched teams list:", teamsResponse);
 
-        // Ensure response.data exists
-        const users = teamsResponse?.data || [];
+        const teamArray = Array.isArray(teamsResponse) ? teamsResponse : [];
 
-        const mappedRows: TeamRow[] = users.map((u: any, index: number) => {
+        const mappedRows: TeamRow[] = teamArray.map((u: any, index: number) => {
           const fullName = u.name || "—";
           const alias = u.alias || "—";
 
@@ -184,9 +196,7 @@ const TeamDirectory = () => {
             memberName: fullName,
             alias: alias,
             userStatus: u.userStatus || u.status || "Active",
-            joiningDate: u.dateOfJoining
-              ? new Date(u.dateOfJoining).toLocaleDateString()
-              : "—",
+            joiningDate: u.dateOfJoining ? formatDMY(u.dateOfJoining) : "—",
             actions: "⋮",
           };
         });
@@ -274,30 +284,39 @@ const TeamDirectory = () => {
           </td>,
 
           // Action Menu
-          <td key={`actions-${index}`} className="px-4 py-3  text-center">
-            <ActionMenu
-              actions={[
-                {
-                  label: "Edit",
-                  icon: <FaRegEdit />,
-                  color: "text-green-600",
-                  onClick: () => {
-                    setSelectedTeam(row); // full row data
-                    setIsSideSheetOpen(true);
-                    setMode("edit");
+          <td key={`actions-${index}`} className="px-4 py-3 text-center pr-3">
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
+                onClick={() => setIsHistoryOpen(true)}
+              >
+                Booking History
+              </button>
+              <ActionMenu
+                actions={[
+                  {
+                    label: "Edit",
+                    icon: <FaRegEdit />,
+                    color: "text-green-600",
+                    onClick: () => {
+                      setSelectedTeam(row); // full row data
+                      setIsSideSheetOpen(true);
+                      setMode("edit");
+                    },
                   },
-                },
-                {
-                  label: "Delete",
-                  icon: <FaRegTrashAlt />,
-                  color: "text-red-600",
-                  onClick: () => {
-                    setSelectedTeam(row);
-                    handleOpenConfirmDeleteModal();
+                  {
+                    label: "Delete",
+                    icon: <FaRegTrashAlt />,
+                    color: "text-red-600",
+                    onClick: () => {
+                      setSelectedTeam(row);
+                      handleOpenConfirmDeleteModal();
+                    },
                   },
-                },
-              ]}
-            />
+                ]}
+              />
+            </div>
           </td>
         );
 
@@ -305,6 +324,18 @@ const TeamDirectory = () => {
       }),
     [filteredTeams, selectMode, selectedTeamMembers]
   );
+
+  const selectedDeletables: DeletableItem[] = useMemo(() => {
+    return teams
+      .filter((t) => selectedTeamMembers.includes(t.ID))
+      .map((t) => ({
+        id: t.ID,
+        memberName: t.memberName,
+        alias: t.alias,
+        userStatus: t.userStatus,
+        joiningDate: t.joiningDate,
+      }));
+  }, [teams, selectedTeamMembers]);
 
   return (
     <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
@@ -409,7 +440,7 @@ const TeamDirectory = () => {
       "
               style={{ pointerEvents: "auto" }}
             >
-              {/* {menuMode === "main" ? (
+              {menuMode === "main" ? (
                 <SelectUploadMenu
                   isOpen={isMenuOpen}
                   onClose={handleCloseMenu}
@@ -419,8 +450,10 @@ const TeamDirectory = () => {
                 <DownloadMergeMenu
                   isOpen={isMenuOpen}
                   onClose={handleCloseMenu}
+                  entity="team"
+                  items={selectedDeletables}
                 />
-              )} */}
+              )}
             </div>
           )}
         </div>

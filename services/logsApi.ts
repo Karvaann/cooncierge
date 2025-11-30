@@ -74,7 +74,7 @@ export const getUserLogsByMonth = async (
 ) => {
   try {
     const response = await apiClient.get(
-      `/logs/user-month/${userId}?month=${month}&year=${year}`
+      `/logs/monthly-summary/${userId}?month=${month}&year=${year}`
     );
 
     return response.data; // { logsByDay: {...}, userId, month, year }

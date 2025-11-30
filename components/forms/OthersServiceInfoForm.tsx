@@ -74,6 +74,17 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   const [customerSellingAmount, setCustomerSellingAmount] = useState("");
   const [commissionCurrency, setCommissionCurrency] = useState("INR");
   const [commissionAmount, setCommissionAmount] = useState("");
+  // Advanced pricing vendor payment summary states
+  const [commissionPaid, setCommissionPaid] = useState<string>("");
+  const [commissionReceived, setCommissionReceived] = useState<string>("");
+  const [partnerPayout, setPartnerPayout] = useState<string>("");
+
+  const derivedCostPrice = useMemo(() => {
+    const a = Number(commissionPaid) || 0;
+    const b = Number(commissionReceived) || 0;
+    const c = Number(partnerPayout) || 0;
+    return a + b + c;
+  }, [commissionPaid, commissionReceived, partnerPayout]);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [filesAdded, setFilesAdded] = useState({
@@ -551,115 +562,108 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
             ) : (
               /* Advanced Pricing Component */
               <div className="space-y-3">
-                {/* Vendor Payment Summary */}
-
                 <h4 className="text-[0.75rem] font-medium text-gray-700 mb-3">
                   Vendor Payment Summary
                 </h4>
-
-                {/* Container */}
                 <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                  {/* Row */}
                   {[
-                    "Vendor Invoice (Base)",
-                    "Supplier Incentive Received",
-                    "Partner Payout",
-                    "Cost Price",
-                  ].map((label, index) => (
+                    { label: "Comission Paid", key: "paid" },
+                    { label: "Comission Received", key: "received" },
+                    { label: "Partner Payout", key: "payout" },
+                    { label: "Cost Price", key: "cost" },
+                  ].map((item, index) => (
                     <div
                       key={index}
                       className="grid grid-cols-12 border-b last:border-b-0 border-gray-200"
                     >
-                      {/* Left label */}
                       <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
-                        {label}
+                        {item.label}
                       </div>
-
-                      {/* Right inputs */}
                       <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
-                        {/* Rupee icon */}
-                        <div className="text-gray-600 text-[0.85rem] font-medium">
-                          ₹
-                        </div>
-
-                        {/* Amount Input */}
-                        <input
-                          type="text"
-                          placeholder="Enter Amount"
-                          className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                        />
-
-                        {/* Notes Input (only for rows that have it in screenshot) */}
-                        {label !== "Cost Price" && (
+                        {item.key !== "cost" && (
+                          <div className="text-gray-600 text-[0.85rem] font-medium">
+                            ₹
+                          </div>
+                        )}
+                        {item.key !== "cost" ? (
+                          <input
+                            type="text"
+                            placeholder="Enter Amount"
+                            value={
+                              item.key === "paid"
+                                ? commissionPaid
+                                : item.key === "received"
+                                ? commissionReceived
+                                : partnerPayout
+                            }
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (item.key === "paid") setCommissionPaid(val);
+                              else if (item.key === "received")
+                                setCommissionReceived(val);
+                              else setPartnerPayout(val);
+                            }}
+                            className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                          />
+                        ) : (
+                          <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">{`₹ ${derivedCostPrice.toFixed(
+                            2
+                          )}`}</div>
+                        )}
+                        {item.key !== "cost" && (
                           <input
                             type="text"
                             placeholder="Enter notes here..."
                             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
                           />
                         )}
-
-                        {/* Cost Price Blue Value */}
-                        {label === "Cost Price" && (
-                          <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">
-                            ₹ 0.00
-                          </div>
-                        )}
                       </div>
                     </div>
                   ))}
                 </div>
-
-                {/* Customer Revenue Summary */}
                 <h4 className="text-[0.8rem] font-semibold text-gray-700">
                   Customer Revenue Summary
                 </h4>
-
                 <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
                   <div className="grid grid-cols-12">
-                    {/* Label */}
                     <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
                       Selling Price
                     </div>
-
-                    {/* Inputs */}
                     <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
                       <div className="text-gray-600 text-[0.85rem] font-medium">
                         ₹
                       </div>
-
                       <input
                         type="text"
                         placeholder="Enter Amount"
+                        value={String(formData.sellingprice ?? "")}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            sellingprice: e.target.value,
+                          }))
+                        }
                         className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
                       />
                     </div>
                   </div>
                 </div>
-
-                {/* Net */}
-                <div className="w-[9rem] rounded-lg p-1 mt-1 bg-white">
-                  {/* Label on top */}
+                <div className="w-[12rem] rounded-lg p-1 mt-1 bg-white">
                   <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
                     Net
                   </span>
-
-                  {/* Amount + percentage row */}
                   <div className="flex items-center gap-3">
-                    {/* Blue pill amount */}
                     <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
-                      {`INR ${
-                        Number(formData.sellingprice) -
-                        Number(formData.costprice)
-                      }`}
+                      {`INR ${(
+                        (Number(formData.sellingprice) || 0) - derivedCostPrice
+                      ).toFixed(2)}`}
                     </span>
-
-                    {/* Percentage */}
                     <span className="text-[0.75rem] text-gray-700 font-medium">
-                      {formData.costprice && formData.sellingprice
+                      {derivedCostPrice > 0 && formData.sellingprice
                         ? `${(
-                            ((Number(formData.sellingprice) -
-                              Number(formData.costprice)) /
-                              Number(formData.costprice)) *
+                            (((Number(formData.sellingprice) || 0) -
+                              derivedCostPrice) /
+                              derivedCostPrice) *
                             100
                           ).toFixed(2)}%`
                         : "0%"}

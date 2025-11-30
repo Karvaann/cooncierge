@@ -1,80 +1,44 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useMemo } from "react";
 import Modal from "@/components/Modal";
 import Table from "@/components/Table";
 
-interface Customer {
+type EntityType = "customer" | "vendor" | "team";
+
+export interface DeletableItem {
   id: string;
-  name: string;
-  avatar: string;
-  subtitle: string;
-  owner: string;
-  rating: number;
-  dateModified: string;
-  isLinked: boolean;
+  // shared
+  name?: string; // customer name / vendorName / memberName fallback
+  avatar?: string;
+  subtitle?: string;
+  owner?: string; // customer owner
+  rating?: number; // customer/vendor rating
+  dateModified?: string; // customer date modified / vendor date modified
+  isLinked?: boolean;
+  // vendor specific
+  vendorName?: string;
+  poc?: string;
+  // team specific
+  memberName?: string;
+  alias?: string;
+  userStatus?: string;
+  joiningDate?: string;
 }
 
 interface DeleteModalProps {
   isOpen: boolean;
   onClose: () => void;
+  items: DeletableItem[];
+  entity: EntityType;
 }
 
-const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose }) => {
-  // Sample customer data matching the screenshot
-  const customers: Customer[] = [
-    {
-      id: "CU-AB001",
-      name: "Jatin Sharma",
-      avatar: "https://i.pravatar.cc/150?img=1",
-      subtitle: "Karvaann",
-      owner: "Sumit Jain",
-      rating: 5,
-      dateModified: "10-09-2025",
-      isLinked: true,
-    },
-    {
-      id: "CU-AB002",
-      name: "Deepanshu",
-      avatar: "https://i.pravatar.cc/150?img=2",
-      subtitle: "Karvaann",
-      owner: "Sumit Jain",
-      rating: 2,
-      dateModified: "09-09-2025",
-      isLinked: false,
-    },
-    {
-      id: "CU-AB003",
-      name: "Anand Mishra",
-      avatar: "https://i.pravatar.cc/150?img=3",
-      subtitle: "Karvaann",
-      owner: "Apurav Mishra",
-      rating: 3,
-      dateModified: "09-09-2025",
-      isLinked: false,
-    },
-    {
-      id: "CU-AB004",
-      name: "Anand Mishra",
-      avatar: "https://i.pravatar.cc/150?img=4",
-      subtitle: "Karvaann",
-      owner: "Harish Chaudhary",
-      rating: 1,
-      dateModified: "07-09-2025",
-      isLinked: true,
-    },
-    {
-      id: "CU-AB005",
-      name: "Anand Mishra",
-      avatar: "https://i.pravatar.cc/150?img=5",
-      subtitle: "Karvaann",
-      owner: "Dhruv Pandey",
-      rating: 4,
-      dateModified: "31-08-2025",
-      isLinked: false,
-    },
-  ];
-
+const DeleteModal: React.FC<DeleteModalProps> = ({
+  isOpen,
+  onClose,
+  items,
+  entity,
+}) => {
   const getRatingIcon = (rating: number) => {
     const colors = {
       1: "bg-red-100 text-red-500",
@@ -98,127 +62,237 @@ const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose }) => {
     );
   };
 
-  const columns = [
-    "Customer ID",
-    "Name",
-    "Owner",
-    "Rating",
-    "Date Modified",
-    "Booking History",
-  ];
-
-  const tableData = customers.map((customer) => [
-    <td key="id" className="px-3 py-1.5 text-[0.75rem]">
-      <div className="flex items-center gap-3">
-        {customer.isLinked && (
-          <svg
-            className="w-5 h-5 text-red-500"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+  const columns = useMemo(() => {
+    if (entity === "customer") {
+      return ["ID", "Name", "Owner", "Rating", "Date Modified", "Actions"];
+    }
+    if (entity === "vendor") {
+      return [
+        "Vendor ID",
+        "Vendor Name",
+        "POC",
+        "Date Modified",
+        "Rating",
+        "Actions",
+      ];
+    }
+    return [
+      "ID",
+      "Member Name",
+      "Alias",
+      "User Status",
+      "Joining Date",
+      "Actions",
+    ];
+  }, [entity]);
+  // Rating badge similar to directory pages
+  const renderRatingBadge = (rating?: number) => {
+    if (!rating) return <span className="text-gray-400">—</span>;
+    const bgMap: Record<number, string> = {
+      1: "bg-red-100 text-red-600",
+      2: "bg-orange-100 text-orange-600",
+      3: "bg-yellow-100 text-yellow-600",
+      4: "bg-green-100 text-green-600",
+      5: "bg-emerald-100 text-emerald-600",
+    };
+    const bgClass = bgMap[rating] || "bg-gray-100 text-gray-600";
+    return (
+      <div className="flex items-center gap-2 justify-center">
+        <div
+          className={`w-7 h-7 rounded-full flex items-center justify-center ${bgClass}`}
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
           </svg>
-        )}
-        <span className={customer.isLinked ? "text-gray-400" : "text-gray-800"}>
-          {customer.id}
+        </div>
+        <span className="text-[0.75rem] font-semibold text-gray-700">
+          {rating}
         </span>
       </div>
-    </td>,
-    <td key="name" className="px-3 py-1.5 text-[0.75rem]">
-      <div className="flex items-center gap-3">
-        <img
-          src={customer.avatar}
-          alt={customer.name}
-          className="w-7 h-7 rounded-full object-cover"
-        />
-        <div>
-          <div
-            className={
-              customer.isLinked
-                ? "text-gray-400 font-medium"
-                : "text-gray-800 font-medium"
-            }
-          >
-            {customer.name}
-          </div>
-          <div className="text-gray-400 text-xs">{customer.subtitle}</div>
-        </div>
-      </div>
-    </td>,
-    <td key="owner" className="px-4 py-3">
-      <span className={customer.isLinked ? "text-gray-400" : "text-gray-800"}>
-        {customer.owner}
-      </span>
-    </td>,
-    <td key="rating" className="px-4 py-3">
-      <div className="flex justify-center">
-        {getRatingIcon(customer.rating)}
-      </div>
-    </td>,
-    <td key="date" className="px-4 py-3">
-      <span className={customer.isLinked ? "text-gray-400" : "text-gray-800"}>
-        {customer.dateModified}
-      </span>
-    </td>,
-    <td key="history" className="px-4 py-3">
-      <button className="flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 text-[0.7rem] transition-colors">
-        <svg
-          className="w-3.5 h-3.5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
-        Booking History
-      </button>
-    </td>,
-  ]);
+    );
+  };
 
-  const linkedCustomers = customers.filter((c) => c.isLinked).map((c) => c.id);
+  const tableData = useMemo(() => {
+    if (!items) return [];
+    return items.map((item) => {
+      const actionsCell = (
+        <td
+          key={`${item.id}-actions`}
+          className="px-3 py-1.5 text-center justify-center text-[0.75rem]"
+        >
+          <button className="flex items-center justify-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 text-[0.7rem] transition-colors">
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Booking History
+          </button>
+        </td>
+      );
+
+      if (entity === "customer") {
+        return [
+          <td
+            key={`${item.id}-id`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {item.id}
+          </td>,
+          <td
+            key={`${item.id}-name`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {item.name || "—"}
+          </td>,
+          <td
+            key={`${item.id}-owner`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {item.owner || "—"}
+          </td>,
+          <td
+            key={`${item.id}-rating`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {renderRatingBadge(item.rating)}
+          </td>,
+          <td
+            key={`${item.id}-date`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {item.dateModified || "—"}
+          </td>,
+
+          actionsCell,
+        ];
+      }
+      if (entity === "vendor") {
+        return [
+          <td
+            key={`${item.id}-id`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {item.id}
+          </td>,
+          <td
+            key={`${item.id}-vendorName`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {item.vendorName || item.name || "—"}
+          </td>,
+          <td
+            key={`${item.id}-poc`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {item.poc || item.owner || "—"}
+          </td>,
+          <td
+            key={`${item.id}-dateModified`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {item.dateModified || "—"}
+          </td>,
+          <td
+            key={`${item.id}-rating`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {renderRatingBadge(item.rating)}
+          </td>,
+          actionsCell,
+        ];
+      }
+      // team
+      return [
+        <td
+          key={`${item.id}-id`}
+          className="px-3 py-1.5 text-center text-[0.75rem]"
+        >
+          {item.id}
+        </td>,
+        <td
+          key={`${item.id}-memberName`}
+          className="px-3 py-1.5 text-center text-[0.75rem]"
+        >
+          {item.memberName || item.name || "—"}
+        </td>,
+        <td
+          key={`${item.id}-alias`}
+          className="px-3 py-1.5 text-center text-[0.75rem]"
+        >
+          {item.alias || "—"}
+        </td>,
+        <td
+          key={`${item.id}-userStatus`}
+          className="px-3 py-1.5 text-center text-[0.75rem]"
+        >
+          {item.userStatus || "—"}
+        </td>,
+        <td
+          key={`${item.id}-joiningDate`}
+          className="px-3 py-1.5 text-center text-[0.75rem]"
+        >
+          {item.joiningDate || "—"}
+        </td>,
+        actionsCell,
+      ];
+    });
+  }, [items, entity]);
+  const linkedCustomers = useMemo(
+    () => (items || []).filter((c) => c.isLinked).map((c) => c.id),
+    [items]
+  );
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <Modal
         isOpen={isOpen}
         onClose={onClose}
-        title="Delete Customers"
+        title={
+          entity === "customer"
+            ? "Delete Customers"
+            : entity === "vendor"
+            ? "Delete Vendors"
+            : "Delete Team Members"
+        }
         customWidth="w-[75vw]"
-        customeHeight="h-[85vh]"
+        customeHeight="h-fit"
         className="max-w-[1100px]"
       >
-        <div className="space-y-4 text-[0.75rem]">
-          {/* Warning Message */}
-          <div className="flex items-center justify-center gap-1 text-red-500 text-[0.7rem]">
-            <span>Entries with</span>
-            <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
-            </svg>
-            <span>cannot be deleted as they are linked</span>
+        <div className="flex h-full flex-col -mt-3 px-6 pb-3 text-[0.75rem] overflow-hidden">
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="text-center text-red-500 text-[0.75rem] font-medium mb-3">
+              Note : This action cannot be undone
+            </div>
+
+            <div className="min-h-0">
+              <Table
+                data={tableData}
+                columns={columns}
+                initialRowsPerPage={5}
+                maxRowsPerPageOptions={[5, 10, 25, 50]}
+                hideRowsPerPage={false}
+              />
+            </div>
+
+            <div className="flex items-center text-red-500 text-[0.7rem] gap-1 mt-4">
+              <span>Entries with</span>
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+              </svg>
+              <span>cannot be deleted as they are linked</span>
+            </div>
           </div>
 
-          {/* Table */}
-          <Table
-            data={tableData}
-            columns={columns}
-            initialRowsPerPage={10}
-            maxRowsPerPageOptions={[5, 10, 25, 50]}
-            hideRowsPerPage={false}
-          />
-
-          {/* Footer Message */}
-          <div className="text-right text-gray-600 text-[0.7rem] pt-1">
-            <span className="font-semibold">{linkedCustomers.join(", ")}</span>{" "}
-            are linked and cannot be deleted.
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end items-center gap-2 pt-3 border-t border-gray-100 bg-white shrink-0">
             <button
               onClick={onClose}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-[0.7rem]"
@@ -227,12 +301,10 @@ const DeleteModal: React.FC<DeleteModalProps> = ({ isOpen, onClose }) => {
             </button>
 
             <button
-              onClick={() => {
-                alert("Deleting non-linked customers...");
-              }}
+              onClick={() => alert("Deleting non-linked customers...")}
               className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors text-[0.7rem]"
             >
-              Remove & Delete
+              Delete
             </button>
           </div>
         </div>

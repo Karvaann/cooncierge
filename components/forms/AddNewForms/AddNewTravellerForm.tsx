@@ -318,7 +318,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
       width="xl"
     >
       <div
-        className="space-y-6 p-4"
+        className="space-y-6 p-4 flex flex-col min-h-full"
         ref={formRef as any}
         onSubmit={(e) => e.preventDefault()}
       >
@@ -444,7 +444,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           />
         </div>
 
-        {/* <div className="flex justify-end">
+        <div className="flex justify-end mt-auto">
           <button
             type="submit"
             disabled={isSubmitting}
@@ -452,7 +452,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           >
             {isSubmitting ? "Saving..." : "Save"}
           </button>
-        </div> */}
+        </div>
       </div>
     </SideSheet>
   );

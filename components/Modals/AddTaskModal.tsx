@@ -4,6 +4,10 @@ import { MdOutlineFileUpload } from "react-icons/md";
 import { MdKeyboardArrowUp } from "react-icons/md";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { IoMdClose } from "react-icons/io";
+import { createLog } from "@/services/logsApi";
+import { getTeams } from "@/services/teamsApi";
+import { getAuthUser } from "@/services/storage/authStorage";
+
 interface AddTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -11,6 +15,7 @@ interface AddTaskModalProps {
   onEdit?: (task: any) => void;
   initialData?: any;
   isEditMode?: boolean;
+  bookingId?: string; // booking against which task is created
 }
 
 const AddTaskModal: React.FC<AddTaskModalProps> = ({
@@ -20,6 +25,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
   onEdit,
   initialData = {},
   isEditMode = false,
+  bookingId,
 }) => {
   const [nature, setNature] = useState(initialData.nature || "");
   const [description, setDescription] = useState(initialData.description || "");
@@ -38,20 +44,24 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
   const [priority, setPriority] = useState(initialData.priority || "");
   const [dueHours, setDueHours] = useState(initialData.dueHours || 14);
   const [dueMinutes, setDueMinutes] = useState(initialData.dueMinutes || 30);
+  const [taskType, setTaskType] = useState(initialData.taskType || "");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
+  const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]); // team member IDs
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(false);
+  const [teamsError, setTeamsError] = useState<string | null>(null);
 
-  const assignees = ["John Doe", "Jane Smith", "Alex Johnson", "Emma Brown"];
-
-  const toggleAssignee = (assignee: string) => {
+  const toggleAssignee = (teamId: string) => {
     setSelectedAssignees((prev) =>
-      prev.includes(assignee)
-        ? prev.filter((item) => item !== assignee)
-        : [...prev, assignee]
+      prev.includes(teamId)
+        ? prev.filter((item) => item !== teamId)
+        : [...prev, teamId]
     );
   };
+
+  const getTeamName = (id: string) => teams.find((t) => t._id === id)?.name || id;
 
   useEffect(() => {
     if (!isOpen) {
@@ -69,6 +79,48 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
       setSelectedAssignees([]);
     }
   }, [isOpen]);
+
+  // Fetch team members when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchTeams = async () => {
+      try {
+        setLoadingTeams(true);
+        setTeamsError(null);
+        const resp = await getTeams();
+        const list = Array.isArray(resp) ? resp : resp?.teams || [];
+        setTeams(list);
+      } catch (e: any) {
+        setTeamsError(e?.message || "Failed to load team members");
+      } finally {
+        setLoadingTeams(false);
+      }
+    };
+    fetchTeams();
+  }, [isOpen]);
+
+  const mapCategory = (value: string) => {
+    switch (value) {
+      case "bookings-os":
+        return { category: "Bookings", subCategory: "OS" };
+
+      case "bookings-limitless":
+        return { category: "Bookings", subCategory: "Limitless" };
+
+      case "directory-customers":
+        return { category: "Directory", subCategory: "Customers" };
+
+      case "directory-vendors":
+        return { category: "Directory", subCategory: "Vendors" };
+
+      case "directory-team":
+        return { category: "Directory", subCategory: "Team" };
+
+      case "general":
+      default:
+        return { category: "General", subCategory: "General" };
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -99,22 +151,84 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
     setDueMinutes((prev: number) => (prev === 0 ? 59 : prev - 1));
   };
 
-  const handleSave = () => {
-    const task = {
-      nature,
-      description,
-      subTasks,
-      comments,
-      assignedBy,
-      startDate,
-      dueDate,
-      priority,
-      dueHours,
-      dueMinutes,
-    };
+  const handleSave = async () => {
+    try {
+      const user = getAuthUser() as any;
+      const userId = user._id || "";
 
-    if (onSave) onSave(task);
-    onClose();
+      if (!userId) {
+        console.error("User not logged in. Cannot create log.");
+        return;
+      }
+
+      const { category, subCategory } = mapCategory(nature);
+
+      // Basic validations aligned with backend requirements
+      if (!nature) {
+        console.error("Validation: Category is required");
+        return;
+      }
+      if (!priority) {
+        console.error("Validation: Priority is required");
+        return;
+      }
+      if (!taskType) {
+        console.error("Validation: Task Type is required");
+        return;
+      }
+      if (!startDate) {
+        console.error("Validation: Due Date is required");
+        return;
+      }
+      if (!selectedAssignees.length) {
+        console.error("Validation: At least one assignee is required");
+        return;
+      }
+
+      // Convert due date + due time → ISO
+      let finalDueDate = null;
+      if (startDate) {
+        const due = new Date(startDate);
+        due.setHours(dueHours);
+        due.setMinutes(dueMinutes);
+        due.setSeconds(0);
+        finalDueDate = due.toISOString();
+      }
+
+      // Validate ObjectId-like strings (24 hex chars)
+      const isObjectId = (v: unknown) => typeof v === "string" && /^[a-fA-F0-9]{24}$/.test(v);
+      const validAssignees = selectedAssignees.filter((id) => isObjectId(id));
+      const bookingObjectId = isObjectId(bookingId) ? bookingId : undefined;
+
+      // Temporary mapping (fix later)
+      const logData = {
+        activity: comments || description || "No Description",
+        userId: userId,
+        status: "Pending",
+        dateTime: new Date().toISOString(),
+        assignedBy: userId,
+        priority: priority || "Medium",
+        taskType: taskType || "General",
+        dueDate: finalDueDate || new Date().toISOString(),
+        category,
+        subCategory,
+        bookingId: bookingObjectId,
+        assignedTo: validAssignees,
+      };
+
+      console.log("Creating Log with:", logData);
+      console.log("Token present:", !!(typeof window !== "undefined" && (window as any)?.localStorage?.getItem("x-access-token")));
+
+      await createLog(logData);
+
+      // Trigger parent refresh if provided
+      if (onSave) onSave(logData);
+
+      onClose();
+    } catch (err: any) {
+      const backendMsg = err?.response?.data?.message || err?.message || err?.error || err?.data?.message;
+      console.error("Failed to create task:", backendMsg || err);
+    }
   };
 
   return (
@@ -123,30 +237,34 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
       onClose={onClose}
       title="Tasks"
       size="sm"
-      customWidth="w-[55vw]"
-      customeHeight="h-[75vh]"
+      customWidth="w-[50vw]"
+      customeHeight="h-fit"
     >
       <div className="p-2 -mt-2">
         <div className="flex flex-col md:flex-row gap-4 p-3 rounded-lg border border-gray-200">
           {/* Left Section */}
-          <div className="flex-1 bg-white rounded-lg p-3">
+          <div className="flex-1 bg-white rounded-lg p-3 w-[50%] flex flex-col gap-4">
             {/* Category */}
             <div className="mb-3">
               <label className="block text-[0.75rem] text-gray-700 mb-1">
                 Category
               </label>
               <select
-                className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
                 value={nature}
                 onChange={(e) => setNature(e.target.value)}
               >
                 <option value="">Select Category</option>
-                <option value="">Bookings - OS</option>
-                <option value="">Bookings - Limitless Category</option>
-                <option value="">Directory - Customers</option>
-                <option value="">Directory - Vendors</option>
-                <option value="">Directory - Team</option>
-                <option value="">General</option>
+                <option value="bookings-os">Bookings - OS</option>
+                <option value="bookings-limitless">
+                  Bookings - Limitless Category
+                </option>
+                <option value="directory-customers">
+                  Directory - Customers
+                </option>
+                <option value="directory-vendors">Directory - Vendors</option>
+                <option value="directory-team">Directory - Team</option>
+                <option value="general">General</option>
               </select>
             </div>
 
@@ -156,7 +274,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 Category ID
               </label>
               <input
-                className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
                 placeholder="Enter Category ID"
                 value={nature}
                 onChange={(e) => setNature(e.target.value)}
@@ -169,16 +287,16 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 Task Type
               </label>
               <select
-                className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
-                value={nature}
-                onChange={(e) => setNature(e.target.value)}
+                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
+                value={taskType}
+                onChange={(e) => setTaskType(e.target.value)}
               >
                 <option value="">Select Task Type</option>
-                <option value="">Documents</option>
-                <option value="">Finance</option>
-                <option value="">Follow Up</option>
-                <option value="">Feedback</option>
-                <option value="">General</option>
+                <option value="Documents">Documents</option>
+                <option value="Finance">Finance</option>
+                <option value="Follow up">Follow up</option>
+                <option value="Feedback">Feedback</option>
+                <option value="General">General</option>
               </select>
             </div>
 
@@ -188,7 +306,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 Description
               </label>
               <textarea
-                className="w-[18rem] h-[5rem] px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem] resize-none"
+                className="w-full h-[4.8rem] px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem] resize-none"
                 placeholder="Enter description here..."
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
@@ -196,7 +314,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
             </div>
 
             {/* File Upload Box */}
-            <label className="border-2 mt-3 border-dashed border-gray-300 rounded-md p-4 text-center bg-[#F9F9F9] hover:border-gray-400 transition-colors cursor-pointer flex flex-col items-center justify-center">
+            {/* <label className="border-2 mt-3 border-dashed border-gray-300 rounded-md p-4 text-center bg-[#F9F9F9] hover:border-gray-400 transition-colors cursor-pointer flex flex-col items-center justify-center">
               <div className="flex items-center gap-1">
                 <MdOutlineFileUpload className="text-gray-400" size={20} />
                 <h3 className="text-gray-700 text-[0.75rem] font-medium">
@@ -209,11 +327,11 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
               </p>
 
               <input type="file" className="hidden" />
-            </label>
+            </label> */}
           </div>
 
           {/* Right Section */}
-          <div className="w-[27vw] bg-[#F9F9F9] rounded-lg p-3 flex flex-col gap-3">
+          <div className="w-[50%] h-fit bg-[#F9F9F9] rounded-lg p-3 flex flex-col gap-3">
             {/* Priority */}
             <div>
               <label className="block text-[0.75rem] text-gray-700 mb-1">
@@ -225,65 +343,88 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 onChange={(e) => setPriority(e.target.value)}
               >
                 <option value="">Select Priority</option>
-                <option value="">High</option>
-                <option value="">Medium</option>
-                <option value="">Low</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
               </select>
             </div>
 
             {/* Assigned To */}
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <label className="block text-[0.75rem] text-gray-700 mb-1">
                 Assigned To
               </label>
 
               <div
-                className="w-full border border-gray-300 rounded-md px-2 py-1.5 min-h-[2.2rem] flex items-center flex-wrap gap-1 cursor-pointer"
-                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="w-full border border-gray-300 rounded-md px-2 py-1.5 min-h-[2.2rem] flex items-center flex-wrap gap-1 cursor-pointer relative"
+                onClick={() => setDropdownOpen((prev) => !prev)}
               >
                 {selectedAssignees.length > 0 ? (
-                  selectedAssignees.map((name) => (
+                  selectedAssignees.map((id) => (
                     <span
-                      key={name}
+                      key={id}
                       className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[0.65rem]"
                     >
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleAssignee(name);
+                          toggleAssignee(id);
                         }}
                       >
                         <IoMdClose size={12} />
                       </button>
-                      {name}
+                      {getTeamName(id)}
                     </span>
                   ))
                 ) : (
-                  <span className="text-gray-400 text-[0.65rem]">
-                    Select Assignee
+                  <span className="text-gray-400 text-[0.65rem] flex items-center w-full">
+                    {loadingTeams ? "Loading team members..." : "Select Assignee"}
+                    <MdKeyboardArrowDown className="ml-auto text-gray-400 pointer-events-none" />
                   </span>
+                )}
+                {selectedAssignees.length > 0 && (
+                  <MdKeyboardArrowDown className="absolute right-2 top-2 text-gray-400" />
                 )}
               </div>
 
               {dropdownOpen && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
-                  {assignees.map((assignee) => (
-                    <label
-                      key={assignee}
-                      className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={selectedAssignees.includes(assignee)}
-                        onChange={() => toggleAssignee(assignee)}
-                        className="accent-emerald-600"
-                      />
-                      <span className="text-gray-700 text-[0.75rem]">
-                        {assignee}
-                      </span>
-                    </label>
-                  ))}
+                  {teamsError && (
+                    <div className="px-2 py-2 text-red-600 text-[0.65rem]">{teamsError}</div>
+                  )}
+                  {teams.map((team, idx) => {
+                    const checked = selectedAssignees.includes(team._id);
+                    return (
+                      <div
+                        key={team._id}
+                        onClick={() => toggleAssignee(team._id)}
+                        className={`flex items-center gap-2 px-2 py-2 hover:bg-gray-50 cursor-pointer border-b ${
+                          idx === teams.length - 1 ? "border-b-0" : "border-gray-100"
+                        }`}
+                      >
+                        <div className="w-4 h-4 border border-gray-400 rounded-md flex items-center justify-center">
+                          {checked && (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="12"
+                              height="11"
+                              viewBox="0 0 12 11"
+                              fill="none"
+                            >
+                              <path
+                                d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                                stroke="#0D4B37"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                        <span className="text-gray-700 text-[0.75rem]">{team.name}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

@@ -56,12 +56,12 @@ const BookingFormSidesheet = dynamic(
 );
 
 type BookingStatus =
-  | "Successful"
+  | "Confirmed"
   | "Pending"
   | "Failed"
   | "confirmed"
   | "draft"
-  | "cancelled";
+  | "Cancelled";
 
 type BookingService = {
   id: string;
@@ -83,7 +83,7 @@ type BookingService = {
 type FilterPayload = {
   serviceType: string;
   status: string;
-  owner: string;
+  owner: string | string[];
   search: string;
   bookingStartDate: string;
   bookingEndDate: string;
@@ -134,7 +134,7 @@ const columns: string[] = [
   "Lead Pax",
   "Travel Date",
   "Service",
-  "Booking Status",
+  "Service Status",
   "Amount",
   "Owners",
   "Tasks",
@@ -159,13 +159,13 @@ const columnIconMap: Record<string, JSX.Element> = {
 
 const getStatusBadgeClass = (status: BookingStatus): string => {
   switch (status) {
-    case "Successful":
-      return "px-2 py-1 text-xs rounded-full bg-green-100 text-green-700";
+    case "Confirmed":
+      return "px-2 py-1 text-[0.70rem] font-semibold rounded-full bg-green-100 text-green-700";
     case "Pending":
-      return "px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-700";
-    case "Failed":
+      return "px-2 py-1 text-[0.75rem] font-semibold rounded-full bg-yellow-100 text-yellow-700";
+    case "Cancelled":
     default:
-      return "px-2 py-1 text-xs rounded-full bg-red-100 text-red-700";
+      return "px-2 py-1 text-[0.75rem] font-semibold rounded-full bg-red-100 text-red-700";
   }
 };
 
@@ -181,6 +181,18 @@ const OSBookingsPage = () => {
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
+  const [searchValue, setSearchValue] = useState("");
+  // Filters state
+  const [filters, setFilters] = useState<FilterPayload>({
+    serviceType: "",
+    status: "",
+    owner: "",
+    search: "",
+    bookingStartDate: "",
+    bookingEndDate: "",
+    tripStartDate: "",
+    tripEndDate: "",
+  });
 
   // Data State
   const [quotations, setQuotations] = useState<QuotationData[]>([]);
@@ -191,22 +203,147 @@ const OSBookingsPage = () => {
 
   const [reverse, setReverse] = useState(false);
 
+  // Owners list moved up so filtering can reference it
+  const ownersList: Owner[] = [
+    {
+      short: "AS",
+      full: "Avanish Sharma",
+      color: "border-pink-700 text-pink-700",
+    },
+    {
+      short: "AK",
+      full: "Ankit Kumar",
+      color: "border-[#AF52DE] text-[#AF52DE]",
+    },
+    {
+      short: "SR",
+      full: "Suresh Raj",
+      color: "border-[#5856D6] text-[#5856D6]",
+    },
+    {
+      short: "VG",
+      full: "Vijay Gupta",
+      color: "border-cyan-700 text-cyan-700",
+    },
+  ];
+
   const handleSort = (column: string) => {
     if (column === "Travel Date") {
       setReverse((prev) => !prev);
     }
   };
 
+  // Helper for date range checks
+  const isWithinRange = (
+    rawDate: string | undefined,
+    start: string,
+    end: string
+  ) => {
+    if (!rawDate) return false;
+    const dt = new Date(rawDate);
+    if (isNaN(dt.getTime())) return false;
+    if (start) {
+      const s = new Date(start);
+      if (dt < s) return false;
+    }
+    if (end) {
+      const e = new Date(end);
+      e.setHours(23, 59, 59, 999);
+      if (dt > e) return false;
+    }
+    return true;
+  };
+
+  // Owner selection normalization
+  const selectedOwners: string[] = Array.isArray(filters.owner)
+    ? filters.owner
+    : filters.owner
+    ? [filters.owner]
+    : [];
+
+  // Apply all filters client-side (search, booking date, travel date, owner)
+  const filteredQuotations = useMemo(() => {
+    return quotations.filter((q, idx) => {
+      if (ownersList.length === 0) return true;
+      // Search
+      if (filters.search.trim()) {
+        const s = filters.search.toLowerCase();
+        const matchesSearch =
+          (q._id || "").toLowerCase().includes(s) ||
+          (q.quotationType || "").toLowerCase().includes(s) ||
+          (q.formFields.customer || "").toLowerCase().includes(s) ||
+          (q.formFields.traveller1 || "").toLowerCase().includes(s);
+        if (!matchesSearch) return false;
+      }
+
+      // Booking date range (createdAt)
+      if (filters.bookingStartDate || filters.bookingEndDate) {
+        if (
+          !isWithinRange(
+            q.createdAt,
+            filters.bookingStartDate,
+            filters.bookingEndDate
+          )
+        )
+          return false;
+      }
+
+      // Travel date range (departureDate)
+      if (filters.tripStartDate || filters.tripEndDate) {
+        if (
+          !isWithinRange(
+            q.formFields?.departureDate as string,
+            filters.tripStartDate,
+            filters.tripEndDate
+          )
+        )
+          return false;
+      }
+
+      // Synthetic owners assignment (two owners per row deterministically)
+      const ownerA = ownersList[idx % ownersList.length]?.full;
+      const ownerB = ownersList[(idx + 1) % ownersList.length]?.full;
+      const rowOwners = [ownerA, ownerB].filter(Boolean) as string[];
+      (q as any).__owners = rowOwners;
+      if (selectedOwners.length) {
+        const intersects = rowOwners.some((o) => selectedOwners.includes(o));
+        if (!intersects) return false;
+      }
+
+      return true;
+    });
+  }, [quotations, filters, selectedOwners, ownersList]);
+
   // Load quotations from backend
   const loadQuotations = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
+      const apiParams: {
+        bookingStartDate?: string;
+        bookingEndDate?: string;
+        travelStartDate?: string;
+        travelEndDate?: string;
+        owner?: string | string[];
+      } = {};
 
-      const response = await BookingApiService.getAllQuotations();
+      if (filters.bookingStartDate)
+        apiParams.bookingStartDate = filters.bookingStartDate;
+      if (filters.bookingEndDate)
+        apiParams.bookingEndDate = filters.bookingEndDate;
+      if (filters.tripStartDate)
+        apiParams.travelStartDate = filters.tripStartDate;
+      if (filters.tripEndDate) apiParams.travelEndDate = filters.tripEndDate;
+      if (filters.owner && filters.owner.length)
+        apiParams.owner = filters.owner;
+
+      const response = await BookingApiService.getAllQuotations(
+        Object.keys(apiParams).length ? apiParams : undefined
+      );
 
       if (response.success && response.data) {
-        setQuotations(response.data?.quotations || response.data);
+        const raw: any = response.data;
+        setQuotations((raw?.quotations as any[]) || (raw as any[]));
         // calculateSummaryData(response.data?.quotations);
       } else {
         throw new Error(response.message || "Failed to load quotations");
@@ -217,7 +354,13 @@ const OSBookingsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [
+    filters.bookingStartDate,
+    filters.bookingEndDate,
+    filters.tripStartDate,
+    filters.tripEndDate,
+    filters.owner,
+  ]);
 
   // Load drafts from localStorage
   const loadDrafts = useCallback(async () => {
@@ -284,8 +427,15 @@ const OSBookingsPage = () => {
   useEffect(() => {
     loadQuotations();
     loadDrafts();
-    // syncDrafts();
-  }, [loadQuotations, loadDrafts]);
+  }, [
+    loadQuotations,
+    loadDrafts,
+    filters.bookingStartDate,
+    filters.bookingEndDate,
+    filters.tripStartDate,
+    filters.tripEndDate,
+    filters.owner,
+  ]);
 
   const handleServiceSelect = (service: BookingService) => {
     setSelectedService(service);
@@ -353,10 +503,10 @@ const OSBookingsPage = () => {
 
   const mapStatus = (status: string): BookingStatus => {
     const statusMap: Record<string, BookingStatus> = {
-      confirmed: "Successful",
+      confirmed: "Confirmed",
       draft: "Pending",
       pending: "Pending",
-      cancelled: "Failed",
+      cancelled: "Cancelled",
     };
     return statusMap[status?.toLowerCase()] || "Pending";
   };
@@ -393,29 +543,6 @@ const OSBookingsPage = () => {
     setIsDeleteModalOpen(false);
     setSelectedDeleteId(null);
   };
-
-  const ownersList: Owner[] = [
-    {
-      short: "AS",
-      full: "Avanish Sharma",
-      color: "border-pink-700 text-pink-700",
-    },
-    {
-      short: "AK",
-      full: "Ankit Kumar",
-      color: "border-[#AF52DE] text-[#AF52DE]",
-    },
-    {
-      short: "SR",
-      full: "Suresh Raj",
-      color: "border-[#5856D6] text-[#5856D6]",
-    },
-    {
-      short: "VG",
-      full: "Vijay Gupta",
-      color: "border-cyan-700 text-cyan-700",
-    },
-  ];
 
   const getActionsForTab = (tab: string, row: any) => {
     const id = row.isReal
@@ -539,7 +666,7 @@ const OSBookingsPage = () => {
   };
 
   const finalQuotations = (
-    activeTab === "Drafts" ? drafts.map(normalizeDraft) : quotations
+    activeTab === "Drafts" ? drafts.map(normalizeDraft) : filteredQuotations
   ) as any[];
 
   // Convert quotations to table data
@@ -556,7 +683,7 @@ const OSBookingsPage = () => {
           ? formatDMY(item.createdAt)
           : "Not Selected",
         service: (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center justify-center gap-1">
             {getServiceIcon(item.quotationType || item.serviceType || "draft")}
             <span>
               {formatServiceType(
@@ -622,14 +749,20 @@ const OSBookingsPage = () => {
       >
         <div className="flex items-center justify-center">
           <div className="flex items-center">
-            {ownersList.map((owner, i) => (
-              <AvatarTooltip
-                key={i}
-                short={owner.short}
-                full={owner.full}
-                color={owner.color}
-              />
-            ))}
+            {(finalQuotations[index] as any).__owners?.map(
+              (ownerName: string, i: number) => {
+                const ownerMeta = ownersList.find((o) => o.full === ownerName);
+                if (!ownerMeta) return null;
+                return (
+                  <AvatarTooltip
+                    key={i}
+                    short={ownerMeta.short}
+                    full={ownerMeta.full}
+                    color={ownerMeta.color}
+                  />
+                );
+              }
+            )}
           </div>
         </div>
       </td>,
@@ -638,14 +771,17 @@ const OSBookingsPage = () => {
         className="px-4 py-2 text-center align-middle h-[2.5rem]"
       >
         <div className="flex justify-center">
-          <TaskButton count={row.tasks} />
+          <TaskButton
+            count={row.tasks}
+            bookingId={row.isReal ? (finalQuotations[row.originalIndex]?._id || null) : null}
+          />
         </div>
       </td>,
 
       // ACTIONS COLUMN
       <td
         key={`actions-${index}`}
-        className="px-4 py-2  text-left align-middle h-[4rem]"
+        className="px-4 py-2  text-center align-middle h-[4rem]"
       >
         <ActionMenu actions={getActionsForTab(activeTab, row)} />
       </td>,
@@ -669,16 +805,18 @@ const OSBookingsPage = () => {
         { value: "failed", label: "Failed" },
       ],
       owners: [
-        { value: "anand", label: "Anand Mishra" },
-        { value: "priya", label: "Priya Sharma" },
-        { value: "rajesh", label: "Rajesh Kumar" },
+        { value: "Avanish Sharma", label: "Avanish Sharma" },
+        { value: "Ankit Kumar", label: "Ankit Kumar" },
+        { value: "Suresh Raj", label: "Suresh Raj" },
+        { value: "Vijay Gupta", label: "Vijay Gupta" },
       ],
     }),
     []
   );
 
-  const handleFilterChange = (filters: FilterPayload) => {
-    console.log("Filters changed:", filters);
+  const handleFilterChange = (next: FilterPayload) => {
+    setFilters(next);
+    setSearchValue(next.search);
   };
 
   return (
@@ -720,6 +858,7 @@ const OSBookingsPage = () => {
 
         <Filter
           onFilterChange={handleFilterChange}
+          onSearchChange={(value) => setSearchValue(value)}
           serviceTypes={filterOptions.serviceTypes}
           statuses={filterOptions.statuses}
           owners={filterOptions.owners}
@@ -751,7 +890,7 @@ const OSBookingsPage = () => {
                 Total
               </span>
               <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
-                {quotations.length}
+                {finalQuotations.length}
               </span>
             </div>
           </div>

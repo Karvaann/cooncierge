@@ -4,8 +4,9 @@ import React, { useState, useEffect, useRef } from "react";
 import SideSheet from "../SideSheet";
 import ConfirmationModal from "../popups/ConfirmationModal";
 import TransferDataModal from "../Modals/TransferDataModal";
-import { createOrUpdateUser } from "@/services/userApi";
+import { createTeam, updateTeam } from "@/services/teamsApi";
 import { getAuthUser } from "@/services/storage/authStorage";
+import { LuSave } from "react-icons/lu";
 
 type TeamData = {
   _id?: string;
@@ -133,61 +134,11 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
     const businessId = user?.businessId;
     try {
       const payload = {
-        mobile: formData.workContactNumber,
-        phoneCode: Number(formData.countryCode.replace("+", "")),
-
-        email: formData.workEmailId,
-        gender: formData.gender,
-        designation: formData.designation,
-
         name: `${formData.firstname} ${formData.lastname}`.trim(),
-        alias: formData.alias || undefined,
-        emergencyContact: formData.emergencyContactNumber || undefined,
-        dateOfBirth: formData.dateOfBirth || undefined,
-        dateOfJoining: formData.dateOfJoining || undefined,
-        dateOfLeaving: formData.dateOfLeaving || undefined,
-        address: formData.address || undefined,
-
-        businessId: businessId, // ✔ replace with actual
-        roleId: roleId, // ✔ assign real role (e.g. Team Member)
-      };
-
-      console.log("FINAL USER PAYLOAD:", payload);
-
-      const response = await createOrUpdateUser(payload);
-
-      if (response.success) {
-        console.log("Team(user) created successfully", response.data);
-        onCancel();
-      } else {
-        console.error("Failed to create team user", response);
-      }
-    } catch (err: any) {
-      console.error("Unexpected error:", err.message || err);
-    }
-  };
-
-  const handleUpdateUser = async () => {
-    try {
-      const userId = data?._id;
-
-      if (!userId) {
-        console.error("No user ID found");
-        return;
-      }
-
-      const user = getAuthUser() as any;
-      const roleId = user?.roleId;
-      const businessId = user?.businessId;
-
-      const payload = {
-        _id: userId, // Include the user ID for update
-        mobile: formData.workContactNumber,
-        phoneCode: Number(formData.countryCode.replace("+", "")),
         email: formData.workEmailId,
-        gender: formData.gender,
+        phone: formData.workContactNumber,
+        gender: formData.gender || undefined,
         designation: formData.designation,
-        name: `${formData.firstname} ${formData.lastname}`.trim(),
         alias: formData.alias || undefined,
         emergencyContact: formData.emergencyContactNumber || undefined,
         dateOfBirth: formData.dateOfBirth || undefined,
@@ -196,17 +147,56 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
         address: formData.address || undefined,
         businessId: businessId,
         roleId: roleId,
-        // REQUIRED FIELDS
-        password: "TempPassword@123",
-        userType: "business_user",
       };
 
-      console.log("UPDATING USER WITH PAYLOAD:", payload);
+      console.log("FINAL TEAM PAYLOAD:", payload);
+      const response = await createTeam(payload);
+      if (response?._id) {
+        console.log("Team created successfully", response);
+        onCancel();
+      } else {
+        console.error("Failed to create team", response);
+      }
+    } catch (err: any) {
+      console.error("Unexpected error:", err.message || err);
+    }
+  };
 
-      const response = await createOrUpdateUser(payload);
+  const handleUpdateUser = async () => {
+    try {
+      const teamId = data?._id;
 
-      if (response.success) {
-        console.log("Team member updated successfully", response.data);
+      if (!teamId) {
+        console.error("No team ID found");
+        return;
+      }
+
+      const user = getAuthUser() as any;
+      const roleId = user?.roleId;
+      const businessId = user?.businessId;
+
+      const payload = {
+        name: `${formData.firstname} ${formData.lastname}`.trim(),
+        email: formData.workEmailId,
+        phone: formData.workContactNumber,
+        gender: formData.gender || undefined,
+        designation: formData.designation,
+        alias: formData.alias || undefined,
+        emergencyContact: formData.emergencyContactNumber || undefined,
+        dateOfBirth: formData.dateOfBirth || undefined,
+        dateOfJoining: formData.dateOfJoining || undefined,
+        dateOfLeaving: formData.dateOfLeaving || undefined,
+        address: formData.address || undefined,
+        businessId: businessId,
+        roleId: roleId,
+      };
+
+      console.log("UPDATING TEAM WITH PAYLOAD:", payload);
+
+      const response = await updateTeam(teamId, payload);
+
+      if (response?._id) {
+        console.log("Team member updated successfully", response);
         onCancel();
       } else {
         console.error("Failed to update team member", response);
@@ -224,6 +214,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
         title="Add Team Member"
         width="xl"
         position="right"
+        showLinkButton={true}
       >
         <form className="space-y-6 p-4">
           {/* ================= STATUS DROPDOWN ================
@@ -247,7 +238,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
 
           {/* ================= BASIC DETAILS ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
-            <h2 className="text-[0.75rem] font-medium mb-2">Basic Details</h2>
+            <h2 className="text-[0.75rem] font-medium mb-2">Personal Info</h2>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
@@ -257,6 +248,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </label>
                 <input
                   name="firstname"
+                  type="text"
                   value={formData.firstname}
                   onChange={(e) =>
                     setFormData({ ...formData, firstname: e.target.value })
@@ -273,6 +265,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </label>
                 <input
                   name="lastname"
+                  type="text"
                   placeholder="Enter Last Name"
                   value={formData.lastname}
                   onChange={(e) =>
@@ -291,6 +284,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </label>
                 <input
                   name="dateOfBirth"
+                  type="date"
                   placeholder="DD-MM-YYYY"
                   value={formData.dateOfBirth}
                   onChange={(e) =>
@@ -342,6 +336,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   </select>
                   <input
                     name="emergencyContactNumber"
+                    type="text"
                     value={formData.emergencyContactNumber}
                     onChange={(e) =>
                       setFormData({
@@ -370,6 +365,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </label>
                 <input
                   name="alias"
+                  type="text"
                   value={formData.alias}
                   onChange={(e) =>
                     setFormData({ ...formData, alias: e.target.value })
@@ -401,6 +397,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   </select>
                   <input
                     name="workContactNumber"
+                    type="text"
                     value={formData.workContactNumber}
                     onChange={(e) =>
                       setFormData({
@@ -421,6 +418,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </label>
                 <input
                   name="workEmailId"
+                  type="email"
                   value={formData.workEmailId}
                   onChange={(e) =>
                     setFormData({ ...formData, workEmailId: e.target.value })
@@ -437,6 +435,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </label>
                 <input
                   name="designation"
+                  type="text"
                   value={formData.designation}
                   onChange={(e) =>
                     setFormData({ ...formData, designation: e.target.value })
@@ -453,6 +452,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </label>
                 <input
                   name="dateOfJoining"
+                  type="date"
                   value={formData.dateOfJoining}
                   onChange={(e) =>
                     setFormData({ ...formData, dateOfJoining: e.target.value })
@@ -468,6 +468,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </label>
                 <input
                   name="dateOfLeaving"
+                  type="date"
                   value={formData.dateOfLeaving}
                   onChange={(e) =>
                     setFormData({ ...formData, dateOfLeaving: e.target.value })
@@ -560,9 +561,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="px-4 py-1.5 rounded-md bg-[#114958] text-white text-[0.75rem] hover:bg-[#0f3d44]"
+                className="px-4 py-1.5 rounded-md bg-[#0D4B37] text-white text-[0.75rem] hover:bg-[#0f3d44]"
               >
-                Add New Team Member
+                <LuSave className="mr-1 inline-block" size={16} />
+                Save
               </button>
             )}
           </div>

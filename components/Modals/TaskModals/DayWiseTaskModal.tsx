@@ -1,18 +1,20 @@
 "use client";
-
+import { getTeams } from "@/services/teamsApi";
 import React, { useEffect, useCallback, useState } from "react";
 import AddTaskModal from "../AddTaskModal";
 import { RxCross2 } from "react-icons/rx";
 import { FiAlertTriangle } from "react-icons/fi";
 import ViewTaskModal from "./ViewTaskModal";
-
+import { getUserLogsByMonth, getAllLogs } from "@/services/logsApi";
 import PriorityTaskCard from "@/components/PriorityTaskCard";
+import { getAuthUser } from "@/services/storage/authStorage";
 
 interface DayWiseTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onTaskClick?: (taskId: string) => void;
   text?: string;
+  bookingId?: string; // booking against which task is created
 }
 
 type PriorityTab = "high" | "medium" | "low" | "completed";
@@ -155,10 +157,96 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
   onClose,
   onTaskClick,
   text = "OS-ABC12",
+  bookingId,
 }) => {
   const [activeTab, setActiveTab] = React.useState<PriorityTab>("high");
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = React.useState(false);
   const [isViewTaskOpen, setIsViewTaskOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [teams, setTeams] = useState<any[]>([]);
+  const [loadingTeams, setLoadingTeams] = useState(false);
+
+  // log states
+  const [logs, setLogs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>("09-05-2025"); // or from props
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchLogs = async () => {
+      const user = getAuthUser() as any;
+      const userID = user._id;
+      try {
+        setLoading(true);
+
+        // const [day, month, year] = selectedDate.split("-").map(Number);
+
+        // TODO: Replace userId with logged-in user
+        const userId = userID;
+        console.log("AUTH USER:", getAuthUser());
+
+        if (!userId) {
+          console.error("User ID undefined!");
+          return;
+        }
+
+        // Convert selectedDate (ISO) → JS Date
+        const parsed = new Date(selectedDate);
+
+        if (isNaN(parsed.getTime())) {
+          console.error("Invalid ISO date:", selectedDate);
+          return;
+        }
+
+        const day = parsed.getUTCDate();
+        const month = parsed.getUTCMonth() + 1;
+        const year = parsed.getUTCFullYear();
+
+        console.log("EXTRACTED:", { day, month, year });
+
+        const response = await getUserLogsByMonth(
+          userId,
+          month as number,
+          year as number
+        );
+
+        // Convert ISO to "DD-MM-YYYY" to match backend grouping
+        const formattedDay = `${String(day).padStart(2, "0")}-${String(
+          month
+        ).padStart(2, "0")}-${year}`;
+
+        const dayLogs = response.logsByDay[formattedDay] || [];
+
+        setLogs(dayLogs);
+      } catch (err) {
+        console.error("Failed to fetch logs:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchLogs();
+  }, [isOpen, selectedDate]);
+
+  const highPriority = logs.filter(
+    (l) =>
+      l.priority?.toLowerCase() === "high" &&
+      l.status?.toLowerCase() !== "completed"
+  );
+  const mediumPriority = logs.filter(
+    (l) =>
+      l.priority?.toLowerCase() === "medium" &&
+      l.status?.toLowerCase() !== "completed"
+  );
+  const lowPriority = logs.filter(
+    (l) =>
+      l.priority?.toLowerCase() === "low" &&
+      l.status?.toLowerCase() !== "completed"
+  );
+  const completedPriority = logs.filter(
+    (l) => l.status?.toLowerCase() === "completed"
+  );
 
   const openAddTaskModal = () => {
     setIsAddTaskModalOpen(true);
@@ -194,6 +282,35 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
     }
     return;
   }, [isOpen, handleEscape]);
+
+  // Fetch teams once when modal opens to resolve assignedTo names
+  useEffect(() => {
+    const fetchTeams = async () => {
+      if (!isOpen) return;
+      try {
+        setLoadingTeams(true);
+        const resp = await getTeams();
+        const list = Array.isArray(resp) ? resp : resp?.teams || [];
+        setTeams(list);
+      } catch (e) {
+        console.error("Failed to load teams for task view:", e);
+      } finally {
+        setLoadingTeams(false);
+      }
+    };
+    fetchTeams();
+  }, [isOpen]);
+
+  const resolveAssignedToNames = (task: any): string[] => {
+    const ids: string[] = Array.isArray(task?.assignedTo)
+      ? task.assignedTo
+      : [];
+    if (!ids.length || !teams.length) return [];
+    const names = ids
+      .map((id) => teams.find((t: any) => t._id === id)?.name)
+      .filter(Boolean) as string[];
+    return names;
+  };
 
   const getTabStyles = (tab: PriorityTab) => {
     const isActive = activeTab === tab;
@@ -297,67 +414,193 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
         <div className="px-3 py-2 overflow-y-auto flex-1 space-y-3">
           {/* HIGH PRIORITY */}
           {activeTab === "high" && (
-            <PriorityTaskCard
-              priority="high"
-              taskId="TA-ABC15"
-              date="09-05-2025"
-              title="Booking - OS"
-              description="Upload documents for Booking - OS (#OS-ABC16)"
-              assignedBy="Yash"
-              assignees={[
-                {
-                  short: "AS",
-                  full: "Avanish Sharma",
-                  color: "border-pink-700 text-pink-700",
-                },
-                {
-                  short: "AK",
-                  full: "Ankit Kumar",
-                  color: "border-[#AF52DE] text-[#AF52DE]",
-                },
-                {
-                  short: "SR",
-                  full: "Suresh Raj",
-                  color: "border-[#5856D6] text-[#5856D6]",
-                },
-                {
-                  short: "VG",
-                  full: "Vijay Gupta",
-                  color: "border-cyan-700 text-cyan-700",
-                },
-              ]}
-              onClick={() => setIsViewTaskOpen(true)}
-              borderColor="border-red-400"
-            />
+            <>
+              {loading ? (
+                <p className="text-center text-xs text-gray-500 py-10">
+                  Loading...
+                </p>
+              ) : highPriority.length === 0 ? (
+                <p className="text-center text-xs text-gray-500 py-10">
+                  No high priority tasks
+                </p>
+              ) : (
+                highPriority.map((task: any) => (
+                  <PriorityTaskCard
+                    key={task._id}
+                    priority="high"
+                    taskId={task._id}
+                    date={
+                      task?.dateTime
+                        ? new Date(task.dateTime).toLocaleDateString()
+                        : "-"
+                    }
+                    title={task?.subCategory || task?.category || "Task"}
+                    description={task?.activity || "-"}
+                    assignedBy={
+                      typeof task?.assignedBy === "object"
+                        ? task?.assignedBy?.name || "Unknown"
+                        : task?.assignedByName || "Unknown"
+                    }
+                    assignees={resolveAssignedToNames(task).map(
+                      (name: string) => ({
+                        short: name.slice(0, 1).toUpperCase(),
+                        full: name,
+                        color: "border-[#5856D6] text-[#5856D6]",
+                      })
+                    )}
+                    onClick={() => {
+                      setSelectedTask({
+                        ...task,
+                        assignees: resolveAssignedToNames(task),
+                        assignedByName:
+                          typeof task?.assignedBy === "object"
+                            ? task?.assignedBy?.name || "Unknown"
+                            : task?.assignedByName || "Unknown",
+                      });
+                      setIsViewTaskOpen(true);
+                    }}
+                    borderColor="border-red-400"
+                  />
+                ))
+              )}
+            </>
           )}
 
           {/* EMPTY STATES */}
-          {activeTab === "medium" && (
-            <p className="text-center text-xs text-gray-500 py-10">
-              No tasks here
-            </p>
-          )}
+          {activeTab === "medium" &&
+            (mediumPriority.length === 0 ? (
+              <p className="text-center text-xs text-gray-500 py-10">
+                No tasks here
+              </p>
+            ) : (
+              mediumPriority.map((task: any) => (
+                <PriorityTaskCard
+                  key={task._id}
+                  priority="medium"
+                  taskId={task._id}
+                  date={
+                    task?.dateTime
+                      ? new Date(task.dateTime).toLocaleDateString()
+                      : "-"
+                  }
+                  title={task?.subCategory || task?.category || "Task"}
+                  description={task?.activity || "-"}
+                  assignedBy={
+                    typeof task?.assignedBy === "object"
+                      ? task?.assignedBy?.name || "Unknown"
+                      : task?.assignedByName || "Unknown"
+                  }
+                  assignees={resolveAssignedToNames(task).map(
+                    (name: string) => ({
+                      short: name.slice(0, 1).toUpperCase(),
+                      full: name,
+                      color: "border-[#5856D6] text-[#5856D6]",
+                    })
+                  )}
+                  onClick={() => {
+                    setSelectedTask({
+                      ...task,
+                      assignees: resolveAssignedToNames(task),
+                      assignedByName:
+                        typeof task?.assignedBy === "object"
+                          ? task?.assignedBy?.name || "Unknown"
+                          : task?.assignedByName || "Unknown",
+                    });
+                    setIsViewTaskOpen(true);
+                  }}
+                />
+              ))
+            ))}
 
-          {activeTab === "low" && (
-            <p className="text-center text-xs text-gray-500 py-10">
-              No tasks here
-            </p>
-          )}
+          {activeTab === "low" &&
+            (lowPriority.length === 0 ? (
+              <p className="text-center text-xs text-gray-500 py-10">
+                No tasks here
+              </p>
+            ) : (
+              lowPriority.map((task: any) => (
+                <PriorityTaskCard
+                  key={task._id}
+                  priority="low"
+                  taskId={task._id}
+                  date={
+                    task?.dateTime
+                      ? new Date(task.dateTime).toLocaleDateString()
+                      : "-"
+                  }
+                  title={task?.subCategory || task?.category || "Task"}
+                  description={task?.activity || "-"}
+                  assignedBy={
+                    typeof task?.assignedBy === "object"
+                      ? task?.assignedBy?.name || "Unknown"
+                      : task?.assignedByName || "Unknown"
+                  }
+                  assignees={resolveAssignedToNames(task).map(
+                    (name: string) => ({
+                      short: name.slice(0, 1).toUpperCase(),
+                      full: name,
+                      color: "border-[#5856D6] text-[#5856D6]",
+                    })
+                  )}
+                  onClick={() => {
+                    setSelectedTask({
+                      ...task,
+                      assignees: resolveAssignedToNames(task),
+                      assignedByName:
+                        typeof task?.assignedBy === "object"
+                          ? task?.assignedBy?.name || "Unknown"
+                          : task?.assignedByName || "Unknown",
+                    });
+                    setIsViewTaskOpen(true);
+                  }}
+                />
+              ))
+            ))}
 
           {/* COMPLETED */}
           {activeTab === "completed" &&
-            completedTasks.map((task, index) => (
-              <PriorityTaskCard
-                key={task.id}
-                priority="completed"
-                taskId={task.id}
-                date={task.dateTime}
-                title={task.title}
-                description={task.description}
-                assignedBy={task.assignedBy ?? ""}
-                assignees={task.assignees}
-                onClick={() => setIsViewTaskOpen(true)}
-              />
+            (completedPriority.length === 0 ? (
+              <p className="text-center text-xs text-gray-500 py-10">
+                No completed tasks
+              </p>
+            ) : (
+              completedPriority.map((task: any) => (
+                <PriorityTaskCard
+                  key={task._id}
+                  priority="completed"
+                  taskId={task._id}
+                  date={
+                    task?.dateTime
+                      ? new Date(task.dateTime).toLocaleDateString()
+                      : "-"
+                  }
+                  title={task?.subCategory || task?.category || "Task"}
+                  description={task?.activity || "-"}
+                  assignedBy={
+                    typeof task?.assignedBy === "object"
+                      ? task?.assignedBy?.name || "Unknown"
+                      : task?.assignedByName || "Unknown"
+                  }
+                  assignees={resolveAssignedToNames(task).map(
+                    (name: string) => ({
+                      short: name.slice(0, 1).toUpperCase(),
+                      full: name,
+                      color: "border-[#5856D6] text-[#5856D6]",
+                    })
+                  )}
+                  onClick={() => {
+                    setSelectedTask({
+                      ...task,
+                      assignees: resolveAssignedToNames(task),
+                      assignedByName:
+                        typeof task?.assignedBy === "object"
+                          ? task?.assignedBy?.name || "Unknown"
+                          : task?.assignedByName || "Unknown",
+                    });
+                    setIsViewTaskOpen(true);
+                  }}
+                />
+              ))
             ))}
         </div>
 
@@ -377,12 +620,20 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
 
       <AddTaskModal
         isOpen={isAddTaskModalOpen}
-        onClose={() => setIsAddTaskModalOpen(false)}
+        onClose={() => {
+          setIsAddTaskModalOpen(false);
+          setTimeout(() => setSelectedDate(selectedDate), 50); // triggers refetch
+        }}
+        {...(bookingId ? { bookingId } : {})}
       />
 
       <ViewTaskModal
         isOpen={isViewTaskOpen}
-        onClose={() => setIsViewTaskOpen(false)}
+        onClose={() => {
+          setIsViewTaskOpen(false);
+          setTimeout(() => setSelectedDate(selectedDate), 50);
+        }}
+        task={selectedTask}
       />
     </div>
   );

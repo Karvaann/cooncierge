@@ -2,17 +2,22 @@ import React from "react";
 import { TbClipboardText } from "react-icons/tb";
 import DayWiseTaskModal from "./Modals/TaskModals/DayWiseTaskModal";
 
-const TaskButton = ({ count }: { count: number }) => {
+interface TaskButtonProps {
+  count: number;
+  bookingId?: string | null;
+}
+
+const TaskButton = ({ count, bookingId }: TaskButtonProps) => {
   const [isDayWiseModalOpen, setIsDayWiseModalOpen] = React.useState(false);
 
-  // const handleOpenModal = () => {
-  //   setIsDayWiseModalOpen(true);
-  // };
+  const handleOpenModal = () => {
+    setIsDayWiseModalOpen(true);
+  };
   return (
     <div className="relative flex items-center justify-center">
       {/* Button box */}
       <button
-        // onClick={handleOpenModal}
+        onClick={handleOpenModal}
         className="p-1.5 border border-gray-300 rounded-md bg-white hover:bg-gray-100 transition-colors"
         type="button"
       >
@@ -34,6 +39,7 @@ const TaskButton = ({ count }: { count: number }) => {
       <DayWiseTaskModal
         isOpen={isDayWiseModalOpen}
         onClose={() => setIsDayWiseModalOpen(false)}
+        {...(bookingId ? { bookingId } : {})}
       />
     </div>
   );

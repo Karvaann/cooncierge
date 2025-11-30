@@ -34,6 +34,7 @@ interface FilterState {
 
 interface FilterProps {
   onFilterChange?: (filters: FilterState) => void;
+  onSearchChange?: (value: string) => void;
   serviceTypes?: FilterOption[];
   statuses?: FilterOption[];
   owners?: FilterOption[];
@@ -50,6 +51,7 @@ const Filter: React.FC<FilterProps> = ({
   initialFilters = {},
   createOpen = false,
   setCreateOpen,
+  onSearchChange,
 }) => {
   const [filters, setFilters] = useState<FilterState>({
     serviceType: initialFilters.serviceType || "",
@@ -116,13 +118,9 @@ const Filter: React.FC<FilterProps> = ({
 
   const updateFilter = useCallback(
     (key: keyof FilterState, value: string | string[]) => {
-      setFilters((prev) => {
-        const newFilters = { ...prev, [key]: value };
-        onFilterChange?.(newFilters);
-        return newFilters;
-      });
+      setFilters((prev) => ({ ...prev, [key]: value }));
     },
-    [onFilterChange]
+    []
   );
 
   const handleReset = useCallback(() => {
@@ -137,10 +135,15 @@ const Filter: React.FC<FilterProps> = ({
       tripEndDate: "",
     };
     setFilters(resetFilters);
-    onFilterChange?.(resetFilters);
-  }, [onFilterChange]);
+    onSearchChange?.("");
+  }, [onSearchChange]);
 
   const handleApply = useCallback(() => {
+    onFilterChange?.(filters);
+  }, [filters, onFilterChange]);
+
+  // Forward filter changes to parent AFTER render commit to avoid nested render updates
+  useEffect(() => {
     onFilterChange?.(filters);
   }, [filters, onFilterChange]);
 
@@ -338,7 +341,10 @@ const Filter: React.FC<FilterProps> = ({
                 type="text"
                 placeholder="Search by Booking ID / Lead Pax"
                 value={filters.search}
-                onChange={(e) => updateFilter("search", e.target.value)}
+                onChange={(e) => {
+                  updateFilter("search", e.target.value);
+                  onSearchChange?.(e.target.value); // <-- SEND TO PARENT
+                }}
                 className="w-80 border border-gray-300 text-[0.75rem] rounded-lg px-3 py-2 text-gray-600 focus:ring-2 focus:ring-[#0D4B37]"
               />
             </div>
@@ -352,7 +358,7 @@ const Filter: React.FC<FilterProps> = ({
                   
                 </button> */}
               <button
-                onClick={handleApply}
+                onClick={handleReset}
                 className="bg-white flex items-center text-[0.75rem] font-semibold gap-1 justify-center text-[#0D4B37] border border-[#0D4B37] px-3 py-2 rounded-lg hover:bg-gray-200 transition"
               >
                 <RiRefreshLine size={16} />

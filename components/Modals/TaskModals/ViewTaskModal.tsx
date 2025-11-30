@@ -12,8 +12,9 @@ import Image from "next/image";
 interface ViewTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onEdit?: () => void;
+  onEdit?: (task: any) => void;
   onMarkComplete?: () => void;
+  task?: any | null;
 }
 
 const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
@@ -21,20 +22,53 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
   onClose,
   onEdit,
   onMarkComplete,
+  task,
 }) => {
   const [activeTab, setActiveTab] = React.useState<"info" | "log">("info");
 
-  const taskData = {
-    taskId: "OS-ABC12",
-    priority: "High Priority",
-    status: "Pending Task",
-    title: "Documents",
-    dueDate: "May 10th 2025",
-    dueTime: "10:00",
-    dateCreated: "May 05th 2025",
-    assignedTo: ["Avanish Sharma", "Akash Kapoor", "+2"],
-    assignedBy: "Yash Manocha",
-    attachedFiles: 3,
+  // Derived task fields
+  const t: any = task || {};
+  const taskId: string = t.taskId || t._id || "-";
+  const status: string = t.status || "Pending";
+  const priorityRaw: string = (t.priority || "").toString();
+  const priorityDisplay =
+    priorityRaw.toLowerCase() === "high"
+      ? "High Priority"
+      : priorityRaw.toLowerCase() === "medium"
+      ? "Medium Priority"
+      : priorityRaw.toLowerCase() === "low"
+      ? "Low Priority"
+      : priorityRaw || "-";
+  const title: string = t.title || t.subCategory || t.category || "-";
+  const description: string = t.description || t.activity || "-";
+  const dueISO: string | undefined = t.dueDate || t.dueISO;
+  const createdISO: string | undefined = t.dateTime || t.createdAt;
+  const assignedBy: string = t.assignedByName || t.assignedBy || "-";
+  const assignedTo: string[] = Array.isArray(t.assignees)
+    ? t.assignees
+        .map((a: any) => a?.full || a?.name || a?.email)
+        .filter(Boolean)
+    : [];
+
+  const formatDate = (iso?: string) => {
+    if (!iso) return "-";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "-";
+    const options: Intl.DateTimeFormatOptions = {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    };
+    return d.toLocaleDateString(undefined, options);
+  };
+
+  const formatTime = (iso?: string) => {
+    if (!iso) return "-";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return "-";
+    return `${String(d.getHours()).padStart(2, "0")}:${String(
+      d.getMinutes()
+    ).padStart(2, "0")}`;
   };
 
   const handleEscape = useCallback(
@@ -97,11 +131,11 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
           <div className="flex justify-between items-center mb-4 mt-2">
             <div className="flex-1 flex items-center justify-center gap-2 ml-4">
               <h2 className="text-[0.8rem] font-semibold text-gray-900">
-                {taskData.taskId}
+                {taskId}
               </h2>
               <div className="w-px h-5 bg-gray-300"></div>
               <div className="text-[0.75rem] text-black font-medium">
-                BOOKINGS - OS
+                {t.category ? String(t.category).toUpperCase() : "TASK"}
               </div>
             </div>
 
@@ -130,17 +164,17 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
             <div className="flex items-center gap-1">
               <span className="text-[0.75rem] text-gray-600">Task ID:</span>
               <span className="font-semibold text-[0.75rem] text-gray-900">
-                {taskData.taskId}
+                {taskId}
               </span>
             </div>
 
             {activeTab === "info" && (
               <span
                 className={`px-2 py-1 -ml-2 rounded-full text-[0.65rem] font-semibold ${getPriorityColor(
-                  taskData.priority
+                  priorityDisplay
                 )}`}
               >
-                {taskData.priority}
+                {priorityDisplay}
               </span>
             )}
 
@@ -151,9 +185,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                 width={12}
                 height={12}
               />
-              <span className="text-[0.7rem] font-medium">
-                {taskData.status}
-              </span>
+              <span className="text-[0.7rem] font-medium">{status} Task</span>
             </div>
           </div>
 
@@ -190,7 +222,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
               <div>
                 <div className="flex items-center justify-between mb-1 bg-gray-100 px-3 py-2 rounded-md">
                   <h3 className="font-medium text-[0.8rem] text-gray-900">
-                    {taskData.title}
+                    {title}
                   </h3>
                 </div>
               </div>
@@ -200,12 +232,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                 <h4 className="text-[0.75rem] font-medium text-gray-700 mb-1">
                   Description
                 </h4>
-                <p className="text-[0.75rem] text-gray-600">
-                  Please upload required documents to{" "}
-                  <span className="font-medium text-black">Booking OS</span>{" "}
-                  with{" "}
-                  <span className="font-medium text-black">ID #OS-ABC12</span>
-                </p>
+                <p className="text-[0.75rem] text-gray-600">{description}</p>
               </div>
 
               {/* Due / Created */}
@@ -213,19 +240,19 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                 <div className="text-left">
                   <h4 className="text-[0.7rem] text-gray-500">Due Date</h4>
                   <p className="text-[0.75rem] font-medium">
-                    {taskData.dueDate}
+                    {formatDate(dueISO)}
                   </p>
                 </div>
                 <div className="text-center">
                   <h4 className="text-[0.7rem] text-gray-500">Due Time</h4>
                   <p className="text-[0.75rem] font-medium">
-                    {taskData.dueTime}
+                    {formatTime(dueISO)}
                   </p>
                 </div>
                 <div className="text-right">
                   <h4 className="text-[0.7rem] text-gray-500">Date Created</h4>
                   <p className="text-[0.75rem] font-medium">
-                    {taskData.dateCreated}
+                    {formatDate(createdISO)}
                   </p>
                 </div>
               </div>
@@ -235,21 +262,23 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                 <div className="text-left">
                   <h4 className="text-[0.7rem] text-gray-500">Assigned To</h4>
                   <p className="text-[0.75rem] font-medium">
-                    {taskData.assignedTo.join(", ")}
+                    {assignedTo.length ? assignedTo.join(", ") : "-"}
                   </p>
                 </div>
                 <div className="text-right">
                   <h4 className="text-[0.7rem] text-gray-500">Assigned By</h4>
-                  <p className="text-[0.75rem] font-medium">
-                    {taskData.assignedBy}
-                  </p>
+                  <p className="text-[0.75rem] font-medium">{assignedBy}</p>
                 </div>
               </div>
 
-              {/* Attached Files */}
+              {/* Attached Files (static placeholders) */}
               <div className="text-left mb-2">
                 <h4 className="text-[0.75rem] text-gray-500 mb-1">
-                  Attached Files ({taskData.attachedFiles})
+                  Attached Files (
+                  {Array.isArray(t.files)
+                    ? t.files.length
+                    : t.attachedFiles || 0}
+                  )
                 </h4>
 
                 <div className="flex gap-2">
@@ -269,7 +298,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
             </div>
           )}
 
-          {/* LOG TAB */}
+          {/* LOG TAB (static demo) */}
           {activeTab === "log" && (
             <div className="py-2 ml-6 -mt-2">
               <div className="relative">
@@ -285,34 +314,24 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                       <h3 className="text-blue-600 font-semibold text-[0.8rem] mb-1">
                         Task Added
                       </h3>
-
                       <hr className="mb-2 mt-1 border-t border-gray-200" />
                       <p className="text-[0.7rem] text-gray-700 mb-2">
-                        <span className="font-semibold">
-                          Documents task (TA-ABC12)
-                        </span>{" "}
-                        has been added to{" "}
-                        <span className="font-semibold">
-                          Booking OS (OS-ABC12)
-                        </span>
-                        .
+                        A task was added.
                       </p>
                     </div>
-
                     <div className="flex items-center justify-between text-[0.6rem] text-gray-500">
                       <div className="flex items-center gap-1">
                         <GoPerson className="w-3 h-3" />
-                        <span>Yash Manocha</span>
+                        <span>System</span>
                       </div>
-
                       <div className="flex gap-3">
                         <div className="flex items-center gap-1">
                           <FaRegCalendar className="w-3 h-3" />
-                          <span>05-05-2025</span>
+                          <span>-</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <FaRegClock className="w-3 h-3" />
-                          <span>10:45</span>
+                          <span>-</span>
                         </div>
                       </div>
                     </div>
@@ -329,65 +348,24 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                       <h3 className="text-orange-600 font-semibold text-[0.8rem] mb-1">
                         Task Modified
                       </h3>
-
                       <hr className="mb-2 mt-1 border-t border-gray-200" />
                       <p className="text-[0.7rem] text-gray-700 mb-2">
-                        <span className="font-semibold">Task (TA-ABC12)</span>{" "}
-                        has been modified.
+                        Task was modified.
                       </p>
                     </div>
-
                     <div className="flex items-center justify-between text-[0.6rem] text-gray-500">
                       <div className="flex items-center gap-1">
                         <GoPerson className="w-3 h-3" />
-                        <span>Ravi Kumar</span>
+                        <span>-</span>
                       </div>
-
                       <div className="flex gap-3">
                         <div className="flex items-center gap-1">
                           <FaRegCalendar className="w-3 h-3" />
-                          <span>06-05-2025</span>
+                          <span>-</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <FaRegClock className="w-3 h-3" />
-                          <span>18:30</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* ENTRY 3 */}
-                <div className="relative flex gap-3">
-                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center z-10">
-                    <TbSquareToggle size={18} className="text-orange-600" />
-                  </div>
-                  <div className="bg-orange-50 rounded-md p-3 w-[20rem]">
-                    <div className="text-left">
-                      <h3 className="text-orange-600 font-semibold text-[0.8rem] mb-1">
-                        Task Modified
-                      </h3>
-                      <hr className="mb-2 mt-1 border-t border-gray-200" />
-                      <p className="text-[0.7rem] text-gray-700 mb-2">
-                        <span className="font-semibold">Task (TA-ABC12)</span>{" "}
-                        has been modified.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[0.6rem] text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <GoPerson className="w-3 h-3" />
-                        <span>Yash Manocha</span>
-                      </div>
-
-                      <div className="flex gap-3">
-                        <div className="flex items-center gap-1">
-                          <FaRegCalendar className="w-3 h-3" />
-                          <span>08-05-2025</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <FaRegClock className="w-3 h-3" />
-                          <span>13:00</span>
+                          <span>-</span>
                         </div>
                       </div>
                     </div>
@@ -401,7 +379,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
         {/* FOOTER */}
         <div className="px-4 py-3 flex gap-2">
           <button
-            onClick={onEdit}
+            onClick={() => onEdit?.(t)}
             className="flex-1 px-4 py-1.5 font-semibold border border-blue-600 text-blue-600 text-[0.75rem] rounded-md hover:bg-blue-50"
           >
             Edit Task

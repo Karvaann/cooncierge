@@ -3,7 +3,6 @@
 import React from "react";
 import Modal from "../Modal";
 import Table from "../Table";
-
 import { FiEye } from "react-icons/fi";
 import { FiEdit } from "react-icons/fi";
 import { CiUser } from "react-icons/ci";
@@ -50,42 +49,58 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
   ];
 
   const rows = bookings.map((item) => [
-    <td key={`${item.id}-id`} className="px-4 py-3 font-medium">
+    <td
+      key={`${item.id}-id`}
+      className="px-2 py-2 text-center font-medium text-[0.75rem]"
+    >
       {item.id}
     </td>,
 
-    <td key={`${item.id}-bdate`} className="px-4 py-3">
+    <td
+      key={`${item.id}-bdate`}
+      className="px-2 py-2 text-center text-[0.75rem]"
+    >
       {item.bookingDate}
     </td>,
 
-    <td key={`${item.id}-tdate`} className="px-4 py-3">
+    <td
+      key={`${item.id}-tdate`}
+      className="px-2 py-2 text-center text-[0.75rem]"
+    >
       {item.travelDate}
     </td>,
 
-    <td key={`${item.id}-status`} className="px-4 py-3">
+    <td
+      key={`${item.id}-status`}
+      className="px-2 py-2 text-center text-[0.75rem]"
+    >
       <span
-        className={`px-3 py-[6px] rounded-full text-sm font-semibold ${
-          statusColors[item.status]
-        }`}
+        className={`
+        px-2 py-[3px] rounded-full text-[0.7rem] font-semibold
+        ${statusColors[item.status]}
+      `}
       >
         {item.status}
       </span>
     </td>,
 
-    <td key={`${item.id}-amount`} className="px-4 py-3">
+    <td
+      key={`${item.id}-amount`}
+      className="px-2 py-2 text-center text-[0.75rem]"
+    >
       ₹ {item.amount}
     </td>,
 
     <td
       key={`${item.id}-actions`}
-      className="px-4 py-3 flex items-center gap-3"
+      className="px-2 py-2 text-center justify-center flex items-center gap-2"
     >
-      <button className="p-2 rounded-md bg-yellow-100 hover:bg-yellow-200 transition">
-        <FiEye className="text-gray-700" size={18} />
+      <button className="p-1.5 rounded-md bg-yellow-100 hover:bg-yellow-200 transition">
+        <FiEye className="text-gray-700" size={14} />
       </button>
 
-      <button className="p-2 rounded-md bg-blue-100 hover:bg-blue-200 transition">
-        <FiEdit className="text-gray-700" size={18} />
+      <button className="p-1.5 rounded-md bg-blue-100 hover:bg-blue-200 transition">
+        <FiEdit className="text-gray-700" size={14} />
       </button>
     </td>,
   ]);
@@ -96,38 +111,43 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size="xl"
-      customWidth="max-w-[1100px]"
-      customeHeight="max-h-[90vh]"
-      className="pb-4"
+      customWidth="w-[70vw]"
+      customeHeight="h-fit"
+      className="pb-2"
     >
-      {/* Tabs */}
-      <div className="flex items-center gap-4 mb-4 border-b pb-2">
+      <div className="px-2">
+        {/* Tabs */}
+        {/* <div className="flex items-center gap-3 mb-3 border-b pb-2">
         {tabs.map((t) => (
           <div
             key={t.label}
             className={`
-              flex items-center gap-2 px-4 py-2 rounded-lg cursor-pointer
-              border border-gray-300 hover:bg-gray-100 transition
-              ${
-                t.label === "Customer"
-                  ? "bg-[#0D4B37] text-white border-transparent"
-                  : ""
-              }
-            `}
+          flex items-center gap-1.5 px-3 py-1.5 rounded-md cursor-pointer
+          border border-gray-300 hover:bg-gray-100 transition
+          text-[0.75rem]
+          ${
+            t.label === "Customer"
+              ? "bg-[#0D4B37] text-white border-transparent"
+              : "text-gray-700"
+          }
+        `}
           >
-            {t.icon}
+            <span className="w-4 h-4 flex items-center justify-center">
+              {t.icon}
+            </span>
             <span className="font-medium">{t.label}</span>
           </div>
         ))}
-      </div>
+      </div> */}
 
-      {/* Table */}
-      <Table
-        data={rows}
-        columns={columns}
-        initialRowsPerPage={10}
-        hideRowsPerPage={false}
-      />
+        {/* Table */}
+        <Table
+          data={rows}
+          columns={columns}
+          initialRowsPerPage={5}
+          hideRowsPerPage={false}
+        />
+      </div>
     </Modal>
   );
 };

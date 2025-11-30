@@ -1125,10 +1125,26 @@ export class BookingApiService {
     }
   }
 
-  // Get all quotations (bookings)
-  static async getAllQuotations(): Promise<ApiResponse<unknown>> {
+  // Get all quotations (bookings) with filter params aligned to backend controller
+  static async getAllQuotations(params?: {
+    bookingStartDate?: string;
+    bookingEndDate?: string;
+    travelStartDate?: string;
+    travelEndDate?: string;
+    owner?: string | string[];
+  }): Promise<ApiResponse<unknown>> {
     try {
-      const response = await apiClient.get('/quotation/get-all-quotations');
+      const response = await apiClient.get('/quotation/get-all-quotations', {
+        params: {
+          bookingStartDate: params?.bookingStartDate || undefined,
+          bookingEndDate: params?.bookingEndDate || undefined,
+          travelStartDate: params?.travelStartDate || undefined,
+          travelEndDate: params?.travelEndDate || undefined,
+          owner: Array.isArray(params?.owner)
+            ? (params?.owner[0] || undefined) // backend currently supports single owner; pick first
+            : params?.owner || undefined,
+        },
+      });
       return {
         success: true,
         data: response.data,

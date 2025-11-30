@@ -135,7 +135,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       <div
         ref={sidebarRef}
         className={`fixed top-0 left-0 h-screen text-white border-r border-gray-700 transition-all transform duration-500 ease-in-out z-50 pt-3 ${
-          isOpen ? "w-54" : "w-[3.125vw]"
+          isOpen ? "w-48" : "w-[3.125vw]"
         }`}
         style={{
           background:
@@ -189,7 +189,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                     className={`${commonItemClasses} w-full text-left text-white`}
                     onClick={() => setOpenSubMenuIndex(isActive ? null : index)}
                   >
-                    <item.icon className="w-6 h-6" />
+                    <item.icon className="w-4 h-4" />
                     {isOpen && <span className="text-sm">{item.label}</span>}
                     {showArrow && (
                       <MdKeyboardArrowUp
@@ -206,8 +206,10 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                     href={item.href}
                     className={`${commonItemClasses} text-white block w-full`}
                   >
-                    <item.icon className="w-6 h-6" />
-                    {isOpen && <span className="text-sm">{item.label}</span>}
+                    <item.icon className="w-4 h-4" />
+                    {isOpen && (
+                      <span className="text-[0.75rem]">{item.label}</span>
+                    )}
                   </Link>
                 ) : (
                   <button
@@ -215,13 +217,15 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                     className={`${commonItemClasses} w-full text-left text-white/70 cursor-default`}
                     disabled
                   >
-                    <item.icon className="w-6 h-6" />
-                    {isOpen && <span className="text-sm">{item.label}</span>}
+                    <item.icon className="w-4 h-4" />
+                    {isOpen && (
+                      <span className="text-[0.75rem]">{item.label}</span>
+                    )}
                   </button>
                 )}
                 {item.subMenu && isOpen && (
                   <ul
-                    className={`pl-8 mt-2 space-y-1 transition-all duration-300 ease-in-out overflow-hidden ${
+                    className={`relative pl-8 mt-2 transition-all duration-300 ease-in-out overflow-hidden ${
                       isActive ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
                     }`}
                     style={{
@@ -232,10 +236,11 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                   >
                     {item.subMenu.map((sub) => (
                       <li key={sub.href}>
+                        <div className="absolute left-7 top-2 bottom-2 w-[1px] bg-white"></div>
                         <Link
                           prefetch
                           href={sub.href}
-                          className="block text-left text-sm py-1 px-2 rounded text-white hover:bg-white/10"
+                          className="block text-left text-[0.75rem] py-1 px-2 rounded text-white cursor-pointer"
                         >
                           {sub.label}
                         </Link>

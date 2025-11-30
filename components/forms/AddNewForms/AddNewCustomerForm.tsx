@@ -365,6 +365,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               </label>
               <input
                 name="firstname"
+                type="text"
                 value={formData.firstname}
                 onChange={handleChange}
                 placeholder="Enter First Name"
@@ -379,6 +380,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               </label>
               <input
                 name="lastname"
+                type="text"
                 value={formData.lastname}
                 onChange={handleChange}
                 placeholder="Enter Last Name"
@@ -393,6 +395,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               </label>
               <input
                 name="nickname"
+                type="text"
                 value={formData.nickname}
                 onChange={handleChange}
                 placeholder="Enter Nickname/Alias"
@@ -410,6 +413,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               </label>
               <input
                 name="contactnumber"
+                type="text"
                 value={formData.contactnumber}
                 onChange={handleChange}
                 placeholder="Enter Contact Number"
@@ -424,6 +428,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               </label>
               <input
                 name="emailId"
+                type="email"
                 value={formData.emailId}
                 onChange={handleChange}
                 placeholder="Enter Email ID"
@@ -438,6 +443,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               </label>
               <input
                 name="dateofbirth"
+                type="date"
                 value={formData.dateofbirth}
                 onChange={handleChange}
                 placeholder="DD-MM-YYYY"
@@ -465,6 +471,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               <div className="relative">
                 <input
                   name="gstin"
+                  type="text"
                   value={formData.gstin}
                   onChange={handleChange}
                   placeholder="Please Provide Your GST No."
@@ -490,6 +497,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
               </label>
               <input
                 value={formData.companyname}
+                type="text"
                 onChange={handleChange}
                 name="companyname"
                 placeholder="Enter Company Name"

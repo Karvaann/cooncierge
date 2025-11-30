@@ -362,7 +362,7 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
       width="xl"
     >
       <div
-        className="space-y-6 p-4"
+        className="space-y-6 p-4 "
         ref={formRef as any}
         onSubmit={(e) => e.preventDefault()}
       >
@@ -693,7 +693,7 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
         </div>
 
         {/* Submit Button */}
-        {/* <div className="flex justify-end">
+        <div className="flex justify-end">
           <button
             type="submit"
             disabled={isSubmitting}
@@ -701,7 +701,7 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
           >
             {isSubmitting ? "Saving..." : "Save"}
           </button>
-        </div> */}
+        </div>
       </div>
     </SideSheet>
   );

@@ -3,16 +3,20 @@ import { FiDownload, FiTrash2 } from "react-icons/fi";
 import { FiCopy } from "react-icons/fi";
 import DownloadModal from "../Modals/DownloadModal";
 import MergeModal from "../Modals/MergeModal";
-import DeleteModal from "../Modals/DeleteModal";
+import DeleteModal, { DeletableItem } from "../Modals/DeleteModal";
 
 type DownloadMergeMenuProps = {
   isOpen: boolean;
   onClose: () => void;
+  entity?: "customer" | "vendor" | "team";
+  items?: DeletableItem[];
 };
 
 const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
   isOpen,
   onClose,
+  entity = "customer",
+  items = [],
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = React.useState(false);
@@ -136,10 +140,14 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
       <DownloadModal
         isOpen={isDownloadModalOpen}
         onClose={() => setIsDownloadModalOpen(false)}
+        items={items}
+        entity={entity}
       />
       <DeleteModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
+        items={items}
+        entity={entity}
       />
     </>
   );

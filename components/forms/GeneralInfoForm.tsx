@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import { LuEye } from "react-icons/lu";
 import { GoPlusCircle } from "react-icons/go";
 import { BsPlusSquareFill } from "react-icons/bs";
@@ -12,15 +18,17 @@ import { useBooking } from "@/context/BookingContext";
 import Fuse from "fuse.js";
 import { getCustomers } from "@/services/customerApi";
 import { getVendors } from "@/services/vendorApi";
-import { getUsers } from "@/services/userApi";
+import { getTeams } from "@/services/teamsApi";
 
 // Type definitions
 interface GeneralInfoFormData {
   customer: string;
   vendor: string;
+  vendorName: string;
   adults: number;
   children: number;
   infants: number;
+  childAges?: (number | null)[];
   adultTravellers: string[];
   infantTravellers: string[];
   bookingOwner: string;
@@ -159,9 +167,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const [formData, setFormData] = useState<GeneralInfoFormData>({
     customer: "",
     vendor: "",
+    vendorName: "",
     adults: 1,
     children: 0,
     infants: 1,
+    childAges: [],
     adultTravellers: [""], // Adult 1 (Lead Pax)
     infantTravellers: [""],
     bookingOwner: "",
@@ -171,48 +181,103 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const { openAddCustomer, openAddVendor, openAddTraveller } = useBooking();
+  const {
+    openAddCustomer,
+    openAddVendor,
+    openAddTraveller,
+    lastAddedCustomer,
+    lastAddedVendor,
+  } = useBooking();
   const [customerList, setCustomerList] = useState<
     { id: string; name: string }[]
   >([{ id: "", name: "" }]);
 
-  const [vendorData, setVendorData] = useState<{ id: string; name: string }>({
-    id: "",
-    name: "",
-  });
+  const [vendorList, setVendorList] = useState<{ id: string; name: string }[]>([
+    { id: "", name: "" },
+  ]);
+
+  // const [vendorData, setVendorData] = useState<{ id: string; name: string }>({
+  //   id: "",
+  //   name: "",
+  // });
 
   // Search data states
   const [allCustomers, setAllCustomers] = useState<any[]>([]);
   const [allVendors, setAllVendors] = useState<any[]>([]);
-  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [allTeams, setAllTeams] = useState<any[]>([]);
 
   const [customerResults, setCustomerResults] = useState<any[]>([]);
   const [vendorResults, setVendorResults] = useState<any[]>([]);
-  const [usersResults, setUsersResults] = useState<any[]>([]);
+  const [TeamsResults, setTeamsResults] = useState<any[]>([]);
 
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
-  const [showusersDropdown, setShowUsersDropdown] = useState(false);
+  const [showTeamsDropdown, setShowTeamsDropdown] = useState(false);
 
   const [activeCustomerIndex, setActiveCustomerIndex] = useState<number | null>(
     null
   );
 
-  // Fetch all customers, vendors, Userss on mount
+  // Add refs for click-outside detection
+  const customerRef = useRef<HTMLDivElement | null>(null);
+  const vendorRef = useRef<HTMLDivElement | null>(null);
+  const teamsRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+
+      const isInCustomer = customerRef.current?.contains(target);
+      const isInVendor = vendorRef.current?.contains(target);
+      const isInTeams = teamsRef.current?.contains(target);
+
+      if (!isInCustomer) {
+        setShowCustomerDropdown(false);
+        setActiveCustomerIndex(null);
+      }
+      if (!isInVendor) {
+        setShowVendorDropdown(false);
+      }
+      if (!isInTeams) {
+        setShowTeamsDropdown(false);
+      }
+    };
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowCustomerDropdown(false);
+        setActiveCustomerIndex(null);
+        setShowVendorDropdown(false);
+        setShowTeamsDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleGlobalClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleGlobalClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, []);
+
+  // Fetch all customers, vendors, Teamss on mount
   useEffect(() => {
     const fetchLists = async () => {
       try {
+        console.log(
+          "[GeneralInfoForm] Fetching lists: customers, vendors, teams"
+        );
         const [cRes, vRes, tRes] = await Promise.all([
           getCustomers(),
           getVendors(),
-          getUsers(),
+          getTeams(),
         ]);
 
         setAllCustomers(cRes || []);
         setAllVendors(vRes || []);
-        setAllUsers(tRes || []);
+        setAllTeams(tRes || []);
       } catch (err) {
-        console.error("Failed loading lists", err);
+        console.error("[GeneralInfoForm] Failed loading lists", err);
       }
     };
 
@@ -230,6 +295,16 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
     return fuse.search(term).map((r) => r.item);
   };
+
+  // useEffect(() => {
+  //   if (!externalFormData?.vendor) return;
+  //   if (!Array.isArray(allVendors) || allVendors.length === 0) return;
+
+  //   const match = allVendors.find((v) => v._id === externalFormData.vendor);
+  //   if (match) {
+  //     setVendorData({ id: match._id, name: match.name });
+  //   }
+  // }, [externalFormData?.vendor, allVendors]);
 
   // when adults change
   useEffect(() => {
@@ -257,6 +332,20 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       while (infants.length > prev.infants && infants.length > 1) infants.pop();
 
       return { ...prev, infantTravellers: infants };
+    });
+  }, [formData.infants]);
+
+  // Sync childAges array with infants count, defaulting to null (no selection)
+  useEffect(() => {
+    setFormData((prev) => {
+      let ages = [...(prev.childAges || [])];
+
+      if (ages.length === 0) ages.push(null);
+
+      while (ages.length < prev.infants) ages.push(null);
+      while (ages.length > prev.infants && ages.length > 1) ages.pop();
+
+      return { ...prev, childAges: ages };
     });
   }, [formData.infants]);
 
@@ -301,6 +390,27 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     setTouched((prev) => ({ ...prev, [fieldName]: false }));
   };
 
+  // Hydrate UI when a new customer is created via sidesheet
+  useEffect(() => {
+    if (!lastAddedCustomer) return;
+    // Update first customer field with new entry
+    setCustomerList((prev) => {
+      const next = [...prev];
+      next[0] = { id: lastAddedCustomer.id, name: lastAddedCustomer.name };
+      return next;
+    });
+    setFormData((prev) => ({ ...prev, customer: lastAddedCustomer.id }));
+    // Clear any error on customer field
+    setErrors((prev) => ({ ...prev, customer: "" }));
+  }, [lastAddedCustomer]);
+
+  // Hydrate UI when a new vendor is created via sidesheet
+  useEffect(() => {
+    if (!lastAddedVendor) return;
+    setVendorList([{ id: lastAddedVendor.id, name: lastAddedVendor.name }]);
+    setFormData((prev) => ({ ...prev, vendor: lastAddedVendor.id }));
+    setErrors((prev) => ({ ...prev, vendor: "" }));
+  }, [lastAddedVendor]);
   const getFieldValue = (fieldName: string, overrideValue?: string) => {
     if (overrideValue !== undefined) return overrideValue;
     return formData[fieldName as keyof GeneralInfoFormData] ?? "";
@@ -347,7 +457,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               type="button"
               className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
             >
-              <LuEye size={20} className="text-gray-400" />
+              <LuEye size={17} className="text-gray-400" />
             </button>
 
             <button
@@ -615,9 +725,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   };
 
   return (
-    <div
+    <form
+      ref={formRef}
       className="space-y-4 p-4"
-      ref={formRef as any}
       onSubmit={(e) => e.preventDefault()}
     >
       {/* Customer Section */}
@@ -644,7 +754,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             </div>
 
             <div className="flex items-center mt-1 w-full">
-              <div className="w-[30rem]">
+              <div className="w-[30rem] relative" ref={customerRef}>
                 <InputField
                   name="customer"
                   placeholder="Search by Customer Name/ID"
@@ -652,7 +762,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   className="w-full text-[0.75rem] py-2"
                   type="text"
                   {...getInputProps("customer", {
-                    value: customerList[index]?.name ?? "", // SHOW NAME (safe access)
+                    value: customerList[index]?.name ?? "", // SHOW NAME
                     onChange: (e) => {
                       const value = e.target.value;
 
@@ -662,7 +772,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         name: value,
                       });
 
-                      // IF FIELD CLEARED → also clear stored value so validation becomes empty
+                      // IF FIELD CLEARED then also clear stored value so validation becomes empty
                       if (value.trim() === "") {
                         setFormData((prev) => ({ ...prev, customer: "" }));
                       }
@@ -679,33 +789,48 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   })}
                 />
 
-                {activeCustomerIndex === index &&
-                  customerResults.length > 0 && (
-                    <div className="absolute bg-white border rounded-md w-[30rem] max-h-60 mt-1 overflow-y-auto shadow-md z-50">
-                      {customerResults.map((cust) => (
-                        <div
-                          key={cust._id}
-                          className="p-2 cursor-pointer hover:bg-gray-100"
-                          onClick={() => {
-                            updateCustomerField(index, {
-                              id: cust._id,
-                              name: cust.name,
-                            });
-                            setActiveCustomerIndex(null);
-
-                            // Sync main form
-                            setFormData((prev) => ({
-                              ...prev,
-                              customer: cust._id,
-                            }));
-                          }}
-                        >
-                          <p className="font-medium">{cust.name}</p>
-                          <p className="text-xs text-gray-500">{cust.email}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                {activeCustomerIndex === index && showCustomerDropdown && (
+                  <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] max-h-60 mt-1 overflow-y-auto shadow-md z-50">
+                    {customerResults.map((cust) => (
+                      <div
+                        key={cust._id}
+                        className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
+                        onClick={() => {
+                          updateCustomerField(index, {
+                            id: cust._id,
+                            name: cust.name,
+                          });
+                          setActiveCustomerIndex(null);
+                          // Sync main form
+                          setFormData((prev) => ({
+                            ...prev,
+                            customer: cust._id,
+                          }));
+                          setShowCustomerDropdown(false);
+                        }}
+                      >
+                        <p className="font-medium text-[0.75rem]">
+                          {cust.name}
+                        </p>
+                        {/* <p className="text-xs text-gray-500">{cust.email}</p> */}
+                      </div>
+                    ))}
+                    {/* Staple option */}
+                    {/* <div
+                      className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
+                      onClick={() => {
+                        updateCustomerField(index, { id: "", name: "TBA" });
+                        setFormData((prev) => ({ ...prev, customer: "" }));
+                        setActiveCustomerIndex(null);
+                        setShowCustomerDropdown(false);
+                      }}
+                    >
+                      <p className="font-medium text-[0.70rem] text-gray-700">
+                        Don't have the name? Enter TBA
+                      </p>
+                    </div> */}
+                  </div>
+                )}
               </div>
 
               <RightSideIcons
@@ -726,13 +851,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         <button
           type="button"
           onClick={addCustomerField}
-          className="mt-1 flex gap-1 text-[#818181] text-[0.65rem] hover:text-gray-800 transition-colors"
+          className="-mt-2 flex gap-1 text-[#818181] text-[0.65rem] hover:text-gray-800 transition-colors"
         >
           <GoPlusCircle size={17} />
           <p className="mt-0.5"> Add Another Customer </p>
         </button>
       </div>
-
       {/* Vendor Section */}
       <div className="border border-gray-200 rounded-[12px] px-3 py-4">
         <h2 className="text-[0.75rem]  font-medium mb-2">Vendors</h2>
@@ -743,50 +867,77 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         </label>
 
         <div className="flex items-center gap-2">
-          <div className="w-[30rem]">
+          <div className="w-[30rem] relative" ref={vendorRef}>
             <InputField
               name="vendor"
               placeholder="Search by Vendor Name/ID"
               required
               className="w-full text-[0.75rem] py-2"
-              {...getInputProps("vendor", {
-                value: vendorData.name,
-                onChange: (e) => {
-                  const value = e.target.value;
+              value={vendorList[0]?.name ?? ""}
+              onChange={(e) => {
+                const value = e.target.value;
 
-                  // update name only
-                  setVendorData({ id: vendorData.id, name: value });
-                  const results = runFuzzySearch(allVendors, value, [
-                    "name",
-                    "email",
-                  ]);
-                  setVendorResults(results);
-                  setShowVendorDropdown(true);
-                },
-              })}
+                // Update vendor name only
+                setVendorList([{ id: "", name: value }]);
+
+                // clear actual vendor ID
+                setFormData((prev) => ({ ...prev, vendor: "" }));
+
+                const results = runFuzzySearch(allVendors, value, [
+                  "name",
+                  "contactPerson",
+                  "email",
+                ]);
+                setVendorResults(results);
+
+                setShowVendorDropdown(true);
+              }}
+              onBlur={handleBlur}
             />
 
-            {showVendorDropdown && vendorResults.length > 0 && (
-              <div className="absolute bg-white border rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+            {showVendorDropdown && (
+              <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
                 {vendorResults.map((v) => (
                   <div
                     key={v._id}
                     className="p-2 cursor-pointer hover:bg-gray-100"
                     onClick={() => {
-                      setVendorData({ id: v._id, name: v.name });
-
-                      setFormData((prev) => ({ ...prev, vendor: v._id })); // SEND ID
                       setShowVendorDropdown(false);
+                      setVendorList([
+                        { id: v._id, name: v.name ?? v.contactPerson ?? "" },
+                      ]);
+                      setFormData((prev) => ({ ...prev, vendor: v._id }));
                     }}
                   >
-                    <p className="font-medium">{v.name}</p>
-                    <p className="text-xs text-gray-500">{v.email}</p>
+                    <p className="font-normal text-[0.75rem]">
+                      {v.name || v.contactPerson}
+                    </p>
+                    {/* <p className="text-xs text-gray-500">{v.email}</p> */}
                   </div>
                 ))}
+                {/* Staple option */}
+                {/* <div
+                  className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
+                  onClick={() => {
+                    setVendorList([{ id: "", name: "TBA" }]);
+                    setFormData((prev) => ({ ...prev, vendor: "" }));
+                    setShowVendorDropdown(false);
+                  }}
+                >
+                  <p className="font-medium text-[0.70rem] text-gray-700">
+                    Don't have the name? Enter TBA
+                  </p>
+                </div> */}
               </div>
             )}
           </div>
-          <RightSideIcons fieldName="vendor" onClickPlus={openAddVendor} />
+
+          <RightSideIcons
+            fieldName="vendor"
+            value={vendorList[0]?.name ?? ""}
+            overrideSetter={(val) => setVendorList([{ id: "", name: val }])}
+            onClickPlus={openAddVendor}
+          />
         </div>
       </div>
 
@@ -886,38 +1037,71 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             </div>
           ))}
 
-          <label className="block text-[0.75rem] mt-3 font-medium text-gray-700 mb-1">
-            <span className="text-red-500">*</span> Children
-          </label>
-
           {formData.infantTravellers.map((trav, index) => (
-            <div key={index} className="flex items-center gap-2 my-2">
-              <div className="w-[30rem]">
-                <InputField
-                  name="infantTravellers"
-                  placeholder={`Child ${index + 1}`}
-                  required={index === 0}
-                  {...getInputProps("infantTravellers", {
-                    value: trav,
-                    onChange: (e) =>
-                      updateTraveller(
-                        "infantTravellers",
-                        index,
-                        e.target.value
-                      ),
-                    skipValidation: true,
-                  })}
-                />
+            <div key={index} className="mb-6">
+              {/* LABEL and AGE DROPDOWN IN ONE ROW */}
+              <div className="flex items-center justify-between pr-65 mb-1">
+                {/* Children label only for first row */}
+                <label className="text-[0.75rem] font-medium text-gray-700">
+                  <span className="text-red-500">*</span>{" "}
+                  {/* {index === 0 ? "Children" : ""} */}
+                  Children
+                </label>
+
+                {/* Select age dropdown (always aligned top-right) */}
+                <select
+                  name={`childAge-${index}`}
+                  value={formData.childAges?.[index] ?? ""}
+                  onChange={(e) => {
+                    const val =
+                      e.target.value === "" ? null : Number(e.target.value);
+                    setFormData((prev) => {
+                      const ages = [...(prev.childAges || [])];
+                      ages[index] = val;
+                      return { ...prev, childAges: ages };
+                    });
+                  }}
+                  className="w-[7rem] border border-gray-300 rounded-md px-2 py-1 text-[0.70rem] bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={isSubmitting}
+                >
+                  <option value="">Select Age</option>
+                  {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <RightSideIcons
-                fieldName="infantTravellers"
-                value={trav}
-                overrideSetter={(val) =>
-                  updateTraveller("infantTravellers", index, val)
-                }
-                onClickPlus={openAddTraveller}
-              />
+              {/* CHILD INPUT */}
+              <div className="flex items-center gap-2">
+                <div className="w-[30rem]">
+                  <InputField
+                    name="infantTravellers"
+                    placeholder={`Child ${index + 1}`}
+                    required={index === 0}
+                    {...getInputProps("infantTravellers", {
+                      value: trav,
+                      onChange: (e) =>
+                        updateTraveller(
+                          "infantTravellers",
+                          index,
+                          e.target.value
+                        ),
+                      skipValidation: true,
+                    })}
+                  />
+                </div>
+
+                <RightSideIcons
+                  fieldName="infantTravellers"
+                  value={trav}
+                  overrideSetter={(val) =>
+                    updateTraveller("infantTravellers", index, val)
+                  }
+                  onClickPlus={openAddTraveller}
+                />
+              </div>
             </div>
           ))}
         </div>
@@ -931,7 +1115,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           <span className="text-red-500">*</span> User
         </label>
 
-        <div className="w-[66%]">
+        <div className="w-[66%] relative" ref={teamsRef}>
           <InputField
             name="bookingOwner"
             placeholder="Search by Name/Username/ID"
@@ -940,32 +1124,48 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             {...getInputProps("bookingOwner", {
               onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
                 handleChange(e);
-                const results = runFuzzySearch(allUsers, e.target.value, [
+                const results = runFuzzySearch(allTeams, e.target.value, [
                   "name",
                   "email",
                   "username",
                 ]);
-                setUsersResults(results);
-                setShowUsersDropdown(true);
+                console.log("[GeneralInfoForm] Team search", {
+                  totalTeams: allTeams.length,
+                  results: results.length,
+                });
+                setTeamsResults(results);
+                setShowTeamsDropdown(true);
               },
             })}
           />
 
-          {showusersDropdown && usersResults.length > 0 && (
-            <div className="absolute bg-white border rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-              {usersResults.map((t: any) => (
+          {showTeamsDropdown && (
+            <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+              {TeamsResults.map((t: any) => (
                 <div
                   key={t._id}
                   className="p-2 cursor-pointer hover:bg-gray-100"
                   onClick={() => {
                     setFormData((prev) => ({ ...prev, bookingOwner: t.name }));
-                    setShowUsersDropdown(false);
+                    setShowTeamsDropdown(false);
                   }}
                 >
-                  <p className="font-medium">{t.name}</p>
-                  <p className="text-xs text-gray-500">{t.email}</p>
+                  <p className="font-medium text-[0.75rem]">{t.name}</p>
+                  {/* <p className="text-xs text-gray-500">{t.email}</p> */}
                 </div>
               ))}
+              {/* Staple option */}
+              {/* <div
+                className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
+                onClick={() => {
+                  setFormData((prev) => ({ ...prev, bookingOwner: "TBA" }));
+                  setShowTeamsDropdown(false);
+                }}
+              >
+                <p className="font-medium text-[0.70rem] text-gray-700">
+                  Don't have the name? Enter TBA
+                </p>
+              </div> */}
             </div>
           )}
         </div>
@@ -1005,7 +1205,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           </button>
         </div>
       )} */}
-    </div>
+    </form>
   );
 };
 

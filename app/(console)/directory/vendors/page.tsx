@@ -14,8 +14,10 @@ import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
 import DownloadMergeMenu from "@/components/Menus/DownloadMergeMenu";
+import type { DeletableItem } from "@/components/Modals/DeleteModal";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import { FaRegStar } from "react-icons/fa";
+import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -112,6 +114,7 @@ const VendorDirectory = () => {
   const [selectedVendor, setSelectedVendor] = useState<any | null>(null);
   const [mode, setMode] = useState<"create" | "edit">("create");
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const filteredVendors = useMemo(() => {
     if (!searchValue.trim()) return vendors;
@@ -232,7 +235,7 @@ const VendorDirectory = () => {
           vendorID: v._id || `#C00${index + 1}`,
           vendorName: v.companyName || v.name || "—",
           poc: v.contactPerson || "—",
-          rating: v.rating || "4",
+          rating: v.tier ? Number(v.tier.replace("tier", "")) : 4,
           dateModified: formatDMY(v.createdAt),
           actions: "⋮",
         }));
@@ -323,29 +326,38 @@ const VendorDirectory = () => {
 
           // Action menu
           <td key={`actions-${index}`} className="px-4 py-3  text-center">
-            <ActionMenu
-              actions={[
-                {
-                  label: "Edit",
-                  icon: <FaRegEdit />,
-                  color: "text-green-600",
-                  onClick: () => {
-                    setSelectedVendor(row);
-                    setIsSideSheetOpen(true);
-                    setMode("edit");
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
+                onClick={() => setIsHistoryOpen(true)}
+              >
+                Booking History
+              </button>
+              <ActionMenu
+                actions={[
+                  {
+                    label: "Edit",
+                    icon: <FaRegEdit />,
+                    color: "text-green-600",
+                    onClick: () => {
+                      setSelectedVendor(row);
+                      setIsSideSheetOpen(true);
+                      setMode("edit");
+                    },
                   },
-                },
-                {
-                  label: "Delete",
-                  icon: <FaRegTrashAlt />,
-                  color: "text-red-600",
-                  onClick: () => {
-                    setSelectedVendor(row);
-                    handleOpenConfirmDeleteModal();
+                  {
+                    label: "Delete",
+                    icon: <FaRegTrashAlt />,
+                    color: "text-red-600",
+                    onClick: () => {
+                      setSelectedVendor(row);
+                      handleOpenConfirmDeleteModal();
+                    },
                   },
-                },
-              ]}
-            />
+                ]}
+              />
+            </div>
           </td>
         );
 
@@ -353,6 +365,18 @@ const VendorDirectory = () => {
       }),
     [filteredVendors, selectMode, selectedVendors]
   );
+
+  const selectedDeletables: DeletableItem[] = useMemo(() => {
+    return vendors
+      .filter((v) => selectedVendors.includes(v.vendorID))
+      .map((v) => ({
+        id: v.vendorID,
+        vendorName: v.vendorName,
+        poc: v.poc,
+        rating: Number(v.rating),
+        dateModified: v.dateModified,
+      }));
+  }, [vendors, selectedVendors]);
 
   return (
     <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
@@ -457,7 +481,7 @@ const VendorDirectory = () => {
       "
               style={{ pointerEvents: "auto" }}
             >
-              {/* {menuMode === "main" ? (
+              {menuMode === "main" ? (
                 <SelectUploadMenu
                   isOpen={isMenuOpen}
                   onClose={handleCloseMenu}
@@ -467,8 +491,10 @@ const VendorDirectory = () => {
                 <DownloadMergeMenu
                   isOpen={isMenuOpen}
                   onClose={handleCloseMenu}
+                  entity="vendor"
+                  items={selectedDeletables}
                 />
-              )} */}
+              )}
             </div>
           )}
         </div>
@@ -510,6 +536,35 @@ const VendorDirectory = () => {
             handleDeleteVendor(selectedVendor.vendorID);
             setIsConfirmModalOpen(false);
           }}
+        />
+      )}
+      {isHistoryOpen && (
+        <BookingHistoryModal
+          isOpen={isHistoryOpen}
+          onClose={() => setIsHistoryOpen(false)}
+          bookings={[
+            {
+              id: "VBK-001",
+              bookingDate: "12-10-2025",
+              travelDate: "18-10-2025",
+              status: "Successful",
+              amount: "32,500",
+            },
+            {
+              id: "VBK-002",
+              bookingDate: "21-10-2025",
+              travelDate: "25-10-2025",
+              status: "On Hold",
+              amount: "18,200",
+            },
+            {
+              id: "VBK-003",
+              bookingDate: "28-10-2025",
+              travelDate: "02-11-2025",
+              status: "In Progress",
+              amount: "25,350",
+            },
+          ]}
         />
       )}
     </div>

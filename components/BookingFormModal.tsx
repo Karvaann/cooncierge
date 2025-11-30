@@ -222,10 +222,10 @@ const BookingFormModal: React.FC<BookingFormModalProps> = ({
       title="Select Service"
       size="xl"
       customWidth="w-[62.5vw]"
-      customeHeight="h-[68vh]"
+      customeHeight="h-fit"
       // className="w-[90vw]"
     >
-      <div className="h-full justify between flex flex-col -mt-3">
+      <div className="h-full justify between flex flex-col -mt-4">
         {/* HEADER TEXT */}
         <div className="text-gray-500 text-sm text-center w-full mb-4">
           Choose from the range of services provided by{" "}

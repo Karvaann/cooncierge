@@ -11,11 +11,15 @@ import { IoEllipsisHorizontal } from "react-icons/io5";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import { getCustomers, deleteCustomer } from "@/services/customerApi";
 import type { JSX } from "react";
+import LinkProfilesModal from "@/components/Modals/LinkProfilesModal";
 import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
 import DownloadMergeMenu from "@/components/Menus/DownloadMergeMenu";
+import type { DeletableItem } from "@/components/Modals/DeleteModal";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import { FaRegStar } from "react-icons/fa";
+import { CiLink } from "react-icons/ci";
+import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -32,7 +36,7 @@ type CustomerRow = {
 };
 
 const columns: string[] = [
-  "Customer ID",
+  "ID",
   "Name",
   "Owner",
   "Rating",
@@ -116,6 +120,16 @@ const CustomerDirectory = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
   const [mode, setMode] = useState<"create" | "edit">("create");
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+
+  const handleOpenLinkModal = () => {
+    setIsLinkModalOpen(true);
+  };
+
+  const handleCloseLinkModal = () => {
+    setIsLinkModalOpen(false);
+  };
 
   const filteredCustomers = useMemo(() => {
     if (!searchValue.trim()) return customers;
@@ -245,7 +259,7 @@ const CustomerDirectory = () => {
               typeof c.ownerId === "object" && c.ownerId !== null
                 ? c.ownerId.name
                 : c.ownerId || "—",
-            rating: c.rating || 4,
+            rating: c.tier ? Number(c.tier.replace("tier", "")) : 4,
             dateCreated: formatDMY(c.createdAt),
             actions: "⋮",
           })
@@ -334,26 +348,48 @@ const CustomerDirectory = () => {
             {row.dateCreated}
           </td>,
           <td key={`actions-${index}`} className="px-4 py-3  text-center">
-            <ActionMenu
-              actions={[
-                {
-                  label: "Edit",
-                  icon: <FaRegEdit />,
-                  color: "text-green-600",
-                  onClick: () => {
-                    setSelectedCustomer(row); // full data
-                    setIsSideSheetOpen(true);
-                    setMode("edit");
-                  },
-                },
-                {
-                  label: "Delete",
-                  icon: <FaRegTrashAlt />,
-                  color: "text-red-600",
-                  onClick: handleOpenConfirmDeleteModal,
-                },
-              ]}
-            />
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                className="bg-gray-200 text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
+                onClick={() => setIsHistoryOpen(true)}
+              >
+                Booking History
+              </button>
+              <div className="">
+                <ActionMenu
+                  actions={[
+                    {
+                      label: "Edit",
+                      icon: <FaRegEdit />,
+                      color: "text-blue-600",
+                      onClick: () => {
+                        setSelectedCustomer(row); // full data
+                        setIsSideSheetOpen(true);
+                        setMode("edit");
+                      },
+                    },
+                    {
+                      label: "Link",
+                      icon: <CiLink />,
+                      color: "text-green-600",
+                      onClick: () => {
+                        handleOpenLinkModal();
+                      },
+                    },
+                    {
+                      label: "Delete",
+                      icon: <FaRegTrashAlt />,
+                      color: "text-red-600",
+                      onClick: () => {
+                        setSelectedCustomer(row); // store customer to delete
+                        setIsConfirmModalOpen(true);
+                      },
+                    },
+                  ]}
+                />
+              </div>
+            </div>
           </td>
         );
 
@@ -361,6 +397,18 @@ const CustomerDirectory = () => {
       }),
     [filteredCustomers, selectMode, selectedCustomers]
   );
+
+  const selectedDeletables: DeletableItem[] = useMemo(() => {
+    return customers
+      .filter((c) => selectedCustomers.includes(c.customerID))
+      .map((c) => ({
+        id: c.customerID,
+        name: c.name,
+        owner: c.owner,
+        rating: Number(c.rating),
+        dateModified: c.dateCreated,
+      }));
+  }, [customers, selectedCustomers]);
 
   return (
     <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
@@ -465,7 +513,7 @@ const CustomerDirectory = () => {
       "
               style={{ pointerEvents: "auto" }}
             >
-              {/* {menuMode === "main" ? (
+              {menuMode === "main" ? (
                 <SelectUploadMenu
                   isOpen={isMenuOpen}
                   onClose={handleCloseMenu}
@@ -475,8 +523,10 @@ const CustomerDirectory = () => {
                 <DownloadMergeMenu
                   isOpen={isMenuOpen}
                   onClose={handleCloseMenu}
+                  entity="customer"
+                  items={selectedDeletables}
                 />
-              )} */}
+              )}
             </div>
           )}
         </div>
@@ -517,6 +567,42 @@ const CustomerDirectory = () => {
             handleDeleteCustomer(selectedCustomer.customerID);
             setIsConfirmModalOpen(false);
           }}
+        />
+      )}
+
+      {isLinkModalOpen && (
+        <LinkProfilesModal
+          isOpen={isLinkModalOpen}
+          onClose={handleCloseLinkModal}
+        />
+      )}
+      {isHistoryOpen && (
+        <BookingHistoryModal
+          isOpen={isHistoryOpen}
+          onClose={() => setIsHistoryOpen(false)}
+          bookings={[
+            {
+              id: "BK-001",
+              bookingDate: "12-10-2025",
+              travelDate: "18-10-2025",
+              status: "Successful",
+              amount: "12,500",
+            },
+            {
+              id: "BK-002",
+              bookingDate: "21-10-2025",
+              travelDate: "25-10-2025",
+              status: "On Hold",
+              amount: "8,200",
+            },
+            {
+              id: "BK-003",
+              bookingDate: "28-10-2025",
+              travelDate: "02-11-2025",
+              status: "In Progress",
+              amount: "15,350",
+            },
+          ]}
         />
       )}
     </div>

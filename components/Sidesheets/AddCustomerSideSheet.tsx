@@ -5,10 +5,12 @@ import SideSheet from "../SideSheet";
 import { createCustomer } from "@/services/customerApi";
 import { getAuthUser } from "@/services/storage/authStorage";
 import { updateCustomer } from "@/services/customerApi";
+import { useBooking } from "@/context/BookingContext";
 
 import { CiCirclePlus } from "react-icons/ci";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
+import { LuSave } from "react-icons/lu";
 
 type CustomerData = {
   _id?: string;
@@ -23,6 +25,9 @@ type CustomerData = {
   companyName: string;
   address: string | number;
   remarks: string;
+  tier?: string;
+  openingBalance?: string;
+  balanceType?: "credit" | "debit";
 };
 
 type AddCustomerSideSheetProps = {
@@ -30,6 +35,7 @@ type AddCustomerSideSheetProps = {
   onCancel: () => void;
   isOpen: boolean;
   mode?: "create" | "edit";
+  formRef?: React.RefObject<HTMLFormElement | null>;
 };
 
 const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
@@ -37,13 +43,16 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   onCancel,
   isOpen,
   mode,
+  formRef,
 }) => {
+  const { updateGeneralInfo, setLastAddedCustomer } = useBooking();
   const [phoneCode, setPhoneCode] = useState<string>("+91");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
 
   const [balanceType, setBalanceType] = useState<"debit" | "credit">("debit");
   const [balanceAmount, setBalanceAmount] = useState<string>("");
+  const [tier, setTier] = useState<string>("");
 
   const [formData, setFormData] = useState<CustomerData>({
     name: "",
@@ -57,6 +66,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     companyName: "",
     address: "",
     remarks: "",
+    tier: "",
   });
 
   const handleChange = (
@@ -101,7 +111,11 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         companyName: data.companyName || "",
         address: data.address || "",
         remarks: data.remarks || "",
+        tier: data.tier || "",
       });
+      setTier(data.tier || "");
+      setBalanceAmount(data.openingBalance ? String(data.openingBalance) : "");
+      setBalanceType(data.balanceType || "debit");
     } else {
       setFormData({
         firstname: "",
@@ -114,7 +128,11 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         companyName: "",
         address: "",
         remarks: "",
+        tier: "",
       });
+      setTier("");
+      setBalanceAmount("");
+      setBalanceType("debit");
     }
   }, [data]);
 
@@ -140,11 +158,19 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         balanceType: balanceAmount ? balanceType : undefined,
         businessId: businessId, // put actual business id
         ownerId: ownerId,
-        tier: undefined,
+        tier: tier || undefined,
+        remarks: formData.remarks || undefined,
       };
 
       const response = await createCustomer(customerPayload);
-      console.log("Customer created successfully:", response);
+      const created = response?.customer || response;
+      console.log("Customer created successfully:", created);
+
+      if (created?._id) {
+        // Update booking general info and notify listeners
+        updateGeneralInfo({ customer: created._id });
+        setLastAddedCustomer({ id: created._id, name: created.name || "" });
+      }
 
       onCancel();
     } catch (error: any) {
@@ -173,6 +199,10 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         gstin: formData.gstin ? String(formData.gstin) : undefined,
         companyName: formData.companyName || undefined,
         address: formData.address || undefined,
+        openingBalance: balanceAmount ? Number(balanceAmount) : undefined,
+        balanceType: balanceType,
+        tier: tier || undefined,
+        remarks: formData.remarks || undefined,
       };
 
       const updated = await updateCustomer(customerId, updatePayload);
@@ -191,22 +221,27 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         title="Add Customer"
         width="xl"
         position="right"
+        showLinkButton={true}
       >
-        <form className="space-y-6 p-4" onSubmit={handleSubmit}>
+        <form
+          className="space-y-6 p-4"
+          onSubmit={handleSubmit}
+          ref={formRef as any}
+        >
           {/* ================= BASIC DETAILS ================ */}
-          <div className="border border-gray-200 rounded-[12px] p-3">
+          <div className="border border-gray-200 rounded-[12px] p-3 -mt-2">
             <h2 className="text-[0.75rem] font-medium mb-2">Basic Details</h2>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-            {/* First Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-              {/* First Name */}
+            {/* Row 1: First + Last */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   First Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   name="firstname"
+                  type="text"
                   value={formData.firstname}
                   onChange={handleChange}
                   placeholder="Enter First Name"
@@ -214,14 +249,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
-
-              {/* Last Name */}
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Last Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   name="lastname"
+                  type="text"
                   value={formData.lastname}
                   onChange={handleChange}
                   placeholder="Enter Last Name"
@@ -229,14 +263,17 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
+            </div>
 
-              {/* Alias */}
+            {/* Row 2: Alias + Phone */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Nickname/Alias <span className="text-red-500">*</span>
                 </label>
                 <input
                   name="alias"
+                  type="text"
                   value={formData.alias}
                   onChange={handleChange}
                   placeholder="Enter Nickname/Alias"
@@ -244,17 +281,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
-            </div>
-
-            {/* Second Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Contact Number */}
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Contact Number <span className="text-red-500">*</span>
                 </label>
                 <input
                   name="phone"
+                  type="text"
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="Enter Contact Number"
@@ -262,14 +295,17 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
+            </div>
 
-              {/* Email ID */}
+            {/* Row 3: Email + DOB */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Email ID <span className="text-red-500">*</span>
                 </label>
                 <input
                   name="email"
+                  type="email"
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Enter Email ID"
@@ -277,17 +313,15 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
-
-              {/* Date of Birth */}
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 w-full">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Date of Birth <span className="text-red-500">*</span>
                 </label>
                 <input
                   name="dateOfBirth"
+                  type="date"
                   value={formData.dateOfBirth}
                   onChange={handleChange}
-                  placeholder="DD-MM-YYYY"
                   required
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
@@ -310,6 +344,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 </label>
                 <input
                   name="gstin"
+                  type="text"
                   value={formData.gstin}
                   onChange={handleChange}
                   placeholder="Please Provide Your GST No."
@@ -324,6 +359,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 </label>
                 <input
                   name="companyName"
+                  type="text"
                   value={formData.companyName}
                   onChange={handleChange}
                   placeholder="Enter Company Name"
@@ -393,7 +429,57 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   className="flex-1 outline-none text-gray-700 text-[0.75rem]"
                 />
               </div>
+              <div className="absolute right-3 top-2 text-sm font-medium">
+                {balanceType === "debit" ? (
+                  <span className="text-red-500 text-[0.75rem]">
+                    Customer pays you ₹{balanceAmount || ""}
+                  </span>
+                ) : (
+                  <span className="text-green-500 text-[0.75rem]">
+                    You pay the customer ₹{balanceAmount || ""}
+                  </span>
+                )}
+              </div>
             </div>
+          </div>
+
+          {/* ================= TIER ================ */}
+          <div className=" p-1 -mt-4">
+            <h2 className="text-[0.75rem] font-medium mb-2">Tier</h2>
+
+            <div className="flex flex-col">
+              <select
+                value={tier}
+                onChange={(e) => setTier(e.target.value)}
+                className="w-[10rem] border border-gray-300 rounded-md px-3 py-1.5 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+              >
+                <option value="">Select Tier</option>
+                <option value="tier1">Tier 1</option>
+                <option value="tier2">Tier 2</option>
+                <option value="tier3">Tier 3</option>
+                <option value="tier4">Tier 4</option>
+                <option value="tier5">Tier 5</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Remarks */}
+          <div className="border border-gray-200 rounded-xl p-3 -mt-2">
+            <label className="block text-[0.75rem]  font-medium text-gray-700">
+              Remarks
+            </label>
+            <hr className="mt-1 mb-2 border-t border-gray-200" />
+            <textarea
+              name="remarks"
+              rows={5}
+              value={formData.remarks}
+              onChange={handleChange}
+              placeholder="Enter Your Remarks Here"
+              className={`
+            w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem]  mt-2 transition-colors
+            focus:ring focus:ring-blue-200
+          `}
+            />
           </div>
 
           {/* ================= ACTION BUTTONS ================ */}
@@ -417,9 +503,10 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             ) : (
               <button
                 type="submit"
-                className="px-4 py-1.5 rounded-md bg-[#114958] text-white text-[0.75rem] hover:bg-[#0f3d44]"
+                className="px-4 py-1.5 gap-1 rounded-md bg-[#0D4B37] text-white text-[0.75rem] hover:bg-[#0f3d44]"
               >
-                Add New Customer
+                <LuSave className="mr-1 inline-block" size={16} />
+                Save
               </button>
             )}
           </div>
