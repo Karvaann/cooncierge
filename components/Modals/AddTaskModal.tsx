@@ -4,7 +4,7 @@ import { MdOutlineFileUpload } from "react-icons/md";
 import { MdKeyboardArrowUp } from "react-icons/md";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { IoMdClose } from "react-icons/io";
-import { createLog } from "@/services/logsApi";
+import { createLog, updateLog } from "@/services/logsApi";
 import { getTeams } from "@/services/teamsApi";
 import { getAuthUser } from "@/services/storage/authStorage";
 
@@ -52,6 +52,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
   const [teams, setTeams] = useState<any[]>([]);
   const [loadingTeams, setLoadingTeams] = useState(false);
   const [teamsError, setTeamsError] = useState<string | null>(null);
+  const [editWarning, setEditWarning] = useState<string | null>(null);
 
   const toggleAssignee = (teamId: string) => {
     setSelectedAssignees((prev) =>
@@ -61,14 +62,13 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
     );
   };
 
-  const getTeamName = (id: string) => teams.find((t) => t._id === id)?.name || id;
+  const getTeamName = (id: string) =>
+    teams.find((t) => t._id === id)?.name || id;
 
+  // Reset when closing
   useEffect(() => {
     if (!isOpen) {
-      // Reset form fields when modal is closed
-
       setDescription("");
-
       setComments("");
       setAssignedBy("");
       setStartDate("");
@@ -79,6 +79,45 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
       setSelectedAssignees([]);
     }
   }, [isOpen]);
+
+  // Prefill fields when opening in edit mode
+  useEffect(() => {
+    if (!isOpen || !isEditMode) return;
+
+    const t = initialData || {};
+    const category: string = t.category || "General";
+    const subCategory: string = t.subCategory || "General";
+
+    const mapNatureFromCat = () => {
+      if (category === "Bookings" && subCategory === "OS") return "bookings-os";
+      if (category === "Bookings" && subCategory === "Limitless") return "bookings-limitless";
+      if (category === "Directory" && subCategory === "Customers") return "directory-customers";
+      if (category === "Directory" && subCategory === "Vendors") return "directory-vendors";
+      if (category === "Directory" && subCategory === "Team") return "directory-team";
+      return "general";
+    };
+
+    setNature(mapNatureFromCat());
+    setComments(t.activity || t.description || "");
+    setPriority(t.priority || "");
+    setTaskType(t.taskType || "");
+
+    const dueISO: string | undefined = t.dueDate || t.dueISO;
+    if (dueISO) {
+      const d = new Date(dueISO);
+      if (!isNaN(d.getTime())) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        setStartDate(`${yyyy}-${mm}-${dd}`);
+        setDueHours(d.getHours());
+        setDueMinutes(d.getMinutes());
+      }
+    }
+
+    const assignedTo: string[] = Array.isArray(t.assignedTo) ? t.assignedTo : [];
+    setSelectedAssignees(assignedTo);
+  }, [isOpen, isEditMode, initialData]);
 
   // Fetch team members when modal opens
   useEffect(() => {
@@ -154,12 +193,6 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
   const handleSave = async () => {
     try {
       const user = getAuthUser() as any;
-      const userId = user._id || "";
-
-      if (!userId) {
-        console.error("User not logged in. Cannot create log.");
-        return;
-      }
 
       const { category, subCategory } = mapCategory(nature);
 
@@ -196,17 +229,25 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
       }
 
       // Validate ObjectId-like strings (24 hex chars)
-      const isObjectId = (v: unknown) => typeof v === "string" && /^[a-fA-F0-9]{24}$/.test(v);
+      const isObjectId = (v: unknown) =>
+        typeof v === "string" && /^[a-fA-F0-9]{24}$/.test(v);
       const validAssignees = selectedAssignees.filter((id) => isObjectId(id));
       const bookingObjectId = isObjectId(bookingId) ? bookingId : undefined;
+
+      // Use the first selected assignee as the primary `userId` (Logs.userId ref: Team)
+      const primaryAssignee = selectedAssignees[0];
+      if (!isObjectId(primaryAssignee)) {
+        console.error("Primary assignee is not a valid Team ID");
+        return;
+      }
 
       // Temporary mapping (fix later)
       const logData = {
         activity: comments || description || "No Description",
-        userId: userId,
+        userId: primaryAssignee,
         status: "Pending",
         dateTime: new Date().toISOString(),
-        assignedBy: userId,
+        // assignedBy will be set on backend from token (req.user)
         priority: priority || "Medium",
         taskType: taskType || "General",
         dueDate: finalDueDate || new Date().toISOString(),
@@ -216,17 +257,41 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
         assignedTo: validAssignees,
       };
 
-      console.log("Creating Log with:", logData);
-      console.log("Token present:", !!(typeof window !== "undefined" && (window as any)?.localStorage?.getItem("x-access-token")));
-
-      await createLog(logData);
-
-      // Trigger parent refresh if provided
-      if (onSave) onSave(logData);
+      const maybeId = (initialData as any)?._id as string | undefined;
+      const isValidId = typeof maybeId === "string" && /^[a-fA-F0-9]{24}$/.test(maybeId);
+      setEditWarning(null);
+      if (isEditMode && isValidId) {
+        const updates = { ...logData, logs: [] };
+        console.log("Updating Log:", { id: maybeId, updates });
+        try {
+          const updated = await updateLog(maybeId, updates);
+          onEdit?.(updated);
+        } catch (e: any) {
+          const msg = e?.message || e?.data?.message || e?.response?.data?.message;
+          if ((e?.response?.status === 404) || msg === "Log not found") {
+            setEditWarning("Selected task could not be found. Please verify and try again.");
+            return; // Do not create silently
+          }
+          setEditWarning(msg || "Failed to update the task.");
+          return;
+        }
+      } else {
+        if (isEditMode && !isValidId) {
+          setEditWarning("This task cannot be edited because its ID is invalid.");
+          return; // Stop instead of creating
+        }
+        console.log("Creating Log with:", logData);
+        await createLog(logData);
+        onSave?.(logData);
+      }
 
       onClose();
     } catch (err: any) {
-      const backendMsg = err?.response?.data?.message || err?.message || err?.error || err?.data?.message;
+      const backendMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        err?.error ||
+        err?.data?.message;
       console.error("Failed to create task:", backendMsg || err);
     }
   };
@@ -379,7 +444,9 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                   ))
                 ) : (
                   <span className="text-gray-400 text-[0.65rem] flex items-center w-full">
-                    {loadingTeams ? "Loading team members..." : "Select Assignee"}
+                    {loadingTeams
+                      ? "Loading team members..."
+                      : "Select Assignee"}
                     <MdKeyboardArrowDown className="ml-auto text-gray-400 pointer-events-none" />
                   </span>
                 )}
@@ -391,7 +458,9 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
               {dropdownOpen && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-y-auto">
                   {teamsError && (
-                    <div className="px-2 py-2 text-red-600 text-[0.65rem]">{teamsError}</div>
+                    <div className="px-2 py-2 text-red-600 text-[0.65rem]">
+                      {teamsError}
+                    </div>
                   )}
                   {teams.map((team, idx) => {
                     const checked = selectedAssignees.includes(team._id);
@@ -400,7 +469,9 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                         key={team._id}
                         onClick={() => toggleAssignee(team._id)}
                         className={`flex items-center gap-2 px-2 py-2 hover:bg-gray-50 cursor-pointer border-b ${
-                          idx === teams.length - 1 ? "border-b-0" : "border-gray-100"
+                          idx === teams.length - 1
+                            ? "border-b-0"
+                            : "border-gray-100"
                         }`}
                       >
                         <div className="w-4 h-4 border border-gray-400 rounded-md flex items-center justify-center">
@@ -421,7 +492,9 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                             </svg>
                           )}
                         </div>
-                        <span className="text-gray-700 text-[0.75rem]">{team.name}</span>
+                        <span className="text-gray-700 text-[0.75rem]">
+                          {team.name}
+                        </span>
                       </div>
                     );
                   })}
@@ -471,8 +544,11 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                     readOnly
                     className="w-5 text-center text-[0.75rem] bg-transparent outline-none"
                   />
-                  <div className="flex flex-col">
-                    <button onClick={incrementHours} className="p-0.5">
+                  <div className="flex flex-col border border-black rounded-sm overflow-hidden">
+                    <button
+                      onClick={incrementHours}
+                      className="p-0.5 border-b border-black"
+                    >
                       <MdKeyboardArrowUp size={14} />
                     </button>
                     <button onClick={decrementHours} className="p-0.5">
@@ -493,8 +569,11 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                     readOnly
                     className="w-5 text-center text-[0.75rem] bg-transparent outline-none"
                   />
-                  <div className="flex flex-col">
-                    <button onClick={incrementMinutes} className="p-0.5">
+                  <div className="flex flex-col border border-black rounded-sm overflow-hidden">
+                    <button
+                      onClick={incrementMinutes}
+                      className="p-0.5 border-b border-black"
+                    >
                       <MdKeyboardArrowUp size={14} />
                     </button>
                     <button onClick={decrementMinutes} className="p-0.5">
@@ -508,13 +587,16 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex justify-end mt-2 mr-2">
+        <div className="flex items-center justify-end gap-3 mt-2 mr-2">
+          {editWarning && (
+            <span className="text-[0.7rem] text-orange-600">{editWarning}</span>
+          )}
           <button
             type="button"
             className="px-4 py-1.5 bg-green-900 text-white text-[0.75rem] rounded-md hover:bg-green-800 transition"
             onClick={handleSave}
           >
-            Create Task
+            {isEditMode ? "Save Changes" : "Create Task"}
           </button>
         </div>
       </div>

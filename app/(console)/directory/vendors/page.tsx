@@ -7,9 +7,10 @@ import ActionMenu from "@/components/Menus/ActionMenu";
 import { FiSearch } from "react-icons/fi";
 import { CiFilter } from "react-icons/ci";
 import { HiArrowsUpDown } from "react-icons/hi2";
-import { getVendors, deleteVendor } from "@/services/vendorApi";
+import { getVendors, deleteVendor, getVendorBookingHistory } from "@/services/vendorApi";
 import { IoEllipsisHorizontal } from "react-icons/io5";
 import type { JSX } from "react";
+import { BookingProvider } from "@/context/BookingContext";
 import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
@@ -115,6 +116,15 @@ const VendorDirectory = () => {
   const [mode, setMode] = useState<"create" | "edit">("create");
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historyBookings, setHistoryBookings] = useState<
+    {
+      id: string;
+      bookingDate: string;
+      travelDate: string;
+      status: "Successful" | "On Hold" | "In Progress" | "Failed";
+      amount: string;
+    }[]
+  >([]);
 
   const filteredVendors = useMemo(() => {
     if (!searchValue.trim()) return vendors;
@@ -212,6 +222,45 @@ const VendorDirectory = () => {
     return `${day}-${month}-${year}`;
   };
 
+  const mapStatusForModal = (status?: string) => {
+    switch ((status || "").toLowerCase()) {
+      case "confirmed":
+        return "Successful" as const;
+      case "cancelled":
+        return "Failed" as const;
+      case "draft":
+      default:
+        return "In Progress" as const;
+    }
+  };
+
+  const openHistoryForVendor = async (row: VendorRow) => {
+    try {
+      setSelectedVendor(row);
+      const resp = await getVendorBookingHistory(row.vendorID, {
+        sortBy: "createdAt",
+        sortOrder: "desc",
+        page: 1,
+        limit: 10,
+      });
+
+      const quotations = resp?.quotations || [];
+      const mapped = quotations.map((q: any) => ({
+        id: q.customId || q._id,
+        bookingDate: q.createdAt ? formatDMY(q.createdAt) : "—",
+        travelDate: q.travelDate ? String(q.travelDate) : "",
+        status: mapStatusForModal(q.status),
+        amount: (q.totalAmount != null ? String(q.totalAmount) : "0"),
+      }));
+      setHistoryBookings(mapped);
+      setIsHistoryOpen(true);
+    } catch (e) {
+      console.error("Failed to open vendor history:", e);
+      setHistoryBookings([]);
+      setIsHistoryOpen(true);
+    }
+  };
+
   // Handle Delete Vendor
   const handleDeleteVendor = async (vendorId: string) => {
     try {
@@ -227,12 +276,10 @@ const VendorDirectory = () => {
   useEffect(() => {
     const fetchVendors = async () => {
       try {
-        const data = await getVendors();
-        console.log("RAW VENDORS RESPONSE:", data);
-
+        const data = await getVendors({ isDeleted: activeTab === "Deleted" });
         const mappedRows: VendorRow[] = data.map((v: any, index: number) => ({
           ...v,
-          vendorID: v._id || `#C00${index + 1}`,
+          vendorID: v._id || `#V00${index + 1}`,
           vendorName: v.companyName || v.name || "—",
           poc: v.contactPerson || "—",
           rating: v.tier ? Number(v.tier.replace("tier", "")) : 4,
@@ -242,13 +289,11 @@ const VendorDirectory = () => {
         setVendors(mappedRows);
       } catch (err) {
         console.error("Failed to fetch Vendors:", err);
-      } finally {
-        // Any cleanup or final steps
       }
     };
 
     fetchVendors();
-  }, []);
+  }, [activeTab]);
 
   const tableData = useMemo<JSX.Element[][]>(
     () =>
@@ -330,7 +375,7 @@ const VendorDirectory = () => {
               <button
                 type="button"
                 className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
-                onClick={() => setIsHistoryOpen(true)}
+                onClick={() => openHistoryForVendor(row)}
               >
                 Booking History
               </button>
@@ -455,8 +500,8 @@ const VendorDirectory = () => {
                 className="px-2 py-1.5 w-[6rem] mr-3 text-[0.75rem] font-medium rounded-lg border border-gray-300 bg-white hover:bg-gray-100"
               >
                 {selectedVendors.length === vendors.length
-                  ? "Select All"
-                  : "Deselect All"}
+                  ? "Deselect All"
+                  : "Select All"}
               </button>
             </div>
           )}
@@ -510,16 +555,18 @@ const VendorDirectory = () => {
         />
       </div>
       {isSideSheetOpen && (
-        <AddVendorSideSheet
-          isOpen={isSideSheetOpen}
-          onCancel={() => {
-            setIsSideSheetOpen(false);
-            setSelectedVendor(null);
-            setMode("create");
-          }}
-          data={selectedVendor} // REQUIRED
-          mode={mode}
-        />
+        <BookingProvider>
+          <AddVendorSideSheet
+            isOpen={isSideSheetOpen}
+            onCancel={() => {
+              setIsSideSheetOpen(false);
+              setSelectedVendor(null);
+              setMode("create");
+            }}
+            data={selectedVendor} // REQUIRED
+            mode={mode}
+          />
+        </BookingProvider>
       )}
 
       {isConfirmModalOpen && (
@@ -542,29 +589,7 @@ const VendorDirectory = () => {
         <BookingHistoryModal
           isOpen={isHistoryOpen}
           onClose={() => setIsHistoryOpen(false)}
-          bookings={[
-            {
-              id: "VBK-001",
-              bookingDate: "12-10-2025",
-              travelDate: "18-10-2025",
-              status: "Successful",
-              amount: "32,500",
-            },
-            {
-              id: "VBK-002",
-              bookingDate: "21-10-2025",
-              travelDate: "25-10-2025",
-              status: "On Hold",
-              amount: "18,200",
-            },
-            {
-              id: "VBK-003",
-              bookingDate: "28-10-2025",
-              travelDate: "02-11-2025",
-              status: "In Progress",
-              amount: "25,350",
-            },
-          ]}
+          bookings={historyBookings}
         />
       )}
     </div>

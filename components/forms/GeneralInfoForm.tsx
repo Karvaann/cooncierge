@@ -187,6 +187,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     openAddTraveller,
     lastAddedCustomer,
     lastAddedVendor,
+    lastAddedTraveller,
+    setLastAddedTraveller,
+    travellerTarget,
+    setTravellerTarget,
   } = useBooking();
   const [customerList, setCustomerList] = useState<
     { id: string; name: string }[]
@@ -411,6 +415,34 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     setFormData((prev) => ({ ...prev, vendor: lastAddedVendor.id }));
     setErrors((prev) => ({ ...prev, vendor: "" }));
   }, [lastAddedVendor]);
+
+  // Hydrate UI when a new traveller is created via sidesheet
+  useEffect(() => {
+    if (!lastAddedTraveller || !travellerTarget) return;
+    const name = lastAddedTraveller.name || "";
+    if (!name) return;
+
+    setFormData((prev) => {
+      if (travellerTarget.type === "adultTravellers") {
+        const adults = [...prev.adultTravellers];
+        adults[travellerTarget.index] = name;
+        return { ...prev, adultTravellers: adults };
+      } else {
+        const infants = [...prev.infantTravellers];
+        infants[travellerTarget.index] = name;
+        return { ...prev, infantTravellers: infants };
+      }
+    });
+
+    setErrors((prev) => ({ ...prev, traveller1: "" }));
+    setLastAddedTraveller(null);
+    setTravellerTarget(null);
+  }, [
+    lastAddedTraveller,
+    travellerTarget,
+    setLastAddedTraveller,
+    setTravellerTarget,
+  ]);
   const getFieldValue = (fieldName: string, overrideValue?: string) => {
     if (overrideValue !== undefined) return overrideValue;
     return formData[fieldName as keyof GeneralInfoFormData] ?? "";
@@ -1032,7 +1064,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 overrideSetter={(val) =>
                   updateTraveller("adultTravellers", index, val)
                 }
-                onClickPlus={openAddTraveller}
+                onClickPlus={() =>
+                  openAddTraveller({ type: "adultTravellers", index })
+                }
               />
             </div>
           ))}
@@ -1099,7 +1133,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   overrideSetter={(val) =>
                     updateTraveller("infantTravellers", index, val)
                   }
-                  onClickPlus={openAddTraveller}
+                  onClickPlus={() =>
+                    openAddTraveller({ type: "infantTravellers", index })
+                  }
                 />
               </div>
             </div>

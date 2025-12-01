@@ -294,7 +294,10 @@ interface BookingContextType {
   openAddVendor: () => void;
   closeAddVendor: () => void;
   isAddTravellerOpen: boolean;
-  openAddTraveller: () => void;
+  openAddTraveller: (target?: {
+    type: "adultTravellers" | "infantTravellers";
+    index: number;
+  }) => void;
   closeAddTraveller: () => void;
   setTravellerForm: (form: TravellerForm) => void;
 
@@ -326,6 +329,15 @@ interface BookingContextType {
   setLastAddedCustomer: (c: { id: string; name: string } | null) => void;
   lastAddedVendor: { id: string; name: string } | null;
   setLastAddedVendor: (v: { id: string; name: string } | null) => void;
+  lastAddedTraveller: { id: string; name: string } | null;
+  setLastAddedTraveller: (t: { id: string; name: string } | null) => void;
+  travellerTarget: {
+    type: "adultTravellers" | "infantTravellers";
+    index: number;
+  } | null;
+  setTravellerTarget: (
+    t: { type: "adultTravellers" | "infantTravellers"; index: number } | null
+  ) => void;
 }
 
 // Initial state
@@ -580,13 +592,26 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isAddCustomerOpen, setIsAddCustomerOpen] = useState(false);
   const [isAddVendorOpen, setIsAddVendorOpen] = useState(false);
   const [isAddTravellerOpen, setIsAddTravellerOpen] = useState(false);
+  const [travellerTarget, setTravellerTarget] = useState<{
+    type: "adultTravellers" | "infantTravellers";
+    index: number;
+  } | null>(null);
 
   const openAddCustomer = useCallback(() => setIsAddCustomerOpen(true), []);
   const closeAddCustomer = useCallback(() => setIsAddCustomerOpen(false), []);
 
   const openAddVendor = useCallback(() => setIsAddVendorOpen(true), []);
   const closeAddVendor = useCallback(() => setIsAddVendorOpen(false), []);
-  const openAddTraveller = useCallback(() => setIsAddTravellerOpen(true), []);
+  const openAddTraveller = useCallback(
+    (target?: {
+      type: "adultTravellers" | "infantTravellers";
+      index: number;
+    }) => {
+      if (target) setTravellerTarget(target);
+      setIsAddTravellerOpen(true);
+    },
+    []
+  );
   const closeAddTraveller = useCallback(() => setIsAddTravellerOpen(false), []);
 
   // Load from localStorage on mount
@@ -668,6 +693,12 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Recently created vendor for UI hydration
   const [lastAddedVendor, setLastAddedVendor] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  // Recently created traveller for UI hydration
+  const [lastAddedTraveller, setLastAddedTraveller] = useState<{
     id: string;
     name: string;
   } | null>(null);
@@ -1035,6 +1066,10 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
       setLastAddedCustomer,
       lastAddedVendor,
       setLastAddedVendor,
+      lastAddedTraveller,
+      setLastAddedTraveller,
+      travellerTarget,
+      setTravellerTarget,
     }),
     [
       state,
@@ -1079,6 +1114,10 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
       setLastAddedCustomer,
       lastAddedVendor,
       setLastAddedVendor,
+      lastAddedTraveller,
+      setLastAddedTraveller,
+      travellerTarget,
+      setTravellerTarget,
     ]
   );
 

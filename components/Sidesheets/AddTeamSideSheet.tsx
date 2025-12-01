@@ -25,6 +25,7 @@ type TeamData = {
   dateOfLeaving: string;
   address: string;
   remarks: string;
+  status?: "Current" | "Former";
 };
 
 type AddTeamSideSheetProps = {
@@ -61,6 +62,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
     dateOfLeaving: "",
     address: "",
     remarks: "",
+    status: "Current",
   });
 
   const handleConfirmModalOpen = () => {
@@ -105,6 +107,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
         dateOfLeaving: data.dateOfLeaving || "",
         address: data.address || "",
         remarks: data.remarks || "",
+        status: data.status || "Current",
       });
     } else {
       setFormData({
@@ -122,6 +125,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
         dateOfLeaving: "",
         address: "",
         remarks: "",
+        status: "Current",
       });
     }
   }, [data]);
@@ -217,24 +221,27 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
         showLinkButton={true}
       >
         <form className="space-y-6 p-4">
-          {/* ================= STATUS DROPDOWN ================
+          {/* ================= STATUS DROPDOWN ================ */}
           <div className="flex flex-col gap-1">
             <select
               name="status"
               required
               onChange={(e) => {
                 if (e.target.value === "former") {
-                  handleTransferModalOpen();
+                  // handleTransferModalOpen();
                 }
-                setFormData({ ...formData, status: e.target.value });
+                setFormData({
+                  ...formData,
+                  status: e.target.value === "current" ? "Current" : "Former",
+                });
               }}
-              className="w-[15rem] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-[13rem] border border-gray-300 rounded-md px-3 py-1.5 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
               <option value="disabled">Select Status</option>
               <option value="current">Current</option>
               <option value="former">Former</option>
             </select>
-          </div> */}
+          </div>
 
           {/* ================= BASIC DETAILS ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">

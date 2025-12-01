@@ -73,13 +73,52 @@ export const getUserLogsByMonth = async (
   year: number
 ) => {
   try {
-    const response = await apiClient.get(
-      `/logs/monthly-summary/${userId}?month=${month}&year=${year}`
+    const url = `/logs/monthly-summary/${userId}?month=${month}&year=${year}`;
+    console.log("[logsApi] GET", url);
+    const response = await apiClient.get(url);
+    console.log(
+      "[logsApi] monthly-summary response:",
+      Array.isArray(response?.data)
+        ? { type: "array", length: (response.data as any[]).length }
+        : {
+            keys: Object.keys(response?.data || {}),
+            logsByDayKeys: Object.keys(response?.data?.logsByDay || {}),
+          }
     );
 
     return response.data; // { logsByDay: {...}, userId, month, year }
   } catch (error: any) {
     console.error("Failed to fetch monthly logs:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+
+// Get Logs by Booking ID
+export const getLogsByBookingId = async (bookingId: string) => {
+  try {
+    const response = await apiClient.get(`/logs/booking/${bookingId}`);
+    return response.data; // contains summary, logs, logsByStatus
+  } catch (error: any) {
+    // For known statuses, return a normalized empty payload instead of throwing
+    const status = error?.response?.status;
+    if (status === 404 || status === 400 || status === 500) {
+      const data = error?.response?.data || {};
+      return {
+        success: false,
+        message:
+          data?.message ||
+          (status === 400
+            ? "Invalid booking ID"
+            : status === 500
+            ? "Failed to fetch logs for booking"
+            : "No logs found for this booking ID"),
+        bookingId,
+        summary: data?.summary || { total: 0 },
+        logsByStatus: data?.logsByStatus || {},
+        logs: [],
+      };
+    }
+    console.error("Failed to fetch logs:", error);
     throw error.response?.data || { message: "Something went wrong" };
   }
 };

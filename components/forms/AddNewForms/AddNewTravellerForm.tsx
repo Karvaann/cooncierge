@@ -4,6 +4,8 @@ import React, { useState, useCallback, useMemo } from "react";
 import { validateTravellerForm } from "@/services/bookingApi";
 import SideSheet from "@/components/SideSheet";
 import { useBooking } from "@/context/BookingContext";
+import { createTraveller } from "@/services/travellerApi";
+import { getAuthUser } from "@/services/storage/authStorage";
 // Type definitions
 interface TravellerFormData {
   firstname: string;
@@ -46,7 +48,9 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isValidating, setIsValidating] = useState<boolean>(false);
-  const { isAddTravellerOpen, closeAddTraveller } = useBooking();
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const { isAddTravellerOpen, closeAddTraveller, setLastAddedTraveller } =
+    useBooking();
 
   type FieldRule = {
     required: boolean;
@@ -197,21 +201,87 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
   // Handle form submission
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
+    async (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
 
-      if (validateForm()) {
-        onSubmit?.(formData);
-      } else {
-        // Mark all fields as touched to show validation errors
+      if (!validateForm()) {
         const allTouched = Object.keys(validationRules).reduce((acc, key) => {
           acc[key] = true;
           return acc;
         }, {} as Record<string, boolean>);
         setTouched(allTouched);
+        return;
+      }
+
+      try {
+        setSubmitting(true);
+        const name = [
+          String(formData.firstname || "").trim(),
+          String(formData.lastname || "").trim(),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .trim();
+
+        const storedUser = getAuthUser<any>();
+        const ownerId = storedUser?.id || storedUser?._id;
+
+        const payload: any = {
+          name,
+          email: String(formData.emailId || "").trim() || undefined,
+          phone: String(formData.contactnumber || "").trim() || undefined,
+          dateOfBirth: formData.dateofbirth || undefined,
+          ownerId,
+          // remarks is not part of traveller schema in docs; include only if backend accepts it
+        };
+
+        if (!payload.ownerId) {
+          console.error(
+            "[AddNewTravellerForm] Missing ownerId. Ensure user is authenticated."
+          );
+        }
+
+        const created = await createTraveller(payload);
+        const id: string = created?._id || created?.id || "";
+        const displayName = created?.name || name;
+
+        setLastAddedTraveller({ id, name: displayName });
+        console.log("[AddNewTravellerForm] Traveller created successfully:", {
+          id,
+          displayName,
+        });
+        closeAddTraveller();
+        // Optionally reset form
+        setFormData({
+          firstname: "",
+          lastname: "",
+          nickname: "",
+          contactnumber: "",
+          emailId: "",
+          dateofbirth: "",
+          remarks: "",
+        });
+      } catch (err: any) {
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to create traveller";
+        console.error(
+          "[AddNewTravellerForm] Error creating traveller:",
+          msg,
+          err?.response?.data || err
+        );
+      } finally {
+        setSubmitting(false);
       }
     },
-    [formData, validateForm, onSubmit, validationRules]
+    [
+      closeAddTraveller,
+      formData,
+      setLastAddedTraveller,
+      validateForm,
+      validationRules,
+    ]
   );
 
   // Enhanced input field component with validation indicators
@@ -446,11 +516,12 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
         <div className="flex justify-end mt-auto">
           <button
-            type="submit"
-            disabled={isSubmitting}
+            type="button"
+            onClick={() => handleSubmit()}
+            disabled={isSubmitting || submitting}
             className="px-4 py-2 bg-[#114958] text-white text-[0.75rem] rounded-lg hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? "Saving..." : "Save"}
+            {isSubmitting || submitting ? "Saving..." : "Save"}
           </button>
         </div>
       </div>

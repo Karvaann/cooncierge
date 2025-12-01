@@ -146,29 +146,36 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
         <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
           Rooms
         </label>
-        <div className="flex items-center gap-2">
-          <input
-            type="number"
-            value={numRooms}
-            onChange={(e) =>
-              handleRoomCountChange(parseInt(e.target.value) || 1)
-            }
-            min="1"
-            className="w-[4rem] px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
-          <div className="flex flex-col">
-            <button
-              onClick={() => handleRoomCountChange(numRooms + 1)}
-              className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-100 rounded-t-md text-[0.75rem]"
-            >
-              ▲
-            </button>
-            <button
-              onClick={() => handleRoomCountChange(numRooms - 1)}
-              className="px-2 py-1 border border-gray-300 bg-white hover:bg-gray-100 rounded-b-md border-t-0 text-[0.75rem]"
-            >
-              ▼
-            </button>
+        <div className="flex items-center">
+          <div className="flex border border-gray-300 rounded-md overflow-hidden">
+            {/* Number Input */}
+            <input
+              type="number"
+              value={numRooms}
+              onChange={(e) =>
+                handleRoomCountChange(parseInt(e.target.value) || 1)
+              }
+              min="1"
+              className="w-[4rem] px-2 py-1.5 text-[0.75rem] border-none focus:outline-none"
+            />
+
+            {/* Up/Down Arrows */}
+            <div className="flex flex-col border-l border-gray-300">
+              <button
+                type="button"
+                onClick={() => handleRoomCountChange(numRooms + 1)}
+                className="px-2 py-[2px] text-[0.65rem] hover:bg-gray-100"
+              >
+                ▲
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRoomCountChange(numRooms - 1)}
+                className="px-2 py-[2px] text-[0.65rem] hover:bg-gray-100"
+              >
+                ▼
+              </button>
+            </div>
           </div>
         </div>
       </div>

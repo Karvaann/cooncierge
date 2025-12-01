@@ -106,6 +106,7 @@ const Table: React.FC<TableProps> = ({
                       col === "Customer ID" ||
                       col === "Rating" ||
                       col === "Date Modified" ||
+                      col === "Date Created" ||
                       col === "Travel Date" ||
                       col === "Joining Date"
                     ) {
@@ -117,6 +118,7 @@ const Table: React.FC<TableProps> = ({
             col === "Customer ID" ||
             col === "Rating" ||
             col === "Date Modified" ||
+            col === "Date Created" ||
             col === "Travel Date" ||
             col === "Joining Date"
               ? "cursor-pointer hover:bg-[#0f5a43]"

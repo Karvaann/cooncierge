@@ -225,6 +225,15 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   });
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
 
+  const handleCopyGoogleLink = async () => {
+    try {
+      await navigator.clipboard.writeText(formData.googleMapsLink || "");
+      console.log("Copied to clipboard!");
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
   const handleSegmentsChange = (updatedSegments: RoomSegment[]) => {
     setFormData((prev) => ({
       ...prev,
@@ -1020,7 +1029,9 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
                       Google Maps Link
                     </label>
-                    <div className="flex gap-2">
+
+                    <div className="flex w-full">
+                      {/* Input */}
                       <input
                         type="text"
                         value={formData.googleMapsLink}
@@ -1031,11 +1042,14 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                           }))
                         }
                         placeholder="Paste Google Maps Link"
-                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-l-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
                       />
+
+                      {/* Copy Button */}
                       <button
                         type="button"
-                        className="px-3 py-1.5 flex items-center gap-1 bg-[#126ACB] text-white rounded-md text-[0.75rem] hover:bg-blue-700"
+                        onClick={handleCopyGoogleLink}
+                        className="px-4 py-1.5 flex items-center gap-1 bg-[#126ACB] text-white rounded-r-md text-[0.75rem] hover:bg-blue-700 border border-[#126ACB]"
                       >
                         <MdOutlineFileUpload size={16} /> Copy Link
                       </button>

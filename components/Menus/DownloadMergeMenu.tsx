@@ -8,7 +8,7 @@ import DeleteModal, { DeletableItem } from "../Modals/DeleteModal";
 type DownloadMergeMenuProps = {
   isOpen: boolean;
   onClose: () => void;
-  entity?: "customer" | "vendor" | "team";
+  entity?: "customer" | "vendor" | "team" | "traveller";
   items?: DeletableItem[];
 };
 
@@ -106,7 +106,7 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
         <hr className="border border-gray-100" />
 
         <button
-          onClick={handleMergeClick}
+          // onClick={handleMergeClick}
           className="w-full flex items-center gap-1 px-3 py-1 hover:bg-gray-50 transition-colors text-left"
         >
           <div className="flex items-center justify-center">

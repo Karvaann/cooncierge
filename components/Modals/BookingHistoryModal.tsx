@@ -12,6 +12,7 @@ import { FaStore } from "react-icons/fa";
 interface BookingHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onViewCustomer?: () => void;
   bookings: {
     id: string;
     bookingDate: string;
@@ -31,6 +32,7 @@ const statusColors: Record<string, string> = {
 const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
   isOpen,
   onClose,
+  onViewCustomer,
   bookings,
 }) => {
   const columns = [
@@ -48,7 +50,7 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
     { label: "Vendor", icon: <FaStore size={18} /> },
   ];
 
-  const rows = bookings.map((item) => [
+  const rows = bookings.map((item: any) => [
     <td
       key={`${item.id}-id`}
       className="px-2 py-2 text-center font-medium text-[0.75rem]"
@@ -67,7 +69,9 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
       key={`${item.id}-tdate`}
       className="px-2 py-2 text-center text-[0.75rem]"
     >
-      {item.travelDate}
+      {item.travelDate
+        ? new Date(item.travelDate).toLocaleDateString("en-IN")
+        : "—"}
     </td>,
 
     <td
@@ -88,14 +92,18 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
       key={`${item.id}-amount`}
       className="px-2 py-2 text-center text-[0.75rem]"
     >
-      ₹ {item.amount}
+      ₹ {item.totalAmount || item.amount || "0"}
     </td>,
 
     <td
       key={`${item.id}-actions`}
       className="px-2 py-2 text-center justify-center flex items-center gap-2"
     >
-      <button className="p-1.5 rounded-md bg-yellow-100 hover:bg-yellow-200 transition">
+      <button
+        className="p-1.5 rounded-md bg-yellow-100 hover:bg-yellow-200 transition"
+        onClick={onViewCustomer}
+        type="button"
+      >
         <FiEye className="text-gray-700" size={14} />
       </button>
 

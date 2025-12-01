@@ -2,7 +2,11 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import SideSheet from "../SideSheet";
-import { createVendor, updateVendor } from "@/services/vendorApi";
+import {
+  createVendor,
+  updateVendor,
+  getVendorBookingHistory,
+} from "@/services/vendorApi";
 import { getAuthUser } from "@/services/storage/authStorage";
 import { useBooking } from "@/context/BookingContext";
 
@@ -10,6 +14,7 @@ import { CiCirclePlus } from "react-icons/ci";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
 import { LuSave } from "react-icons/lu";
+import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 
 type VendorData = {
   _id?: string;
@@ -19,6 +24,7 @@ type VendorData = {
   alias: string;
   email: string;
   phone: string;
+  countryCode: string;
   dateOfBirth: string;
   GSTIN: string;
   companyName: string;
@@ -58,6 +64,64 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
   const [tier, setTier] = useState<string>("");
 
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [historyBookings, setHistoryBookings] = useState<
+    {
+      id: string;
+      bookingDate: string;
+      travelDate: string;
+      status: "Successful" | "On Hold" | "In Progress" | "Failed";
+      amount: string;
+    }[]
+  >([]);
+
+  const formatDMY = (dateString: string) => {
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  };
+
+  const mapStatusForModal = (status?: string) => {
+    switch ((status || "").toLowerCase()) {
+      case "confirmed":
+        return "Successful" as const;
+      case "cancelled":
+        return "Failed" as const;
+      case "draft":
+      default:
+        return "In Progress" as const;
+    }
+  };
+
+  const openHistoryForVendor = async () => {
+    try {
+      const vendorId = data?._id;
+      if (!vendorId) return;
+      const resp = await getVendorBookingHistory(vendorId, {
+        sortBy: "createdAt",
+        sortOrder: "desc",
+        page: 1,
+        limit: 10,
+      });
+      const quotations = resp?.quotations || [];
+      const mapped = quotations.map((q: any) => ({
+        id: q.customId || q._id,
+        bookingDate: q.createdAt ? formatDMY(q.createdAt) : "—",
+        travelDate: q.travelDate ? String(q.travelDate) : "",
+        status: mapStatusForModal(q.status),
+        amount: q.totalAmount != null ? String(q.totalAmount) : "0",
+      }));
+      setHistoryBookings(mapped);
+      setIsHistoryOpen(true);
+    } catch (e) {
+      console.error("Failed to open vendor history:", e);
+      setHistoryBookings([]);
+      setIsHistoryOpen(true);
+    }
+  };
+
   // Handle file selection
   const handleFileChange = () => {
     const file = fileRef.current?.files?.[0];
@@ -88,6 +152,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
     balanceType: "debit",
     remarks: "",
     tier: "",
+    countryCode: "+91",
   });
 
   useEffect(() => {
@@ -108,6 +173,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         balanceType: data.balanceType || "debit",
         remarks: data.remarks || "",
         tier: data.tier || "",
+        countryCode: data.countryCode || "+91",
       });
       setTier(data.tier || "");
     } else {
@@ -125,6 +191,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         balanceType: "debit",
         remarks: "",
         tier: "",
+        countryCode: "+91",
       });
       setTier("");
     }
@@ -146,7 +213,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
           : undefined,
         balanceType: formData.balanceType,
         email: formData.email,
-        phone: `${phoneCode}${formData.phone}`,
+        phone: `${formData.phone}`,
         GSTIN: formData.GSTIN,
         address: formData.address,
         businessId: businessId,
@@ -265,16 +332,33 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Contact Number <span className="text-red-500">*</span>
                 </label>
-                <input
-                  name="phone"
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                  placeholder="Enter Contact Number"
-                  required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
-                />
+                <div className="relative">
+                  <select
+                    value={formData.countryCode}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        countryCode: e.target.value,
+                      })
+                    }
+                    className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    style={{ width: "70px" }}
+                  >
+                    <option value="+91">+91</option>
+                    <option value="+1">+1</option>
+                    <option value="+44">+44</option>
+                  </select>
+                  <input
+                    name="phone"
+                    value={formData.phone}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
+                    placeholder="Enter Contact Number"
+                    required
+                    className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
               </div>
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
@@ -361,16 +445,33 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Contact Number <span className="text-red-500">*</span>
                 </label>
-                <input
-                  placeholder="Enter Contact Number"
-                  type="text"
-                  required
-                  value={formData.phone}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
-                />
+                <div className="relative">
+                  <select
+                    value={formData.countryCode}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        countryCode: e.target.value,
+                      })
+                    }
+                    className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    style={{ width: "70px" }}
+                  >
+                    <option value="+91">+91</option>
+                    <option value="+1">+1</option>
+                    <option value="+44">+44</option>
+                  </select>
+                  <input
+                    placeholder="Enter Contact Number"
+                    type="text"
+                    required
+                    value={formData.phone}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
+                    className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
               </div>
             </div>
 
@@ -575,6 +676,15 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
           {/* ================= ACTION BUTTONS ================ */}
           <div className="flex justify-end gap-2 pt-2">
+            {mode === "edit" && data?._id && (
+              <button
+                type="button"
+                onClick={openHistoryForVendor}
+                className="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-[0.75rem]"
+              >
+                Booking History
+              </button>
+            )}
             {mode === "edit" ? (
               <button
                 type="submit"
@@ -586,15 +696,22 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
             ) : (
               <button
                 type="submit"
-                className="px-4 py-1.5 rounded-md bg-[#114958] text-white text-[0.75rem]"
+                className="px-3 py-1.5 rounded-md bg-[#114958] text-white text-[0.75rem]"
               >
-                <LuSave className="mr-2" size={16} />
+                <LuSave className="mr-1 inline-block" size={16} />
                 Save
               </button>
             )}
           </div>
         </form>
       </SideSheet>
+      {isHistoryOpen && (
+        <BookingHistoryModal
+          isOpen={isHistoryOpen}
+          onClose={() => setIsHistoryOpen(false)}
+          bookings={historyBookings}
+        />
+      )}
     </>
   );
 };

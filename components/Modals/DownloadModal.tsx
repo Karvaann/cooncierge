@@ -12,7 +12,7 @@ interface DownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
   items: DeletableItem[];
-  entity: "customer" | "vendor" | "team";
+  entity: "customer" | "vendor" | "team" | "traveller";
 }
 
 const DownloadModal: React.FC<DownloadModalProps> = ({

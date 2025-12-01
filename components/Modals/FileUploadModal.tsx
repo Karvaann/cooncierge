@@ -180,6 +180,8 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
       e.stopPropagation();
       setIsDragging(false);
 
+      if (uploadedFiles.length >= 1) return;
+
       const files = Array.from(e.dataTransfer.files);
       const validFiles = files.filter(validateFile).slice(0, maxFiles);
       setUploadedFiles((prev) => [...prev, ...validFiles].slice(0, maxFiles));
@@ -189,6 +191,7 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
 
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (uploadedFiles.length >= 1) return;
       if (e.target.files) {
         const files = Array.from(e.target.files);
         const validFiles = files.filter(validateFile).slice(0, maxFiles);
@@ -199,6 +202,7 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
   );
 
   const handleBrowseClick = () => {
+    if (uploadedFiles.length >= 1) return;
     fileInputRef.current?.click();
   };
 
@@ -304,7 +308,9 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             className={`border-2 border-dashed rounded-md p-4 mb-2 text-center transition-colors ${
-              isDragging
+              uploadedFiles.length >= 1
+                ? "border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed"
+                : isDragging
                 ? "border-blue-500 bg-blue-50"
                 : "border-gray-300 bg-gray-50"
             }`}
@@ -325,15 +331,21 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
               </svg>
               <div>
                 <p className="text-gray-700 font-medium mb-0.5 text-[0.75rem]">
-                  Drag and drop files here
+                  {uploadedFiles.length >= 1
+                    ? "File already uploaded"
+                    : "Drag and drop files here"}
                 </p>
-                <p className="text-gray-500 mb-2 text-[0.7rem]">OR</p>
-                <button
-                  onClick={handleBrowseClick}
-                  className="text-blue-600 hover:text-blue-700 font-medium underline text-[0.75rem]"
-                >
-                  Browse Files
-                </button>
+                {uploadedFiles.length < 1 && (
+                  <>
+                    <p className="text-gray-500 mb-2 text-[0.7rem]">OR</p>
+                    <button
+                      onClick={handleBrowseClick}
+                      className="text-blue-600 hover:text-blue-700 font-medium underline text-[0.75rem]"
+                    >
+                      Browse Files
+                    </button>
+                  </>
+                )}
                 <input
                   ref={fileInputRef}
                   type="file"

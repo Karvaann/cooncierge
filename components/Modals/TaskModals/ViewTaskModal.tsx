@@ -123,7 +123,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
       onClick={handleOverlayClick}
     >
       <div
-        className="bg-white rounded-lg shadow-xl w-[32vw] h-fit max-w-xl overflow-hidden flex flex-col"
+        className="bg-white rounded-lg shadow-xl w-[500px] h-fit max-w-xl overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

@@ -4,7 +4,7 @@ import React, { useMemo } from "react";
 import Modal from "@/components/Modal";
 import Table from "@/components/Table";
 
-type EntityType = "customer" | "vendor" | "team";
+type EntityType = "customer" | "vendor" | "team" | "traveller";
 
 export interface DeletableItem {
   id: string;
@@ -15,6 +15,7 @@ export interface DeletableItem {
   owner?: string; // customer owner
   rating?: number; // customer/vendor rating
   dateModified?: string; // customer date modified / vendor date modified
+  dateCreated?: string; // traveller date created
   isLinked?: boolean;
   // vendor specific
   vendorName?: string;
@@ -75,6 +76,9 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         "Rating",
         "Actions",
       ];
+    }
+    if (entity === "traveller") {
+      return ["ID", "Name", "Owner", "Date Created", "Actions"];
     }
     return [
       "ID",
@@ -210,6 +214,35 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           actionsCell,
         ];
       }
+      if (entity === "traveller") {
+        return [
+          <td
+            key={`${item.id}-id`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {item.id}
+          </td>,
+          <td
+            key={`${item.id}-name`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {item.name || "—"}
+          </td>,
+          <td
+            key={`${item.id}-owner`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {item.owner || "—"}
+          </td>,
+          <td
+            key={`${item.id}-dateCreated`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {item.dateCreated || "—"}
+          </td>,
+          actionsCell,
+        ];
+      }
       // team
       return [
         <td
@@ -261,13 +294,15 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             ? "Delete Customers"
             : entity === "vendor"
             ? "Delete Vendors"
+            : entity === "traveller"
+            ? "Delete Travellers"
             : "Delete Team Members"
         }
-        customWidth="w-[75vw]"
+        customWidth="w-[60vw]"
         customeHeight="h-fit"
         className="max-w-[1100px]"
       >
-        <div className="flex h-full flex-col -mt-3 px-6 pb-3 text-[0.75rem] overflow-hidden">
+        <div className="flex h-full flex-col -mt-5 px-2 pb-1 text-[0.75rem] overflow-hidden">
           <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="text-center text-red-500 text-[0.75rem] font-medium mb-3">
               Note : This action cannot be undone
@@ -283,22 +318,17 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
               />
             </div>
 
-            <div className="flex items-center text-red-500 text-[0.7rem] gap-1 mt-4">
+            {/* Warning moved to footer next to Delete button */}
+          </div>
+
+          <div className="flex justify-end items-center gap-3 pt-3 bg-white shrink-0">
+            <div className="flex items-center text-red-500 text-[0.7rem] gap-1">
               <span>Entries with</span>
               <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
               </svg>
               <span>cannot be deleted as they are linked</span>
             </div>
-          </div>
-
-          <div className="flex justify-end items-center gap-2 pt-3 border-t border-gray-100 bg-white shrink-0">
-            <button
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors text-[0.7rem]"
-            >
-              No, Cancel
-            </button>
 
             <button
               onClick={() => alert("Deleting non-linked customers...")}

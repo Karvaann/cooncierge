@@ -12,9 +12,9 @@ export const createVendor = async (vendorData: any) => {
 };
 
 // GET All Vendors
-export const getVendors = async () => {
+export const getVendors = async (params: any = {}) => {
   try {
-    const response = await apiClient.get("/vendor/get-all-vendors");
+    const response = await apiClient.get("/vendor/get-all-vendors", { params });
     return response.data.vendors; // <-- backend returns { vendors }
   } catch (error: any) {
     console.error("Failed to fetch vendors:", error);
@@ -54,6 +54,24 @@ export const deleteVendor = async (id: string) => {
     return response.data; // backend returns { message: 'Vendor deleted' }
   } catch (error: any) {
     console.error("Failed to delete vendor:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+
+// GET Vendor Booking History
+// Returns { quotations, pagination, vendor } under response.data.data
+export const getVendorBookingHistory = async (
+  vendorId: string,
+  params: any = {}
+) => {
+  try {
+    const response = await apiClient.get(
+      `/quotation/booking-history/vendor/${vendorId}`,
+      { params }
+    );
+    return response.data.data;
+  } catch (error: any) {
+    console.error("Failed to fetch vendor booking history:", error);
     throw error.response?.data || { message: "Something went wrong" };
   }
 };

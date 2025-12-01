@@ -34,7 +34,7 @@ type AddCustomerSideSheetProps = {
   data?: CustomerData | null;
   onCancel: () => void;
   isOpen: boolean;
-  mode?: "create" | "edit";
+  mode?: "create" | "edit" | "view";
   formRef?: React.RefObject<HTMLFormElement | null>;
 };
 
@@ -46,6 +46,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   formRef,
 }) => {
   const { updateGeneralInfo, setLastAddedCustomer } = useBooking();
+  const readOnly = mode === "view";
   const [phoneCode, setPhoneCode] = useState<string>("+91");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
@@ -218,7 +219,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       <SideSheet
         isOpen={isOpen}
         onClose={onCancel}
-        title="Add Customer"
+        title={
+          mode === "view"
+            ? "Customer Details"
+            : mode === "edit"
+            ? "Edit Customer"
+            : "Add Customer"
+        }
         width="xl"
         position="right"
         showLinkButton={true}
@@ -246,7 +253,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   onChange={handleChange}
                   placeholder="Enter First Name"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -260,7 +268,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   onChange={handleChange}
                   placeholder="Enter Last Name"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
             </div>
@@ -278,7 +287,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   onChange={handleChange}
                   placeholder="Enter Nickname/Alias"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -292,7 +302,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   onChange={handleChange}
                   placeholder="Enter Contact Number"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
             </div>
@@ -310,7 +321,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   onChange={handleChange}
                   placeholder="Enter Email ID"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
               <div className="flex flex-col gap-1 w-full">
@@ -323,7 +335,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   value={formData.dateOfBirth}
                   onChange={handleChange}
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
             </div>
@@ -348,7 +361,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   value={formData.gstin}
                   onChange={handleChange}
                   placeholder="Please Provide Your GST No."
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] pr-16 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] pr-16 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
 
@@ -363,7 +377,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   value={formData.companyName}
                   onChange={handleChange}
                   placeholder="Enter Company Name"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
             </div>
@@ -378,6 +393,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             <button
               type="button"
               className="px-2 py-2 bg-[#126ACB] text-white text-[0.75rem] rounded-md hover:bg-blue-800 flex items-center gap-1"
+              disabled={readOnly}
             >
               <CiCirclePlus size={14} /> Billing Address
             </button>
@@ -397,6 +413,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   checked={balanceType === "debit"}
                   onChange={() => setBalanceType("debit")}
                   className="w-3 h-3 text-blue-600"
+                  disabled={readOnly}
                 />
                 <span className="text-gray-700">Debit</span>
               </label>
@@ -409,6 +426,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   checked={balanceType === "credit"}
                   onChange={() => setBalanceType("credit")}
                   className="w-3 h-3 text-blue-600"
+                  disabled={readOnly}
                 />
                 <span className="text-gray-700">Credit</span>
               </label>
@@ -426,7 +444,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       ? "Enter Debit Amount"
                       : "Enter Credit Amount"
                   }
-                  className="flex-1 outline-none text-gray-700 text-[0.75rem]"
+                  disabled={readOnly}
+                  className="flex-1 outline-none text-gray-700 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
               <div className="absolute right-3 top-2 text-sm font-medium">
@@ -451,7 +470,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               <select
                 value={tier}
                 onChange={(e) => setTier(e.target.value)}
-                className="w-[10rem] border border-gray-300 rounded-md px-3 py-1.5 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                disabled={readOnly}
+                className="w-[10rem] border border-gray-300 rounded-md px-3 py-1.5 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-700"
               >
                 <option value="">Select Tier</option>
                 <option value="tier1">Tier 1</option>
@@ -475,39 +495,53 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               value={formData.remarks}
               onChange={handleChange}
               placeholder="Enter Your Remarks Here"
+              disabled={readOnly}
               className={`
             w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem]  mt-2 transition-colors
             focus:ring focus:ring-blue-200
+            disabled:bg-gray-100 disabled:text-gray-700
           `}
             />
           </div>
 
           {/* ================= ACTION BUTTONS ================ */}
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
-              onClick={onCancel}
-            >
-              Cancel
-            </button>
-
-            {mode === "edit" ? (
+            {mode === "view" ? (
               <button
-                type="button" // Changed from default submit
-                onClick={handleUpdateCustomer}
-                className="px-4 py-2 bg-[#0D4B37] text-white rounded-lg hover:bg-green-900 text-[0.75rem]"
+                type="button"
+                className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
+                onClick={onCancel}
               >
-                Update Customer
+                Close
               </button>
             ) : (
-              <button
-                type="submit"
-                className="px-4 py-1.5 gap-1 rounded-md bg-[#0D4B37] text-white text-[0.75rem] hover:bg-[#0f3d44]"
-              >
-                <LuSave className="mr-1 inline-block" size={16} />
-                Save
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
+                  onClick={onCancel}
+                >
+                  Cancel
+                </button>
+
+                {mode === "edit" ? (
+                  <button
+                    type="button" // Changed from default submit
+                    onClick={handleUpdateCustomer}
+                    className="px-4 py-2 bg-[#0D4B37] text-white rounded-lg hover:bg-green-900 text-[0.75rem]"
+                  >
+                    Update Customer
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 gap-1 rounded-md bg-[#0D4B37] text-white text-[0.75rem] hover:bg-[#0f3d44]"
+                  >
+                    <LuSave className="mr-1 inline-block" size={16} />
+                    Save
+                  </button>
+                )}
+              </>
             )}
           </div>
         </form>

@@ -13,13 +13,16 @@ import { getCustomers, deleteCustomer } from "@/services/customerApi";
 import type { JSX } from "react";
 import LinkProfilesModal from "@/components/Modals/LinkProfilesModal";
 import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
+import { BookingProvider } from "@/context/BookingContext";
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
 import DownloadMergeMenu from "@/components/Menus/DownloadMergeMenu";
 import type { DeletableItem } from "@/components/Modals/DeleteModal";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import { FaRegStar } from "react-icons/fa";
 import { CiLink } from "react-icons/ci";
+import { getTravellers, deleteTraveller } from "@/services/travellerApi";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
+import { getBookingHistoryByCustomer } from "@/services/customerApi";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -43,6 +46,14 @@ const columns: string[] = [
   "Date Modified",
   "Actions",
 ];
+
+const travellerColumns = ["ID", "Name", "Owner", "Date Created", "Actions"];
+
+const travellerColumnIconMap: Record<string, JSX.Element> = {
+  "Date Created": (
+    <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1] " />
+  ),
+};
 
 const columnIconMap: Record<string, JSX.Element> = {
   "Customer ID": (
@@ -116,12 +127,15 @@ const CustomerDirectory = () => {
 
   const [selectMode, setSelectMode] = useState(false);
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
+  const [selectedTravellers, setSelectedTravellers] = useState<string[]>([]);
 
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
-  const [mode, setMode] = useState<"create" | "edit">("create");
+  const [mode, setMode] = useState<"create" | "edit" | "view">("create");
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [travellers, setTravellers] = useState<any[]>([]);
+  const [bookingHistory, setBookingHistory] = useState<any[]>([]);
 
   const handleOpenLinkModal = () => {
     setIsLinkModalOpen(true);
@@ -227,6 +241,7 @@ const CustomerDirectory = () => {
   const handleCancelSelectMode = () => {
     setSelectMode(false);
     setSelectedCustomers([]);
+    setSelectedTravellers([]);
     setMenuMode("main"); // Revert menu to SelectUploadMenu
   };
 
@@ -237,43 +252,79 @@ const CustomerDirectory = () => {
 
       console.log("Customer deleted successfully:", response.message);
 
-      // Optional: Refresh list after delete
-      setCustomers((prev) => prev.filter((c) => c.customerID !== customerID));
+      // Refresh list after delete
+      // setCustomers((prev) => prev.filter((c) => c.customerID !== customerID));
     } catch (error: any) {
       console.error("Error deleting customer:", error.message || error);
     }
   };
 
   useEffect(() => {
-    const fetchCustomers = async () => {
+    const fetchData = async () => {
       try {
-        const customers = await getCustomers();
-        console.log("Fetched customers:", customers);
+        if (activeTab === "Customers") {
+          const customers = await getCustomers({ isDeleted: false });
 
-        const mappedRows: CustomerRow[] = customers.map(
-          (c: any, index: number) => ({
-            ...c,
-            customerID: c._id || `#C00${index + 1}`,
-            name: c.name,
+          const mappedRows: CustomerRow[] = customers.map(
+            (c: any, index: number) => ({
+              ...c,
+              customerID: c._id || `#C00${index + 1}`,
+              name: c.name,
+              owner:
+                typeof c.ownerId === "object" && c.ownerId !== null
+                  ? c.ownerId.name
+                  : c.ownerId || "—",
+              rating: c.tier ? Number(c.tier.replace("tier", "")) : 4,
+              dateCreated: formatDMY(c.createdAt),
+              actions: "⋮",
+            })
+          );
+
+          setCustomers(mappedRows);
+        }
+
+        if (activeTab === "Travellers") {
+          const data = await getTravellers({ isDeleted: false });
+
+          const mappedTravellers = data.map((t: any) => ({
+            travellerID: t._id,
+            name: t.name,
             owner:
-              typeof c.ownerId === "object" && c.ownerId !== null
-                ? c.ownerId.name
-                : c.ownerId || "—",
-            rating: c.tier ? Number(c.tier.replace("tier", "")) : 4,
-            dateCreated: formatDMY(c.createdAt),
+              t.ownerId && typeof t.ownerId === "object" ? t.ownerId.name : "—",
+            dateCreated: formatDMY(t.createdAt),
             actions: "⋮",
-          })
-        );
-        setCustomers(mappedRows);
+          }));
+
+          setTravellers(mappedTravellers);
+        }
+
+        if (activeTab === "Deleted") {
+          const deleted = await getCustomers({ isDeleted: true });
+
+          const mappedRows: CustomerRow[] = deleted.map(
+            (c: any, index: number) => ({
+              ...c,
+              customerID: c._id || `#D00${index + 1}`,
+              name: c.name,
+              owner:
+                typeof c.ownerId === "object" && c.ownerId !== null
+                  ? c.ownerId.name
+                  : c.ownerId || "—",
+              rating: c.tier ? Number(c.tier.replace("tier", "")) : 4,
+              dateCreated: formatDMY(c.createdAt),
+              actions: "⋮",
+            })
+          );
+
+          setCustomers(mappedRows);
+        }
       } catch (err) {
-        console.error("Failed to fetch customers:", err);
-      } finally {
-        // Any cleanup or final steps
+        console.error("Failed to fetch:", err);
       }
     };
 
-    fetchCustomers();
-  }, []);
+    fetchData();
+  }, [activeTab]);
 
   const tableData = useMemo<JSX.Element[][]>(
     () =>
@@ -352,7 +403,21 @@ const CustomerDirectory = () => {
               <button
                 type="button"
                 className="bg-gray-200 text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
-                onClick={() => setIsHistoryOpen(true)}
+                onClick={async () => {
+                  setSelectedCustomer(row);
+
+                  try {
+                    const history = await getBookingHistoryByCustomer(
+                      row.customerID
+                    );
+                    setBookingHistory(history.quotations);
+                  } catch (err) {
+                    console.error("Failed to load booking history:", err);
+                    setBookingHistory([]);
+                  }
+
+                  setIsHistoryOpen(true);
+                }}
               >
                 Booking History
               </button>
@@ -398,6 +463,103 @@ const CustomerDirectory = () => {
     [filteredCustomers, selectMode, selectedCustomers]
   );
 
+  const travellerTableData = useMemo<JSX.Element[][]>(() => {
+    return travellers.map((row, index) => {
+      const cells: JSX.Element[] = [];
+
+      if (selectMode && activeTab === "Travellers") {
+        const isSelected = selectedTravellers.includes(row.travellerID);
+
+        cells.push(
+          <td key={`t-select-${index}`} className="px-4 py-3 text-center">
+            <div className="flex items-center justify-center">
+              <input
+                type="checkbox"
+                id={`traveller-select-${row.travellerID}`}
+                className="hidden peer"
+                checked={isSelected}
+                onChange={() => {
+                  setSelectedTravellers((prev) =>
+                    isSelected
+                      ? prev.filter((id) => id !== row.travellerID)
+                      : [...prev, row.travellerID]
+                  );
+                }}
+              />
+              <label
+                htmlFor={`traveller-select-${row.travellerID}`}
+                className={`w-5 h-5 border border-gray-400 rounded-md flex items-center justify-center cursor-pointer transition`}
+              >
+                {isSelected && (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="11"
+                    viewBox="0 0 12 11"
+                    fill="none"
+                  >
+                    <path
+                      d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                      stroke="#0D4B37"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                )}
+              </label>
+            </div>
+          </td>
+        );
+      }
+
+      cells.push(
+        <td key={`id-${index}`} className="px-4 py-3 text-center">
+          {row.travellerID}
+        </td>,
+        <td key={`name-${index}`} className="px-4 py-3 text-center">
+          {row.name}
+        </td>,
+        <td key={`owner-${index}`} className="px-4 py-3 text-center">
+          {row.owner}
+        </td>,
+        <td key={`date-${index}`} className="px-4 py-3 text-center">
+          {row.dateCreated}
+        </td>,
+        <td key={`actions-${index}`} className="px-4 py-3 text-center">
+          <div className="">
+            <ActionMenu
+              actions={[
+                {
+                  label: "Delete",
+                  icon: <FaRegTrashAlt />,
+                  color: "text-red-600",
+                  onClick: async () => {
+                    try {
+                      await deleteTraveller(row.travellerID);
+                      setTravellers((prev) =>
+                        prev.filter((t) => t.travellerID !== row.travellerID)
+                      );
+                    } catch (err) {
+                      console.error(err);
+                    }
+                  },
+                },
+              ]}
+            />
+          </div>
+        </td>
+      );
+
+      return cells;
+    });
+  }, [travellers, selectMode, activeTab, selectedTravellers]);
+
+  const handleTravellerSort = (column: string) => {
+    if (column === "Date Created") {
+      setTravellers((prev) => [...prev].reverse());
+    }
+  };
+
   const selectedDeletables: DeletableItem[] = useMemo(() => {
     return customers
       .filter((c) => selectedCustomers.includes(c.customerID))
@@ -409,6 +571,17 @@ const CustomerDirectory = () => {
         dateModified: c.dateCreated,
       }));
   }, [customers, selectedCustomers]);
+
+  const selectedTravellerDeletables: DeletableItem[] = useMemo(() => {
+    return travellers
+      .filter((t) => selectedTravellers.includes(t.travellerID))
+      .map((t) => ({
+        id: t.travellerID,
+        name: t.name,
+        owner: t.owner,
+        dateCreated: t.dateCreated,
+      }));
+  }, [travellers, selectedTravellers]);
 
   return (
     <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
@@ -478,15 +651,29 @@ const CustomerDirectory = () => {
               </button>
               <button
                 onClick={() => {
-                  if (selectedCustomers.length === customers.length) {
-                    setSelectedCustomers([]); // deselect all
-                  } else {
-                    setSelectedCustomers(customers.map((c) => c.customerID)); // select all
+                  if (activeTab === "Customers") {
+                    if (selectedCustomers.length === customers.length) {
+                      setSelectedCustomers([]);
+                    } else {
+                      setSelectedCustomers(customers.map((c) => c.customerID));
+                    }
+                  } else if (activeTab === "Travellers") {
+                    if (selectedTravellers.length === travellers.length) {
+                      setSelectedTravellers([]);
+                    } else {
+                      setSelectedTravellers(
+                        travellers.map((t) => t.travellerID)
+                      );
+                    }
                   }
                 }}
                 className="px-2 py-1.5 w-[6rem] mr-3 text-[0.75rem] font-medium rounded-md border border-gray-300 bg-white hover:bg-gray-100"
               >
-                {selectedCustomers.length === customers.length
+                {activeTab === "Customers"
+                  ? selectedCustomers.length === customers.length
+                    ? "Deselect All"
+                    : "Select All"
+                  : selectedTravellers.length === travellers.length
                   ? "Deselect All"
                   : "Select All"}
               </button>
@@ -523,8 +710,16 @@ const CustomerDirectory = () => {
                 <DownloadMergeMenu
                   isOpen={isMenuOpen}
                   onClose={handleCloseMenu}
-                  entity="customer"
-                  items={selectedDeletables}
+                  entity={
+                    activeTab === "Travellers"
+                      ? ("traveller" as any)
+                      : "customer"
+                  }
+                  items={
+                    activeTab === "Travellers"
+                      ? selectedTravellerDeletables
+                      : selectedDeletables
+                  }
                 />
               )}
             </div>
@@ -533,25 +728,49 @@ const CustomerDirectory = () => {
       </div>
 
       <div className="mt-2">
-        <Table
-          data={tableData}
-          columns={columns}
-          columnIconMap={columnIconMap}
-          showCheckboxColumn={selectMode}
-          onSort={handleSort}
-        />
+        {activeTab === "Customers" && (
+          <Table
+            data={tableData}
+            columns={columns}
+            columnIconMap={columnIconMap}
+            showCheckboxColumn={selectMode}
+            onSort={handleSort}
+          />
+        )}
+
+        {activeTab === "Travellers" && (
+          <Table
+            data={travellerTableData}
+            columns={travellerColumns}
+            columnIconMap={travellerColumnIconMap}
+            onSort={handleTravellerSort}
+            showCheckboxColumn={selectMode}
+          />
+        )}
+
+        {activeTab === "Deleted" && (
+          <Table
+            data={tableData}
+            columns={columns}
+            columnIconMap={columnIconMap}
+            showCheckboxColumn={selectMode}
+            onSort={handleSort}
+          />
+        )}
       </div>
       {isSideSheetOpen && (
-        <AddCustomerSideSheet
-          isOpen={isSideSheetOpen}
-          onCancel={() => {
-            setIsSideSheetOpen(false);
-            setSelectedCustomer(null);
-            setMode("create");
-          }}
-          data={selectedCustomer} // REQUIRED
-          mode={mode}
-        />
+        <BookingProvider>
+          <AddCustomerSideSheet
+            isOpen={isSideSheetOpen}
+            onCancel={() => {
+              setIsSideSheetOpen(false);
+              setSelectedCustomer(null);
+              setMode("create");
+            }}
+            data={selectedCustomer} // REQUIRED
+            mode={mode}
+          />
+        </BookingProvider>
       )}
       {isConfirmModalOpen && (
         <ConfirmationModal
@@ -580,29 +799,12 @@ const CustomerDirectory = () => {
         <BookingHistoryModal
           isOpen={isHistoryOpen}
           onClose={() => setIsHistoryOpen(false)}
-          bookings={[
-            {
-              id: "BK-001",
-              bookingDate: "12-10-2025",
-              travelDate: "18-10-2025",
-              status: "Successful",
-              amount: "12,500",
-            },
-            {
-              id: "BK-002",
-              bookingDate: "21-10-2025",
-              travelDate: "25-10-2025",
-              status: "On Hold",
-              amount: "8,200",
-            },
-            {
-              id: "BK-003",
-              bookingDate: "28-10-2025",
-              travelDate: "02-11-2025",
-              status: "In Progress",
-              amount: "15,350",
-            },
-          ]}
+          onViewCustomer={() => {
+            setMode("view");
+            setIsSideSheetOpen(true);
+            setIsHistoryOpen(false);
+          }}
+          bookings={bookingHistory}
         />
       )}
     </div>

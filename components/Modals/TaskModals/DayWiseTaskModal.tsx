@@ -5,9 +5,8 @@ import AddTaskModal from "../AddTaskModal";
 import { RxCross2 } from "react-icons/rx";
 import { FiAlertTriangle } from "react-icons/fi";
 import ViewTaskModal from "./ViewTaskModal";
-import { getUserLogsByMonth, getAllLogs } from "@/services/logsApi";
+import { getLogsByBookingId } from "@/services/logsApi";
 import PriorityTaskCard from "@/components/PriorityTaskCard";
-import { getAuthUser } from "@/services/storage/authStorage";
 
 interface DayWiseTaskModalProps {
   isOpen: boolean;
@@ -163,71 +162,46 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = React.useState(false);
   const [isViewTaskOpen, setIsViewTaskOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
+  const [isEditingTask, setIsEditingTask] = useState(false);
   const [teams, setTeams] = useState<any[]>([]);
-  const [loadingTeams, setLoadingTeams] = useState(false);
-
-  // log states
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>("09-05-2025"); // or from props
+  const [loadingTeams, setLoadingTeams] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
+  // Fetch logs for this booking when modal opens or after edits
   useEffect(() => {
     if (!isOpen) return;
-
     const fetchLogs = async () => {
-      const user = getAuthUser() as any;
-      const userID = user._id;
+      setLoading(true);
       try {
-        setLoading(true);
+        const isObjectId = (v: unknown) =>
+          typeof v === "string" && /^[a-fA-F0-9]{24}$/.test(v);
 
-        // const [day, month, year] = selectedDate.split("-").map(Number);
-
-        // TODO: Replace userId with logged-in user
-        const userId = userID;
-        console.log("AUTH USER:", getAuthUser());
-
-        if (!userId) {
-          console.error("User ID undefined!");
-          return;
+        if (bookingId && isObjectId(bookingId)) {
+          const resp = await getLogsByBookingId(bookingId);
+          const list = Array.isArray(resp?.logs) ? resp.logs : [];
+          const withPriority = list.filter((l: any) =>
+            ["High", "Medium", "Low"].includes(l?.priority)
+          );
+          setLogs(withPriority);
+        } else {
+          if (bookingId) {
+            console.warn(
+              "Invalid or missing bookingId for task view:",
+              bookingId
+            );
+          }
+          setLogs([]);
         }
-
-        // Convert selectedDate (ISO) → JS Date
-        const parsed = new Date(selectedDate);
-
-        if (isNaN(parsed.getTime())) {
-          console.error("Invalid ISO date:", selectedDate);
-          return;
-        }
-
-        const day = parsed.getUTCDate();
-        const month = parsed.getUTCMonth() + 1;
-        const year = parsed.getUTCFullYear();
-
-        console.log("EXTRACTED:", { day, month, year });
-
-        const response = await getUserLogsByMonth(
-          userId,
-          month as number,
-          year as number
-        );
-
-        // Convert ISO to "DD-MM-YYYY" to match backend grouping
-        const formattedDay = `${String(day).padStart(2, "0")}-${String(
-          month
-        ).padStart(2, "0")}-${year}`;
-
-        const dayLogs = response.logsByDay[formattedDay] || [];
-
-        setLogs(dayLogs);
       } catch (err) {
         console.error("Failed to fetch logs:", err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchLogs();
-  }, [isOpen, selectedDate]);
+  }, [isOpen, bookingId, selectedDate]);
 
   const highPriority = logs.filter(
     (l) =>
@@ -249,6 +223,9 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
   );
 
   const openAddTaskModal = () => {
+    // Creation mode: ensure previous edit context cleared
+    setSelectedTask(null);
+    setIsEditingTask(false);
     setIsAddTaskModalOpen(true);
   };
 
@@ -343,7 +320,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
     >
       <div
         className="bg-white rounded-xl p-2 shadow-xl overflow-hidden 
-        w-[32vw] h-[70vh] 
+        w-[500px] h-[70vh] 
         transition-all duration-300 transform flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
@@ -400,10 +377,12 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                   {tab === "high" && (
                     <FiAlertTriangle className="w-3 h-3 text-red-700" />
                   )}
-                  {tab === "high" && "High Priority (1)"}
-                  {tab === "medium" && "Medium Priority (0)"}
-                  {tab === "low" && "Low Priority (0)"}
-                  {tab === "completed" && "Completed (3)"}
+                  {tab === "high" && `High Priority (${highPriority.length})`}
+                  {tab === "medium" &&
+                    `Medium Priority (${mediumPriority.length})`}
+                  {tab === "low" && `Low Priority (${lowPriority.length})`}
+                  {tab === "completed" &&
+                    `Completed (${completedPriority.length})`}
                 </button>
               )
             )}
@@ -622,7 +601,20 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
         isOpen={isAddTaskModalOpen}
         onClose={() => {
           setIsAddTaskModalOpen(false);
-          setTimeout(() => setSelectedDate(selectedDate), 50); // triggers refetch
+          setTimeout(() => setSelectedDate(new Date(selectedDate)), 50); // triggers refetch
+          // Clear edit context after close
+          setIsEditingTask(false);
+          setSelectedTask(null);
+        }}
+        isEditMode={isEditingTask}
+        initialData={isEditingTask && selectedTask ? selectedTask : {}}
+        onEdit={(updated) => {
+          // Optimistically update local cache
+          setLogs((prev) =>
+            prev.map((t: any) =>
+              t._id === updated._id ? { ...t, ...updated } : t
+            )
+          );
         }}
         {...(bookingId ? { bookingId } : {})}
       />
@@ -631,9 +623,17 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
         isOpen={isViewTaskOpen}
         onClose={() => {
           setIsViewTaskOpen(false);
-          setTimeout(() => setSelectedDate(selectedDate), 50);
+          setTimeout(() => setSelectedDate(new Date(selectedDate)), 50);
         }}
         task={selectedTask}
+        onEdit={(t) => {
+          setSelectedTask(t);
+          setIsViewTaskOpen(false);
+          setTimeout(() => {
+            setIsEditingTask(true);
+            setIsAddTaskModalOpen(true);
+          }, 50);
+        }}
       />
     </div>
   );

@@ -10,9 +10,9 @@ export const createCustomer = async (customerData: any) => {
   }
 };
 
-export const getCustomers = async () => {
+export const getCustomers = async (params: any = {}) => {
   try {
-    const response = await apiClient.get("/customer/get-all-customers");
+    const response = await apiClient.get("/customer/get-all-customers", { params });
     return response.data.customers;
   } catch (error: any) {
     console.error("Failed to fetch customers:", error);
@@ -39,4 +39,23 @@ export const updateCustomer = async (id: string, customerData: any) => {
     throw error.response?.data || { message: "Something went wrong" };
   }
 };
+
+// GET Booking History of a Customer
+export const getBookingHistoryByCustomer = async (
+  customerId: string,
+  params: any = {}
+) => {
+  try {
+    const response = await apiClient.get(
+      `/quotation/booking-history/customer/${customerId}`,
+      { params }
+    );
+
+    return response.data.data; // contains: quotations, pagination, customer
+  } catch (error: any) {
+    console.error("Failed to fetch booking history:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+
 
