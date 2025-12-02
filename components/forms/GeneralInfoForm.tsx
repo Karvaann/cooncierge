@@ -19,6 +19,7 @@ import Fuse from "fuse.js";
 import { getCustomers } from "@/services/customerApi";
 import { getVendors } from "@/services/vendorApi";
 import { getTeams } from "@/services/teamsApi";
+import { getTravellers } from "@/services/travellerApi";
 
 // Type definitions
 interface GeneralInfoFormData {
@@ -209,14 +210,22 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const [allCustomers, setAllCustomers] = useState<any[]>([]);
   const [allVendors, setAllVendors] = useState<any[]>([]);
   const [allTeams, setAllTeams] = useState<any[]>([]);
+  const [allTravellers, setAllTravellers] = useState<any[]>([]);
 
   const [customerResults, setCustomerResults] = useState<any[]>([]);
   const [vendorResults, setVendorResults] = useState<any[]>([]);
   const [TeamsResults, setTeamsResults] = useState<any[]>([]);
+  const [travellerResults, setTravellerResults] = useState<any[]>([]);
 
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
   const [showTeamsDropdown, setShowTeamsDropdown] = useState(false);
+
+  // Track which traveller input is showing dropdown: { type: 'adultTravellers' | 'infantTravellers', index: number } | null
+  const [activeTravellerDropdown, setActiveTravellerDropdown] = useState<{
+    type: "adultTravellers" | "infantTravellers";
+    index: number;
+  } | null>(null);
 
   const [activeCustomerIndex, setActiveCustomerIndex] = useState<number | null>(
     null
@@ -226,6 +235,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const customerRef = useRef<HTMLDivElement | null>(null);
   const vendorRef = useRef<HTMLDivElement | null>(null);
   const teamsRef = useRef<HTMLDivElement | null>(null);
+  const travellerRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
 
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
@@ -234,6 +244,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       const isInCustomer = customerRef.current?.contains(target);
       const isInVendor = vendorRef.current?.contains(target);
       const isInTeams = teamsRef.current?.contains(target);
+
+      // Check if click is inside any traveller dropdown
+      let isInTraveller = false;
+      travellerRefs.current.forEach((ref) => {
+        if (ref?.contains(target)) {
+          isInTraveller = true;
+        }
+      });
 
       if (!isInCustomer) {
         setShowCustomerDropdown(false);
@@ -245,6 +263,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       if (!isInTeams) {
         setShowTeamsDropdown(false);
       }
+      if (!isInTraveller) {
+        setActiveTravellerDropdown(null);
+      }
     };
 
     const handleKey = (e: KeyboardEvent) => {
@@ -253,6 +274,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         setActiveCustomerIndex(null);
         setShowVendorDropdown(false);
         setShowTeamsDropdown(false);
+        setActiveTravellerDropdown(null);
       }
     };
 
@@ -271,8 +293,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         console.log(
           "[GeneralInfoForm] Fetching lists: customers, vendors, teams"
         );
-        const [cRes, vRes, tRes] = await Promise.all([
+        const [cRes, travellerRes, vRes, tRes] = await Promise.all([
           getCustomers(),
+          getTravellers(),
           getVendors(),
           getTeams(),
         ]);
@@ -280,6 +303,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         setAllCustomers(cRes || []);
         setAllVendors(vRes || []);
         setAllTeams(tRes || []);
+        setAllTravellers(travellerRes || []);
       } catch (err) {
         console.error("[GeneralInfoForm] Failed loading lists", err);
       }
@@ -313,7 +337,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // when adults change
   useEffect(() => {
     setFormData((prev) => {
-      let adults = [...prev.adultTravellers];
+      const adults = [...prev.adultTravellers];
 
       // always at least 1 adult input
       if (adults.length === 0) adults.push("");
@@ -327,7 +351,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   useEffect(() => {
     setFormData((prev) => {
-      let infants = [...prev.infantTravellers];
+      const infants = [...prev.infantTravellers];
 
       // always at least one infant input
       if (infants.length === 0) infants.push("");
@@ -342,7 +366,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Sync childAges array with infants count, defaulting to null (no selection)
   useEffect(() => {
     setFormData((prev) => {
-      let ages = [...(prev.childAges || [])];
+      const ages = [...(prev.childAges || [])];
 
       if (ages.length === 0) ages.push(null);
 
@@ -771,7 +795,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           <div key={index} className="mb-4">
             <div className="flex items-center gap-2 mt-3">
               <label className="text-[0.75rem] font-medium text-gray-700">
-                <span className="text-red-500">*</span> Customer {index + 1}
+                <span className="text-red-500">*</span> Customer
               </label>
 
               {index > 0 && (
@@ -879,15 +903,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             </div>
           </div>
         ))}
-
-        <button
-          type="button"
-          onClick={addCustomerField}
-          className="-mt-2 flex gap-1 text-[#818181] text-[0.65rem] hover:text-gray-800 transition-colors"
-        >
-          <GoPlusCircle size={17} />
-          <p className="mt-0.5"> Add Another Customer </p>
-        </button>
       </div>
       {/* Vendor Section */}
       <div className="border border-gray-200 rounded-[12px] px-3 py-4">
@@ -1044,18 +1059,61 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
           {formData.adultTravellers.map((trav, index) => (
             <div key={index} className="flex items-center gap-2 my-2">
-              <div className="w-[30rem]">
+              <div
+                className="w-[30rem] relative"
+                ref={(el) => {
+                  travellerRefs.current.set(`adult-${index}`, el);
+                }}
+              >
                 <InputField
                   name="adultTravellers"
                   placeholder={`Adult ${index + 1}`}
                   required={index === 0}
                   {...getInputProps("adultTravellers", {
                     value: trav,
-                    onChange: (e) =>
-                      updateTraveller("adultTravellers", index, e.target.value),
+                    onChange: (e) => {
+                      const value = e.target.value;
+                      updateTraveller("adultTravellers", index, value);
+
+                      // Run fuzzy search
+                      const results = runFuzzySearch(allTravellers, value, [
+                        "name",
+                        "email",
+                        "phone",
+                      ]);
+                      setTravellerResults(results);
+                      setActiveTravellerDropdown({
+                        type: "adultTravellers",
+                        index,
+                      });
+                    },
                     skipValidation: true,
                   })}
                 />
+
+                {/* Traveller Dropdown */}
+                {activeTravellerDropdown?.type === "adultTravellers" &&
+                  activeTravellerDropdown?.index === index &&
+                  travellerResults.length > 0 && (
+                    <div className="absolute bg-white border border-gray-200 rounded-md w-full mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+                      {travellerResults.map((t: any) => (
+                        <div
+                          key={t._id}
+                          className="p-2 cursor-pointer hover:bg-gray-100"
+                          onClick={() => {
+                            updateTraveller("adultTravellers", index, t.name);
+                            setActiveTravellerDropdown(null);
+                            setTravellerResults([]);
+                          }}
+                        >
+                          <p className="font-normal text-[0.75rem]">{t.name}</p>
+                          {t.email && (
+                            <p className="text-xs text-gray-500">{t.email}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
               </div>
 
               <RightSideIcons
@@ -1109,22 +1167,63 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
               {/* CHILD INPUT */}
               <div className="flex items-center gap-2">
-                <div className="w-[30rem]">
+                <div
+                  className="w-[30rem] relative"
+                  ref={(el) => {
+                    travellerRefs.current.set(`infant-${index}`, el);
+                  }}
+                >
                   <InputField
                     name="infantTravellers"
                     placeholder={`Child ${index + 1}`}
                     required={index === 0}
                     {...getInputProps("infantTravellers", {
                       value: trav,
-                      onChange: (e) =>
-                        updateTraveller(
-                          "infantTravellers",
+                      onChange: (e) => {
+                        const value = e.target.value;
+                        updateTraveller("infantTravellers", index, value);
+
+                        // Run fuzzy search
+                        const results = runFuzzySearch(allTravellers, value, [
+                          "name",
+                          "email",
+                          "phone",
+                        ]);
+                        setTravellerResults(results);
+                        setActiveTravellerDropdown({
+                          type: "infantTravellers",
                           index,
-                          e.target.value
-                        ),
+                        });
+                      },
                       skipValidation: true,
                     })}
                   />
+
+                  {/* Traveller Dropdown for Children */}
+                  {activeTravellerDropdown?.type === "infantTravellers" &&
+                    activeTravellerDropdown?.index === index &&
+                    travellerResults.length > 0 && (
+                      <div className="absolute bg-white border border-gray-200 rounded-md w-full mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+                        {travellerResults.map((t: any) => (
+                          <div
+                            key={t._id}
+                            className="p-2 cursor-pointer hover:bg-gray-100"
+                            onClick={() => {
+                              updateTraveller("infantTravellers", index, t.name);
+                              setActiveTravellerDropdown(null);
+                              setTravellerResults([]);
+                            }}
+                          >
+                            <p className="font-normal text-[0.75rem]">
+                              {t.name}
+                            </p>
+                            {t.email && (
+                              <p className="text-xs text-gray-500">{t.email}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                 </div>
 
                 <RightSideIcons
