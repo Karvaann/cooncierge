@@ -232,7 +232,18 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             key={`${item.id}-id`}
             className="px-3 py-1.5 text-center text-[0.75rem]"
           >
-            {item.id}
+            <div className="flex items-center justify-center gap-2">
+              {item.isDeletable === false && (
+                <svg
+                  className="w-4 h-4 text-red-500 fill-current"
+                  viewBox="0 0 24 24"
+                  aria-label="Cannot delete"
+                >
+                  <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2V8h2v6z" />
+                </svg>
+              )}
+              <span>{item.id}</span>
+            </div>
           </td>,
           <td
             key={`${item.id}-name`}
@@ -268,7 +279,18 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             key={`${item.id}-id`}
             className="px-3 py-1.5 text-center text-[0.75rem]"
           >
-            {item.id}
+            <div className="flex items-center justify-center gap-2">
+              {item.isDeletable === false && (
+                <svg
+                  className="w-4 h-4 text-red-500 fill-current"
+                  viewBox="0 0 24 24"
+                  aria-label="Cannot delete"
+                >
+                  <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2V8h2v6z" />
+                </svg>
+              )}
+              <span>{item.id}</span>
+            </div>
           </td>,
           <td
             key={`${item.id}-vendorName`}
@@ -303,7 +325,18 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             key={`${item.id}-id`}
             className="px-3 py-1.5 text-center text-[0.75rem]"
           >
-            {item.id}
+            <div className="flex items-center justify-center gap-2">
+              {item.isDeletable === false && (
+                <svg
+                  className="w-4 h-4 text-red-500 fill-current"
+                  viewBox="0 0 24 24"
+                  aria-label="Cannot delete"
+                >
+                  <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2V8h2v6z" />
+                </svg>
+              )}
+              <span>{item.id}</span>
+            </div>
           </td>,
           <td
             key={`${item.id}-name`}
@@ -332,7 +365,18 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           key={`${item.id}-id`}
           className="px-3 py-1.5 text-center text-[0.75rem]"
         >
-          {item.id}
+          <div className="flex items-center justify-center gap-2">
+            {item.isDeletable === false && (
+              <svg
+                className="w-4 h-4 text-red-500 fill-current"
+                viewBox="0 0 24 24"
+                aria-label="Cannot delete"
+              >
+                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2V8h2v6z" />
+              </svg>
+            )}
+            <span>{item.id}</span>
+          </div>
         </td>,
         <td
           key={`${item.id}-memberName`}
@@ -410,9 +454,13 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           <div className="flex justify-end items-center gap-4 pt-3 bg-white shrink-0">
             {nonDeletableItems.length > 0 && (
               <div className="flex items-center text-red-500 text-[0.7rem] gap-1">
-                <span>Entries with</span>
-                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                <span>Records with</span>
+                <svg
+                  className="w-4 h-4 fill-current"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2V8h2v6z" />
                 </svg>
                 <span>cannot be deleted</span>
               </div>
@@ -435,8 +483,9 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           title={
             nonDeletableItems.length === items.length
               ? "None of the selected entries can be deleted."
-              : `The following ${entity}$
-{nonDeletableItems.length > 1 ? "s" : ""} cannot be deleted: ${nonDeletableIds.join(
+              : `The following ${entity}${
+                  nonDeletableItems.length > 1 ? "s" : ""
+                } cannot be deleted: ${nonDeletableIds.join(
                   ", "
                 )}. Proceed to remove the rest?`
           }

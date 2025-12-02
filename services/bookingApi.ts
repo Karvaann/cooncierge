@@ -1140,8 +1140,9 @@ export class BookingApiService {
           bookingEndDate: params?.bookingEndDate || undefined,
           travelStartDate: params?.travelStartDate || undefined,
           travelEndDate: params?.travelEndDate || undefined,
+          // Backend currently supports single owner; pick first when array
           owner: Array.isArray(params?.owner)
-            ? (params?.owner[0] || undefined) // backend currently supports single owner; pick first
+            ? (params?.owner[0] || undefined)
             : params?.owner || undefined,
         },
       });

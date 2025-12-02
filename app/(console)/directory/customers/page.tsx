@@ -26,6 +26,8 @@ import {
   getTravellerBookingHistory,
 } from "@/services/travellerApi";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
+import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerForm";
+import { getTravellerById } from "@/services/travellerApi";
 import { MdHistory } from "react-icons/md";
 import { getBookingHistoryByCustomer } from "@/services/customerApi";
 import Image from "next/image";
@@ -142,6 +144,10 @@ const CustomerDirectory = () => {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [travellers, setTravellers] = useState<any[]>([]);
   const [bookingHistory, setBookingHistory] = useState<any[]>([]);
+  const [isTravellerSheetOpen, setIsTravellerSheetOpen] = useState(false);
+  const [travellerMode, setTravellerMode] = useState<"create"|"edit"|"view">("view");
+  const [selectedTravellerRow, setSelectedTravellerRow] = useState<any | null>(null);
+  const [selectedTravellerFull, setSelectedTravellerFull] = useState<any | null>(null);
   const mapStatusForModal = (status?: string) => {
     switch ((status || "").toLowerCase()) {
       case "confirmed":
@@ -558,6 +564,7 @@ const CustomerDirectory = () => {
               className="bg-gray-200 text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
               onClick={async () => {
                 try {
+                  setSelectedTravellerRow(row);
                   const resp = await getTravellerBookingHistory(
                     row.travellerID,
                     {
@@ -863,6 +870,18 @@ const CustomerDirectory = () => {
                   setIsSideSheetOpen(true);
                   setIsHistoryOpen(false);
                 }
+              : activeTab === "Travellers" && selectedTravellerRow
+              ? async () => {
+                  try {
+                    const traveller = await getTravellerById(selectedTravellerRow.travellerID);
+                    setSelectedTravellerFull(traveller);
+                    setTravellerMode("view");
+                    setIsTravellerSheetOpen(true);
+                    setIsHistoryOpen(false);
+                  } catch (e) {
+                    console.error("Failed to fetch traveller:", e);
+                  }
+                }
               : undefined
           }
           onEditCustomer={
@@ -872,10 +891,37 @@ const CustomerDirectory = () => {
                   setIsSideSheetOpen(true);
                   setIsHistoryOpen(false);
                 }
+              : activeTab === "Travellers" && selectedTravellerRow
+              ? async () => {
+                  try {
+                    const traveller = await getTravellerById(selectedTravellerRow.travellerID);
+                    setSelectedTravellerFull(traveller);
+                    setTravellerMode("edit");
+                    setIsTravellerSheetOpen(true);
+                    setIsHistoryOpen(false);
+                  } catch (e) {
+                    console.error("Failed to fetch traveller:", e);
+                  }
+                }
               : undefined
           }
           bookings={bookingHistory}
         />
+      )}
+
+      {isTravellerSheetOpen && (
+        <BookingProvider>
+          <AddNewTravellerForm
+            isOpen={isTravellerSheetOpen}
+            onClose={() => {
+              setIsTravellerSheetOpen(false);
+              setSelectedTravellerFull(null);
+              setTravellerMode("view");
+            }}
+            mode={travellerMode}
+            data={selectedTravellerFull}
+          />
+        </BookingProvider>
       )}
     </div>
   );

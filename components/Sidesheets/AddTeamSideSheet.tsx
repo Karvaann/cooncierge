@@ -32,20 +32,21 @@ type AddTeamSideSheetProps = {
   data?: TeamData | null;
   onCancel: () => void;
   isOpen: boolean;
-  mode?: "create" | "edit";
+  mode?: "create" | "edit" | "view";
 };
 
 const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
   data,
   onCancel,
   isOpen,
-  mode,
+  mode = "create",
 }) => {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
 
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const readOnly = mode === "view";
 
   const [formData, setFormData] = useState<TeamData>({
     firstname: "",
@@ -219,7 +220,13 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
       <SideSheet
         isOpen={isOpen}
         onClose={onCancel}
-        title="Add Team Member"
+        title={
+          mode === "view"
+            ? "Team Member Details"
+            : mode === "edit"
+            ? "Edit Team Member"
+            : "Add Team Member"
+        }
         width="xl"
         position="right"
         showLinkButton={true}
@@ -230,6 +237,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
             <select
               name="status"
               required
+              disabled={readOnly}
               onChange={(e) => {
                 if (e.target.value === "former") {
                   // handleTransferModalOpen();
@@ -266,7 +274,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   }
                   placeholder="Enter First Name"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
 
@@ -283,7 +292,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     setFormData({ ...formData, lastname: e.target.value })
                   }
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
             </div>
@@ -301,7 +311,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   onChange={(e) =>
                     setFormData({ ...formData, dateOfBirth: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
 
@@ -316,6 +327,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   onChange={(e) =>
                     setFormData({ ...formData, gender: e.target.value })
                   }
+                  disabled={readOnly}
                 >
                   <option value="disabled">Select Gender</option>
                   <option value="male">Male</option>
@@ -340,6 +352,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     }
                     className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
                     style={{ width: "70px" }}
+                    disabled={readOnly}
                   >
                     <option value="+91">+91</option>
                     <option value="+1">+1</option>
@@ -357,7 +370,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     }
                     placeholder="Enter Contact Number"
                     required
-                    className="w-[22.3rem] border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    disabled={readOnly}
+                    className="w-[22.3rem] border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -382,7 +396,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     setFormData({ ...formData, alias: e.target.value })
                   }
                   placeholder="Enter Alias"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
 
@@ -401,6 +416,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     }
                     className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
                     style={{ width: "70px" }}
+                    disabled={readOnly}
                   >
                     <option value="+91">+91</option>
                     <option value="+1">+1</option>
@@ -418,7 +434,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     }
                     placeholder="Enter Contact Number"
                     required
-                    className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    disabled={readOnly}
+                    className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -436,7 +453,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   }
                   placeholder="Enter Email ID"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
 
@@ -453,7 +471,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   }
                   placeholder="Enter Designation"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
 
@@ -469,7 +488,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     setFormData({ ...formData, dateOfJoining: e.target.value })
                   }
                   placeholder="DD-MM-YYYY"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
 
@@ -485,7 +505,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     setFormData({ ...formData, dateOfLeaving: e.target.value })
                   }
                   placeholder="DD-MM-YYYY"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
             </div>
@@ -547,36 +568,56 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
               }
               rows={5}
               placeholder="Enter Your Remarks Here"
-              className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem] mt-2 transition-colors focus:ring focus:ring-blue-200"
+              disabled={readOnly}
+              className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem] mt-2 transition-colors focus:ring focus:ring-blue-200 disabled:bg-gray-100 disabled:text-gray-700"
             />
           </div>
 
           {/* ================= ACTION BUTTONS ================ */}
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
-              onClick={onCancel}
-            >
-              Cancel
-            </button>
-            {mode === "edit" ? (
+            {mode === "view" ? (
               <button
                 type="button"
-                onClick={handleUpdateUser}
-                className="px-4 py-2 bg-[#0D4B37] text-white rounded-lg hover:bg-green-900 text-[0.75rem]"
+                className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
+                onClick={onCancel}
               >
-                Update Team Member
+                Close
               </button>
+            ) : mode === "edit" ? (
+              <>
+                <button
+                  type="button"
+                  className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
+                  onClick={onCancel}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleUpdateUser}
+                  className="px-4 py-2 bg-[#0D4B37] text-white rounded-lg hover:bg-green-900 text-[0.75rem]"
+                >
+                  Update Team Member
+                </button>
+              </>
             ) : (
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className="px-4 py-1.5 rounded-md bg-[#0D4B37] text-white text-[0.75rem] hover:bg-[#0f3d44]"
-              >
-                <LuSave className="mr-1 inline-block" size={16} />
-                Save
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
+                  onClick={onCancel}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  className="px-4 py-1.5 rounded-md bg-[#0D4B37] text-white text-[0.75rem] hover:bg-[#0f3d44]"
+                >
+                  <LuSave className="mr-1 inline-block" size={16} />
+                  Save
+                </button>
+              </>
             )}
           </div>
         </form>

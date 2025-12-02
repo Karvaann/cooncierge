@@ -25,6 +25,7 @@ import { FaRegStar } from "react-icons/fa";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import { MdHistory } from "react-icons/md";
 import Image from "next/image";
+// (Removed traveller form integration per request)
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -592,24 +593,6 @@ const VendorDirectory = () => {
         <BookingHistoryModal
           isOpen={isHistoryOpen}
           onClose={() => setIsHistoryOpen(false)}
-          onViewCustomer={
-            selectedVendor
-              ? () => {
-                  setMode("view");
-                  setIsSideSheetOpen(true);
-                  setIsHistoryOpen(false);
-                }
-              : undefined
-          }
-          onEditCustomer={
-            selectedVendor
-              ? () => {
-                  setMode("edit");
-                  setIsSideSheetOpen(true);
-                  setIsHistoryOpen(false);
-                }
-              : undefined
-          }
           bookings={historyBookings}
         />
       )}

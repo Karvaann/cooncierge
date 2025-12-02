@@ -113,7 +113,7 @@ const TeamDirectory = () => {
   >(null);
 
   const [selectedTeam, setSelectedTeam] = useState<any | null>(null);
-  const [mode, setMode] = useState<"create" | "edit">("create");
+  const [mode, setMode] = useState<"create" | "edit" | "view">("create");
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
@@ -162,11 +162,22 @@ const TeamDirectory = () => {
 
       const res = await getBookingHistoryByTeamMember(teamMemberId);
 
+      const mapStatusForModal = (status?: string) => {
+        switch ((status || "").toLowerCase()) {
+          case "confirmed":
+            return "Successful" as const;
+          case "cancelled":
+            return "Cancelled" as const;
+          case "draft":
+          default:
+            return "In Progress" as const;
+        }
+      };
       const formattedBookings = res.quotations.map((q: any) => ({
         id: q._id,
         bookingDate: q.createdAt,
         travelDate: q.travelDate,
-        status: q.status,
+        status: mapStatusForModal(q.status),
         totalAmount: q.totalAmount,
       }));
 
@@ -334,7 +345,10 @@ const TeamDirectory = () => {
               <button
                 type="button"
                 className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
-                onClick={() => handleOpenBookingHistory(row.ID)}
+                onClick={() => {
+                  setSelectedTeam(row);
+                  handleOpenBookingHistory(row.ID);
+                }}
               >
                 <MdHistory className="inline mr-1" size={14} />
                 Booking History
@@ -533,6 +547,24 @@ const TeamDirectory = () => {
       <BookingHistoryModal
         isOpen={isHistoryOpen}
         onClose={() => setIsHistoryOpen(false)}
+        onViewCustomer={
+          selectedTeam
+            ? () => {
+                setMode("view");
+                setIsSideSheetOpen(true);
+                setIsHistoryOpen(false);
+              }
+            : undefined
+        }
+        onEditCustomer={
+          selectedTeam
+            ? () => {
+                setMode("edit");
+                setIsSideSheetOpen(true);
+                setIsHistoryOpen(false);
+              }
+            : undefined
+        }
         bookings={historyData}
       />
 
