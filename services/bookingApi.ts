@@ -873,30 +873,11 @@ export class BookingApiService {
   }
 
   // Create quotation
-  static async createQuotation(bookingData: BookingData, draftId?: string): Promise<ApiResponse<unknown>> {
+  static async createQuotation(bookingData: any, draftId?: string): Promise<ApiResponse<unknown>> {
     try {
       // Get user info
-      const user = getAuthUser<Record<string, unknown>>() || {};
-      const partyId = (user && typeof user === 'object' && '_id' in user ? (user as { _id?: string })._id : '') || '';
-
-      // Prepare payload
-      const payload: QuotationPayload = {
-        quotationType: bookingData.service.category,
-        channel: 'B2C',
-        partyId,
-        formFields: {
-          ...bookingData.generalInfo,
-          ...bookingData.customerform,
-           ...bookingData.vendorform,
-            ...bookingData.flightinfoform,
-            ...bookingData.accommodationform,
-          service: bookingData.service,
-        },
-        totalAmount: bookingData.flightinfoform.sellingprice || bookingData.accommodationform.sellingprice || 0,
-        status: 'confirmed',
-      };
-
-      const response = await apiClient.post('/quotation/create-quotation', payload);
+     
+      const response = await apiClient.post('/quotation/create-quotation', bookingData);
 
       // If quotation is created successfully and we have a draftId, delete the draft
       if (response.data && draftId) {
