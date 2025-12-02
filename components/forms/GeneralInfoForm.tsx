@@ -231,6 +231,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     null
   );
 
+  const [ownerList, setOwnerList] = useState<{ id: string; name: string }[]>([
+    { id: "", name: "" },
+  ]);
+
   // Add refs for click-outside detection
   const customerRef = useRef<HTMLDivElement | null>(null);
   const vendorRef = useRef<HTMLDivElement | null>(null);
@@ -311,6 +315,16 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
     fetchLists();
   }, []);
+
+  // Hydrate owner from externalFormData
+  useEffect(() => {
+    if (!externalFormData?.bookingOwner) return;
+    if (!Array.isArray(allTeams) || allTeams.length === 0) return;
+    const match = allTeams.find((t) => t._id === externalFormData.bookingOwner);
+    if (match) {
+      setOwnerList([{ id: match._id, name: match.name }]);
+    }
+  }, [externalFormData?.bookingOwner, allTeams]);
 
   // Fuzzy search helper
   const runFuzzySearch = (list: any[], term: string, keys: string[]) => {
@@ -1209,7 +1223,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             key={t._id}
                             className="p-2 cursor-pointer hover:bg-gray-100"
                             onClick={() => {
-                              updateTraveller("infantTravellers", index, t.name);
+                              updateTraveller(
+                                "infantTravellers",
+                                index,
+                                t.name
+                              );
                               setActiveTravellerDropdown(null);
                               setTravellerResults([]);
                             }}
@@ -1244,36 +1262,36 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
       {/* Booking Owner */}
       <div className="border border-gray-200 rounded-xl p-3">
-        <h2 className="text-[0.75rem]  font-medium mb-2">Booking Owner</h2>
+        <h2 className="text-[0.75rem] font-medium mb-2">Booking Owner</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
-        <label className="block text-[0.75rem]  font-medium text-gray-700 mb-1">
+        <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
           <span className="text-red-500">*</span> User
         </label>
-
         <div className="w-[66%] relative" ref={teamsRef}>
           <InputField
             name="bookingOwner"
             placeholder="Search by Name/Username/ID"
             required
-            className="mt-1 text-[0.75rem]  py-2"
-            {...getInputProps("bookingOwner", {
-              onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
-                handleChange(e);
-                const results = runFuzzySearch(allTeams, e.target.value, [
-                  "name",
-                  "email",
-                  "username",
-                ]);
-                console.log("[GeneralInfoForm] Team search", {
-                  totalTeams: allTeams.length,
-                  results: results.length,
-                });
-                setTeamsResults(results);
-                setShowTeamsDropdown(true);
-              },
-            })}
-          />
+            className="mt-1 text-[0.75rem] py-2"
+            // show the NAME from ownerList, never formData.bookingOwner
+            value={ownerList[0]?.name || ""}
+            onChange={(e) => {
+              const value = e.target.value;
+              // show typed text, clear ID until selection
+              setOwnerList([{ id: "", name: value }]);
+              // don't send name as ID
+              setFormData((prev) => ({ ...prev, bookingOwner: "" }));
 
+              const results = runFuzzySearch(allTeams, value, [
+                "name",
+                "email",
+                "username",
+              ]);
+              setTeamsResults(results);
+              setShowTeamsDropdown(true);
+            }}
+            onBlur={handleBlur}
+          />
           {showTeamsDropdown && (
             <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
               {TeamsResults.map((t: any) => (
@@ -1281,26 +1299,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   key={t._id}
                   className="p-2 cursor-pointer hover:bg-gray-100"
                   onClick={() => {
-                    setFormData((prev) => ({ ...prev, bookingOwner: t.name }));
+                    setOwnerList([{ id: t._id, name: t.name }]); // Save both ID and name
+                    setFormData((prev) => ({ ...prev, bookingOwner: t._id })); // Save full ID
                     setShowTeamsDropdown(false);
                   }}
                 >
                   <p className="font-medium text-[0.75rem]">{t.name}</p>
-                  {/* <p className="text-xs text-gray-500">{t.email}</p> */}
                 </div>
               ))}
-              {/* Staple option */}
-              {/* <div
-                className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
-                onClick={() => {
-                  setFormData((prev) => ({ ...prev, bookingOwner: "TBA" }));
-                  setShowTeamsDropdown(false);
-                }}
-              >
-                <p className="font-medium text-[0.70rem] text-gray-700">
-                  Don't have the name? Enter TBA
-                </p>
-              </div> */}
             </div>
           )}
         </div>
