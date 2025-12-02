@@ -40,7 +40,7 @@ type AddVendorSideSheetProps = {
   data?: VendorData | null;
   onCancel: () => void;
   isOpen: boolean;
-  mode?: "create" | "edit";
+  mode?: "create" | "edit" | "view";
   formRef?: React.RefObject<HTMLFormElement | null>;
 };
 
@@ -52,6 +52,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   formRef,
 }) => {
   const { updateGeneralInfo, setLastAddedVendor } = useBooking();
+  const readOnly = mode === "view";
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [phoneCode, setPhoneCode] = useState<string>("+91");
@@ -71,7 +72,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       id: string;
       bookingDate: string;
       travelDate: string;
-      status: "Successful" | "On Hold" | "In Progress" | "Failed";
+      status: "Successful" | "On Hold" | "In Progress" | "Cancelled";
       amount: string;
     }[]
   >([]);
@@ -89,7 +90,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       case "confirmed":
         return "Successful" as const;
       case "cancelled":
-        return "Failed" as const;
+        // Align with BookingHistoryModal expected status union which uses 'Cancelled'
+        return "Cancelled" as const;
       case "draft":
       default:
         return "In Progress" as const;
@@ -278,14 +280,20 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       <SideSheet
         isOpen={isOpen}
         onClose={onCancel}
-        title="Add Vendor"
+        title={
+          mode === "view"
+            ? "Vendor Details"
+            : mode === "edit"
+            ? "Edit Vendor"
+            : "Add Vendor"
+        }
         width="xl"
         position="right"
         showLinkButton={true}
       >
         <form
           className="space-y-6 p-4"
-          onSubmit={handleSubmit}
+          onSubmit={mode === "create" ? handleSubmit : (e) => e.preventDefault()}
           ref={formRef as any}
         >
           {/* ================= BASIC DETAILS ================ */}
@@ -307,7 +315,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   }
                   placeholder="Enter Company Name"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -322,7 +331,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   }
                   placeholder="Enter Email ID"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
             </div>
@@ -344,6 +354,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     }
                     className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
                     style={{ width: "70px" }}
+                    disabled={readOnly}
                   >
                     <option value="+91">+91</option>
                     <option value="+1">+1</option>
@@ -357,7 +368,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     }
                     placeholder="Enter Contact Number"
                     required
-                    className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    disabled={readOnly}
+                    className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -372,7 +384,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     setFormData({ ...formData, GSTIN: e.target.value })
                   }
                   placeholder="Please Provide Your GST No."
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
             </div>
@@ -403,7 +416,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   }
                   placeholder="Enter First Name"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -419,7 +433,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   }
                   placeholder="Enter Last Name"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
             </div>
@@ -439,7 +454,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   }
                   placeholder="Enter Nickname/Alias"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -457,6 +473,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     }
                     className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
                     style={{ width: "70px" }}
+                    disabled={readOnly}
                   >
                     <option value="+91">+91</option>
                     <option value="+1">+1</option>
@@ -470,7 +487,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     onChange={(e) =>
                       setFormData({ ...formData, phone: e.target.value })
                     }
-                    className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    disabled={readOnly}
+                    className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -490,7 +508,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -506,7 +525,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   }
                   placeholder="DD-MM-YYYY"
                   required
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+                  disabled={readOnly}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
             </div>
@@ -528,7 +548,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 setFormData({ ...formData, address: e.target.value })
               }
               placeholder="Enter Billing Address"
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem]"
+              disabled={readOnly}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
             />
           </div>
 
@@ -588,6 +609,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   checked={balanceType === "debit"}
                   onChange={() => setBalanceType("debit")}
                   className="w-3 h-3 text-blue-600"
+                  disabled={readOnly}
                 />
                 <span className="text-gray-700">Debit</span>
               </label>
@@ -600,6 +622,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   checked={balanceType === "credit"}
                   onChange={() => setBalanceType("credit")}
                   className="w-3 h-3 text-blue-600"
+                  disabled={readOnly}
                 />
                 <span className="text-gray-700">Credit</span>
               </label>
@@ -617,7 +640,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       ? "Enter Debit Amount"
                       : "Enter Credit Amount"
                   }
-                  className="flex-1 outline-none text-gray-700 text-[0.75rem]"
+                  disabled={readOnly}
+                  className="flex-1 outline-none text-gray-700 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
               <div className="absolute right-3 top-2 text-sm font-medium">
@@ -642,7 +666,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               <select
                 value={tier}
                 onChange={(e) => setTier(e.target.value)}
-                className="w-[10rem] border border-gray-300 rounded-md px-3 py-1.5 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                disabled={readOnly}
+                className="w-[10rem] border border-gray-300 rounded-md px-3 py-1.5 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-700"
               >
                 <option value="">Select Tier</option>
                 <option value="tier1">Tier 1</option>
@@ -672,22 +697,21 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
             w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem]  mt-2 transition-colors
             focus:ring focus:ring-blue-200
           `}
+              disabled={readOnly}
             />
           </div>
 
           {/* ================= ACTION BUTTONS ================ */}
           <div className="flex justify-end gap-2 pt-2">
-            {mode === "edit" && data?._id && (
+            {mode === "view" ? (
               <button
                 type="button"
-                onClick={openHistoryForVendor}
-                className="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-[0.75rem]"
+                onClick={onCancel}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-[0.75rem]"
               >
-                <MdHistory className="inline mr-1" size={14} />
-                Booking History
+                Close
               </button>
-            )}
-            {mode === "edit" ? (
+            ) : mode === "edit" ? (
               <button
                 type="submit"
                 onClick={handleUpdateVendor}

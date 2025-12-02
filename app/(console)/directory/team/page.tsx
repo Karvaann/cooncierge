@@ -17,6 +17,8 @@ import type { DeletableItem } from "@/components/Modals/DeleteModal";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import { MdHistory } from "react-icons/md";
+import { getBookingHistoryByTeamMember } from "@/services/teamsApi";
+import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -30,6 +32,7 @@ type TeamRow = {
   userStatus: string;
   joiningDate: string;
   actions: React.ComponentType<any> | string;
+  isDeleted?: boolean;
 };
 
 const columns: string[] = [
@@ -104,24 +107,44 @@ const TeamDirectory = () => {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
 
+  const [historyData, setHistoryData] = useState([]);
+  const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<
+    string | null
+  >(null);
+
   const [selectedTeam, setSelectedTeam] = useState<any | null>(null);
   const [mode, setMode] = useState<"create" | "edit">("create");
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  // Derive the set of teams based on active status tab
+  const statusFilteredTeams = useMemo(() => {
+    if (activeTab === "Deleted") {
+      return teams.filter((t) => t.isDeleted === true);
+    }
+    const nonDeleted = teams.filter((t) => t.isDeleted !== true);
+    if (activeTab === "Current") {
+      return nonDeleted.filter(
+        (t) => (t.userStatus || "Current") === "Current"
+      );
+    }
+    if (activeTab === "Former") {
+      return nonDeleted.filter((t) => (t.userStatus || "Current") === "Former");
+    }
+    return nonDeleted;
+  }, [teams, activeTab]);
 
+  // Apply search filter on top of status filtered list
   const filteredTeams = useMemo(() => {
-    if (!searchValue.trim()) return teams;
-
+    if (!searchValue.trim()) return statusFilteredTeams;
     const search = searchValue.toLowerCase();
-
-    return teams.filter(
+    return statusFilteredTeams.filter(
       (t) =>
         (t.ID || "").toLowerCase().includes(search) ||
         (t.memberName || "").toLowerCase().includes(search) ||
         (t.alias || "").toLowerCase().includes(search)
     );
-  }, [teams, searchValue]);
+  }, [statusFilteredTeams, searchValue]);
 
   const handleSort = (column: string) => {
     const sorted = [...teams];
@@ -131,6 +154,27 @@ const TeamDirectory = () => {
     }
 
     setTeams(sorted);
+  };
+
+  const handleOpenBookingHistory = async (teamMemberId: string) => {
+    try {
+      setSelectedTeamMemberId(teamMemberId);
+
+      const res = await getBookingHistoryByTeamMember(teamMemberId);
+
+      const formattedBookings = res.quotations.map((q: any) => ({
+        id: q._id,
+        bookingDate: q.createdAt,
+        travelDate: q.travelDate,
+        status: q.status,
+        totalAmount: q.totalAmount,
+      }));
+
+      setHistoryData(formattedBookings);
+      setIsHistoryOpen(true);
+    } catch (error) {
+      console.error("Error loading booking history", error);
+    }
   };
 
   const handleMenuToggle = () => {
@@ -181,35 +225,35 @@ const TeamDirectory = () => {
   useEffect(() => {
     const fetchTeamsData = async () => {
       try {
-        const teamsResponse = await getTeams();
-
-        console.log("Fetched teams list:", teamsResponse);
-
+        const teamsResponse = await getTeams({
+          isDeleted: activeTab === "Deleted",
+        });
         const teamArray = Array.isArray(teamsResponse) ? teamsResponse : [];
-
         const mappedRows: TeamRow[] = teamArray.map((u: any, index: number) => {
           const fullName = u.name || "—";
           const alias = u.alias || "—";
-
+          const normalizedStatus =
+            (u.userStatus || u.status || "Current") === "Active"
+              ? "Current"
+              : u.userStatus || u.status || "Current";
           return {
             ...u,
             ID: u._id || `#T00${index + 1}`,
             memberName: fullName,
             alias: alias,
-            userStatus: u.userStatus || u.status || "Active",
+            userStatus: normalizedStatus,
             joiningDate: u.dateOfJoining ? formatDMY(u.dateOfJoining) : "—",
             actions: "⋮",
+            isDeleted: Boolean(u.isDeleted),
           };
         });
-
         setTeams(mappedRows);
       } catch (err) {
         console.error("Failed to fetch team members:", err);
       }
     };
-
     fetchTeamsData();
-  }, []);
+  }, [activeTab]);
 
   const tableData = useMemo<JSX.Element[][]>(
     () =>
@@ -290,7 +334,7 @@ const TeamDirectory = () => {
               <button
                 type="button"
                 className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
-                onClick={() => setIsHistoryOpen(true)}
+                onClick={() => handleOpenBookingHistory(row.ID)}
               >
                 <MdHistory className="inline mr-1" size={14} />
                 Booking History
@@ -408,14 +452,17 @@ const TeamDirectory = () => {
               <button
                 onClick={() => {
                   if (selectedTeamMembers.length === teams.length) {
-                    setSelectedTeamMembers([]); // deselect all
+                    // Deselect all from currently visible subset
+                    setSelectedTeamMembers([]);
                   } else {
-                    setSelectedTeamMembers(teams.map((c) => c.ID)); // select all
+                    // Select all only from currently visible subset
+                    setSelectedTeamMembers(filteredTeams.map((c) => c.ID));
                   }
                 }}
                 className="px-2 py-1.5 w-[6rem] mr-3 text-[0.75rem] font-medium rounded-lg border border-gray-300 bg-white hover:bg-gray-100"
               >
-                {selectedTeamMembers.length === teams.length
+                {selectedTeamMembers.length === filteredTeams.length &&
+                filteredTeams.length > 0
                   ? "Deselect All"
                   : "Select All"}
               </button>
@@ -482,6 +529,12 @@ const TeamDirectory = () => {
           mode={mode}
         />
       )}
+
+      <BookingHistoryModal
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+        bookings={historyData}
+      />
 
       {isConfirmModalOpen && (
         <ConfirmationModal

@@ -452,53 +452,112 @@ const OSBookingsPage = () => {
   const getServiceIcon = (
     quotationType: string
   ): React.ReactElement | string => {
-    const iconMap: Record<string, any> = {
+    if (!quotationType) return "Visa";
+
+    const normalized = quotationType.toLowerCase().trim();
+
+    // Use the same logic as formatServiceType for consistency
+    const typeMap: Record<string, string> = {
+      flight: "flight",
+      flights: "flight",
+
+      hotel: "accommodation",
+      accommodation: "accommodation",
+
+      car: "land",
+      "land transportation": "land",
+      "land-transportation": "land",
+      land_transportation: "land",
+      transportation: "land",
+      land: "land",
+      "transport-land": "land",
+
+      package: "package",
+
+      "travel insurance": "insurance",
+
+      activity: "activity",
+      activities: "activity",
+
+      insurance: "insurance",
+
+      visa: "visa",
+
+      ticket: "ticket",
+      tickets: "ticket",
+    };
+
+    const key = typeMap[normalized] || normalized;
+
+    const iconMap: Record<string, JSX.Element | string> = {
       flight: (
         <Image
           src="/icons/service-icons/flight.svg"
-          alt="Flights"
-          width={18}
-          height={18}
-        />
-      ),
-      flights: (
-        <Image
-          src="/icons/service-icons/flight.svg"
-          alt="Flights"
-          width={18}
-          height={18}
+          alt="Flight"
+          width={20}
+          height={20}
+          className="object-contain"
         />
       ),
       accommodation: (
         <Image
           src="/icons/service-icons/accommodation.svg"
           alt="Accommodation"
-          width={18}
-          height={18}
+          width={20}
+          height={20}
+          className="object-contain"
         />
       ),
-      car: "🚗",
-      "land transportation": (
-        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      activity: (
+        <Image
+          src="/icons/service-icons/activity.svg"
+          alt="Activity"
+          width={16}
+          height={16}
+          className="object-contain"
+        />
       ),
-      "land-transportation": (
-        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      insurance: (
+        <Image
+          src="/icons/service-icons/insurance.svg"
+          alt="Insurance"
+          width={16}
+          height={16}
+          className="object-contain"
+        />
       ),
-      land_transportation: (
-        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      ticket: (
+        <Image
+          src="/icons/service-icons/ticket.svg"
+          alt="Tickets"
+          width={16}
+          height={16}
+          className="object-contain"
+        />
+      ),
+      tickets: (
+        <Image
+          src="/icons/service-icons/ticket.svg"
+          alt="Tickets"
+          width={16}
+          height={16}
+          className="object-contain"
+        />
       ),
       land: (
-        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+        <Image
+          src="/icons/service-icons/land-icon.svg"
+          alt="Land Transport"
+          width={16}
+          height={16}
+          className="object-contain"
+        />
       ),
-      transportation: (
-        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
-      ),
-
-      activity: "🎯",
-      insurance: "🛡️",
-      visa: "📋",
+      visa: "Visa",
+      package: "Package", // optional: add a package icon later
     };
-    return iconMap[quotationType?.toLowerCase()] || "📋";
+
+    return iconMap[key] || "📋"; // fallback
   };
 
   const mapStatus = (status: string): BookingStatus => {
@@ -684,8 +743,12 @@ const OSBookingsPage = () => {
           : "Not Selected",
         service: (
           <div className="flex items-center justify-center gap-1">
-            {getServiceIcon(item.quotationType || item.serviceType || "draft")}
-            <span>
+            <div className="w-5 h-5 flex items-center justify-center">
+              {getServiceIcon(
+                item.quotationType || item.serviceType || "draft"
+              )}
+            </div>
+            <span className="text-center leading-tight">
               {formatServiceType(
                 item.quotationType || item.serviceType || "draft"
               )}
@@ -694,9 +757,12 @@ const OSBookingsPage = () => {
         ),
 
         bookingStatus: mapStatus(item.status),
+
         amount: item.totalAmount
           ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
           : `₹ ${item.formFields?.budget || "0"}`,
+
+        ownerNames: (item as any).__owners || [],
 
         tasks: Math.floor(Math.random() * 5) + 1, // Random tasks for demo
         isReal: Boolean(item._id),
@@ -773,7 +839,11 @@ const OSBookingsPage = () => {
         <div className="flex justify-center">
           <TaskButton
             count={row.tasks}
-            bookingId={row.isReal ? (finalQuotations[row.originalIndex]?._id || null) : null}
+            bookingId={
+              row.isReal
+                ? finalQuotations[row.originalIndex]?._id || null
+                : null
+            }
           />
         </div>
       </td>,

@@ -13,11 +13,12 @@ interface BookingHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onViewCustomer?: (() => void) | undefined;
+  onEditCustomer?: (() => void) | undefined;
   bookings: {
     id: string;
     bookingDate: string;
     travelDate: string;
-    status: "Successful" | "On Hold" | "In Progress" | "Failed";
+    status: "Successful" | "On Hold" | "In Progress" | "Cancelled";
     amount: string;
   }[];
 }
@@ -26,13 +27,14 @@ const statusColors: Record<string, string> = {
   Successful: "bg-green-100 text-green-700",
   "On Hold": "bg-yellow-100 text-yellow-800",
   "In Progress": "bg-orange-100 text-orange-700",
-  Failed: "bg-red-100 text-red-700",
+  Cancelled: "bg-red-100 text-red-700",
 };
 
 const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
   isOpen,
   onClose,
   onViewCustomer,
+  onEditCustomer,
   bookings,
 }) => {
   const formatDMY = (dateString: string) => {
@@ -141,6 +143,9 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
       customWidth="w-[800px]"
       customeHeight="h-fit"
       className="pb-2"
+      closeOnOverlayClick={true}
+      zIndexClass="z-[9999]"
+      disableOverlayClick={false}
     >
       <div className="px-2">
         {/* CUSTOM HEADER */}
@@ -161,6 +166,7 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
             <button
               className="p-1.5 rounded-md bg-blue-100 hover:bg-blue-200 transition"
               type="button"
+              onClick={onEditCustomer}
             >
               <FiEdit className="text-gray-700" size={16} />
             </button>

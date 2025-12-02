@@ -5,10 +5,12 @@ import Modal from "@/components/Modal";
 import Table from "@/components/Table";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import { deleteCustomer } from "@/services/customerApi";
+// removed booking history fetch for delete modal
 import { deleteVendor } from "@/services/vendorApi";
 import { deleteTeam } from "@/services/teamsApi";
 import { deleteTraveller } from "@/services/travellerApi";
 import { MdHistory } from "react-icons/md";
+// removed booking history modal import
 
 type EntityType = "customer" | "vendor" | "team" | "traveller";
 
@@ -50,6 +52,33 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   const [showConfirm, setShowConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // booking history modal disabled for now
+
+  const mapStatusForModal = useCallback((status?: string) => {
+    switch ((status || "").toLowerCase()) {
+      case "confirmed":
+        return "Successful" as const;
+      case "cancelled":
+        return "Cancelled" as const;
+      case "draft":
+      default:
+        return "In Progress" as const;
+    }
+  }, []);
+
+  const mapQuotationsToModal = useCallback(
+    (qs: any[]) =>
+      qs.map((q: any) => ({
+        id: q.customId || q._id,
+        bookingDate: q.createdAt
+          ? new Date(q.createdAt).toLocaleDateString("en-IN")
+          : "—",
+        travelDate: q.travelDate ? String(q.travelDate) : "",
+        status: mapStatusForModal(q.status),
+        amount: q.totalAmount != null ? String(q.totalAmount) : "0",
+      })),
+    [mapStatusForModal]
+  );
 
   const deletableItems = useMemo(
     () => (items || []).filter((i) => i.isDeletable !== false),
@@ -181,7 +210,16 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           key={`${item.id}-actions`}
           className="px-3 py-1.5 text-center justify-center text-[0.75rem]"
         >
-          <button className="flex items-center justify-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 text-[0.7rem] transition-colors">
+          <button
+            className="flex items-center justify-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 text-[0.7rem] transition-colors"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              // booking history modal disabled
+              return;
+            }}
+            type="button"
+          >
             <MdHistory className="inline" size={14} />
             Booking History
           </button>
@@ -346,6 +384,9 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         customWidth="w-[60vw]"
         customeHeight="h-fit"
         className="max-w-[1100px]"
+        closeOnOverlayClick={true}
+        zIndexClass={"z-[140]"}
+        disableOverlayClick={false}
       >
         <div className="flex h-full flex-col -mt-5 px-2 pb-1 text-[0.75rem] overflow-hidden">
           <div className="flex-1 min-h-0 overflow-y-auto">
@@ -410,6 +451,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           confirmButtonColor="bg-red-600"
         />
       )}
+      {/* Booking history modal disabled */}
       {error && (
         <div className="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded shadow text-[0.7rem]">
           {error}
