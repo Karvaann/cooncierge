@@ -97,16 +97,20 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
         lastname,
         alias: data.alias || "",
         gender: data.gender || "",
-        emergencyContactNumber: data.emergencyContactNumber || "",
+        emergencyContactNumber:
+          (data as any).emergencyContactNumber ||
+          (data as any).emergencyContact ||
+          "",
         countryCode: data.countryCode || "+91",
-        workContactNumber: data.workContactNumber || "",
-        workEmailId: data.workEmailId || "",
+        workContactNumber:
+          (data as any).workContactNumber || (data as any).phone || "",
+        workEmailId: (data as any).workEmailId || (data as any).email || "",
         dateOfBirth: data.dateOfBirth || "",
         designation: data.designation || "",
         dateOfJoining: data.dateOfJoining || "",
         dateOfLeaving: data.dateOfLeaving || "",
         address: data.address || "",
-        remarks: data.remarks || "",
+        remarks: (data as any).remarks || "",
         status: data.status || "Current",
       });
     } else {

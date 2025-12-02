@@ -5,6 +5,7 @@ import AddTaskModal from "../AddTaskModal";
 import { RxCross2 } from "react-icons/rx";
 import { FiAlertTriangle } from "react-icons/fi";
 import ViewTaskModal from "./ViewTaskModal";
+import { updateLogStatus } from "@/services/logsApi";
 import { getLogsByBookingId } from "@/services/logsApi";
 import PriorityTaskCard from "@/components/PriorityTaskCard";
 
@@ -279,35 +280,81 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
   }, [isOpen]);
 
   const resolveAssignedToNames = (task: any): string[] => {
-    const ids: string[] = Array.isArray(task?.assignedTo)
-      ? task.assignedTo
-      : [];
-    if (!ids.length || !teams.length) return [];
-    const names = ids
-      .map((id) => teams.find((t: any) => t._id === id)?.name)
-      .filter(Boolean) as string[];
-    return names;
+    const raw = task?.assignedTo;
+    if (Array.isArray(raw) && raw.length) {
+      // If backend populated assignedTo with team objects ({ _id, name }) we can directly read names
+      if (typeof raw[0] === "object") {
+        const objNames = raw
+          .map((m: any) => (typeof m?.name === "string" ? m.name : null))
+          .filter(Boolean) as string[];
+        if (objNames.length) return objNames;
+      }
+      // Otherwise treat array as list of IDs and try to resolve from loaded teams
+      if (teams.length) {
+        const ids = raw.filter((v: any) => typeof v === "string");
+        const names = ids
+          .map((id: string) => teams.find((t: any) => t._id === id)?.name)
+          .filter(Boolean) as string[];
+        if (names.length) return names;
+      }
+    }
+    return [];
+  };
+
+  const getInitials = (name: string): string => {
+    if (!name) return "";
+    const parts = name.trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "";
+    if (parts.length === 1) {
+      const single = parts[0] || "";
+      return single.slice(0, 2).toUpperCase();
+    }
+    const first = parts[0] || "";
+    const last = parts[parts.length - 1] || "";
+    return (first.charAt(0) + last.charAt(0)).toUpperCase();
+  };
+
+  const formatDateTime = (value: string | Date): string => {
+    if (!value) return "-";
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return "-";
+    const day = String(d.getDate()).padStart(2, "0");
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const year = d.getFullYear();
+    const hours = String(d.getHours()).padStart(2, "0");
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    return `${day}-${month}-${year}, ${hours}:${minutes}`;
   };
 
   const getTabStyles = (tab: PriorityTab) => {
     const isActive = activeTab === tab;
-
+    // Base consistent sizing & layout with larger font
+    const base =
+      "h-6 px-3 flex items-center rounded-full text-[0.65rem] font-normal border border-transparent";
     if (tab === "high") {
-      return isActive
-        ? "bg-red-100 text-red-700 font-medium text-[0.55rem]"
-        : "text-gray-600";
+      return `${base} ${
+        isActive
+          ? "bg-red-100 text-red-700 font-medium border-red-300"
+          : "bg-white text-gray-600"
+      }`;
     } else if (tab === "medium") {
-      return isActive
-        ? "bg-yellow-100 text-yellow-700 font-medium text-[0.55rem]"
-        : "text-gray-600";
+      return `${base} ${
+        isActive
+          ? "bg-yellow-100 text-yellow-700 font-medium border-yellow-300"
+          : "bg-white text-gray-600"
+      }`;
     } else if (tab === "low") {
-      return isActive
-        ? "bg-green-100 text-green-700 font-medium text-[0.55rem]"
-        : "text-gray-600";
+      return `${base} ${
+        isActive
+          ? "bg-green-100 text-green-700 font-medium border-green-300"
+          : "bg-white text-gray-600"
+      }`;
     } else {
-      return isActive
-        ? "bg-gray-200 text-gray-800 font-medium text-[0.55rem]"
-        : "text-gray-600";
+      return `${base} ${
+        isActive
+          ? "bg-gray-200 text-gray-800 font-medium border-gray-300"
+          : "bg-white text-gray-600"
+      }`;
     }
   };
 
@@ -370,12 +417,12 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-2 py-1 whitespace-nowrap rounded-full flex items-center gap-1 text-xs transition-all ${getTabStyles(
+                  className={`${getTabStyles(
                     tab
-                  )}`}
+                  )} whitespace-nowrap transition-colors duration-150`}
                 >
                   {tab === "high" && (
-                    <FiAlertTriangle className="w-3 h-3 text-red-700" />
+                    <FiAlertTriangle className="w-3 h-3 text-red-700 mr-2" />
                   )}
                   {tab === "high" && `High Priority (${highPriority.length})`}
                   {tab === "medium" &&
@@ -408,11 +455,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                     key={task._id}
                     priority="high"
                     taskId={task._id}
-                    date={
-                      task?.dateTime
-                        ? new Date(task.dateTime).toLocaleDateString()
-                        : "-"
-                    }
+                    date={task?.dateTime ? formatDateTime(task.dateTime) : "-"}
                     title={task?.subCategory || task?.category || "Task"}
                     description={task?.activity || "-"}
                     assignedBy={
@@ -422,7 +465,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                     }
                     assignees={resolveAssignedToNames(task).map(
                       (name: string) => ({
-                        short: name.slice(0, 1).toUpperCase(),
+                        short: getInitials(name),
                         full: name,
                         color: "border-[#5856D6] text-[#5856D6]",
                       })
@@ -457,11 +500,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                   key={task._id}
                   priority="medium"
                   taskId={task._id}
-                  date={
-                    task?.dateTime
-                      ? new Date(task.dateTime).toLocaleDateString()
-                      : "-"
-                  }
+                  date={task?.dateTime ? formatDateTime(task.dateTime) : "-"}
                   title={task?.subCategory || task?.category || "Task"}
                   description={task?.activity || "-"}
                   assignedBy={
@@ -471,7 +510,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                   }
                   assignees={resolveAssignedToNames(task).map(
                     (name: string) => ({
-                      short: name.slice(0, 1).toUpperCase(),
+                      short: getInitials(name),
                       full: name,
                       color: "border-[#5856D6] text-[#5856D6]",
                     })
@@ -502,11 +541,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                   key={task._id}
                   priority="low"
                   taskId={task._id}
-                  date={
-                    task?.dateTime
-                      ? new Date(task.dateTime).toLocaleDateString()
-                      : "-"
-                  }
+                  date={task?.dateTime ? formatDateTime(task.dateTime) : "-"}
                   title={task?.subCategory || task?.category || "Task"}
                   description={task?.activity || "-"}
                   assignedBy={
@@ -516,7 +551,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                   }
                   assignees={resolveAssignedToNames(task).map(
                     (name: string) => ({
-                      short: name.slice(0, 1).toUpperCase(),
+                      short: getInitials(name),
                       full: name,
                       color: "border-[#5856D6] text-[#5856D6]",
                     })
@@ -548,11 +583,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                   key={task._id}
                   priority="completed"
                   taskId={task._id}
-                  date={
-                    task?.dateTime
-                      ? new Date(task.dateTime).toLocaleDateString()
-                      : "-"
-                  }
+                  date={task?.dateTime ? formatDateTime(task.dateTime) : "-"}
                   title={task?.subCategory || task?.category || "Task"}
                   description={task?.activity || "-"}
                   assignedBy={
@@ -562,7 +593,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                   }
                   assignees={resolveAssignedToNames(task).map(
                     (name: string) => ({
-                      short: name.slice(0, 1).toUpperCase(),
+                      short: getInitials(name),
                       full: name,
                       color: "border-[#5856D6] text-[#5856D6]",
                     })
@@ -633,6 +664,36 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
             setIsEditingTask(true);
             setIsAddTaskModalOpen(true);
           }, 50);
+        }}
+        onMarkComplete={async () => {
+          if (!selectedTask?._id) return;
+          try {
+            // Optimistic UI: mark locally first
+            setLogs((prev) =>
+              prev.map((l: any) =>
+                l._id === selectedTask._id ? { ...l, status: "Completed" } : l
+              )
+            );
+            const updated = await updateLogStatus(
+              selectedTask._id,
+              "Completed"
+            );
+            setLogs((prev) =>
+              prev.map((l: any) => (l._id === updated._id ? updated : l))
+            );
+            setSelectedTask(updated);
+            setTimeout(() => setSelectedDate(new Date(selectedDate)), 50);
+          } catch (e) {
+            console.error("Failed to mark task complete", e);
+            // Revert optimistic change if backend fails
+            setLogs((prev) =>
+              prev.map((l: any) =>
+                l._id === selectedTask._id
+                  ? { ...l, status: selectedTask.status }
+                  : l
+              )
+            );
+          }
         }}
       />
     </div>

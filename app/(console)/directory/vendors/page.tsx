@@ -7,7 +7,11 @@ import ActionMenu from "@/components/Menus/ActionMenu";
 import { FiSearch } from "react-icons/fi";
 import { CiFilter } from "react-icons/ci";
 import { HiArrowsUpDown } from "react-icons/hi2";
-import { getVendors, deleteVendor, getVendorBookingHistory } from "@/services/vendorApi";
+import {
+  getVendors,
+  deleteVendor,
+  getVendorBookingHistory,
+} from "@/services/vendorApi";
 import { IoEllipsisHorizontal } from "react-icons/io5";
 import type { JSX } from "react";
 import { BookingProvider } from "@/context/BookingContext";
@@ -19,6 +23,7 @@ import type { DeletableItem } from "@/components/Modals/DeleteModal";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import { FaRegStar } from "react-icons/fa";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
+import { MdHistory } from "react-icons/md";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -250,7 +255,7 @@ const VendorDirectory = () => {
         bookingDate: q.createdAt ? formatDMY(q.createdAt) : "—",
         travelDate: q.travelDate ? String(q.travelDate) : "",
         status: mapStatusForModal(q.status),
-        amount: (q.totalAmount != null ? String(q.totalAmount) : "0"),
+        amount: q.totalAmount != null ? String(q.totalAmount) : "0",
       }));
       setHistoryBookings(mapped);
       setIsHistoryOpen(true);
@@ -377,6 +382,7 @@ const VendorDirectory = () => {
                 className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
                 onClick={() => openHistoryForVendor(row)}
               >
+                <MdHistory className="inline mr-1" size={14} />
                 Booking History
               </button>
               <ActionMenu

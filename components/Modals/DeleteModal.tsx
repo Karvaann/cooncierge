@@ -1,8 +1,14 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import Modal from "@/components/Modal";
 import Table from "@/components/Table";
+import ConfirmationModal from "@/components/popups/ConfirmationModal";
+import { deleteCustomer } from "@/services/customerApi";
+import { deleteVendor } from "@/services/vendorApi";
+import { deleteTeam } from "@/services/teamsApi";
+import { deleteTraveller } from "@/services/travellerApi";
+import { MdHistory } from "react-icons/md";
 
 type EntityType = "customer" | "vendor" | "team" | "traveller";
 
@@ -16,7 +22,8 @@ export interface DeletableItem {
   rating?: number; // customer/vendor rating
   dateModified?: string; // customer date modified / vendor date modified
   dateCreated?: string; // traveller date created
-  isLinked?: boolean;
+  isLinked?: boolean; // legacy flag (kept if upstream still passes)
+  isDeletable?: boolean; // new flag controlling deletion permission
   // vendor specific
   vendorName?: string;
   poc?: string;
@@ -40,6 +47,56 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   items,
   entity,
 }) => {
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const deletableItems = useMemo(
+    () => (items || []).filter((i) => i.isDeletable !== false),
+    [items]
+  );
+  const nonDeletableItems = useMemo(
+    () => (items || []).filter((i) => i.isDeletable === false),
+    [items]
+  );
+
+  const performDeletion = useCallback(async () => {
+    setIsProcessing(true);
+    setError(null);
+    try {
+      const promises = deletableItems.map((item) => {
+        switch (entity) {
+          case "customer":
+            return deleteCustomer(item.id);
+          case "vendor":
+            return deleteVendor(item.id);
+          case "team":
+            return deleteTeam(item.id);
+          case "traveller":
+            return deleteTraveller(item.id);
+          default:
+            return Promise.resolve();
+        }
+      });
+      await Promise.allSettled(promises); // swallow individual failures, could surface later
+      onClose();
+    } catch (e: any) {
+      setError(e?.message || "Failed to delete selected entries");
+    } finally {
+      setIsProcessing(false);
+      setShowConfirm(false);
+    }
+  }, [deletableItems, entity, onClose]);
+
+  const handlePrimaryDeleteClick = () => {
+    if (nonDeletableItems.length === 0) {
+      // all deletable -> immediate deletion
+      performDeletion();
+    } else {
+      // need confirmation modal
+      setShowConfirm(true);
+    }
+  };
   const getRatingIcon = (rating: number) => {
     const colors = {
       1: "bg-red-100 text-red-500",
@@ -125,19 +182,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           className="px-3 py-1.5 text-center justify-center text-[0.75rem]"
         >
           <button className="flex items-center justify-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-700 text-[0.7rem] transition-colors">
-            <svg
-              className="w-3.5 h-3.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
+            <MdHistory className="inline" size={14} />
             Booking History
           </button>
         </td>
@@ -279,9 +324,9 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       ];
     });
   }, [items, entity]);
-  const linkedCustomers = useMemo(
-    () => (items || []).filter((c) => c.isLinked).map((c) => c.id),
-    [items]
+  const nonDeletableIds = useMemo(
+    () => nonDeletableItems.map((c) => c.id),
+    [nonDeletableItems]
   );
 
   return (
@@ -321,24 +366,55 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             {/* Warning moved to footer next to Delete button */}
           </div>
 
-          <div className="flex justify-end items-center gap-3 pt-3 bg-white shrink-0">
-            <div className="flex items-center text-red-500 text-[0.7rem] gap-1">
-              <span>Entries with</span>
-              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
-              </svg>
-              <span>cannot be deleted as they are linked</span>
-            </div>
-
+          <div className="flex justify-end items-center gap-4 pt-3 bg-white shrink-0">
+            {nonDeletableItems.length > 0 && (
+              <div className="flex items-center text-red-500 text-[0.7rem] gap-1">
+                <span>Entries with</span>
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
+                </svg>
+                <span>cannot be deleted</span>
+              </div>
+            )}
             <button
-              onClick={() => alert("Deleting non-linked customers...")}
-              className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors text-[0.7rem]"
+              disabled={isProcessing || items.length === 0}
+              onClick={handlePrimaryDeleteClick}
+              className="px-4 py-2 bg-red-500 disabled:opacity-50 text-white rounded-md hover:bg-red-600 transition-colors text-[0.7rem]"
             >
-              Delete
+              {isProcessing ? "Deleting..." : "Delete"}
             </button>
           </div>
         </div>
       </Modal>
+      {showConfirm && (
+        <ConfirmationModal
+          isOpen={showConfirm}
+          onClose={() => setShowConfirm(false)}
+          onConfirm={performDeletion}
+          title={
+            nonDeletableItems.length === items.length
+              ? "None of the selected entries can be deleted."
+              : `The following ${entity}$
+{nonDeletableItems.length > 1 ? "s" : ""} cannot be deleted: ${nonDeletableIds.join(
+                  ", "
+                )}. Proceed to remove the rest?`
+          }
+          confirmText={
+            nonDeletableItems.length === items.length
+              ? "Close"
+              : "Remove, Delete"
+          }
+          cancelText={
+            nonDeletableItems.length === items.length ? "Cancel" : "Keep All"
+          }
+          confirmButtonColor="bg-red-600"
+        />
+      )}
+      {error && (
+        <div className="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded shadow text-[0.7rem]">
+          {error}
+        </div>
+      )}
     </div>
   );
 };

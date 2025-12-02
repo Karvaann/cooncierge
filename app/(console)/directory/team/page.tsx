@@ -16,6 +16,7 @@ import DownloadMergeMenu from "@/components/Menus/DownloadMergeMenu";
 import type { DeletableItem } from "@/components/Modals/DeleteModal";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
+import { MdHistory } from "react-icons/md";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -291,6 +292,7 @@ const TeamDirectory = () => {
                 className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
                 onClick={() => setIsHistoryOpen(true)}
               >
+                <MdHistory className="inline mr-1" size={14} />
                 Booking History
               </button>
               <ActionMenu

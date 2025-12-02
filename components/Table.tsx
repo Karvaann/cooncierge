@@ -52,9 +52,9 @@ const Table: React.FC<TableProps> = ({
       Array.from({ length: totalPages }).map((_, idx) => (
         <button
           key={idx}
-          className={`w-6 h-6 rounded-md font-normal border border-gray-300 flex items-center justify-center transition-colors ${
+          className={`w-6 h-6 rounded-md font-normal text-[0.85rem] flex items-center justify-center transition-colors ${
             page === idx + 1
-              ? "bg-gray-100 text-black"
+              ? "bg-gray-100 text-gray-600"
               : "bg-white text-[#155e75] hover:bg-gray-50"
           }`}
           onClick={() => setPage(idx + 1)}
@@ -176,7 +176,7 @@ const Table: React.FC<TableProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-gray-600 text-[0.75rem]">Rows per page:</span>
             <select
-              className="border border-gray-300 rounded px-2 py-1 text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#155e75] transition-colors"
+              className="border border-gray-300 rounded text-[0.75rem] px-1 py-1 text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#155e75] transition-colors"
               value={rowsPerPage}
               onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
             >
@@ -193,7 +193,7 @@ const Table: React.FC<TableProps> = ({
 
         <div className="flex items-center gap-2">
           <button
-            className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={page === 1}
             onClick={handlePreviousPage}
             aria-label="Previous page"
@@ -204,7 +204,7 @@ const Table: React.FC<TableProps> = ({
           {paginationButtons}
 
           <button
-            className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             disabled={page === totalPages}
             onClick={handleNextPage}
             aria-label="Next page"

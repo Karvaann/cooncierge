@@ -46,8 +46,10 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
   const assignedBy: string = t.assignedByName || t.assignedBy || "-";
   const assignedTo: string[] = Array.isArray(t.assignees)
     ? t.assignees
-        .map((a: any) => a?.full || a?.name || a?.email)
-        .filter(Boolean)
+        .map((a: any) =>
+          typeof a === "string" ? a : a?.full || a?.name || a?.email
+        )
+        .filter((v: any) => typeof v === "string" && v.trim().length > 0)
     : [];
 
   const formatDate = (iso?: string) => {
@@ -261,7 +263,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
               <div className="grid grid-cols-2 gap-3 border-b border-gray-200 pb-3">
                 <div className="text-left">
                   <h4 className="text-[0.7rem] text-gray-500">Assigned To</h4>
-                  <p className="text-[0.75rem] font-medium">
+                  <p className="text-[0.75rem] font-medium text-gray-900">
                     {assignedTo.length ? assignedTo.join(", ") : "-"}
                   </p>
                 </div>
@@ -272,7 +274,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
               </div>
 
               {/* Attached Files (static placeholders) */}
-              <div className="text-left mb-2">
+              {/* <div className="text-left mb-2">
                 <h4 className="text-[0.75rem] text-gray-500 mb-1">
                   Attached Files (
                   {Array.isArray(t.files)
@@ -294,7 +296,7 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
                     </div>
                   ))}
                 </div>
-              </div>
+              </div> */}
             </div>
           )}
 
@@ -379,20 +381,38 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
         {/* FOOTER */}
         <div className="px-4 py-3 flex gap-2">
           <button
-            onClick={() => onEdit?.(t)}
-            className="flex-1 px-4 py-1.5 font-semibold border border-blue-600 text-blue-600 text-[0.75rem] rounded-md hover:bg-blue-50"
+            onClick={() => {
+              if (status.toLowerCase() === "completed") return;
+              onEdit?.(t);
+            }}
+            disabled={status.toLowerCase() === "completed"}
+            className={`flex-1 px-4 py-1.5 font-semibold rounded-md text-[0.75rem] border transition-colors 
+              ${
+                status.toLowerCase() === "completed"
+                  ? "border-gray-300 text-gray-400 cursor-not-allowed bg-gray-100"
+                  : "border-blue-600 text-blue-600 hover:bg-blue-50"
+              }`}
           >
-            Edit Task
+            {status.toLowerCase() === "completed" ? "Locked" : "Edit Task"}
           </button>
 
           <button
             onClick={() => {
+              if (status.toLowerCase() === "completed") return;
               onMarkComplete?.();
               onClose();
             }}
-            className="flex-1 px-4 py-1.5 bg-[#0D4B37] text-white rounded-md text-[0.75rem] hover:bg-teal-800"
+            disabled={status.toLowerCase() === "completed"}
+            className={`flex-1 px-4 py-1.5 rounded-md text-[0.75rem] font-semibold transition-colors 
+              ${
+                status.toLowerCase() === "completed"
+                  ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                  : "bg-[#0D4B37] text-white hover:bg-teal-800"
+              }`}
           >
-            Mark Complete
+            {status.toLowerCase() === "completed"
+              ? "Completed"
+              : "Mark Complete"}
           </button>
         </div>
       </div>

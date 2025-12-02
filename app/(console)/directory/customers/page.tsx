@@ -20,8 +20,13 @@ import type { DeletableItem } from "@/components/Modals/DeleteModal";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import { FaRegStar } from "react-icons/fa";
 import { CiLink } from "react-icons/ci";
-import { getTravellers, deleteTraveller } from "@/services/travellerApi";
+import {
+  getTravellers,
+  deleteTraveller,
+  getTravellerBookingHistory,
+} from "@/services/travellerApi";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
+import { MdHistory } from "react-icons/md";
 import { getBookingHistoryByCustomer } from "@/services/customerApi";
 
 const Table = dynamic(() => import("@/components/Table"), {
@@ -136,6 +141,27 @@ const CustomerDirectory = () => {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [travellers, setTravellers] = useState<any[]>([]);
   const [bookingHistory, setBookingHistory] = useState<any[]>([]);
+  const mapStatusForModal = (status?: string) => {
+    switch ((status || "").toLowerCase()) {
+      case "confirmed":
+        return "Successful" as const;
+      case "cancelled":
+        return "Failed" as const;
+      case "draft":
+      default:
+        return "In Progress" as const;
+    }
+  };
+  const mapQuotationsToModal = (qs: any[]) =>
+    qs.map((q: any) => ({
+      id: q.customId || q._id,
+      bookingDate: q.createdAt
+        ? new Date(q.createdAt).toLocaleDateString("en-IN")
+        : "—",
+      travelDate: q.travelDate ? String(q.travelDate) : "",
+      status: mapStatusForModal(q.status),
+      amount: q.totalAmount != null ? String(q.totalAmount) : "0",
+    }));
 
   const handleOpenLinkModal = () => {
     setIsLinkModalOpen(true);
@@ -410,7 +436,9 @@ const CustomerDirectory = () => {
                     const history = await getBookingHistoryByCustomer(
                       row.customerID
                     );
-                    setBookingHistory(history.quotations);
+                    setBookingHistory(
+                      mapQuotationsToModal(history.quotations || [])
+                    );
                   } catch (err) {
                     console.error("Failed to load booking history:", err);
                     setBookingHistory([]);
@@ -419,6 +447,7 @@ const CustomerDirectory = () => {
                   setIsHistoryOpen(true);
                 }}
               >
+                <MdHistory className="inline mr-1" size={14} />
                 Booking History
               </button>
               <div className="">
@@ -526,7 +555,36 @@ const CustomerDirectory = () => {
           {row.dateCreated}
         </td>,
         <td key={`actions-${index}`} className="px-4 py-3 text-center">
-          <div className="">
+          <div className="flex items-center justify-center gap-2">
+            <button
+              type="button"
+              className="bg-gray-200 text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
+              onClick={async () => {
+                try {
+                  const resp = await getTravellerBookingHistory(
+                    row.travellerID,
+                    {
+                      sortBy: "createdAt",
+                      sortOrder: "desc",
+                      page: 1,
+                      limit: 10,
+                    }
+                  );
+                  const mapped = mapQuotationsToModal(resp?.quotations || []);
+                  setBookingHistory(mapped);
+                } catch (err) {
+                  console.error(
+                    "Failed to load traveller booking history:",
+                    err
+                  );
+                  setBookingHistory([]);
+                }
+                setIsHistoryOpen(true);
+              }}
+            >
+              <MdHistory className="inline mr-1" size={14} />
+              Booking History
+            </button>
             <ActionMenu
               actions={[
                 {
@@ -610,7 +668,9 @@ const CustomerDirectory = () => {
               Total
             </span>
             <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
-              {customers.length}
+              {activeTab === "Travellers"
+                ? travellers.length
+                : customers.length}
             </span>
           </div>
           <button
@@ -799,11 +859,15 @@ const CustomerDirectory = () => {
         <BookingHistoryModal
           isOpen={isHistoryOpen}
           onClose={() => setIsHistoryOpen(false)}
-          onViewCustomer={() => {
-            setMode("view");
-            setIsSideSheetOpen(true);
-            setIsHistoryOpen(false);
-          }}
+          onViewCustomer={
+            activeTab === "Customers" && selectedCustomer
+              ? () => {
+                  setMode("view");
+                  setIsSideSheetOpen(true);
+                  setIsHistoryOpen(false);
+                }
+              : undefined
+          }
           bookings={bookingHistory}
         />
       )}

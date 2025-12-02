@@ -15,6 +15,7 @@ import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
 import { LuSave } from "react-icons/lu";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
+import { MdHistory } from "react-icons/md";
 
 type VendorData = {
   _id?: string;
@@ -682,6 +683,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 onClick={openHistoryForVendor}
                 className="px-3 py-1.5 rounded-md border border-gray-300 bg-white text-[0.75rem]"
               >
+                <MdHistory className="inline mr-1" size={14} />
                 Booking History
               </button>
             )}

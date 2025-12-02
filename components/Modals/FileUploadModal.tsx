@@ -1,6 +1,12 @@
 "use client";
 
 import React, { useState, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
+import { LuTrash2 } from "react-icons/lu";
+import {
+  uploadBulkCustomers,
+  downloadBulkTemplate,
+} from "@/services/uploadApi";
 
 // Modal Component
 interface ModalProps {
@@ -39,6 +45,8 @@ const Modal: React.FC<ModalProps> = ({
   };
 
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
 
   const handleEscape = useCallback(
     (event: KeyboardEvent) => {
@@ -59,27 +67,27 @@ const Modal: React.FC<ModalProps> = ({
   );
 
   React.useEffect(() => {
+    const cleanup = () => {
+      document.body.style.overflow = "unset";
+      document.removeEventListener("keydown", handleEscape);
+    };
     if (isOpen) {
       document.body.style.overflow = "hidden";
       if (closeOnEscape) {
         document.addEventListener("keydown", handleEscape);
       }
-      return () => {
-        document.body.style.overflow = "unset";
-        document.removeEventListener("keydown", handleEscape);
-      };
     }
-    return;
+    return cleanup;
   }, [isOpen, closeOnEscape, handleEscape]);
 
   const modalWidthClass = customWidth ? customWidth : sizeClasses[size];
   const modalHeightClass = customeHeight ? customeHeight : "";
 
-  if (!isOpen) return null;
+  if (!mounted || !isOpen) return null;
 
-  return (
+  const overlay = (
     <div
-      className="fixed inset-0 z-50 bg-black/50 flex justify-center items-center md:items-center transition-opacity duration-300"
+      className="fixed inset-0 z-[2147483647] bg-black/50 flex justify-center items-center md:items-center transition-opacity duration-300"
       onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
@@ -129,6 +137,8 @@ const Modal: React.FC<ModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(overlay, document.body);
 };
 
 // File Upload Component
@@ -151,6 +161,48 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState("CSV");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Upload state management
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<any>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const handleSaveFiles = async () => {
+    if (uploadedFiles.length === 0) return;
+
+    const firstFile = uploadedFiles[0];
+    if (!firstFile) return;
+
+    setIsUploading(true);
+    setUploadError(null);
+    setUploadResult(null);
+
+    try {
+      const result = await uploadBulkCustomers(firstFile);
+
+      setUploadResult(result);
+      setUploadedFiles([]);
+      setIsUploading(false);
+
+      onClose();
+    } catch (error: any) {
+      console.error("Upload error:", error);
+      const message = error.response?.data?.message || "Upload failed";
+      setUploadError(message);
+      setIsUploading(false);
+    }
+  };
+
+  const handleDownloadTemplate = async () => {
+    const format = selectedFormat.toLowerCase();
+
+    if (format === "pdf" || format === "docx") {
+      alert("Only CSV or XLSX templates available.");
+      return;
+    }
+
+    const allowedFormat = format === "csv" ? "csv" : "xlsx";
+    await downloadBulkTemplate(allowedFormat);
+  };
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -213,25 +265,6 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
     }
   };
 
-  const handleSaveFiles = () => {
-    if (onUpload) {
-      onUpload(uploadedFiles);
-    }
-    onClose();
-  };
-
-  const handleDownloadTemplate = () => {
-    // A sample CSV template
-    const csvContent = "Column1,Column2,Column3\nSample1,Sample2,Sample3";
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `template.${selectedFormat.toLowerCase()}`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-  };
-
   const removeFile = (index: number) => {
     setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
   };
@@ -242,8 +275,8 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
       onClose={onClose}
       title="Upload Files"
       size="xl"
-      customWidth="w-[34vw]"
-      customeHeight="h-[58vh]"
+      customWidth="w-[600px]"
+      customeHeight="h-[59vh]"
       className="max-w-3xl"
     >
       <div className="space-y-2 p-2">
@@ -282,9 +315,9 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
                 className="appearance-none px-3 py-1 pr-8 border border-gray-300 rounded-md bg-white cursor-pointer hover:border-gray-400 transition-colors text-[0.75rem] font-medium w-[8rem]"
               >
                 <option value="CSV">CSV</option>
-                <option value="PDF">PDF</option>
-                <option value="DOCX">DOCX</option>
+                <option value="XLSX">XLSX</option>
               </select>
+
               <svg
                 className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none text-gray-600"
                 fill="none"
@@ -396,21 +429,11 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
                   </div>
                   <button
                     onClick={() => removeFile(index)}
-                    className="text-red-500 hover:text-red-700 p-0.5"
+                    className="text-red-500 hover:text-red-600 p-0.5"
+                    aria-label="Remove file"
+                    title="Remove file"
                   >
-                    <svg
-                      className="w-4 h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
+                    <LuTrash2 className="w-4 h-4" />
                   </button>
                 </div>
               ))}
@@ -422,10 +445,16 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
         <div className="flex justify-end">
           <button
             onClick={handleSaveFiles}
-            disabled={uploadedFiles.length === 0}
-            className="px-4 py-1.5 bg-green-700 text-white rounded-md hover:bg-green-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors text-[0.75rem] font-medium"
+            disabled={uploadedFiles.length === 0 || isUploading}
+            className={`px-4 py-1.5 rounded-md text-white text-[0.75rem] font-medium transition-colors 
+              ${
+                isUploading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-green-700 hover:bg-green-800"
+              }
+            `}
           >
-            Uploaded File(s)
+            {isUploading ? "Uploading..." : "Upload File(s)"}
           </button>
         </div>
       </div>

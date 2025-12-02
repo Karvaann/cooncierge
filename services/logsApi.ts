@@ -25,10 +25,12 @@ export const updateLog = async (id: string, updates: any) => {
 // UPDATE Only Status (Pending → Completed etc.)
 export const updateLogStatus = async (id: string, status: string) => {
   try {
-    const response = await apiClient.put(`/logs/update-status/${id}`, { status });
-    return response.data.log;
+    // Backend route is PATCH /logs/update-log-status/:logId
+    const response = await apiClient.patch(`/logs/update-log-status/${id}`, { status });
+    return response.data.log; // { success: true, log }
   } catch (error: any) {
     console.error("Failed to update log status:", error);
+    // Surface structured backend error or generic fallback
     throw error.response?.data || { message: "Something went wrong" };
   }
 };

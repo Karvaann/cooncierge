@@ -108,7 +108,8 @@ const PriorityTaskCard: React.FC<PriorityTaskCardProps> = ({
           <span className="font-semibold text-gray-700">{assignedBy}</span>
         </div>
 
-        <div className="flex items-center mt-1">
+        <div className="flex items-center mt-1 mr-2">
+          <span className="text-xs text-gray-500 mr-3">Assigned To:</span>
           {assignees.map((a, i) => (
             <AvatarTooltip
               key={i}

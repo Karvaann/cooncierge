@@ -66,5 +66,23 @@ export const restoreTraveller = async (id: string) => {
   }
 };
 
+// Get Traveller Booking History
+// Returns { quotations, pagination, traveller } in response.data.data
+export const getTravellerBookingHistory = async (
+  travellerId: string,
+  params: any = {}
+) => {
+  try {
+    const response = await apiClient.get(
+      `/quotation/booking-history/traveller/${travellerId}`,
+      { params }
+    );
+    return response.data.data;
+  } catch (error: any) {
+    console.error("Failed to fetch traveller booking history:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+
 
 

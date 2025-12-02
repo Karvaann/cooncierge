@@ -12,7 +12,7 @@ import { FaStore } from "react-icons/fa";
 interface BookingHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onViewCustomer?: () => void;
+  onViewCustomer?: (() => void) | undefined;
   bookings: {
     id: string;
     bookingDate: string;
@@ -35,13 +35,34 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
   onViewCustomer,
   bookings,
 }) => {
+  const formatDMY = (dateString: string) => {
+    const direct = new Date(dateString);
+    if (!isNaN(direct.getTime())) {
+      const day = String(direct.getDate()).padStart(2, "0");
+      const month = String(direct.getMonth() + 1).padStart(2, "0");
+      const year = direct.getFullYear();
+      return `${day}-${month}-${year}`;
+    }
+    const m = String(dateString).match(
+      /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/
+    );
+    if (m) {
+      const d = m[1] || "";
+      const mo = m[2] || "";
+      const y = m[3] || "";
+      const day = d.padStart(2, "0");
+      const month = mo.padStart(2, "0");
+      return `${day}-${month}-${y}`;
+    }
+    return dateString || "—";
+  };
   const columns = [
     "ID",
     "Booking Date",
     "Travel Date",
     "Status",
     "Amount",
-    "Actions",
+    // "Actions",
   ];
 
   const tabs = [
@@ -62,16 +83,14 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
       key={`${item.id}-bdate`}
       className="px-2 py-2 text-center text-[0.75rem]"
     >
-      {item.bookingDate}
+      {item.bookingDate ? formatDMY(item.bookingDate) : "—"}
     </td>,
 
     <td
       key={`${item.id}-tdate`}
       className="px-2 py-2 text-center text-[0.75rem]"
     >
-      {item.travelDate
-        ? new Date(item.travelDate).toLocaleDateString("en-IN")
-        : "—"}
+      {item.travelDate ? formatDMY(item.travelDate) : "—"}
     </td>,
 
     <td
@@ -95,35 +114,60 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
       ₹ {item.totalAmount || item.amount || "0"}
     </td>,
 
-    <td
-      key={`${item.id}-actions`}
-      className="px-2 py-2 text-center justify-center flex items-center gap-2"
-    >
-      <button
-        className="p-1.5 rounded-md bg-yellow-100 hover:bg-yellow-200 transition"
-        onClick={onViewCustomer}
-        type="button"
-      >
-        <FiEye className="text-gray-700" size={14} />
-      </button>
+    // <td
+    //   key={`${item.id}-actions`}
+    //   className="px-2 py-2 text-center justify-center flex items-center gap-2"
+    // >
+    //   <button
+    //     className="p-1.5 rounded-md bg-yellow-100 hover:bg-yellow-200 transition"
+    //     onClick={onViewCustomer}
+    //     type="button"
+    //   >
+    //     <FiEye className="text-gray-700" size={14} />
+    //   </button>
 
-      <button className="p-1.5 rounded-md bg-blue-100 hover:bg-blue-200 transition">
-        <FiEdit className="text-gray-700" size={14} />
-      </button>
-    </td>,
+    //   <button className="p-1.5 rounded-md bg-blue-100 hover:bg-blue-200 transition">
+    //     <FiEdit className="text-gray-700" size={14} />
+    //   </button>
+    // </td>,
   ]);
 
   return (
     <Modal
-      title="Booking History"
+      title=""
       isOpen={isOpen}
       onClose={onClose}
       size="xl"
-      customWidth="w-[70vw]"
+      customWidth="w-[800px]"
       customeHeight="h-fit"
       className="pb-2"
     >
       <div className="px-2">
+        {/* CUSTOM HEADER */}
+        <div className="flex items-center justify-between px-4 py-2 -mt-6">
+          {/* Left: Title */}
+          <h2 className="text-md font-semibold">Booking History</h2>
+
+          {/* Middle: Buttons (Eye + Edit) */}
+          <div className="flex items-center gap-2 mr-2">
+            <button
+              className="p-1.5 rounded-md bg-yellow-100 hover:bg-yellow-200 transition"
+              onClick={onViewCustomer}
+              type="button"
+            >
+              <FiEye className="text-gray-700" size={14} />
+            </button>
+
+            <button
+              className="p-1.5 rounded-md bg-blue-100 hover:bg-blue-200 transition"
+              type="button"
+            >
+              <FiEdit className="text-gray-700" size={16} />
+            </button>
+          </div>
+
+          {/* Right: Close button (Modal already renders X, so we leave space for it) */}
+        </div>
         {/* Tabs */}
         {/* <div className="flex items-center gap-3 mb-3 border-b pb-2">
         {tabs.map((t) => (
