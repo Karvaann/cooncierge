@@ -118,7 +118,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   };
 
   useEffect(() => {
-    onFormDataUpdate({ OthersInfoForm: formData });
+    onFormDataUpdate({ othersinfoform: formData });
   }, [formData]);
 
   type FieldRule = {

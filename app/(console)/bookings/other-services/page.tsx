@@ -771,9 +771,35 @@ const OSBookingsPage = () => {
     };
   };
 
-  const finalQuotations = (
-    activeTab === "Drafts" ? drafts.map(normalizeDraft) : filteredQuotations
-  ) as any[];
+  // Filter quotations based on active tab and status
+  const finalQuotations = useMemo(() => {
+    // Drafts tab shows local drafts
+    if (activeTab === "Drafts") {
+      return drafts.map(normalizeDraft);
+    }
+
+    // Filter quotations by status based on active tab
+    return filteredQuotations.filter((q) => {
+      const status = q.status?.toLowerCase();
+
+      switch (activeTab) {
+        case "Approved":
+          // Show confirmed bookings
+          return status === "confirmed";
+        case "Pending":
+          // Show pending or draft status bookings
+          return status === "pending" || status === "draft";
+        case "Denied":
+          // Show denied or cancelled bookings
+          return status === "denied" || status === "cancelled";
+        case "Deleted":
+          // Show deleted bookings (if you have a deleted flag or status)
+          return status === "deleted";
+        default:
+          return true;
+      }
+    });
+  }, [activeTab, drafts, filteredQuotations]) as any[];
 
   // Convert quotations to table data
   const tableData = useMemo<JSX.Element[][]>(() => {

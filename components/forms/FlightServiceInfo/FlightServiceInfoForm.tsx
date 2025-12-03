@@ -60,7 +60,7 @@ interface FlightInfoFormProps {
   onSubmit?: (data: FlightInfoFormData) => void;
   isSubmitting?: boolean;
   showValidation?: boolean;
-  formRef?: React.RefObject<HTMLDivElement | null>;
+  formRef?: React.RefObject<HTMLFormElement | null>;
   onFormDataUpdate: (data: any) => void;
 }
 
@@ -100,6 +100,12 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
     flightType: "One Way",
     remarks: "",
   });
+
+  // Sync initial form state to parent on mount
+  useEffect(() => {
+    onFormDataUpdate({ flightinfoform: formData });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   const [errors, setErrors] = useState<ValidationErrors>({});
 
@@ -466,7 +472,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 
   return (
     <>
-      <div className="space-y-4 p-4 -mt-1" ref={formRef as any}>
+      <form className="space-y-4 p-4 -mt-1" ref={formRef} onSubmit={(e) => e.preventDefault()}>
         <div className="px-2 py-1">
           {/* Booking and Travel Date */}
           <div className="flex flex-wrap items-end justify-between mb-3 px-5 -mx-5">
@@ -516,9 +522,9 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                   className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
                 >
                   <option>Select Status</option>
-                  <option>Confirmed</option>
-                  <option>Pending</option>
-                  <option>Cancelled</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="pending">Pending</option>
+                  <option value="cancelled">Cancelled</option>
                 </select>
                 <MdKeyboardArrowDown className="absolute right-2 top-2 h-4 w-4 text-gray-400 pointer-events-none" />
               </div>
@@ -956,7 +962,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             {isSubmitting ? "Saving..." : "Save"}
           </button>
         </div> */}
-      </div>
+      </form>
     </>
   );
 };

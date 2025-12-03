@@ -20,6 +20,8 @@ import InsuranceServiceInfoForm from "./forms/InsuranceServiceInfoForm";
 import VisasServiceInfoForm from "./forms/VisasServiceInfoForm";
 import OthersServiceInfoForm from "./forms/OthersServiceInfoForm";
 
+import { getAuthUser } from '@/services/storage/authStorage';
+
 // Type definitions
 interface Service {
   id: string;
@@ -117,10 +119,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
   // refs for form data collection
   const generalFormRef = useRef<HTMLFormElement | null>(null);
-  const serviceFormRef = useRef<HTMLFormElement | HTMLDivElement | null>(null);
+  const serviceFormRef = useRef<HTMLFormElement | null>(null);
   const addCustomerFormRef = useRef<HTMLFormElement | null>(null);
   const addVendorFormRef = useRef<HTMLFormElement | null>(null);
   const addTravellerFormRef = useRef<HTMLFormElement | null>(null);
+
+  // Ref to always have access to latest formData in callbacks
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
 
   // Update collectAllFormData
   const collectAllFormData = useCallback(() => {
@@ -129,40 +135,19 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     // Get data from General Info form
     if (generalFormRef.current instanceof HTMLFormElement) {
       const generalData = new FormData(generalFormRef.current);
+      console.log("General Data:", generalData);
       generalData.forEach((value, key) => {
         allFormData[key] = value;
       });
     }
 
     // Get data from Service Info form
+    console.log("Service Form Ref:", serviceFormRef.current);
     if (serviceFormRef.current instanceof HTMLFormElement) {
+      console.log("Service Form Ref:", serviceFormRef.current);
       const serviceData = new FormData(serviceFormRef.current as any);
 
       serviceData.forEach((value, key) => {
-        allFormData[key] = value;
-      });
-    }
-
-    // Get data from Add Customer form (if open/filled)
-    if (addCustomerFormRef.current instanceof HTMLElement) {
-      const customerData = new FormData(addCustomerFormRef.current as any);
-      customerData.forEach((value, key) => {
-        allFormData[key] = value;
-      });
-    }
-
-    // Get data from Add Vendor form (if open/filled)
-    if (addVendorFormRef.current instanceof HTMLElement) {
-      const vendorData = new FormData(addVendorFormRef.current as any);
-      vendorData.forEach((value, key) => {
-        allFormData[key] = value;
-      });
-    }
-
-    // Get data from Add Traveller form (if open/filled)
-    if (addTravellerFormRef.current instanceof HTMLElement) {
-      const travellerData = new FormData(addTravellerFormRef.current as any);
-      travellerData.forEach((value, key) => {
         allFormData[key] = value;
       });
     }
@@ -189,6 +174,78 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     [selectedService]
   );
 
+  function convertToBookingData(input: any, quotationType: string) {
+
+    const user = getAuthUser() as any;
+    const businessId = user?.businessId;
+
+    const {
+      customer,
+      vendor,
+      adults,
+      children,
+      remarks,
+      traveldate,
+      adultTravellerIds,
+      infantTravellerIds,
+      ...rest
+    } = input;
+
+    // Detect ANY key that ends with "infoform"
+    const infoFormKey = Object.keys(input).find(k => k.toLowerCase().endsWith("infoform"));
+
+    // Extract and flatten the infoform object
+    const flatInfoForm = infoFormKey && typeof input[infoFormKey] === "object"
+      ? { ...input[infoFormKey] }
+      : {};
+
+    // Everything except known fields and infoform goes to formFields
+    const formFields = Object.fromEntries(
+      Object.entries(rest).filter(([key]) => key !== infoFormKey)
+    );
+
+    // Merge flattened infoform into formFields
+    Object.assign(formFields, flatInfoForm);
+
+    // Combine adult and infant traveller IDs, filter out empty strings
+    const travelers = [
+      ...(adultTravellerIds || []),
+      ...(infantTravellerIds || []),
+    ].filter((id: string) => id && id.trim() !== "");
+
+    // Build final object
+    const bookingData = {
+      quotationType, // replace if needed
+      channel: "B2C",
+      businessId: businessId._id,
+
+      formFields,
+
+      totalAmount: Number(flatInfoForm.sellingprice ?? flatInfoForm.costprice ?? 0),
+      status: flatInfoForm.bookingstatus || "confirmed",
+
+      createdAt: new Date(),
+      updatedAt: new Date(),
+
+      owner: [input.bookingOwner],
+
+      travelDate: traveldate || flatInfoForm.traveldate ? new Date(flatInfoForm.traveldate) : null,
+
+      customerId: input.customer,
+      vendorId: input.vendor,
+
+      travelers,
+
+      adultTravlers: adults ?? 0,
+      childTravlers: children ?? 0,
+
+      remarks: remarks ?? "",
+    };
+
+    return bookingData;
+  }
+
+
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
 
@@ -200,118 +257,23 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     }
 
     try {
-      // Collect data from all forms
-      const formValues = collectAllFormData();
+      // Use ref to get latest formData to avoid stale closure issues
+      const currentFormData = formDataRef.current;
 
-      const selectedServiceObj: Service = {
-        id: "",
-        title: selectedService.title || "",
-        image: selectedService.image || "",
-        category: selectedService.category,
-        description: selectedService.description || "",
+      console.log("COLLECTING ALL FORM DATA");
+      console.log("COLLECTED FORM DATA:", collectAllFormData());
+      console.log("FORM DATA (from ref):", currentFormData);
+
+      const formValues = {
+        ...collectAllFormData(),
+        ...currentFormData,
       };
 
-      const bookingData = {
-        service: selectedServiceObj,
-        generalInfo: {
-          customer: formValues.customer || "",
-          vendor: formValues.vendor || "",
-          adults: Number(formValues.adults || 0),
-          children: Number(formValues.children || 0),
-          infants: Number(formValues.infants || 0),
-          adultTravellers: formValues.adultTravellers || [],
-          infantTravellers: formValues.infantTravellers || [],
-          traveller1: formValues.traveller1 || "",
-          traveller2: formValues.traveller2 || "",
-          traveller3: formValues.traveller3 || "",
-          bookingOwner: formValues.bookingOwner || "",
-          remarks: formValues.remarks || "",
-        },
-        customerform: {
-          firstname: formValues.firstname || "",
-          lastname: formValues.lastname || "",
-          nickname: formValues.nickname || formValues.alias || "",
-          contactnumber: formValues.contactnumber || formValues.phone || "",
-          emailId: formValues.emailId || formValues.email || "",
-          dateofbirth: formValues.dateofbirth || formValues.dateOfBirth || "",
-          gstin: formValues.gstin || "",
-          companyname: formValues.companyname || formValues.companyName || "",
-          billingaddress: formValues.billingaddress || formValues.address || "",
-          remarks: formValues.customerRemarks || formValues.remarks || "",
-        },
-        vendorform: {
-          companyname:
-            formValues.vendorCompanyName || formValues.companyName || "",
-          companyemail: formValues.vendorCompanyEmail || formValues.email || "",
-          contactnumber: formValues.vendorContact || formValues.phone || "",
-          gstin: formValues.vendorGstin || formValues.GSTIN || "",
-          firstname: formValues.vendorFirstname || formValues.firstname || "",
-          lastname: formValues.vendorLastname || formValues.lastname || "",
-          nickname: formValues.vendorNickname || formValues.alias || "",
-          emailId: formValues.vendorEmailId || formValues.email || "",
-          dateofbirth: formValues.vendorDob || formValues.dateOfBirth || "",
-          billingaddress:
-            formValues.vendorBillingAddress || formValues.address || "",
-          remarks: formValues.vendorRemarks || formValues.remarks || "",
-        },
-        flightinfoform: {
-          bookingdate: formValues.bookingdate || "",
-          traveldate: formValues.traveldate || "",
-          bookingstatus: formValues.bookingstatus || "Confirmed",
-          costprice: Number(formValues.costprice || 0),
-          sellingprice: Number(formValues.sellingprice || 0),
-          PNR: formValues.PNR || "",
-          pnrEnabled:
-            formValues.pnrEnabled === "true" || formValues.pnrEnabled === true,
-          segments: formValues.segments || [],
-          returnSegments: formValues.returnSegments || [],
-          samePNRForAllSegments:
-            formValues.samePNRForAllSegments === "true" ||
-            formValues.samePNRForAllSegments === true,
-          flightType: formValues.flightType || "One Way",
-          remarks: formValues.flightRemarks || "",
-        },
-        accommodationform: {
-          bookingdate: formValues.bookingdate || "",
-          traveldate: formValues.traveldate || "",
-          bookingstatus: formValues.bookingstatus || "Confirmed",
-          checkindate: formValues.checkindate || "",
-          checkintime: formValues.checkintime || "",
-          checkoutdate: formValues.checkoutdate || "",
-          checkouttime: formValues.checkouttime || "",
-          checkOutPeriod: formValues.checkOutPeriod || "AM",
-          pax: Number(formValues.pax || 0),
-          mealPlan: formValues.mealPlan || "EPAI",
-          confirmationNumber: formValues.confirmationNumber || "",
-          accommodationType: formValues.accommodationType || "",
-          propertyName: formValues.propertyName || "",
-          propertyAddress: formValues.propertyAddress || "",
-          googleMapsLink: formValues.googleMapsLink || "",
-          segments: formValues.accommodationSegments || [],
-          costprice: Number(formValues.accomCost || 0),
-          sellingprice: Number(formValues.accomSell || 0),
-          remarks: formValues.accomRemarks || "",
-        },
-        otherServiceInfoform: {
-          bookingdate: formValues.bookingdate || "",
-          traveldate: formValues.traveldate || "",
-          bookingstatus: formValues.bookingstatus || "Confirmed",
-          confirmationNumber: formValues.confirmationNumber || "",
-          title: formValues.title || "",
-          description: formValues.description || "",
-          remarks: formValues.remarks || "",
-        },
-        travellerform: {
-          firstname: formData.firstname || "",
-          lastname: formData.lastname || "",
-          nickname: formData.nickname || "",
-          contactnumber: formData.contactnumber || "",
-          emailId: formData.emailId || "",
-          dateofbirth: formData.dateofbirth || "",
-          remarks: formData.remarks || "",
-        },
-        timestamp: new Date().toISOString(),
-      };
+      
+      console.log("Form Values:", formValues);
+
+
+      const bookingData = convertToBookingData(formValues, selectedService.category);
 
       console.log("Submitting Booking Data:", bookingData);
 
@@ -323,13 +285,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
         // Reset all forms
         generalFormRef.current?.reset();
-        if (serviceFormRef.current instanceof HTMLFormElement) {
-          serviceFormRef.current.reset();
-        }
-
-        addCustomerFormRef.current?.reset();
-        addVendorFormRef.current?.reset();
-        addTravellerFormRef.current?.reset();
 
         // Auto-close after 2 seconds
         setTimeout(() => {
@@ -366,7 +321,12 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
   // Form data update handler
   const handleFormDataUpdate = useCallback((newData: any) => {
-    setFormData((prev: any) => ({ ...prev, ...newData }));
+    console.log("handleFormDataUpdate called with:", newData);
+    setFormData((prev: any) => {
+      const merged = { ...prev, ...newData };
+      console.log("Merged formData:", merged);
+      return merged;
+    });
   }, []);
 
   // Form submission handler
@@ -554,7 +514,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           try {
                             const formValues = {
                               ...collectAllFormData(),
-                              ...formData,
+                              ...formDataRef.current,
                             };
                             const draftName = `${
                               selectedService?.title || "Booking"
