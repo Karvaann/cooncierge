@@ -653,8 +653,6 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
                       setMode("view");
                       setIsSideSheetOpen(true);
                       setIsHistoryOpen(false);
-                      // Close delete modal when opening sidesheet
-                      onClose();
                     }
                   : undefined
               }
@@ -664,8 +662,6 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
                       setMode("edit");
                       setIsSideSheetOpen(true);
                       setIsHistoryOpen(false);
-                      // Close delete modal when opening sidesheet
-                      onClose();
                     }
                   : undefined
               }
