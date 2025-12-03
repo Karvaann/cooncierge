@@ -5,7 +5,7 @@ export const uploadBulkCustomers = async (file: File) => {
   const formData = new FormData();
   formData.append("file", file);
 
-  const res = await apiClient.post("/bulk-upload", formData, {
+  const res = await apiClient.post("/customer/bulk-upload", formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -15,7 +15,7 @@ export const uploadBulkCustomers = async (file: File) => {
 };
 
 export const downloadBulkTemplate = async (format: "csv" | "xlsx") => {
-  const res = await apiClient.get(`/bulk-upload-template/${format}`, {
+  const res = await apiClient.get(`/customer/bulk-upload-template/${format}`, {
     responseType: "blob",
   });
 

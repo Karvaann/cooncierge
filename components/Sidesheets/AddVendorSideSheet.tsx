@@ -72,7 +72,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       id: string;
       bookingDate: string;
       travelDate: string;
-      status: "Successful" | "On Hold" | "In Progress" | "Cancelled";
+      status: "Successful" | "On Hold" | "In Progress" | "Failed";
       amount: string;
     }[]
   >([]);
@@ -293,7 +293,9 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       >
         <form
           className="space-y-6 p-4"
-          onSubmit={mode === "create" ? handleSubmit : (e) => e.preventDefault()}
+          onSubmit={
+            mode === "create" ? handleSubmit : (e) => e.preventDefault()
+          }
           ref={formRef as any}
         >
           {/* ================= BASIC DETAILS ================ */}

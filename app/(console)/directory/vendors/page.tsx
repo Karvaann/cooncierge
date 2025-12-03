@@ -11,6 +11,7 @@ import {
   getVendors,
   deleteVendor,
   getVendorBookingHistory,
+  getVendorById,
 } from "@/services/vendorApi";
 import { IoEllipsisHorizontal } from "react-icons/io5";
 import type { JSX } from "react";
@@ -128,7 +129,7 @@ const VendorDirectory = () => {
       id: string;
       bookingDate: string;
       travelDate: string;
-      status: "Successful" | "On Hold" | "In Progress" | "Cancelled";
+      status: "Successful" | "On Hold" | "In Progress" | "Failed";
       amount: string;
     }[]
   >([]);
@@ -229,8 +230,8 @@ const VendorDirectory = () => {
       case "confirmed":
         return "Successful" as const;
       case "cancelled":
-        // Align with BookingHistoryModal expected status union which uses 'Cancelled'
-        return "Cancelled" as const;
+        // Align with BookingHistoryModal expected status union which uses 'Failed'
+        return "Failed" as const;
       case "draft":
       default:
         return "In Progress" as const;
@@ -239,7 +240,10 @@ const VendorDirectory = () => {
 
   const openHistoryForVendor = async (row: VendorRow) => {
     try {
-      setSelectedVendor(row);
+      // Fetch full vendor data first
+      const fullVendorData = await getVendorById(row.vendorID);
+      setSelectedVendor(fullVendorData);
+
       const resp = await getVendorBookingHistory(row.vendorID, {
         sortBy: "createdAt",
         sortOrder: "desc",
@@ -377,7 +381,7 @@ const VendorDirectory = () => {
             <div className="flex items-center justify-center gap-2">
               <button
                 type="button"
-                className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
+                className="bg-[#E9ECF0] text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
                 onClick={() => openHistoryForVendor(row)}
               >
                 <MdHistory className="inline mr-1" size={14} />
@@ -593,6 +597,42 @@ const VendorDirectory = () => {
         <BookingHistoryModal
           isOpen={isHistoryOpen}
           onClose={() => setIsHistoryOpen(false)}
+          onViewCustomer={
+            selectedVendor
+              ? async () => {
+                  try {
+                    // Fetch fresh vendor data if needed
+                    const vendorData = await getVendorById(
+                      selectedVendor._id || selectedVendor.vendorID
+                    );
+                    setSelectedVendor(vendorData);
+                    setMode("view");
+                    setIsSideSheetOpen(true);
+                    setIsHistoryOpen(false);
+                  } catch (e) {
+                    console.error("Failed to fetch vendor:", e);
+                  }
+                }
+              : undefined
+          }
+          onEditCustomer={
+            selectedVendor
+              ? async () => {
+                  try {
+                    // Fetch fresh vendor data if needed
+                    const vendorData = await getVendorById(
+                      selectedVendor._id || selectedVendor.vendorID
+                    );
+                    setSelectedVendor(vendorData);
+                    setMode("edit");
+                    setIsSideSheetOpen(true);
+                    setIsHistoryOpen(false);
+                  } catch (e) {
+                    console.error("Failed to fetch vendor:", e);
+                  }
+                }
+              : undefined
+          }
           bookings={historyBookings}
         />
       )}

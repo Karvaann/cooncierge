@@ -40,6 +40,17 @@ export const updateCustomer = async (id: string, customerData: any) => {
   }
 };
 
+// GET Customer by ID
+export const getCustomerById = async (id: string) => {
+  try {
+    const response = await apiClient.get(`/customer/get-customer/${id}`);
+    return response.data.customer;
+  } catch (error: any) {
+    console.error("Failed to fetch customer:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+
 // GET Booking History of a Customer
 export const getBookingHistoryByCustomer = async (
   customerId: string,
