@@ -23,7 +23,6 @@ import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
 import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 import TaskButton from "@/components/TaskButton";
-import { getTeams } from "@/services/teamsApi";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -203,12 +202,8 @@ const OSBookingsPage = () => {
   // const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
 
   const [reverse, setReverse] = useState(false);
-  // Team members fetched from backend and mapped for owners display/filtering
+  // Owners list built dynamically from quotations data
   const [ownersList, setOwnersList] = useState<Owner[]>([]);
-  const [ownerIdToName, setOwnerIdToName] = useState<Record<string, Owner>>({});
-  const [ownerNameToIds, setOwnerNameToIds] = useState<
-    Record<string, string[]>
-  >({});
 
   const computeInitials = (name: string) => {
     const parts = name.trim().split(/\s+/);
@@ -226,39 +221,28 @@ const OSBookingsPage = () => {
     "border-amber-700 text-amber-700",
   ];
 
+  // Build owners list from quotations data
   useEffect(() => {
-    const loadTeams = async () => {
-      try {
-        const teams = await getTeams();
-        // teams is expected to be an array; each item should have _id and name
-        const list: Owner[] = (teams || []).map((t: any, idx: number) => ({
-          short: computeInitials(t?.name || t?.teamName || ""),
-          full: t?.name || t?.teamName || "Unknown",
-          color: colorPalette[idx % colorPalette.length] as string,
-        }));
-        setOwnersList(list);
-        const idMap: Record<string, Owner> = {};
-        const nameMap: Record<string, string[]> = {};
-        (teams || []).forEach((t: any, idx: number) => {
-          const owner: Owner = {
-            short: computeInitials(t?.name || t?.teamName || ""),
-            full: t?.name || t?.teamName || "Unknown",
-            color: colorPalette[idx % colorPalette.length] as string,
-          };
-          if (t?._id) {
-            idMap[t._id] = owner;
-            const key = owner.full;
-            nameMap[key] = nameMap[key] ? [...nameMap[key], t._id] : [t._id];
-          }
+    if (quotations.length === 0) return;
+
+    const uniqueOwnerNames = new Set<string>();
+    quotations.forEach((q: any) => {
+      const ownerArray = q.owner || [];
+      if (Array.isArray(ownerArray)) {
+        ownerArray.forEach((o: any) => {
+          if (o?.name) uniqueOwnerNames.add(o.name);
         });
-        setOwnerIdToName(idMap);
-        setOwnerNameToIds(nameMap);
-      } catch (e) {
-        console.error("Failed to load teams for owners mapping", e);
       }
-    };
-    loadTeams();
-  }, []);
+    });
+
+    const list: Owner[] = Array.from(uniqueOwnerNames).map((name, idx) => ({
+      short: computeInitials(name),
+      full: name,
+      color: colorPalette[idx % colorPalette.length] as string,
+    }));
+
+    setOwnersList(list);
+  }, [quotations]);
 
   const handleSort = (column: string) => {
     if (column === "Travel Date") {
@@ -333,24 +317,25 @@ const OSBookingsPage = () => {
           return false;
       }
 
-      // Map owner IDs from backend to team member names via owners list
-      const ids: string[] = Array.isArray((q as any).owner)
-        ? ((q as any).owner as string[])
-        : (q as any).owner
-        ? [String((q as any).owner)]
+      // Extract owner names from the API response (owner is an array of objects with name property)
+      const ownerArray = (q as any).owner || [];
+      const rowOwners: string[] = Array.isArray(ownerArray)
+        ? ownerArray.map((o: any) => o?.name || "").filter(Boolean)
         : [];
-      const rowOwners = ids
-        .map((id) => ownerIdToName[id]?.full)
-        .filter(Boolean) as string[];
+
       (q as any).__owners = rowOwners;
+
+      // Filter by selected owners if any are selected
       if (selectedOwners.length) {
-        const intersects = rowOwners.some((o) => selectedOwners.includes(o));
+        const intersects = rowOwners.some((ownerName) =>
+          selectedOwners.includes(ownerName)
+        );
         if (!intersects) return false;
       }
 
       return true;
     });
-  }, [quotations, filters, selectedOwners, ownersList, ownerIdToName]);
+  }, [quotations, filters, selectedOwners]);
 
   // Load quotations from backend
   const loadQuotations = useCallback(async () => {
@@ -372,16 +357,7 @@ const OSBookingsPage = () => {
       if (filters.tripStartDate)
         apiParams.travelStartDate = filters.tripStartDate;
       if (filters.tripEndDate) apiParams.travelEndDate = filters.tripEndDate;
-      if (
-        filters.owner &&
-        (Array.isArray(filters.owner) ? filters.owner.length : true)
-      ) {
-        const names = Array.isArray(filters.owner)
-          ? filters.owner
-          : [filters.owner];
-        const ids = names.flatMap((n) => ownerNameToIds[n] || []);
-        if (ids.length) apiParams.owner = ids.join(",");
-      }
+      // Note: Owner filtering is done client-side since API returns owner objects with names
 
       const response = await BookingApiService.getAllQuotations(
         Object.keys(apiParams).length ? apiParams : undefined
@@ -405,8 +381,6 @@ const OSBookingsPage = () => {
     filters.bookingEndDate,
     filters.tripStartDate,
     filters.tripEndDate,
-    filters.owner,
-    ownerNameToIds,
   ]);
 
   // Load drafts from localStorage
