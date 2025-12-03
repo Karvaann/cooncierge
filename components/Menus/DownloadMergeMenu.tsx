@@ -143,18 +143,14 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
         items={items}
         entity={entity}
       />
-<<<<<<< HEAD
-
-      <DeleteModal
-=======
-      {isDeleteModalOpen && 
+      {isDeleteModalOpen && (
         <DeleteModal
->>>>>>> 63ccf7faba34f154e7f03fd985037e95b6711b80
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        items={items}
-        entity={entity}
-      />}
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          items={items}
+          entity={entity}
+        />
+      )}
     </>
   );
 };
