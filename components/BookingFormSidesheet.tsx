@@ -119,10 +119,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
   // refs for form data collection
   const generalFormRef = useRef<HTMLFormElement | null>(null);
-  const serviceFormRef = useRef<HTMLFormElement | HTMLDivElement | null>(null);
+  const serviceFormRef = useRef<HTMLFormElement | null>(null);
   const addCustomerFormRef = useRef<HTMLFormElement | null>(null);
   const addVendorFormRef = useRef<HTMLFormElement | null>(null);
   const addTravellerFormRef = useRef<HTMLFormElement | null>(null);
+
+  // Ref to always have access to latest formData in callbacks
+  const formDataRef = useRef(formData);
+  formDataRef.current = formData;
 
   // Update collectAllFormData
   const collectAllFormData = useCallback(() => {
@@ -131,13 +135,16 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     // Get data from General Info form
     if (generalFormRef.current instanceof HTMLFormElement) {
       const generalData = new FormData(generalFormRef.current);
+      console.log("General Data:", generalData);
       generalData.forEach((value, key) => {
         allFormData[key] = value;
       });
     }
 
     // Get data from Service Info form
+    console.log("Service Form Ref:", serviceFormRef.current);
     if (serviceFormRef.current instanceof HTMLFormElement) {
+      console.log("Service Form Ref:", serviceFormRef.current);
       const serviceData = new FormData(serviceFormRef.current as any);
 
       serviceData.forEach((value, key) => {
@@ -178,6 +185,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       adults,
       children,
       remarks,
+      traveldate,
+      adultTravellerIds,
+      infantTravellerIds,
       ...rest
     } = input;
 
@@ -197,28 +207,34 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     // Merge flattened infoform into formFields
     Object.assign(formFields, flatInfoForm);
 
+    // Combine adult and infant traveller IDs, filter out empty strings
+    const travelers = [
+      ...(adultTravellerIds || []),
+      ...(infantTravellerIds || []),
+    ].filter((id: string) => id && id.trim() !== "");
+
     // Build final object
     const bookingData = {
       quotationType, // replace if needed
       channel: "B2C",
-      businessId,
+      businessId: businessId._id,
 
       formFields,
 
       totalAmount: Number(flatInfoForm.sellingprice ?? flatInfoForm.costprice ?? 0),
-      status: flatInfoForm.bookingStatus || "Confirmed",
+      status: flatInfoForm.bookingstatus || "confirmed",
 
       createdAt: new Date(),
       updatedAt: new Date(),
 
       owner: [input.bookingOwner],
 
-      travelDate: flatInfoForm.traveldate ? new Date(flatInfoForm.traveldate) : null,
+      travelDate: traveldate || flatInfoForm.traveldate ? new Date(flatInfoForm.traveldate) : null,
 
       customerId: input.customer,
       vendorId: input.vendor,
 
-      travelers: [],
+      travelers,
 
       adultTravlers: adults ?? 0,
       childTravlers: children ?? 0,
@@ -241,13 +257,21 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     }
 
     try {
+      // Use ref to get latest formData to avoid stale closure issues
+      const currentFormData = formDataRef.current;
+
+      console.log("COLLECTING ALL FORM DATA");
+      console.log("COLLECTED FORM DATA:", collectAllFormData());
+      console.log("FORM DATA (from ref):", currentFormData);
 
       const formValues = {
         ...collectAllFormData(),
-        ...formData,
+        ...currentFormData,
       };
 
+      
       console.log("Form Values:", formValues);
+
 
       const bookingData = convertToBookingData(formValues, selectedService.category);
 
@@ -261,13 +285,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
         // Reset all forms
         generalFormRef.current?.reset();
-        if (serviceFormRef.current instanceof HTMLFormElement) {
-          serviceFormRef.current.reset();
-        }
-
-        addCustomerFormRef.current?.reset();
-        addVendorFormRef.current?.reset();
-        addTravellerFormRef.current?.reset();
 
         // Auto-close after 2 seconds
         setTimeout(() => {
@@ -304,7 +321,12 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
   // Form data update handler
   const handleFormDataUpdate = useCallback((newData: any) => {
-    setFormData((prev: any) => ({ ...prev, ...newData }));
+    console.log("handleFormDataUpdate called with:", newData);
+    setFormData((prev: any) => {
+      const merged = { ...prev, ...newData };
+      console.log("Merged formData:", merged);
+      return merged;
+    });
   }, []);
 
   // Form submission handler
@@ -492,7 +514,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           try {
                             const formValues = {
                               ...collectAllFormData(),
-                              ...formData,
+                              ...formDataRef.current,
                             };
                             const draftName = `${
                               selectedService?.title || "Booking"
