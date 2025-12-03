@@ -126,7 +126,7 @@ export default function SignIn() {
         email,
         twoFACode: enteredOtp,
       });
-      await router.push("/dashboard");
+      await router.push("/bookings/other-services");
     } catch (error: unknown) {
       const err = error as AxiosError<{ message?: string }>;
       setOtpMessage({

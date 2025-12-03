@@ -507,6 +507,7 @@ const OSBookingsPage = () => {
     const typeMap: Record<string, string> = {
       flight: "flight",
       flights: "flight",
+      travel: "flight",
 
       hotel: "accommodation",
       accommodation: "accommodation",

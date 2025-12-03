@@ -193,6 +193,7 @@ export const formatServiceType = (type: string): string => {
     
     flight: "Flight",
     flights: "Flight",
+    travel: "Flight",
 
     
     hotel: "Accommodation",
