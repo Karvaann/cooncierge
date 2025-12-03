@@ -90,10 +90,14 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
 
     const mapNatureFromCat = () => {
       if (category === "Bookings" && subCategory === "OS") return "bookings-os";
-      if (category === "Bookings" && subCategory === "Limitless") return "bookings-limitless";
-      if (category === "Directory" && subCategory === "Customers") return "directory-customers";
-      if (category === "Directory" && subCategory === "Vendors") return "directory-vendors";
-      if (category === "Directory" && subCategory === "Team") return "directory-team";
+      if (category === "Bookings" && subCategory === "Limitless")
+        return "bookings-limitless";
+      if (category === "Directory" && subCategory === "Customers")
+        return "directory-customers";
+      if (category === "Directory" && subCategory === "Vendors")
+        return "directory-vendors";
+      if (category === "Directory" && subCategory === "Team")
+        return "directory-team";
       return "general";
     };
 
@@ -115,8 +119,16 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
       }
     }
 
-    const assignedTo: string[] = Array.isArray(t.assignedTo) ? t.assignedTo : [];
-    setSelectedAssignees(assignedTo);
+    const rawAssigned = Array.isArray(t.assignedTo) ? t.assignedTo : [];
+    const toId = (v: any) => (typeof v === "string" ? v : v?._id);
+    const ids = rawAssigned
+      .map(toId)
+      .filter(
+        (id: any): id is string =>
+          typeof id === "string" && /^[a-fA-F0-9]{24}$/.test(id)
+      );
+    // de-dupe to avoid duplicate keys and selections
+    setSelectedAssignees(Array.from(new Set(ids)));
   }, [isOpen, isEditMode, initialData]);
 
   // Fetch team members when modal opens
@@ -258,7 +270,8 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
       };
 
       const maybeId = (initialData as any)?._id as string | undefined;
-      const isValidId = typeof maybeId === "string" && /^[a-fA-F0-9]{24}$/.test(maybeId);
+      const isValidId =
+        typeof maybeId === "string" && /^[a-fA-F0-9]{24}$/.test(maybeId);
       setEditWarning(null);
       if (isEditMode && isValidId) {
         const updates = { ...logData, logs: [] };
@@ -267,9 +280,12 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
           const updated = await updateLog(maybeId, updates);
           onEdit?.(updated);
         } catch (e: any) {
-          const msg = e?.message || e?.data?.message || e?.response?.data?.message;
-          if ((e?.response?.status === 404) || msg === "Log not found") {
-            setEditWarning("Selected task could not be found. Please verify and try again.");
+          const msg =
+            e?.message || e?.data?.message || e?.response?.data?.message;
+          if (e?.response?.status === 404 || msg === "Log not found") {
+            setEditWarning(
+              "Selected task could not be found. Please verify and try again."
+            );
             return; // Do not create silently
           }
           setEditWarning(msg || "Failed to update the task.");
@@ -277,7 +293,9 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
         }
       } else {
         if (isEditMode && !isValidId) {
-          setEditWarning("This task cannot be edited because its ID is invalid.");
+          setEditWarning(
+            "This task cannot be edited because its ID is invalid."
+          );
           return; // Stop instead of creating
         }
         console.log("Creating Log with:", logData);

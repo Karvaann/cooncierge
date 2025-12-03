@@ -1,14 +1,13 @@
 "use client";
 
 import React, { useState, useCallback, useRef } from "react";
-import { createPortal } from "react-dom";
 import { LuTrash2 } from "react-icons/lu";
 import {
-  uploadBulkCustomers,
   downloadBulkTemplate,
+  uploadBulkCustomers,
 } from "@/services/uploadApi";
 
-// Modal Component
+// Modal Component (WITHOUT PORTAL)
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -45,8 +44,6 @@ const Modal: React.FC<ModalProps> = ({
   };
 
   const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-  const [mounted, setMounted] = React.useState(false);
-  React.useEffect(() => setMounted(true), []);
 
   const handleEscape = useCallback(
     (event: KeyboardEvent) => {
@@ -83,11 +80,11 @@ const Modal: React.FC<ModalProps> = ({
   const modalWidthClass = customWidth ? customWidth : sizeClasses[size];
   const modalHeightClass = customeHeight ? customeHeight : "";
 
-  if (!mounted || !isOpen) return null;
+  if (!isOpen) return null;
 
-  const overlay = (
+  return (
     <div
-      className="fixed inset-0 z-[2147483647] bg-black/50 flex justify-center items-center md:items-center transition-opacity duration-300"
+      className="fixed inset-0 z-[9999] bg-black/50 flex justify-center items-center md:items-center transition-opacity duration-300"
       onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
@@ -137,8 +134,6 @@ const Modal: React.FC<ModalProps> = ({
       </div>
     </div>
   );
-
-  return createPortal(overlay, document.body);
 };
 
 // File Upload Component
@@ -154,14 +149,13 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
   isOpen,
   onClose,
   onUpload,
-  acceptedTypes = [".pdf", ".csv", ".docx"],
+  acceptedTypes = [".xlsx", ".csv"],
   maxFiles = 5,
 }) => {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFormat, setSelectedFormat] = useState("CSV");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Upload state management
   const [isUploading, setIsUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<any>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -238,7 +232,7 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
       const validFiles = files.filter(validateFile).slice(0, maxFiles);
       setUploadedFiles((prev) => [...prev, ...validFiles].slice(0, maxFiles));
     },
-    [maxFiles, acceptedTypes]
+    [maxFiles, acceptedTypes, uploadedFiles.length]
   );
 
   const handleFileSelect = useCallback(
@@ -250,19 +244,12 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
         setUploadedFiles((prev) => [...prev, ...validFiles].slice(0, maxFiles));
       }
     },
-    [maxFiles, acceptedTypes]
+    [maxFiles, acceptedTypes, uploadedFiles.length]
   );
 
   const handleBrowseClick = () => {
     if (uploadedFiles.length >= 1) return;
     fileInputRef.current?.click();
-  };
-
-  const handleUpload = () => {
-    if (uploadedFiles.length > 0) {
-      console.log("Uploading files:", uploadedFiles);
-      setUploadedFiles([]);
-    }
   };
 
   const removeFile = (index: number) => {

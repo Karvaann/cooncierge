@@ -26,8 +26,11 @@ import {
   getTravellerBookingHistory,
 } from "@/services/travellerApi";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
+import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerForm";
+import { getTravellerById } from "@/services/travellerApi";
 import { MdHistory } from "react-icons/md";
 import { getBookingHistoryByCustomer } from "@/services/customerApi";
+import Image from "next/image";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -141,12 +144,17 @@ const CustomerDirectory = () => {
   const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
   const [travellers, setTravellers] = useState<any[]>([]);
   const [bookingHistory, setBookingHistory] = useState<any[]>([]);
+  const [isTravellerSheetOpen, setIsTravellerSheetOpen] = useState(false);
+  const [travellerMode, setTravellerMode] = useState<"create"|"edit"|"view">("view");
+  const [selectedTravellerRow, setSelectedTravellerRow] = useState<any | null>(null);
+  const [selectedTravellerFull, setSelectedTravellerFull] = useState<any | null>(null);
   const mapStatusForModal = (status?: string) => {
     switch ((status || "").toLowerCase()) {
       case "confirmed":
         return "Successful" as const;
       case "cancelled":
-        return "Failed" as const;
+        // Align with BookingHistoryModal expected status union which uses 'Cancelled'
+        return "Cancelled" as const;
       case "draft":
       default:
         return "In Progress" as const;
@@ -212,35 +220,30 @@ const CustomerDirectory = () => {
 
   const handleCloseMenu = () => setIsMenuOpen(false);
 
-  const getRatingBadge = (ratingString: string) => {
-    // Convert "⭐️⭐️⭐️" OR "4" to a number
-    const rating =
+  const getRatingBadge = (ratingString: string | number) => {
+    const ratingRaw =
       typeof ratingString === "string"
         ? ratingString.match(/⭐️/g)?.length || Number(ratingString)
         : Number(ratingString);
 
-    // Map rating → background color
-    const bgMap: Record<number, string> = {
-      1: "bg-red-100 text-red-600",
-      2: "bg-orange-100 text-orange-600",
-      3: "bg-yellow-100 text-yellow-600",
-      4: "bg-green-100 text-green-600",
-      5: "bg-emerald-100 text-emerald-600",
-    };
+    const rating = Math.min(Math.max(Math.round(ratingRaw), 1), 5);
 
-    const bgClass = bgMap[rating] || "bg-gray-100 text-gray-600";
+    const tierIcon = `/icons/tier-${rating}.png`;
 
     return (
       <div className="flex items-center gap-2 justify-center">
-        {/* Circle around star */}
-        <div
-          className={`w-7 h-7 rounded-full flex items-center justify-center ${bgClass}`}
-        >
-          <FaRegStar size={14} />
+        {/* Your custom tier icon */}
+        <div className="w-6 h-6 relative">
+          <Image
+            src={tierIcon}
+            alt={`Tier ${rating}`}
+            width={20}
+            height={20}
+            className="object-contain"
+            unoptimized // Important for local PNGs served from /public
+          />
         </div>
-
-        {/* Rating number OUTSIDE the circle */}
-        <span className="text-[0.8rem] font-semibold text-gray-700">
+        <span className="text-[0.75rem] font-semibold text-gray-700">
           {rating}
         </span>
       </div>
@@ -561,6 +564,7 @@ const CustomerDirectory = () => {
               className="bg-gray-200 text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
               onClick={async () => {
                 try {
+                  setSelectedTravellerRow(row);
                   const resp = await getTravellerBookingHistory(
                     row.travellerID,
                     {
@@ -866,10 +870,58 @@ const CustomerDirectory = () => {
                   setIsSideSheetOpen(true);
                   setIsHistoryOpen(false);
                 }
+              : activeTab === "Travellers" && selectedTravellerRow
+              ? async () => {
+                  try {
+                    const traveller = await getTravellerById(selectedTravellerRow.travellerID);
+                    setSelectedTravellerFull(traveller);
+                    setTravellerMode("view");
+                    setIsTravellerSheetOpen(true);
+                    setIsHistoryOpen(false);
+                  } catch (e) {
+                    console.error("Failed to fetch traveller:", e);
+                  }
+                }
+              : undefined
+          }
+          onEditCustomer={
+            activeTab === "Customers" && selectedCustomer
+              ? () => {
+                  setMode("edit");
+                  setIsSideSheetOpen(true);
+                  setIsHistoryOpen(false);
+                }
+              : activeTab === "Travellers" && selectedTravellerRow
+              ? async () => {
+                  try {
+                    const traveller = await getTravellerById(selectedTravellerRow.travellerID);
+                    setSelectedTravellerFull(traveller);
+                    setTravellerMode("edit");
+                    setIsTravellerSheetOpen(true);
+                    setIsHistoryOpen(false);
+                  } catch (e) {
+                    console.error("Failed to fetch traveller:", e);
+                  }
+                }
               : undefined
           }
           bookings={bookingHistory}
         />
+      )}
+
+      {isTravellerSheetOpen && (
+        <BookingProvider>
+          <AddNewTravellerForm
+            isOpen={isTravellerSheetOpen}
+            onClose={() => {
+              setIsTravellerSheetOpen(false);
+              setSelectedTravellerFull(null);
+              setTravellerMode("view");
+            }}
+            mode={travellerMode}
+            data={selectedTravellerFull}
+          />
+        </BookingProvider>
       )}
     </div>
   );

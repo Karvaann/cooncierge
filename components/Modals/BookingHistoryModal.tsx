@@ -13,11 +13,12 @@ interface BookingHistoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onViewCustomer?: (() => void) | undefined;
+  onEditCustomer?: (() => void) | undefined;
   bookings: {
     id: string;
     bookingDate: string;
     travelDate: string;
-    status: "Successful" | "On Hold" | "In Progress" | "Failed";
+    status: "Successful" | "On Hold" | "In Progress" | "Cancelled";
     amount: string;
   }[];
 }
@@ -26,13 +27,14 @@ const statusColors: Record<string, string> = {
   Successful: "bg-green-100 text-green-700",
   "On Hold": "bg-yellow-100 text-yellow-800",
   "In Progress": "bg-orange-100 text-orange-700",
-  Failed: "bg-red-100 text-red-700",
+  Cancelled: "bg-red-100 text-red-700",
 };
 
 const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
   isOpen,
   onClose,
   onViewCustomer,
+  onEditCustomer,
   bookings,
 }) => {
   const formatDMY = (dateString: string) => {
@@ -56,14 +58,7 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
     }
     return dateString || "—";
   };
-  const columns = [
-    "ID",
-    "Booking Date",
-    "Travel Date",
-    "Status",
-    "Amount",
-    // "Actions",
-  ];
+  const columns = ["ID", "Booking Date", "Travel Date", "Status", "Amount"];
 
   const tabs = [
     { label: "Customer", icon: <CiUser size={20} /> },
@@ -113,23 +108,6 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
     >
       ₹ {item.totalAmount || item.amount || "0"}
     </td>,
-
-    // <td
-    //   key={`${item.id}-actions`}
-    //   className="px-2 py-2 text-center justify-center flex items-center gap-2"
-    // >
-    //   <button
-    //     className="p-1.5 rounded-md bg-yellow-100 hover:bg-yellow-200 transition"
-    //     onClick={onViewCustomer}
-    //     type="button"
-    //   >
-    //     <FiEye className="text-gray-700" size={14} />
-    //   </button>
-
-    //   <button className="p-1.5 rounded-md bg-blue-100 hover:bg-blue-200 transition">
-    //     <FiEdit className="text-gray-700" size={14} />
-    //   </button>
-    // </td>,
   ]);
 
   return (
@@ -141,14 +119,14 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
       customWidth="w-[800px]"
       customeHeight="h-fit"
       className="pb-2"
+      closeOnOverlayClick={true}
+      closeOnEscape={true}
+      zIndexClass="z-[200]"
+      disableOverlayClick={false}
     >
-      <div className="px-2">
-        {/* CUSTOM HEADER */}
+      <div className="px-2" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-2 -mt-6">
-          {/* Left: Title */}
           <h2 className="text-md font-semibold">Booking History</h2>
-
-          {/* Middle: Buttons (Eye + Edit) */}
           <div className="flex items-center gap-2 mr-2">
             <button
               className="p-1.5 rounded-md bg-yellow-100 hover:bg-yellow-200 transition"
@@ -157,42 +135,15 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
             >
               <FiEye className="text-gray-700" size={14} />
             </button>
-
             <button
               className="p-1.5 rounded-md bg-blue-100 hover:bg-blue-200 transition"
               type="button"
+              onClick={onEditCustomer}
             >
               <FiEdit className="text-gray-700" size={16} />
             </button>
           </div>
-
-          {/* Right: Close button (Modal already renders X, so we leave space for it) */}
         </div>
-        {/* Tabs */}
-        {/* <div className="flex items-center gap-3 mb-3 border-b pb-2">
-        {tabs.map((t) => (
-          <div
-            key={t.label}
-            className={`
-          flex items-center gap-1.5 px-3 py-1.5 rounded-md cursor-pointer
-          border border-gray-300 hover:bg-gray-100 transition
-          text-[0.75rem]
-          ${
-            t.label === "Customer"
-              ? "bg-[#0D4B37] text-white border-transparent"
-              : "text-gray-700"
-          }
-        `}
-          >
-            <span className="w-4 h-4 flex items-center justify-center">
-              {t.icon}
-            </span>
-            <span className="font-medium">{t.label}</span>
-          </div>
-        ))}
-      </div> */}
-
-        {/* Table */}
         <Table
           data={rows}
           columns={columns}

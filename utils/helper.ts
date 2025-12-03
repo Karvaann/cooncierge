@@ -205,9 +205,12 @@ export const formatServiceType = (type: string): string => {
     "land_transportation": "Transportation (Land)",
     transportation: "Transportation (Land)",
     land: "Transportation (Land)",
+    "transport-land": "Transportation (Land)",
 
     
     package: "Package",
+
+    "travel insurance": "Travel Insurance",
 
    
     activity: "Activity",

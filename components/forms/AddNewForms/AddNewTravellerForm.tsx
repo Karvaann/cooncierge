@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from "react";
+import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { validateTravellerForm } from "@/services/bookingApi";
 import SideSheet from "@/components/SideSheet";
 import { useBooking } from "@/context/BookingContext";
-import { createTraveller } from "@/services/travellerApi";
+import { createTraveller, updateTraveller } from "@/services/travellerApi";
 import { getAuthUser } from "@/services/storage/authStorage";
 // Type definitions
 interface TravellerFormData {
@@ -26,6 +26,11 @@ interface AddNewTravellerFormProps {
   isSubmitting?: boolean;
   showValidation?: boolean;
   formRef?: React.RefObject<HTMLFormElement | null>;
+  // Extended controls for external usage
+  isOpen?: boolean;
+  onClose?: () => void;
+  mode?: "create" | "edit" | "view";
+  data?: any;
 }
 
 const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
@@ -33,6 +38,10 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
   isSubmitting = false,
   showValidation = true,
   formRef,
+  isOpen,
+  onClose,
+  mode = "create",
+  data,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<TravellerFormData>({
@@ -51,6 +60,26 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
   const [submitting, setSubmitting] = useState<boolean>(false);
   const { isAddTravellerOpen, closeAddTraveller, setLastAddedTraveller } =
     useBooking();
+  const readOnly = mode === "view";
+  const open = typeof isOpen === "boolean" ? isOpen : isAddTravellerOpen;
+  const handleClose = onClose || closeAddTraveller;
+
+  // Prefill when data provided
+  useEffect(() => {
+    if (!data) return;
+    const fullName: string = data.name || "";
+    const [firstname = "", lastname = ""] = fullName.split(" ");
+    setFormData((prev) => ({
+      ...prev,
+      firstname,
+      lastname,
+      nickname: data.nickname || data.alias || "",
+      contactnumber: data.phone || data.contactnumber || "",
+      emailId: data.email || data.emailId || "",
+      dateofbirth: data.dateOfBirth || data.dateofbirth || "",
+      remarks: data.remarks || "",
+    }));
+  }, [data]);
 
   type FieldRule = {
     required: boolean;
@@ -382,9 +411,15 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
   return (
     <SideSheet
-      isOpen={isAddTravellerOpen}
-      onClose={closeAddTraveller}
-      title={"Add Traveller"}
+      isOpen={open}
+      onClose={handleClose}
+      title={
+        mode === "view"
+          ? "Traveller Details"
+          : mode === "edit"
+          ? "Edit Traveller"
+          : "Add Traveller"
+      }
       width="xl"
     >
       <div
@@ -409,7 +444,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 name="firstname"
                 placeholder="Enter First Name"
                 required
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                disabled={readOnly}
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
 
@@ -424,7 +460,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 type="text"
                 placeholder="Enter Last Name"
                 required
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                disabled={readOnly}
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
 
@@ -439,7 +476,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 type="text"
                 placeholder="Enter Nickname/Alias"
                 required
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                disabled={readOnly}
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
           </div>
@@ -457,7 +495,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 onChange={handleChange}
                 placeholder="Enter Contact Number"
                 required
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                disabled={readOnly}
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
 
@@ -472,7 +511,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 type="email"
                 placeholder="Enter Email ID"
                 required
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                disabled={readOnly}
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
 
@@ -487,7 +527,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 onChange={handleChange}
                 placeholder="DD-MM-YYYY"
                 required
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                disabled={readOnly}
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
           </div>
@@ -499,7 +540,6 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
             Remarks
           </label>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
-
           <textarea
             name="remarks"
             rows={5}
@@ -507,22 +547,67 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
             onChange={handleChange}
             onBlur={handleBlur}
             placeholder="Enter Your Remarks Here"
-            disabled={isSubmitting}
+            disabled={isSubmitting || readOnly}
             className={`w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem] mt-2 transition-colors focus:ring focus:ring-blue-200 ${
-              isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+              isSubmitting || readOnly ? "opacity-50 cursor-not-allowed" : ""
             }`}
           />
         </div>
-
-        <div className="flex justify-end mt-auto">
-          <button
-            type="button"
-            onClick={() => handleSubmit()}
-            disabled={isSubmitting || submitting}
-            className="px-4 py-2 bg-[#114958] text-white text-[0.75rem] rounded-lg hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting || submitting ? "Saving..." : "Save"}
-          </button>
+        <div className="flex justify-end mt-auto gap-2">
+          {mode === "view" ? (
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-4 py-2 bg-gray-200 text-gray-700 text-[0.75rem] rounded-lg"
+            >
+              Close
+            </button>
+          ) : mode === "edit" ? (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  setSubmitting(true);
+                  const name = [
+                    String(formData.firstname || "").trim(),
+                    String(formData.lastname || "").trim(),
+                  ]
+                    .filter(Boolean)
+                    .join(" ")
+                    .trim();
+                  const payload: any = {
+                    name,
+                    email: String(formData.emailId || "").trim() || undefined,
+                    phone: String(formData.contactnumber || "").trim() || undefined,
+                    dateOfBirth: formData.dateofbirth || undefined,
+                  };
+                  const id = data?._id || data?.id;
+                  if (!id) throw new Error("Missing traveller id");
+                  const updated = await updateTraveller(String(id), payload);
+                  const displayName = updated?.name || name;
+                  setLastAddedTraveller({ id: updated?._id || id, name: displayName });
+                  handleClose();
+                } catch (err: any) {
+                  console.error("[AddNewTravellerForm] Error updating traveller:", err?.response?.data?.message || err?.message);
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+              disabled={isSubmitting || submitting}
+              className="px-4 py-2 bg-[#0D4B37] text-white text-[0.75rem] rounded-lg disabled:opacity-50"
+            >
+              {isSubmitting || submitting ? "Updating..." : "Update"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => handleSubmit()}
+              disabled={isSubmitting || submitting}
+              className="px-4 py-2 bg-[#114958] text-white text-[0.75rem] rounded-lg hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting || submitting ? "Saving..." : "Save"}
+            </button>
+          )}
         </div>
       </div>
     </SideSheet>

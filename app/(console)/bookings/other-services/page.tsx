@@ -23,6 +23,7 @@ import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
 import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 import TaskButton from "@/components/TaskButton";
+import { getTeams } from "@/services/teamsApi";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -202,30 +203,60 @@ const OSBookingsPage = () => {
   // const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
 
   const [reverse, setReverse] = useState(false);
+  // Team members fetched from backend and mapped for owners display/filtering
+  const [ownersList, setOwnersList] = useState<Owner[]>([]);
+  const [ownerIdToName, setOwnerIdToName] = useState<Record<string, Owner>>({});
+  const [ownerNameToIds, setOwnerNameToIds] = useState<Record<string, string[]>>({});
 
-  // Owners list moved up so filtering can reference it
-  const ownersList: Owner[] = [
-    {
-      short: "AS",
-      full: "Avanish Sharma",
-      color: "border-pink-700 text-pink-700",
-    },
-    {
-      short: "AK",
-      full: "Ankit Kumar",
-      color: "border-[#AF52DE] text-[#AF52DE]",
-    },
-    {
-      short: "SR",
-      full: "Suresh Raj",
-      color: "border-[#5856D6] text-[#5856D6]",
-    },
-    {
-      short: "VG",
-      full: "Vijay Gupta",
-      color: "border-cyan-700 text-cyan-700",
-    },
+  const computeInitials = (name: string) => {
+    const parts = name.trim().split(/\s+/);
+    const first = parts[0]?.[0] || "";
+    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] || "" : "";
+    return (first + last).toUpperCase();
+  };
+
+  const colorPalette = [
+    "border-pink-700 text-pink-700",
+    "border-[#AF52DE] text-[#AF52DE]",
+    "border-[#5856D6] text-[#5856D6]",
+    "border-cyan-700 text-cyan-700",
+    "border-emerald-700 text-emerald-700",
+    "border-amber-700 text-amber-700",
   ];
+
+  useEffect(() => {
+    const loadTeams = async () => {
+      try {
+        const teams = await getTeams();
+        // teams is expected to be an array; each item should have _id and name
+        const list: Owner[] = (teams || []).map((t: any, idx: number) => ({
+          short: computeInitials(t?.name || t?.teamName || ""),
+          full: t?.name || t?.teamName || "Unknown",
+          color: colorPalette[idx % colorPalette.length] as string,
+        }));
+        setOwnersList(list);
+        const idMap: Record<string, Owner> = {};
+        const nameMap: Record<string, string[]> = {};
+        (teams || []).forEach((t: any, idx: number) => {
+          const owner: Owner = {
+            short: computeInitials(t?.name || t?.teamName || ""),
+            full: t?.name || t?.teamName || "Unknown",
+            color: colorPalette[idx % colorPalette.length] as string,
+          };
+          if (t?._id) {
+            idMap[t._id] = owner;
+            const key = owner.full;
+            nameMap[key] = nameMap[key] ? [...nameMap[key], t._id] : [t._id];
+          }
+        });
+        setOwnerIdToName(idMap);
+        setOwnerNameToIds(nameMap);
+      } catch (e) {
+        console.error("Failed to load teams for owners mapping", e);
+      }
+    };
+    loadTeams();
+  }, []);
 
   const handleSort = (column: string) => {
     if (column === "Travel Date") {
@@ -264,7 +295,7 @@ const OSBookingsPage = () => {
   // Apply all filters client-side (search, booking date, travel date, owner)
   const filteredQuotations = useMemo(() => {
     return quotations.filter((q, idx) => {
-      if (ownersList.length === 0) return true;
+      // If owners list not ready, allow until mapping loads
       // Search
       if (filters.search.trim()) {
         const s = filters.search.toLowerCase();
@@ -300,10 +331,15 @@ const OSBookingsPage = () => {
           return false;
       }
 
-      // Synthetic owners assignment (two owners per row deterministically)
-      const ownerA = ownersList[idx % ownersList.length]?.full;
-      const ownerB = ownersList[(idx + 1) % ownersList.length]?.full;
-      const rowOwners = [ownerA, ownerB].filter(Boolean) as string[];
+      // Map owner IDs from backend to team member names via owners list
+      const ids: string[] = Array.isArray((q as any).owner)
+        ? ((q as any).owner as string[])
+        : (q as any).owner
+        ? [String((q as any).owner)]
+        : [];
+      const rowOwners = ids
+        .map((id) => ownerIdToName[id]?.full)
+        .filter(Boolean) as string[];
       (q as any).__owners = rowOwners;
       if (selectedOwners.length) {
         const intersects = rowOwners.some((o) => selectedOwners.includes(o));
@@ -312,7 +348,7 @@ const OSBookingsPage = () => {
 
       return true;
     });
-  }, [quotations, filters, selectedOwners, ownersList]);
+  }, [quotations, filters, selectedOwners, ownersList, ownerIdToName]);
 
   // Load quotations from backend
   const loadQuotations = useCallback(async () => {
@@ -334,8 +370,11 @@ const OSBookingsPage = () => {
       if (filters.tripStartDate)
         apiParams.travelStartDate = filters.tripStartDate;
       if (filters.tripEndDate) apiParams.travelEndDate = filters.tripEndDate;
-      if (filters.owner && filters.owner.length)
-        apiParams.owner = filters.owner;
+      if (filters.owner && (Array.isArray(filters.owner) ? filters.owner.length : true)) {
+        const names = Array.isArray(filters.owner) ? filters.owner : [filters.owner];
+        const ids = names.flatMap((n) => ownerNameToIds[n] || []);
+        if (ids.length) apiParams.owner = ids.join(",");
+      }
 
       const response = await BookingApiService.getAllQuotations(
         Object.keys(apiParams).length ? apiParams : undefined
@@ -360,6 +399,7 @@ const OSBookingsPage = () => {
     filters.tripStartDate,
     filters.tripEndDate,
     filters.owner,
+    ownerNameToIds,
   ]);
 
   // Load drafts from localStorage
@@ -452,53 +492,112 @@ const OSBookingsPage = () => {
   const getServiceIcon = (
     quotationType: string
   ): React.ReactElement | string => {
-    const iconMap: Record<string, any> = {
+    if (!quotationType) return "Visa";
+
+    const normalized = quotationType.toLowerCase().trim();
+
+    // Use the same logic as formatServiceType for consistency
+    const typeMap: Record<string, string> = {
+      flight: "flight",
+      flights: "flight",
+
+      hotel: "accommodation",
+      accommodation: "accommodation",
+
+      car: "land",
+      "land transportation": "land",
+      "land-transportation": "land",
+      land_transportation: "land",
+      transportation: "land",
+      land: "land",
+      "transport-land": "land",
+
+      package: "package",
+
+      "travel insurance": "insurance",
+
+      activity: "activity",
+      activities: "activity",
+
+      insurance: "insurance",
+
+      visa: "visa",
+
+      ticket: "ticket",
+      tickets: "ticket",
+    };
+
+    const key = typeMap[normalized] || normalized;
+
+    const iconMap: Record<string, JSX.Element | string> = {
       flight: (
         <Image
           src="/icons/service-icons/flight.svg"
-          alt="Flights"
-          width={18}
-          height={18}
-        />
-      ),
-      flights: (
-        <Image
-          src="/icons/service-icons/flight.svg"
-          alt="Flights"
-          width={18}
-          height={18}
+          alt="Flight"
+          width={20}
+          height={20}
+          className="object-contain"
         />
       ),
       accommodation: (
         <Image
           src="/icons/service-icons/accommodation.svg"
           alt="Accommodation"
-          width={18}
-          height={18}
+          width={20}
+          height={20}
+          className="object-contain"
         />
       ),
-      car: "🚗",
-      "land transportation": (
-        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      activity: (
+        <Image
+          src="/icons/service-icons/activity.svg"
+          alt="Activity"
+          width={16}
+          height={16}
+          className="object-contain"
+        />
       ),
-      "land-transportation": (
-        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      insurance: (
+        <Image
+          src="/icons/service-icons/insurance.svg"
+          alt="Insurance"
+          width={16}
+          height={16}
+          className="object-contain"
+        />
       ),
-      land_transportation: (
-        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+      ticket: (
+        <Image
+          src="/icons/service-icons/ticket.svg"
+          alt="Tickets"
+          width={16}
+          height={16}
+          className="object-contain"
+        />
+      ),
+      tickets: (
+        <Image
+          src="/icons/service-icons/ticket.svg"
+          alt="Tickets"
+          width={16}
+          height={16}
+          className="object-contain"
+        />
       ),
       land: (
-        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
+        <Image
+          src="/icons/service-icons/land-icon.svg"
+          alt="Land Transport"
+          width={16}
+          height={16}
+          className="object-contain"
+        />
       ),
-      transportation: (
-        <MdOutlineDirectionsCarFilled size={18} className="text-[#22C55E]" />
-      ),
-
-      activity: "🎯",
-      insurance: "🛡️",
-      visa: "📋",
+      visa: "Visa",
+      package: "Package", // optional: add a package icon later
     };
-    return iconMap[quotationType?.toLowerCase()] || "📋";
+
+    return iconMap[key] || "📋"; // fallback
   };
 
   const mapStatus = (status: string): BookingStatus => {
@@ -710,8 +809,12 @@ const OSBookingsPage = () => {
           : "Not Selected",
         service: (
           <div className="flex items-center justify-center gap-1">
-            {getServiceIcon(item.quotationType || item.serviceType || "draft")}
-            <span>
+            <div className="w-5 h-5 flex items-center justify-center">
+              {getServiceIcon(
+                item.quotationType || item.serviceType || "draft"
+              )}
+            </div>
+            <span className="text-center leading-tight">
               {formatServiceType(
                 item.quotationType || item.serviceType || "draft"
               )}
@@ -720,9 +823,12 @@ const OSBookingsPage = () => {
         ),
 
         bookingStatus: mapStatus(item.status),
+
         amount: item.totalAmount
           ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
           : `₹ ${item.formFields?.budget || "0"}`,
+
+        ownerNames: (item as any).__owners || [],
 
         tasks: Math.floor(Math.random() * 5) + 1, // Random tasks for demo
         isReal: Boolean(item._id),
@@ -799,7 +905,11 @@ const OSBookingsPage = () => {
         <div className="flex justify-center">
           <TaskButton
             count={row.tasks}
-            bookingId={row.isReal ? (finalQuotations[row.originalIndex]?._id || null) : null}
+            bookingId={
+              row.isReal
+                ? finalQuotations[row.originalIndex]?._id || null
+                : null
+            }
           />
         </div>
       </td>,
@@ -830,14 +940,9 @@ const OSBookingsPage = () => {
         { value: "pending", label: "Pending" },
         { value: "failed", label: "Failed" },
       ],
-      owners: [
-        { value: "Avanish Sharma", label: "Avanish Sharma" },
-        { value: "Ankit Kumar", label: "Ankit Kumar" },
-        { value: "Suresh Raj", label: "Suresh Raj" },
-        { value: "Vijay Gupta", label: "Vijay Gupta" },
-      ],
+      owners: ownersList.map((o) => ({ value: o.full, label: o.full })),
     }),
-    []
+    [ownersList]
   );
 
   const handleFilterChange = (next: FilterPayload) => {

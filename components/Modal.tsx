@@ -16,6 +16,8 @@ interface ModalProps {
   closeOnEscape?: boolean;
   showCloseButton?: boolean;
   className?: string;
+  zIndexClass?: string;
+  disableOverlayClick?: boolean;
 }
 
 type ModalSize = {
@@ -35,6 +37,8 @@ const Modal: React.FC<ModalProps> = ({
   closeOnEscape = true,
   showCloseButton = true,
   className = "",
+  zIndexClass = "z-[140]",
+  disableOverlayClick = false,
 }) => {
   const sizeClasses: ModalSize = useMemo(
     () => ({
@@ -61,8 +65,13 @@ const Modal: React.FC<ModalProps> = ({
 
   const handleOverlayClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
-      if (event.target === event.currentTarget && closeOnOverlayClick)
+      if (
+        event.target === event.currentTarget &&
+        closeOnOverlayClick &&
+        !disableOverlayClick
+      ) {
         onClose();
+      }
     },
     [onClose, closeOnOverlayClick]
   );
@@ -80,11 +89,13 @@ const Modal: React.FC<ModalProps> = ({
   }, [isOpen, closeOnEscape, handleEscape]);
 
   const modalWidthClass = customWidth ? customWidth : sizeClasses[size];
-  const modalHeightClass = customeHeight ? customeHeight : "";
+  const modalHeightClass = customeHeight
+    ? customeHeight
+    : "h-auto max-h-[90vh]";
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[140]  bg-black/50 flex justify-center items-center transition-opacity duration-300"
+      className={`fixed inset-0 ${zIndexClass} bg-black/50 flex justify-center items-center transition-opacity duration-300`}
       onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
@@ -93,6 +104,7 @@ const Modal: React.FC<ModalProps> = ({
         className={`
           relative bg-white rounded-lg shadow-xl overflow-hidden 
           transition-all duration-300 transform ${modalWidthClass} ${modalHeightClass}
+          pointer-events-auto
           ${isMobile ? "absolute bottom-0 w-full rounded-t-2xl" : ""}
           ${className}
         `}

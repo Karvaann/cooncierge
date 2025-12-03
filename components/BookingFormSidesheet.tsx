@@ -568,7 +568,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                             console.error("Error saving draft:", error);
                           }
                         }}
-                        className="px-3 py-2 text-[0.75rem] bg-[#114958] text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
+                        className="px-3 py-2 text-[0.75rem] bg-[#cce2e9] text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
                         disabled={isSubmitting}
                       >
                         Save As Draft

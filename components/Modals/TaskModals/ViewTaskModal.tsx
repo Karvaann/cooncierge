@@ -52,6 +52,13 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
         .filter((v: any) => typeof v === "string" && v.trim().length > 0)
     : [];
 
+  const taskLogs: Array<{
+    heading?: string;
+    description?: string;
+    logBy?: string;
+    logDate?: string | Date;
+  }> = Array.isArray(t.logs) ? t.logs : [];
+
   const formatDate = (iso?: string) => {
     if (!iso) return "-";
     const d = new Date(iso);
@@ -300,79 +307,122 @@ const ViewTaskModal: React.FC<ViewTaskModalProps> = ({
             </div>
           )}
 
-          {/* LOG TAB (static demo) */}
+          {/* LOG TAB (dynamic from task.logs) */}
           {activeTab === "log" && (
             <div className="py-2 ml-6 -mt-2">
               <div className="relative">
                 <div className="absolute left-5 top-0 bottom-0 w-[2px] bg-gray-200"></div>
 
-                {/* ENTRY 1 */}
-                <div className="relative flex gap-3 mb-6">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center z-10">
-                    <CiCirclePlus size={18} className="text-blue-600" />
+                {(!taskLogs || taskLogs.length === 0) && (
+                  <div className="text-center text-[0.75rem] text-gray-500 py-4">
+                    No activity yet
                   </div>
-                  <div className="bg-blue-50 rounded-md p-3 w-[20rem]">
-                    <div className="text-left">
-                      <h3 className="text-blue-600 font-semibold text-[0.8rem] mb-1">
-                        Task Added
-                      </h3>
-                      <hr className="mb-2 mt-1 border-t border-gray-200" />
-                      <p className="text-[0.7rem] text-gray-700 mb-2">
-                        A task was added.
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between text-[0.6rem] text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <GoPerson className="w-3 h-3" />
-                        <span>System</span>
-                      </div>
-                      <div className="flex gap-3">
-                        <div className="flex items-center gap-1">
-                          <FaRegCalendar className="w-3 h-3" />
-                          <span>-</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <FaRegClock className="w-3 h-3" />
-                          <span>-</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                )}
 
-                {/* ENTRY 2 */}
-                <div className="relative flex gap-3 mb-6">
-                  <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center z-10">
-                    <TbSquareToggle size={18} className="text-orange-600" />
-                  </div>
-                  <div className="bg-orange-50 rounded-md p-3 w-[20rem]">
-                    <div className="text-left">
-                      <h3 className="text-orange-600 font-semibold text-[0.8rem] mb-1">
-                        Task Modified
-                      </h3>
-                      <hr className="mb-2 mt-1 border-t border-gray-200" />
-                      <p className="text-[0.7rem] text-gray-700 mb-2">
-                        Task was modified.
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between text-[0.6rem] text-gray-500">
-                      <div className="flex items-center gap-1">
-                        <GoPerson className="w-3 h-3" />
-                        <span>-</span>
-                      </div>
-                      <div className="flex gap-3">
-                        <div className="flex items-center gap-1">
-                          <FaRegCalendar className="w-3 h-3" />
-                          <span>-</span>
+                {taskLogs
+                  .slice()
+                  .sort((a, b) => {
+                    const ad = new Date(a?.logDate || 0).getTime();
+                    const bd = new Date(b?.logDate || 0).getTime();
+                    return bd - ad; // newest first
+                  })
+                  .map((entry, idx) => {
+                    const heading = String(entry?.heading || "");
+                    const desc = String(entry?.description || "");
+                    const isCreated = /created/i.test(heading);
+                    const isUpdated = /updated|modified/i.test(heading);
+                    const isCategoryChange =
+                      /category|sub\s*category/i.test(heading) ||
+                      /category|sub\s*category/i.test(desc);
+
+                    let Icon = CiCirclePlus;
+                    let badgeBg = "bg-blue-100";
+                    let cardBg = "bg-blue-50";
+                    let titleColor = "text-blue-600";
+                    let resolvedHeading = heading;
+
+                    if (isUpdated && !isCreated) {
+                      Icon = TbSquareToggle;
+                      if (isCategoryChange) {
+                        badgeBg = "bg-blue-100";
+                        cardBg = "bg-blue-50";
+                        titleColor = "text-blue-600";
+                      } else {
+                        badgeBg = "bg-orange-100";
+                        cardBg = "bg-orange-50";
+                        titleColor = "text-orange-600";
+                      }
+                      resolvedHeading = "Task has been Modified";
+                    }
+
+                    const by = entry?.logBy || "-";
+                    const dateStr = formatDate(String(entry?.logDate || ""));
+                    const timeStr = formatTime(String(entry?.logDate || ""));
+                    const key = `${resolvedHeading}-${String(
+                      entry?.logDate || idx
+                    )}-${idx}`;
+                    const fromToMatch = /(from)\s+(.+?)\s+(to)\s+(.+)/i.exec(
+                      desc
+                    );
+
+                    return (
+                      <div className="relative flex gap-3 mb-6" key={key}>
+                        <div
+                          className={`w-10 h-10 ${badgeBg} rounded-full flex items-center justify-center z-10`}
+                        >
+                          <Icon
+                            size={18}
+                            className={
+                              isCreated
+                                ? "text-blue-600"
+                                : isCategoryChange
+                                ? "text-blue-600"
+                                : "text-orange-600"
+                            }
+                          />
                         </div>
-                        <div className="flex items-center gap-1">
-                          <FaRegClock className="w-3 h-3" />
-                          <span>-</span>
+                        <div className={`${cardBg} rounded-md p-3 w-[20rem]`}>
+                          <div className="text-left">
+                            <h3
+                              className={`${titleColor} font-semibold text:[0.8rem] mb-1`}
+                            >
+                              {isCreated ? (
+                                heading || "Task Created"
+                              ) : (
+                                <>
+                                  Task '
+                                  <span className="font-bold">{taskId}</span>'
+                                  has been modified.
+                                </>
+                              )}
+                            </h3>
+                            <hr className="mb-2 mt-1 border-t border-gray-200" />
+                            {isCreated && (
+                              <p className="text-[0.7rem] text-gray-700 mb-2">
+                                {entry?.description || "Task created"}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between text-[0.6rem] text-gray-500">
+                            <div className="flex items-center gap-1">
+                              <GoPerson className="w-3 h-3" />
+                              <span>{by}</span>
+                            </div>
+                            <div className="flex gap-3">
+                              <div className="flex items-center gap-1">
+                                <FaRegCalendar className="w-3 h-3" />
+                                <span>{dateStr}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <FaRegClock className="w-3 h-3" />
+                                <span>{timeStr}</span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </div>
+                    );
+                  })}
               </div>
             </div>
           )}

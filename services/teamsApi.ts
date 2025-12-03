@@ -12,9 +12,11 @@ export const createTeam = async (teamData: any) => {
 };
 
 // Get All Teams
-export const getTeams = async () => {
+export const getTeams = async (params?: { isDeleted?: boolean }) => {
   try {
-    const response = await apiClient.get("/team/get-all-teams");
+    const response = await apiClient.get("/team/get-all-teams", {
+      params,
+    });
     return response.data; // backend returns an array of teams directly
   } catch (error: any) {
     console.error("Failed to fetch teams:", error);
@@ -54,3 +56,22 @@ export const deleteTeam = async (id: string) => {
     throw error.response?.data || { message: "Something went wrong" };
   }
 };
+
+
+// Get Booking History for a Team Member
+export const getBookingHistoryByTeamMember = async (
+  teamMemberId: string,
+  params: any = {}
+) => {
+  try {
+    const response = await apiClient.get(
+      `/quotation/booking-history/team-member/${teamMemberId}`,
+      { params }
+    );
+    return response.data.data; // Contains: quotations[], pagination{}, teamMember{}
+  } catch (error: any) {
+    console.error("Failed to fetch booking history:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+

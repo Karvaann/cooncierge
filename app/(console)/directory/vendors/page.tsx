@@ -24,6 +24,8 @@ import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import { FaRegStar } from "react-icons/fa";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import { MdHistory } from "react-icons/md";
+import Image from "next/image";
+// (Removed traveller form integration per request)
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -118,7 +120,7 @@ const VendorDirectory = () => {
   const [menuMode, setMenuMode] = useState<"main" | "action">("main");
 
   const [selectedVendor, setSelectedVendor] = useState<any | null>(null);
-  const [mode, setMode] = useState<"create" | "edit">("create");
+  const [mode, setMode] = useState<"create" | "edit" | "view">("create");
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historyBookings, setHistoryBookings] = useState<
@@ -126,7 +128,7 @@ const VendorDirectory = () => {
       id: string;
       bookingDate: string;
       travelDate: string;
-      status: "Successful" | "On Hold" | "In Progress" | "Failed";
+      status: "Successful" | "On Hold" | "In Progress" | "Cancelled";
       amount: string;
     }[]
   >([]);
@@ -182,35 +184,30 @@ const VendorDirectory = () => {
     setVendors(sorted);
   };
 
-  const getRatingBadge = (ratingString: string) => {
-    // Convert "⭐️⭐️⭐️" OR "4" to a number
-    const rating =
+  const getRatingBadge = (ratingString: string | number) => {
+    const ratingRaw =
       typeof ratingString === "string"
         ? ratingString.match(/⭐️/g)?.length || Number(ratingString)
         : Number(ratingString);
 
-    // Map rating → background color
-    const bgMap: Record<number, string> = {
-      1: "bg-red-100 text-red-600",
-      2: "bg-orange-100 text-orange-600",
-      3: "bg-yellow-100 text-yellow-600",
-      4: "bg-green-100 text-green-600",
-      5: "bg-emerald-100 text-emerald-600",
-    };
+    const rating = Math.min(Math.max(Math.round(ratingRaw), 1), 5);
 
-    const bgClass = bgMap[rating] || "bg-gray-100 text-gray-600";
+    const tierIcon = `/icons/tier-${rating}.png`;
 
     return (
       <div className="flex items-center gap-2 justify-center">
-        {/* Circle around star */}
-        <div
-          className={`w-7 h-7 rounded-full flex items-center justify-center ${bgClass}`}
-        >
-          <FaRegStar size={14} />
+        {/* Your custom tier icon */}
+        <div className="w-6 h-6 relative">
+          <Image
+            src={tierIcon}
+            alt={`Tier ${rating}`}
+            width={20}
+            height={20}
+            className="object-contain"
+            unoptimized // Important for local PNGs served from /public
+          />
         </div>
-
-        {/* Rating number OUTSIDE the circle */}
-        <span className="text-[0.8rem] font-semibold text-gray-700">
+        <span className="text-[0.75rem] font-semibold text-gray-700">
           {rating}
         </span>
       </div>
@@ -232,7 +229,8 @@ const VendorDirectory = () => {
       case "confirmed":
         return "Successful" as const;
       case "cancelled":
-        return "Failed" as const;
+        // Align with BookingHistoryModal expected status union which uses 'Cancelled'
+        return "Cancelled" as const;
       case "draft":
       default:
         return "In Progress" as const;
@@ -478,7 +476,7 @@ const VendorDirectory = () => {
             type="text"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            placeholder="Search by Customer ID/Name/Owner"
+            placeholder="Search by Vendor ID/Name/POC"
             className="w-full text-[0.85rem] py-2 pl-4 pr-10 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-900 text-gray-700 bg-white"
           />
 
