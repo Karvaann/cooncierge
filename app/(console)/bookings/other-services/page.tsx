@@ -808,9 +808,9 @@ const OSBookingsPage = () => {
       ...finalQuotations.map((item, index) => ({
         id: item.customId ? `${item.customId}` : `Draft-${index + 1}`,
         leadPax:
-          item.formFields?.customer || item.formFields?.traveller1 || "Unknown",
-        travelDate: item.formFields?.departureDate
-          ? formatDMY(item.formFields?.departureDate)
+          item.customerId?.name || item.formFields?.traveller1 || "Unknown",
+        travelDate: item.travelDate
+          ? formatDMY(item.travelDate)
           : item.createdAt
           ? formatDMY(item.createdAt)
           : "Not Selected",
@@ -835,7 +835,9 @@ const OSBookingsPage = () => {
           ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
           : `₹ ${item.formFields?.budget || "0"}`,
 
-        ownerNames: (item as any).__owners || [],
+        ownerNames: Array.isArray((item as any).owner)
+          ? (item as any).owner.map((o: any) => o?.name || "Unknown")
+          : [],
 
         tasks: Math.floor(Math.random() * 5) + 1, // Random tasks for demo
         isReal: Boolean(item._id),
@@ -888,20 +890,18 @@ const OSBookingsPage = () => {
       >
         <div className="flex items-center justify-center">
           <div className="flex items-center">
-            {(finalQuotations[index] as any).__owners?.map(
-              (ownerName: string, i: number) => {
-                const ownerMeta = ownersList.find((o) => o.full === ownerName);
-                if (!ownerMeta) return null;
-                return (
-                  <AvatarTooltip
-                    key={i}
-                    short={ownerMeta.short}
-                    full={ownerMeta.full}
-                    color={ownerMeta.color}
-                  />
-                );
-              }
-            )}
+            {row.ownerNames?.map((ownerName: string, i: number) => {
+              const ownerMeta = ownersList.find((o) => o.full === ownerName);
+              if (!ownerMeta) return null;
+              return (
+                <AvatarTooltip
+                  key={i}
+                  short={ownerMeta.short}
+                  full={ownerMeta.full}
+                  color={ownerMeta.color}
+                />
+              );
+            })}
           </div>
         </div>
       </td>,
