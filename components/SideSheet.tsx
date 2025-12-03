@@ -106,7 +106,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
   // Memoized sidesheet content
   const sideSheetContent = useMemo(
     () => (
-      <div className="fixed inset-0 z-50 transition-all duration-300">
+      <div className="fixed inset-0 z-[9999] transition-all duration-300">
         {/* Overlay */}
         <div
           className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${
@@ -131,6 +131,8 @@ const SideSheet: React.FC<SideSheetProps> = ({
           role="dialog"
           aria-modal="true"
           aria-labelledby={title ? "sidesheet-title" : undefined}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-2 py-2">
