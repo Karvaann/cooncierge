@@ -120,9 +120,11 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
       customeHeight="h-fit"
       className="pb-2"
       closeOnOverlayClick={true}
-      zIndexClass="z-[9999]"
+      closeOnEscape={true}
+      zIndexClass="z-[200]"
+      disableOverlayClick={false}
     >
-      <div className="px-2">
+      <div className="px-2" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-2 -mt-6">
           <h2 className="text-md font-semibold">Booking History</h2>
           <div className="flex items-center gap-2 mr-2">

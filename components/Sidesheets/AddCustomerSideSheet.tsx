@@ -390,15 +390,17 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               Billing Address
             </label>
             <hr className="mt-1 mb-3 border-t border-gray-200" />
-            <button
-              type="button"
-              className="px-2 py-2 bg-[#126ACB] text-white text-[0.75rem] rounded-md hover:bg-blue-800 flex items-center gap-1"
+            <input
+              name="address"
+              value={formData.address}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
+              }
+              placeholder="Enter Billing Address"
               disabled={readOnly}
-            >
-              <CiCirclePlus size={14} /> Billing Address
-            </button>
+              className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
+            />
           </div>
-
           {/* ================= OPENING BALANCE ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
             <h2 className="text-[0.75rem] font-medium mb-2">Opening Balance</h2>
@@ -464,7 +466,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
           {/* ================= TIER ================ */}
           <div className=" p-1 -mt-4">
-            <h2 className="text-[0.75rem] font-medium mb-2">Tier</h2>
+            <h2 className="text-[0.75rem] font-medium mb-2">Rank</h2>
 
             <div className="flex flex-col">
               <select
@@ -473,12 +475,12 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 disabled={readOnly}
                 className="w-[10rem] border border-gray-300 rounded-md px-3 py-1.5 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-700"
               >
-                <option value="">Select Tier</option>
-                <option value="tier1">Tier 1</option>
-                <option value="tier2">Tier 2</option>
-                <option value="tier3">Tier 3</option>
-                <option value="tier4">Tier 4</option>
-                <option value="tier5">Tier 5</option>
+                <option value="">Select Rank</option>
+                <option value="tier1">Rank 1</option>
+                <option value="tier2">Rank 2</option>
+                <option value="tier3">Rank 3</option>
+                <option value="tier4">Rank 4</option>
+                <option value="tier5">Rank 5</option>
               </select>
             </div>
           </div>

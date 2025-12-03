@@ -476,7 +476,7 @@ const VendorDirectory = () => {
             type="text"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            placeholder="Search by Customer ID/Name/Owner"
+            placeholder="Search by Vendor ID/Name/POC"
             className="w-full text-[0.85rem] py-2 pl-4 pr-10 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-900 text-gray-700 bg-white"
           />
 

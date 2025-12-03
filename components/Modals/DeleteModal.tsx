@@ -4,13 +4,29 @@ import React, { useMemo, useState, useCallback } from "react";
 import Modal from "@/components/Modal";
 import Table from "@/components/Table";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
-import { deleteCustomer } from "@/services/customerApi";
-// removed booking history fetch for delete modal
-import { deleteVendor } from "@/services/vendorApi";
-import { deleteTeam } from "@/services/teamsApi";
-import { deleteTraveller } from "@/services/travellerApi";
+import {
+  deleteCustomer,
+  getBookingHistoryByCustomer,
+} from "@/services/customerApi";
+import { deleteVendor, getVendorById } from "@/services/vendorApi";
+import { getVendorBookingHistory } from "@/services/vendorApi";
+import {
+  deleteTeam,
+  getBookingHistoryByTeamMember,
+  getTeamById,
+} from "@/services/teamsApi";
+import {
+  deleteTraveller,
+  getTravellerBookingHistory,
+  getTravellerById,
+} from "@/services/travellerApi";
 import { MdHistory } from "react-icons/md";
-// removed booking history modal import
+import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
+import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
+import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
+import AddTeamSideSheet from "@/components/Sidesheets/AddTeamSideSheet";
+import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerForm";
+import { BookingProvider } from "@/context/BookingContext";
 
 type EntityType = "customer" | "vendor" | "team" | "traveller";
 
@@ -52,7 +68,34 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   const [showConfirm, setShowConfirm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // booking history modal disabled for now
+
+  // Booking history states
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [bookingHistory, setBookingHistory] = useState<any[]>([]);
+  const [selectedItem, setSelectedItem] = useState<DeletableItem | null>(null);
+
+  // Sidesheet states
+  const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
+  const [mode, setMode] = useState<"create" | "edit" | "view">("view");
+  const [fullEntityData, setFullEntityData] = useState<any | null>(null);
+
+  // Close handler that won't propagate when history is open
+  const handleDeleteModalClose = useCallback(() => {
+    if (!isHistoryOpen && !isSideSheetOpen) {
+      onClose();
+    }
+  }, [isHistoryOpen, isSideSheetOpen, onClose]);
+
+  const formatDMY = useCallback((dateString: string) => {
+    const direct = new Date(dateString);
+    if (!isNaN(direct.getTime())) {
+      const day = String(direct.getDate()).padStart(2, "0");
+      const month = String(direct.getMonth() + 1).padStart(2, "0");
+      const year = direct.getFullYear();
+      return `${day}-${month}-${year}`;
+    }
+    return dateString || "—";
+  }, []);
 
   const mapStatusForModal = useCallback((status?: string) => {
     switch ((status || "").toLowerCase()) {
@@ -70,14 +113,68 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
     (qs: any[]) =>
       qs.map((q: any) => ({
         id: q.customId || q._id,
-        bookingDate: q.createdAt
-          ? new Date(q.createdAt).toLocaleDateString("en-IN")
-          : "—",
+        bookingDate: q.createdAt ? formatDMY(q.createdAt) : "—",
         travelDate: q.travelDate ? String(q.travelDate) : "",
         status: mapStatusForModal(q.status),
         amount: q.totalAmount != null ? String(q.totalAmount) : "0",
       })),
-    [mapStatusForModal]
+    [mapStatusForModal, formatDMY]
+  );
+
+  const handleOpenBookingHistory = useCallback(
+    async (item: DeletableItem) => {
+      try {
+        setSelectedItem(item);
+        let quotations: any[] = [];
+
+        switch (entity) {
+          case "customer":
+            const customerHistory = await getBookingHistoryByCustomer(item.id);
+            quotations = customerHistory.quotations || [];
+            setFullEntityData(item);
+            break;
+          case "vendor":
+            const vendorHistory = await getVendorBookingHistory(item.id, {
+              sortBy: "createdAt",
+              sortOrder: "desc",
+              page: 1,
+              limit: 10,
+            });
+            quotations = vendorHistory?.quotations || [];
+            // Fetch full vendor data for sidesheet
+            const vendorData = await getVendorById(item.id);
+            setFullEntityData(vendorData);
+            break;
+          case "team":
+            const teamHistory = await getBookingHistoryByTeamMember(item.id);
+            quotations = teamHistory.quotations || [];
+            // Fetch full team member data for sidesheet
+            const teamData = await getTeamById(item.id);
+            setFullEntityData(teamData);
+            break;
+          case "traveller":
+            const travellerHistory = await getTravellerBookingHistory(item.id, {
+              sortBy: "createdAt",
+              sortOrder: "desc",
+              page: 1,
+              limit: 10,
+            });
+            quotations = travellerHistory?.quotations || [];
+            // Fetch full traveller data for sidesheet
+            const travellerData = await getTravellerById(item.id);
+            setFullEntityData(travellerData);
+            break;
+        }
+
+        setBookingHistory(mapQuotationsToModal(quotations));
+        setIsHistoryOpen(true);
+      } catch (err) {
+        console.error(`Failed to load ${entity} booking history:`, err);
+        setBookingHistory([]);
+        setIsHistoryOpen(true);
+      }
+    },
+    [entity, mapQuotationsToModal]
   );
 
   const deletableItems = useMemo(
@@ -215,8 +312,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              // booking history modal disabled
-              return;
+              handleOpenBookingHistory(item);
             }}
             type="button"
           >
@@ -415,7 +511,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <Modal
         isOpen={isOpen}
-        onClose={onClose}
+        onClose={handleDeleteModalClose}
         title={
           entity === "customer"
             ? "Delete Customers"
@@ -429,8 +525,9 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         customeHeight="h-fit"
         className="max-w-[1100px]"
         closeOnOverlayClick={true}
-        zIndexClass={"z-[140]"}
-        disableOverlayClick={false}
+        closeOnEscape={!isHistoryOpen && !isSideSheetOpen}
+        zIndexClass={"z-[100]"}
+        disableOverlayClick={isHistoryOpen || isSideSheetOpen}
       >
         <div className="flex h-full flex-col -mt-5 px-2 pb-1 text-[0.75rem] overflow-hidden">
           <div className="flex-1 min-h-0 overflow-y-auto">
@@ -474,6 +571,47 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Render BookingHistoryModal inside DeleteModal to prevent overlay conflicts */}
+        {isHistoryOpen && (
+          <div
+            className="absolute inset-0 z-[150]"
+            onClick={(e) => e.stopPropagation()}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <BookingHistoryModal
+              isOpen={isHistoryOpen}
+              onClose={() => {
+                setIsHistoryOpen(false);
+                setBookingHistory([]);
+                setSelectedItem(null);
+              }}
+              onViewCustomer={
+                selectedItem
+                  ? () => {
+                      setMode("view");
+                      setIsSideSheetOpen(true);
+                      setIsHistoryOpen(false);
+                      // Close delete modal when opening sidesheet
+                      onClose();
+                    }
+                  : undefined
+              }
+              onEditCustomer={
+                selectedItem
+                  ? () => {
+                      setMode("edit");
+                      setIsSideSheetOpen(true);
+                      setIsHistoryOpen(false);
+                      // Close delete modal when opening sidesheet
+                      onClose();
+                    }
+                  : undefined
+              }
+              bookings={bookingHistory}
+            />
+          </div>
+        )}
       </Modal>
       {showConfirm && (
         <ConfirmationModal
@@ -500,7 +638,65 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           confirmButtonColor="bg-red-600"
         />
       )}
-      {/* Booking history modal disabled */}
+
+      {isSideSheetOpen && entity === "customer" && (
+        <BookingProvider>
+          <AddCustomerSideSheet
+            isOpen={isSideSheetOpen}
+            onCancel={() => {
+              setIsSideSheetOpen(false);
+              setMode("view");
+              setFullEntityData(null);
+            }}
+            data={fullEntityData}
+            mode={mode}
+          />
+        </BookingProvider>
+      )}
+
+      {isSideSheetOpen && entity === "vendor" && (
+        <BookingProvider>
+          <AddVendorSideSheet
+            isOpen={isSideSheetOpen}
+            onCancel={() => {
+              setIsSideSheetOpen(false);
+              setMode("view");
+              setFullEntityData(null);
+            }}
+            data={fullEntityData}
+            mode={mode}
+          />
+        </BookingProvider>
+      )}
+
+      {isSideSheetOpen && entity === "team" && (
+        <AddTeamSideSheet
+          isOpen={isSideSheetOpen}
+          onCancel={() => {
+            setIsSideSheetOpen(false);
+            setMode("view");
+            setFullEntityData(null);
+          }}
+          data={fullEntityData}
+          mode={mode}
+        />
+      )}
+
+      {isSideSheetOpen && entity === "traveller" && (
+        <BookingProvider>
+          <AddNewTravellerForm
+            isOpen={isSideSheetOpen}
+            onClose={() => {
+              setIsSideSheetOpen(false);
+              setMode("view");
+              setFullEntityData(null);
+            }}
+            mode={mode}
+            data={fullEntityData}
+          />
+        </BookingProvider>
+      )}
+
       {error && (
         <div className="fixed bottom-4 right-4 bg-red-600 text-white px-4 py-2 rounded shadow text-[0.7rem]">
           {error}
