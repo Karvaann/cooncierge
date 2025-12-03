@@ -344,7 +344,7 @@ const TeamDirectory = () => {
             <div className="flex items-center justify-center gap-2">
               <button
                 type="button"
-                className="bg-gray-100 text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
+                className="bg-[#E9ECF0] text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
                 onClick={() => {
                   setSelectedTeam(row);
                   handleOpenBookingHistory(row.ID);

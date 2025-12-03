@@ -206,7 +206,9 @@ const OSBookingsPage = () => {
   // Team members fetched from backend and mapped for owners display/filtering
   const [ownersList, setOwnersList] = useState<Owner[]>([]);
   const [ownerIdToName, setOwnerIdToName] = useState<Record<string, Owner>>({});
-  const [ownerNameToIds, setOwnerNameToIds] = useState<Record<string, string[]>>({});
+  const [ownerNameToIds, setOwnerNameToIds] = useState<
+    Record<string, string[]>
+  >({});
 
   const computeInitials = (name: string) => {
     const parts = name.trim().split(/\s+/);
@@ -370,8 +372,13 @@ const OSBookingsPage = () => {
       if (filters.tripStartDate)
         apiParams.travelStartDate = filters.tripStartDate;
       if (filters.tripEndDate) apiParams.travelEndDate = filters.tripEndDate;
-      if (filters.owner && (Array.isArray(filters.owner) ? filters.owner.length : true)) {
-        const names = Array.isArray(filters.owner) ? filters.owner : [filters.owner];
+      if (
+        filters.owner &&
+        (Array.isArray(filters.owner) ? filters.owner.length : true)
+      ) {
+        const names = Array.isArray(filters.owner)
+          ? filters.owner
+          : [filters.owner];
         const ids = names.flatMap((n) => ownerNameToIds[n] || []);
         if (ids.length) apiParams.owner = ids.join(",");
       }
@@ -773,7 +780,7 @@ const OSBookingsPage = () => {
     const combinedData = [
       // Real quotations from API
       ...finalQuotations.map((item, index) => ({
-        id: item._id ? `#${item._id}` : `Draft-${index + 1}`,
+        id: item.customId ? `${item.customId}` : `Draft-${index + 1}`,
         leadPax:
           item.formFields?.customer || item.formFields?.traveller1 || "Unknown",
         travelDate: item.formFields?.departureDate
@@ -813,7 +820,7 @@ const OSBookingsPage = () => {
     const rows = combinedData.map((row, index) => [
       <td
         key={`id-${index}`}
-        className="px-4 py-2 text-center align-middle h-[4rem]"
+        className="px-4 py-2 text-center font-semibold align-middle h-[4rem]"
       >
         {row.id}
       </td>,

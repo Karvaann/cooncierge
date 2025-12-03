@@ -8,6 +8,9 @@ import { FiEdit } from "react-icons/fi";
 import { CiUser } from "react-icons/ci";
 import { MdOutlinePersonSearch } from "react-icons/md";
 import { FaStore } from "react-icons/fa";
+import { MdOutlineEdit } from "react-icons/md";
+import { CiFilter } from "react-icons/ci";
+import type { JSX } from "react";
 
 interface BookingHistoryModalProps {
   isOpen: boolean;
@@ -18,7 +21,7 @@ interface BookingHistoryModalProps {
     id: string;
     bookingDate: string;
     travelDate: string;
-    status: "Successful" | "On Hold" | "In Progress" | "Cancelled";
+    status: "Successful" | "On Hold" | "In Progress" | "Failed";
     amount: string;
   }[];
 }
@@ -26,8 +29,8 @@ interface BookingHistoryModalProps {
 const statusColors: Record<string, string> = {
   Successful: "bg-green-100 text-green-700",
   "On Hold": "bg-yellow-100 text-yellow-800",
-  "In Progress": "bg-orange-100 text-orange-700",
-  Cancelled: "bg-red-100 text-red-700",
+  "In Progress": "bg-orange-100 text-orange-500",
+  Failed: "bg-red-100 text-red-700",
 };
 
 const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
@@ -59,6 +62,18 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
     return dateString || "—";
   };
   const columns = ["ID", "Booking Date", "Travel Date", "Status", "Amount"];
+
+  const columnIconMap: Record<string, JSX.Element> = {
+    "Booking Date": (
+      <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+    ),
+    "Travel Date": (
+      <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+    ),
+    Status: (
+      <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+    ),
+  };
 
   const tabs = [
     { label: "Customer", icon: <CiUser size={20} /> },
@@ -140,13 +155,14 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
               type="button"
               onClick={onEditCustomer}
             >
-              <FiEdit className="text-gray-700" size={16} />
+              <MdOutlineEdit className="text-blue-500" size={16} />
             </button>
           </div>
         </div>
         <Table
           data={rows}
           columns={columns}
+          columnIconMap={columnIconMap}
           initialRowsPerPage={5}
           hideRowsPerPage={false}
         />

@@ -145,9 +145,15 @@ const CustomerDirectory = () => {
   const [travellers, setTravellers] = useState<any[]>([]);
   const [bookingHistory, setBookingHistory] = useState<any[]>([]);
   const [isTravellerSheetOpen, setIsTravellerSheetOpen] = useState(false);
-  const [travellerMode, setTravellerMode] = useState<"create"|"edit"|"view">("view");
-  const [selectedTravellerRow, setSelectedTravellerRow] = useState<any | null>(null);
-  const [selectedTravellerFull, setSelectedTravellerFull] = useState<any | null>(null);
+  const [travellerMode, setTravellerMode] = useState<
+    "create" | "edit" | "view"
+  >("view");
+  const [selectedTravellerRow, setSelectedTravellerRow] = useState<any | null>(
+    null
+  );
+  const [selectedTravellerFull, setSelectedTravellerFull] = useState<
+    any | null
+  >(null);
   const mapStatusForModal = (status?: string) => {
     switch ((status || "").toLowerCase()) {
       case "confirmed":
@@ -431,7 +437,7 @@ const CustomerDirectory = () => {
             <div className="flex items-center justify-center gap-2">
               <button
                 type="button"
-                className="bg-gray-200 text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
+                className="bg-[#E9ECF0] text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
                 onClick={async () => {
                   setSelectedCustomer(row);
 
@@ -466,14 +472,14 @@ const CustomerDirectory = () => {
                         setMode("edit");
                       },
                     },
-                    {
-                      label: "Link",
-                      icon: <CiLink />,
-                      color: "text-green-600",
-                      onClick: () => {
-                        handleOpenLinkModal();
-                      },
-                    },
+                    // {
+                    //   label: "Link",
+                    //   icon: <CiLink />,
+                    //   color: "text-green-600",
+                    //   onClick: () => {
+                    //     handleOpenLinkModal();
+                    //   },
+                    // },
                     {
                       label: "Delete",
                       icon: <FaRegTrashAlt />,
@@ -873,7 +879,9 @@ const CustomerDirectory = () => {
               : activeTab === "Travellers" && selectedTravellerRow
               ? async () => {
                   try {
-                    const traveller = await getTravellerById(selectedTravellerRow.travellerID);
+                    const traveller = await getTravellerById(
+                      selectedTravellerRow.travellerID
+                    );
                     setSelectedTravellerFull(traveller);
                     setTravellerMode("view");
                     setIsTravellerSheetOpen(true);
@@ -894,7 +902,9 @@ const CustomerDirectory = () => {
               : activeTab === "Travellers" && selectedTravellerRow
               ? async () => {
                   try {
-                    const traveller = await getTravellerById(selectedTravellerRow.travellerID);
+                    const traveller = await getTravellerById(
+                      selectedTravellerRow.travellerID
+                    );
                     setSelectedTravellerFull(traveller);
                     setTravellerMode("edit");
                     setIsTravellerSheetOpen(true);

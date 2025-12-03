@@ -7,6 +7,7 @@ import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import {
   deleteCustomer,
   getBookingHistoryByCustomer,
+  getCustomerById,
 } from "@/services/customerApi";
 import { deleteVendor, getVendorById } from "@/services/vendorApi";
 import { getVendorBookingHistory } from "@/services/vendorApi";
@@ -27,6 +28,10 @@ import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
 import AddTeamSideSheet from "@/components/Sidesheets/AddTeamSideSheet";
 import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerForm";
 import { BookingProvider } from "@/context/BookingContext";
+import { CiFilter } from "react-icons/ci";
+import { HiArrowsUpDown } from "react-icons/hi2";
+import type { JSX } from "react";
+import Image from "next/image";
 
 type EntityType = "customer" | "vendor" | "team" | "traveller";
 
@@ -131,7 +136,9 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           case "customer":
             const customerHistory = await getBookingHistoryByCustomer(item.id);
             quotations = customerHistory.quotations || [];
-            setFullEntityData(item);
+            // Fetch full customer data for sidesheet
+            const customerData = await getCustomerById(item.id);
+            setFullEntityData(customerData);
             break;
           case "vendor":
             const vendorHistory = await getVendorBookingHistory(item.id, {
@@ -223,28 +230,106 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       setShowConfirm(true);
     }
   };
-  const getRatingIcon = (rating: number) => {
-    const colors = {
-      1: "bg-red-100 text-red-500",
-      2: "bg-orange-100 text-orange-500",
-      3: "bg-yellow-100 text-yellow-500",
-      4: "bg-green-100 text-green-500",
-      5: "bg-green-100 text-green-500",
-    };
+
+  const getRatingBadge = (ratingString: string | number) => {
+    const ratingRaw =
+      typeof ratingString === "string"
+        ? ratingString.match(/⭐️/g)?.length || Number(ratingString)
+        : Number(ratingString);
+
+    const rating = Math.min(Math.max(Math.round(ratingRaw), 1), 5);
+
+    const tierIcon = `/icons/tier-${rating}.png`;
 
     return (
-      <div
-        className={`flex items-center gap-1 px-2 py-1 rounded-full ${
-          colors[rating as keyof typeof colors]
-        }`}
-      >
-        <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-        </svg>
-        <span className="text-sm font-semibold">{rating}</span>
+      <div className="flex items-center gap-2 justify-center">
+        {/* Your custom tier icon */}
+        <div className="w-6 h-6 relative">
+          <Image
+            src={tierIcon}
+            alt={`Tier ${rating}`}
+            width={20}
+            height={20}
+            className="object-contain"
+            unoptimized // Important for local PNGs served from /public
+          />
+        </div>
+        <span className="text-[0.75rem] font-semibold text-gray-700">
+          {rating}
+        </span>
       </div>
     );
   };
+
+  const [sortedItems, setSortedItems] = useState<DeletableItem[]>(items);
+
+  // Update sorted items when items prop changes
+  useMemo(() => {
+    setSortedItems(items);
+  }, [items]);
+
+  const handleSort = useCallback((column: string) => {
+    setSortedItems((prev) => {
+      const sorted = [...prev];
+
+      if (column === "Rating") {
+        sorted.reverse();
+      } else if (column === "Date Modified" || column === "Joining Date") {
+        sorted.reverse();
+      }
+
+      return sorted;
+    });
+  }, []);
+
+  const columnIconMap: Record<string, JSX.Element> = useMemo(() => {
+    if (entity === "customer") {
+      return {
+        Name: (
+          <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+        ),
+        Owner: (
+          <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+        ),
+        Rating: (
+          <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+        ),
+        "Date Modified": (
+          <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+        ),
+      };
+    }
+    if (entity === "vendor") {
+      return {
+        "Vendor Name": (
+          <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+        ),
+        POC: (
+          <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+        ),
+        "Date Modified": (
+          <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+        ),
+        Rating: (
+          <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+        ),
+      };
+    }
+    if (entity === "team") {
+      return {
+        "Member Name": (
+          <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+        ),
+        "User Status": (
+          <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+        ),
+        "Joining Date": (
+          <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+        ),
+      };
+    }
+    return {};
+  }, [entity]);
 
   const columns = useMemo(() => {
     if (entity === "customer") {
@@ -272,36 +357,10 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       "Actions",
     ];
   }, [entity]);
-  // Rating badge similar to directory pages
-  const renderRatingBadge = (rating?: number) => {
-    if (!rating) return <span className="text-gray-400">—</span>;
-    const bgMap: Record<number, string> = {
-      1: "bg-red-100 text-red-600",
-      2: "bg-orange-100 text-orange-600",
-      3: "bg-yellow-100 text-yellow-600",
-      4: "bg-green-100 text-green-600",
-      5: "bg-emerald-100 text-emerald-600",
-    };
-    const bgClass = bgMap[rating] || "bg-gray-100 text-gray-600";
-    return (
-      <div className="flex items-center gap-2 justify-center">
-        <div
-          className={`w-7 h-7 rounded-full flex items-center justify-center ${bgClass}`}
-        >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-          </svg>
-        </div>
-        <span className="text-[0.75rem] font-semibold text-gray-700">
-          {rating}
-        </span>
-      </div>
-    );
-  };
 
   const tableData = useMemo(() => {
-    if (!items) return [];
-    return items.map((item) => {
+    if (!sortedItems) return [];
+    return sortedItems.map((item) => {
       const actionsCell = (
         <td
           key={`${item.id}-actions`}
@@ -357,7 +416,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             key={`${item.id}-rating`}
             className="px-3 py-1.5 text-center text-[0.75rem]"
           >
-            {renderRatingBadge(item.rating)}
+            {getRatingBadge(item.rating || 0)}
           </td>,
           <td
             key={`${item.id}-date`}
@@ -410,7 +469,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             key={`${item.id}-rating`}
             className="px-3 py-1.5 text-center text-[0.75rem]"
           >
-            {renderRatingBadge(item.rating)}
+            {getRatingBadge(item.rating || 0)}
           </td>,
           actionsCell,
         ];
@@ -501,7 +560,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         actionsCell,
       ];
     });
-  }, [items, entity]);
+  }, [sortedItems, entity]);
   const nonDeletableIds = useMemo(
     () => nonDeletableItems.map((c) => c.id),
     [nonDeletableItems]
@@ -539,6 +598,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
               <Table
                 data={tableData}
                 columns={columns}
+                columnIconMap={columnIconMap}
+                onSort={handleSort}
                 initialRowsPerPage={5}
                 maxRowsPerPageOptions={[5, 10, 25, 50]}
                 hideRowsPerPage={false}

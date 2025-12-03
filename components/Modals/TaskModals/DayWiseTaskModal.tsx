@@ -8,6 +8,7 @@ import ViewTaskModal from "./ViewTaskModal";
 import { updateLogStatus } from "@/services/logsApi";
 import { getLogsByBookingId } from "@/services/logsApi";
 import PriorityTaskCard from "@/components/PriorityTaskCard";
+import { BookingApiService } from "@/services/bookingApi";
 
 interface DayWiseTaskModalProps {
   isOpen: boolean;
@@ -156,7 +157,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
   isOpen,
   onClose,
   onTaskClick,
-  text = "OS-ABC12",
+  text,
   bookingId,
 }) => {
   const [activeTab, setActiveTab] = React.useState<PriorityTab>("high");
@@ -169,6 +170,40 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [loadingTeams, setLoadingTeams] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [quotationId, setQuotationId] = useState<string>("");
+
+  // Fetch quotation details to get customId
+  useEffect(() => {
+    if (!isOpen || !bookingId) return;
+
+    const fetchQuotation = async () => {
+      try {
+        console.log("Fetching quotation for bookingId:", bookingId);
+        const response = await BookingApiService.getQuotationById(bookingId);
+        console.log("API Response:", response);
+
+        if (response.success && response.data) {
+          // The API returns { success: true, quotation: {...} }
+          const data = response.data as any;
+          console.log("Response data:", data);
+
+          const quotation = data.quotation || data;
+          console.log("Quotation object:", quotation);
+
+          const customIdValue = quotation.customId || quotation._id || "";
+          console.log("CustomId value:", customIdValue);
+
+          setQuotationId(customIdValue);
+        } else {
+          console.error("API response not successful or no data:", response);
+        }
+      } catch (err) {
+        console.error("Failed to fetch quotation:", err);
+      }
+    };
+
+    fetchQuotation();
+  }, [isOpen, bookingId]);
 
   // Fetch logs for this booking when modal opens or after edits
   useEffect(() => {
@@ -383,7 +418,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
           <div className="w-full flex flex-col items-start ml-1">
             <div className="flex gap-2 mt-1">
               <h2 className="text-[0.85rem] font-semibold text-gray-900 mb-2">
-                {text}
+                {quotationId || (bookingId ? "Loading..." : "No ID")}
               </h2>
               <div className="w-px h-5 bg-gray-300"></div>
               <div className="text-[0.75rem] text-black font-medium">
@@ -398,13 +433,13 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
               <div className="flex items-center gap-2 border-r border-gray-300 ml-1 pr-3">
                 <span className="text-gray-600 text-[0.65rem]">Total</span>
                 <span className="font-semibold text-gray-900 text-[0.75rem]">
-                  4
+                  {logs.length}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-gray-600 text-[0.65rem]">Overdue</span>
                 <span className="font-semibold text-red-600 text-[0.75rem]">
-                  1
+                  {highPriority.length}
                 </span>
               </div>
             </div>
