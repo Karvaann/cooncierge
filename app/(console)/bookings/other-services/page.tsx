@@ -203,12 +203,8 @@ const OSBookingsPage = () => {
   // const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
 
   const [reverse, setReverse] = useState(false);
-  // Team members fetched from backend and mapped for owners display/filtering
+  // Team members fetched from backend for filter options only
   const [ownersList, setOwnersList] = useState<Owner[]>([]);
-  const [ownerIdToName, setOwnerIdToName] = useState<Record<string, Owner>>({});
-  const [ownerNameToIds, setOwnerNameToIds] = useState<
-    Record<string, string[]>
-  >({});
 
   const computeInitials = (name: string) => {
     const parts = name.trim().split(/\s+/);
@@ -237,24 +233,8 @@ const OSBookingsPage = () => {
           color: colorPalette[idx % colorPalette.length] as string,
         }));
         setOwnersList(list);
-        const idMap: Record<string, Owner> = {};
-        const nameMap: Record<string, string[]> = {};
-        (teams || []).forEach((t: any, idx: number) => {
-          const owner: Owner = {
-            short: computeInitials(t?.name || t?.teamName || ""),
-            full: t?.name || t?.teamName || "Unknown",
-            color: colorPalette[idx % colorPalette.length] as string,
-          };
-          if (t?._id) {
-            idMap[t._id] = owner;
-            const key = owner.full;
-            nameMap[key] = nameMap[key] ? [...nameMap[key], t._id] : [t._id];
-          }
-        });
-        setOwnerIdToName(idMap);
-        setOwnerNameToIds(nameMap);
       } catch (e) {
-        console.error("Failed to load teams for owners mapping", e);
+        console.error("Failed to load teams for filter options", e);
       }
     };
     loadTeams();
@@ -333,24 +313,20 @@ const OSBookingsPage = () => {
           return false;
       }
 
-      // Map owner IDs from backend to team member names via owners list
-      const ids: string[] = Array.isArray((q as any).owner)
-        ? ((q as any).owner as string[])
-        : (q as any).owner
-        ? [String((q as any).owner)]
-        : [];
-      const rowOwners = ids
-        .map((id) => ownerIdToName[id]?.full)
-        .filter(Boolean) as string[];
-      (q as any).__owners = rowOwners;
+      // Owner filter - API already returns owner names
       if (selectedOwners.length) {
-        const intersects = rowOwners.some((o) => selectedOwners.includes(o));
+        const ownerNames = Array.isArray((q as any).owner)
+          ? (q as any).owner.map((o: any) => o?.name || "Unknown")
+          : [];
+        const intersects = ownerNames.some((o: string) =>
+          selectedOwners.includes(o)
+        );
         if (!intersects) return false;
       }
 
       return true;
     });
-  }, [quotations, filters, selectedOwners, ownersList, ownerIdToName]);
+  }, [quotations, filters, selectedOwners]);
 
   // Load quotations from backend
   const loadQuotations = useCallback(async () => {
@@ -376,11 +352,7 @@ const OSBookingsPage = () => {
         filters.owner &&
         (Array.isArray(filters.owner) ? filters.owner.length : true)
       ) {
-        const names = Array.isArray(filters.owner)
-          ? filters.owner
-          : [filters.owner];
-        const ids = names.flatMap((n) => ownerNameToIds[n] || []);
-        if (ids.length) apiParams.owner = ids.join(",");
+        apiParams.owner = filters.owner;
       }
 
       const response = await BookingApiService.getAllQuotations(
@@ -406,7 +378,6 @@ const OSBookingsPage = () => {
     filters.tripStartDate,
     filters.tripEndDate,
     filters.owner,
-    ownerNameToIds,
   ]);
 
   // Load drafts from localStorage

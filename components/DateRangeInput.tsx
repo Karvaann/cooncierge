@@ -113,7 +113,10 @@ export default function DateRangeInput({
   ];
 
   // Fixed date comparison to handle dates without time component
-  const handleDateClick = (date: Date) => {
+  const handleDateClick = (date: Date, e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
     const dateOnly = new Date(
       date.getFullYear(),
       date.getMonth(),
@@ -362,9 +365,14 @@ export default function DateRangeInput({
                   />
                 )}
                 <button
-                  onClick={() => isCurrentMonth && handleDateClick(day)} // ✅ CHANGE: Only clickable for current month
+                  type="button"
+                  onClick={(e) => {
+                    if (isCurrentMonth) {
+                      handleDateClick(day, e);
+                    }
+                  }}
                   disabled={!isCurrentMonth} // ✅ CHANGE: Disable dates from adjacent months
-                  className={`relative w-full h-full flex items-center justify-center text-[0.75rem] font-medium transition-colors
+                  className={`relative w-full h-full flex items-center justify-center text-[0.75rem] font-medium transition-colors select-none
                     ${!isCurrentMonth ? "text-gray-300 cursor-default" : ""} 
                     ${
                       isCurrentMonth && position
@@ -401,7 +409,7 @@ export default function DateRangeInput({
       </label>
 
       <div
-        className="relative flex items-center w-[14.75rem] gap-2 border border-gray-300 rounded-lg px-3 py-2 cursor-pointer bg-white hover:border-gray-400 transition-colors"
+        className="relative flex items-center w-[14.75rem] gap-2 border border-gray-300 rounded-lg px-3 py-2 cursor-pointer bg-white hover:border-gray-400 transition-colors select-none"
         onClick={() => setOpen(!open)}
       >
         <span className="text-[0.75rem] text-gray-500">
@@ -426,6 +434,7 @@ export default function DateRangeInput({
             <div className="w-34 border-r border-gray-200">
               {/* Today & Yesterday */}
               <button
+                type="button"
                 onClick={() => {
                   const range = predefinedRanges[0];
                   if (range) {
@@ -439,6 +448,7 @@ export default function DateRangeInput({
               </button>
 
               <button
+                type="button"
                 onClick={() => {
                   const range = predefinedRanges[1];
                   if (range) {
@@ -453,6 +463,7 @@ export default function DateRangeInput({
 
               {/* This Week & Last Week */}
               <button
+                type="button"
                 onClick={() => {
                   const range = predefinedRanges[2];
                   if (range) {
@@ -465,6 +476,7 @@ export default function DateRangeInput({
                 {predefinedRanges[2]?.label ?? ""}
               </button>
               <button
+                type="button"
                 onClick={() => {
                   const range = predefinedRanges[3];
                   if (range) {
@@ -479,6 +491,7 @@ export default function DateRangeInput({
 
               {/* This Month & Last Month */}
               <button
+                type="button"
                 onClick={() => {
                   const range = predefinedRanges[4];
                   if (range) {
@@ -492,6 +505,7 @@ export default function DateRangeInput({
               </button>
 
               <button
+                type="button"
                 onClick={() => {
                   const range = predefinedRanges[5];
                   if (range) {
@@ -506,6 +520,7 @@ export default function DateRangeInput({
 
               {/* Last 30 Days & This Year */}
               <button
+                type="button"
                 onClick={() => {
                   const range = predefinedRanges[6];
                   if (range) {
@@ -519,6 +534,7 @@ export default function DateRangeInput({
               </button>
 
               <button
+                type="button"
                 onClick={() => {
                   const range = predefinedRanges[7];
                   if (range) {
@@ -537,6 +553,7 @@ export default function DateRangeInput({
               <div className="flex items-center justify-between gap-4 mb-3">
                 <div className="flex items-center gap-1">
                   <button
+                    type="button"
                     onClick={() => navigateMonth(-2)}
                     className="p-1 hover:bg-gray-100 rounded"
                   >
@@ -546,6 +563,7 @@ export default function DateRangeInput({
                     />
                   </button>
                   <button
+                    type="button"
                     onClick={() => navigateMonth(-1)}
                     className="p-1 hover:bg-gray-100 rounded"
                   >
@@ -565,12 +583,14 @@ export default function DateRangeInput({
 
                 <div className="flex items-center gap-1">
                   <button
+                    type="button"
                     onClick={() => navigateMonth(1)}
                     className="p-1 hover:bg-gray-100 rounded"
                   >
                     <MdKeyboardArrowRight size={14} className="text-gray-500" />
                   </button>
                   <button
+                    type="button"
                     onClick={() => navigateMonth(2)}
                     className="p-1 hover:bg-gray-100 rounded"
                   >
