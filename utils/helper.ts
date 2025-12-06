@@ -198,6 +198,11 @@ export const formatServiceType = (type: string): string => {
     
     hotel: "Accommodation",
     accommodation: "Accommodation",
+    maritime: "Transportation (Maritime)",
+    "transport-maritime": "Transportation (Maritime)",
+    "maritime transportation": "Transportation (Maritime)",
+    "maritime-transportation": "Transportation (Maritime)",
+    "maritime_transportation": "Transportation (Maritime)",
 
     
     car: "Car Rental",

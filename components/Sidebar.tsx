@@ -195,7 +195,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                       <MdKeyboardArrowUp
                         size={16}
                         className={`ml-auto transform transition-transform duration-300 text-gray-100 ${
-                          isActive ? "rotate-180" : ""
+                          isActive ? "" : "rotate-180"
                         }`}
                       />
                     )}

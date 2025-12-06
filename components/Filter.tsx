@@ -12,6 +12,8 @@ import { RiRefreshLine } from "react-icons/ri";
 import { FaRegCalendar } from "react-icons/fa6";
 import { IoClose } from "react-icons/io5";
 import DateRangeInput from "./DateRangeInput";
+import Button from "./Button";
+import { CiSearch } from "react-icons/ci";
 
 interface FilterOption {
   id?: string;
@@ -104,6 +106,8 @@ const Filter: React.FC<FilterProps> = ({
 
   // Close dropdown on outside click
   useEffect(() => {
+    if (!ownerDropdownOpen) return;
+
     const handler = (e: MouseEvent) => {
       if (
         ownerDropdownRef.current &&
@@ -112,9 +116,11 @@ const Filter: React.FC<FilterProps> = ({
         setOwnerDropdownOpen(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+
+    // Use capture phase to catch events before they bubble
+    document.addEventListener("click", handler, true);
+    return () => document.removeEventListener("click", handler, true);
+  }, [ownerDropdownOpen]);
 
   const updateFilter = useCallback(
     (key: keyof FilterState, value: string | string[]) => {
@@ -135,6 +141,7 @@ const Filter: React.FC<FilterProps> = ({
       tripEndDate: "",
     };
     setFilters(resetFilters);
+    setSelectedOwners([]); // Reset owner pills
     onSearchChange?.("");
   }, [onSearchChange]);
 
@@ -177,18 +184,18 @@ const Filter: React.FC<FilterProps> = ({
     <div className="bg-white rounded-2xl shadow pt-4 pb-3 px-3 w-full relative">
       <div className="flex justify-between items-center mb-1">
         <h2 className="text-[0.85rem] font-semibold text-[#1F2937]">Filters</h2>
-        <button
+        <Button
+          text="+ Create"
           onClick={() => setCreateOpen?.(true)}
-          className="border border-[#0D4B37] text-white bg-[#0D4B37] text-[0.75rem] px-3 py-1.5 rounded-md font-medium hover:bg-green-800 transition"
-          type="button"
-        >
-          + Create
-        </button>
+          bgColor="bg-[#0D4B37]"
+          textColor="text-white"
+          className="border border-[#0D4B37] hover:bg-green-800"
+        />
       </div>
 
       <hr className="mb-2 mt-2 border-t-1 border-[#e4dfdb]" />
 
-      <div className="flex flex-wrap items-end justify-between">
+      <div className="flex flex-wrap items-end justify-between mt-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {/* Service Type */}
           {/* <div>
@@ -239,7 +246,10 @@ const Filter: React.FC<FilterProps> = ({
               {/* Input area with pills */}
               <div
                 className="w-[14.75rem] min-h-[2.25rem] border border-gray-300 rounded-md px-2 py-2 flex items-center flex-wrap gap-1 cursor-pointer"
-                onClick={() => setOwnerDropdownOpen(!ownerDropdownOpen)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOwnerDropdownOpen(!ownerDropdownOpen);
+                }}
               >
                 {selectedOwners.length > 0 ? (
                   selectedOwners.map((o) => (
@@ -269,7 +279,7 @@ const Filter: React.FC<FilterProps> = ({
 
               {/* Dropdown */}
               {ownerDropdownOpen && (
-                <div className="absolute left-0 w-[14.75rem] mt-1 bg-white border border-gray-200 rounded-md shadow-xl z-20 max-h-48 overflow-y-auto">
+                <div className="absolute left-0 w-[14.75rem] mt-1 bg-white border border-gray-200 rounded-md shadow-xl z-50 max-h-48 overflow-y-auto">
                   {/* Options */}
                   {filteredOwnersList.map((owner) => {
                     const checked = selectedOwners.includes(owner);
@@ -278,7 +288,10 @@ const Filter: React.FC<FilterProps> = ({
                       <label
                         key={owner}
                         className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
-                        onClick={() => toggleOwner(owner)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleOwner(owner);
+                        }}
                       >
                         {/* Custom Checkbox */}
                         <div className="w-4 h-4 border border-gray-400 rounded-md flex items-center justify-center">
@@ -333,10 +346,7 @@ const Filter: React.FC<FilterProps> = ({
           <div className="flex items-end gap-3 w-[100%]">
             {/* Search */}
 
-            <div>
-              <label className="block text-gray-700 mb-1 text-[0.75rem]">
-                Search Booking / Lead Pax
-              </label>
+            <div className="relative">
               <input
                 type="text"
                 placeholder="Search by Booking ID / Lead Pax"
@@ -345,25 +355,24 @@ const Filter: React.FC<FilterProps> = ({
                   updateFilter("search", e.target.value);
                   onSearchChange?.(e.target.value); // <-- SEND TO PARENT
                 }}
-                className="w-80 border border-gray-300 text-[0.75rem] rounded-lg px-3 py-2 text-gray-600 focus:ring-2 focus:ring-[#0D4B37]"
+                className="w-90 border border-gray-300 text-[0.75rem] rounded-lg pl-3 pr-9 py-2.5 text-gray-600 focus:ring-2 focus:ring-[#0D4B37]"
+              />
+              <CiSearch
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                size={18}
               />
             </div>
 
             {/* Buttons */}
             <div className="flex items-center gap-3">
-              {/* <button
-                  onClick={handleReset}
-                  className="flex items-center justify-center bg-gray-100 text-[#0D4B37] px-3 py-2 rounded-lg hover:bg-gray-200 transition"
-                >
-                  
-                </button> */}
-              <button
+              <Button
+                text="Reset"
                 onClick={handleReset}
-                className="bg-white flex items-center text-[0.75rem] font-semibold gap-1 justify-center text-[#0D4B37] border border-[#0D4B37] px-3 py-2 rounded-lg hover:bg-gray-200 transition"
-              >
-                <RiRefreshLine size={16} />
-                Reset
-              </button>
+                icon={<RiRefreshLine size={16} />}
+                bgColor="bg-white"
+                textColor="text-[#0D4B37]"
+                className="border border-[#0D4B37] hover:bg-gray-200"
+              />
             </div>
           </div>
         </div>

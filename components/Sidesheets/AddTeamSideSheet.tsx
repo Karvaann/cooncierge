@@ -7,6 +7,7 @@ import TransferDataModal from "../Modals/TransferDataModal";
 import { createTeam, updateTeam } from "@/services/teamsApi";
 import { getAuthUser } from "@/services/storage/authStorage";
 import { LuSave } from "react-icons/lu";
+import Button from "../Button";
 
 type TeamData = {
   _id?: string;
@@ -576,47 +577,47 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
           {/* ================= ACTION BUTTONS ================ */}
           <div className="flex justify-end gap-2 pt-2">
             {mode === "view" ? (
-              <button
-                type="button"
-                className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
+              <Button
+                text="Close"
                 onClick={onCancel}
-              >
-                Close
-              </button>
+                bgColor="bg-white"
+                textColor="text-gray-700"
+                className="border border-gray-300 hover:bg-gray-100"
+              />
             ) : mode === "edit" ? (
               <>
-                <button
-                  type="button"
-                  className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
+                <Button
+                  text="Cancel"
                   onClick={onCancel}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
+                  bgColor="bg-white"
+                  textColor="text-gray-700"
+                  className="border border-gray-300 hover:bg-gray-100"
+                />
+                <Button
+                  text="Update Team Member"
                   onClick={handleUpdateUser}
-                  className="px-4 py-2 bg-[#0D4B37] text-white rounded-lg hover:bg-green-900 text-[0.75rem]"
-                >
-                  Update Team Member
-                </button>
+                  bgColor="bg-[#0D4B37]"
+                  textColor="text-white"
+                  className="hover:bg-green-900"
+                />
               </>
             ) : (
               <>
-                <button
-                  type="button"
-                  className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
+                <Button
+                  text="Cancel"
                   onClick={onCancel}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  className="px-4 py-1.5 rounded-md bg-[#0D4B37] text-white text-[0.75rem] hover:bg-[#0f3d44]"
-                >
-                  <LuSave className="mr-1 inline-block" size={16} />
-                  Save
-                </button>
+                  bgColor="bg-white"
+                  textColor="text-gray-700"
+                  className="border border-gray-300 hover:bg-gray-100"
+                />
+                <Button
+                  text="Save"
+                  onClick={() => handleSubmit}
+                  icon={<LuSave size={16} />}
+                  bgColor="bg-[#0D4B37]"
+                  textColor="text-white"
+                  className="hover:bg-[#0f3d44]"
+                />
               </>
             )}
           </div>

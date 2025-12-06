@@ -7,6 +7,7 @@ import { IoMdClose } from "react-icons/io";
 import { createLog, updateLog } from "@/services/logsApi";
 import { getTeams } from "@/services/teamsApi";
 import { getAuthUser } from "@/services/storage/authStorage";
+import Button from "../Button";
 
 interface AddTaskModalProps {
   isOpen: boolean;
@@ -609,13 +610,13 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
           {editWarning && (
             <span className="text-[0.7rem] text-orange-600">{editWarning}</span>
           )}
-          <button
-            type="button"
-            className="px-4 py-1.5 bg-green-900 text-white text-[0.75rem] rounded-md hover:bg-green-800 transition"
+          <Button
+            text={isEditMode ? "Save Changes" : "Create Task"}
             onClick={handleSave}
-          >
-            {isEditMode ? "Save Changes" : "Create Task"}
-          </button>
+            bgColor="bg-green-900"
+            textColor="text-white"
+            className="hover:bg-green-800"
+          />
         </div>
       </div>
     </Modal>

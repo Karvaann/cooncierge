@@ -5,6 +5,7 @@ import ConfirmPopupModal from "./popups/BookingPopups/ConfirmPopupModal";
 import SuccessPopupModal from "./popups/BookingPopups/SuccessPopupModal";
 import { BookingProvider, useBooking } from "@/context/BookingContext";
 import { BookingApiService } from "@/services/bookingApi";
+import apiClient from "@/services/apiClient";
 import SideSheet from "@/components/SideSheet";
 import GeneralInfoForm from "./forms/GeneralInfoForm";
 import AddCustomerSideSheet from "./Sidesheets/AddCustomerSideSheet";
@@ -19,8 +20,10 @@ import ActivityServiceInfoForm from "./forms/ActivityServiceInfoForm";
 import InsuranceServiceInfoForm from "./forms/InsuranceServiceInfoForm";
 import VisasServiceInfoForm from "./forms/VisasServiceInfoForm";
 import OthersServiceInfoForm from "./forms/OthersServiceInfoForm";
+import Button from "./Button";
+import { LuSave } from "react-icons/lu";
 
-import { getAuthUser } from '@/services/storage/authStorage';
+import { getAuthUser } from "@/services/storage/authStorage";
 
 // Type definitions
 interface Service {
@@ -175,7 +178,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   );
 
   function convertToBookingData(input: any, quotationType: string) {
-
     const user = getAuthUser() as any;
     const businessId = user?.businessId;
 
@@ -192,12 +194,15 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     } = input;
 
     // Detect ANY key that ends with "infoform"
-    const infoFormKey = Object.keys(input).find(k => k.toLowerCase().endsWith("infoform"));
+    const infoFormKey = Object.keys(input).find((k) =>
+      k.toLowerCase().endsWith("infoform")
+    );
 
     // Extract and flatten the infoform object
-    const flatInfoForm = infoFormKey && typeof input[infoFormKey] === "object"
-      ? { ...input[infoFormKey] }
-      : {};
+    const flatInfoForm =
+      infoFormKey && typeof input[infoFormKey] === "object"
+        ? { ...input[infoFormKey] }
+        : {};
 
     // Everything except known fields and infoform goes to formFields
     const formFields = Object.fromEntries(
@@ -221,15 +226,23 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
       formFields,
 
-      totalAmount: Number(flatInfoForm.sellingprice ?? flatInfoForm.costprice ?? 0),
-      status: flatInfoForm.bookingstatus || "confirmed",
+      totalAmount: Number(
+        flatInfoForm.sellingprice ?? flatInfoForm.costprice ?? 0
+      ),
+      // Only include status if bookingstatus has a value, otherwise omit it
+      ...(flatInfoForm.bookingstatus && flatInfoForm.bookingstatus.trim() !== ""
+        ? { status: flatInfoForm.bookingstatus }
+        : {}),
 
       createdAt: new Date(),
       updatedAt: new Date(),
 
       owner: [input.bookingOwner],
 
-      travelDate: traveldate || flatInfoForm.traveldate ? new Date(flatInfoForm.traveldate) : null,
+      travelDate:
+        traveldate || flatInfoForm.traveldate
+          ? new Date(flatInfoForm.traveldate)
+          : null,
 
       customerId: input.customer,
       vendorId: input.vendor,
@@ -245,6 +258,51 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     return bookingData;
   }
 
+  // Simple function to save draft directly to backend
+  const handleSaveDraft = useCallback(async () => {
+    if (!selectedService) {
+      console.error("No service selected");
+      return;
+    }
+
+    try {
+      const formValues = {
+        ...collectAllFormData(),
+        ...formDataRef.current,
+      };
+
+      const bookingData = convertToBookingData(
+        formValues,
+        selectedService.category
+      );
+
+      // Add serviceStatus as 'draft'
+      const draftPayload = {
+        ...bookingData,
+        serviceStatus: "draft",
+      };
+
+      console.log("Saving draft to backend:", draftPayload);
+
+      const response = await apiClient.post(
+        "/quotation/create-quotation",
+        draftPayload
+      );
+
+      if (response.data?.success) {
+        console.log("Draft saved successfully!", response.data);
+        setIsSuccessModalOpen(true);
+      } else {
+        console.error("Failed to save draft:", response.data?.message);
+        alert(
+          `Failed to save draft: ${response.data?.message || "Unknown error"}`
+        );
+      }
+    } catch (err: any) {
+      console.error("Error saving draft:", err.message || err);
+      alert(`Error saving draft: ${err.message || "Please try again"}`);
+    }
+  }, [selectedService, collectAllFormData]);
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
@@ -269,11 +327,12 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         ...currentFormData,
       };
 
-      
       console.log("Form Values:", formValues);
 
-
-      const bookingData = convertToBookingData(formValues, selectedService.category);
+      const bookingData = convertToBookingData(
+        formValues,
+        selectedService.category
+      );
 
       console.log("Submitting Booking Data:", bookingData);
 
@@ -365,13 +424,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         <button
           key={tab.id}
           className={`
-          px-4 py-1.5 text-[0.75rem] font-medium border-b-2 transition-colors
+          px-4 py-1.5 text-[0.75rem] font-medium transition-colors relative
           ${
             activeTab === tab.id
-              ? "border-[#0D4B37] text-[#0D4B37]"
+              ? "text-[#0D4B37]"
               : tab.isEnabled
-              ? "border-transparent  text-gray-500 hover:text-gray-700"
-              : "border-transparent  text-gray-300 cursor-not-allowed"
+              ? "text-gray-500 hover:text-gray-700"
+              : "text-gray-300 cursor-not-allowed"
           }
         `}
           onClick={() => handleTabClick(tab.id)}
@@ -380,6 +439,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           role="tab"
         >
           {tab.label}
+          {/* Green underline for active tab */}
+          {activeTab === tab.id && (
+            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-[2px] bg-[#0D4B37] z-20"></span>
+          )}
         </button>
       )),
     [tabs, activeTab, handleTabClick]
@@ -435,18 +498,21 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         title={title}
         width="xl"
       >
-        <div>
+        <div className="relative h-full">
           <div className="flex flex-col h-full">
-            {/* Tabs */}
+            {/* Tabs - Fixed at top */}
             <div
-              className="flex w-full border-b border-gray-200 space-x-0 px-6 -mt-2 -ml-2"
+              className="absolute top-0 left-0 right-0 z-10 -mt-2 flex w-full space-x-0 px-4 bg-white"
               role="tablist"
             >
               {tabButtons}
             </div>
 
-            {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto" role="tabpanel">
+            {/* Divider line below tabs */}
+            <div className="absolute top-5.5 left-7 right-8 z-10 border-b border-gray-200"></div>
+
+            {/* Tab Content - Scrollable with padding for fixed header */}
+            <div className="flex-1 overflow-y-auto pt-7" role="tabpanel">
               {/* dont unmount General Info */}
               <div
                 style={{ display: activeTab === "general" ? "block" : "none" }}
@@ -471,122 +537,110 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   selectedService={selectedService}
                 />
               </div>
-            </div>
 
-            {/* Footer Actions */}
+              {/* Footer Actions */}
 
-            <div className="border-t border-gray-200 p-4 mt-4">
-              <div className="flex justify-between">
-                {activeTab === "general" ? (
-                  // Cancel Button (General Tab)
-                  <button
-                    onClick={() => setIsConfirmModalOpen(true)}
-                    className="px-3 py-1 text-[0.85rem] text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </button>
-                ) : (
-                  // Previous Button (Service Tab)
-                  <button
-                    onClick={() => {
-                      const currentIndex = tabs.findIndex(
-                        (tab) => tab.id === activeTab
-                      );
-                      const prevTab = tabs[currentIndex - 1];
-                      if (prevTab?.isEnabled) setActiveTab(prevTab.id);
-                    }}
-                    className="px-3 py-1 text-[#114958] text-[0.85rem] border border-[#114958] rounded-lg hover:bg-[#114958] hover:text-white transition-colors"
-                    disabled={isSubmitting}
-                  >
-                    Previous
-                  </button>
-                )}
-
-                {/* RIGHT SIDE BUTTONS */}
-                <div className="flex space-x-2">
-                  {/* GENERAL TAB BUTTONS */}
-                  {activeTab === "general" && (
-                    <>
-                      {/* Save Draft */}
-                      <button
-                        onClick={async () => {
-                          try {
-                            const formValues = {
-                              ...collectAllFormData(),
-                              ...formDataRef.current,
-                            };
-                            const draftName = `${
-                              selectedService?.title || "Booking"
-                            } - ${formValues.customer || "Draft"}`;
-                            await saveDraft(formValues, draftName);
-                            onClose();
-                          } catch (error) {
-                            console.error("Error saving draft:", error);
-                          }
-                        }}
-                        className="px-3 py-2 text-[0.75rem] bg-[#114958] text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
-                        disabled={isSubmitting}
-                      >
-                        Save As Draft
-                      </button>
-
-                      {/* Next */}
-                      <button
-                        onClick={() => {
-                          const currentIndex = tabs.findIndex(
-                            (tab) => tab.id === activeTab
-                          );
-                          const nextTab = tabs[currentIndex + 1];
-                          if (nextTab?.isEnabled) setActiveTab(nextTab.id);
-                        }}
-                        className="px-3 bg-[#114958] text-[0.85rem] text-white rounded-lg hover:bg-[#0d3a45] transition-colors"
-                        disabled={isSubmitting}
-                      >
-                        Next
-                      </button>
-                    </>
+              <div className="border-t border-gray-200 p-4 mt-4">
+                <div className="flex justify-between">
+                  {activeTab === "general" ? (
+                    // Cancel Button (General Tab)
+                    <Button
+                      text="Cancel"
+                      onClick={() => setIsConfirmModalOpen(true)}
+                      bgColor="bg-white"
+                      textColor="text-gray-600"
+                      className="border border-gray-300 hover:bg-gray-50"
+                      disabled={isSubmitting}
+                    />
+                  ) : (
+                    // Previous Button (Service Tab)
+                    <Button
+                      text="Previous"
+                      onClick={() => {
+                        const currentIndex = tabs.findIndex(
+                          (tab) => tab.id === activeTab
+                        );
+                        const prevTab = tabs[currentIndex - 1];
+                        if (prevTab?.isEnabled) setActiveTab(prevTab.id);
+                      }}
+                      bgColor="bg-white"
+                      textColor="text-[#114958]"
+                      className="border border-[#114958] hover:bg-[#114958] hover:text-white"
+                      disabled={isSubmitting}
+                    />
                   )}
 
-                  {/* SERVICE TAB BUTTONS */}
-                  {activeTab === "service" && (
-                    <>
-                      {/* Save Draft */}
-                      <button
-                        onClick={async () => {
-                          try {
-                            const formValues = {
-                              ...collectAllFormData(),
-                              ...formData,
-                            };
-                            const draftName = `${
-                              selectedService?.title || "Booking"
-                            } - ${formValues.customer || "Draft"}`;
-                            await saveDraft(formValues, draftName);
-                            onClose();
-                          } catch (error) {
-                            console.error("Error saving draft:", error);
-                          }
-                        }}
-                        className="px-3 py-2 text-[0.75rem] bg-[#cce2e9] text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
-                        disabled={isSubmitting}
-                      >
-                        Save As Draft
-                      </button>
+                  {/* RIGHT SIDE BUTTONS */}
+                  <div className="flex space-x-2">
+                    {/* GENERAL TAB BUTTONS */}
+                    {activeTab === "general" && (
+                      <>
+                        {/* Save Draft */}
+                        <Button
+                          text="Save As Draft"
+                          onClick={handleSaveDraft}
+                          bgColor="bg-[#114958]"
+                          textColor="text-white"
+                          className="hover:bg-gray-700"
+                          disabled={isSubmitting}
+                        />
 
-                      {/* Create Booking */}
-                      <button
-                        type="button"
-                        onClick={handleSubmit}
-                        className="px-4 py-2 bg-[#114958] text-[0.75rem] text-white rounded-lg hover:cursor-pointer transition-colors disabled:opacity-50"
-                        disabled={isSubmitting || !selectedService}
-                      >
-                        {isSubmitting
-                          ? "Creating Booking..."
-                          : "Create Booking"}
-                      </button>
-                    </>
-                  )}
+                        {/* Next */}
+                        <Button
+                          text="Next"
+                          onClick={() => {
+                            const currentIndex = tabs.findIndex(
+                              (tab) => tab.id === activeTab
+                            );
+                            const nextTab = tabs[currentIndex + 1];
+                            if (nextTab?.isEnabled) setActiveTab(nextTab.id);
+                          }}
+                          bgColor="bg-[#114958]"
+                          textColor="text-white"
+                          className="hover:bg-[#0d3a45]"
+                          disabled={isSubmitting}
+                        />
+                      </>
+                    )}
+
+                    {/* SERVICE TAB BUTTONS */}
+                    {activeTab === "service" && (
+                      <>
+                        {/* Save Draft */}
+                        <Button
+                          text="Save As Draft"
+                          onClick={handleSaveDraft}
+                          bgColor="bg-[#cce2e9]"
+                          textColor="text-white"
+                          className="hover:bg-gray-700"
+                          disabled={isSubmitting}
+                        />
+
+                        {/* Create Booking */}
+                        {/* <button
+                          type="button"
+                          onClick={handleSubmit}
+                          className="px-4 py-2 bg-[#114958] text-[0.75rem] text-white rounded-lg hover:cursor-pointer transition-colors disabled:opacity-50"
+                          disabled={isSubmitting || !selectedService}
+                        >
+                          {isSubmitting
+                            ? "Creating Booking..."
+                            : "Create Booking"}
+                        </button> */}
+
+                        <Button
+                          text="Save"
+                          onClick={() => handleSubmit()}
+                          icon={<LuSave size={16} />}
+                          bgColor="bg-[#114958]"
+                          textColor="text-white"
+                          width="w-auto"
+                          type="button"
+                          disabled={isSubmitting || !selectedService}
+                        />
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -603,21 +657,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           setIsConfirmModalOpen(false);
           onClose();
         }}
-        onSaveAsDrafts={async () => {
-          try {
-            const formValues = {
-              ...collectAllFormData(),
-              ...formData,
-            };
-            const draftName = `${selectedService?.title || "Booking"} - ${
-              formValues.customer || "Draft"
-            }`;
-            await saveDraft(formValues, draftName);
-            setIsSuccessModalOpen(true);
-          } catch (error) {
-            console.error("Error saving draft:", error);
-          }
-        }}
+        onSaveAsDrafts={handleSaveDraft}
       />
 
       {/* Success Popup Modal */}

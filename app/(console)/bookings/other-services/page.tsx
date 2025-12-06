@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { BookingApiService, DraftManager } from "@/services/bookingApi";
 import type { DraftBooking } from "@/services/bookingApi";
+import apiClient from "@/services/apiClient";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
 // import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
@@ -23,6 +24,7 @@ import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
 import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 import TaskButton from "@/components/TaskButton";
+import { format } from "path";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -55,13 +57,7 @@ const BookingFormSidesheet = dynamic(
   }
 );
 
-type BookingStatus =
-  | "Confirmed"
-  | "Pending"
-  | "Failed"
-  | "confirmed"
-  | "draft"
-  | "Cancelled";
+type BookingStatus = "Confirmed" | "draft" | "Cancelled";
 
 type BookingService = {
   id: string;
@@ -93,10 +89,17 @@ type FilterPayload = {
 
 // API Data Types
 interface QuotationData {
+  customId: string;
   _id: string;
   quotationType: string;
   channel: string;
   partyId: string;
+  customerId: {
+    _id: string;
+    name: string;
+    email: string;
+    phone: string;
+  };
   formFields: {
     customer?: string;
     destination?: string;
@@ -130,7 +133,7 @@ interface QuotationData {
 // }
 
 const columns: string[] = [
-  "#ID",
+  "Booking ID",
   "Lead Pax",
   "Travel Date",
   "Service",
@@ -160,12 +163,10 @@ const columnIconMap: Record<string, JSX.Element> = {
 const getStatusBadgeClass = (status: BookingStatus): string => {
   switch (status) {
     case "Confirmed":
-      return "px-2 py-1 text-[0.70rem] font-semibold rounded-full bg-green-100 text-green-700";
-    case "Pending":
-      return "px-2 py-1 text-[0.75rem] font-semibold rounded-full bg-yellow-100 text-yellow-700";
+      return "px-2 py-1 text-[0.70rem] border border-green-200 font-semibold rounded-full bg-green-100 text-green-700";
     case "Cancelled":
     default:
-      return "px-2 py-1 text-[0.75rem] font-semibold rounded-full bg-red-100 text-red-700";
+      return "px-2 py-1 text-[0.75rem] border border-red-200 font-semibold rounded-full bg-red-100 text-red-700";
   }
 };
 
@@ -176,8 +177,8 @@ const OSBookingsPage = () => {
   const [selectedService, setSelectedService] = useState<BookingService | null>(
     null
   );
-  const tabOptions = ["Approved", "Pending", "Drafts", "Denied", "Deleted"];
-  const [activeTab, setActiveTab] = useState("Approved");
+  const tabOptions = ["Bookings", "Drafts", "Deleted"];
+  const [activeTab, setActiveTab] = useState("Bookings");
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
@@ -196,7 +197,7 @@ const OSBookingsPage = () => {
 
   // Data State
   const [quotations, setQuotations] = useState<QuotationData[]>([]);
-  const [drafts, setDrafts] = useState<DraftBooking[]>([]);
+  const [drafts, setDrafts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
@@ -281,14 +282,16 @@ const OSBookingsPage = () => {
   // Apply all filters client-side (search, booking date, travel date, owner)
   const filteredQuotations = useMemo(() => {
     return quotations.filter((q, idx) => {
-      // If owners list not ready, allow until mapping loads
-      // Search
       if (filters.search.trim()) {
         const s = filters.search.toLowerCase();
+        const formattedServiceType = formatServiceType(
+          q.quotationType || ""
+        ).toLowerCase();
         const matchesSearch =
-          (q._id || "").toLowerCase().includes(s) ||
+          (q.customId || "").toLowerCase().includes(s) ||
+          formattedServiceType.includes(s) ||
           (q.quotationType || "").toLowerCase().includes(s) ||
-          (q.formFields.customer || "").toLowerCase().includes(s) ||
+          (q.customerId?.name || "").toLowerCase().includes(s) ||
           (q.formFields.traveller1 || "").toLowerCase().includes(s);
         if (!matchesSearch) return false;
       }
@@ -383,12 +386,18 @@ const OSBookingsPage = () => {
     filters.tripEndDate,
   ]);
 
-  // Load drafts from localStorage
+  // Load drafts from backend (quotations with serviceStatus = 'draft')
   const loadDrafts = useCallback(async () => {
     try {
-      const response = await BookingApiService.getDrafts();
+      const response = await BookingApiService.getAllQuotations();
       if (response.success && response.data) {
-        setDrafts(response.data);
+        const raw: any = response.data;
+        const allQuotations = raw?.quotations || raw || [];
+        // Filter quotations with serviceStatus = 'draft'
+        const draftQuotations = allQuotations.filter(
+          (q: any) => q.serviceStatus === "draft"
+        );
+        setDrafts(draftQuotations);
       }
     } catch (err) {
       console.error("Error loading drafts:", err);
@@ -444,19 +453,24 @@ const OSBookingsPage = () => {
     }
   }, [loadDrafts]);
 
-  // Load data on component mount
+  // Load quotations on component mount and filter changes
   useEffect(() => {
     loadQuotations();
-    loadDrafts();
   }, [
     loadQuotations,
-    loadDrafts,
     filters.bookingStartDate,
     filters.bookingEndDate,
     filters.tripStartDate,
     filters.tripEndDate,
     filters.owner,
   ]);
+
+  // Load drafts when Drafts tab is clicked
+  useEffect(() => {
+    if (activeTab === "Drafts") {
+      loadDrafts();
+    }
+  }, [activeTab, loadDrafts]);
 
   const handleServiceSelect = (service: BookingService) => {
     setSelectedService(service);
@@ -466,9 +480,12 @@ const OSBookingsPage = () => {
   // Handle booking completion (refresh data)
   const handleBookingComplete = useCallback(async () => {
     await loadQuotations();
-    await loadDrafts();
+    // Reload drafts if we're on the Drafts tab
+    if (activeTab === "Drafts") {
+      await loadDrafts();
+    }
     setIsSideSheetOpen(false);
-  }, [loadQuotations, loadDrafts]);
+  }, [loadQuotations, loadDrafts, activeTab]);
 
   const getServiceIcon = (
     quotationType: string
@@ -486,6 +503,11 @@ const OSBookingsPage = () => {
       hotel: "accommodation",
       accommodation: "accommodation",
 
+      maritime: "maritime",
+      "transport-maritime": "maritime",
+      "maritime transportation": "maritime",
+      "maritime-transportation": "maritime",
+      maritime_transportation: "maritime",
       car: "land",
       "land transportation": "land",
       "land-transportation": "land",
@@ -516,8 +538,8 @@ const OSBookingsPage = () => {
         <Image
           src="/icons/service-icons/flight.svg"
           alt="Flight"
-          width={20}
-          height={20}
+          width={16}
+          height={16}
           className="object-contain"
         />
       ),
@@ -525,8 +547,8 @@ const OSBookingsPage = () => {
         <Image
           src="/icons/service-icons/accommodation.svg"
           alt="Accommodation"
-          width={20}
-          height={20}
+          width={16}
+          height={16}
           className="object-contain"
         />
       ),
@@ -585,11 +607,9 @@ const OSBookingsPage = () => {
   const mapStatus = (status: string): BookingStatus => {
     const statusMap: Record<string, BookingStatus> = {
       confirmed: "Confirmed",
-      draft: "Pending",
-      pending: "Pending",
       cancelled: "Cancelled",
     };
-    return statusMap[status?.toLowerCase()] || "Pending";
+    return statusMap[status?.toLowerCase()] || "Cancelled";
   };
 
   // Handle viewing quotation details
@@ -708,49 +728,56 @@ const OSBookingsPage = () => {
   };
 
   const normalizeDraft = (draft: any) => {
-    const travelDate =
-      draft.flightinfoform?.traveldate ||
-      draft.accommodationinfoform?.traveldate ||
-      draft.otherServiceInfoForm?.traveldate ||
-      draft.landTransportInfoForm?.traveldate ||
-      draft.maritimeinfoform?.traveldate ||
-      draft.ticketsinfoform?.traveldate ||
-      "";
-
-    const amount =
-      draft.flightinfoform?.sellingprice ||
-      draft.accommodationinfoform?.sellingprice ||
-      draft.otherServiceInfoForm?.sellingprice ||
-      draft.landTransportInfoForm?.sellingprice ||
-      draft.maritimeinfoform?.sellingprice ||
-      draft.ticketsinfoform?.sellingprice ||
-      0;
-
+    // Backend drafts are quotations with serviceStatus = 'draft'
+    // They have the same structure as regular quotations
     return {
-      _id: null,
-      quotationType: draft.draftName?.split(" - ")[0]?.toLowerCase() || "draft",
-
-      formFields: {
-        customer:
-          draft.customerform?.firstname ||
-          draft.generalInfo?.customer ||
-          "Unknown",
-        departureDate: travelDate,
-        budget: amount,
-      },
-
-      totalAmount: amount,
+      _id: draft._id,
+      customId: draft.customId || null,
+      quotationType: draft.quotationType || "others",
+      formFields: draft.formFields || {},
+      totalAmount: draft.totalAmount || 0,
       status: "draft",
-      createdAt: draft.timestamp,
+      serviceStatus: draft.serviceStatus,
+      createdAt: draft.createdAt || null,
+      travelDate: draft.travelDate || null,
       isDraft: true,
+      customerId: draft.customerId,
+      vendorId: draft.vendorId,
+      owner: draft.owner || [],
+      travelers: draft.travelers || [],
+      adultTravlers: draft.adultTravlers || 0,
+      childTravlers: draft.childTravlers || 0,
+      remarks: draft.remarks || "",
     };
   };
 
   // Filter quotations based on active tab and status
   const finalQuotations = useMemo(() => {
-    // Drafts tab shows local drafts
+    // Drafts tab shows drafts from backend with search filtering
     if (activeTab === "Drafts") {
-      return drafts.map(normalizeDraft);
+      const normalizedDrafts = drafts.map(normalizeDraft);
+
+      // Apply search filter to drafts
+      if (filters.search.trim()) {
+        const s = filters.search.toLowerCase();
+        return normalizedDrafts.filter((draft: any, index: number) => {
+          const formattedServiceType = formatServiceType(
+            draft.quotationType || ""
+          ).toLowerCase();
+          const draftId = draft.customId || `Draft-${index + 1}`;
+          const customerName =
+            draft.customerId?.name || draft.formFields?.customer || "";
+
+          return (
+            draftId.toLowerCase().includes(s) ||
+            formattedServiceType.includes(s) ||
+            (draft.quotationType || "").toLowerCase().includes(s) ||
+            customerName.toLowerCase().includes(s)
+          );
+        });
+      }
+
+      return normalizedDrafts;
     }
 
     // Filter quotations by status based on active tab
@@ -782,15 +809,16 @@ const OSBookingsPage = () => {
       // Real quotations from API
       ...finalQuotations.map((item, index) => ({
         id: item.customId ? `${item.customId}` : `Draft-${index + 1}`,
-        leadPax:
-          item.customerId?.name || item.formFields?.traveller1 || "Unknown",
+        leadPax: item.customerId?.name || item.formFields?.customer || "--",
         travelDate: item.travelDate
           ? formatDMY(item.travelDate)
+          : item.formFields?.departureDate
+          ? formatDMY(item.formFields.departureDate)
           : item.createdAt
           ? formatDMY(item.createdAt)
-          : "Not Selected",
+          : "--",
         service: (
-          <div className="flex items-center justify-center gap-1">
+          <div className="flex items-center justify-center gap-2">
             <div className="w-5 h-5 flex items-center justify-center">
               {getServiceIcon(
                 item.quotationType || item.serviceType || "draft"
@@ -808,10 +836,12 @@ const OSBookingsPage = () => {
 
         amount: item.totalAmount
           ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
-          : `₹ ${item.formFields?.budget || "0"}`,
+          : item.formFields?.budget
+          ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
+          : "--",
 
         ownerNames: Array.isArray((item as any).owner)
-          ? (item as any).owner.map((o: any) => o?.name || "Unknown")
+          ? (item as any).owner.map((o: any) => o?.name || "--")
           : [],
 
         tasks: Math.floor(Math.random() * 5) + 1, // Random tasks for demo
@@ -866,8 +896,21 @@ const OSBookingsPage = () => {
         <div className="flex items-center justify-center">
           <div className="flex items-center">
             {row.ownerNames?.map((ownerName: string, i: number) => {
-              const ownerMeta = ownersList.find((o) => o.full === ownerName);
+              // Try to find owner in ownersList (fetched from API)
+              let ownerMeta = ownersList.find((o) => o.full === ownerName);
+
+              // If not found (e.g., for drafts), create a temporary owner object
+              if (!ownerMeta && ownerName && ownerName !== "--") {
+                ownerMeta = {
+                  short: computeInitials(ownerName),
+                  full: ownerName,
+                  color: (colorPalette[i % colorPalette.length] ||
+                    colorPalette[0]) as string,
+                };
+              }
+
               if (!ownerMeta) return null;
+
               return (
                 <AvatarTooltip
                   key={i}
@@ -933,7 +976,7 @@ const OSBookingsPage = () => {
   };
 
   return (
-    <>
+    <div>
       {/* <div className="flex justify-between items-center gap-4 p-6 w-full mx-[10px] mt-[-20px]"> */}
       {/* Draft count and sync button */}
       {/* <div className="flex items-center gap-4">
@@ -982,15 +1025,25 @@ const OSBookingsPage = () => {
         <div className="bg-white rounded-2xl shadow mt-4 pt-4 pb-3 px-3 relative">
           {/* Tabs and Total Count Row */}
           <div className="flex w-full justify-between items-center mb-2">
-            <div className="flex w-[30.5rem] ml-2 items-center bg-[#F3F3F3] rounded-2xl space-x-4">
+            <div className="flex w-[25rem] ml-2 items-center bg-[#F3F3F3] rounded-2xl relative p-1">
+              {/* Sliding background indicator */}
+              <div
+                className="absolute h-[calc(100%-0.5rem)] bg-[#0D4B37] rounded-xl shadow-sm transition-all duration-300 ease-in-out top-1"
+                style={{
+                  width: `calc((100% - 0.5rem) / ${tabOptions.length})`,
+                  left: `calc(${
+                    tabOptions.indexOf(activeTab) * (100 / tabOptions.length)
+                  }% + 0.25rem)`,
+                }}
+              />
               {tabOptions.map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-xl text-[0.85rem] font-medium transition-all duration-200 ${
+                  className={`relative z-10 px-3 py-1.5 rounded-xl text-[0.85rem] font-medium transition-colors duration-300 flex-1 ${
                     activeTab === tab
-                      ? "bg-[#0D4B37] text-white shadow-sm"
-                      : "text-[#818181] hover:bg-gray-200"
+                      ? "text-white"
+                      : "text-[#818181] hover:text-gray-900"
                   }`}
                 >
                   {tab}
@@ -1047,7 +1100,7 @@ const OSBookingsPage = () => {
           selectedService={selectedService}
         />
       )}
-    </>
+    </div>
   );
 };
 

@@ -106,7 +106,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
   // Memoized sidesheet content
   const sideSheetContent = useMemo(
     () => (
-      <div className="fixed inset-0 z-[9999] transition-all duration-300">
+      <div className="fixed inset-0 z-[950] transition-all duration-300">
         {/* Overlay */}
         <div
           className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${

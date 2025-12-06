@@ -103,6 +103,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
   const router = useRouter();
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Memoized handlers for better performance
   const handleLogOut = useCallback(() => {
@@ -172,6 +173,13 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
     setIsDropDownOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      setCurrentUser(JSON.parse(userData));
+    }
+  }, []);
+
   return (
     <>
       <div style={headerStyle}>
@@ -239,10 +247,10 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
                     </div>
                     <div>
                       <div className="text-gray-900 text-[0.8rem] font-medium">
-                        Yash Manocha
+                        {currentUser?.name || "User Name"}
                       </div>
                       <div className="text-[0.65rem] text-gray-500">
-                        yash@karvaann.com
+                        {currentUser?.email || "user@email.com"}
                       </div>
                     </div>
                   </div>
@@ -286,7 +294,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
         </div>
 
         {/* Breadcrumb Row */}
-        <div className="flex items-center px-5 py-1 bg-gray-100 border-b border-gray-200">
+        <div className="flex items-center px-5 py-1 bg-gray-100">
           <IoHomeOutline className="w-[0.75rem] h-5 mr-2 text-[#114958]" />
           {breadcrumbElements}
         </div>

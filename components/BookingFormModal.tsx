@@ -72,7 +72,7 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(
       <div
         className={`
     cursor-pointer rounded-[24px] w-full relative overflow-hidden
-    transition-all duration-300 hover:scale-105 hover:shadow-lg
+    transition-all duration-300 hover:shadow-lg group
     ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
   `}
         onClick={handleClick}
@@ -86,18 +86,18 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(
         }}
         aria-label={`Select ${service.title} service`}
       >
-        <div className="relative w-full aspect-[4/3]">
+        <div className="relative w-full aspect-[3/2.5]">
           <Image
             src={service.image}
             alt={`${service.title} service`}
             fill
-            className="object-cover rounded-[24px] w-full h-full"
+            className="object-cover rounded-[24px] w-full h-full transition-all duration-300 group-hover:brightness-115 group-hover:opacity-100"
             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
           />
 
           {/* Loading overlay */}
           {isLoading && (
-            <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-xl">
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-[24px]">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#114958]" />
             </div>
           )}
@@ -221,13 +221,13 @@ const BookingFormModal: React.FC<BookingFormModalProps> = ({
       onClose={onClose}
       title="Select Service"
       size="xl"
-      customWidth="w-[62.5vw]"
+      customWidth="w-[900px]"
       customeHeight="h-fit"
       // className="w-[90vw]"
     >
-      <div className="h-full justify between flex flex-col -mt-4">
+      <div className="h-full justify between flex flex-col -mt-5">
         {/* HEADER TEXT */}
-        <div className="text-gray-500 text-sm text-center w-full mb-4">
+        <div className="text-gray-500 text-sm text-center w-full mb-8">
           Choose from the range of services provided by{" "}
           <span className="text-[#114958] font-bold">Company ABC</span>
         </div>

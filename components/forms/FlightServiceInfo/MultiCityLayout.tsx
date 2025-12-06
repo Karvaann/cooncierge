@@ -209,7 +209,7 @@ export default function MultiCityLayout({
                             segments: updatedSegments,
                           });
                         }}
-                        className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                       />
                     </div>
 
@@ -226,7 +226,7 @@ export default function MultiCityLayout({
                           onChange={(e) =>
                             handleSegmentPnr(index, e.target.value, "segments")
                           }
-                          className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md"
+                          className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                         />
                       </div>
                     )}
@@ -250,7 +250,7 @@ export default function MultiCityLayout({
                             segments: updatedSegments,
                           });
                         }}
-                        className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                       />
                     </div>
 
@@ -273,7 +273,7 @@ export default function MultiCityLayout({
                               segments: updatedSegments,
                             });
                           }}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                          className="w-full px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 appearance-none"
                         >
                           <option value="">Choose Cabin Class</option>
                           <option value="Economy">Economy</option>
@@ -366,7 +366,7 @@ export default function MultiCityLayout({
                               returnSegments: updated,
                             });
                           }}
-                          className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                         />
                       </div>
 
@@ -387,7 +387,7 @@ export default function MultiCityLayout({
                                 "returnSegments"
                               )
                             }
-                            className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md"
+                            className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                           />
                         </div>
                       )}
@@ -411,7 +411,7 @@ export default function MultiCityLayout({
                               returnSegments: updated,
                             });
                           }}
-                          className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                         />
                       </div>
 
@@ -434,7 +434,7 @@ export default function MultiCityLayout({
                                 returnSegments: updated,
                               });
                             }}
-                            className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                            className="w-full px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 appearance-none"
                           >
                             <option value="">Choose Cabin Class</option>
                             <option value="Economy">Economy</option>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import { CiCirclePlus } from "react-icons/ci";
 import { MdKeyboardArrowDown } from "react-icons/md";
@@ -48,7 +48,32 @@ interface ReturnFlightSegment {
     | string;
 }
 
-interface PreviewData {
+interface AviationAirportInfo {
+  airport?: string;
+  iata?: string;
+  scheduled?: string;
+}
+
+interface AviationAirlineInfo {
+  airline_name?: string;
+  name?: string;
+}
+
+interface AviationFlightInfo {
+  iata?: string;
+  number?: string;
+}
+
+interface AviationAPIResponse {
+  data: {
+    departure?: AviationAirportInfo;
+    arrival?: AviationAirportInfo;
+    airline?: AviationAirlineInfo;
+    flight?: AviationFlightInfo;
+  }[];
+}
+
+interface SegmentPreview {
   airline?: string;
   origin?: string;
   destination?: string;
@@ -65,7 +90,7 @@ export default function OneWayLayout({
   formData: FlightInfoFormData;
   setFormData: React.Dispatch<React.SetStateAction<FlightInfoFormData>>;
 }) {
-  const previewData: PreviewData = {
+  const previewData: SegmentPreview = {
     airline: "IndiGo Airlines",
     origin: "Delhi (DEL)",
     destination: "Mumbai (BOM)",
@@ -74,6 +99,111 @@ export default function OneWayLayout({
     flightNumber: "A320",
     duration: "1h 55m",
   };
+
+  const [segmentPreview, setSegmentPreview] = useState<
+    Record<string, SegmentPreview>
+  >({});
+  const API_KEY = process.env.NEXT_PUBLIC_AVIATIONSTACK_KEY ?? "";
+
+  // Format time
+  const formatTime = (datetime: any) => {
+    if (!datetime) return "--";
+    return new Date(datetime).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  // Duration calculator
+  const getDuration = (dep: any, arr: any) => {
+    if (!dep || !arr) return "--";
+    const d1: any = new Date(dep);
+    const d2: any = new Date(arr);
+
+    const diff = (d2 - d1) / 1000 / 60; // minutes
+    const h = Math.floor(diff / 60);
+    const m = diff % 60;
+
+    return `${h}h ${m}m`;
+  };
+
+  // Get flight endpoint - using flights API
+  const getFlightEndpoint = (
+    flightNumber: string,
+    date: string,
+    API_KEY: string
+  ): string => {
+    // Free tier: only flight_iata parameter supported (returns today's real-time data)
+    return `https://api.aviationstack.com/v1/flights?access_key=${API_KEY}&flight_iata=${flightNumber}`;
+  };
+
+  const fetchFlightData = async (segment: FlightSegment) => {
+    try {
+      if (!segment.flightnumber) return;
+      if (!API_KEY) {
+        console.error("Missing NEXT_PUBLIC_AVIATIONSTACK_KEY");
+        return;
+      }
+
+      const endpoint = getFlightEndpoint(
+        String(segment.flightnumber),
+        segment.traveldate,
+        API_KEY
+      );
+
+      const res = await fetch(endpoint);
+      const data: AviationAPIResponse & {
+        error?: { code: number; type: string };
+      } = await res.json();
+
+      // Handle API errors (e.g., method_not_supported for free tier)
+      if (data?.error) {
+        console.warn("AviationStack API error:", data.error);
+        return;
+      }
+
+      if (!data?.data?.length) return;
+
+      const f: any = data.data[0];
+
+      const preview: SegmentPreview = {
+        airline: f.airline?.name || f.airline?.airline_name || "--",
+        origin: `${f.departure?.airport ?? "--"} (${
+          f.departure?.iata ?? "--"
+        })`,
+        destination: `${f.arrival?.airport ?? "--"} (${
+          f.arrival?.iata ?? "--"
+        })`,
+        departureTime: formatTime(f.departure?.scheduled),
+        arrivalTime: formatTime(f.arrival?.scheduled),
+        flightNumber:
+          f.flight?.iata || f.flight?.number || String(segment.flightnumber),
+        duration: getDuration(f.departure?.scheduled, f.arrival?.scheduled),
+      };
+
+      setSegmentPreview((prev) => ({
+        ...prev,
+        [segment.id!]: preview,
+      }));
+    } catch (error) {
+      console.error("Flight fetch error:", error);
+    }
+  };
+
+  useEffect(() => {
+    formData.segments.forEach((segment) => {
+      const fn = String(segment.flightnumber || "");
+
+      if (fn.length < 3) return;
+      // if (!segment.traveldate) return;
+
+      const timeout = setTimeout(() => {
+        fetchFlightData(segment);
+      }, 3000);
+
+      return () => clearTimeout(timeout);
+    });
+  }, [formData.segments]);
 
   const addSegment = () => {
     const newSegment: FlightSegment = {
@@ -111,7 +241,7 @@ export default function OneWayLayout({
             className="grid grid-cols-1 lg:grid-cols-2 gap-1"
           >
             {/* Flight Segment */}
-            <div className="border border-gray-200 rounded-lg w-[21rem] p-3">
+            <div className="border border-gray-200 rounded-lg w-[98%] p-3">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-[0.85rem] font-semibold text-gray-800">
                   Flight Segment {index + 1}
@@ -146,7 +276,7 @@ export default function OneWayLayout({
                       );
                       setFormData({ ...formData, segments: updatedSegments });
                     }}
-                    className="w-[14rem] px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-[75%] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                   />
                 </div>
 
@@ -166,7 +296,7 @@ export default function OneWayLayout({
                       );
                       setFormData({ ...formData, segments: updatedSegments });
                     }}
-                    className="w-[14rem] px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="w-[75%] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                   />
                 </div>
 
@@ -175,7 +305,7 @@ export default function OneWayLayout({
                   <label className="block mb-1 font-medium text-gray-600">
                     Cabin Class
                   </label>
-                  <div className="relative w-[14rem]">
+                  <div className="relative w-[75%]">
                     <select
                       value={segment.cabinclass}
                       onChange={(e) => {
@@ -186,7 +316,7 @@ export default function OneWayLayout({
                         );
                         setFormData({ ...formData, segments: updatedSegments });
                       }}
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
+                      className="w-full px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300 appearance-none"
                     >
                       <option value="">Choose Cabin Class</option>
                       <option value="Economy">Economy</option>
@@ -201,7 +331,7 @@ export default function OneWayLayout({
             </div>
 
             {/* Preview Section */}
-            <div className="border border-dotted border-gray-200 w-[21rem] rounded-lg p-3">
+            <div className="border border-dotted border-gray-200 w-[98%] rounded-lg p-3">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-[0.85rem] font-semibold text-gray-800">
                   Preview
@@ -218,7 +348,7 @@ export default function OneWayLayout({
                     <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 mb-3 flex items-center gap-2">
                       {/* <div className="w-6 h-6 bg-blue-600 rounded-sm"></div> */}
                       <span className="font-medium text-gray-800">
-                        {previewData.airline}
+                        {segmentPreview[segment.id!]?.airline ?? "Fetching..."}
                       </span>
                     </div>
 
@@ -231,7 +361,7 @@ export default function OneWayLayout({
                             Origin
                           </div>
                           <div className="font-semibold text-gray-900">
-                            {previewData.origin}
+                            {segmentPreview[segment.id!]?.origin}
                           </div>
                         </div>
                         <div className="text-right">
@@ -239,7 +369,7 @@ export default function OneWayLayout({
                             STD
                           </div>
                           <div className="font-semibold text-gray-900">
-                            {previewData.departureTime}
+                            {segmentPreview[segment.id!]?.departureTime}
                           </div>
                         </div>
                       </div>
@@ -251,7 +381,7 @@ export default function OneWayLayout({
                             Flight Number
                           </div>
                           <div className="font-semibold text-gray-900">
-                            {previewData.flightNumber}
+                            {segmentPreview[segment.id!]?.flightNumber}
                           </div>
                         </div>
 
@@ -268,7 +398,7 @@ export default function OneWayLayout({
                             Duration
                           </div>
                           <div className="font-semibold text-gray-900">
-                            {previewData.duration}
+                            {segmentPreview[segment.id!]?.duration}
                           </div>
                         </div>
                       </div>
@@ -280,7 +410,7 @@ export default function OneWayLayout({
                             Destination
                           </div>
                           <div className="font-semibold text-gray-900">
-                            {previewData.destination}
+                            {segmentPreview[segment.id!]?.destination}
                           </div>
                         </div>
                         <div className="text-right">
@@ -288,7 +418,7 @@ export default function OneWayLayout({
                             STA
                           </div>
                           <div className="font-semibold text-gray-900">
-                            {previewData.arrivalTime}
+                            {segmentPreview[segment.id!]?.arrivalTime}
                           </div>
                         </div>
                       </div>

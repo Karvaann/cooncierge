@@ -6,6 +6,7 @@ import SideSheet from "@/components/SideSheet";
 import { useBooking } from "@/context/BookingContext";
 import { createTraveller, updateTraveller } from "@/services/travellerApi";
 import { getAuthUser } from "@/services/storage/authStorage";
+import Button from "@/components/Button";
 // Type definitions
 interface TravellerFormData {
   firstname: string;
@@ -555,16 +556,15 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
         </div>
         <div className="flex justify-end mt-auto gap-2">
           {mode === "view" ? (
-            <button
-              type="button"
+            <Button
+              text="Close"
               onClick={handleClose}
-              className="px-4 py-2 bg-gray-200 text-gray-700 text-[0.75rem] rounded-lg"
-            >
-              Close
-            </button>
+              bgColor="bg-gray-200"
+              textColor="text-gray-700"
+            />
           ) : mode === "edit" ? (
-            <button
-              type="button"
+            <Button
+              text={isSubmitting || submitting ? "Updating..." : "Update"}
               onClick={async () => {
                 try {
                   setSubmitting(true);
@@ -578,35 +578,41 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   const payload: any = {
                     name,
                     email: String(formData.emailId || "").trim() || undefined,
-                    phone: String(formData.contactnumber || "").trim() || undefined,
+                    phone:
+                      String(formData.contactnumber || "").trim() || undefined,
                     dateOfBirth: formData.dateofbirth || undefined,
                   };
                   const id = data?._id || data?.id;
                   if (!id) throw new Error("Missing traveller id");
                   const updated = await updateTraveller(String(id), payload);
                   const displayName = updated?.name || name;
-                  setLastAddedTraveller({ id: updated?._id || id, name: displayName });
+                  setLastAddedTraveller({
+                    id: updated?._id || id,
+                    name: displayName,
+                  });
                   handleClose();
                 } catch (err: any) {
-                  console.error("[AddNewTravellerForm] Error updating traveller:", err?.response?.data?.message || err?.message);
+                  console.error(
+                    "[AddNewTravellerForm] Error updating traveller:",
+                    err?.response?.data?.message || err?.message
+                  );
                 } finally {
                   setSubmitting(false);
                 }
               }}
               disabled={isSubmitting || submitting}
-              className="px-4 py-2 bg-[#0D4B37] text-white text-[0.75rem] rounded-lg disabled:opacity-50"
-            >
-              {isSubmitting || submitting ? "Updating..." : "Update"}
-            </button>
+              bgColor="bg-[#0D4B37]"
+              textColor="text-white"
+            />
           ) : (
-            <button
-              type="button"
+            <Button
+              text={isSubmitting || submitting ? "Saving..." : "Save"}
               onClick={() => handleSubmit()}
               disabled={isSubmitting || submitting}
-              className="px-4 py-2 bg-[#114958] text-white text-[0.75rem] rounded-lg hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting || submitting ? "Saving..." : "Save"}
-            </button>
+              bgColor="bg-[#114958]"
+              textColor="text-white"
+              className="hover:bg-[#0d3a45]"
+            />
           )}
         </div>
       </div>

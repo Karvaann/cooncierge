@@ -26,4 +26,41 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Remove number input arrows */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Remove time input AM/PM picker and clock icon */
+input[type="time"]::-webkit-calendar-picker-indicator {
+  display: none;
+}
+
+input[type="time"]::-webkit-datetime-edit-ampm-field {
+  display: none;
+}
+
+/* Date input placeholder styling */
+input[type="date"]:not(:focus):not(:valid) {
+  color: transparent;
+}
+
+input[type="date"]::before {
+  content: attr(placeholder);
+  color: #9ca3af;
+  width: 100%;
+}
+
+input[type="date"]:focus::before,
+input[type="date"]:valid::before {
+  display: none;
+}
+
 

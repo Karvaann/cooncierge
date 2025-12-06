@@ -20,6 +20,7 @@ import { getCustomers } from "@/services/customerApi";
 import { getVendors } from "@/services/vendorApi";
 import { getTeams } from "@/services/teamsApi";
 import { getTravellers } from "@/services/travellerApi";
+import DropDown from "@/components/DropDown";
 
 // Type definitions
 interface GeneralInfoFormData {
@@ -30,9 +31,9 @@ interface GeneralInfoFormData {
   children: number;
   infants: number;
   childAges?: (number | null)[];
-  adultTravellers: string[];  // Names for display
+  adultTravellers: string[]; // Names for display
   infantTravellers: string[]; // Names for display
-  adultTravellerIds: string[];  // IDs for backend
+  adultTravellerIds: string[]; // IDs for backend
   infantTravellerIds: string[]; // IDs for backend
   bookingOwner: string;
   remarks: string;
@@ -85,11 +86,11 @@ const InputField: React.FC<InputFieldProps> = ({
         min={min}
         disabled={disabled || isValidating}
         className={`
-          w-full border rounded-md px-3 py-2 pr-10 text-[0.75rem]  transition-colors
+          w-full border rounded-md px-3 py-2 pr-10 text-[0.75rem]  transition-colors hover:border-green-400 
           ${
             hasError
               ? "border-red-300 focus:ring-red-200"
-              : "border-gray-200 focus:ring-blue-200"
+              : "border-gray-200 focus:ring-green-400"
           }
 
           ${disabled || isValidating ? "opacity-50 cursor-not-allowed" : ""}
@@ -368,8 +369,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       if (adults.length === 0) adults.push("");
       if (adultIds.length === 0) adultIds.push("");
 
-      while (adults.length < prev.adults) { adults.push(""); adultIds.push(""); }
-      while (adults.length > prev.adults && adults.length > 1) { adults.pop(); adultIds.pop(); }
+      while (adults.length < prev.adults) {
+        adults.push("");
+        adultIds.push("");
+      }
+      while (adults.length > prev.adults && adults.length > 1) {
+        adults.pop();
+        adultIds.pop();
+      }
 
       return { ...prev, adultTravellers: adults, adultTravellerIds: adultIds };
     });
@@ -384,10 +391,20 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       if (infants.length === 0) infants.push("");
       if (infantIds.length === 0) infantIds.push("");
 
-      while (infants.length < prev.infants) { infants.push(""); infantIds.push(""); }
-      while (infants.length > prev.infants && infants.length > 1) { infants.pop(); infantIds.pop(); }
+      while (infants.length < prev.infants) {
+        infants.push("");
+        infantIds.push("");
+      }
+      while (infants.length > prev.infants && infants.length > 1) {
+        infants.pop();
+        infantIds.pop();
+      }
 
-      return { ...prev, infantTravellers: infants, infantTravellerIds: infantIds };
+      return {
+        ...prev,
+        infantTravellers: infants,
+        infantTravellerIds: infantIds,
+      };
     });
   }, [formData.infants]);
 
@@ -438,7 +455,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     const updated = [...formData[type]];
     updated[index] = value;
 
-    const idType = type === "adultTravellers" ? "adultTravellerIds" : "infantTravellerIds";
+    const idType =
+      type === "adultTravellers" ? "adultTravellerIds" : "infantTravellerIds";
     const updatedIds = [...formData[idType]];
     if (id !== undefined) {
       updatedIds[index] = id;
@@ -498,13 +516,21 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         const adultIds = [...prev.adultTravellerIds];
         adults[travellerTarget.index] = name;
         adultIds[travellerTarget.index] = id;
-        newFormData = { ...prev, adultTravellers: adults, adultTravellerIds: adultIds };
+        newFormData = {
+          ...prev,
+          adultTravellers: adults,
+          adultTravellerIds: adultIds,
+        };
       } else {
         const infants = [...prev.infantTravellers];
         const infantIds = [...prev.infantTravellerIds];
         infants[travellerTarget.index] = name;
         infantIds[travellerTarget.index] = id;
-        newFormData = { ...prev, infantTravellers: infants, infantTravellerIds: infantIds };
+        newFormData = {
+          ...prev,
+          infantTravellers: infants,
+          infantTravellerIds: infantIds,
+        };
       }
       onFormDataUpdate?.(newFormData);
       return newFormData;
@@ -552,9 +578,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           <button
             type="button"
             onClick={onClickPlus}
-            className="w-9 h-9 flex items-center justify-center rounded-md transition-colors"
+            className="w-6.5 h-6.5 flex items-center bg-[#414141] justify-center rounded-md transition-colors"
           >
-            <BsPlusSquareFill size={22} className="" />
+            <GoPlus size={16} className="text-white" />
           </button>
         )}
 
@@ -882,7 +908,21 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                       // IF FIELD CLEARED then also clear stored value so validation becomes empty
                       if (value.trim() === "") {
-                        setFormData((prev) => ({ ...prev, customer: "" }));
+                        const newFormData = {
+                          ...formData,
+                          customer: "",
+                          customerName: "",
+                        };
+                        setFormData(newFormData);
+                        onFormDataUpdate?.(newFormData);
+                      } else {
+                        // Update customerName for draft display
+                        const newFormData = {
+                          ...formData,
+                          customerName: value,
+                        };
+                        setFormData(newFormData);
+                        onFormDataUpdate?.(newFormData);
                       }
 
                       const results = runFuzzySearch(allCustomers, value, [
@@ -909,8 +949,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             name: cust.name,
                           });
                           setActiveCustomerIndex(null);
-                          // Sync main form and notify parent
-                          const newFormData = { ...formData, customer: cust._id };
+                          // Sync main form and notify parent with both ID and name
+                          const newFormData = {
+                            ...formData,
+                            customer: cust._id,
+                            customerName: cust.name,
+                          };
                           setFormData(newFormData);
                           onFormDataUpdate?.(newFormData);
                           setShowCustomerDropdown(false);
@@ -978,8 +1022,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 // Update vendor name only
                 setVendorList([{ id: "", name: value }]);
 
-                // clear actual vendor ID
-                setFormData((prev) => ({ ...prev, vendor: "" }));
+                // clear actual vendor ID but keep the name for draft display
+                const newFormData = {
+                  ...formData,
+                  vendor: "",
+                  vendorName: value,
+                };
+                setFormData(newFormData);
+                onFormDataUpdate?.(newFormData);
 
                 const results = runFuzzySearch(allVendors, value, [
                   "name",
@@ -1004,7 +1054,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       setVendorList([
                         { id: v._id, name: v.name ?? v.contactPerson ?? "" },
                       ]);
-                      const newFormData = { ...formData, vendor: v._id };
+                      const newFormData = {
+                        ...formData,
+                        vendor: v._id,
+                        vendorName: v.name ?? v.contactPerson ?? "",
+                      };
                       setFormData(newFormData);
                       onFormDataUpdate?.(newFormData);
                     }}
@@ -1090,7 +1144,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               >
                 <FiMinus size={12} />
               </button>
-              <span className="px-2 text-[0.75rem] ">{formData.infants}</span>
+              <span className="px-2 ml-1 text-[0.75rem] ">
+                {formData.infants}
+              </span>
               <button
                 type="button"
                 onClick={() =>
@@ -1154,7 +1210,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           key={t._id}
                           className="p-2 cursor-pointer hover:bg-gray-100"
                           onClick={() => {
-                            updateTraveller("adultTravellers", index, t.name, t._id);
+                            updateTraveller(
+                              "adultTravellers",
+                              index,
+                              t.name,
+                              t._id
+                            );
                             setActiveTravellerDropdown(null);
                             setTravellerResults([]);
                           }}
@@ -1165,6 +1226,19 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           )}
                         </div>
                       ))}
+                      {/* Staple option */}
+                      <div
+                        className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
+                        onClick={() => {
+                          setVendorList([{ id: "", name: "TBA" }]);
+                          setFormData((prev) => ({ ...prev, vendor: "" }));
+                          setShowVendorDropdown(false);
+                        }}
+                      >
+                        <p className="font-medium text-[0.70rem] text-gray-700">
+                          Don't have the name? Enter TBA
+                        </p>
+                      </div>
                     </div>
                   )}
               </div>
@@ -1194,28 +1268,24 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 </label>
 
                 {/* Select age dropdown (always aligned top-right) */}
-                <select
-                  name={`childAge-${index}`}
-                  value={formData.childAges?.[index] ?? ""}
-                  onChange={(e) => {
-                    const val =
-                      e.target.value === "" ? null : Number(e.target.value);
+                <DropDown
+                  options={Array.from({ length: 10 }, (_, i) => ({
+                    value: String(i + 1),
+                    label: String(i + 1),
+                  }))}
+                  placeholder="Select Age"
+                  value={formData.childAges?.[index]?.toString() ?? ""}
+                  onChange={(val) => {
+                    const numVal = val === "" ? null : Number(val);
                     setFormData((prev) => {
                       const ages = [...(prev.childAges || [])];
-                      ages[index] = val;
+                      ages[index] = numVal;
                       return { ...prev, childAges: ages };
                     });
                   }}
-                  className="w-[7rem] border border-gray-300 rounded-md px-2 py-1 text-[0.70rem] bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  disabled={isSubmitting}
-                >
-                  <option value="">Select Age</option>
-                  {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
+                  className="mb-2"
+                  customWidth="w-[8rem]"
+                />
               </div>
 
               {/* CHILD INPUT */}
@@ -1280,6 +1350,19 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             )}
                           </div>
                         ))}
+                        {/* Staple option */}
+                        <div
+                          className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
+                          onClick={() => {
+                            setVendorList([{ id: "", name: "TBA" }]);
+                            setFormData((prev) => ({ ...prev, vendor: "" }));
+                            setShowVendorDropdown(false);
+                          }}
+                        >
+                          <p className="font-medium text-[0.70rem] text-gray-700">
+                            Don't have the name? Enter TBA
+                          </p>
+                        </div>
                       </div>
                     )}
                 </div>
@@ -1319,8 +1402,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               const value = e.target.value;
               // show typed text, clear ID until selection
               setOwnerList([{ id: "", name: value }]);
-              // don't send name as ID
-              setFormData((prev) => ({ ...prev, bookingOwner: "" }));
+              // don't send name as ID, but keep the name for draft display
+              const newFormData = {
+                ...formData,
+                bookingOwner: "",
+                ownerName: value,
+              };
+              setFormData(newFormData);
+              onFormDataUpdate?.(newFormData);
 
               const results = runFuzzySearch(allTeams, value, [
                 "name",
@@ -1340,7 +1429,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   className="p-2 cursor-pointer hover:bg-gray-100"
                   onClick={() => {
                     setOwnerList([{ id: t._id, name: t.name }]); // Save both ID and name
-                    const newFormData = { ...formData, bookingOwner: t._id };
+                    const newFormData = {
+                      ...formData,
+                      bookingOwner: t._id,
+                      ownerName: t.name,
+                    };
                     setFormData(newFormData);
                     onFormDataUpdate?.(newFormData);
                     setShowTeamsDropdown(false);

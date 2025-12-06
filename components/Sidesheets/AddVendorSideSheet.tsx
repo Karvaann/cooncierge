@@ -14,6 +14,7 @@ import { CiCirclePlus } from "react-icons/ci";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
 import { LuSave } from "react-icons/lu";
+import Button from "../Button";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import { MdHistory } from "react-icons/md";
 
@@ -323,7 +324,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               </div>
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
-                  Company Email ID <span className="text-red-500">*</span>
+                  Company Email ID
                 </label>
                 <input
                   name="email"
@@ -332,7 +333,6 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     setFormData({ ...formData, email: e.target.value })
                   }
                   placeholder="Enter Email ID"
-                  required
                   disabled={readOnly}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
                 />
@@ -343,7 +343,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
-                  Contact Number <span className="text-red-500">*</span>
+                  Contact Number
                 </label>
                 <div className="relative">
                   <select
@@ -369,7 +369,6 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       setFormData({ ...formData, phone: e.target.value })
                     }
                     placeholder="Enter Contact Number"
-                    required
                     disabled={readOnly}
                     className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                   />
@@ -424,7 +423,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               </div>
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
-                  Last Name <span className="text-red-500">*</span>
+                  Last Name
                 </label>
                 <input
                   name="lastname"
@@ -434,7 +433,6 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     setFormData({ ...formData, lastname: e.target.value })
                   }
                   placeholder="Enter Last Name"
-                  required
                   disabled={readOnly}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
                 />
@@ -445,7 +443,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
-                  Nickname/Alias <span className="text-red-500">*</span>
+                  Nickname/Alias
                 </label>
                 <input
                   name="alias"
@@ -455,14 +453,13 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     setFormData({ ...formData, alias: e.target.value })
                   }
                   placeholder="Enter Nickname/Alias"
-                  required
                   disabled={readOnly}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
-                  Contact Number <span className="text-red-500">*</span>
+                  Contact Number
                 </label>
                 <div className="relative">
                   <select
@@ -484,7 +481,6 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   <input
                     placeholder="Enter Contact Number"
                     type="text"
-                    required
                     value={formData.phone}
                     onChange={(e) =>
                       setFormData({ ...formData, phone: e.target.value })
@@ -500,12 +496,11 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
-                  Email ID <span className="text-red-500">*</span>
+                  Email ID
                 </label>
                 <input
                   placeholder="Enter Email ID"
                   type="email"
-                  required
                   value={formData.email}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
@@ -516,7 +511,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               </div>
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
-                  Date of Birth <span className="text-red-500">*</span>
+                  Date of Birth
                 </label>
                 <input
                   name="dateOfBirth"
@@ -526,7 +521,6 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     setFormData({ ...formData, dateOfBirth: e.target.value })
                   }
                   placeholder="DD-MM-YYYY"
-                  required
                   disabled={readOnly}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
                 />
@@ -610,7 +604,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   value="debit"
                   checked={balanceType === "debit"}
                   onChange={() => setBalanceType("debit")}
-                  className="w-3 h-3 text-blue-600"
+                  className="w-3 h-3 text-red-600"
                   disabled={readOnly}
                 />
                 <span className="text-gray-700">Debit</span>
@@ -623,7 +617,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   value="credit"
                   checked={balanceType === "credit"}
                   onChange={() => setBalanceType("credit")}
-                  className="w-3 h-3 text-blue-600"
+                  className="w-3 h-3 text-red-600"
                   disabled={readOnly}
                 />
                 <span className="text-gray-700">Credit</span>
@@ -636,7 +630,17 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 <input
                   type="text"
                   value={balanceAmount}
-                  onChange={(e) => setBalanceAmount(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Only allow numbers and decimal point
+                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      setBalanceAmount(value);
+                    } else {
+                      alert(
+                        "Please enter only numbers. Letters and special characters are not allowed."
+                      );
+                    }
+                  }}
                   placeholder={
                     balanceType === "debit"
                       ? "Enter Debit Amount"
@@ -662,7 +666,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
           {/* ================= TIER ================ */}
           <div className=" p-1 -mt-4">
-            <h2 className="text-[0.75rem] font-medium mb-2">Tier</h2>
+            <h2 className="text-[0.75rem] font-medium mb-2">Rating</h2>
 
             <div className="flex flex-col">
               <select
@@ -671,12 +675,12 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 disabled={readOnly}
                 className="w-[10rem] border border-gray-300 rounded-md px-3 py-1.5 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-700"
               >
-                <option value="">Select Tier</option>
-                <option value="tier1">Tier 1</option>
-                <option value="tier2">Tier 2</option>
-                <option value="tier3">Tier 3</option>
-                <option value="tier4">Tier 4</option>
-                <option value="tier5">Tier 5</option>
+                <option value="">Select Rating</option>
+                <option value="tier1">Rating 1</option>
+                <option value="tier2">Rating 2</option>
+                <option value="tier3">Rating 3</option>
+                <option value="tier4">Rating 4</option>
+                <option value="tier5">Rating 5</option>
               </select>
             </div>
           </div>
@@ -706,29 +710,28 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
           {/* ================= ACTION BUTTONS ================ */}
           <div className="flex justify-end gap-2 pt-2">
             {mode === "view" ? (
-              <button
-                type="button"
+              <Button
+                text="Close"
                 onClick={onCancel}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg text-[0.75rem]"
-              >
-                Close
-              </button>
+                bgColor="bg-gray-200"
+                textColor="text-gray-700"
+              />
             ) : mode === "edit" ? (
-              <button
+              <Button
+                text="Update Vendor"
                 type="submit"
                 onClick={handleUpdateVendor}
-                className="px-4 py-2 bg-[#0D4B37] text-white rounded-lg text-[0.75rem]"
-              >
-                Update Vendor
-              </button>
+                bgColor="bg-[#0D4B37]"
+                textColor="text-white"
+              />
             ) : (
-              <button
+              <Button
+                text="Save"
                 type="submit"
-                className="px-3 py-1.5 rounded-md bg-[#114958] text-white text-[0.75rem]"
-              >
-                <LuSave className="mr-1 inline-block" size={16} />
-                Save
-              </button>
+                icon={<LuSave size={16} />}
+                bgColor="bg-[#114958]"
+                textColor="text-white"
+              />
             )}
           </div>
         </form>

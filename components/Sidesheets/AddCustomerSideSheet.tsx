@@ -11,6 +11,7 @@ import { CiCirclePlus } from "react-icons/ci";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
 import { LuSave } from "react-icons/lu";
+import Button from "../Button";
 
 type CustomerData = {
   _id?: string;
@@ -278,7 +279,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
-                  Nickname/Alias <span className="text-red-500">*</span>
+                  Nickname/Alias
                 </label>
                 <input
                   name="alias"
@@ -286,14 +287,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   value={formData.alias}
                   onChange={handleChange}
                   placeholder="Enter Nickname/Alias"
-                  required
                   disabled={readOnly}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
-                  Contact Number <span className="text-red-500">*</span>
+                  Contact Number
                 </label>
                 <input
                   name="phone"
@@ -301,7 +301,6 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="Enter Contact Number"
-                  required
                   disabled={readOnly}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
@@ -312,7 +311,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
-                  Email ID <span className="text-red-500">*</span>
+                  Email ID
                 </label>
                 <input
                   name="email"
@@ -320,21 +319,19 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="Enter Email ID"
-                  required
                   disabled={readOnly}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
               <div className="flex flex-col gap-1 w-full">
                 <label className="block text-[0.75rem] font-medium text-gray-700">
-                  Date of Birth <span className="text-red-500">*</span>
+                  Date of Birth
                 </label>
                 <input
                   name="dateOfBirth"
                   type="date"
                   value={formData.dateOfBirth}
                   onChange={handleChange}
-                  required
                   disabled={readOnly}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                 />
@@ -414,7 +411,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   value="debit"
                   checked={balanceType === "debit"}
                   onChange={() => setBalanceType("debit")}
-                  className="w-3 h-3 text-blue-600"
+                  className="w-3 h-3 text-red-600"
                   disabled={readOnly}
                 />
                 <span className="text-gray-700">Debit</span>
@@ -427,7 +424,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   value="credit"
                   checked={balanceType === "credit"}
                   onChange={() => setBalanceType("credit")}
-                  className="w-3 h-3 text-blue-600"
+                  className="w-3 h-3 text-red-600"
                   disabled={readOnly}
                 />
                 <span className="text-gray-700">Credit</span>
@@ -440,7 +437,17 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 <input
                   type="text"
                   value={balanceAmount}
-                  onChange={(e) => setBalanceAmount(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Only allow numbers and decimal point
+                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                      setBalanceAmount(value);
+                    } else {
+                      alert(
+                        "Please enter only numbers. Letters and special characters are not allowed."
+                      );
+                    }
+                  }}
                   placeholder={
                     balanceType === "debit"
                       ? "Enter Debit Amount"
@@ -466,7 +473,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
           {/* ================= TIER ================ */}
           <div className=" p-1 -mt-4">
-            <h2 className="text-[0.75rem] font-medium mb-2">Rank</h2>
+            <h2 className="text-[0.75rem] font-medium mb-2">Rating</h2>
 
             <div className="flex flex-col">
               <select
@@ -475,12 +482,12 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 disabled={readOnly}
                 className="w-[10rem] border border-gray-300 rounded-md px-3 py-1.5 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-700"
               >
-                <option value="">Select Rank</option>
-                <option value="tier1">Rank 1</option>
-                <option value="tier2">Rank 2</option>
-                <option value="tier3">Rank 3</option>
-                <option value="tier4">Rank 4</option>
-                <option value="tier5">Rank 5</option>
+                <option value="">Select Rating</option>
+                <option value="tier1">Rating 1</option>
+                <option value="tier2">Rating 2</option>
+                <option value="tier3">Rating 3</option>
+                <option value="tier4">Rating 4</option>
+                <option value="tier5">Rating 5</option>
               </select>
             </div>
           </div>
@@ -509,39 +516,40 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
           {/* ================= ACTION BUTTONS ================ */}
           <div className="flex justify-end gap-2 pt-2">
             {mode === "view" ? (
-              <button
-                type="button"
-                className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
+              <Button
+                text="Close"
                 onClick={onCancel}
-              >
-                Close
-              </button>
+                bgColor="bg-white"
+                textColor="text-gray-700"
+                className="border border-gray-300 hover:bg-gray-100"
+              />
             ) : (
               <>
-                <button
-                  type="button"
-                  className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
+                <Button
+                  text="Cancel"
                   onClick={onCancel}
-                >
-                  Cancel
-                </button>
+                  bgColor="bg-white"
+                  textColor="text-gray-700"
+                  className="border border-gray-300 hover:bg-gray-100"
+                />
 
                 {mode === "edit" ? (
-                  <button
-                    type="button" // Changed from default submit
+                  <Button
+                    text="Update Customer"
                     onClick={handleUpdateCustomer}
-                    className="px-4 py-2 bg-[#0D4B37] text-white rounded-lg hover:bg-green-900 text-[0.75rem]"
-                  >
-                    Update Customer
-                  </button>
+                    bgColor="bg-[#0D4B37]"
+                    textColor="text-white"
+                    className="hover:bg-green-900"
+                  />
                 ) : (
-                  <button
+                  <Button
+                    text="Save"
                     type="submit"
-                    className="px-4 py-1.5 gap-1 rounded-md bg-[#0D4B37] text-white text-[0.75rem] hover:bg-[#0f3d44]"
-                  >
-                    <LuSave className="mr-1 inline-block" size={16} />
-                    Save
-                  </button>
+                    icon={<LuSave size={16} />}
+                    bgColor="bg-[#0D4B37]"
+                    textColor="text-white"
+                    className="hover:bg-[#0f3d44]"
+                  />
                 )}
               </>
             )}
