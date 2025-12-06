@@ -1,43 +1,105 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { MdOutlineAddAPhoto } from "react-icons/md";
 import { useRouter } from "next/navigation";
-// import { CircularProgressbar, buildStyles } from "react-circular-progressbar";
-// import "react-circular-progressbar/dist/styles.css";
+import { uploadProfileImage, getUserById } from "@/services/userApi";
+import { setAuthUser } from "@/services/storage/authStorage";
 
-interface UserProfileProps {}
-
-const UserProfile: React.FC<UserProfileProps> = () => {
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    countryCode: "",
-    phone: "",
-    email: "",
-    designation: "",
-    gender: "",
-    dob: "",
-    emergencyContact: "",
-  });
+const UserProfile = () => {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [countryCode, setCountryCode] = useState("+91");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [designation, setDesignation] = useState("");
+  const [gender, setGender] = useState("");
+  const [dob, setDob] = useState("");
+  const [emergencyContact, setEmergencyContact] = useState("");
   const router = useRouter();
-  // const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState(0);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const profileCompletion = 95;
+  const handlePhotoClick = () => {
+    if (!isUploading) {
+      fileInputRef.current?.click();
+    }
+  };
 
-  // useEffect(() => {
-  //   // Count how many profile fields are filled
-  //   const totalFields = 4; // e.g. name, email, contact, profilePicture
-  //   let filled = 0;
+  const getProfileCompletion = useCallback((userObj: Record<string, unknown>) => {
+    const values = Object.values(userObj);
+    const filled = values.filter(v => v && String(v).trim() !== "").length;
+    return Math.round((filled / values.length) * 100);
+  }, []);
 
-  //   if (user.firstName && user.lastName) filled++;
-  //   if (user.email) filled++;
-  //   if (user.contact) filled++;
-  //   if (user.profilePicture) filled++;
+  // Load user data from localStorage
+  const loadUserData = useCallback((user: Record<string, unknown>) => {
+    setFirstName((user.name as string)?.split(" ")[0] || "");
+    setLastName((user.name as string)?.split(" ")[1] || "");
+    setEmail((user.email as string) || "");
+    setDesignation((user.designation as string) || "");
+    setGender((user.gender as string) || "");
+    setDob((user.dob as string) || "");
+    setEmergencyContact((user.emergencyContact as string) || "");
+    setCountryCode((user.countryCode as string) || "+91");
+    setPhone((user.mobile as string) || "");
+    setProgress(getProfileCompletion(user));
+    // Load profile image from user data
+    if (user.profileImage) {
+      setProfilePhoto(user.profileImage.url as string);
+    }
+  }, [getProfileCompletion]);
 
-  //   const percentage = Math.round((filled / totalFields) * 100);
-  //   setProgress(percentage);
-  // }, [user]);
-  // user comes as prop
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+
+    // Show preview immediately
+    const imageUrl = URL.createObjectURL(file);
+    setProfilePhoto(imageUrl);
+
+    try {
+      setIsUploading(true);
+
+      // Upload to backend
+      await uploadProfileImage(userId, file);
+
+      // Fetch updated user data from backend
+      const updatedUser = await getUserById(userId);
+
+      // Update localStorage with new user data
+      setAuthUser(updatedUser);
+
+      // Reload user data from localStorage
+      loadUserData(updatedUser);
+
+      // Revoke the blob URL to free up memory
+      URL.revokeObjectURL(imageUrl);
+    } catch (error) {
+      console.error("Failed to upload profile image:", error);
+      // Revert to previous photo if upload fails
+      const storedUser = window.localStorage.getItem("user");
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        setProfilePhoto(user.profileImage || null);
+      }
+      URL.revokeObjectURL(imageUrl);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Access localStorage only on client-side
+    const storedUser = window.localStorage.getItem("user");
+    if (storedUser) {
+      const user = JSON.parse(storedUser);
+      setUserId(user._id || user.id || null);
+      loadUserData(user);
+    }
+  }, [loadUserData]);
 
   return (
     <div className="min-h-screen bg-white p-6 rounded-lg">
@@ -77,14 +139,14 @@ const UserProfile: React.FC<UserProfileProps> = () => {
                   fill="none"
                   strokeDasharray={`${2 * Math.PI * 24}`}
                   strokeDashoffset={`${
-                    2 * Math.PI * 24 * (1 - profileCompletion / 100)
+                    2 * Math.PI * 24 * (1 - progress / 100)
                   }`}
                   strokeLinecap="round"
                 />
               </svg>
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-sm font-bold text-gray-800">
-                  {profileCompletion}%
+                  {progress}%
                 </span>
               </div>
             </div>
@@ -101,15 +163,58 @@ const UserProfile: React.FC<UserProfileProps> = () => {
           {/* Profile Section */}
           <div className="px-6 pb-6">
             <div className="flex items-center mt-6 gap-5 mb-8">
-              <div className="relative group cursor-pointer">
-                <div className="w-28 h-28 mt-2 rounded-full bg-[#818181] flex flex-col items-center justify-center text-white">
-                  <MdOutlineAddAPhoto className="w-8 h-8 mb-1" />
-                  <span className="text-sm font-medium">Add Photo</span>
-                </div>
+              <div
+                className={`relative group ${isUploading ? 'cursor-wait' : 'cursor-pointer'}`}
+                onClick={handlePhotoClick}
+              >
+                {/* Hidden file input */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  className="hidden"
+                  disabled={isUploading}
+                />
+                {profilePhoto ? (
+                  // Show selected photo
+                  <div className="w-28 h-28 mt-2 rounded-full overflow-hidden border-2 border-gray-200 hover:border-emerald-500 transition-colors relative">
+                    <img
+                      src={profilePhoto}
+                      alt="Profile"
+                      className={`w-full h-full object-cover ${isUploading ? 'opacity-50' : ''}`}
+                    />
+                    {/* Loading overlay */}
+                    {isUploading && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40">
+                        <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                      </div>
+                    )}
+                    {/* Overlay on hover (only when not uploading) */}
+                    {!isUploading && (
+                      <div className="absolute inset-0 rounded-full bg-black bg-opacity-40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <MdOutlineAddAPhoto className="w-6 h-6 text-white mb-1" />
+                        <span className="text-xs font-medium text-white">Change</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // Show add photo placeholder
+                  <div className={`w-28 h-28 mt-2 rounded-full bg-[#818181] flex flex-col items-center justify-center text-white ${isUploading ? '' : 'hover:bg-[#6a6a6a]'} transition-colors`}>
+                    {isUploading ? (
+                      <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <>
+                        <MdOutlineAddAPhoto className="w-8 h-8 mb-1" />
+                        <span className="text-sm font-medium">Add Photo</span>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
               <div>
                 <h2 className="text-2xl font-semibold text-gray-900 mb-1">
-                  Yash Manocha
+                  {firstName} {lastName}
                 </h2>
                 <p className="text-base text-gray-500">User Account</p>
               </div>
@@ -128,19 +233,15 @@ const UserProfile: React.FC<UserProfileProps> = () => {
                   <input
                     type="text"
                     placeholder="First Name"
-                    value={formData.firstName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, firstName: e.target.value })
-                    }
+                    value={firstName}
+                    disabled
                     className="flex-1 max-w-[300px] px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base"
                   />
                   <input
                     type="text"
                     placeholder="Last Name"
-                    value={formData.lastName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, lastName: e.target.value })
-                    }
+                    value={lastName}
+                    disabled
                     className="flex-1 max-w-[300px] px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base"
                   />
                 </div>
@@ -155,10 +256,8 @@ const UserProfile: React.FC<UserProfileProps> = () => {
                 </div>
                 <div className="col-span-9 px-6 py-4 flex gap-4 bg-white">
                   <select
-                    value={formData.countryCode}
-                    onChange={(e) =>
-                      setFormData({ ...formData, countryCode: e.target.value })
-                    }
+                    value={countryCode}
+                    disabled
                     className="col-span-2 px-2 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white"
                   >
                     <option value="+91">+91</option>
@@ -168,10 +267,8 @@ const UserProfile: React.FC<UserProfileProps> = () => {
                   <input
                     type="text"
                     placeholder="Enter Contact No."
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
-                    }
+                    value={phone}
+                    disabled
                     className="flex-1 max-w-[300px] px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base"
                   />
                 </div>
@@ -188,10 +285,8 @@ const UserProfile: React.FC<UserProfileProps> = () => {
                   <input
                     type="email"
                     placeholder="Enter Email"
-                    value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
+                    value={email}
+                    disabled
                     className="w-[300px] px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base"
                   />
                 </div>
@@ -208,10 +303,8 @@ const UserProfile: React.FC<UserProfileProps> = () => {
                   <input
                     type="text"
                     placeholder="Enter Designation"
-                    value={formData.designation}
-                    onChange={(e) =>
-                      setFormData({ ...formData, designation: e.target.value })
-                    }
+                    value={designation}
+                    disabled
                     className="w-[300px] px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base"
                   />
                 </div>
@@ -228,10 +321,8 @@ const UserProfile: React.FC<UserProfileProps> = () => {
                   <input
                     type="text"
                     placeholder="Enter Your Gender"
-                    value={formData.gender}
-                    onChange={(e) =>
-                      setFormData({ ...formData, gender: e.target.value })
-                    }
+                    value={gender}
+                    disabled
                     className="w-[300px] px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base"
                   />
                 </div>
@@ -248,10 +339,8 @@ const UserProfile: React.FC<UserProfileProps> = () => {
                   <input
                     type="text"
                     placeholder="Enter Date of Birth"
-                    value={formData.dob}
-                    onChange={(e) =>
-                      setFormData({ ...formData, dob: e.target.value })
-                    }
+                    value={dob}
+                    disabled
                     className="w-[300px] px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base"
                   />
                 </div>
@@ -268,12 +357,9 @@ const UserProfile: React.FC<UserProfileProps> = () => {
                   <input
                     type="text"
                     placeholder="Enter Emergency Contact"
-                    value={formData.emergencyContact}
+                    value={emergencyContact}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        emergencyContact: e.target.value,
-                      })
+                      setEmergencyContact(e.target.value)
                     }
                     className="w-[300px] px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base"
                   />

@@ -873,16 +873,11 @@ export class BookingApiService {
   }
 
   // Create quotation
-  static async createQuotation(bookingData: any, draftId?: string): Promise<ApiResponse<unknown>> {
+  static async createQuotation(bookingData: any): Promise<ApiResponse<unknown>> {
     try {
       // Get user info
      
       const response = await apiClient.post('/quotation/create-quotation', bookingData);
-
-      // If quotation is created successfully and we have a draftId, delete the draft
-      if (response.data && draftId) {
-        DraftManager.completeDraft(draftId, response.data.id || response.data._id, true);
-      }
 
       return {
         success: true,

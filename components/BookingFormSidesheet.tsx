@@ -174,7 +174,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     [selectedService]
   );
 
-  function convertToBookingData(input: any, quotationType: string) {
+  function convertToBookingData(input: any, quotationType: string, serviceStatus: string) {
 
     const user = getAuthUser() as any;
     const businessId = user?.businessId;
@@ -238,12 +238,75 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
       adultTravlers: adults ?? 0,
       childTravlers: children ?? 0,
+      serviceStatus,
 
       remarks: remarks ?? "",
     };
 
     return bookingData;
   }
+
+  const handleDraftSubmit = useCallback(async () => {
+    setIsSubmitting(true);
+
+    if (!selectedService) {
+      console.error("No service selected");
+      alert("Please select a service");
+      setIsSubmitting(false);
+      return;
+    }
+
+    try {
+      // Use ref to get latest formData to avoid stale closure issues
+      const currentFormData = formDataRef.current;
+
+      console.log("COLLECTING ALL FORM DATA");
+      console.log("COLLECTED FORM DATA:", collectAllFormData());
+      console.log("FORM DATA (from ref):", currentFormData);
+
+      const formValues = {
+        ...collectAllFormData(),
+        ...currentFormData,
+      };
+
+      
+      console.log("Form Values:", formValues);
+
+
+      const bookingData = convertToBookingData(formValues, selectedService.category, 'draft');
+
+      console.log("Submitting Booking Data:", bookingData);
+
+      const response = await BookingApiService.createQuotation(bookingData);
+
+      if (response.success) {
+        console.log("Booking created successfully!", response.data);
+        setIsSuccessModalOpen(true);
+
+        // Reset all forms
+        generalFormRef.current?.reset();
+
+        // Auto-close after 2 seconds
+        setTimeout(() => {
+          onClose();
+        }, 2000);
+      } else {
+        console.error(
+          "Failed to create booking:",
+          response.message,
+          response.errors
+        );
+        alert(
+          `Failed to create booking: ${response.message || "Unknown error"}`
+        );
+      }
+    } catch (err: any) {
+      console.error("Unexpected error creating booking:", err.message || err);
+      alert(`Error creating booking: ${err.message || "Please try again"}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [selectedService, collectAllFormData, onClose]);
 
 
   const handleSubmit = useCallback(async () => {
@@ -273,7 +336,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       console.log("Form Values:", formValues);
 
 
-      const bookingData = convertToBookingData(formValues, selectedService.category);
+      const bookingData = convertToBookingData(formValues, selectedService.category, 'approved');
 
       console.log("Submitting Booking Data:", bookingData);
 
@@ -605,14 +668,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         }}
         onSaveAsDrafts={async () => {
           try {
-            const formValues = {
-              ...collectAllFormData(),
-              ...formData,
-            };
-            const draftName = `${selectedService?.title || "Booking"} - ${
-              formValues.customer || "Draft"
-            }`;
-            await saveDraft(formValues, draftName);
+            handleDraftSubmit();
             setIsSuccessModalOpen(true);
           } catch (error) {
             console.error("Error saving draft:", error);
