@@ -177,7 +177,11 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     [selectedService]
   );
 
-  function convertToBookingData(input: any, quotationType: string) {
+  function convertToBookingData(
+    input: any,
+    quotationType: string,
+    serviceStatus: string
+  ) {
     const user = getAuthUser() as any;
     const businessId = user?.businessId;
 
@@ -251,6 +255,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
       adultTravlers: adults ?? 0,
       childTravlers: children ?? 0,
+      serviceStatus,
 
       remarks: remarks ?? "",
     };
@@ -258,51 +263,69 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     return bookingData;
   }
 
-  // Simple function to save draft directly to backend
-  const handleSaveDraft = useCallback(async () => {
+  const handleDraftSubmit = useCallback(async () => {
+    setIsSubmitting(true);
+
     if (!selectedService) {
       console.error("No service selected");
+      alert("Please select a service");
+      setIsSubmitting(false);
       return;
     }
 
     try {
+      // Use ref to get latest formData to avoid stale closure issues
+      const currentFormData = formDataRef.current;
+
+      console.log("COLLECTING ALL FORM DATA");
+      console.log("COLLECTED FORM DATA:", collectAllFormData());
+      console.log("FORM DATA (from ref):", currentFormData);
+
       const formValues = {
         ...collectAllFormData(),
-        ...formDataRef.current,
+        ...currentFormData,
       };
+
+      console.log("Form Values:", formValues);
 
       const bookingData = convertToBookingData(
         formValues,
-        selectedService.category
+        selectedService.category,
+        "draft"
       );
 
-      // Add serviceStatus as 'draft'
-      const draftPayload = {
-        ...bookingData,
-        serviceStatus: "draft",
-      };
+      console.log("Submitting Booking Data:", bookingData);
 
-      console.log("Saving draft to backend:", draftPayload);
+      const response = await BookingApiService.createQuotation(bookingData);
 
-      const response = await apiClient.post(
-        "/quotation/create-quotation",
-        draftPayload
-      );
-
-      if (response.data?.success) {
-        console.log("Draft saved successfully!", response.data);
+      if (response.success) {
+        console.log("Booking created successfully!", response.data);
         setIsSuccessModalOpen(true);
+
+        // Reset all forms
+        generalFormRef.current?.reset();
+
+        // Auto-close after 2 seconds
+        setTimeout(() => {
+          onClose();
+        }, 2000);
       } else {
-        console.error("Failed to save draft:", response.data?.message);
+        console.error(
+          "Failed to create booking:",
+          response.message,
+          response.errors
+        );
         alert(
-          `Failed to save draft: ${response.data?.message || "Unknown error"}`
+          `Failed to create booking: ${response.message || "Unknown error"}`
         );
       }
     } catch (err: any) {
-      console.error("Error saving draft:", err.message || err);
-      alert(`Error saving draft: ${err.message || "Please try again"}`);
+      console.error("Unexpected error creating booking:", err.message || err);
+      alert(`Error creating booking: ${err.message || "Please try again"}`);
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [selectedService, collectAllFormData]);
+  }, [selectedService, collectAllFormData, onClose]);
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
@@ -331,7 +354,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
       const bookingData = convertToBookingData(
         formValues,
-        selectedService.category
+        selectedService.category,
+        "approved"
       );
 
       console.log("Submitting Booking Data:", bookingData);
@@ -578,7 +602,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                         {/* Save Draft */}
                         <Button
                           text="Save As Draft"
-                          onClick={handleSaveDraft}
+                          onClick={handleDraftSubmit}
                           bgColor="bg-[#114958]"
                           textColor="text-white"
                           className="hover:bg-gray-700"
@@ -609,7 +633,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                         {/* Save Draft */}
                         <Button
                           text="Save As Draft"
-                          onClick={handleSaveDraft}
+                          onClick={handleDraftSubmit}
                           bgColor="bg-[#114958]"
                           textColor="text-white"
                           className=""
@@ -645,7 +669,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           setIsConfirmModalOpen(false);
           onClose();
         }}
-        onSaveAsDrafts={handleSaveDraft}
+        onSaveAsDrafts={async () => {
+          try {
+            handleDraftSubmit();
+            setIsSuccessModalOpen(true);
+          } catch (error) {
+            console.error("Error saving draft:", error);
+          }
+        }}
       />
 
       {/* Success Popup Modal */}

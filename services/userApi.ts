@@ -53,3 +53,27 @@ export const deleteUser = async (userId: string) => {
     throw error.response?.data || { message: "Something went wrong" };
   }
 };
+
+/**
+ * Upload Profile Image
+ */
+export const uploadProfileImage = async (userId: string, imageFile: File) => {
+  try {
+    const formData = new FormData();
+    formData.append("profileImage", imageFile);
+
+    const response = await apiClient.post(
+      `/auth/upload-profile-image/${userId}`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to upload profile image:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
