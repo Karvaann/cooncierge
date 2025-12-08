@@ -505,7 +505,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                   setFormData((prev) => ({ ...prev, traveldate: date }))
                 }
                 placeholder="DD-MM-YYYY"
-                disablePastDates={true}
+                minDate={formData.bookingdate}
               />
             </div>
 

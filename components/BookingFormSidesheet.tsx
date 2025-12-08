@@ -610,23 +610,11 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                         <Button
                           text="Save As Draft"
                           onClick={handleSaveDraft}
-                          bgColor="bg-[#cce2e9]"
+                          bgColor="bg-[#114958]"
                           textColor="text-white"
-                          className="hover:bg-gray-700"
+                          className=""
                           disabled={isSubmitting}
                         />
-
-                        {/* Create Booking */}
-                        {/* <button
-                          type="button"
-                          onClick={handleSubmit}
-                          className="px-4 py-2 bg-[#114958] text-[0.75rem] text-white rounded-lg hover:cursor-pointer transition-colors disabled:opacity-50"
-                          disabled={isSubmitting || !selectedService}
-                        >
-                          {isSubmitting
-                            ? "Creating Booking..."
-                            : "Create Booking"}
-                        </button> */}
 
                         <Button
                           text="Save"

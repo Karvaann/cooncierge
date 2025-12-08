@@ -275,7 +275,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                   </div>
 
                   {/* Children */}
-                  <div>
+                  {/* <div>
                     <label className="block text-[0.65rem] text-gray-600 mb-1">
                       Children
                     </label>
@@ -287,7 +287,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                         ADD
                       </button>
                     </div>
-                  </div>
+                  </div> */}
 
                   {/* Infant */}
                   <div>

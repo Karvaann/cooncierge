@@ -502,7 +502,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   setFormData((prev) => ({ ...prev, traveldate: date }))
                 }
                 placeholder="DD-MM-YYYY"
-                disablePastDates={true}
+                minDate={formData.bookingdate}
               />
             </div>
 
@@ -791,86 +791,204 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             </div>
 
             {/* Check-in / Check-out Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-              {/* Check-In Date */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-In Date
-                </label>
-                <input
-                  type="date"
+            <div className="flex items-end justify-between mb-3">
+              <div className="flex items-end gap-0">
+                {/* Check-In Date */}
+                <SingleCalendar
+                  label="Check-In Date"
                   value={formData.checkindate}
-                  onChange={(e) =>
+                  onChange={(date) =>
                     setFormData((prev) => ({
                       ...prev,
-                      checkindate: e.target.value,
+                      checkindate: date,
                     }))
                   }
                   placeholder="DD-MM-YYYY"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-green-400"
+                  customWidth="w-[95%]"
+                  labelClassName="block text-gray-700 mb-1 text-[0.65rem] font-medium"
+                  inputClassName="flex-1 text-[0.65rem] text-gray-700 outline-none bg-transparent"
+                  showCalendarIcon={false}
                 />
+
+                {/* Check-In Time */}
+                <div>
+                  <label className="block text-[0.65rem] font-medium text-gray-700 mb-1">
+                    Check-In Time
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.checkintime}
+                    onChange={(e) => {
+                      // Only allow digits and colon
+                      let val = e.target.value.replace(/[^0-9:]/g, "");
+
+                      // Prevent multiple colons
+                      const colonCount = (val.match(/:/g) || []).length;
+                      if (colonCount > 1) {
+                        val = val.replace(/:([^:]*)$/, "$1");
+                      }
+
+                      // Auto-insert colon after 2 digits
+                      if (
+                        val.length === 2 &&
+                        !val.includes(":") &&
+                        formData.checkintime.length < 2
+                      ) {
+                        val = val + ":";
+                      }
+
+                      // Limit to HH:MM format (5 chars)
+                      if (val.length > 5) val = val.slice(0, 5);
+
+                      // Validate hours (0-23) and minutes (0-59)
+                      if (val.includes(":")) {
+                        const parts = val.split(":");
+                        const hours = parts[0] || "";
+                        const minutes = parts[1] || "";
+                        let validHours = hours;
+                        let validMinutes = minutes;
+
+                        // Validate hours
+                        if (hours.length > 0) {
+                          const hourNum = parseInt(hours, 10);
+                          if (hours.length === 2 && hourNum > 23) {
+                            validHours = "23";
+                          }
+                        }
+
+                        // Validate minutes
+                        if (validMinutes.length > 0) {
+                          const minNum = parseInt(validMinutes, 10);
+                          if (validMinutes.length === 2 && minNum > 59) {
+                            validMinutes = "59";
+                          }
+                        }
+
+                        val = validHours + ":" + validMinutes;
+                      } else {
+                        // Validate hours before colon is added
+                        if (val.length === 2) {
+                          const hourNum = parseInt(val, 10);
+                          if (hourNum > 23) {
+                            val = "23";
+                          }
+                        }
+                      }
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        checkintime: val,
+                      }));
+                    }}
+                    placeholder="HH:MM"
+                    maxLength={5}
+                    className="w-[60%] px-2 py-1.5 border border-gray-300 rounded-md text-[0.65rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                  />
+                </div>
               </div>
 
-              {/* Check-In Time */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-In Time
-                </label>
-                <input
-                  type="time"
-                  value={formData.checkintime}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      checkintime: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
-                />
-              </div>
-
-              {/* Check-Out Date */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-Out Date
-                </label>
-                <input
-                  type="date"
+              {/* Right side: Check-Out Date and Time */}
+              <div className="flex items-end gap-0 ml-62">
+                {/* Check-Out Date */}
+                <SingleCalendar
+                  label="Check-Out Date"
                   value={formData.checkoutdate}
-                  onChange={(e) =>
+                  onChange={(date) =>
                     setFormData((prev) => ({
                       ...prev,
-                      checkoutdate: e.target.value,
+                      checkoutdate: date,
                     }))
                   }
                   placeholder="DD-MM-YYYY"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                  minDate={formData.checkindate}
+                  customWidth="w-[95%]"
+                  labelClassName="block text-gray-700 mb-1 text-[0.65rem] font-medium"
+                  inputClassName="flex-1 text-[0.65rem] text-gray-700 outline-none bg-transparent"
+                  showCalendarIcon={false}
                 />
-              </div>
 
-              {/* Check-Out Time */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-Out Time
-                </label>
-                <input
-                  type="time"
-                  value={formData.checkouttime}
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      checkouttime: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-green-400"
-                />
+                {/* Check-Out Time */}
+                <div>
+                  <label className="block text-[0.65rem] font-medium text-gray-700 mb-1">
+                    Check-Out Time
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.checkouttime}
+                    onChange={(e) => {
+                      // Only allow digits and colon
+                      let val = e.target.value.replace(/[^0-9:]/g, "");
+
+                      // Prevent multiple colons
+                      const colonCount = (val.match(/:/g) || []).length;
+                      if (colonCount > 1) {
+                        val = val.replace(/:([^:]*)$/, "$1");
+                      }
+
+                      // Auto-insert colon after 2 digits
+                      if (
+                        val.length === 2 &&
+                        !val.includes(":") &&
+                        formData.checkouttime.length < 2
+                      ) {
+                        val = val + ":";
+                      }
+
+                      // Limit to HH:MM format (5 chars)
+                      if (val.length > 5) val = val.slice(0, 5);
+
+                      // Validate hours (0-23) and minutes (0-59)
+                      if (val.includes(":")) {
+                        const parts = val.split(":");
+                        const hours = parts[0] || "";
+                        const minutes = parts[1] || "";
+                        let validHours = hours;
+                        let validMinutes = minutes;
+
+                        // Validate hours
+                        if (hours.length > 0) {
+                          const hourNum = parseInt(hours, 10);
+                          if (hours.length === 2 && hourNum > 23) {
+                            validHours = "23";
+                          }
+                        }
+
+                        // Validate minutes
+                        if (validMinutes.length > 0) {
+                          const minNum = parseInt(validMinutes, 10);
+                          if (validMinutes.length === 2 && minNum > 59) {
+                            validMinutes = "59";
+                          }
+                        }
+
+                        val = validHours + ":" + validMinutes;
+                      } else {
+                        // Validate hours before colon is added
+                        if (val.length === 2) {
+                          const hourNum = parseInt(val, 10);
+                          if (hourNum > 23) {
+                            val = "23";
+                          }
+                        }
+                      }
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        checkouttime: val,
+                      }));
+                    }}
+                    placeholder="HH:MM"
+                    maxLength={5}
+                    className="w-[60%] px-2 py-1.5 border border-gray-300 rounded-md text-[0.65rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Pax & Meal Plan */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div className="flex items-end gap-3 mb-3">
               <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                <label className="block text-[0.65rem] font-medium text-gray-700 mb-1">
                   Pax
                 </label>
                 <input
@@ -879,35 +997,33 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, pax: e.target.value }))
                   }
-                  className="w-[10rem] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                  placeholder="0"
+                  className="w-[8rem] px-2 py-1.5 border border-gray-300 rounded-md text-[0.65rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                 />
               </div>
 
               <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Select Meal Plan
+                <label className="block text-[0.65rem] font-medium text-gray-700 mb-1">
+                  Meal Plan
                 </label>
-                <select
+                <DropDown
+                  options={[
+                    { value: "EPAI", label: "EPAI" },
+                    { value: "CPAI", label: "CPAI" },
+                    { value: "MAPAI", label: "MAPAI" },
+                    { value: "APAI", label: "APAI" },
+                    { value: "Room Only", label: "Room Only" },
+                  ]}
+                  placeholder="Select Plan"
                   value={formData.mealPlan}
-                  onChange={(e) =>
+                  onChange={(value) =>
                     setFormData((prev) => ({
                       ...prev,
-                      mealPlan: e.target.value,
+                      mealPlan: value,
                     }))
                   }
-                  className="w-[14rem] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] bg-white hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 appearance-none"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "right 10px center",
-                  }}
-                >
-                  <option value="EPAI">EPAI</option>
-                  <option value="CPAI">CPAI</option>
-                  <option value="MAPAI">MAPAI</option>
-                  <option value="APAI">APAI</option>
-                  <option value="Room Only">Room Only</option>
-                </select>
+                  customWidth="w-[9rem]"
+                />
               </div>
             </div>
 
@@ -916,7 +1032,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
                 Select Accommodation Type
               </label>
-              <div className="relative w-[14rem] mb-2">
+              <div className="relative w-[27%] mb-2">
                 <select
                   defaultValue=""
                   onChange={(e) =>
@@ -939,50 +1055,51 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
               </div>
 
               {formData.accommodationType && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                  <div>
-                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                      {formData.accommodationType} Name
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.propertyName}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          propertyName: e.target.value,
-                        }))
-                      }
-                      placeholder={`Enter ${formData.accommodationType} Name`}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
-                    />
+                <>
+                  <div className="flex gap-2 mt-2 items-end">
+                    <div className="w-[30%]">
+                      <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                        {formData.accommodationType} Name
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.propertyName}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            propertyName: e.target.value,
+                          }))
+                        }
+                        placeholder={`Enter ${formData.accommodationType} Name`}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                      />
+                    </div>
+
+                    <div className="w-[70%]">
+                      <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                        {formData.accommodationType} Address
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.propertyAddress}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            propertyAddress: e.target.value,
+                          }))
+                        }
+                        placeholder={`Enter ${formData.accommodationType} Address`}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                      {formData.accommodationType} Address
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.propertyAddress}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          propertyAddress: e.target.value,
-                        }))
-                      }
-                      placeholder={`Enter ${formData.accommodationType} Address`}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
+                  <div className="mt-2">
                     <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
                       Google Maps Link
                     </label>
 
                     <div className="flex w-full">
-                      {/* Input */}
                       <input
                         type="text"
                         value={formData.googleMapsLink}
@@ -996,7 +1113,6 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                         className="flex-1 px-3 py-1.5 border border-gray-300 rounded-l-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                       />
 
-                      {/* Copy Button */}
                       <button
                         type="button"
                         onClick={handleCopyGoogleLink}
@@ -1006,7 +1122,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                       </button>
                     </div>
                   </div>
-                </div>
+                </>
               )}
 
               {/* Layout Components */}

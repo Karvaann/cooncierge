@@ -190,19 +190,42 @@ export default function OneWayLayout({
     }
   };
 
+  // Store timeout refs for each segment to properly debounce
+  const timeoutRefs = React.useRef<Record<string, NodeJS.Timeout>>({});
+
   useEffect(() => {
     formData.segments.forEach((segment) => {
       const fn = String(segment.flightnumber || "");
+      const segmentId = segment.id!;
 
-      if (fn.length < 3) return;
+      // Clear any existing timeout for this segment
+      if (timeoutRefs.current[segmentId]) {
+        clearTimeout(timeoutRefs.current[segmentId]);
+        delete timeoutRefs.current[segmentId];
+      }
+
+      // Clear preview data if flight number is empty or less than 3 characters
+      if (fn.length < 3) {
+        setSegmentPreview((prev) => {
+          const updated = { ...prev };
+          delete updated[segmentId];
+          return updated;
+        });
+        return;
+      }
       // if (!segment.traveldate) return;
 
-      const timeout = setTimeout(() => {
+      timeoutRefs.current[segmentId] = setTimeout(() => {
         fetchFlightData(segment);
+        delete timeoutRefs.current[segmentId];
       }, 3000);
-
-      return () => clearTimeout(timeout);
     });
+
+    // Cleanup all timeouts on unmount
+    return () => {
+      Object.values(timeoutRefs.current).forEach(clearTimeout);
+      timeoutRefs.current = {};
+    };
   }, [formData.segments]);
 
   const addSegment = () => {
@@ -226,11 +249,31 @@ export default function OneWayLayout({
       });
     }
   };
+
+  // Calculate total duration from all segment previews
+  const getTotalDuration = (previews: Record<string, SegmentPreview>) => {
+    let totalMinutes = 0;
+    Object.values(previews).forEach((preview) => {
+      if (preview.duration && preview.duration !== "--") {
+        const match = preview.duration.match(/(\d+)h\s*(\d+)m/);
+        if (match && match[1] && match[2]) {
+          totalMinutes += parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+        }
+      }
+    });
+    if (totalMinutes === 0) return "--";
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    return `${h}h ${m}m`;
+  };
+
   return (
     <div className="text-[0.75rem] ml-2.5 text-gray-700">
       {/* Onwards label */}
       <div className="mb-3">
-        <span className="font-medium text-gray-600">Onwards (1h 55m)</span>
+        <span className="font-medium text-gray-600">
+          Onwards ({getTotalDuration(segmentPreview)})
+        </span>
       </div>
 
       {/* Flight Segments + Preview */}
@@ -342,7 +385,7 @@ export default function OneWayLayout({
               </div>
 
               <div className="bg-white h-[15.3rem] border border-gray-200 rounded-md p-3">
-                {index === 0 ? (
+                {segmentPreview[segment.id!] ? (
                   <>
                     {/* Airline Header */}
                     <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 mb-3 flex items-center gap-2">
@@ -425,7 +468,7 @@ export default function OneWayLayout({
                     </div>
                   </>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-gray-500">
+                  <div className="flex items-center justify-center h-full bg-gray-50 rounded-md text-gray-500">
                     <p>Preview data will appear here</p>
                   </div>
                 )}

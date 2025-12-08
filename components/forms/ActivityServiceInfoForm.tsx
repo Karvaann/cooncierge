@@ -405,7 +405,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   setFormData((prev) => ({ ...prev, traveldate: date }))
                 }
                 placeholder="DD-MM-YYYY"
-                disablePastDates={true}
+                minDate={formData.bookingdate}
               />
             </div>
 

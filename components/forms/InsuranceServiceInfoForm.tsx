@@ -405,6 +405,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   setFormData((prev) => ({ ...prev, traveldate: date }))
                 }
                 placeholder="DD-MM-YYYY"
+                minDate={formData.bookingdate}
               />
             </div>
 

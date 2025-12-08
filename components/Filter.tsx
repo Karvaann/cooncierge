@@ -245,7 +245,7 @@ const Filter: React.FC<FilterProps> = ({
             <div className="relative" ref={ownerDropdownRef}>
               {/* Input area with pills */}
               <div
-                className="w-[14.75rem] min-h-[2.25rem] border border-gray-300 rounded-md px-2 py-2 flex items-center flex-wrap gap-1 cursor-pointer"
+                className="w-[14.75rem] min-h-[2.25rem] -mt-0.5 border border-gray-300 rounded-md px-2 py-2 flex items-center flex-wrap gap-1 cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
                   setOwnerDropdownOpen(!ownerDropdownOpen);

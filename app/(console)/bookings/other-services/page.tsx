@@ -976,10 +976,11 @@ const OSBookingsPage = () => {
   };
 
   return (
-    <div>
-      {/* <div className="flex justify-between items-center gap-4 p-6 w-full mx-[10px] mt-[-20px]"> */}
-      {/* Draft count and sync button */}
-      {/* <div className="flex items-center gap-4">
+    <div className="bg-gray-50">
+      <div className="bg-gray-50">
+        {/* <div className="flex justify-between items-center gap-4 p-6 w-full mx-[10px] mt-[-20px]"> */}
+        {/* Draft count and sync button */}
+        {/* <div className="flex items-center gap-4">
           {drafts.length > 0 && (
             <div className="text-sm text-gray-600">
               <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
@@ -996,10 +997,10 @@ const OSBookingsPage = () => {
             🔄 Sync
           </button>
         </div> */}
-      {/* </div> */}
+        {/* </div> */}
 
-      <div className="min-h-screen">
-        {/* {!error && (
+        <div className="min-h-screen">
+          {/* {!error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             <strong>Error:</strong> {error}
             <button
@@ -1012,94 +1013,95 @@ const OSBookingsPage = () => {
           </div>
         )} */}
 
-        <Filter
-          onFilterChange={handleFilterChange}
-          onSearchChange={(value) => setSearchValue(value)}
-          serviceTypes={filterOptions.serviceTypes}
-          statuses={filterOptions.statuses}
-          owners={filterOptions.owners}
-          createOpen={isCreateOpen}
-          setCreateOpen={setIsCreateOpen}
-        />
+          <Filter
+            onFilterChange={handleFilterChange}
+            onSearchChange={(value) => setSearchValue(value)}
+            serviceTypes={filterOptions.serviceTypes}
+            statuses={filterOptions.statuses}
+            owners={filterOptions.owners}
+            createOpen={isCreateOpen}
+            setCreateOpen={setIsCreateOpen}
+          />
 
-        <div className="bg-white rounded-2xl shadow mt-4 pt-4 pb-3 px-3 relative">
-          {/* Tabs and Total Count Row */}
-          <div className="flex w-full justify-between items-center mb-2">
-            <div className="flex w-[25rem] ml-2 items-center bg-[#F3F3F3] rounded-2xl relative p-1">
-              {/* Sliding background indicator */}
-              <div
-                className="absolute h-[calc(100%-0.5rem)] bg-[#0D4B37] rounded-xl shadow-sm transition-all duration-300 ease-in-out top-1"
-                style={{
-                  width: `calc((100% - 0.5rem) / ${tabOptions.length})`,
-                  left: `calc(${
-                    tabOptions.indexOf(activeTab) * (100 / tabOptions.length)
-                  }% + 0.25rem)`,
-                }}
-              />
-              {tabOptions.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`relative z-10 px-3 py-1.5 rounded-xl text-[0.85rem] font-medium transition-colors duration-300 flex-1 ${
-                    activeTab === tab
-                      ? "text-white"
-                      : "text-[#818181] hover:text-gray-900"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
+          <div className="bg-white rounded-2xl shadow mt-4 pt-4 pb-3 px-3 relative">
+            {/* Tabs and Total Count Row */}
+            <div className="flex w-full justify-between items-center mb-2">
+              <div className="flex w-[25rem] ml-2 items-center bg-[#F3F3F3] rounded-2xl relative p-1">
+                {/* Sliding background indicator */}
+                <div
+                  className="absolute h-[calc(100%-0.5rem)] bg-[#0D4B37] rounded-xl shadow-sm transition-all duration-300 ease-in-out top-1"
+                  style={{
+                    width: `calc((100% - 0.5rem) / ${tabOptions.length})`,
+                    left: `calc(${
+                      tabOptions.indexOf(activeTab) * (100 / tabOptions.length)
+                    }% + 0.25rem)`,
+                  }}
+                />
+                {tabOptions.map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`relative z-10 px-3 py-1.5 rounded-xl text-[0.85rem] font-medium transition-colors duration-300 flex-1 ${
+                      activeTab === tab
+                        ? "text-white"
+                        : "text-[#818181] hover:text-gray-900"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
 
-            <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
-              <span className="text-gray-600 text-[0.85rem] font-medium">
-                Total
-              </span>
-              <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
-                {finalQuotations.length}
-              </span>
+              <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
+                <span className="text-gray-600 text-[0.85rem] font-medium">
+                  Total
+                </span>
+                <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
+                  {finalQuotations.length}
+                </span>
+              </div>
             </div>
-          </div>
-          <div className="p-2">
-            {isLoading ? (
-              <TableSkeleton />
-            ) : (
-              <Table
-                data={tableData}
-                columns={columns}
-                columnIconMap={columnIconMap}
-                onSort={handleSort}
-              />
-            )}
+            <div className="p-2">
+              {isLoading ? (
+                <TableSkeleton />
+              ) : (
+                <Table
+                  data={tableData}
+                  columns={columns}
+                  columnIconMap={columnIconMap}
+                  onSort={handleSort}
+                />
+              )}
+            </div>
           </div>
         </div>
+
+        <ConfirmationModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          title="Do you want to delete this quotation?"
+          confirmText="Yes, Delete"
+          cancelText="Cancel"
+          confirmButtonColor="bg-red-600"
+          onConfirm={confirmDelete}
+        />
+
+        {isCreateOpen && (
+          <BookingFormModal
+            isOpen={isCreateOpen}
+            onClose={() => setIsCreateOpen(false)}
+            onSelectedService={handleServiceSelect}
+          />
+        )}
+
+        {isSideSheetOpen && (
+          <BookingFormSidesheet
+            isOpen={isSideSheetOpen}
+            onClose={handleBookingComplete}
+            selectedService={selectedService}
+          />
+        )}
       </div>
-
-      <ConfirmationModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        title="Do you want to delete this quotation?"
-        confirmText="Yes, Delete"
-        cancelText="Cancel"
-        confirmButtonColor="bg-red-600"
-        onConfirm={confirmDelete}
-      />
-
-      {isCreateOpen && (
-        <BookingFormModal
-          isOpen={isCreateOpen}
-          onClose={() => setIsCreateOpen(false)}
-          onSelectedService={handleServiceSelect}
-        />
-      )}
-
-      {isSideSheetOpen && (
-        <BookingFormSidesheet
-          isOpen={isSideSheetOpen}
-          onClose={handleBookingComplete}
-          selectedService={selectedService}
-        />
-      )}
     </div>
   );
 };

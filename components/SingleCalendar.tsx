@@ -10,6 +10,11 @@ type Props = {
   onChange: (date: string) => void;
   placeholder?: string;
   disablePastDates?: boolean;
+  minDate?: string; // ISO string - disables all dates before this date
+  customWidth?: string; // Custom width class for the input container
+  labelClassName?: string; // Custom class for the label
+  inputClassName?: string; // Custom class for the input text
+  showCalendarIcon?: boolean; // Whether to show the calendar icon (default: true)
 };
 
 export default function SingleCalendar({
@@ -18,6 +23,11 @@ export default function SingleCalendar({
   onChange,
   placeholder = "DD-MM-YYYY",
   disablePastDates = false,
+  minDate,
+  customWidth,
+  labelClassName,
+  inputClassName,
+  showCalendarIcon = true,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -285,7 +295,16 @@ export default function SingleCalendar({
             const dayOnly = new Date(day);
             dayOnly.setHours(0, 0, 0, 0);
             const isPastDate = disablePastDates && dayOnly < today;
-            const isDisabled = !isCurrentMonth || isPastDate;
+
+            // Check if date is before minDate
+            let isBeforeMinDate = false;
+            if (minDate) {
+              const minDateObj = new Date(minDate);
+              minDateObj.setHours(0, 0, 0, 0);
+              isBeforeMinDate = dayOnly < minDateObj;
+            }
+
+            const isDisabled = !isCurrentMonth || isPastDate || isBeforeMinDate;
 
             return (
               <div key={index} className="relative w-9 h-8">
@@ -302,26 +321,40 @@ export default function SingleCalendar({
                   className={`relative w-full h-full flex items-center justify-center text-[0.75rem] font-medium transition-colors select-none
                     ${!isCurrentMonth ? "text-gray-300 cursor-default" : ""}
                     ${
-                      isPastDate && isCurrentMonth
+                      (isPastDate || isBeforeMinDate) && isCurrentMonth
                         ? "text-gray-300 cursor-not-allowed"
                         : ""
                     }
                     ${
-                      isCurrentMonth && selected && !isPastDate
-                        ? "bg-gray-700 text-white rounded-sm"
+                      isCurrentMonth &&
+                      selected &&
+                      !isPastDate &&
+                      !isBeforeMinDate
+                        ? "text-white rounded-sm"
                         : ""
                     }
                     ${
-                      isCurrentMonth && !selected && !isPastDate
+                      isCurrentMonth &&
+                      !selected &&
+                      !isPastDate &&
+                      !isBeforeMinDate
                         ? "text-gray-700 hover:bg-gray-100"
                         : ""
                     }
                     ${
-                      isCurrentMonth && isToday && !selected
+                      isCurrentMonth && isToday && !selectedDate
                         ? "ring-1 ring-green-500 rounded-sm font-bold"
                         : ""
                     }
                   `}
+                  style={
+                    isCurrentMonth &&
+                    selected &&
+                    !isPastDate &&
+                    !isBeforeMinDate
+                      ? { backgroundColor: "#0D4B37" }
+                      : undefined
+                  }
                 >
                   {day.getDate()}
                 </button>
@@ -386,13 +419,19 @@ export default function SingleCalendar({
   return (
     <div className="relative" ref={ref}>
       {label && (
-        <label className="block text-gray-700 mb-1 text-xs font-medium">
+        <label
+          className={
+            labelClassName || "block text-gray-700 mb-1 text-xs font-medium"
+          }
+        >
           {label}
         </label>
       )}
 
       <div
-        className="relative flex items-center w-[12rem] gap-2 border border-gray-300 rounded-md px-2 py-1.5 bg-white hover:border-green-400 transition-colors"
+        className={`relative flex items-center ${
+          customWidth || "w-[12rem]"
+        } gap-2 border border-gray-300 rounded-md px-2 py-1.5 bg-white hover:border-green-400 transition-colors`}
         onClick={(e) => e.stopPropagation()}
       >
         <input
@@ -406,20 +445,25 @@ export default function SingleCalendar({
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          className="flex-1 text-[0.75rem] text-gray-700 outline-none bg-transparent"
+          className={
+            inputClassName ||
+            "flex-1 text-[0.75rem] text-gray-700 outline-none bg-transparent"
+          }
         />
 
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setOpen(!open);
-          }}
-          className="text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <FaRegCalendar size={14} />
-        </button>
+        {showCalendarIcon && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setOpen(!open);
+            }}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <FaRegCalendar size={14} />
+          </button>
+        )}
       </div>
 
       {open && (

@@ -409,16 +409,16 @@ export default function DateRangeInput({
       </label>
 
       <div
-        className="relative flex items-center w-[14.75rem] gap-2 border border-gray-300 rounded-lg px-3 py-2 cursor-pointer bg-white hover:border-gray-400 transition-colors select-none"
+        className="relative flex items-center w-[14.75rem] gap-2 border border-gray-300 rounded-lg px-3 py-1.5 cursor-pointer bg-white hover:border-gray-400 transition-colors select-none"
         onClick={() => setOpen(!open)}
       >
-        <span className="text-[0.75rem] text-gray-500">
+        <span className="text-[0.65rem] text-gray-500">
           {formatDate(start)}
         </span>
 
         <span className="text-gray-400 mx-2">→</span>
 
-        <span className="text-[0.75rem] text-gray-500 flex-1">
+        <span className="text-[0.65rem] text-gray-500 flex-1">
           {end ? formatDate(end) : "End Date"}
         </span>
 

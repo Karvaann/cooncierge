@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 import { CiCirclePlus } from "react-icons/ci";
 import { MdKeyboardArrowDown } from "react-icons/md";
@@ -48,7 +48,32 @@ interface ReturnFlightSegment {
   pnr?: string;
 }
 
-interface PreviewData {
+interface AviationAirportInfo {
+  airport?: string;
+  iata?: string;
+  scheduled?: string;
+}
+
+interface AviationAirlineInfo {
+  airline_name?: string;
+  name?: string;
+}
+
+interface AviationFlightInfo {
+  iata?: string;
+  number?: string;
+}
+
+interface AviationAPIResponse {
+  data: {
+    departure?: AviationAirportInfo;
+    arrival?: AviationAirportInfo;
+    airline?: AviationAirlineInfo;
+    flight?: AviationFlightInfo;
+  }[];
+}
+
+interface SegmentPreview {
   airline?: string;
   origin?: string;
   destination?: string;
@@ -65,7 +90,177 @@ export default function RoundTripLayout({
   formData: FlightInfoFormData;
   setFormData: React.Dispatch<React.SetStateAction<FlightInfoFormData>>;
 }) {
-  const previewData: PreviewData = {
+  const [segmentPreview, setSegmentPreview] = useState<
+    Record<string, SegmentPreview>
+  >({});
+  const [returnSegmentPreview, setReturnSegmentPreview] = useState<
+    Record<string, SegmentPreview>
+  >({});
+  const API_KEY = process.env.NEXT_PUBLIC_AVIATIONSTACK_KEY ?? "";
+
+  // Format time like 08:15 AM
+  const formatTime = (datetime: any) => {
+    if (!datetime) return "--";
+    return new Date(datetime).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  // Duration calculator
+  const getDuration = (dep: any, arr: any) => {
+    if (!dep || !arr) return "--";
+    const d1: any = new Date(dep);
+    const d2: any = new Date(arr);
+
+    const diff = (d2 - d1) / 1000 / 60; // minutes
+    const h = Math.floor(diff / 60);
+    const m = diff % 60;
+
+    return `${h}h ${m}m`;
+  };
+
+  // Get flight endpoint - using flights API
+  // Note: flight_date parameter requires paid plan on AviationStack
+  // Free tier only allows real-time flight lookup by flight number
+  const getFlightEndpoint = (flightNumber: string, API_KEY: string): string => {
+    return `https://api.aviationstack.com/v1/flights?access_key=${API_KEY}&flight_iata=${flightNumber}`;
+  };
+
+  const fetchFlightData = async (
+    segment: FlightSegment | ReturnFlightSegment,
+    isReturn: boolean = false
+  ) => {
+    try {
+      if (!segment.flightnumber) return;
+      if (!API_KEY) {
+        console.error("Missing NEXT_PUBLIC_AVIATIONSTACK_KEY");
+        return;
+      }
+
+      const endpoint = getFlightEndpoint(String(segment.flightnumber), API_KEY);
+
+      const res = await fetch(endpoint);
+      const data: AviationAPIResponse & {
+        error?: { code: number; type: string };
+      } = await res.json();
+
+      // Handle API errors
+      if (data?.error) {
+        console.warn("AviationStack API error:", data.error);
+        return;
+      }
+
+      if (!data?.data?.length) return;
+
+      const f: any = data.data[0];
+
+      const preview: SegmentPreview = {
+        airline: f.airline?.name || f.airline?.airline_name || "--",
+        origin: `${f.departure?.airport ?? "--"} (${
+          f.departure?.iata ?? "--"
+        })`,
+        destination: `${f.arrival?.airport ?? "--"} (${
+          f.arrival?.iata ?? "--"
+        })`,
+        departureTime: formatTime(f.departure?.scheduled),
+        arrivalTime: formatTime(f.arrival?.scheduled),
+        flightNumber:
+          f.flight?.iata || f.flight?.number || String(segment.flightnumber),
+        duration: getDuration(f.departure?.scheduled, f.arrival?.scheduled),
+      };
+
+      if (isReturn) {
+        setReturnSegmentPreview((prev) => ({
+          ...prev,
+          [segment.id!]: preview,
+        }));
+      } else {
+        setSegmentPreview((prev) => ({
+          ...prev,
+          [segment.id!]: preview,
+        }));
+      }
+    } catch (error) {
+      console.error("Flight fetch error:", error);
+    }
+  };
+
+  // Store timeout refs for each segment to properly debounce
+  const timeoutRefs = React.useRef<Record<string, NodeJS.Timeout>>({});
+  const returnTimeoutRefs = React.useRef<Record<string, NodeJS.Timeout>>({});
+
+  // Debounced fetch for onwards segments
+  useEffect(() => {
+    formData.segments.forEach((segment) => {
+      const fn = String(segment.flightnumber || "");
+      const segmentId = segment.id!;
+
+      // Clear any existing timeout for this segment
+      if (timeoutRefs.current[segmentId]) {
+        clearTimeout(timeoutRefs.current[segmentId]);
+        delete timeoutRefs.current[segmentId];
+      }
+
+      // Clear preview data if flight number is empty or less than 3 characters
+      if (fn.length < 3) {
+        setSegmentPreview((prev) => {
+          const updated = { ...prev };
+          delete updated[segmentId];
+          return updated;
+        });
+        return;
+      }
+
+      timeoutRefs.current[segmentId] = setTimeout(() => {
+        fetchFlightData(segment, false);
+        delete timeoutRefs.current[segmentId];
+      }, 3000);
+    });
+
+    // Cleanup all timeouts on unmount
+    return () => {
+      Object.values(timeoutRefs.current).forEach(clearTimeout);
+      timeoutRefs.current = {};
+    };
+  }, [formData.segments]);
+
+  // Debounced fetch for return segments
+  useEffect(() => {
+    formData.returnSegments.forEach((segment) => {
+      const fn = String(segment.flightnumber || "");
+      const segmentId = segment.id!;
+
+      // Clear any existing timeout for this segment
+      if (returnTimeoutRefs.current[segmentId]) {
+        clearTimeout(returnTimeoutRefs.current[segmentId]);
+        delete returnTimeoutRefs.current[segmentId];
+      }
+
+      // Clear preview data if flight number is empty or less than 3 characters
+      if (fn.length < 3) {
+        setReturnSegmentPreview((prev) => {
+          const updated = { ...prev };
+          delete updated[segmentId];
+          return updated;
+        });
+        return;
+      }
+
+      returnTimeoutRefs.current[segmentId] = setTimeout(() => {
+        fetchFlightData(segment, true);
+        delete returnTimeoutRefs.current[segmentId];
+      }, 3000);
+    });
+
+    // Cleanup all timeouts on unmount
+    return () => {
+      Object.values(returnTimeoutRefs.current).forEach(clearTimeout);
+      returnTimeoutRefs.current = {};
+    };
+  }, [formData.returnSegments]);
+
+  const previewData: SegmentPreview = {
     airline: "IndiGo Airlines",
     origin: "Delhi (DEL)",
     destination: "Mumbai (BOM)",
@@ -133,12 +328,32 @@ export default function RoundTripLayout({
       return { ...prev, [type]: updated };
     });
   };
+
+  // Calculate total duration from all segment previews
+  const getTotalDuration = (previews: Record<string, SegmentPreview>) => {
+    let totalMinutes = 0;
+    Object.values(previews).forEach((preview) => {
+      if (preview.duration && preview.duration !== "--") {
+        const match = preview.duration.match(/(\d+)h\s*(\d+)m/);
+        if (match && match[1] && match[2]) {
+          totalMinutes += parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+        }
+      }
+    });
+    if (totalMinutes === 0) return "--";
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+    return `${h}h ${m}m`;
+  };
+
   return (
     <div className="space-y-6 text-[0.75rem] text-gray-700">
       {/* Onwards Section */}
       <div>
         <div className="mb-3">
-          <span className="font-medium text-gray-600">Onwards (3h 40m)</span>
+          <span className="font-medium text-gray-600">
+            Onwards ({getTotalDuration(segmentPreview)})
+          </span>
         </div>
 
         <div className="border border-gray-200 p-4 rounded-lg">
@@ -277,9 +492,93 @@ export default function RoundTripLayout({
                   </div>
 
                   <div className="bg-white border border-gray-200 rounded-md p-3 min-h-[180px]">
-                    <div className="flex items-center justify-center text-gray-500 h-full">
-                      <p>Preview data will appear here</p>
-                    </div>
+                    {segmentPreview[segment.id!] ? (
+                      <>
+                        {/* Airline Header */}
+                        <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 mb-3 flex items-center gap-2">
+                          <span className="font-medium text-gray-800">
+                            {segmentPreview[segment.id!]?.airline ??
+                              "Fetching..."}
+                          </span>
+                        </div>
+
+                        {/* Route Info */}
+                        <div className="space-y-0.5">
+                          {/* Origin + Departure */}
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="text-gray-500 text-[0.6rem] mb-0.5">
+                                Origin
+                              </div>
+                              <div className="font-semibold text-gray-900">
+                                {segmentPreview[segment.id!]?.origin}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-gray-500 text-[0.6rem] mb-0.5">
+                                STD
+                              </div>
+                              <div className="font-semibold text-gray-900">
+                                {segmentPreview[segment.id!]?.departureTime}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Flight Number + Duration */}
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="text-gray-500 text-[0.6rem] mb-0.5">
+                                Flight Number
+                              </div>
+                              <div className="font-semibold text-gray-900">
+                                {segmentPreview[segment.id!]?.flightNumber}
+                              </div>
+                            </div>
+
+                            <div className="flex flex-col items-center text-gray-500 text-[0.6rem]">
+                              <div className="w-[1px] h-8 border-l-2 border-dotted border-gray-300 mb-1"></div>
+                              <div className="text-[0.75rem] font-medium text-gray-700">
+                                ✈
+                              </div>
+                              <div className="w-[0.0625rem] h-8 border-l-2 border-dotted border-gray-300 mt-1"></div>
+                            </div>
+
+                            <div className="text-right">
+                              <div className="text-gray-500 text-[0.6rem] mb-0.5">
+                                Duration
+                              </div>
+                              <div className="font-semibold text-gray-900">
+                                {segmentPreview[segment.id!]?.duration}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Destination + Arrival */}
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="text-gray-500 text-[0.6rem] mb-0.5">
+                                Destination
+                              </div>
+                              <div className="font-semibold text-gray-900">
+                                {segmentPreview[segment.id!]?.destination}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-gray-500 text-[0.6rem] mb-0.5">
+                                STA
+                              </div>
+                              <div className="font-semibold text-gray-900">
+                                {segmentPreview[segment.id!]?.arrivalTime}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-center justify-center h-full bg-gray-50 rounded-md text-gray-500 min-h-[160px]">
+                        <p>Preview data will appear here</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -298,7 +597,9 @@ export default function RoundTripLayout({
           {/* Return Section */}
           <div>
             <div className="mb-3 mt-3">
-              <span className="font-medium text-gray-600">Return (3h 40m)</span>
+              <span className="font-medium text-gray-600">
+                Return ({getTotalDuration(returnSegmentPreview)})
+              </span>
             </div>
 
             <div className="space-y-4">
@@ -440,9 +741,105 @@ export default function RoundTripLayout({
                     </div>
 
                     <div className="bg-white border border-gray-200 rounded-md p-3 min-h-[180px]">
-                      <div className="flex items-center justify-center text-gray-500 h-full">
-                        <p>Return flight preview will appear here</p>
-                      </div>
+                      {returnSegmentPreview[segment.id!] ? (
+                        <>
+                          {/* Airline Header */}
+                          <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 mb-3 flex items-center gap-2">
+                            <span className="font-medium text-gray-800">
+                              {returnSegmentPreview[segment.id!]?.airline ??
+                                "Fetching..."}
+                            </span>
+                          </div>
+
+                          {/* Route Info */}
+                          <div className="space-y-0.5">
+                            {/* Origin + Departure */}
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <div className="text-gray-500 text-[0.6rem] mb-0.5">
+                                  Origin
+                                </div>
+                                <div className="font-semibold text-gray-900">
+                                  {returnSegmentPreview[segment.id!]?.origin}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-gray-500 text-[0.6rem] mb-0.5">
+                                  STD
+                                </div>
+                                <div className="font-semibold text-gray-900">
+                                  {
+                                    returnSegmentPreview[segment.id!]
+                                      ?.departureTime
+                                  }
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Flight Number + Duration */}
+                            <div className="flex justify-between items-center">
+                              <div>
+                                <div className="text-gray-500 text-[0.6rem] mb-0.5">
+                                  Flight Number
+                                </div>
+                                <div className="font-semibold text-gray-900">
+                                  {
+                                    returnSegmentPreview[segment.id!]
+                                      ?.flightNumber
+                                  }
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col items-center text-gray-500 text-[0.6rem]">
+                                <div className="w-[1px] h-8 border-l-2 border-dotted border-gray-300 mb-1"></div>
+                                <div className="text-[0.75rem] font-medium text-gray-700">
+                                  ✈
+                                </div>
+                                <div className="w-[0.0625rem] h-8 border-l-2 border-dotted border-gray-300 mt-1"></div>
+                              </div>
+
+                              <div className="text-right">
+                                <div className="text-gray-500 text-[0.6rem] mb-0.5">
+                                  Duration
+                                </div>
+                                <div className="font-semibold text-gray-900">
+                                  {returnSegmentPreview[segment.id!]?.duration}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Destination + Arrival */}
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <div className="text-gray-500 text-[0.6rem] mb-0.5">
+                                  Destination
+                                </div>
+                                <div className="font-semibold text-gray-900">
+                                  {
+                                    returnSegmentPreview[segment.id!]
+                                      ?.destination
+                                  }
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-gray-500 text-[0.6rem] mb-0.5">
+                                  STA
+                                </div>
+                                <div className="font-semibold text-gray-900">
+                                  {
+                                    returnSegmentPreview[segment.id!]
+                                      ?.arrivalTime
+                                  }
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex items-center justify-center h-full bg-gray-50 rounded-md text-gray-500 min-h-[160px]">
+                          <p>Preview data will appear here</p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
