@@ -1,4 +1,8 @@
 import React, { useState } from "react";
+import { FiMinus } from "react-icons/fi";
+import { GoPlus } from "react-icons/go";
+import { MdKeyboardArrowDown } from "react-icons/md";
+import { MdOutlineKeyboardArrowUp } from "react-icons/md";
 
 interface RoomSegment {
   id?: string | null;
@@ -156,7 +160,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                 handleRoomCountChange(parseInt(e.target.value) || 1)
               }
               min="1"
-              className="w-[4rem] px-2 py-1.5 text-[0.75rem] border-none focus:outline-none"
+              className="w-[4rem] px-2 py-1.5 text-[0.75rem] border-none focus:outline-none bg-white"
             />
 
             {/* Up/Down Arrows */}
@@ -166,14 +170,14 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                 onClick={() => handleRoomCountChange(numRooms + 1)}
                 className="px-2 py-[2px] text-[0.65rem] hover:bg-gray-100"
               >
-                ▲
+                <MdOutlineKeyboardArrowUp size={18} />
               </button>
               <button
                 type="button"
                 onClick={() => handleRoomCountChange(numRooms - 1)}
                 className="px-2 py-[2px] text-[0.65rem] hover:bg-gray-100"
               >
-                ▼
+                <MdKeyboardArrowDown size={18} />
               </button>
             </div>
           </div>
@@ -221,7 +225,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                     updateSegment(index, "roomCategory", e.target.value)
                   }
                   placeholder="Enter Room Category"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                 />
               </div>
 
@@ -237,7 +241,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                     updateSegment(index, "bedType", e.target.value)
                   }
                   placeholder="Enter Bed Type"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                 />
               </div>
 
@@ -249,69 +253,104 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                 <div className="grid grid-cols-3 gap-2">
                   {/* Adults */}
                   <div>
-                    <label className="block text-[0.65rem] text-gray-600 mb-1">
+                    <label className="block text-xs text-black mb-1">
                       Adults
                     </label>
-                    <div className="flex items-center border border-gray-300 rounded-md">
+                    <div className="flex items-center border border-black rounded-lg px-2 py-1">
                       <button
-                        onClick={() => updatePaxCount(roomId, "adults", false)}
-                        className="px-2 py-1 text-[0.75rem] hover:bg-gray-100"
+                        type="button"
+                        onClick={() =>
+                          setPaxData((prev) => {
+                            const cur = prev[roomId] || {
+                              adults: 1,
+                              children: 0,
+                              infant: 0,
+                            };
+                            const nextAdults = Math.max(1, cur.adults - 1);
+                            return {
+                              ...prev,
+                              [roomId]: { ...cur, adults: nextAdults },
+                            };
+                          })
+                        }
+                        className="px-1 text-lg font-semibold"
                       >
-                        −
+                        <FiMinus size={12} />
                       </button>
-                      <input
-                        type="number"
-                        value={pax.adults}
-                        readOnly
-                        className="w-full text-center border-x border-gray-300 py-1 text-[0.75rem]"
-                      />
+                      <span className="px-2 text-[0.75rem] ">{pax.adults}</span>
                       <button
-                        onClick={() => updatePaxCount(roomId, "adults", true)}
-                        className="px-2 py-1 text-[0.75rem] hover:bg-gray-100"
+                        type="button"
+                        onClick={() =>
+                          setPaxData((prev) => {
+                            const cur = prev[roomId] || {
+                              adults: 1,
+                              children: 0,
+                              infant: 0,
+                            };
+                            // Adults max cap 2
+                            const nextAdults = Math.min(2, cur.adults + 1);
+                            return {
+                              ...prev,
+                              [roomId]: { ...cur, adults: nextAdults },
+                            };
+                          })
+                        }
+                        className="px-1 text-lg font-semibold"
                       >
-                        +
+                        <GoPlus size={12} />
                       </button>
                     </div>
                   </div>
 
                   {/* Children */}
-                  {/* <div>
-                    <label className="block text-[0.65rem] text-gray-600 mb-1">
+                  <div className="flex flex-col">
+                    <label className="block text-xs text-black mb-1">
                       Children
                     </label>
-                    <div className="flex flex-col items-center">
+                    <div className="flex items-center border border-black rounded-lg px-2 py-1">
                       <button
-                        onClick={() => updatePaxCount(roomId, "children", true)}
-                        className="w-full px-2 py-1 border border-gray-300 rounded-md bg-white text-[0.7rem] hover:bg-gray-100"
+                        type="button"
+                        onClick={() =>
+                          setPaxData((prev) => {
+                            const cur = prev[roomId] || {
+                              adults: 1,
+                              children: 0,
+                              infant: 0,
+                            };
+                            const nextChildren = Math.max(0, cur.children - 1);
+                            return {
+                              ...prev,
+                              [roomId]: { ...cur, children: nextChildren },
+                            };
+                          })
+                        }
+                        className="px-1 text-lg font-semibold"
                       >
-                        ADD
+                        <FiMinus size={12} />
                       </button>
-                    </div>
-                  </div> */}
-
-                  {/* Infant */}
-                  <div>
-                    <label className="block text-[0.65rem] text-gray-600 mb-1">
-                      Infant
-                    </label>
-                    <div className="flex items-center border border-gray-300 rounded-md">
+                      <span className="px-2 text-[0.75rem] ">
+                        {pax.children}
+                      </span>
                       <button
-                        onClick={() => updatePaxCount(roomId, "infant", false)}
-                        className="px-2 py-1 text-[0.75rem] hover:bg-gray-100"
+                        type="button"
+                        onClick={() =>
+                          setPaxData((prev) => {
+                            const cur = prev[roomId] || {
+                              adults: 1,
+                              children: 0,
+                              infant: 0,
+                            };
+                            // Children max cap 1
+                            const nextChildren = Math.min(1, cur.children + 1);
+                            return {
+                              ...prev,
+                              [roomId]: { ...cur, children: nextChildren },
+                            };
+                          })
+                        }
+                        className="px-1 text-lg font-semibold"
                       >
-                        −
-                      </button>
-                      <input
-                        type="number"
-                        value={pax.infant}
-                        readOnly
-                        className="w-full text-center border-x border-gray-300 py-1 text-[0.75rem]"
-                      />
-                      <button
-                        onClick={() => updatePaxCount(roomId, "infant", true)}
-                        className="px-2 py-1 text-[0.75rem] hover:bg-gray-100"
-                      >
-                        +
+                        <GoPlus size={12} />
                       </button>
                     </div>
                   </div>

@@ -157,6 +157,7 @@ interface GeneralInfoFormProps {
   isSubmitting?: boolean;
   showValidation?: boolean;
   formRef?: React.RefObject<HTMLFormElement>;
+  onAddDocuments?: (files: File[]) => void;
 }
 
 const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
@@ -166,6 +167,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   isSubmitting = false,
   showValidation = true,
   formRef,
+  onAddDocuments,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<GeneralInfoFormData>({
@@ -231,6 +233,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
   const [showTeamsDropdown, setShowTeamsDropdown] = useState(false);
+
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
   // Track which traveller input is showing dropdown: { type: 'adultTravellers' | 'infantTravellers', index: number } | null
   const [activeTravellerDropdown, setActiveTravellerDropdown] = useState<{
@@ -300,6 +305,29 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       document.removeEventListener("keydown", handleKey);
     };
   }, []);
+
+  const handleFileChange = () => {
+    const files = fileRef.current?.files;
+    if (!files) return;
+
+    const selected = Array.from(files);
+
+    if (attachedFiles.length + selected.length > 3) {
+      alert("Maximum 3 documents allowed");
+      return;
+    }
+
+    setAttachedFiles((prev) => [...prev, ...selected]);
+
+    // ⬅ SEND FILES TO PARENT
+    onAddDocuments?.(selected);
+
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const handleDeleteFile = (index: number) => {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
 
   // Fetch all customers, vendors, Teamss on mount
   useEffect(() => {
@@ -1444,6 +1472,57 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* ================= DOCUMENTS ================ */}
+      <div className="border border-gray-200 rounded-xl p-3">
+        <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
+        <hr className="mt-1 mb-2 border-t border-gray-200" />
+
+        <input
+          type="file"
+          ref={fileRef}
+          className="hidden"
+          onChange={handleFileChange}
+          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt"
+          multiple
+        />
+
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border border-[#126ACB]
+               rounded-md text-[0.75rem] hover:bg-gray-200"
+        >
+          Attach Files
+        </button>
+
+        {/* PREVIEW FILES */}
+        <div className="mt-2 flex flex-col gap-2">
+          {attachedFiles.map((file, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-2 bg-gray-50 border border-gray-200 
+                   rounded-md px-2 py-1.5 w-fit"
+            >
+              <span className="text-gray-700 text-[0.75rem] truncate">
+                📎 {file.name}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => handleDeleteFile(i)}
+                className="text-red-500 hover:text-red-700"
+              >
+                ❌
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="text-red-600 text-[0.65rem]">
+          Maximum 3 files allowed, 5MB each
         </div>
       </div>
 

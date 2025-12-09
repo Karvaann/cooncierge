@@ -34,6 +34,7 @@ interface OtherInfoFormProps {
   showValidation?: boolean;
   formRef?: React.RefObject<HTMLDivElement | null>;
   onFormDataUpdate: (data: any) => void;
+  onAddDocuments?: (files: File[]) => void;
 }
 
 const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
@@ -42,6 +43,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   showValidation = true,
   formRef,
   onFormDataUpdate,
+  onAddDocuments,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<OtherServiceInfoFormData>({
@@ -89,27 +91,26 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   }, [commissionPaid, commissionReceived, partnerPayout]);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [filesAdded, setFilesAdded] = useState({
-    document: false,
-  });
-  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Handle selecting multiple files
+  const handleFileChange = () => {
+    const files = fileInputRef.current?.files;
+    if (!files) return;
 
-    setAttachedFile(file);
+    const selected = Array.from(files);
 
-    setFilesAdded((prev) => ({
-      ...prev,
-      document: true,
-    }));
+    setAttachedFiles((prev) => [...prev, ...selected]);
+
+    onAddDocuments?.(selected);
+
+    // Reset so selecting the same file again is possible
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Handle file removal
-  const handleDeleteFile = () => {
-    setAttachedFile(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  // Remove one file
+  const handleDeleteFile = (index: number) => {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const options = [
@@ -670,10 +671,10 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
             <hr className="mt-1 mb-3 border-t border-gray-200" />
 
-            {/* Confirmation number + Title */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-0 w-full mb-4">
+            {/* Confirmation number + Title (stacked) */}
+            <div className="flex flex-col gap-3 w-full mb-4">
               {/* Confirmation number */}
-              <div className="flex flex-col w-[13rem]">
+              <div className="flex flex-col w-full">
                 <label className="text-[0.75rem] font-medium text-gray-700 mb-1">
                   Confirmation number
                 </label>
@@ -683,13 +684,12 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   value={formData.confirmationNumber}
                   onChange={handleChange}
                   placeholder="Abc12345"
-                  className="px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem]
-        hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
+                  className="w-[30%] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                 />
               </div>
 
               {/* Title */}
-              <div className="flex flex-col w-[13rem] -ml-35">
+              <div className="flex flex-col w-full">
                 <label className="text-[0.75rem] font-medium text-gray-700 mb-1">
                   Title
                 </label>
@@ -699,8 +699,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="Title …"
-                  className="px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem]
-        hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                 />
               </div>
             </div>
@@ -712,52 +711,55 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         </div>
 
         {/* ID PROOFS */}
-        {/* <div className="border border-gray-200  w-[48vw] ml-2.5 -mt-3 rounded-[12px] p-3">
+        <div className="border border-gray-200 rounded-[12px] p-3">
           <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-          <div className="flex flex-col gap-4">
-            <div className="flex gap-5"> */}
-        {/* Documents */}
-        {/* <div className="flex flex-col gap-1">
-                <div className="flex flex-col gap-3 items-start">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1 bg-white text-[#126ACB] border border-[#126ACB]  text-[0.725rem] mt-2 rounded-md hover:bg-gray-200 flex items-center gap-1"
-                  >
-                    <MdOutlineFileUpload size={16} /> Attach Files
-                  </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileChange}
+            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt"
+            multiple
+          />
 
-                  {attachedFile && (
-                    <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 w-[8rem]">
-                      <span className="text-gray-700 text-[0.65rem] font-medium truncate">
-                        📎 {attachedFile.name}
-                      </span>
-                      <button
-                        onClick={handleDeleteFile}
-                        className="ml-auto text-red-500 hover:text-red-700 transition-all"
-                        title="Remove file"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
-                  )}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
+                                                       border-[#126ACB] rounded-md text-[0.75rem] hover:bg-gray-200"
+          >
+            <MdOutlineFileUpload size={16} /> Attach Files
+          </button>
 
-                  <div className="text-red-600 -mt-1 text-[0.65rem]">
-                    Note: Maximum of 3 files can be uploaded
-                  </div>
-                </div>
+          {/* Selected files */}
+          <div className="mt-2 flex flex-col gap-2">
+            {attachedFiles.map((file, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2 bg-gray-50 border border-gray-200 
+                                                       rounded-md px-2 py-1.5 w-fit"
+              >
+                <span className="text-gray-700 text-[0.75rem] truncate">
+                  📎 {file.name}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => handleDeleteFile(i)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <FiTrash2 size={14} />
+                </button>
               </div>
-            </div>
+            ))}
           </div>
-        </div> */}
+
+          <div className="text-red-600 text-[0.65rem]">
+            Note: A maximum of 3 documents can be uploaded.
+          </div>
+        </div>
 
         {/* Remarks Section */}
         <div className="border border-gray-200 w-[48vw] ml-2.5 rounded-[12px] p-3 mt-4">

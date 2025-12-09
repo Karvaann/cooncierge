@@ -7,6 +7,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
+import { createPortal } from "react-dom";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { RiRefreshLine } from "react-icons/ri";
 import { FaRegCalendar } from "react-icons/fa6";
@@ -83,6 +84,13 @@ const Filter: React.FC<FilterProps> = ({
   const [ownerSearch, setOwnerSearch] = useState("");
 
   const ownerDropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownPortalRef = useRef<HTMLDivElement | null>(null);
+  const [dropdownPos, setDropdownPos] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   const toggleOwner = (name: string) => {
     setSelectedOwners((prev) => {
@@ -109,18 +117,64 @@ const Filter: React.FC<FilterProps> = ({
     if (!ownerDropdownOpen) return;
 
     const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      // If click inside the original container, keep open
+      if (ownerDropdownRef.current && ownerDropdownRef.current.contains(target))
+        return;
+      // If click inside the portal dropdown, keep open
       if (
-        ownerDropdownRef.current &&
-        !ownerDropdownRef.current.contains(e.target as Node)
-      ) {
-        setOwnerDropdownOpen(false);
-      }
+        dropdownPortalRef.current &&
+        dropdownPortalRef.current.contains(target)
+      )
+        return;
+      setOwnerDropdownOpen(false);
     };
 
     // Use capture phase to catch events before they bubble
     document.addEventListener("click", handler, true);
     return () => document.removeEventListener("click", handler, true);
   }, [ownerDropdownOpen]);
+
+  // Recalculate dropdown position when selectedOwners change, container resizes, or window scroll/resize
+  useEffect(() => {
+    if (!ownerDropdownOpen) return;
+
+    const recalc = () => {
+      const rect = ownerDropdownRef.current?.getBoundingClientRect();
+      if (rect) {
+        setDropdownPos({
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+        });
+      }
+    };
+
+    // Recalc immediately in case content changed
+    recalc();
+
+    // ResizeObserver to detect size changes (pills added/removed)
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && ownerDropdownRef.current) {
+      ro = new ResizeObserver(() => recalc());
+      try {
+        ro.observe(ownerDropdownRef.current);
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    // Recalc on scroll/resize to keep fixed-position correct
+    window.addEventListener("resize", recalc);
+    window.addEventListener("scroll", recalc, true);
+
+    return () => {
+      if (ro) ro.disconnect();
+      window.removeEventListener("resize", recalc);
+      window.removeEventListener("scroll", recalc, true);
+    };
+  }, [ownerDropdownOpen, selectedOwners]);
 
   const updateFilter = useCallback(
     (key: keyof FilterState, value: string | string[]) => {
@@ -248,7 +302,18 @@ const Filter: React.FC<FilterProps> = ({
                 className="w-[14.75rem] min-h-[2.25rem] -mt-0.5 border border-gray-300 rounded-md px-2 py-2 flex items-center flex-wrap gap-1 cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setOwnerDropdownOpen(!ownerDropdownOpen);
+                  // Compute position to render portal dropdown
+                  const rect =
+                    ownerDropdownRef.current?.getBoundingClientRect();
+                  if (rect) {
+                    setDropdownPos({
+                      left: rect.left,
+                      top: rect.top,
+                      width: rect.width,
+                      height: rect.height,
+                    });
+                  }
+                  setOwnerDropdownOpen((prev) => !prev);
                 }}
               >
                 {selectedOwners.length > 0 ? (
@@ -277,50 +342,70 @@ const Filter: React.FC<FilterProps> = ({
                 )}
               </div>
 
-              {/* Dropdown */}
-              {ownerDropdownOpen && (
-                <div className="absolute left-0 w-[14.75rem] mt-1 bg-white border border-gray-200 rounded-md shadow-xl z-50 max-h-48 overflow-y-auto">
-                  {/* Options */}
-                  {filteredOwnersList.map((owner) => {
-                    const checked = selectedOwners.includes(owner);
+              {/* Dropdown: render into portal to avoid clipping by parent containers */}
+              {ownerDropdownOpen &&
+                dropdownPos &&
+                createPortal(
+                  <div
+                    ref={dropdownPortalRef}
+                    style={{
+                      position: "fixed",
+                      left: dropdownPos.left,
+                      top: dropdownPos.top + dropdownPos.height + 6,
+                      width: dropdownPos.width,
+                      zIndex: 9999,
+                      minHeight: 32,
+                    }}
+                    className="bg-white border border-gray-200 rounded-md shadow-xl max-h-48 overflow-y-auto"
+                  >
+                    {filteredOwnersList.length === 0 ? (
+                      <div className="px-3 py-2 text-gray-500 text-[0.75rem]">
+                        No owners found
+                      </div>
+                    ) : (
+                      filteredOwnersList.map((owner) => {
+                        const checked = selectedOwners.includes(owner);
 
-                    return (
-                      <label
-                        key={owner}
-                        className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleOwner(owner);
-                        }}
-                      >
-                        {/* Custom Checkbox */}
-                        <div className="w-4 h-4 border border-gray-400 rounded-md flex items-center justify-center">
-                          {checked && (
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="12"
-                              height="11"
-                              viewBox="0 0 12 11"
-                              fill="none"
-                            >
-                              <path
-                                d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                                stroke="#0D4B37"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                              />
-                            </svg>
-                          )}
-                        </div>
+                        return (
+                          <label
+                            key={owner}
+                            className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleOwner(owner);
+                            }}
+                          >
+                            <div className="w-4 h-4 border border-gray-400 rounded-md flex items-center justify-center">
+                              {checked && (
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="12"
+                                  height="11"
+                                  viewBox="0 0 12 11"
+                                  fill="none"
+                                >
+                                  <path
+                                    d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                                    stroke="#0D4B37"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                              )}
+                            </div>
 
-                        <span className="text-gray-700 text-[0.75rem]">
-                          {owner}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              )}
+                            <span className="text-gray-700 text-[0.75rem]">
+                              {owner}
+                            </span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>,
+                  typeof document !== "undefined"
+                    ? document.body
+                    : (null as any)
+                )}
             </div>
           </div>
         </div>

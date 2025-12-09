@@ -6,6 +6,8 @@ import { CiCirclePlus } from "react-icons/ci";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineEdit } from "react-icons/md";
 import { FiMinusCircle } from "react-icons/fi";
+import SingleCalendar from "@/components/SingleCalendar";
+import DropDown from "@/components/DropDown";
 
 interface FlightInfoFormData {
   bookingdate: string;
@@ -400,7 +402,7 @@ export default function RoundTripLayout({
                             segments: updatedSegments,
                           });
                         }}
-                        className="w-[16rem] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                        className="w-[75%] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                       />
                     </div>
 
@@ -417,31 +419,29 @@ export default function RoundTripLayout({
                           onChange={(e) =>
                             handleSegmentPnr(index, e.target.value, "segments")
                           }
-                          className="w-[16rem] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                          className="w-[75%] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                         />
                       </div>
                     )}
 
                     {/* Travel Date */}
                     <div>
-                      <label className="block mb-1 font-medium text-gray-600">
-                        Travel Date
-                      </label>
-                      <input
-                        type="date"
+                      <SingleCalendar
+                        label="Travel Date"
                         value={segment.traveldate}
-                        onChange={(e) => {
+                        onChange={(date) => {
                           const updatedSegments = formData.segments.map((s) =>
-                            s.id === segment.id
-                              ? { ...s, traveldate: e.target.value }
-                              : s
+                            s.id === segment.id ? { ...s, traveldate: date } : s
                           );
                           setFormData({
                             ...formData,
                             segments: updatedSegments,
                           });
                         }}
-                        className="w-[16rem] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                        placeholder="DD-MM-YYYY"
+                        minDate={formData.bookingdate}
+                        customWidth="w-[75%]"
+                        showCalendarIcon={false}
                       />
                     </div>
 
@@ -450,32 +450,29 @@ export default function RoundTripLayout({
                       <label className="block mb-1 font-medium text-gray-600">
                         Cabin Class
                       </label>
-                      <div className="relative w-[16rem]">
-                        <select
-                          value={segment.cabinclass}
-                          onChange={(e) => {
-                            const updatedSegments = formData.segments.map((s) =>
-                              s.id === segment.id
-                                ? { ...s, cabinclass: e.target.value }
-                                : s
-                            );
-                            setFormData({
-                              ...formData,
-                              segments: updatedSegments,
-                            });
-                          }}
-                          className="w-full px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 appearance-none"
-                        >
-                          <option value="">Choose Cabin Class</option>
-                          <option value="Economy">Economy</option>
-                          <option value="Premium Economy">
-                            Premium Economy
-                          </option>
-                          <option value="Business">Business</option>
-                          <option value="First Class">First Class</option>
-                        </select>
-                        <MdKeyboardArrowDown className="absolute right-2 top-2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
-                      </div>
+                      <DropDown
+                        options={[
+                          { value: "Economy", label: "Economy" },
+                          {
+                            value: "Premium Economy",
+                            label: "Premium Economy",
+                          },
+                          { value: "Business", label: "Business" },
+                          { value: "First Class", label: "First Class" },
+                        ]}
+                        placeholder="Cabin Class"
+                        value={segment.cabinclass}
+                        onChange={(val: string) => {
+                          const updatedSegments = formData.segments.map((s) =>
+                            s.id === segment.id ? { ...s, cabinclass: val } : s
+                          );
+                          setFormData({
+                            ...formData,
+                            segments: updatedSegments,
+                          });
+                        }}
+                        customWidth="w-[75%]"
+                      />
                     </div>
                   </div>
                 </div>
@@ -645,7 +642,7 @@ export default function RoundTripLayout({
                               returnSegments: updated,
                             });
                           }}
-                          className="w-[16rem] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                          className="w-[75%] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                         />
                       </div>
 
@@ -666,23 +663,20 @@ export default function RoundTripLayout({
                                 "returnSegments"
                               )
                             }
-                            className="w-[16rem] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                            className="w-[75%] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                           />
                         </div>
                       )}
 
                       {/* Travel Date */}
                       <div>
-                        <label className="block mb-1 font-medium text-gray-600">
-                          Travel Date
-                        </label>
-                        <input
-                          type="date"
+                        <SingleCalendar
+                          label="Travel Date"
                           value={segment.traveldate}
-                          onChange={(e) => {
+                          onChange={(date) => {
                             const updated = formData.returnSegments.map((s) =>
                               s.id === segment.id
-                                ? { ...s, traveldate: e.target.value }
+                                ? { ...s, traveldate: date }
                                 : s
                             );
                             setFormData({
@@ -690,7 +684,10 @@ export default function RoundTripLayout({
                               returnSegments: updated,
                             });
                           }}
-                          className="w-[16rem] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                          placeholder="DD-MM-YYYY"
+                          minDate={formData.bookingdate}
+                          customWidth="w-[75%]"
+                          showCalendarIcon={false}
                         />
                       </div>
 
@@ -699,32 +696,31 @@ export default function RoundTripLayout({
                         <label className="block mb-1 font-medium text-gray-600">
                           Cabin Class
                         </label>
-                        <div className="relative w-[16rem]">
-                          <select
-                            value={segment.cabinclass}
-                            onChange={(e) => {
-                              const updated = formData.returnSegments.map((s) =>
-                                s.id === segment.id
-                                  ? { ...s, cabinclass: e.target.value }
-                                  : s
-                              );
-                              setFormData({
-                                ...formData,
-                                returnSegments: updated,
-                              });
-                            }}
-                            className="w-full px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 appearance-none"
-                          >
-                            <option value="">Choose Cabin Class</option>
-                            <option value="Economy">Economy</option>
-                            <option value="Premium Economy">
-                              Premium Economy
-                            </option>
-                            <option value="Business">Business</option>
-                            <option value="First Class">First Class</option>
-                          </select>
-                          <MdKeyboardArrowDown className="absolute right-2 top-2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
-                        </div>
+                        <DropDown
+                          options={[
+                            { value: "Economy", label: "Economy" },
+                            {
+                              value: "Premium Economy",
+                              label: "Premium Economy",
+                            },
+                            { value: "Business", label: "Business" },
+                            { value: "First Class", label: "First Class" },
+                          ]}
+                          placeholder="Cabin Class"
+                          value={segment.cabinclass}
+                          onChange={(val: string) => {
+                            const updated = formData.returnSegments.map((s) =>
+                              s.id === segment.id
+                                ? { ...s, cabinclass: val }
+                                : s
+                            );
+                            setFormData({
+                              ...formData,
+                              returnSegments: updated,
+                            });
+                          }}
+                          customWidth="w-[75%]"
+                        />
                       </div>
                     </div>
                   </div>

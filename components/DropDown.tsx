@@ -12,6 +12,7 @@ interface DropdownProps {
   onChange?: (value: string) => void;
   className?: string;
   customWidth?: string;
+  menuWidth?: string;
 }
 
 const DropDown: React.FC<DropdownProps> = ({
@@ -21,10 +22,16 @@ const DropDown: React.FC<DropdownProps> = ({
   onChange,
   customWidth,
   className = "",
+  menuWidth,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(value || "");
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Sync selected value when parent changes `value` prop
+  useEffect(() => {
+    setSelectedValue(value || "");
+  }, [value]);
 
   const selectedOption = options.find((opt) => opt.value === selectedValue);
   const displayText = selectedOption ? selectedOption.label : placeholder;
@@ -61,15 +68,16 @@ const DropDown: React.FC<DropdownProps> = ({
     }
   };
 
+  const inputWidthClass = customWidth ? customWidth : "w-[12rem]";
+  const menuWidthClass = menuWidth ? menuWidth : inputWidthClass;
+
   return (
     <div ref={dropdownRef} className={`relative ${className}`}>
       {/* Dropdown Button */}
       <button
         type="button"
         onClick={handleToggle}
-        className={`${
-          customWidth ? customWidth : "w-[12rem]"
-        } flex items-center justify-between px-2 py-1.5 bg-white rounded-md border border-gray-300 hover:border-green-300 transition-colors text-left text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-green-400`}
+        className={`${inputWidthClass} flex items-center justify-between px-2 py-1.5 bg-white rounded-md border border-gray-300 hover:border-green-300 transition-colors text-left text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-green-400`}
       >
         <span className={`${selectedValue ? "text-black" : "text-gray-400"}`}>
           {displayText}
@@ -93,13 +101,15 @@ const DropDown: React.FC<DropdownProps> = ({
 
       {/* Dropdown Menu */}
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-md border border-gray-300 shadow-lg overflow-hidden z-10">
+        <div
+          className={`${menuWidthClass} absolute top-full left-0 mt-1 bg-white rounded-md border border-gray-300 shadow-lg overflow-hidden z-10`}
+        >
           {options.map((option) => (
             <button
               key={option.value}
               type="button"
               onClick={() => handleSelect(option.value)}
-              className="w-full px-2 py-1.5 text-left text-[0.75rem] text-black hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0"
+              className={`w-full block px-2 py-1.5 text-left text-[0.75rem] text-black hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0`}
             >
               {option.label}
             </button>

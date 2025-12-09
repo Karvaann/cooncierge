@@ -15,6 +15,7 @@ type Props = {
   labelClassName?: string; // Custom class for the label
   inputClassName?: string; // Custom class for the input text
   showCalendarIcon?: boolean; // Whether to show the calendar icon (default: true)
+  readOnly?: boolean; // When true, input is disabled and calendar cannot be opened
 };
 
 export default function SingleCalendar({
@@ -28,6 +29,7 @@ export default function SingleCalendar({
   labelClassName,
   inputClassName,
   showCalendarIcon = true,
+  readOnly = false,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -200,6 +202,38 @@ export default function SingleCalendar({
     }
 
     setInputValue(val);
+
+    let parts = val.split("-");
+
+    // Day correction
+    if (parts[0] && parts[0].length === 2) {
+      let day = parseInt(parts[0], 10);
+      if (day > 31) {
+        parts[0] = "31";
+        val = parts.join("-");
+        setInputValue(val);
+      }
+    }
+
+    // Month correction
+    if (parts[1] && parts[1].length === 2) {
+      let month = parseInt(parts[1], 10);
+      if (month > 12) {
+        parts[1] = "12";
+        val = parts.join("-");
+        setInputValue(val);
+      }
+    }
+
+    // Year correction
+    if (parts[2] && parts[2].length === 4) {
+      let year = parseInt(parts[2], 10);
+      if (year > 2100) {
+        parts[2] = "2100";
+        val = parts.join("-");
+        setInputValue(val);
+      }
+    }
 
     // Try to parse and update if valid
     if (val.length === 10) {
@@ -431,7 +465,11 @@ export default function SingleCalendar({
       <div
         className={`relative flex items-center ${
           customWidth || "w-[12rem]"
-        } gap-2 border border-gray-300 rounded-md px-2 py-1.5 bg-white hover:border-green-400 transition-colors`}
+        } gap-2 border border-gray-300 rounded-md px-2 py-1.5 ${
+          readOnly
+            ? "bg-gray-100 cursor-default border-gray-200"
+            : "bg-white hover:border-green-400"
+        } transition-colors`}
         onClick={(e) => e.stopPropagation()}
       >
         <input
@@ -439,7 +477,10 @@ export default function SingleCalendar({
           value={inputValue}
           onChange={handleInputChange}
           onBlur={handleInputBlur}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            if (!readOnly) setOpen(true);
+          }}
+          disabled={readOnly}
           placeholder={placeholder}
           autoComplete="off"
           autoCorrect="off"
@@ -447,11 +488,13 @@ export default function SingleCalendar({
           spellCheck={false}
           className={
             inputClassName ||
-            "flex-1 text-[0.75rem] text-gray-700 outline-none bg-transparent"
+            (readOnly
+              ? "flex-1 text-[0.75rem] text-gray-700 bg-gray-100 cursor-default"
+              : "flex-1 text-[0.75rem] text-gray-700 outline-none bg-transparent")
           }
         />
 
-        {showCalendarIcon && (
+        {showCalendarIcon && !readOnly && (
           <button
             type="button"
             onClick={(e) => {

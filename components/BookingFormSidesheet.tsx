@@ -61,37 +61,61 @@ interface TabConfig {
 }
 
 function ServiceInfoFormSwitcher(props: any) {
-  const { selectedService } = props;
+  const { selectedService, onAddDocuments } = props;
   console.log("CATEGORY:", selectedService?.category);
 
   if (!selectedService) return null;
 
   switch (selectedService.category) {
     case "travel":
-      return <FlightServiceInfoForm {...props} />;
+      return (
+        <FlightServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+      );
 
     case "accommodation":
-      return <AccommodationServiceInfo {...props} />;
+      return (
+        <AccommodationServiceInfo {...props} onAddDocuments={onAddDocuments} />
+      );
 
     case "transport-land":
-      return <LandTransportServiceInfoForm {...props} />;
+      return (
+        <LandTransportServiceInfoForm
+          {...props}
+          onAddDocuments={onAddDocuments}
+        />
+      );
 
     case "transport-maritime":
-      return <MaritimeTransportServiceInfoForm {...props} />;
+      return (
+        <MaritimeTransportServiceInfoForm
+          {...props}
+          onAddDocuments={onAddDocuments}
+        />
+      );
     case "tickets":
-      return <TicketsServiceInfoForm {...props} />;
+      return (
+        <TicketsServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+      );
 
     case "activity":
-      return <ActivityServiceInfoForm {...props} />;
+      return (
+        <ActivityServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+      );
 
     case "travel insurance":
-      return <InsuranceServiceInfoForm {...props} />;
+      return (
+        <InsuranceServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+      );
 
     case "visas":
-      return <VisasServiceInfoForm {...props} />;
+      return (
+        <VisasServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+      );
 
     case "others":
-      return <OthersServiceInfoForm {...props} />;
+      return (
+        <OthersServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+      );
 
     // you can keep adding cases for "transport" or "activity" later
     default:
@@ -126,6 +150,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const addCustomerFormRef = useRef<HTMLFormElement | null>(null);
   const addVendorFormRef = useRef<HTMLFormElement | null>(null);
   const addTravellerFormRef = useRef<HTMLFormElement | null>(null);
+
+  // Collect all documents from all forms
+  const [bookingDocuments, setBookingDocuments] = useState<File[]>([]);
+
+  const addBookingDocuments = (files: File[]) => {
+    setBookingDocuments((prev) => [...prev, ...files]);
+  };
 
   // Ref to always have access to latest formData in callbacks
   const formDataRef = useRef(formData);
@@ -294,9 +325,17 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         "draft"
       );
 
+      // Prepare multipart form data
+      const formDataToSend = new FormData();
+      formDataToSend.append("data", JSON.stringify(bookingData));
+
+      bookingDocuments.forEach((file) => {
+        formDataToSend.append("documents", file);
+      });
+
       console.log("Submitting Booking Data:", bookingData);
 
-      const response = await BookingApiService.createQuotation(bookingData);
+      const response = await BookingApiService.createQuotation(formDataToSend);
 
       if (response.success) {
         console.log("Booking created successfully!", response.data);
@@ -325,7 +364,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedService, collectAllFormData, onClose]);
+  }, [selectedService, collectAllFormData, onClose, bookingDocuments]);
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
@@ -358,9 +397,16 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         "approved"
       );
 
+      const formDataToSend = new FormData();
+      formDataToSend.append("data", JSON.stringify(bookingData));
+
+      bookingDocuments.forEach((file) => {
+        formDataToSend.append("documents", file);
+      });
+
       console.log("Submitting Booking Data:", bookingData);
 
-      const response = await BookingApiService.createQuotation(bookingData);
+      const response = await BookingApiService.createQuotation(formDataToSend);
 
       if (response.success) {
         console.log("Booking created successfully!", response.data);
@@ -389,7 +435,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedService, collectAllFormData, onClose]);
+  }, [selectedService, collectAllFormData, onClose, bookingDocuments]);
 
   // Optimized tab click handler
   const handleTabClick = useCallback(
@@ -546,6 +592,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting}
                   formRef={generalFormRef as React.RefObject<HTMLFormElement>}
+                  onAddDocuments={addBookingDocuments}
                 />
               </div>
 
@@ -559,6 +606,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   isSubmitting={isSubmitting}
                   formRef={serviceFormRef}
                   selectedService={selectedService}
+                  onAddDocuments={addBookingDocuments}
                 />
               </div>
 
@@ -566,40 +614,32 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
               <div className="border-t border-gray-200 p-4 mt-4">
                 <div className="flex justify-between">
-                  {activeTab === "general" ? (
-                    // Cancel Button (General Tab)
-                    <Button
-                      text="Cancel"
-                      onClick={() => setIsConfirmModalOpen(true)}
-                      bgColor="bg-white"
-                      textColor="text-gray-600"
-                      className="border border-gray-300 hover:bg-gray-50"
-                      disabled={isSubmitting}
-                    />
-                  ) : (
-                    // Previous Button (Service Tab)
-                    <Button
-                      text="Previous"
-                      onClick={() => {
-                        const currentIndex = tabs.findIndex(
-                          (tab) => tab.id === activeTab
-                        );
-                        const prevTab = tabs[currentIndex - 1];
-                        if (prevTab?.isEnabled) setActiveTab(prevTab.id);
-                      }}
-                      bgColor="bg-white"
-                      textColor="text-[#114958]"
-                      className="border border-[#114958] hover:bg-[#114958] hover:text-white"
-                      disabled={isSubmitting}
-                    />
-                  )}
+                  {/* LEFT SIDE BUTTONS */}
+                  <div>
+                    {activeTab === "service" && (
+                      <Button
+                        text="Previous"
+                        onClick={() => {
+                          const currentIndex = tabs.findIndex(
+                            (tab) => tab.id === activeTab
+                          );
+                          const prevTab = tabs[currentIndex - 1];
+                          if (prevTab?.isEnabled) setActiveTab(prevTab.id);
+                        }}
+                        bgColor="bg-white"
+                        textColor="text-[#114958]"
+                        className="border border-[#114958] hover:bg-[#114958] hover:text-white"
+                        disabled={isSubmitting}
+                      />
+                    )}
+
+                    {/* General tab → Nothing shown */}
+                  </div>
 
                   {/* RIGHT SIDE BUTTONS */}
                   <div className="flex space-x-2">
-                    {/* GENERAL TAB BUTTONS */}
                     {activeTab === "general" && (
                       <>
-                        {/* Save Draft */}
                         <Button
                           text="Save As Draft"
                           onClick={handleDraftSubmit}
@@ -609,7 +649,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           disabled={isSubmitting}
                         />
 
-                        {/* Next */}
                         <Button
                           text="Next"
                           onClick={() => {
@@ -627,16 +666,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                       </>
                     )}
 
-                    {/* SERVICE TAB BUTTONS */}
                     {activeTab === "service" && (
                       <>
-                        {/* Save Draft */}
                         <Button
                           text="Save As Draft"
                           onClick={handleDraftSubmit}
                           bgColor="bg-[#114958]"
                           textColor="text-white"
-                          className=""
                           disabled={isSubmitting}
                         />
 

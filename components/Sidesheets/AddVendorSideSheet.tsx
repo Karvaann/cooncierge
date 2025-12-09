@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import SideSheet from "../SideSheet";
 import {
   createVendor,
@@ -9,7 +10,8 @@ import {
 } from "@/services/vendorApi";
 import { getAuthUser } from "@/services/storage/authStorage";
 import { useBooking } from "@/context/BookingContext";
-
+import DropDown from "../DropDown";
+import SingleCalendar from "../SingleCalendar";
 import { CiCirclePlus } from "react-icons/ci";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
@@ -60,7 +62,24 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   const [phone, setPhone] = useState<string>("");
   const [company, setcompany] = useState<string>("");
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+
+  // Validation helpers / UI state for required fields (company + firstname)
+  const companyRef = useRef<HTMLInputElement | null>(null);
+  const pocFirstNameRef = useRef<HTMLInputElement | null>(null);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [invalidField, setInvalidField] = useState<
+    "company" | "firstname" | null
+  >(null);
+  const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Mounted flag to ensure portal renders client-side only
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const [balanceType, setBalanceType] = useState<"debit" | "credit">("debit");
   const [balanceAmount, setBalanceAmount] = useState<string>("");
@@ -126,20 +145,22 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
     }
   };
 
-  // Handle file selection
+  // Handle selecting files
   const handleFileChange = () => {
-    const file = fileRef.current?.files?.[0];
-    if (file) {
-      setAttachedFile(file);
-    }
-    // Reset input value to allow re-uploading same file
+    const files = fileRef.current?.files;
+    if (!files) return;
+
+    const selected = Array.from(files);
+
+    setAttachedFiles((prev) => [...prev, ...selected]);
+
+    // Reset input so same file can be selected again
     if (fileRef.current) fileRef.current.value = "";
   };
 
-  // Handle file removal
-  const handleDeleteFile = () => {
-    setAttachedFile(null);
-    if (fileRef.current) fileRef.current.value = "";
+  // Remove a selected file
+  const handleDeleteFile = (index: number) => {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const [formData, setFormData] = useState<VendorData>({
@@ -203,29 +224,71 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Validate company name and poc first name
+    if (!formData.companyName || String(formData.companyName).trim() === "") {
+      setErrorMessage("Please enter company name to proceed");
+      setInvalidField("company");
+      setShowError(true);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+      setTimeout(() => {
+        companyRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        companyRef.current?.focus();
+      }, 100);
+      return;
+    }
+    if (!formData.firstname || String(formData.firstname).trim() === "") {
+      setErrorMessage("Please enter first name to proceed");
+      setInvalidField("firstname");
+      setShowError(true);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+      setTimeout(() => {
+        pocFirstNameRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        pocFirstNameRef.current?.focus();
+      }, 100);
+      return;
+    }
     const user = getAuthUser() as any;
     const businessId = user?.businessId;
 
     try {
-      const vendorData = {
-        companyName: formData.companyName,
-        contactPerson: `${formData.firstname} ${formData.lastname}`.trim(),
-        alias: formData.alias || undefined,
-        dateOfBirth: formData.dateOfBirth || undefined,
-        openingBalance: formData.openingBalance
-          ? Number(formData.openingBalance)
-          : undefined,
-        balanceType: formData.balanceType,
-        email: formData.email,
-        phone: `${formData.phone}`,
-        GSTIN: formData.GSTIN,
-        address: formData.address,
-        businessId: businessId,
-        tier: tier || undefined,
-        remarks: formData.remarks || undefined,
-      };
+      // FormData to send files + fields together
+      const formDataToSend = new FormData();
 
-      const created = await createVendor(vendorData);
+      // Append ALL vendor fields (must match backend schema)
+      formDataToSend.append("companyName", formData.companyName);
+      formDataToSend.append(
+        "contactPerson",
+        `${formData.firstname} ${formData.lastname}`.trim()
+      );
+      formDataToSend.append("alias", formData.alias || "");
+      formDataToSend.append("dateOfBirth", formData.dateOfBirth || "");
+      formDataToSend.append("openingBalance", formData.openingBalance || "");
+      formDataToSend.append("balanceType", formData.balanceType);
+      formDataToSend.append("email", formData.email || "");
+      formDataToSend.append("phone", formData.phone);
+      formDataToSend.append("GSTIN", formData.GSTIN || "");
+      formDataToSend.append("address", formData.address || "");
+      formDataToSend.append("tier", tier || "");
+      formDataToSend.append("remarks", formData.remarks || "");
+      formDataToSend.append("countryCode", formData.countryCode || "+91");
+
+      // Backend requires businessId as field
+      formDataToSend.append("businessId", businessId);
+
+      // Append up to 3 DOCUMENT FILES
+      attachedFiles.forEach((file: File) => {
+        formDataToSend.append("documents", file);
+      });
+
+      const created = await createVendor(formDataToSend);
       console.log("Vendor created successfully:", created);
 
       if (created?._id) {
@@ -242,6 +305,37 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   };
 
   const handleUpdateVendor = async () => {
+    // Validate company name and poc first name before update
+    if (!formData.companyName || String(formData.companyName).trim() === "") {
+      setErrorMessage("Please enter company name to proceed");
+      setInvalidField("company");
+      setShowError(true);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+      setTimeout(() => {
+        companyRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        companyRef.current?.focus();
+      }, 100);
+      return;
+    }
+    if (!formData.firstname || String(formData.firstname).trim() === "") {
+      setErrorMessage("Please enter first name to proceed");
+      setInvalidField("firstname");
+      setShowError(true);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+      setTimeout(() => {
+        pocFirstNameRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        pocFirstNameRef.current?.focus();
+      }, 100);
+      return;
+    }
     try {
       const vendorId = data?._id;
 
@@ -298,7 +392,48 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
             mode === "create" ? handleSubmit : (e) => e.preventDefault()
           }
           ref={formRef as any}
+          noValidate
         >
+          {/* Error Alert Popup (reuse customer toast style) */}
+          {mounted &&
+            showError &&
+            createPortal(
+              <div className="fixed top-8 left-1/2 transform -translate-x-1/2 z-[1100] flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 px-2 py-1 rounded-full shadow-md max-w-[90vw] text-[0.65rem]">
+                <svg
+                  className="w-4 h-4 text-red-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    fill="none"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 8v4m0 4h.01"
+                  />
+                </svg>
+                <span className="font-semibold">Error :</span>
+                <span className="">{errorMessage}</span>
+                <button
+                  type="button"
+                  className="ml-2 text-red-400 hover:text-red-600 text-lg font-bold"
+                  aria-label="Close alert"
+                  onClick={() => setShowError(false)}
+                >
+                  ×
+                </button>
+              </div>,
+              document.body
+            )}
+
           {/* ================= BASIC DETAILS ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3 -mt-2">
             <h2 className="text-[0.75rem] font-medium mb-2">Basic Details</h2>
@@ -311,15 +446,23 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   Company Name <span className="text-red-500">*</span>
                 </label>
                 <input
+                  ref={companyRef}
                   name="companyName"
                   value={formData.companyName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, companyName: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFormData({ ...formData, companyName: v });
+                    if (invalidField === "company" && String(v).trim()) {
+                      setInvalidField(null);
+                    }
+                  }}
                   placeholder="Enter Company Name"
-                  required
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
+                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700 ${
+                    invalidField === "company"
+                      ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
+                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  }`}
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -354,8 +497,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                         countryCode: e.target.value,
                       })
                     }
-                    className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-                    style={{ width: "70px" }}
+                    className="absolute left-0 top-0 h-full pl-2 pr-2 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    style={{ width: "58px" }}
                     disabled={readOnly}
                   >
                     <option value="+91">+91</option>
@@ -370,7 +513,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     }
                     placeholder="Enter Contact Number"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-md pl-17 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -409,16 +552,24 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   First Name <span className="text-red-500">*</span>
                 </label>
                 <input
+                  ref={pocFirstNameRef}
                   name="firstname"
                   type="text"
                   value={formData.firstname}
-                  onChange={(e) =>
-                    setFormData({ ...formData, firstname: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFormData({ ...formData, firstname: v });
+                    if (invalidField === "firstname" && String(v).trim()) {
+                      setInvalidField(null);
+                    }
+                  }}
                   placeholder="Enter First Name"
-                  required
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
+                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700 ${
+                    invalidField === "firstname"
+                      ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
+                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  }`}
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -470,8 +621,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                         countryCode: e.target.value,
                       })
                     }
-                    className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-                    style={{ width: "70px" }}
+                    className="absolute left-0 top-0 h-full pl-2 pr-2 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    style={{ width: "58px" }}
                     disabled={readOnly}
                   >
                     <option value="+91">+91</option>
@@ -486,7 +637,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       setFormData({ ...formData, phone: e.target.value })
                     }
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-md pl-17 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -509,20 +660,17 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
-              <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
-                  Date of Birth
-                </label>
-                <input
-                  name="dateOfBirth"
-                  type="date"
-                  value={formData.dateOfBirth}
-                  onChange={(e) =>
-                    setFormData({ ...formData, dateOfBirth: e.target.value })
+              <div className="flex flex-col gap-1 w-full">
+                <SingleCalendar
+                  label="Date of Birth"
+                  value={formData.dateOfBirth || ""}
+                  onChange={(iso) =>
+                    setFormData((prev) => ({ ...prev, dateOfBirth: iso }))
                   }
                   placeholder="DD-MM-YYYY"
-                  disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
+                  customWidth="w-full mt-1.5 py-2"
+                  showCalendarIcon={true}
+                  readOnly={readOnly}
                 />
               </div>
             </div>
@@ -550,7 +698,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
           </div>
 
           {/* ================= DOCUMENTS ================ */}
-          {/* <div className="border border-gray-200 rounded-[12px] p-3">
+          <div className="border border-gray-200 rounded-[12px] p-3">
             <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
@@ -570,26 +718,34 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 <MdOutlineFileUpload size={16} /> Attach Files
               </button>
 
-              {attachedFile && (
-                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md px-2 py-1.5 w-fit">
-                  <span className="text-gray-700 text-[0.7rem] font-medium truncate">
-                    📎 {attachedFile.name}
-                  </span>
-                  <button
-                    onClick={handleDeleteFile}
-                    className="ml-auto text-red-500 hover:text-red-700 transition-all"
-                    title="Remove file"
+              {/* Selected Files */}
+              <div className="mt-2 flex flex-col gap-2">
+                {attachedFiles.map((file, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 bg-gray-50 border border-gray-200 
+               rounded-md px-2 py-1.5 w-fit"
                   >
-                    <FiTrash2 size={14} />
-                  </button>
-                </div>
-              )}
+                    <span className="text-gray-700 text-[0.75rem] truncate">
+                      📎 {file.name}
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteFile(i)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FiTrash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
 
               <div className="text-red-600 text-[0.65rem]">
                 Note: Maximum of 3 files can be uploaded
               </div>
             </div>
-          </div> */}
+          </div>
 
           {/* ================= OPENING BALANCE ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
@@ -669,19 +825,19 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
             <h2 className="text-[0.75rem] font-medium mb-2">Rating</h2>
 
             <div className="flex flex-col">
-              <select
+              <DropDown
+                options={[
+                  { value: "tier1", label: "Rating 1" },
+                  { value: "tier2", label: "Rating 2" },
+                  { value: "tier3", label: "Rating 3" },
+                  { value: "tier4", label: "Rating 4" },
+                  { value: "tier5", label: "Rating 5" },
+                ]}
                 value={tier}
-                onChange={(e) => setTier(e.target.value)}
-                disabled={readOnly}
-                className="w-[10rem] border border-gray-300 rounded-md px-3 py-1.5 text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white disabled:bg-gray-100 disabled:text-gray-700"
-              >
-                <option value="">Select Rating</option>
-                <option value="tier1">Rating 1</option>
-                <option value="tier2">Rating 2</option>
-                <option value="tier3">Rating 3</option>
-                <option value="tier4">Rating 4</option>
-                <option value="tier5">Rating 5</option>
-              </select>
+                onChange={(v) => setTier(v)}
+                customWidth="w-[10rem]"
+                className=""
+              />
             </div>
           </div>
 

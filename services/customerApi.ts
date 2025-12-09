@@ -1,8 +1,16 @@
 import apiClient from "@/services/apiClient"; 
 
-export const createCustomer = async (customerData: any) => {
+export const createCustomer = async (formData: FormData) => {
   try {
-    const response = await apiClient.post("/customer/create-customer", customerData);
+    const response = await apiClient.post(
+      "/customer/create-customer",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
     return response.data;
   } catch (error: any) {
     console.error("Failed to create customer:", error);

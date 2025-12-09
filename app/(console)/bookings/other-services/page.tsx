@@ -368,7 +368,19 @@ const OSBookingsPage = () => {
 
       if (response.success && response.data) {
         const raw: any = response.data;
-        setQuotations((raw?.quotations as any[]) || (raw as any[]));
+        const allQuotations =
+          (raw?.quotations as any[]) || (raw as any[]) || [];
+
+        // on the Bookings tab, show only quotations that do NOT have
+        // the `serviceStatus` property.
+        let toShow = allQuotations;
+        if (activeTab === "Bookings") {
+          toShow = allQuotations.filter((q: any) => {
+            return !Object.prototype.hasOwnProperty.call(q, "serviceStatus");
+          });
+        }
+
+        setQuotations(toShow);
         // calculateSummaryData(response.data?.quotations);
       } else {
         throw new Error(response.message || "Failed to load quotations");
@@ -384,6 +396,7 @@ const OSBookingsPage = () => {
     filters.bookingEndDate,
     filters.tripStartDate,
     filters.tripEndDate,
+    activeTab,
   ]);
 
   // Load drafts from backend (quotations with serviceStatus = 'draft')

@@ -873,11 +873,19 @@ export class BookingApiService {
   }
 
   // Create quotation
-  static async createQuotation(bookingData: any): Promise<ApiResponse<unknown>> {
+  static async createQuotation(formDataToSend: FormData): Promise<ApiResponse<unknown>> {
     try {
       // Get user info
      
-      const response = await apiClient.post('/quotation/create-quotation', bookingData);
+      const response = await apiClient.post(
+      "/quotation/create-quotation",
+      formDataToSend,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
 
       return {
         success: true,
