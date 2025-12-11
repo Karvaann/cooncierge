@@ -254,6 +254,34 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     ].filter((id: string) => id && id.trim() !== "");
 
     // Build final object
+
+    const bookingDataTemp = new FormData();
+
+    bookingDataTemp.append("quotationType", quotationType);
+    bookingDataTemp.append("channel", "B2C");
+    bookingDataTemp.append("businessId", businessId._id);
+    bookingDataTemp.append("formFields", JSON.stringify(formFields));
+    bookingDataTemp.append("totalAmount", String(flatInfoForm.sellingprice));
+    
+    bookingDataTemp.append("status", flatInfoForm.bookingstatus);
+    bookingDataTemp.append("serviceStatus", serviceStatus);
+    bookingDataTemp.append("createdAt", new Date().toISOString());
+    bookingDataTemp.append("updatedAt", new Date().toISOString());
+    [input.bookingOwner].map((o: string) => {
+      bookingDataTemp.append("owner[]", o);
+    });
+    bookingDataTemp.append("travelDate", traveldate || flatInfoForm.traveldate);
+    bookingDataTemp.append("customerId", input.customer);
+    bookingDataTemp.append("vendorId", input.vendor);
+    bookingDataTemp.append("travelers", JSON.stringify(travelers));
+    bookingDataTemp.append("adultTravlers", String(adults ?? 0));
+    bookingDataTemp.append("childTravlers", String(children ?? 0));
+    bookingDataTemp.append("remarks", remarks ?? "");
+    bookingDocuments.map((file) => {
+      bookingDataTemp.append("documents", file);
+    });
+    bookingDataTemp.append("customId", "OS-992CV");
+
     const bookingData = {
       quotationType, // replace if needed
       channel: "B2C",
@@ -291,7 +319,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       remarks: remarks ?? "",
     };
 
-    return bookingData;
+    return bookingDataTemp;
   }
 
   const handleDraftSubmit = useCallback(async () => {
@@ -397,16 +425,16 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         "approved"
       );
 
-      const formDataToSend = new FormData();
-      formDataToSend.append("data", JSON.stringify(bookingData));
+      // const formDataToSend = new FormData();
+      // formDataToSend.append("data", JSON.stringify(bookingData));
 
-      bookingDocuments.forEach((file) => {
-        formDataToSend.append("documents", file);
-      });
+      // bookingDocuments.forEach((file) => {
+      //   formDataToSend.append("documents", file);
+      // });
 
       console.log("Submitting Booking Data:", bookingData);
 
-      const response = await BookingApiService.createQuotation(formDataToSend);
+      const response = await BookingApiService.createQuotation(bookingData);
 
       if (response.success) {
         console.log("Booking created successfully!", response.data);

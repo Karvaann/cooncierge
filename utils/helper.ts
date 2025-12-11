@@ -232,3 +232,36 @@ export const formatServiceType = (type: string): string => {
 };
 
 
+
+function generateCode() {
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  const digits = "0123456789";
+
+  // pick at least 2 letters
+  let result = [
+    letters[Math.floor(Math.random() * letters.length)],
+    letters[Math.floor(Math.random() * letters.length)],
+  ];
+
+  // pick at least 2 digits
+  result.push(
+    digits[Math.floor(Math.random() * digits.length)],
+    digits[Math.floor(Math.random() * digits.length)]
+  );
+
+  // add 1 more random character (letter or digit)
+  const all = letters + digits;
+  result.push(all[Math.floor(Math.random() * all.length)]);
+
+  // shuffle the array
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+
+  // join to string
+  return result.join("");
+}
+
+console.log(generateCode());
+
