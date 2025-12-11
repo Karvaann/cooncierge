@@ -8,7 +8,7 @@ interface ModalProps {
   onClose: () => void;
   children: React.ReactNode;
   title?: string;
-  subtitle?: string; // ✅ Added optional subtitle for better structure
+  subtitle?: string; // Added optional subtitle for better structure
   customWidth?: string;
   customeHeight?: string;
   size?: "sm" | "md" | "lg" | "xl" | "full";

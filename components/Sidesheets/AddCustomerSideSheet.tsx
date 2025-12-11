@@ -591,7 +591,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             </div>
 
             <div className="text-red-600 text-[0.65rem]">
-              Max 3 documents (5MB each)
+              Note: Maximum of 3 files can be uploaded
             </div>
           </div>
 

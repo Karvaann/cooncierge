@@ -231,3 +231,4 @@ export const formatServiceType = (type: string): string => {
   return map[normalized] || type;
 };
 
+

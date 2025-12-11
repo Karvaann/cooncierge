@@ -78,17 +78,18 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   const [customerSellingAmount, setCustomerSellingAmount] = useState("");
   const [commissionCurrency, setCommissionCurrency] = useState("INR");
   const [commissionAmount, setCommissionAmount] = useState("");
-  // Vendor payment summary (advanced pricing)
+  // Advanced pricing vendor payment summary states
+  const [vendorBasePrice, setVendorBasePrice] = useState<string>("");
+  const [vendorIncentiveReceived, setVendorIncentiveReceived] =
+    useState<string>("");
   const [commissionPaid, setCommissionPaid] = useState<string>("");
-  const [commissionReceived, setCommissionReceived] = useState<string>("");
-  const [partnerPayout, setPartnerPayout] = useState<string>("");
 
   const derivedCostPrice = useMemo(() => {
-    const a = Number(commissionPaid) || 0;
-    const b = Number(commissionReceived) || 0;
-    const c = Number(partnerPayout) || 0;
-    return a + b + c;
-  }, [commissionPaid, commissionReceived, partnerPayout]);
+    const a = Number(vendorBasePrice) || 0;
+    const b = Number(vendorIncentiveReceived) || 0;
+    const c = Number(commissionPaid) || 0;
+    return a - b + c;
+  }, [commissionPaid, vendorBasePrice, vendorIncentiveReceived]);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
@@ -488,7 +489,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                       value={formData.costprice}
                       onChange={handleChange}
                       placeholder="Enter Cost Price"
-                      className="w-[20rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
+                      className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                     />
                   </div>
                 </div>
@@ -513,7 +514,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                       value={formData.sellingprice}
                       onChange={handleChange}
                       placeholder="Enter Selling Price"
-                      className="w-[20rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
+                      className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                     />
                   </div>
                 </div>
@@ -556,9 +557,9 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 </h4>
                 <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
                   {[
-                    { label: "Comission Paid", key: "paid" },
-                    { label: "Comission Received", key: "received" },
-                    { label: "Partner Payout", key: "payout" },
+                    { label: "Vendor Base Price", key: "price" },
+                    { label: "Vendor Incentive Received", key: "received" },
+                    { label: "Commission Paid", key: "payout" },
                     { label: "Cost Price", key: "cost" },
                   ].map((item, index) => (
                     <div
@@ -579,18 +580,18 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                             type="text"
                             placeholder="Enter Amount"
                             value={
-                              item.key === "paid"
-                                ? commissionPaid
+                              item.key === "price"
+                                ? vendorBasePrice
                                 : item.key === "received"
-                                ? commissionReceived
-                                : partnerPayout
+                                ? vendorIncentiveReceived
+                                : commissionPaid
                             }
                             onChange={(e) => {
                               const val = e.target.value;
-                              if (item.key === "paid") setCommissionPaid(val);
+                              if (item.key === "price") setVendorBasePrice(val);
                               else if (item.key === "received")
-                                setCommissionReceived(val);
-                              else setPartnerPayout(val);
+                                setVendorIncentiveReceived(val);
+                              else setCommissionPaid(val);
                             }}
                             className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-300 focus:outline-none"
                           />
@@ -711,7 +712,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         </div>
 
         {/* ID PROOFS */}
-        <div className="border border-gray-200 rounded-[12px] p-3">
+        <div className=" w-[98%] ml-2 border border-gray-200 rounded-[12px] p-3">
           <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 

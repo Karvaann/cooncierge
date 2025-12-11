@@ -4,13 +4,7 @@ export const createCustomer = async (formData: FormData) => {
   try {
     const response = await apiClient.post(
       "/customer/create-customer",
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
+      formData);
     return response.data;
   } catch (error: any) {
     console.error("Failed to create customer:", error);
@@ -73,6 +67,20 @@ export const getBookingHistoryByCustomer = async (
     return response.data.data; // contains: quotations, pagination, customer
   } catch (error: any) {
     console.error("Failed to fetch booking history:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+
+// Merge customers: primaryCustomerId (string), secondaryCustomersId (string[])
+export const mergeCustomers = async (payload: {
+  primaryCustomerId: string;
+  secondaryCustomersId: string[];
+}) => {
+  try {
+    const response = await apiClient.post("/customer/merge-customers", payload);
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to merge customers:", error);
     throw error.response?.data || { message: "Something went wrong" };
   }
 };

@@ -8,19 +8,22 @@ import React, {
   useRef,
 } from "react";
 import { LuEye } from "react-icons/lu";
-import { GoPlusCircle } from "react-icons/go";
-import { BsPlusSquareFill } from "react-icons/bs";
 import { CiSearch } from "react-icons/ci";
 import { FiMinus } from "react-icons/fi";
 import { GoPlus } from "react-icons/go";
-// import { validateGeneralInfo } from "@/services/bookingApi";
 import { useBooking } from "@/context/BookingContext";
 import Fuse from "fuse.js";
-import { getCustomers } from "@/services/customerApi";
+import { getCustomers, getCustomerById } from "@/services/customerApi";
+import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
+import { getVendorById } from "@/services/vendorApi";
+import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
 import { getVendors } from "@/services/vendorApi";
 import { getTeams } from "@/services/teamsApi";
 import { getTravellers } from "@/services/travellerApi";
 import DropDown from "@/components/DropDown";
+import { getTravellerById } from "@/services/travellerApi";
+import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerForm";
+import { FiTrash2 } from "react-icons/fi";
 
 // Type definitions
 interface GeneralInfoFormData {
@@ -251,12 +254,21 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     { id: "", name: "" },
   ]);
 
+  // View customer sidesheet state
+  const [isViewCustomerOpen, setIsViewCustomerOpen] = useState(false);
+  const [viewCustomerData, setViewCustomerData] = useState<any | null>(null);
+  // View vendor sidesheet state
+  const [isViewVendorOpen, setIsViewVendorOpen] = useState(false);
+  const [viewVendorData, setViewVendorData] = useState<any | null>(null);
+  // View traveller sidesheet state
+  const [isViewTravellerOpen, setIsViewTravellerOpen] = useState(false);
+  const [viewTravellerData, setViewTravellerData] = useState<any | null>(null);
+
   // Add refs for click-outside detection
   const customerRef = useRef<HTMLDivElement | null>(null);
   const vendorRef = useRef<HTMLDivElement | null>(null);
   const teamsRef = useRef<HTMLDivElement | null>(null);
   const travellerRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
-
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
       const target = e.target as Node;
@@ -323,6 +335,95 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     onAddDocuments?.(selected);
 
     if (fileRef.current) fileRef.current.value = "";
+  };
+
+  // Handler to open view sidesheet for customer
+  const handleViewCustomer = async (index: number) => {
+    const idFromList = customerList[index]?.id;
+    const id = idFromList || (formData.customer as string) || "";
+    if (!id) return;
+
+    // Try local cache first
+    let cust = allCustomers.find((c) => c._id === id || c.id === id);
+    if (!cust) {
+      try {
+        cust = await getCustomerById(id);
+      } catch (err) {
+        console.error("Failed to fetch customer for view:", err);
+        return;
+      }
+    }
+
+    setViewCustomerData(cust || null);
+    setIsViewCustomerOpen(true);
+  };
+
+  // Handler to open view sidesheet for vendor
+  const handleViewVendor = async () => {
+    // vendorList[0] is used as single vendor selection in this form
+    const idFromList = vendorList?.[0]?.id;
+    const id = idFromList || (formData.vendor as string) || "";
+    if (!id) return;
+
+    let vendor = allVendors.find((v) => v._id === id || v.id === id);
+    if (!vendor) {
+      try {
+        vendor = await getVendorById(id);
+      } catch (err) {
+        console.error("Failed to fetch vendor for view:", err);
+        return;
+      }
+    }
+
+    setViewVendorData(vendor || null);
+    setIsViewVendorOpen(true);
+  };
+
+  // Handler to open view sidesheet for traveller
+  const handleViewTraveller = async (
+    type: "adultTravellers" | "infantTravellers",
+    index: number
+  ) => {
+    const idsArray =
+      type === "adultTravellers"
+        ? formData.adultTravellerIds
+        : formData.infantTravellerIds;
+    const nameArray = formData[type];
+
+    const idFromState = idsArray?.[index];
+    const nameFromState = nameArray?.[index] || "";
+
+    let traveller: any = undefined;
+
+    // Try cached list first (match by id or name)
+    if (idFromState) {
+      traveller = allTravellers.find(
+        (t) => t._id === idFromState || t.id === idFromState
+      );
+    }
+
+    if (!traveller && nameFromState) {
+      traveller = allTravellers.find(
+        (t) => t.name === nameFromState || t.email === nameFromState
+      );
+    }
+
+    if (!traveller && idFromState) {
+      try {
+        traveller = await getTravellerById(idFromState);
+      } catch (err) {
+        console.error("Failed to fetch traveller by id:", err);
+        return;
+      }
+    }
+
+    if (!traveller) {
+      // nothing to view
+      return;
+    }
+
+    setViewTravellerData(traveller || null);
+    setIsViewTravellerOpen(true);
   };
 
   const handleDeleteFile = (index: number) => {
@@ -595,7 +696,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     value?: string | undefined; // override value
     overrideSetter?: (val: string) => void;
     onClickPlus?: () => void; // for add customer/vendor modal
-  }> = ({ fieldName, value, overrideSetter, onClickPlus }) => {
+    onClickView?: () => void;
+  }> = ({ fieldName, value, overrideSetter, onClickPlus, onClickView }) => {
     const actualValue = getFieldValue(fieldName, value);
     const valueString = String(actualValue ?? "");
     const isEmpty = valueString.trim() === "";
@@ -617,6 +719,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           <>
             <button
               type="button"
+              onClick={onClickView}
               className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
             >
               <LuEye size={17} className="text-gray-400" />
@@ -967,33 +1070,69 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                 {activeCustomerIndex === index && showCustomerDropdown && (
                   <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] max-h-60 mt-1 overflow-y-auto shadow-md z-50">
-                    {customerResults.map((cust) => (
-                      <div
-                        key={cust._id}
-                        className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
-                        onClick={() => {
-                          updateCustomerField(index, {
-                            id: cust._id,
-                            name: cust.name,
-                          });
-                          setActiveCustomerIndex(null);
-                          // Sync main form and notify parent with both ID and name
-                          const newFormData = {
-                            ...formData,
-                            customer: cust._id,
-                            customerName: cust.name,
-                          };
-                          setFormData(newFormData);
-                          onFormDataUpdate?.(newFormData);
-                          setShowCustomerDropdown(false);
-                        }}
-                      >
-                        <p className="font-medium text-[0.75rem]">
-                          {cust.name}
-                        </p>
-                        {/* <p className="text-xs text-gray-500">{cust.email}</p> */}
-                      </div>
-                    ))}
+                    {customerResults.map((cust) => {
+                      // derive numeric rating (1-5) from cust.tier if available
+                      let rating = 4;
+                      try {
+                        if (cust?.tier) {
+                          if (typeof cust.tier === "string") {
+                            const match = cust.tier.match(/\d+/);
+                            if (match) rating = Number(match[0]);
+                          } else if (typeof cust.tier === "number") {
+                            rating = Math.round(cust.tier);
+                          }
+                        }
+                      } catch (e) {
+                        rating = 4;
+                      }
+                      rating = Math.min(Math.max(rating || 4, 1), 5);
+
+                      return (
+                        <div
+                          key={cust._id}
+                          className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
+                          onClick={() => {
+                            updateCustomerField(index, {
+                              id: cust._id,
+                              name: cust.name,
+                            });
+                            setActiveCustomerIndex(null);
+                            // Sync main form and notify parent with both ID and name
+                            const newFormData = {
+                              ...formData,
+                              customer: cust._id,
+                              customerName: cust.name,
+                            };
+                            setFormData(newFormData);
+                            onFormDataUpdate?.(newFormData);
+                            setShowCustomerDropdown(false);
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                              <p className="font-medium text-[0.75rem] text-gray-900">
+                                {cust.name}
+                              </p>
+                              <span className="text-gray-300">|</span>
+                              <p className="text-[0.70rem] text-gray-600 truncate">
+                                {cust._id}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <img
+                                src={`/icons/tier-${rating}.png`}
+                                alt={`Tier ${rating}`}
+                                className="w-4 h-4 object-contain"
+                              />
+                              <span className="text-[0.75rem] font-semibold text-gray-700">
+                                {rating}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                     {/* Staple option */}
                     {/* <div
                       className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
@@ -1022,6 +1161,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   })
                 }
                 onClickPlus={openAddCustomer}
+                onClickView={() => handleViewCustomer(index)}
               />
             </div>
           </div>
@@ -1073,30 +1213,69 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
             {showVendorDropdown && (
               <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-                {vendorResults.map((v) => (
-                  <div
-                    key={v._id}
-                    className="p-2 cursor-pointer hover:bg-gray-100"
-                    onClick={() => {
-                      setShowVendorDropdown(false);
-                      setVendorList([
-                        { id: v._id, name: v.name ?? v.contactPerson ?? "" },
-                      ]);
-                      const newFormData = {
-                        ...formData,
-                        vendor: v._id,
-                        vendorName: v.name ?? v.contactPerson ?? "",
-                      };
-                      setFormData(newFormData);
-                      onFormDataUpdate?.(newFormData);
-                    }}
-                  >
-                    <p className="font-normal text-[0.75rem]">
-                      {v.name || v.contactPerson}
-                    </p>
-                    {/* <p className="text-xs text-gray-500">{v.email}</p> */}
-                  </div>
-                ))}
+                {vendorResults.map((v) => {
+                  // derive rating only if tier present
+                  let rating: number | null = null;
+                  try {
+                    if (v?.tier) {
+                      if (typeof v.tier === "string") {
+                        const m = v.tier.match(/\d+/);
+                        if (m) rating = Number(m[0]);
+                      } else if (typeof v.tier === "number") {
+                        rating = Math.round(v.tier);
+                      }
+                    }
+                  } catch (e) {
+                    rating = null;
+                  }
+                  if (rating !== null)
+                    rating = Math.min(Math.max(rating, 1), 5);
+
+                  return (
+                    <div
+                      key={v._id}
+                      className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
+                      onClick={() => {
+                        setShowVendorDropdown(false);
+                        setVendorList([
+                          { id: v._id, name: v.name ?? v.contactPerson ?? "" },
+                        ]);
+                        const newFormData = {
+                          ...formData,
+                          vendor: v._id,
+                          vendorName: v.name ?? v.contactPerson ?? "",
+                        };
+                        setFormData(newFormData);
+                        onFormDataUpdate?.(newFormData);
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <p className="font-normal text-[0.75rem] text-gray-900">
+                            {v.name || v.contactPerson}
+                          </p>
+                          <span className="text-gray-300">|</span>
+                          <p className="text-[0.70rem] text-gray-600 truncate">
+                            {v._id}
+                          </p>
+                        </div>
+
+                        {rating !== null ? (
+                          <div className="flex items-center gap-1">
+                            <img
+                              src={`/icons/tier-${rating}.png`}
+                              alt={`Tier ${rating}`}
+                              className="w-4 h-4 object-contain"
+                            />
+                            <span className="text-[0.75rem] font-semibold text-gray-700">
+                              {rating}
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
                 {/* Staple option */}
                 {/* <div
                   className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
@@ -1119,6 +1298,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             value={vendorList[0]?.name ?? ""}
             overrideSetter={(val) => setVendorList([{ id: "", name: val }])}
             onClickPlus={openAddVendor}
+            onClickView={() => handleViewVendor()}
           />
         </div>
       </div>
@@ -1236,7 +1416,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       {travellerResults.map((t: any) => (
                         <div
                           key={t._id}
-                          className="p-2 cursor-pointer hover:bg-gray-100"
+                          className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
                           onClick={() => {
                             updateTraveller(
                               "adultTravellers",
@@ -1248,19 +1428,60 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             setTravellerResults([]);
                           }}
                         >
-                          <p className="font-normal text-[0.75rem]">{t.name}</p>
-                          {t.email && (
-                            <p className="text-xs text-gray-500">{t.email}</p>
-                          )}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                              <p className="font-normal text-[0.75rem] text-gray-900">
+                                {t.name}
+                              </p>
+                              <span className="text-gray-300">|</span>
+                              <p className="text-[0.70rem] text-gray-600 truncate">
+                                {t._id}
+                              </p>
+                            </div>
+
+                            {/* show rating only when available */}
+                            {(() => {
+                              let rating: number | null = null;
+                              try {
+                                if (t?.tier) {
+                                  if (typeof t.tier === "string") {
+                                    const m = t.tier.match(/\d+/);
+                                    if (m) rating = Number(m[0]);
+                                  } else if (typeof t.tier === "number") {
+                                    rating = Math.round(t.tier);
+                                  }
+                                }
+                              } catch (e) {
+                                rating = null;
+                              }
+                              if (rating !== null) {
+                                rating = Math.min(Math.max(rating, 1), 5);
+                                return (
+                                  <div className="flex items-center gap-1">
+                                    <img
+                                      src={`/icons/tier-${rating}.png`}
+                                      alt={`Tier ${rating}`}
+                                      className="w-4 h-4 object-contain"
+                                    />
+                                    <span className="text-[0.75rem] font-semibold text-gray-700">
+                                      {rating}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
                         </div>
                       ))}
                       {/* Staple option */}
                       <div
                         className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
                         onClick={() => {
-                          setVendorList([{ id: "", name: "TBA" }]);
-                          setFormData((prev) => ({ ...prev, vendor: "" }));
-                          setShowVendorDropdown(false);
+                          // Set this traveller to TBA (To Be Announced)
+                          updateTraveller("adultTravellers", index, "TBA");
+                          setActiveTravellerDropdown(null);
+                          setTravellerResults([]);
                         }}
                       >
                         <p className="font-medium text-[0.70rem] text-gray-700">
@@ -1280,6 +1501,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 onClickPlus={() =>
                   openAddTraveller({ type: "adultTravellers", index })
                 }
+                onClickView={() =>
+                  handleViewTraveller("adultTravellers", index)
+                }
               />
             </div>
           ))}
@@ -1295,7 +1519,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   Children
                 </label>
 
-                {/* Select age dropdown (always aligned top-right) */}
+                {/* Select age dropdown */}
                 <DropDown
                   options={Array.from({ length: 10 }, (_, i) => ({
                     value: String(i + 1),
@@ -1355,36 +1579,73 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     activeTravellerDropdown?.index === index &&
                     travellerResults.length > 0 && (
                       <div className="absolute bg-white border border-gray-200 rounded-md w-full mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-                        {travellerResults.map((t: any) => (
-                          <div
-                            key={t._id}
-                            className="p-2 cursor-pointer hover:bg-gray-100"
-                            onClick={() => {
-                              updateTraveller(
-                                "infantTravellers",
-                                index,
-                                t.name,
-                                t._id
-                              );
-                              setActiveTravellerDropdown(null);
-                              setTravellerResults([]);
-                            }}
-                          >
-                            <p className="font-normal text-[0.75rem]">
-                              {t.name}
-                            </p>
-                            {t.email && (
-                              <p className="text-xs text-gray-500">{t.email}</p>
-                            )}
-                          </div>
-                        ))}
+                        {travellerResults.map((t: any) => {
+                          let rating: number | null = null;
+                          try {
+                            if (t?.tier) {
+                              if (typeof t.tier === "string") {
+                                const m = t.tier.match(/\d+/);
+                                if (m) rating = Number(m[0]);
+                              } else if (typeof t.tier === "number") {
+                                rating = Math.round(t.tier);
+                              }
+                            }
+                          } catch (e) {
+                            rating = null;
+                          }
+                          if (rating !== null)
+                            rating = Math.min(Math.max(rating, 1), 5);
+
+                          return (
+                            <div
+                              key={t._id}
+                              className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
+                              onClick={() => {
+                                updateTraveller(
+                                  "infantTravellers",
+                                  index,
+                                  t.name,
+                                  t._id
+                                );
+                                setActiveTravellerDropdown(null);
+                                setTravellerResults([]);
+                              }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1">
+                                  <p className="font-normal text-[0.75rem] text-gray-900">
+                                    {t.name}
+                                  </p>
+                                  <span className="text-gray-300">|</span>
+                                  <p className="text-[0.70rem] text-gray-600 truncate">
+                                    {t._id}
+                                  </p>
+                                </div>
+
+                                {rating !== null ? (
+                                  <div className="flex items-center gap-1">
+                                    <img
+                                      src={`/icons/tier-${rating}.png`}
+                                      alt={`Tier ${rating}`}
+                                      className="w-4 h-4 object-contain"
+                                    />
+                                    <span className="text-[0.75rem] font-semibold text-gray-700">
+                                      {rating}
+                                    </span>
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                          );
+                        })}
                         {/* Staple option */}
                         <div
                           className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
                           onClick={() => {
-                            setVendorList([{ id: "", name: "TBA" }]);
-                            setFormData((prev) => ({ ...prev, vendor: "" }));
-                            setShowVendorDropdown(false);
+                            // Set this infant traveller to TBA
+                            updateTraveller("infantTravellers", index, "TBA");
+                            setActiveTravellerDropdown(null);
+                            setTravellerResults([]);
                           }}
                         >
                           <p className="font-medium text-[0.70rem] text-gray-700">
@@ -1403,6 +1664,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   }
                   onClickPlus={() =>
                     openAddTraveller({ type: "infantTravellers", index })
+                  }
+                  onClickView={() =>
+                    handleViewTraveller("infantTravellers", index)
                   }
                 />
               </div>
@@ -1515,14 +1779,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 onClick={() => handleDeleteFile(i)}
                 className="text-red-500 hover:text-red-700"
               >
-                ❌
+                <FiTrash2 size={14} />
               </button>
             </div>
           ))}
         </div>
 
         <div className="text-red-600 text-[0.65rem]">
-          Maximum 3 files allowed, 5MB each
+          Note: Maximum of 3 files can be uploaded
         </div>
       </div>
 
@@ -1547,6 +1811,42 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           `}
         />
       </div>
+
+      {/* View customer sidesheet (read-only) */}
+      {isViewCustomerOpen && (
+        <AddCustomerSideSheet
+          isOpen={isViewCustomerOpen}
+          onCancel={() => {
+            setIsViewCustomerOpen(false);
+            setViewCustomerData(null);
+          }}
+          mode="view"
+          data={viewCustomerData}
+        />
+      )}
+
+      {isViewVendorOpen && (
+        <AddVendorSideSheet
+          isOpen={isViewVendorOpen}
+          onCancel={() => {
+            setIsViewVendorOpen(false);
+            setViewVendorData(null);
+          }}
+          mode="view"
+          data={viewVendorData}
+        />
+      )}
+      {isViewTravellerOpen && (
+        <AddNewTravellerForm
+          isOpen={isViewTravellerOpen}
+          onClose={() => {
+            setIsViewTravellerOpen(false);
+            setViewTravellerData(null);
+          }}
+          mode="view"
+          data={viewTravellerData}
+        />
+      )}
 
       {/* Submit Button (if standalone) */}
       {/* {onSubmit && (

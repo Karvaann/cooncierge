@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
+import SingleCalendar from "@/components/SingleCalendar";
 import { validateTravellerForm } from "@/services/bookingApi";
 import SideSheet from "@/components/SideSheet";
 import { useBooking } from "@/context/BookingContext";
@@ -229,6 +230,35 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
     [validateField, showValidation]
   );
 
+  // Handle date of birth changes coming from SingleCalendar (ISO string)
+  const handleDOBChange = (isoDate: string) => {
+    if (!isoDate) {
+      setFormData((prev) => ({ ...prev, dateofbirth: "" }));
+      setErrors((prev) => ({ ...prev, dateofbirth: "" }));
+      setTouched((prev) => ({ ...prev, dateofbirth: true }));
+      return;
+    }
+
+    const date = new Date(isoDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+
+    if (d > today) {
+      setErrors((prev) => ({
+        ...prev,
+        dateofbirth: "Date of birth cannot be in the future",
+      }));
+      setTouched((prev) => ({ ...prev, dateofbirth: true }));
+      return;
+    }
+
+    setErrors((prev) => ({ ...prev, dateofbirth: "" }));
+    setFormData((prev) => ({ ...prev, dateofbirth: date.toISOString() }));
+    setTouched((prev) => ({ ...prev, dateofbirth: true }));
+  };
+
   // Handle form submission
   const handleSubmit = useCallback(
     async (e?: React.FormEvent) => {
@@ -452,7 +482,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
             <div className="flex flex-col gap-1">
               <label className="block text-[0.75rem] font-medium text-gray-700">
-                Last Name <span className="text-red-500">*</span>
+                Last Name
               </label>
               <input
                 name="lastname"
@@ -468,7 +498,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
             <div className="flex flex-col gap-1">
               <label className="block text-[0.75rem] font-medium text-gray-700">
-                Nickname/Alias <span className="text-red-500">*</span>
+                Nickname/Alias
               </label>
               <input
                 name="nickname"
@@ -487,7 +517,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1">
               <label className="block text-[0.75rem] font-medium text-gray-700">
-                Contact Number <span className="text-red-500">*</span>
+                Contact Number
               </label>
               <input
                 type="text"
@@ -503,7 +533,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
             <div className="flex flex-col gap-1">
               <label className="block text-[0.75rem] font-medium text-gray-700">
-                Email ID <span className="text-red-500">*</span>
+                Email ID
               </label>
               <input
                 name="emailId"
@@ -519,18 +549,23 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
             <div className="flex flex-col gap-1">
               <label className="block text-[0.75rem] font-medium text-gray-700">
-                Date of Birth <span className="text-red-500">*</span>
+                Date of Birth
               </label>
-              <input
-                type="date"
-                name="dateofbirth"
-                value={formData.dateofbirth}
-                onChange={handleChange}
-                placeholder="DD-MM-YYYY"
-                required
-                disabled={readOnly}
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
-              />
+              <div className="">
+                <SingleCalendar
+                  value={String(formData.dateofbirth || "")}
+                  onChange={(iso) => handleDOBChange(iso)}
+                  placeholder="DD-MM-YYYY"
+                  customWidth="w-full py-2 text-[0.75rem]"
+                  showCalendarIcon={true}
+                  readOnly={readOnly}
+                />
+                {errors.dateofbirth && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.dateofbirth}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -2,7 +2,11 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { validateAccommodationInfoForm } from "@/services/bookingApi";
-import { MdOutlineFileUpload } from "react-icons/md";
+import {
+  MdOutlineFileUpload,
+  MdKeyboardArrowDown,
+  MdOutlineKeyboardArrowUp,
+} from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
 import HotelLayout from "./HotelLayout";
 import { useRef } from "react";
@@ -10,6 +14,7 @@ import VillaLayout from "./VillaLayout";
 import { CiSearch } from "react-icons/ci";
 import DropDown from "@/components/DropDown";
 import SingleCalendar from "@/components/SingleCalendar";
+import StyledDescription from "@/components/StyledDescription";
 // Type definitions
 interface AccommodationInfoFormData {
   bookingdate: string;
@@ -208,22 +213,12 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
   // Advanced Pricing State
   const [showAdvancedPricing, setShowAdvancedPricing] = useState(false);
-  const [vendorCurrency, setVendorCurrency] = useState("USD");
-  const [vendorAmount, setVendorAmount] = useState("");
-  const [vendorROE, setVendorROE] = useState("88.05");
-  const [vendorINR, setVendorINR] = useState("0");
-  const [bankChargesCurrency, setBankChargesCurrency] = useState("INR");
-  const [bankChargesAmount, setBankChargesAmount] = useState("");
-  const [cashbackCurrency, setCashbackCurrency] = useState("INR");
-  const [cashbackAmount, setCashbackAmount] = useState("");
-  const [cashbackMethod, setCashbackMethod] = useState("Wallet");
-  const [customerSellingCurrency, setCustomerSellingCurrency] = useState("INR");
-  const [customerSellingAmount, setCustomerSellingAmount] = useState("");
-  const [commissionCurrency, setCommissionCurrency] = useState("INR");
-  const [commissionAmount, setCommissionAmount] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+
+  // Villa type controlled by parent: 'entire' or 'shared'
+  const [villaType, setVillaType] = useState<"entire" | "shared">("entire");
 
   // Handle selecting multiple files
   const handleFileChange = () => {
@@ -259,6 +254,23 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
       ...prev,
       segments: updatedSegments,
     }));
+  };
+
+  // Handle total rooms change when Villa is selected and mode is entire
+  const handleVillaRoomCountChange = (newCount: number) => {
+    if (newCount < 1) return;
+    const current = formData.segments || [];
+
+    if (newCount > current.length) {
+      const newSegments: RoomSegment[] = [...current];
+      for (let i = current.length; i < newCount; i++) {
+        const roomId = `room-${i + 1}`;
+        newSegments.push({ id: roomId, roomCategory: "", bedType: "" });
+      }
+      handleSegmentsChange(newSegments);
+    } else if (newCount < current.length) {
+      handleSegmentsChange(current.slice(0, newCount));
+    }
   };
 
   useEffect(() => {
@@ -1050,21 +1062,62 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
                 Select Accommodation Type
               </label>
-              <div className="relative w-[27%] mb-2">
-                <DropDown
-                  options={[
-                    { value: "Hotel", label: "Hotel" },
-                    { value: "Resort", label: "Resort" },
-                    { value: "Hostel", label: "Hostel" },
-                    { value: "Villa", label: "Villa" },
-                  ]}
-                  placeholder="Select Stay Type"
-                  value={formData.accommodationType}
-                  onChange={(val) =>
-                    setFormData((prev) => ({ ...prev, accommodationType: val }))
-                  }
-                  customWidth="w-full"
-                />
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-[27%]">
+                  <DropDown
+                    options={[
+                      { value: "Hotel", label: "Hotel" },
+                      { value: "Resort", label: "Resort" },
+                      { value: "Hostel", label: "Hostel" },
+                      { value: "Villa", label: "Villa" },
+                    ]}
+                    placeholder="Select Stay Type"
+                    value={formData.accommodationType}
+                    onChange={(val) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        accommodationType: val,
+                      }));
+                      if (val !== "Villa") setVillaType("entire");
+                    }}
+                    customWidth="w-full"
+                  />
+                </div>
+
+                {/* Villa type radio buttons shown only when Villa is selected */}
+                {formData.accommodationType === "Villa" ? (
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="villaType"
+                        value="entire"
+                        checked={villaType === "entire"}
+                        onChange={() => setVillaType("entire")}
+                        className="w-3 h-3 accent-blue-600"
+                      />
+                      <span className="text-[0.75rem] text-gray-700 font-medium">
+                        Entire Villa
+                      </span>
+                    </label>
+
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="villaType"
+                        value="shared"
+                        checked={villaType === "shared"}
+                        onChange={() => setVillaType("shared")}
+                        className="w-3 h-3 accent-blue-600"
+                      />
+                      <span className="text-[0.75rem] text-gray-700 font-medium">
+                        Shared Villa
+                      </span>
+                    </label>
+                  </div>
+                ) : (
+                  <div />
+                )}
               </div>
 
               {formData.accommodationType && (
@@ -1134,6 +1187,61 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                         <MdOutlineFileUpload size={16} /> Copy Link
                       </button>
                     </div>
+
+                    {/* Total Rooms counter shown for Entire Villa */}
+                    {formData.accommodationType === "Villa" &&
+                      villaType === "entire" && (
+                        <div className="mt-3">
+                          <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                            Total Rooms
+                          </label>
+
+                          <div className="flex items-center gap-2">
+                            <div className="flex border border-gray-300 rounded-md overflow-hidden">
+                              <input
+                                type="number"
+                                value={formData.segments?.length || 0}
+                                onChange={(e) =>
+                                  handleVillaRoomCountChange(
+                                    parseInt(e.target.value) || 1
+                                  )
+                                }
+                                min="1"
+                                className="w-[2.2rem] px-1 py-1.5 text-[0.75rem] text-center border-none focus:outline-none bg-white"
+                              />
+
+                              <div className="flex flex-col border-l border-black">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleVillaRoomCountChange(
+                                      (formData.segments?.length || 0) + 1
+                                    )
+                                  }
+                                  className="px-[5px] py-[2px] rounded-tr-md text-[0.65rem] hover:bg-gray-100 border border-black border-b-0"
+                                >
+                                  <MdOutlineKeyboardArrowUp size={16} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleVillaRoomCountChange(
+                                      Math.max(
+                                        1,
+                                        (formData.segments?.length || 1) - 1
+                                      )
+                                    )
+                                  }
+                                  className="px-[5px] py-[2px] rounded-br-md text-[0.65rem] hover:bg-gray-100 border border-black"
+                                >
+                                  <MdKeyboardArrowDown size={16} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                   </div>
                 </>
               )}
@@ -1157,18 +1265,26 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   onSegmentsChange={handleSegmentsChange}
                 />
               )}
-              {formData.accommodationType === "Villa" && (
-                <VillaLayout
-                  segments={formData.segments}
-                  onSegmentsChange={handleSegmentsChange}
-                />
-              )}
+              {formData.accommodationType === "Villa" &&
+                villaType === "shared" && (
+                  <VillaLayout
+                    segments={formData.segments}
+                    onSegmentsChange={handleSegmentsChange}
+                    villaType={villaType}
+                  />
+                )}
+              <div className="-mt-1 space-y-3">
+                <StyledDescription label="Add Ons" />
+                <StyledDescription label="Special Requests" />
+                <StyledDescription label="Important Information" />
+                <StyledDescription label="Cancellation Policy" />
+              </div>
             </div>
           </div>
         </div>
 
         {/* ID PROOFS */}
-        <div className="border border-gray-200 rounded-[12px] p-3">
+        <div className="w-[98%] ml-2 border border-gray-200 rounded-[12px] p-3">
           <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
@@ -1214,7 +1330,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
           </div>
 
           <div className="text-red-600 text-[0.65rem]">
-            Max 3 documents (5MB each)
+            Note: Maximum of 3 files can be uploaded
           </div>
         </div>
 

@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, useState } from "react";
 import { FiDownload, FiTrash2 } from "react-icons/fi";
-import { FiCopy } from "react-icons/fi";
+import { TbLayersIntersect } from "react-icons/tb";
 import DownloadModal from "../Modals/DownloadModal";
 import MergeModal from "../Modals/MergeModal";
 import DeleteModal, { DeletableItem } from "../Modals/DeleteModal";
@@ -22,6 +22,10 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
   const [isDownloadModalOpen, setIsDownloadModalOpen] = React.useState(false);
   const [isMergeModalOpen, setIsMergeModalOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const containerClass = `absolute right-10 -mt-4 -translate-y-1/2 bg-white border border-gray-300 rounded-md shadow-xl w-[5.8rem] ${
+    entity === "team" ? "h-auto py-1" : "h-[4.8rem]"
+  } z-50`;
 
   const handleMergeClick = () => {
     setIsMergeModalOpen(true);
@@ -77,16 +81,11 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
 
   return (
     <>
-      <div
-        ref={menuRef}
-        className="absolute right-6 -mt-4 -translate-y-1/2 
-               bg-white border border-gray-200 rounded-md shadow-xl 
-               w-[5.8rem] h-[4.8rem] z-50"
-      >
+      <div ref={menuRef} className={containerClass}>
         {/* Arrow Tail */}
         <div
           className="absolute -right-2 top-1/2 -translate-y-1/2 
-                 w-3 h-3 bg-white border-t border-r border-gray-200 
+                 w-3 h-3 bg-white border-t border-r border-gray-300 
                  rotate-45"
         ></div>
 
@@ -103,21 +102,27 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
           </span>
         </button>
 
-        <hr className="border border-gray-100" />
+        {entity === "team" ? (
+          <hr className="border border-gray-100" />
+        ) : (
+          <>
+            <hr className="border border-gray-100" />
 
-        <button
-          // onClick={handleMergeClick}
-          className="w-full flex items-center gap-1 px-3 py-1 hover:bg-gray-50 transition-colors text-left"
-        >
-          <div className="flex items-center justify-center">
-            <FiCopy size={14} className="text-gray-800" />
-          </div>
-          <span className="text-gray-800 text-[0.65rem] font-medium">
-            Merge
-          </span>
-        </button>
+            <button
+              onClick={handleMergeClick}
+              className="w-full flex items-center gap-1 px-3 py-1 hover:bg-gray-50 transition-colors text-left"
+            >
+              <div className="flex items-center justify-center">
+                <TbLayersIntersect size={14} className="text-[#818181]" />
+              </div>
+              <span className="text-[#818181] text-[0.65rem] font-medium">
+                Merge
+              </span>
+            </button>
 
-        <hr className="border border-gray-100" />
+            <hr className="border border-gray-100" />
+          </>
+        )}
 
         <button
           onClick={() => setIsDeleteModalOpen(true)}
@@ -136,6 +141,7 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
       <MergeModal
         isOpen={isMergeModalOpen}
         onClose={() => setIsMergeModalOpen(false)}
+        items={items}
       />
       <DownloadModal
         isOpen={isDownloadModalOpen}

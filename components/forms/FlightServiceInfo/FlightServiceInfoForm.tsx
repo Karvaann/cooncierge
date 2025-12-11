@@ -664,7 +664,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                   {[
                     { label: "Vendor Base Price", key: "price" },
                     { label: "Vendor Incentive Received", key: "received" },
-                    { label: "Commission Paid", key: "paid" },
+                    { label: "Commission Paid", key: "payout" },
                     { label: "Cost Price", key: "cost" },
                   ].map((item, index) => (
                     <div
@@ -879,7 +879,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         </div>
 
         {/* ID PROOFS */}
-        <div className="border border-gray-200 rounded-[12px] p-3">
+        <div className=" w-[98%] ml-2 border border-gray-200 rounded-[12px] p-3">
           <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
@@ -925,7 +925,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
           </div>
 
           <div className="text-red-600 text-[0.65rem]">
-            Max 3 documents (5MB each)
+            Note: Maximum of 3 files can be uploaded
           </div>
         </div>
 

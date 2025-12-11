@@ -3,15 +3,9 @@ import apiClient from "@/services/apiClient";
 // CREATE Vendor
 export const createVendor = async (formData: FormData) => {
   try {
-     const response = await apiClient.post(
-      "/vendor/create-vendor",
-      formData,
-      {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      }
-    );
+    // Let the browser/axios set the Content-Type (including boundary)
+    // when sending FormData.
+    const response = await apiClient.post("/vendor/create-vendor", formData);
     return response.data.vendor; // <-- backend returns { vendor }
   } catch (error: any) {
     console.error("Failed to create vendor:", error);

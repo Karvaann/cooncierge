@@ -65,19 +65,19 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   // Advanced Pricing State
   const [showAdvancedPricing, setShowAdvancedPricing] = useState(false);
-  const [vendorCurrency, setVendorCurrency] = useState("USD");
-  const [vendorAmount, setVendorAmount] = useState("");
-  const [vendorROE, setVendorROE] = useState("88.05");
-  const [vendorINR, setVendorINR] = useState("0");
-  const [bankChargesCurrency, setBankChargesCurrency] = useState("INR");
-  const [bankChargesAmount, setBankChargesAmount] = useState("");
-  const [cashbackCurrency, setCashbackCurrency] = useState("INR");
-  const [cashbackAmount, setCashbackAmount] = useState("");
-  const [cashbackMethod, setCashbackMethod] = useState("Wallet");
-  const [customerSellingCurrency, setCustomerSellingCurrency] = useState("INR");
-  const [customerSellingAmount, setCustomerSellingAmount] = useState("");
-  const [commissionCurrency, setCommissionCurrency] = useState("INR");
-  const [commissionAmount, setCommissionAmount] = useState("");
+
+  // Vendor payment summary fields
+  const [vendorBasePrice, setVendorBasePrice] = useState<string>("");
+  const [vendorIncentiveReceived, setVendorIncentiveReceived] =
+    useState<string>("");
+  const [commissionPaid, setCommissionPaid] = useState<string>("");
+
+  const derivedCostPrice = useMemo(() => {
+    const a = Number(vendorBasePrice) || 0;
+    const b = Number(vendorIncentiveReceived) || 0;
+    const c = Number(commissionPaid) || 0;
+    return a - b + c;
+  }, [commissionPaid, vendorBasePrice, vendorIncentiveReceived]);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
@@ -476,7 +476,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                       value={formData.costprice}
                       onChange={handleChange}
                       placeholder="Enter Cost Price"
-                      className="w-[20rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md focus:outline-none"
+                      className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md focus:outline-none"
                     />
                   </div>
                 </div>
@@ -501,7 +501,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                       value={formData.sellingprice}
                       onChange={handleChange}
                       placeholder="Enter Selling Price"
-                      className="w-[20rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md focus:outline-none"
+                      className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md focus:outline-none"
                     />
                   </div>
                 </div>
@@ -547,50 +547,58 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
                 {/* Container */}
                 <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                  {/* Row */}
                   {[
-                    "Vendor Invoice (Base)",
-                    "Supplier Incentive Received",
-                    "Partner Payout",
-                    "Cost Price",
-                  ].map((label, index) => (
+                    { label: "Vendor Base Price", key: "price" },
+                    { label: "Vendor Incentive Received", key: "received" },
+                    { label: "Commission Paid", key: "payout" },
+                    { label: "Cost Price", key: "cost" },
+                  ].map((item, index) => (
                     <div
                       key={index}
                       className="grid grid-cols-12 border-b last:border-b-0 border-gray-200"
                     >
-                      {/* Left label */}
                       <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
-                        {label}
+                        {item.label}
                       </div>
-
-                      {/* Right inputs */}
                       <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
-                        {/* Rupee icon */}
-                        <div className="text-gray-600 text-[0.85rem] font-medium">
-                          ₹
-                        </div>
+                        {item.key !== "cost" && (
+                          <div className="text-gray-600 text-[0.85rem] font-medium">
+                            ₹
+                          </div>
+                        )}
 
-                        {/* Amount Input */}
-                        <input
-                          type="text"
-                          placeholder="Enter Amount"
-                          className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
-                        />
+                        {item.key !== "cost" ? (
+                          <input
+                            type="text"
+                            placeholder="Enter Amount"
+                            value={
+                              item.key === "price"
+                                ? vendorBasePrice
+                                : item.key === "received"
+                                ? vendorIncentiveReceived
+                                : commissionPaid
+                            }
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (item.key === "price") setVendorBasePrice(val);
+                              else if (item.key === "received")
+                                setVendorIncentiveReceived(val);
+                              else setCommissionPaid(val);
+                            }}
+                            className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                          />
+                        ) : (
+                          <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">
+                            {`₹ ${derivedCostPrice.toFixed(2)}`}
+                          </div>
+                        )}
 
-                        {/* Notes Input (only for rows that have it in screenshot) */}
-                        {label !== "Cost Price" && (
+                        {item.key !== "cost" && (
                           <input
                             type="text"
                             placeholder="Enter notes here..."
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none"
                           />
-                        )}
-
-                        {/* Cost Price Blue Value */}
-                        {label === "Cost Price" && (
-                          <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">
-                            ₹ 0.00
-                          </div>
                         )}
                       </div>
                     </div>
@@ -618,14 +626,21 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                       <input
                         type="text"
                         placeholder="Enter Amount"
-                        className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                        value={String(formData.sellingprice ?? "")}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            sellingprice: e.target.value,
+                          }))
+                        }
+                        className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Net */}
-                <div className="w-[9rem] rounded-lg p-1 mt-1 bg-white">
+                <div className="w-[12rem] rounded-lg p-1 mt-1 bg-white">
                   {/* Label on top */}
                   <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
                     Net
@@ -635,19 +650,18 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   <div className="flex items-center gap-3">
                     {/* Blue pill amount */}
                     <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
-                      {`INR ${
-                        Number(formData.sellingprice) -
-                        Number(formData.costprice)
-                      }`}
+                      {`INR ${(
+                        (Number(formData.sellingprice) || 0) - derivedCostPrice
+                      ).toFixed(2)}`}
                     </span>
 
                     {/* Percentage */}
                     <span className="text-[0.75rem] text-gray-700 font-medium">
-                      {formData.costprice && formData.sellingprice
+                      {derivedCostPrice > 0 && formData.sellingprice
                         ? `${(
-                            ((Number(formData.sellingprice) -
-                              Number(formData.costprice)) /
-                              Number(formData.costprice)) *
+                            (((Number(formData.sellingprice) || 0) -
+                              derivedCostPrice) /
+                              derivedCostPrice) *
                             100
                           ).toFixed(2)}%`
                         : "0%"}
@@ -706,7 +720,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         </div>
 
         {/* ID PROOFS */}
-        <div className="border border-gray-200 rounded-[12px] p-3">
+        <div className=" w-[98%] ml-2 border border-gray-200 rounded-[12px] p-3">
           <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 

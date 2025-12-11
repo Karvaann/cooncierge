@@ -26,6 +26,20 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Use focus-visible so mouse users don't see the ring but keyboard users do */
+:where(input, textarea, select, button) {
+  outline: none;
+}
+
+:where(input, textarea, select, button):focus {
+  outline: none;
+}
+
+:where(input, textarea, select, button):focus-visible {
+  box-shadow: 0 0 0 3px rgba(13, 75, 55, 0.12);
+  border-color: #0D4B37;
+}
+
 /* Remove number input arrows */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
@@ -47,20 +61,38 @@ input[type="time"]::-webkit-datetime-edit-ampm-field {
   display: none;
 }
 
-/* Date input placeholder styling */
-input[type="date"]:not(:focus):not(:valid) {
-  color: transparent;
+/* Remove custom date placeholder hack — use normal placeholder/label instead */
+
+/* Keep native appearance for radios, checkboxes and selects.
+   Only remove browser inner shadows and outlines for visual consistency
+   on text-like inputs and textareas (not on select/radio/checkbox). */
+:where(input[type="text"], input[type="email"], input[type="password"],
+  input[type="number"], input[type="search"], input[type="tel"],
+  input[type="url"], input[type="date"], input[type="time"], textarea) {
+  box-shadow: none !important;
+  background-image: none !important;
 }
 
-input[type="date"]::before {
-  content: attr(placeholder);
+:where(input[type="text"], input[type="email"], input[type="password"],
+  input[type="number"], input[type="search"], input[type="tel"],
+  input[type="url"], input[type="date"], input[type="time"], textarea):focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Ensure placeholder text color is consistent and not wrapped with extra UI */
+:where(input::placeholder, textarea::placeholder) {
   color: #9ca3af;
-  width: 100%;
+  opacity: 1; /* keep visibility across browsers */
 }
 
-input[type="date"]:focus::before,
-input[type="date"]:valid::before {
-  display: none;
+/* WebKit autofill: remove yellow/gray background and preserve text color */
+input:-webkit-autofill,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px white inset !important;
+  box-shadow: 0 0 0 1000px white inset !important;
+  -webkit-text-fill-color: inherit !important;
 }
 
 

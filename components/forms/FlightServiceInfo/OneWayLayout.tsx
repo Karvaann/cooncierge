@@ -80,6 +80,8 @@ interface SegmentPreview {
   origin?: string;
   destination?: string;
   departureTime?: string;
+  departureTimeRaw?: string; // ADD
+  arrivalTimeRaw?: string;
   arrivalTime?: string;
   flightNumber?: string;
   duration?: string;
@@ -114,6 +116,25 @@ export default function OneWayLayout({
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  // Utility: calculate layover between two DateTime strings
+  const calculateLayover = (
+    arrival: string | undefined,
+    nextDeparture: string | undefined
+  ) => {
+    if (!arrival || !nextDeparture) return null;
+
+    const a = new Date(arrival);
+    const d = new Date(nextDeparture);
+
+    const diffMin = Math.floor((d.getTime() - a.getTime()) / 1000 / 60);
+    if (diffMin <= 0) return null; // no layover or overlapping
+
+    const h = Math.floor(diffMin / 60);
+    const m = diffMin % 60;
+
+    return `${h}h ${m}m`;
   };
 
   // Duration calculator
@@ -178,6 +199,8 @@ export default function OneWayLayout({
         })`,
         departureTime: formatTime(f.departure?.scheduled),
         arrivalTime: formatTime(f.arrival?.scheduled),
+        departureTimeRaw: f.departure?.scheduled,
+        arrivalTimeRaw: f.arrival?.scheduled,
         flightNumber:
           f.flight?.iata || f.flight?.number || String(segment.flightnumber),
         duration: getDuration(f.departure?.scheduled, f.arrival?.scheduled),
@@ -366,6 +389,46 @@ export default function OneWayLayout({
                 </div>
               </div>
             </div>
+
+            {/* Layover UI Between Segment N and N+1 */}
+            {index < formData.segments.length - 1 &&
+              (() => {
+                const current = segmentPreview[segment.id!];
+                const nextSegment = formData.segments[index + 1];
+                const next = nextSegment?.id
+                  ? segmentPreview[nextSegment.id]
+                  : undefined;
+
+                const layover = calculateLayover(
+                  current?.arrivalTimeRaw, // store raw ISO timestamp
+                  next?.departureTimeRaw
+                );
+
+                if (!layover) return null;
+
+                return (
+                  <div className="flex items-center justify-center gap-2 py-2 text-gray-700 font-medium">
+                    {/* Airplane + dashed divider */}
+                    <div className="flex items-center gap-2">
+                      <MdAirplanemodeActive
+                        className="text-blue-500"
+                        size={16}
+                      />
+                    </div>
+
+                    {/* Statement */}
+                    <span className="text-[0.8rem]">
+                      Layover between Segment {index + 1} &amp; Segment{" "}
+                      {index + 2} :
+                    </span>
+
+                    {/* Duration */}
+                    <span className="font-semibold text-gray-900">
+                      {layover}
+                    </span>
+                  </div>
+                );
+              })()}
 
             {/* Preview Section */}
             <div className="border border-dotted border-gray-200 w-[98%] rounded-lg p-3">

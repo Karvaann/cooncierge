@@ -288,6 +288,12 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         formDataToSend.append("documents", file);
       });
 
+      // Ensure phone includes country code (use form value or fallback state)
+      const phoneValue = `${formData.countryCode || phoneCode}${
+        formData.phone || ""
+      }`;
+      formDataToSend.set("phone", phoneValue);
+
       const created = await createVendor(formDataToSend);
       console.log("Vendor created successfully:", created);
 
@@ -719,7 +725,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               </button>
 
               {/* Selected Files */}
-              <div className="mt-2 flex flex-col gap-2">
+              <div className="mb-2 flex flex-col gap-2">
                 {attachedFiles.map((file, i) => (
                   <div
                     key={i}
@@ -741,7 +747,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 ))}
               </div>
 
-              <div className="text-red-600 text-[0.65rem]">
+              <div className="text-red-600 text-[0.65rem] -mt-4">
                 Note: Maximum of 3 files can be uploaded
               </div>
             </div>

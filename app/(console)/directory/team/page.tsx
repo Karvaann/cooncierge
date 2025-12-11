@@ -208,7 +208,7 @@ const TeamDirectory = () => {
   const handleCancelSelectMode = () => {
     setSelectMode(false);
     setSelectedTeamMembers([]);
-    setMenuMode("main"); // ✅ Revert menu to SelectUploadMenu
+    setMenuMode("main"); // Revert menu to SelectUploadMenu
   };
 
   // Handle Delete Team Member
@@ -375,6 +375,7 @@ const TeamDirectory = () => {
                     },
                   },
                 ]}
+                width="w-22"
               />
             </div>
           </td>
@@ -401,15 +402,25 @@ const TeamDirectory = () => {
     <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
       <div className="flex items-center justify-between rounded-2xl px-4 py-3">
         {/*  Tabs */}
-        <div className="flex w-[18rem] -ml-2 items-center bg-[#F3F3F3] rounded-2xl space-x-4">
+        <div className="flex w-[18rem] -ml-2 items-center bg-[#F3F3F3] rounded-2xl relative p-1">
+          <div
+            className="absolute h-[calc(100%-0.5rem)] bg-[#0D4B37] rounded-xl shadow-sm transition-all duration-300 ease-in-out top-1"
+            style={{
+              width: `calc((100% - 0.5rem) / ${tabOptions.length})`,
+              left: `calc(${
+                tabOptions.indexOf(activeTab) * (100 / tabOptions.length)
+              }% + 0.25rem)`,
+            }}
+          />
+
           {tabOptions.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-1.5 rounded-xl text-[0.85rem] font-semibold transition-all duration-200 ${
+              className={`relative z-10 px-3 py-1.5 rounded-xl text-[0.85rem] font-medium transition-colors duration-300 flex-1 ${
                 activeTab === tab
-                  ? "bg-[#0D4B37] text-white shadow-sm"
-                  : "text-[#818181] hover:bg-gray-200"
+                  ? "text-white"
+                  : "text-[#818181] hover:text-gray-900"
               }`}
             >
               {tab}
@@ -446,7 +457,7 @@ const TeamDirectory = () => {
             type="text"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            placeholder="Search by Customer ID/Name/Owner"
+            placeholder="Search by Team ID/Member Name/Alias"
             className="w-full text-[0.85rem] py-2 pl-4 pr-10 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-900 text-gray-700 bg-white"
           />
 
@@ -566,6 +577,10 @@ const TeamDirectory = () => {
             : undefined
         }
         bookings={historyData}
+        recordName={selectedTeam?.memberName || selectedTeam?.name || "—"}
+        recordId={
+          selectedTeam?._id || selectedTeam?.ID || selectedTeam?.id || "—"
+        }
       />
 
       {isConfirmModalOpen && (

@@ -47,7 +47,7 @@ type CustomerRow = {
 };
 
 const columns: string[] = [
-  "ID",
+  "Customer ID",
   "Name",
   "Owner",
   "Rating",
@@ -613,6 +613,7 @@ const CustomerDirectory = () => {
                   },
                 },
               ]}
+              width="w-22"
             />
           </div>
         </td>
@@ -655,15 +656,25 @@ const CustomerDirectory = () => {
     <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
       <div className="flex items-center justify-between rounded-2xl px-4 py-3">
         {/*  Tabs */}
-        <div className="flex w-[21rem] -ml-2 items-center bg-[#F3F3F3] rounded-2xl space-x-4">
+        <div className="flex w-[21rem] -ml-2 items-center bg-[#F3F3F3] rounded-2xl relative p-1">
+          <div
+            className="absolute h-[calc(100%-0.5rem)] bg-[#0D4B37] rounded-xl shadow-sm transition-all duration-300 ease-in-out top-1"
+            style={{
+              width: `calc((100% - 0.5rem) / ${tabOptions.length})`,
+              left: `calc(${
+                tabOptions.indexOf(activeTab) * (100 / tabOptions.length)
+              }% + 0.25rem)`,
+            }}
+          />
+
           {tabOptions.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-1.5 rounded-xl text-[0.85rem] font-semibold transition-all duration-200 ${
+              className={`relative z-10 px-3 py-1.5 rounded-xl text-[0.85rem] font-medium transition-colors duration-300 flex-1 ${
                 activeTab === tab
-                  ? "bg-[#0D4B37] text-white shadow-sm"
-                  : "text-[#818181] hover:bg-gray-200"
+                  ? "text-white"
+                  : "text-[#818181] hover:text-gray-900"
               }`}
             >
               {tab}
@@ -715,7 +726,7 @@ const CustomerDirectory = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleCancelSelectMode}
-                className="px-2 py-1.5 w-[5rem] text-[0.75rem] font-medium text-[#414141] border border-gray-200 bg-[#F9F9F9] hover:bg-gray-100 rounded-md"
+                className="px-2 py-1.5 w-[5rem] text-[0.75rem] font-semibold text-[#414141] border border-gray-200 bg-[#F9F9F9] hover:bg-gray-100 rounded-md"
               >
                 Cancel
               </button>
@@ -737,7 +748,7 @@ const CustomerDirectory = () => {
                     }
                   }
                 }}
-                className="px-2 py-1.5 w-[6rem] mr-3 text-[0.75rem] font-medium rounded-md border border-gray-300 bg-white hover:bg-gray-100"
+                className="px-2 py-1.5 w-[5rem] mr-3 text-[0.75rem] font-semibold rounded-md border border-gray-300 bg-white hover:bg-gray-100"
               >
                 {activeTab === "Customers"
                   ? selectedCustomers.length === customers.length
@@ -753,7 +764,7 @@ const CustomerDirectory = () => {
           <button
             type="button"
             onClick={handleMenuToggle}
-            className="p-2 rounded-lg mr-1 border border-gray-200 bg-white hover:bg-gray-100 relative z-[30]"
+            className="p-2 rounded-md mr-1 border border-gray-200 bg-white hover:bg-gray-100 relative z-[30]"
           >
             <IoEllipsisHorizontal className="text-[0.85rem] text-gray-500" />
           </button>
@@ -916,6 +927,32 @@ const CustomerDirectory = () => {
               : undefined
           }
           bookings={bookingHistory}
+          recordName={
+            activeTab === "Customers"
+              ? selectedCustomer?.name ||
+                selectedCustomer?.customerName ||
+                selectedCustomer?.companyName ||
+                "—"
+              : activeTab === "Travellers"
+              ? selectedTravellerRow?.name ||
+                selectedTravellerRow?.travellerName ||
+                selectedTravellerRow?.fullName ||
+                "—"
+              : "—"
+          }
+          recordId={
+            activeTab === "Customers"
+              ? selectedCustomer?._id ||
+                selectedCustomer?.customerID ||
+                selectedCustomer?.id ||
+                "—"
+              : activeTab === "Travellers"
+              ? selectedTravellerRow?.travellerID ||
+                selectedTravellerRow?._id ||
+                selectedTravellerRow?.id ||
+                "—"
+              : "—"
+          }
         />
       )}
 

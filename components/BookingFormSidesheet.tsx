@@ -628,7 +628,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                         }}
                         bgColor="bg-white"
                         textColor="text-[#114958]"
-                        className="border border-[#114958] hover:bg-[#114958] hover:text-white"
+                        className="border border-[#114958] hover:bg-[#114958] "
                         disabled={isSubmitting}
                       />
                     )}
@@ -643,9 +643,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                         <Button
                           text="Save As Draft"
                           onClick={handleDraftSubmit}
-                          bgColor="bg-[#114958]"
-                          textColor="text-white"
-                          className="hover:bg-gray-700"
+                          bgColor="bg-white"
+                          textColor="text-[#114958]"
+                          className="hover:bg-gray-200 border border-[#114958]"
                           disabled={isSubmitting}
                         />
 
@@ -671,8 +671,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                         <Button
                           text="Save As Draft"
                           onClick={handleDraftSubmit}
-                          bgColor="bg-[#114958]"
-                          textColor="text-white"
+                          bgColor="bg-white"
+                          textColor="text-[#114958]"
                           disabled={isSubmitting}
                         />
 
