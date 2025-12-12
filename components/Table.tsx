@@ -17,6 +17,9 @@ interface TableProps {
   enableDragAndDrop?: boolean; // default false
   rowIds?: string[];
   droppableId?: string;
+  headerClassName?: string;
+  categoryName?: string;
+  sortableHeaderHoverClass?: string;
 }
 
 const Table: React.FC<TableProps> = ({
@@ -31,6 +34,9 @@ const Table: React.FC<TableProps> = ({
   enableDragAndDrop = false,
   rowIds = [],
   droppableId = "table-droppable",
+  headerClassName = "",
+  categoryName = "",
+  sortableHeaderHoverClass = "",
 }) => {
   const [page, setPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
@@ -92,7 +98,9 @@ const Table: React.FC<TableProps> = ({
   const displayText = useMemo(() => {
     const start = (page - 1) * rowsPerPage + 1;
     const end = Math.min(page * rowsPerPage, totalRows);
-    return `Showing ${start}-${end} of ${totalRows} entries`;
+    return `Showing ${start}-${end} of ${totalRows} ${
+      categoryName || "entries"
+    }`;
   }, [page, rowsPerPage, totalRows]);
 
   // Helper to generate a stable draggableId for each visible row
@@ -109,7 +117,11 @@ const Table: React.FC<TableProps> = ({
       <div className="overflow-visible rounded-xl border border-gray-100">
         <table className="w-full text-sm rounded-xl overflow-hidden">
           <thead>
-            <tr className="bg-[#0D4B37] text-white rounded-t-xl">
+            <tr
+              className={`rounded-t-xl text-white ${
+                headerClassName || "bg-[#0D4B37]"
+              }`}
+            >
               {showCheckboxColumn && (
                 <th className="px-3 py-2 w-[3rem] text-center"></th>
               )}
@@ -138,7 +150,9 @@ const Table: React.FC<TableProps> = ({
             col === "Date Created" ||
             col === "Travel Date" ||
             col === "Joining Date"
-              ? "cursor-pointer hover:bg-[#0f5a43]"
+              ? `cursor-pointer hover:${
+                  sortableHeaderHoverClass || "bg-[#0f5a43]"
+                }`
               : ""
           }
         `}

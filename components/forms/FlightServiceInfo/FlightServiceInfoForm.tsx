@@ -853,7 +853,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                     className={`px-3 py-1.5 text-[0.7rem] font-medium transition-colors rounded-lg
         ${
           formData.flightType === type
-            ? "bg-green-100 text-green-700 font-semibold border border-green-700"
+            ? "bg-[#E8F9F7] text-green-700 font-semibold border border-green-700"
             : "bg-transparent text-gray-700"
         }`}
                   >

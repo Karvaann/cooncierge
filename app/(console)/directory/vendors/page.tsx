@@ -286,7 +286,7 @@ const VendorDirectory = () => {
         const data = await getVendors({ isDeleted: activeTab === "Deleted" });
         const mappedRows: VendorRow[] = data.map((v: any, index: number) => ({
           ...v,
-          vendorID: v._id || `#V00${index + 1}`,
+          vendorID: v.customId || v._id || `#V00${index + 1}`,
           vendorName: v.companyName || v.name || "—",
           poc: v.contactPerson || "—",
           rating: v.tier ? Number(v.tier.replace("tier", "")) : 4,
@@ -392,7 +392,7 @@ const VendorDirectory = () => {
                   {
                     label: "Edit",
                     icon: <FaRegEdit />,
-                    color: "text-green-600",
+                    color: "text-blue-600",
                     onClick: () => {
                       setSelectedVendor(row);
                       setIsSideSheetOpen(true);
@@ -550,6 +550,7 @@ const VendorDirectory = () => {
                   isOpen={isMenuOpen}
                   onClose={handleCloseMenu}
                   onSelect={handleSelectClick} // triggers the switch
+                  entity="vendor"
                 />
               ) : (
                 <DownloadMergeMenu
@@ -571,6 +572,7 @@ const VendorDirectory = () => {
           columnIconMap={columnIconMap}
           showCheckboxColumn={selectMode}
           onSort={handleSort}
+          categoryName="Vendors"
         />
       </div>
       {isSideSheetOpen && (

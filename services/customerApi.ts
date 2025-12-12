@@ -4,7 +4,13 @@ export const createCustomer = async (formData: FormData) => {
   try {
     const response = await apiClient.post(
       "/customer/create-customer",
-      formData);
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
     return response.data;
   } catch (error: any) {
     console.error("Failed to create customer:", error);
