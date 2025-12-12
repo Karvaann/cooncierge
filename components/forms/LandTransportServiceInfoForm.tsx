@@ -35,6 +35,7 @@ interface OtherInfoFormProps {
   formRef?: React.RefObject<HTMLDivElement | null>;
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
+  externalFormData?: ExternalFormData;
 }
 
 const LandTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
@@ -44,19 +45,20 @@ const LandTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   formRef,
   onFormDataUpdate,
   onAddDocuments,
+  externalFormData,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<OtherServiceInfoFormData>({
-    bookingdate: "",
-    traveldate: "",
-    bookingstatus: "",
-    costprice: "",
-    sellingprice: "",
-    confirmationNumber: "",
-    title: "",
-    description: "",
+    bookingdate: externalFormData?.formFields?.bookingdate || "",
+    traveldate: externalFormData?.formFields?.traveldate || "",
+    bookingstatus: externalFormData?.formFields?.bookingstatus || "",
+    costprice: externalFormData?.formFields?.costprice || "",
+    sellingprice: externalFormData?.formFields?.sellingprice || "",
+    confirmationNumber: externalFormData?.formFields?.confirmationNumber || "",
+    title: externalFormData?.formFields?.title || "",
+    description: externalFormData?.formFields?.description || "",
     documents: "",
-    remarks: "",
+    remarks: externalFormData?.formFields?.remarks || "",
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});

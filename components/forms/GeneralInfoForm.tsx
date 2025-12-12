@@ -42,6 +42,175 @@ interface GeneralInfoFormData {
   remarks: string;
 }
 
+interface CustomerDataType {
+  _id: string;
+  id?: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  tier?: string | number;
+  firstname?: string;
+  lastname?: string;
+  alias?: string;
+  dateOfBirth?: string;
+  gstin?: string | number;
+  companyName?: string;
+  address?: string | number;
+  remarks?: string;
+  openingBalance?: string;
+  balanceType?: "credit" | "debit";
+}
+
+interface VendorDataType {
+  _id: string;
+  id?: string;
+  name?: string;
+  contactPerson?: string;
+  companyName?: string;
+  email?: string;
+  phone?: string;
+  tier?: string | number;
+  firstname?: string;
+  lastname?: string;
+  alias?: string;
+  countryCode?: string;
+  dateOfBirth?: string;
+  GSTIN?: string;
+  address?: string;
+  openingBalance?: string;
+  balanceType?: "credit" | "debit";
+  remarks?: string;
+}
+
+interface TeamDataType {
+  _id: string;
+  id?: string;
+  name: string;
+  email?: string;
+  username?: string;
+}
+
+interface TravellerDataType {
+  _id: string;
+  id?: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  tier?: string | number;
+}
+
+interface OwnerData {
+  _id: string;
+  name: string;
+  email: string;
+}
+
+interface Segment {
+  id: string;
+  flightnumber: string;
+  traveldate: string;
+  cabinclass: string;
+}
+
+interface ExternalFormData {
+  _id?: string;
+  customId?: string;
+  quotationType?: string;
+  businessId?: {
+    _id: string;
+    businessName: string;
+    businessType: string;
+  };
+  formFields?: {
+    adultTravellers?: string[];
+    infantTravellers?: string[];
+    bookingOwner?: string;
+    costprice?: string;
+    sellingprice?: string;
+    vendorName?: string;
+    infants?: number;
+    childAges?: (number | null)[];
+    customerName?: string;
+    ownerName?: string;
+    bookingdate?: string;
+    traveldate?: string;
+    bookingstatus?: string;
+    PNR?: string;
+    segments?: Segment[];
+    returnSegments?: Segment[];
+    pnrEnabled?: boolean;
+    samePNRForAllSegments?: boolean;
+    flightType?: string;
+    remarks?: string;
+    adults?: number;
+    children?: number;
+    adultTravellerIds?: string[];
+    infantTravellerIds?: string[];
+  };
+  totalAmount?: number;
+  status?: string;
+  owner?: OwnerData[];
+  serviceStatus?: string;
+  travelDate?: string;
+  customerId?: {
+    _id: string;
+    name: string;
+    email: string;
+    phone: string;
+  };
+  vendorId?: {
+    _id: string;
+    companyName?: string;
+    contactPerson?: string;
+    email: string;
+    phone: string;
+  };
+  travelers?: TravellerDataType[];
+  adultTravlers?: number;
+  childTravlers?: number;
+  remarks?: string;
+  isDeleted?: boolean;
+  documents?: Array<{
+    originalName: string;
+    fileName: string;
+    url: string;
+    key: string;
+    size: number;
+    mimeType: string;
+    uploadedAt: string;
+    _id: string;
+  }>;
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
+  __owners?: string[];
+  customer?: string;
+  vendor?: string;
+  adults?: number;
+  children?: number;
+  infants?: number;
+  childAges?: (number | null)[];
+  adultTravellers?: string[];
+  infantTravellers?: string[];
+  adultTravellerIds?: string[];
+  infantTravellerIds?: string[];
+  bookingOwner?: string;
+  flightinfoform?: {
+    bookingdate?: string;
+    traveldate?: string;
+    bookingstatus?: string;
+    costprice?: string;
+    sellingprice?: string;
+    PNR?: string;
+    segments?: Segment[];
+    returnSegments?: Segment[];
+    pnrEnabled?: boolean;
+    samePNRForAllSegments?: boolean;
+    flightType?: string;
+    remarks?: string;
+  };
+}
+
 // InputField component moved OUTSIDE of GeneralInfoForm to prevent re-creation on each render
 interface InputFieldProps {
   name: string;
@@ -154,40 +323,40 @@ interface ValidationErrors {
 }
 
 interface GeneralInfoFormProps {
-  formData?: Partial<GeneralInfoFormData>;
+  initialFormData?: Partial<ExternalFormData>;
   onFormDataUpdate?: (data: Partial<GeneralInfoFormData>) => void;
   onSubmit?: (data: GeneralInfoFormData) => void;
   isSubmitting?: boolean;
   showValidation?: boolean;
   formRef?: React.RefObject<HTMLFormElement>;
-  onAddDocuments?: (files: File[]) => void;
 }
 
 const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
-  formData: externalFormData = {},
+  initialFormData: externalFormData = {},
   onFormDataUpdate,
   onSubmit,
   isSubmitting = false,
   showValidation = true,
   formRef,
-  onAddDocuments,
 }) => {
   // Internal form state
+
+    console.log('Initial External Form Data', externalFormData);
+
   const [formData, setFormData] = useState<GeneralInfoFormData>({
-    customer: "",
-    vendor: "",
-    vendorName: "",
-    adults: 1,
-    children: 0,
-    infants: 1,
-    childAges: [],
-    adultTravellers: [""], // Adult 1 (Lead Pax) - Names for display
-    infantTravellers: [""], // Names for display
-    adultTravellerIds: [""], // IDs for backend
-    infantTravellerIds: [""], // IDs for backend
-    bookingOwner: "",
-    remarks: "",
-    ...externalFormData,
+    customer: externalFormData?.customerId?._id || "",
+    vendor: externalFormData?.vendorId?._id || "",
+    vendorName: externalFormData?.vendorId?.contactPerson || externalFormData?.vendorId?.companyName || externalFormData?.formFields?.vendorName || "",
+    adults: externalFormData?.adults || externalFormData?.formFields?.adults || 1,
+    children: externalFormData?.children || externalFormData?.formFields?.children || 0,
+    infants: externalFormData?.infants || externalFormData?.formFields?.infants || 1,
+    childAges: externalFormData?.childAges || externalFormData?.formFields?.childAges || [],
+    adultTravellers: externalFormData?.formFields?.adultTravellers || [""], // Adult 1 (Lead Pax) - Names for display
+    infantTravellers: externalFormData?.formFields?.infantTravellers || [""], // Names for display
+    adultTravellerIds: externalFormData?.formFields?.adultTravellerIds || [""], // IDs for backend
+    infantTravellerIds: externalFormData?.formFields?.infantTravellerIds || [""], // IDs for backend
+    bookingOwner: externalFormData?.owner?.[0]?._id || externalFormData?.bookingOwner || "",
+    remarks: externalFormData?.remarks || externalFormData?.formFields?.remarks || "",
   });
 
   // Sync initial form state to parent on mount
@@ -223,15 +392,15 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // });
 
   // Search data states
-  const [allCustomers, setAllCustomers] = useState<any[]>([]);
-  const [allVendors, setAllVendors] = useState<any[]>([]);
-  const [allTeams, setAllTeams] = useState<any[]>([]);
-  const [allTravellers, setAllTravellers] = useState<any[]>([]);
+  const [allCustomers, setAllCustomers] = useState<CustomerDataType[]>([]);
+  const [allVendors, setAllVendors] = useState<VendorDataType[]>([]);
+  const [allTeams, setAllTeams] = useState<TeamDataType[]>([]);
+  const [allTravellers, setAllTravellers] = useState<TravellerDataType[]>([]);
 
-  const [customerResults, setCustomerResults] = useState<any[]>([]);
-  const [vendorResults, setVendorResults] = useState<any[]>([]);
-  const [TeamsResults, setTeamsResults] = useState<any[]>([]);
-  const [travellerResults, setTravellerResults] = useState<any[]>([]);
+  const [customerResults, setCustomerResults] = useState<CustomerDataType[]>([]);
+  const [vendorResults, setVendorResults] = useState<VendorDataType[]>([]);
+  const [TeamsResults, setTeamsResults] = useState<TeamDataType[]>([]);
+  const [travellerResults, setTravellerResults] = useState<TravellerDataType[]>([]);
 
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
@@ -256,13 +425,13 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   // View customer sidesheet state
   const [isViewCustomerOpen, setIsViewCustomerOpen] = useState(false);
-  const [viewCustomerData, setViewCustomerData] = useState<any | null>(null);
+  const [viewCustomerData, setViewCustomerData] = useState<CustomerDataType | null>(null);
   // View vendor sidesheet state
   const [isViewVendorOpen, setIsViewVendorOpen] = useState(false);
-  const [viewVendorData, setViewVendorData] = useState<any | null>(null);
+  const [viewVendorData, setViewVendorData] = useState<VendorDataType | null>(null);
   // View traveller sidesheet state
   const [isViewTravellerOpen, setIsViewTravellerOpen] = useState(false);
-  const [viewTravellerData, setViewTravellerData] = useState<any | null>(null);
+  const [viewTravellerData, setViewTravellerData] = useState<TravellerDataType | null>(null);
 
   // Add refs for click-outside detection
   const customerRef = useRef<HTMLDivElement | null>(null);
@@ -317,25 +486,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       document.removeEventListener("keydown", handleKey);
     };
   }, []);
-
-  const handleFileChange = () => {
-    const files = fileRef.current?.files;
-    if (!files) return;
-
-    const selected = Array.from(files);
-
-    if (attachedFiles.length + selected.length > 3) {
-      alert("Maximum 3 documents allowed");
-      return;
-    }
-
-    setAttachedFiles((prev) => [...prev, ...selected]);
-
-    // ⬅ SEND FILES TO PARENT
-    onAddDocuments?.(selected);
-
-    if (fileRef.current) fileRef.current.value = "";
-  };
 
   // Handler to open view sidesheet for customer
   const handleViewCustomer = async (index: number) => {
@@ -393,7 +543,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     const idFromState = idsArray?.[index];
     const nameFromState = nameArray?.[index] || "";
 
-    let traveller: any = undefined;
+    let traveller: TravellerDataType | undefined = undefined;
 
     // Try cached list first (match by id or name)
     if (idFromState) {
@@ -427,7 +577,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   };
 
   const handleDeleteFile = (index: number) => {
-    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
+    const newFiles = [...attachedFiles];
+    newFiles.splice(index, 1);
+    setAttachedFiles(newFiles);
   };
 
   // Fetch all customers, vendors, Teamss on mount
@@ -458,21 +610,79 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   // Hydrate owner from externalFormData
   useEffect(() => {
-    if (!externalFormData?.bookingOwner) return;
+    if (!externalFormData?.bookingOwner && !externalFormData?.owner?.[0]) return;
     if (!Array.isArray(allTeams) || allTeams.length === 0) return;
-    const match = allTeams.find((t) => t._id === externalFormData.bookingOwner);
-    if (match) {
-      setOwnerList([{ id: match._id, name: match.name }]);
+    
+    const ownerId = externalFormData.owner?.[0]?._id || externalFormData.bookingOwner || "";
+    if (ownerId && externalFormData.owner?.[0]) {
+      const match = allTeams.find((t) => t._id === ownerId);
+      if (match) {
+        setOwnerList([{ id: match._id, name: match.name }]);
+      } else if (externalFormData.owner[0].name) {
+        // If we can't find in teams, use the name from external data
+        setOwnerList([{ id: ownerId, name: externalFormData.owner[0].name }]);
+      }
     }
-  }, [externalFormData?.bookingOwner, allTeams]);
+  }, [externalFormData?.bookingOwner, externalFormData?.owner, allTeams]);
+
+  // Hydrate vendor from externalFormData
+  useEffect(() => {
+    if (!externalFormData?.vendorId) return;
+    if (!Array.isArray(allVendors) || allVendors.length === 0) return;
+
+    const match = allVendors.find((v) => v._id === externalFormData.vendorId?._id);
+    if (match) {
+      setVendorList([{ id: match._id, name: match.contactPerson || match.companyName || "" }]);
+    } else if (externalFormData.vendorId.contactPerson || externalFormData.vendorId.companyName) {
+      // If we can't find in vendors, use the name from external data
+      setVendorList([{
+        id: externalFormData.vendorId._id,
+        name: externalFormData.vendorId.contactPerson || externalFormData.vendorId.companyName || ""
+      }]);
+    }
+  }, [externalFormData?.vendorId, allVendors]);
+
+  // Hydrate customer from externalFormData
+  useEffect(() => {
+    if (!externalFormData?.customerId) return;
+    if (!Array.isArray(allCustomers) || allCustomers.length === 0) return;
+
+    const match = allCustomers.find((c) => c._id === externalFormData.customerId?._id);
+    if (match) {
+      setCustomerList([{ id: match._id, name: match.name }]);
+    } else if (externalFormData.customerId.name) {
+      // If we can't find in customers, use the name from external data
+      setCustomerList([{
+        id: externalFormData.customerId._id,
+        name: externalFormData.customerId.name
+      }]);
+    }
+  }, [externalFormData?.customerId, allCustomers]);
+
+  // Hydrate travellers from externalFormData
+  useEffect(() => {
+    if (!externalFormData?.travelers || !Array.isArray(externalFormData.travelers)) return;
+    
+    // Process adult travellers
+    if (externalFormData.travelers.length > 0) {
+      const adultNames = externalFormData.travelers.map((traveller: TravellerDataType) => traveller.name || "");
+      const adultIds = externalFormData.travelers.map((traveller: TravellerDataType) => traveller._id || "");
+      
+      setFormData(prev => ({
+        ...prev,
+        adultTravellers: adultNames,
+        adultTravellerIds: adultIds
+      }));
+    }
+  }, [externalFormData?.travelers]);
 
   // Fuzzy search helper
-  const runFuzzySearch = (list: any[], term: string, keys: string[]) => {
+  const runFuzzySearch = <T,>(list: T[], term: string, keys: (keyof T)[]): T[] => {
     if (!term.trim()) return [];
 
     const fuse = new Fuse(list, {
       threshold: 0.3,
-      keys: keys,
+      keys: keys as string[],
     });
 
     return fuse.search(term).map((r) => r.item);
@@ -773,7 +983,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   // Enhanced validation function using API validation
   const validateField = useCallback(
-    (name: string, value: any): string => {
+    (name: string, value: unknown): string => {
       // Use API validation for comprehensive checks
       // if (name === "customer" || name === "vendor") {
       //   const apiErrors = validateGeneralInfo({ [name]: value });
@@ -1336,31 +1546,28 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               </button>
             </div>
           </div>
-
           <div className="flex flex-col items-center">
             <label className="block text-xs text-black mb-1">Children</label>
-            <div className="flex items-center border border-black rounded-lg px-1 py-1">
+            <div className="flex items-center border border-black rounded-lg px-2 py-1">
               <button
                 type="button"
                 onClick={() =>
                   setFormData({
                     ...formData,
-                    infants: Math.max(0, formData.infants - 1),
+                    children: Math.max(0, formData.children - 1),
                   })
                 }
-                className="px-1 text-[0.75rem] "
+                className="px-1 text-lg font-semibold"
               >
                 <FiMinus size={12} />
               </button>
-              <span className="px-2 ml-1 text-[0.75rem] ">
-                {formData.infants}
-              </span>
+              <span className="px-2 text-[0.75rem] ">{formData.children}</span>
               <button
                 type="button"
                 onClick={() =>
-                  setFormData({ ...formData, infants: formData.infants + 1 })
+                  setFormData({ ...formData, children: formData.children + 1 })
                 }
-                className="px-2 text-[0.75rem] "
+                className="px-1 text-lg font-semibold"
               >
                 <GoPlus size={12} />
               </button>
@@ -1413,7 +1620,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   activeTravellerDropdown?.index === index &&
                   travellerResults.length > 0 && (
                     <div className="absolute bg-white border border-gray-200 rounded-md w-full mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-                      {travellerResults.map((t: any) => (
+                      {travellerResults.map((t: TravellerDataType) => (
                         <div
                           key={t._id}
                           className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
@@ -1485,7 +1692,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         }}
                       >
                         <p className="font-medium text-[0.70rem] text-gray-700">
-                          Don't have the name? Enter TBA
+                          Don&apos;t have the name? Enter TBA
                         </p>
                       </div>
                     </div>
@@ -1579,7 +1786,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     activeTravellerDropdown?.index === index &&
                     travellerResults.length > 0 && (
                       <div className="absolute bg-white border border-gray-200 rounded-md w-full mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-                        {travellerResults.map((t: any) => {
+                        {travellerResults.map((t: TravellerDataType) => {
                           let rating: number | null = null;
                           try {
                             if (t?.tier) {
@@ -1649,7 +1856,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           }}
                         >
                           <p className="font-medium text-[0.70rem] text-gray-700">
-                            Don't have the name? Enter TBA
+                            Don&apos;t have the name? Enter TBA
                           </p>
                         </div>
                       </div>
@@ -1715,7 +1922,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           />
           {showTeamsDropdown && (
             <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-              {TeamsResults.map((t: any) => (
+              {TeamsResults.map((t: TeamDataType) => (
                 <div
                   key={t._id}
                   className="p-2 cursor-pointer hover:bg-gray-100"
@@ -1736,57 +1943,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               ))}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* ================= DOCUMENTS ================ */}
-      <div className="border border-gray-200 rounded-xl p-3">
-        <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
-        <hr className="mt-1 mb-2 border-t border-gray-200" />
-
-        <input
-          type="file"
-          ref={fileRef}
-          className="hidden"
-          onChange={handleFileChange}
-          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt"
-          multiple
-        />
-
-        <button
-          type="button"
-          onClick={() => fileRef.current?.click()}
-          className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border border-[#126ACB]
-               rounded-md text-[0.75rem] hover:bg-gray-200"
-        >
-          Attach Files
-        </button>
-
-        {/* PREVIEW FILES */}
-        <div className="mt-2 flex flex-col gap-2">
-          {attachedFiles.map((file, i) => (
-            <div
-              key={i}
-              className="flex items-center gap-2 bg-gray-50 border border-gray-200 
-                   rounded-md px-2 py-1.5 w-fit"
-            >
-              <span className="text-gray-700 text-[0.75rem] truncate">
-                📎 {file.name}
-              </span>
-
-              <button
-                type="button"
-                onClick={() => handleDeleteFile(i)}
-                className="text-red-500 hover:text-red-700"
-              >
-                <FiTrash2 size={14} />
-              </button>
-            </div>
-          ))}
-        </div>
-
-        <div className="text-red-600 text-[0.65rem]">
-          Note: Maximum of 3 files can be uploaded
         </div>
       </div>
 

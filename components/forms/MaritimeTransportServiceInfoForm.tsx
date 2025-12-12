@@ -35,6 +35,8 @@ interface OtherInfoFormProps {
   formRef?: React.RefObject<HTMLDivElement | null>;
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
+  externalFormData?: any;
+  
 }
 
 const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
@@ -44,19 +46,20 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   formRef,
   onFormDataUpdate,
   onAddDocuments,
+  externalFormData,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<OtherServiceInfoFormData>({
-    bookingdate: "",
-    traveldate: "",
-    bookingstatus: "",
-    costprice: "",
-    sellingprice: "",
-    confirmationNumber: "",
-    title: "",
-    description: "",
+    bookingdate: externalFormData?.formFields?.bookingdate || "",
+    traveldate: externalFormData?.formFields?.traveldate || "",
+    bookingstatus: externalFormData?.formFields?.bookingstatus || "",
+    costprice: externalFormData?.formFields?.costprice || "",
+    sellingprice: externalFormData?.formFields?.sellingprice || "",
+    confirmationNumber: externalFormData?.formFields?.confirmationNumber || "",
+    title: externalFormData?.formFields?.title || "",
+    description: externalFormData?.formFields?.description || "",
     documents: "",
-    remarks: "",
+    remarks: externalFormData?.formFields?.remarks || "",
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -112,9 +115,20 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     setFormData((prev) => ({ ...prev, bookingstatus: value }));
   };
 
+  // Sync with external form data when it changes
+  useEffect(() => {
+    if (externalFormData?.formFields) {
+      setFormData(prev => ({
+        ...prev,
+        ...externalFormData.formFields
+      }));
+    }
+  }, [externalFormData]);
+
+  // Notify parent of form data changes
   useEffect(() => {
     onFormDataUpdate({ maritimeinfoform: formData });
-  }, [formData]);
+  }, [formData, onFormDataUpdate]);
 
   type FieldRule = {
     required: boolean;

@@ -28,6 +28,10 @@ interface ValidationErrors {
   [key: string]: string;
 }
 
+interface ExternalFormData {
+  formFields: OtherServiceInfoFormData;
+}
+
 interface OtherInfoFormProps {
   onSubmit?: (data: OtherServiceInfoFormData) => void;
   isSubmitting?: boolean;
@@ -35,6 +39,7 @@ interface OtherInfoFormProps {
   formRef?: React.RefObject<HTMLDivElement | null>;
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
+  externalFormData?: ExternalFormData;
 }
 
 const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
@@ -44,19 +49,20 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   formRef,
   onFormDataUpdate,
   onAddDocuments,
+  externalFormData,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<OtherServiceInfoFormData>({
-    bookingdate: "",
-    traveldate: "",
-    bookingstatus: "",
-    costprice: "",
-    sellingprice: "",
-    confirmationNumber: "",
-    title: "",
-    description: "",
+    bookingdate: externalFormData?.formFields?.bookingdate || "",
+    traveldate: externalFormData?.formFields?.traveldate || "",
+    bookingstatus: externalFormData?.formFields?.bookingstatus || "",
+    costprice: externalFormData?.formFields?.costprice || "",
+    sellingprice: externalFormData?.formFields?.sellingprice || "",
+    confirmationNumber: externalFormData?.formFields?.confirmationNumber || "",
+    title: externalFormData?.formFields?.title || "",
+    description: externalFormData?.formFields?.description || "",
     documents: "",
-    remarks: "",
+    remarks: externalFormData?.formFields?.remarks || "",
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -124,9 +130,20 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     setFormData((prev) => ({ ...prev, bookingstatus: value }));
   };
 
+  // Sync with external form data when it changes
+  useEffect(() => {
+    if (externalFormData?.formFields) {
+      setFormData(prev => ({
+        ...prev,
+        ...externalFormData.formFields
+      }));
+    }
+  }, [externalFormData]);
+
+  // Notify parent of form data changes
   useEffect(() => {
     onFormDataUpdate({ othersinfoform: formData });
-  }, [formData]);
+  }, [formData, onFormDataUpdate]);
 
   type FieldRule = {
     required: boolean;
@@ -163,7 +180,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   // Enhanced validation function using API validation
   const validateField = useCallback(
-    (name: string, value: any): string => {
+    (name: string, value: unknown): string => {
       // API-level validation only for OtherServiceInfoForm fields
       const apiErrors = validateOtherServiceInfoForm({
         bookingdate: "",
@@ -381,7 +398,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   return (
     <>
-      <div className="space-y-4 p-4 -mt-1" ref={formRef as any}>
+      <div className="space-y-4 p-4 -mt-1" ref={formRef as React.RefObject<HTMLDivElement>}>
         <div className="px-2 py-1">
           {/* Booking and Travel Date */}
           <div className="flex flex-wrap items-end justify-between mb-3 px-5 -mx-5">
