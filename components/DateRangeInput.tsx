@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useRef, useEffect } from "react";
 import { FaRegCalendar } from "react-icons/fa6";
 import { MdKeyboardArrowRight } from "react-icons/md";
@@ -114,8 +116,6 @@ export default function DateRangeInput({
 
   // Fixed date comparison to handle dates without time component
   const handleDateClick = (date: Date, e?: React.MouseEvent) => {
-    e?.preventDefault();
-    e?.stopPropagation();
 
     const dateOnly = new Date(
       date.getFullYear(),

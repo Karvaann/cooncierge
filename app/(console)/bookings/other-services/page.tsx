@@ -795,7 +795,7 @@ const OSBookingsPage = () => {
     //   })),
     // ];
 
-    const rows = quotations.map((item, index) => [
+    const rows = filteredQuotations.map((item, index) => [
       <td
         key={`id-${index}`}
         className="px-4 py-2 text-center font-semibold align-middle h-[4rem]"
@@ -897,12 +897,8 @@ const OSBookingsPage = () => {
       >
         <div className="flex justify-center">
           <TaskButton
-            count={Math.floor(Math.random() * 5) + 1}
-            bookingId={
-              Boolean(item._id)
-                ? finalQuotations[index]?._id || null
-                : null
-            }
+            count={0}
+            bookingId={item._id}
           />
         </div>
       </td>,
@@ -1025,7 +1021,7 @@ const OSBookingsPage = () => {
                   Total
                 </span>
                 <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
-                  {finalQuotations.length}
+                  {filteredQuotations.length}
                 </span>
               </div>
             </div>

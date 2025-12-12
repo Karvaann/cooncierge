@@ -135,7 +135,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       <div
         ref={sidebarRef}
         className={`fixed top-0 left-0 h-screen text-white border-r border-gray-700 transition-all transform duration-500 ease-in-out z-50 pt-3 ${
-          isOpen ? "w-48" : "w-12"
+          isOpen ? "w-48" : "w-13"
         }`}
         style={{
           background:
@@ -242,7 +242,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                         <Link
                           prefetch
                           href={sub.href}
-                          className="block text-left text-[0.70rem] py-1 px-2 rounded text-white cursor-pointer"
+                          className="block text-left text-[0.65rem] py-1 px-2 rounded text-white cursor-pointer"
                         >
                           {sub.label}
                         </Link>
