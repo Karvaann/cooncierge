@@ -8,18 +8,22 @@ import React, {
   useRef,
 } from "react";
 import { LuEye } from "react-icons/lu";
-import { GoPlusCircle } from "react-icons/go";
-import { BsPlusSquareFill } from "react-icons/bs";
 import { CiSearch } from "react-icons/ci";
 import { FiMinus } from "react-icons/fi";
 import { GoPlus } from "react-icons/go";
-// import { validateGeneralInfo } from "@/services/bookingApi";
 import { useBooking } from "@/context/BookingContext";
 import Fuse from "fuse.js";
-import { getCustomers } from "@/services/customerApi";
+import { getCustomers, getCustomerById } from "@/services/customerApi";
+import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
+import { getVendorById } from "@/services/vendorApi";
+import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
 import { getVendors } from "@/services/vendorApi";
 import { getTeams } from "@/services/teamsApi";
 import { getTravellers } from "@/services/travellerApi";
+import DropDown from "@/components/DropDown";
+import { getTravellerById } from "@/services/travellerApi";
+import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerForm";
+import { FiTrash2 } from "react-icons/fi";
 
 // Type definitions
 interface GeneralInfoFormData {
@@ -30,12 +34,181 @@ interface GeneralInfoFormData {
   children: number;
   infants: number;
   childAges?: (number | null)[];
-  adultTravellers: string[];  // Names for display
+  adultTravellers: string[]; // Names for display
   infantTravellers: string[]; // Names for display
-  adultTravellerIds: string[];  // IDs for backend
+  adultTravellerIds: string[]; // IDs for backend
   infantTravellerIds: string[]; // IDs for backend
   bookingOwner: string;
   remarks: string;
+}
+
+interface CustomerDataType {
+  _id: string;
+  id?: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  tier?: string | number;
+  firstname?: string;
+  lastname?: string;
+  alias?: string;
+  dateOfBirth?: string;
+  gstin?: string | number;
+  companyName?: string;
+  address?: string | number;
+  remarks?: string;
+  openingBalance?: string;
+  balanceType?: "credit" | "debit";
+}
+
+interface VendorDataType {
+  _id: string;
+  id?: string;
+  name?: string;
+  contactPerson?: string;
+  companyName?: string;
+  email?: string;
+  phone?: string;
+  tier?: string | number;
+  firstname?: string;
+  lastname?: string;
+  alias?: string;
+  countryCode?: string;
+  dateOfBirth?: string;
+  GSTIN?: string;
+  address?: string;
+  openingBalance?: string;
+  balanceType?: "credit" | "debit";
+  remarks?: string;
+}
+
+interface TeamDataType {
+  _id: string;
+  id?: string;
+  name: string;
+  email?: string;
+  username?: string;
+}
+
+interface TravellerDataType {
+  _id: string;
+  id?: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  tier?: string | number;
+}
+
+interface OwnerData {
+  _id: string;
+  name: string;
+  email: string;
+}
+
+interface Segment {
+  id: string;
+  flightnumber: string;
+  traveldate: string;
+  cabinclass: string;
+}
+
+interface ExternalFormData {
+  _id?: string;
+  customId?: string;
+  quotationType?: string;
+  businessId?: {
+    _id: string;
+    businessName: string;
+    businessType: string;
+  };
+  formFields?: {
+    adultTravellers?: string[];
+    infantTravellers?: string[];
+    bookingOwner?: string;
+    costprice?: string;
+    sellingprice?: string;
+    vendorName?: string;
+    infants?: number;
+    childAges?: (number | null)[];
+    customerName?: string;
+    ownerName?: string;
+    bookingdate?: string;
+    traveldate?: string;
+    bookingstatus?: string;
+    PNR?: string;
+    segments?: Segment[];
+    returnSegments?: Segment[];
+    pnrEnabled?: boolean;
+    samePNRForAllSegments?: boolean;
+    flightType?: string;
+    remarks?: string;
+    adults?: number;
+    children?: number;
+    adultTravellerIds?: string[];
+    infantTravellerIds?: string[];
+  };
+  totalAmount?: number;
+  status?: string;
+  owner?: OwnerData[];
+  serviceStatus?: string;
+  travelDate?: string;
+  customerId?: {
+    _id: string;
+    name: string;
+    email: string;
+    phone: string;
+  };
+  vendorId?: {
+    _id: string;
+    companyName?: string;
+    contactPerson?: string;
+    email: string;
+    phone: string;
+  };
+  travelers?: TravellerDataType[];
+  adultTravlers?: number;
+  childTravlers?: number;
+  remarks?: string;
+  isDeleted?: boolean;
+  documents?: Array<{
+    originalName: string;
+    fileName: string;
+    url: string;
+    key: string;
+    size: number;
+    mimeType: string;
+    uploadedAt: string;
+    _id: string;
+  }>;
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
+  __owners?: string[];
+  customer?: string;
+  vendor?: string;
+  adults?: number;
+  children?: number;
+  infants?: number;
+  childAges?: (number | null)[];
+  adultTravellers?: string[];
+  infantTravellers?: string[];
+  adultTravellerIds?: string[];
+  infantTravellerIds?: string[];
+  bookingOwner?: string;
+  flightinfoform?: {
+    bookingdate?: string;
+    traveldate?: string;
+    bookingstatus?: string;
+    costprice?: string;
+    sellingprice?: string;
+    PNR?: string;
+    segments?: Segment[];
+    returnSegments?: Segment[];
+    pnrEnabled?: boolean;
+    samePNRForAllSegments?: boolean;
+    flightType?: string;
+    remarks?: string;
+  };
 }
 
 // InputField component moved OUTSIDE of GeneralInfoForm to prevent re-creation on each render
@@ -85,11 +258,11 @@ const InputField: React.FC<InputFieldProps> = ({
         min={min}
         disabled={disabled || isValidating}
         className={`
-          w-full border rounded-md px-3 py-2 pr-10 text-[0.75rem]  transition-colors
+          w-full border rounded-md px-3 py-2 pr-10 text-[0.75rem]  transition-colors hover:border-green-400 
           ${
             hasError
               ? "border-red-300 focus:ring-red-200"
-              : "border-gray-200 focus:ring-blue-200"
+              : "border-gray-200 focus:ring-green-400"
           }
 
           ${disabled || isValidating ? "opacity-50 cursor-not-allowed" : ""}
@@ -150,7 +323,7 @@ interface ValidationErrors {
 }
 
 interface GeneralInfoFormProps {
-  formData?: Partial<GeneralInfoFormData>;
+  initialFormData?: Partial<ExternalFormData>;
   onFormDataUpdate?: (data: Partial<GeneralInfoFormData>) => void;
   onSubmit?: (data: GeneralInfoFormData) => void;
   isSubmitting?: boolean;
@@ -159,7 +332,7 @@ interface GeneralInfoFormProps {
 }
 
 const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
-  formData: externalFormData = {},
+  initialFormData: externalFormData = {},
   onFormDataUpdate,
   onSubmit,
   isSubmitting = false,
@@ -167,21 +340,23 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   formRef,
 }) => {
   // Internal form state
+
+    console.log('Initial External Form Data', externalFormData);
+
   const [formData, setFormData] = useState<GeneralInfoFormData>({
-    customer: "",
-    vendor: "",
-    vendorName: "",
-    adults: 1,
-    children: 0,
-    infants: 1,
-    childAges: [],
-    adultTravellers: [""], // Adult 1 (Lead Pax) - Names for display
-    infantTravellers: [""], // Names for display
-    adultTravellerIds: [""], // IDs for backend
-    infantTravellerIds: [""], // IDs for backend
-    bookingOwner: "",
-    remarks: "",
-    ...externalFormData,
+    customer: externalFormData?.customerId?._id || "",
+    vendor: externalFormData?.vendorId?._id || "",
+    vendorName: externalFormData?.vendorId?.contactPerson || externalFormData?.vendorId?.companyName || externalFormData?.formFields?.vendorName || "",
+    adults: externalFormData?.adults || externalFormData?.formFields?.adults || 1,
+    children: externalFormData?.children || externalFormData?.formFields?.children || 0,
+    infants: externalFormData?.infants || externalFormData?.formFields?.infants || 1,
+    childAges: externalFormData?.childAges || externalFormData?.formFields?.childAges || [],
+    adultTravellers: externalFormData?.formFields?.adultTravellers || [""], // Adult 1 (Lead Pax) - Names for display
+    infantTravellers: externalFormData?.formFields?.infantTravellers || [""], // Names for display
+    adultTravellerIds: externalFormData?.formFields?.adultTravellerIds || [""], // IDs for backend
+    infantTravellerIds: externalFormData?.formFields?.infantTravellerIds || [""], // IDs for backend
+    bookingOwner: externalFormData?.owner?.[0]?._id || externalFormData?.bookingOwner || "",
+    remarks: externalFormData?.remarks || externalFormData?.formFields?.remarks || "",
   });
 
   // Sync initial form state to parent on mount
@@ -217,19 +392,22 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // });
 
   // Search data states
-  const [allCustomers, setAllCustomers] = useState<any[]>([]);
-  const [allVendors, setAllVendors] = useState<any[]>([]);
-  const [allTeams, setAllTeams] = useState<any[]>([]);
-  const [allTravellers, setAllTravellers] = useState<any[]>([]);
+  const [allCustomers, setAllCustomers] = useState<CustomerDataType[]>([]);
+  const [allVendors, setAllVendors] = useState<VendorDataType[]>([]);
+  const [allTeams, setAllTeams] = useState<TeamDataType[]>([]);
+  const [allTravellers, setAllTravellers] = useState<TravellerDataType[]>([]);
 
-  const [customerResults, setCustomerResults] = useState<any[]>([]);
-  const [vendorResults, setVendorResults] = useState<any[]>([]);
-  const [TeamsResults, setTeamsResults] = useState<any[]>([]);
-  const [travellerResults, setTravellerResults] = useState<any[]>([]);
+  const [customerResults, setCustomerResults] = useState<CustomerDataType[]>([]);
+  const [vendorResults, setVendorResults] = useState<VendorDataType[]>([]);
+  const [TeamsResults, setTeamsResults] = useState<TeamDataType[]>([]);
+  const [travellerResults, setTravellerResults] = useState<TravellerDataType[]>([]);
 
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
   const [showTeamsDropdown, setShowTeamsDropdown] = useState(false);
+
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
   // Track which traveller input is showing dropdown: { type: 'adultTravellers' | 'infantTravellers', index: number } | null
   const [activeTravellerDropdown, setActiveTravellerDropdown] = useState<{
@@ -245,12 +423,21 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     { id: "", name: "" },
   ]);
 
+  // View customer sidesheet state
+  const [isViewCustomerOpen, setIsViewCustomerOpen] = useState(false);
+  const [viewCustomerData, setViewCustomerData] = useState<CustomerDataType | null>(null);
+  // View vendor sidesheet state
+  const [isViewVendorOpen, setIsViewVendorOpen] = useState(false);
+  const [viewVendorData, setViewVendorData] = useState<VendorDataType | null>(null);
+  // View traveller sidesheet state
+  const [isViewTravellerOpen, setIsViewTravellerOpen] = useState(false);
+  const [viewTravellerData, setViewTravellerData] = useState<TravellerDataType | null>(null);
+
   // Add refs for click-outside detection
   const customerRef = useRef<HTMLDivElement | null>(null);
   const vendorRef = useRef<HTMLDivElement | null>(null);
   const teamsRef = useRef<HTMLDivElement | null>(null);
   const travellerRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
-
   useEffect(() => {
     const handleGlobalClick = (e: MouseEvent) => {
       const target = e.target as Node;
@@ -300,6 +487,101 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     };
   }, []);
 
+  // Handler to open view sidesheet for customer
+  const handleViewCustomer = async (index: number) => {
+    const idFromList = customerList[index]?.id;
+    const id = idFromList || (formData.customer as string) || "";
+    if (!id) return;
+
+    // Try local cache first
+    let cust = allCustomers.find((c) => c._id === id || c.id === id);
+    if (!cust) {
+      try {
+        cust = await getCustomerById(id);
+      } catch (err) {
+        console.error("Failed to fetch customer for view:", err);
+        return;
+      }
+    }
+
+    setViewCustomerData(cust || null);
+    setIsViewCustomerOpen(true);
+  };
+
+  // Handler to open view sidesheet for vendor
+  const handleViewVendor = async () => {
+    // vendorList[0] is used as single vendor selection in this form
+    const idFromList = vendorList?.[0]?.id;
+    const id = idFromList || (formData.vendor as string) || "";
+    if (!id) return;
+
+    let vendor = allVendors.find((v) => v._id === id || v.id === id);
+    if (!vendor) {
+      try {
+        vendor = await getVendorById(id);
+      } catch (err) {
+        console.error("Failed to fetch vendor for view:", err);
+        return;
+      }
+    }
+
+    setViewVendorData(vendor || null);
+    setIsViewVendorOpen(true);
+  };
+
+  // Handler to open view sidesheet for traveller
+  const handleViewTraveller = async (
+    type: "adultTravellers" | "infantTravellers",
+    index: number
+  ) => {
+    const idsArray =
+      type === "adultTravellers"
+        ? formData.adultTravellerIds
+        : formData.infantTravellerIds;
+    const nameArray = formData[type];
+
+    const idFromState = idsArray?.[index];
+    const nameFromState = nameArray?.[index] || "";
+
+    let traveller: TravellerDataType | undefined = undefined;
+
+    // Try cached list first (match by id or name)
+    if (idFromState) {
+      traveller = allTravellers.find(
+        (t) => t._id === idFromState || t.id === idFromState
+      );
+    }
+
+    if (!traveller && nameFromState) {
+      traveller = allTravellers.find(
+        (t) => t.name === nameFromState || t.email === nameFromState
+      );
+    }
+
+    if (!traveller && idFromState) {
+      try {
+        traveller = await getTravellerById(idFromState);
+      } catch (err) {
+        console.error("Failed to fetch traveller by id:", err);
+        return;
+      }
+    }
+
+    if (!traveller) {
+      // nothing to view
+      return;
+    }
+
+    setViewTravellerData(traveller || null);
+    setIsViewTravellerOpen(true);
+  };
+
+  const handleDeleteFile = (index: number) => {
+    const newFiles = [...attachedFiles];
+    newFiles.splice(index, 1);
+    setAttachedFiles(newFiles);
+  };
+
   // Fetch all customers, vendors, Teamss on mount
   useEffect(() => {
     const fetchLists = async () => {
@@ -328,21 +610,79 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   // Hydrate owner from externalFormData
   useEffect(() => {
-    if (!externalFormData?.bookingOwner) return;
+    if (!externalFormData?.bookingOwner && !externalFormData?.owner?.[0]) return;
     if (!Array.isArray(allTeams) || allTeams.length === 0) return;
-    const match = allTeams.find((t) => t._id === externalFormData.bookingOwner);
-    if (match) {
-      setOwnerList([{ id: match._id, name: match.name }]);
+    
+    const ownerId = externalFormData.owner?.[0]?._id || externalFormData.bookingOwner || "";
+    if (ownerId && externalFormData.owner?.[0]) {
+      const match = allTeams.find((t) => t._id === ownerId);
+      if (match) {
+        setOwnerList([{ id: match._id, name: match.name }]);
+      } else if (externalFormData.owner[0].name) {
+        // If we can't find in teams, use the name from external data
+        setOwnerList([{ id: ownerId, name: externalFormData.owner[0].name }]);
+      }
     }
-  }, [externalFormData?.bookingOwner, allTeams]);
+  }, [externalFormData?.bookingOwner, externalFormData?.owner, allTeams]);
+
+  // Hydrate vendor from externalFormData
+  useEffect(() => {
+    if (!externalFormData?.vendorId) return;
+    if (!Array.isArray(allVendors) || allVendors.length === 0) return;
+
+    const match = allVendors.find((v) => v._id === externalFormData.vendorId?._id);
+    if (match) {
+      setVendorList([{ id: match._id, name: match.contactPerson || match.companyName || "" }]);
+    } else if (externalFormData.vendorId.contactPerson || externalFormData.vendorId.companyName) {
+      // If we can't find in vendors, use the name from external data
+      setVendorList([{
+        id: externalFormData.vendorId._id,
+        name: externalFormData.vendorId.contactPerson || externalFormData.vendorId.companyName || ""
+      }]);
+    }
+  }, [externalFormData?.vendorId, allVendors]);
+
+  // Hydrate customer from externalFormData
+  useEffect(() => {
+    if (!externalFormData?.customerId) return;
+    if (!Array.isArray(allCustomers) || allCustomers.length === 0) return;
+
+    const match = allCustomers.find((c) => c._id === externalFormData.customerId?._id);
+    if (match) {
+      setCustomerList([{ id: match._id, name: match.name }]);
+    } else if (externalFormData.customerId.name) {
+      // If we can't find in customers, use the name from external data
+      setCustomerList([{
+        id: externalFormData.customerId._id,
+        name: externalFormData.customerId.name
+      }]);
+    }
+  }, [externalFormData?.customerId, allCustomers]);
+
+  // Hydrate travellers from externalFormData
+  useEffect(() => {
+    if (!externalFormData?.travelers || !Array.isArray(externalFormData.travelers)) return;
+    
+    // Process adult travellers
+    if (externalFormData.travelers.length > 0) {
+      const adultNames = externalFormData.travelers.map((traveller: TravellerDataType) => traveller.name || "");
+      const adultIds = externalFormData.travelers.map((traveller: TravellerDataType) => traveller._id || "");
+      
+      setFormData(prev => ({
+        ...prev,
+        adultTravellers: adultNames,
+        adultTravellerIds: adultIds
+      }));
+    }
+  }, [externalFormData?.travelers]);
 
   // Fuzzy search helper
-  const runFuzzySearch = (list: any[], term: string, keys: string[]) => {
+  const runFuzzySearch = <T,>(list: T[], term: string, keys: (keyof T)[]): T[] => {
     if (!term.trim()) return [];
 
     const fuse = new Fuse(list, {
       threshold: 0.3,
-      keys: keys,
+      keys: keys as string[],
     });
 
     return fuse.search(term).map((r) => r.item);
@@ -368,8 +708,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       if (adults.length === 0) adults.push("");
       if (adultIds.length === 0) adultIds.push("");
 
-      while (adults.length < prev.adults) { adults.push(""); adultIds.push(""); }
-      while (adults.length > prev.adults && adults.length > 1) { adults.pop(); adultIds.pop(); }
+      while (adults.length < prev.adults) {
+        adults.push("");
+        adultIds.push("");
+      }
+      while (adults.length > prev.adults && adults.length > 1) {
+        adults.pop();
+        adultIds.pop();
+      }
 
       return { ...prev, adultTravellers: adults, adultTravellerIds: adultIds };
     });
@@ -384,10 +730,20 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       if (infants.length === 0) infants.push("");
       if (infantIds.length === 0) infantIds.push("");
 
-      while (infants.length < prev.infants) { infants.push(""); infantIds.push(""); }
-      while (infants.length > prev.infants && infants.length > 1) { infants.pop(); infantIds.pop(); }
+      while (infants.length < prev.infants) {
+        infants.push("");
+        infantIds.push("");
+      }
+      while (infants.length > prev.infants && infants.length > 1) {
+        infants.pop();
+        infantIds.pop();
+      }
 
-      return { ...prev, infantTravellers: infants, infantTravellerIds: infantIds };
+      return {
+        ...prev,
+        infantTravellers: infants,
+        infantTravellerIds: infantIds,
+      };
     });
   }, [formData.infants]);
 
@@ -438,7 +794,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     const updated = [...formData[type]];
     updated[index] = value;
 
-    const idType = type === "adultTravellers" ? "adultTravellerIds" : "infantTravellerIds";
+    const idType =
+      type === "adultTravellers" ? "adultTravellerIds" : "infantTravellerIds";
     const updatedIds = [...formData[idType]];
     if (id !== undefined) {
       updatedIds[index] = id;
@@ -498,13 +855,21 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         const adultIds = [...prev.adultTravellerIds];
         adults[travellerTarget.index] = name;
         adultIds[travellerTarget.index] = id;
-        newFormData = { ...prev, adultTravellers: adults, adultTravellerIds: adultIds };
+        newFormData = {
+          ...prev,
+          adultTravellers: adults,
+          adultTravellerIds: adultIds,
+        };
       } else {
         const infants = [...prev.infantTravellers];
         const infantIds = [...prev.infantTravellerIds];
         infants[travellerTarget.index] = name;
         infantIds[travellerTarget.index] = id;
-        newFormData = { ...prev, infantTravellers: infants, infantTravellerIds: infantIds };
+        newFormData = {
+          ...prev,
+          infantTravellers: infants,
+          infantTravellerIds: infantIds,
+        };
       }
       onFormDataUpdate?.(newFormData);
       return newFormData;
@@ -541,7 +906,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     value?: string | undefined; // override value
     overrideSetter?: (val: string) => void;
     onClickPlus?: () => void; // for add customer/vendor modal
-  }> = ({ fieldName, value, overrideSetter, onClickPlus }) => {
+    onClickView?: () => void;
+  }> = ({ fieldName, value, overrideSetter, onClickPlus, onClickView }) => {
     const actualValue = getFieldValue(fieldName, value);
     const valueString = String(actualValue ?? "");
     const isEmpty = valueString.trim() === "";
@@ -552,9 +918,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           <button
             type="button"
             onClick={onClickPlus}
-            className="w-9 h-9 flex items-center justify-center rounded-md transition-colors"
+            className="w-6.5 h-6.5 flex items-center bg-[#414141] justify-center rounded-md transition-colors"
           >
-            <BsPlusSquareFill size={22} className="" />
+            <GoPlus size={16} className="text-white" />
           </button>
         )}
 
@@ -563,6 +929,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           <>
             <button
               type="button"
+              onClick={onClickView}
               className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
             >
               <LuEye size={17} className="text-gray-400" />
@@ -616,7 +983,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   // Enhanced validation function using API validation
   const validateField = useCallback(
-    (name: string, value: any): string => {
+    (name: string, value: unknown): string => {
       // Use API validation for comprehensive checks
       // if (name === "customer" || name === "vendor") {
       //   const apiErrors = validateGeneralInfo({ [name]: value });
@@ -882,7 +1249,21 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                       // IF FIELD CLEARED then also clear stored value so validation becomes empty
                       if (value.trim() === "") {
-                        setFormData((prev) => ({ ...prev, customer: "" }));
+                        const newFormData = {
+                          ...formData,
+                          customer: "",
+                          customerName: "",
+                        };
+                        setFormData(newFormData);
+                        onFormDataUpdate?.(newFormData);
+                      } else {
+                        // Update customerName for draft display
+                        const newFormData = {
+                          ...formData,
+                          customerName: value,
+                        };
+                        setFormData(newFormData);
+                        onFormDataUpdate?.(newFormData);
                       }
 
                       const results = runFuzzySearch(allCustomers, value, [
@@ -899,29 +1280,69 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                 {activeCustomerIndex === index && showCustomerDropdown && (
                   <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] max-h-60 mt-1 overflow-y-auto shadow-md z-50">
-                    {customerResults.map((cust) => (
-                      <div
-                        key={cust._id}
-                        className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
-                        onClick={() => {
-                          updateCustomerField(index, {
-                            id: cust._id,
-                            name: cust.name,
-                          });
-                          setActiveCustomerIndex(null);
-                          // Sync main form and notify parent
-                          const newFormData = { ...formData, customer: cust._id };
-                          setFormData(newFormData);
-                          onFormDataUpdate?.(newFormData);
-                          setShowCustomerDropdown(false);
-                        }}
-                      >
-                        <p className="font-medium text-[0.75rem]">
-                          {cust.name}
-                        </p>
-                        {/* <p className="text-xs text-gray-500">{cust.email}</p> */}
-                      </div>
-                    ))}
+                    {customerResults.map((cust) => {
+                      // derive numeric rating (1-5) from cust.tier if available
+                      let rating = 4;
+                      try {
+                        if (cust?.tier) {
+                          if (typeof cust.tier === "string") {
+                            const match = cust.tier.match(/\d+/);
+                            if (match) rating = Number(match[0]);
+                          } else if (typeof cust.tier === "number") {
+                            rating = Math.round(cust.tier);
+                          }
+                        }
+                      } catch (e) {
+                        rating = 4;
+                      }
+                      rating = Math.min(Math.max(rating || 4, 1), 5);
+
+                      return (
+                        <div
+                          key={cust._id}
+                          className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
+                          onClick={() => {
+                            updateCustomerField(index, {
+                              id: cust._id,
+                              name: cust.name,
+                            });
+                            setActiveCustomerIndex(null);
+                            // Sync main form and notify parent with both ID and name
+                            const newFormData = {
+                              ...formData,
+                              customer: cust._id,
+                              customerName: cust.name,
+                            };
+                            setFormData(newFormData);
+                            onFormDataUpdate?.(newFormData);
+                            setShowCustomerDropdown(false);
+                          }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                              <p className="font-medium text-[0.75rem] text-gray-900">
+                                {cust.name}
+                              </p>
+                              <span className="text-gray-300">|</span>
+                              <p className="text-[0.70rem] text-gray-600 truncate">
+                                {cust._id}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <img
+                                src={`/icons/tier-${rating}.png`}
+                                alt={`Tier ${rating}`}
+                                className="w-4 h-4 object-contain"
+                              />
+                              <span className="text-[0.75rem] font-semibold text-gray-700">
+                                {rating}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                     {/* Staple option */}
                     {/* <div
                       className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
@@ -950,6 +1371,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   })
                 }
                 onClickPlus={openAddCustomer}
+                onClickView={() => handleViewCustomer(index)}
               />
             </div>
           </div>
@@ -978,8 +1400,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 // Update vendor name only
                 setVendorList([{ id: "", name: value }]);
 
-                // clear actual vendor ID
-                setFormData((prev) => ({ ...prev, vendor: "" }));
+                // clear actual vendor ID but keep the name for draft display
+                const newFormData = {
+                  ...formData,
+                  vendor: "",
+                  vendorName: value,
+                };
+                setFormData(newFormData);
+                onFormDataUpdate?.(newFormData);
 
                 const results = runFuzzySearch(allVendors, value, [
                   "name",
@@ -995,26 +1423,69 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
             {showVendorDropdown && (
               <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-                {vendorResults.map((v) => (
-                  <div
-                    key={v._id}
-                    className="p-2 cursor-pointer hover:bg-gray-100"
-                    onClick={() => {
-                      setShowVendorDropdown(false);
-                      setVendorList([
-                        { id: v._id, name: v.name ?? v.contactPerson ?? "" },
-                      ]);
-                      const newFormData = { ...formData, vendor: v._id };
-                      setFormData(newFormData);
-                      onFormDataUpdate?.(newFormData);
-                    }}
-                  >
-                    <p className="font-normal text-[0.75rem]">
-                      {v.name || v.contactPerson}
-                    </p>
-                    {/* <p className="text-xs text-gray-500">{v.email}</p> */}
-                  </div>
-                ))}
+                {vendorResults.map((v) => {
+                  // derive rating only if tier present
+                  let rating: number | null = null;
+                  try {
+                    if (v?.tier) {
+                      if (typeof v.tier === "string") {
+                        const m = v.tier.match(/\d+/);
+                        if (m) rating = Number(m[0]);
+                      } else if (typeof v.tier === "number") {
+                        rating = Math.round(v.tier);
+                      }
+                    }
+                  } catch (e) {
+                    rating = null;
+                  }
+                  if (rating !== null)
+                    rating = Math.min(Math.max(rating, 1), 5);
+
+                  return (
+                    <div
+                      key={v._id}
+                      className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
+                      onClick={() => {
+                        setShowVendorDropdown(false);
+                        setVendorList([
+                          { id: v._id, name: v.name ?? v.contactPerson ?? "" },
+                        ]);
+                        const newFormData = {
+                          ...formData,
+                          vendor: v._id,
+                          vendorName: v.name ?? v.contactPerson ?? "",
+                        };
+                        setFormData(newFormData);
+                        onFormDataUpdate?.(newFormData);
+                      }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1">
+                          <p className="font-normal text-[0.75rem] text-gray-900">
+                            {v.name || v.contactPerson}
+                          </p>
+                          <span className="text-gray-300">|</span>
+                          <p className="text-[0.70rem] text-gray-600 truncate">
+                            {v._id}
+                          </p>
+                        </div>
+
+                        {rating !== null ? (
+                          <div className="flex items-center gap-1">
+                            <img
+                              src={`/icons/tier-${rating}.png`}
+                              alt={`Tier ${rating}`}
+                              className="w-4 h-4 object-contain"
+                            />
+                            <span className="text-[0.75rem] font-semibold text-gray-700">
+                              {rating}
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
                 {/* Staple option */}
                 {/* <div
                   className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
@@ -1037,6 +1508,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             value={vendorList[0]?.name ?? ""}
             overrideSetter={(val) => setVendorList([{ id: "", name: val }])}
             onClickPlus={openAddVendor}
+            onClickView={() => handleViewVendor()}
           />
         </div>
       </div>
@@ -1074,29 +1546,28 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               </button>
             </div>
           </div>
-
           <div className="flex flex-col items-center">
             <label className="block text-xs text-black mb-1">Children</label>
-            <div className="flex items-center border border-black rounded-lg px-1 py-1">
+            <div className="flex items-center border border-black rounded-lg px-2 py-1">
               <button
                 type="button"
                 onClick={() =>
                   setFormData({
                     ...formData,
-                    infants: Math.max(0, formData.infants - 1),
+                    children: Math.max(0, formData.children - 1),
                   })
                 }
-                className="px-1 text-[0.75rem] "
+                className="px-1 text-lg font-semibold"
               >
                 <FiMinus size={12} />
               </button>
-              <span className="px-2 text-[0.75rem] ">{formData.infants}</span>
+              <span className="px-2 text-[0.75rem] ">{formData.children}</span>
               <button
                 type="button"
                 onClick={() =>
-                  setFormData({ ...formData, infants: formData.infants + 1 })
+                  setFormData({ ...formData, children: formData.children + 1 })
                 }
-                className="px-2 text-[0.75rem] "
+                className="px-1 text-lg font-semibold"
               >
                 <GoPlus size={12} />
               </button>
@@ -1149,22 +1620,81 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   activeTravellerDropdown?.index === index &&
                   travellerResults.length > 0 && (
                     <div className="absolute bg-white border border-gray-200 rounded-md w-full mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-                      {travellerResults.map((t: any) => (
+                      {travellerResults.map((t: TravellerDataType) => (
                         <div
                           key={t._id}
-                          className="p-2 cursor-pointer hover:bg-gray-100"
+                          className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
                           onClick={() => {
-                            updateTraveller("adultTravellers", index, t.name, t._id);
+                            updateTraveller(
+                              "adultTravellers",
+                              index,
+                              t.name,
+                              t._id
+                            );
                             setActiveTravellerDropdown(null);
                             setTravellerResults([]);
                           }}
                         >
-                          <p className="font-normal text-[0.75rem]">{t.name}</p>
-                          {t.email && (
-                            <p className="text-xs text-gray-500">{t.email}</p>
-                          )}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1">
+                              <p className="font-normal text-[0.75rem] text-gray-900">
+                                {t.name}
+                              </p>
+                              <span className="text-gray-300">|</span>
+                              <p className="text-[0.70rem] text-gray-600 truncate">
+                                {t._id}
+                              </p>
+                            </div>
+
+                            {/* show rating only when available */}
+                            {(() => {
+                              let rating: number | null = null;
+                              try {
+                                if (t?.tier) {
+                                  if (typeof t.tier === "string") {
+                                    const m = t.tier.match(/\d+/);
+                                    if (m) rating = Number(m[0]);
+                                  } else if (typeof t.tier === "number") {
+                                    rating = Math.round(t.tier);
+                                  }
+                                }
+                              } catch (e) {
+                                rating = null;
+                              }
+                              if (rating !== null) {
+                                rating = Math.min(Math.max(rating, 1), 5);
+                                return (
+                                  <div className="flex items-center gap-1">
+                                    <img
+                                      src={`/icons/tier-${rating}.png`}
+                                      alt={`Tier ${rating}`}
+                                      className="w-4 h-4 object-contain"
+                                    />
+                                    <span className="text-[0.75rem] font-semibold text-gray-700">
+                                      {rating}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
+                          </div>
                         </div>
                       ))}
+                      {/* Staple option */}
+                      <div
+                        className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
+                        onClick={() => {
+                          // Set this traveller to TBA (To Be Announced)
+                          updateTraveller("adultTravellers", index, "TBA");
+                          setActiveTravellerDropdown(null);
+                          setTravellerResults([]);
+                        }}
+                      >
+                        <p className="font-medium text-[0.70rem] text-gray-700">
+                          Don&apos;t have the name? Enter TBA
+                        </p>
+                      </div>
                     </div>
                   )}
               </div>
@@ -1177,6 +1707,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 }
                 onClickPlus={() =>
                   openAddTraveller({ type: "adultTravellers", index })
+                }
+                onClickView={() =>
+                  handleViewTraveller("adultTravellers", index)
                 }
               />
             </div>
@@ -1193,29 +1726,25 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   Children
                 </label>
 
-                {/* Select age dropdown (always aligned top-right) */}
-                <select
-                  name={`childAge-${index}`}
-                  value={formData.childAges?.[index] ?? ""}
-                  onChange={(e) => {
-                    const val =
-                      e.target.value === "" ? null : Number(e.target.value);
+                {/* Select age dropdown */}
+                <DropDown
+                  options={Array.from({ length: 10 }, (_, i) => ({
+                    value: String(i + 1),
+                    label: String(i + 1),
+                  }))}
+                  placeholder="Select Age"
+                  value={formData.childAges?.[index]?.toString() ?? ""}
+                  onChange={(val) => {
+                    const numVal = val === "" ? null : Number(val);
                     setFormData((prev) => {
                       const ages = [...(prev.childAges || [])];
-                      ages[index] = val;
+                      ages[index] = numVal;
                       return { ...prev, childAges: ages };
                     });
                   }}
-                  className="w-[7rem] border border-gray-300 rounded-md px-2 py-1 text-[0.70rem] bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  disabled={isSubmitting}
-                >
-                  <option value="">Select Age</option>
-                  {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
+                  className="mb-2"
+                  customWidth="w-[8rem]"
+                />
               </div>
 
               {/* CHILD INPUT */}
@@ -1257,29 +1786,79 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     activeTravellerDropdown?.index === index &&
                     travellerResults.length > 0 && (
                       <div className="absolute bg-white border border-gray-200 rounded-md w-full mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-                        {travellerResults.map((t: any) => (
-                          <div
-                            key={t._id}
-                            className="p-2 cursor-pointer hover:bg-gray-100"
-                            onClick={() => {
-                              updateTraveller(
-                                "infantTravellers",
-                                index,
-                                t.name,
-                                t._id
-                              );
-                              setActiveTravellerDropdown(null);
-                              setTravellerResults([]);
-                            }}
-                          >
-                            <p className="font-normal text-[0.75rem]">
-                              {t.name}
-                            </p>
-                            {t.email && (
-                              <p className="text-xs text-gray-500">{t.email}</p>
-                            )}
-                          </div>
-                        ))}
+                        {travellerResults.map((t: TravellerDataType) => {
+                          let rating: number | null = null;
+                          try {
+                            if (t?.tier) {
+                              if (typeof t.tier === "string") {
+                                const m = t.tier.match(/\d+/);
+                                if (m) rating = Number(m[0]);
+                              } else if (typeof t.tier === "number") {
+                                rating = Math.round(t.tier);
+                              }
+                            }
+                          } catch (e) {
+                            rating = null;
+                          }
+                          if (rating !== null)
+                            rating = Math.min(Math.max(rating, 1), 5);
+
+                          return (
+                            <div
+                              key={t._id}
+                              className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
+                              onClick={() => {
+                                updateTraveller(
+                                  "infantTravellers",
+                                  index,
+                                  t.name,
+                                  t._id
+                                );
+                                setActiveTravellerDropdown(null);
+                                setTravellerResults([]);
+                              }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1">
+                                  <p className="font-normal text-[0.75rem] text-gray-900">
+                                    {t.name}
+                                  </p>
+                                  <span className="text-gray-300">|</span>
+                                  <p className="text-[0.70rem] text-gray-600 truncate">
+                                    {t._id}
+                                  </p>
+                                </div>
+
+                                {rating !== null ? (
+                                  <div className="flex items-center gap-1">
+                                    <img
+                                      src={`/icons/tier-${rating}.png`}
+                                      alt={`Tier ${rating}`}
+                                      className="w-4 h-4 object-contain"
+                                    />
+                                    <span className="text-[0.75rem] font-semibold text-gray-700">
+                                      {rating}
+                                    </span>
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {/* Staple option */}
+                        <div
+                          className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
+                          onClick={() => {
+                            // Set this infant traveller to TBA
+                            updateTraveller("infantTravellers", index, "TBA");
+                            setActiveTravellerDropdown(null);
+                            setTravellerResults([]);
+                          }}
+                        >
+                          <p className="font-medium text-[0.70rem] text-gray-700">
+                            Don&apos;t have the name? Enter TBA
+                          </p>
+                        </div>
                       </div>
                     )}
                 </div>
@@ -1292,6 +1871,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   }
                   onClickPlus={() =>
                     openAddTraveller({ type: "infantTravellers", index })
+                  }
+                  onClickView={() =>
+                    handleViewTraveller("infantTravellers", index)
                   }
                 />
               </div>
@@ -1319,8 +1901,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               const value = e.target.value;
               // show typed text, clear ID until selection
               setOwnerList([{ id: "", name: value }]);
-              // don't send name as ID
-              setFormData((prev) => ({ ...prev, bookingOwner: "" }));
+              // don't send name as ID, but keep the name for draft display
+              const newFormData = {
+                ...formData,
+                bookingOwner: "",
+                ownerName: value,
+              };
+              setFormData(newFormData);
+              onFormDataUpdate?.(newFormData);
 
               const results = runFuzzySearch(allTeams, value, [
                 "name",
@@ -1334,13 +1922,17 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           />
           {showTeamsDropdown && (
             <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-              {TeamsResults.map((t: any) => (
+              {TeamsResults.map((t: TeamDataType) => (
                 <div
                   key={t._id}
                   className="p-2 cursor-pointer hover:bg-gray-100"
                   onClick={() => {
                     setOwnerList([{ id: t._id, name: t.name }]); // Save both ID and name
-                    const newFormData = { ...formData, bookingOwner: t._id };
+                    const newFormData = {
+                      ...formData,
+                      bookingOwner: t._id,
+                      ownerName: t.name,
+                    };
                     setFormData(newFormData);
                     onFormDataUpdate?.(newFormData);
                     setShowTeamsDropdown(false);
@@ -1375,6 +1967,42 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           `}
         />
       </div>
+
+      {/* View customer sidesheet (read-only) */}
+      {isViewCustomerOpen && (
+        <AddCustomerSideSheet
+          isOpen={isViewCustomerOpen}
+          onCancel={() => {
+            setIsViewCustomerOpen(false);
+            setViewCustomerData(null);
+          }}
+          mode="view"
+          data={viewCustomerData}
+        />
+      )}
+
+      {isViewVendorOpen && (
+        <AddVendorSideSheet
+          isOpen={isViewVendorOpen}
+          onCancel={() => {
+            setIsViewVendorOpen(false);
+            setViewVendorData(null);
+          }}
+          mode="view"
+          data={viewVendorData}
+        />
+      )}
+      {isViewTravellerOpen && (
+        <AddNewTravellerForm
+          isOpen={isViewTravellerOpen}
+          onClose={() => {
+            setIsViewTravellerOpen(false);
+            setViewTravellerData(null);
+          }}
+          mode="view"
+          data={viewTravellerData}
+        />
+      )}
 
       {/* Submit Button (if standalone) */}
       {/* {onSubmit && (

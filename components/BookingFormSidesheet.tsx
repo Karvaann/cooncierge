@@ -5,6 +5,7 @@ import ConfirmPopupModal from "./popups/BookingPopups/ConfirmPopupModal";
 import SuccessPopupModal from "./popups/BookingPopups/SuccessPopupModal";
 import { BookingProvider, useBooking } from "@/context/BookingContext";
 import { BookingApiService } from "@/services/bookingApi";
+import apiClient from "@/services/apiClient";
 import SideSheet from "@/components/SideSheet";
 import GeneralInfoForm from "./forms/GeneralInfoForm";
 import AddCustomerSideSheet from "./Sidesheets/AddCustomerSideSheet";
@@ -19,8 +20,10 @@ import ActivityServiceInfoForm from "./forms/ActivityServiceInfoForm";
 import InsuranceServiceInfoForm from "./forms/InsuranceServiceInfoForm";
 import VisasServiceInfoForm from "./forms/VisasServiceInfoForm";
 import OthersServiceInfoForm from "./forms/OthersServiceInfoForm";
+import Button from "./Button";
+import { LuSave } from "react-icons/lu";
 
-import { getAuthUser } from '@/services/storage/authStorage';
+import { getAuthUser } from "@/services/storage/authStorage";
 
 // Type definitions
 interface Service {
@@ -58,37 +61,63 @@ interface TabConfig {
 }
 
 function ServiceInfoFormSwitcher(props: any) {
-  const { selectedService } = props;
-  console.log("CATEGORY:", selectedService?.category);
+  const { selectedService, onAddDocuments, formData } = props;
+  console.log("CATEGORY:", selectedService?.category, formData?.quotationType);
 
-  if (!selectedService) return null;
+  const service = selectedService?.category || formData?.quotationType;
 
-  switch (selectedService.category) {
+  if (!service) return null;
+
+  switch (service) {
     case "travel":
-      return <FlightServiceInfoForm {...props} />;
+      return (
+        <FlightServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+      );
 
     case "accommodation":
-      return <AccommodationServiceInfo {...props} />;
+      return (
+        <AccommodationServiceInfo {...props} onAddDocuments={onAddDocuments} />
+      );
 
     case "transport-land":
-      return <LandTransportServiceInfoForm {...props} />;
+      return (
+        <LandTransportServiceInfoForm
+          {...props}
+          onAddDocuments={onAddDocuments}
+        />
+      );
 
     case "transport-maritime":
-      return <MaritimeTransportServiceInfoForm {...props} />;
+      return (
+        <MaritimeTransportServiceInfoForm
+          {...props}
+          onAddDocuments={onAddDocuments}
+        />
+      );
     case "tickets":
-      return <TicketsServiceInfoForm {...props} />;
+      return (
+        <TicketsServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+      );
 
     case "activity":
-      return <ActivityServiceInfoForm {...props} />;
+      return (
+        <ActivityServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+      );
 
     case "travel insurance":
-      return <InsuranceServiceInfoForm {...props} />;
+      return (
+        <InsuranceServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+      );
 
     case "visas":
-      return <VisasServiceInfoForm {...props} />;
+      return (
+        <VisasServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+      );
 
     case "others":
-      return <OthersServiceInfoForm {...props} />;
+      return (
+        <OthersServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+      );
 
     // you can keep adding cases for "transport" or "activity" later
     default:
@@ -123,6 +152,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const addCustomerFormRef = useRef<HTMLFormElement | null>(null);
   const addVendorFormRef = useRef<HTMLFormElement | null>(null);
   const addTravellerFormRef = useRef<HTMLFormElement | null>(null);
+
+  // Collect all documents from all forms
+  const [bookingDocuments, setBookingDocuments] = useState<File[]>([]);
+
+  const addBookingDocuments = (files: File[]) => {
+    setBookingDocuments((prev) => [...prev, ...files]);
+  };
 
   // Ref to always have access to latest formData in callbacks
   const formDataRef = useRef(formData);
@@ -168,14 +204,17 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         id: "service",
         label: "Service Info",
         component: ServiceInfoFormSwitcher,
-        isEnabled: !!selectedService,
+        isEnabled: true,
       },
     ],
-    [selectedService]
+    []
   );
 
-  function convertToBookingData(input: any, quotationType: string, serviceStatus: string) {
-
+  function convertToBookingData(
+    input: any,
+    quotationType: string,
+    serviceStatus: string
+  ) {
     const user = getAuthUser() as any;
     const businessId = user?.businessId;
 
@@ -192,12 +231,15 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     } = input;
 
     // Detect ANY key that ends with "infoform"
-    const infoFormKey = Object.keys(input).find(k => k.toLowerCase().endsWith("infoform"));
+    const infoFormKey = Object.keys(input).find((k) =>
+      k.toLowerCase().endsWith("infoform")
+    );
 
     // Extract and flatten the infoform object
-    const flatInfoForm = infoFormKey && typeof input[infoFormKey] === "object"
-      ? { ...input[infoFormKey] }
-      : {};
+    const flatInfoForm =
+      infoFormKey && typeof input[infoFormKey] === "object"
+        ? { ...input[infoFormKey] }
+        : {};
 
     // Everything except known fields and infoform goes to formFields
     const formFields = Object.fromEntries(
@@ -214,36 +256,35 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     ].filter((id: string) => id && id.trim() !== "");
 
     // Build final object
-    const bookingData = {
-      quotationType, // replace if needed
-      channel: "B2C",
-      businessId: businessId._id,
 
-      formFields,
+    const bookingDataTemp = new FormData();
 
-      totalAmount: Number(flatInfoForm.sellingprice ?? flatInfoForm.costprice ?? 0),
-      status: flatInfoForm.bookingstatus || "confirmed",
+    bookingDataTemp.append("quotationType", quotationType);
+    bookingDataTemp.append("channel", "B2C");
+    bookingDataTemp.append("businessId", businessId._id);
+    bookingDataTemp.append("formFields", JSON.stringify(formFields));
+    bookingDataTemp.append("totalAmount", String(flatInfoForm.sellingprice));
 
-      createdAt: new Date(),
-      updatedAt: new Date(),
+    bookingDataTemp.append("status", flatInfoForm.bookingstatus);
+    bookingDataTemp.append("serviceStatus", serviceStatus);
+    bookingDataTemp.append("createdAt", new Date().toISOString());
+    bookingDataTemp.append("updatedAt", new Date().toISOString());
+    [input.bookingOwner].map((o: string) => {
+      bookingDataTemp.append("owner[]", o);
+    });
+    bookingDataTemp.append("travelDate", traveldate || flatInfoForm.traveldate);
+    bookingDataTemp.append("customerId", input.customer);
+    bookingDataTemp.append("vendorId", input.vendor);
+    bookingDataTemp.append("travelers", JSON.stringify(travelers));
+    bookingDataTemp.append("adultTravlers", String(adults ?? 0));
+    bookingDataTemp.append("childTravlers", String(children ?? 0));
+    bookingDataTemp.append("remarks", remarks ?? "");
+    bookingDocuments.map((file) => {
+      bookingDataTemp.append("documents", file);
+    });
+    bookingDataTemp.append("customId", "OS-992CV");
 
-      owner: [input.bookingOwner],
-
-      travelDate: traveldate || flatInfoForm.traveldate ? new Date(flatInfoForm.traveldate) : null,
-
-      customerId: input.customer,
-      vendorId: input.vendor,
-
-      travelers,
-
-      adultTravlers: adults ?? 0,
-      childTravlers: children ?? 0,
-      serviceStatus,
-
-      remarks: remarks ?? "",
-    };
-
-    return bookingData;
+    return bookingDataTemp;
   }
 
   const handleDraftSubmit = useCallback(async () => {
@@ -269,15 +310,25 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         ...currentFormData,
       };
 
-      
       console.log("Form Values:", formValues);
 
+      const bookingData = convertToBookingData(
+        formValues,
+        selectedService.category,
+        "draft"
+      );
 
-      const bookingData = convertToBookingData(formValues, selectedService.category, 'draft');
+      // Prepare multipart form data
+      const formDataToSend = new FormData();
+      formDataToSend.append("data", JSON.stringify(bookingData));
+
+      bookingDocuments.forEach((file) => {
+        formDataToSend.append("documents", file);
+      });
 
       console.log("Submitting Booking Data:", bookingData);
 
-      const response = await BookingApiService.createQuotation(bookingData);
+      const response = await BookingApiService.createQuotation(formDataToSend);
 
       if (response.success) {
         console.log("Booking created successfully!", response.data);
@@ -306,8 +357,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedService, collectAllFormData, onClose]);
-
+  }, [selectedService, collectAllFormData, onClose, bookingDocuments]);
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
@@ -332,11 +382,20 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         ...currentFormData,
       };
 
-      
       console.log("Form Values:", formValues);
 
+      const bookingData = convertToBookingData(
+        formValues,
+        selectedService.category,
+        "approved"
+      );
 
-      const bookingData = convertToBookingData(formValues, selectedService.category, 'approved');
+      // const formDataToSend = new FormData();
+      // formDataToSend.append("data", JSON.stringify(bookingData));
+
+      // bookingDocuments.forEach((file) => {
+      //   formDataToSend.append("documents", file);
+      // });
 
       console.log("Submitting Booking Data:", bookingData);
 
@@ -369,7 +428,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedService, collectAllFormData, onClose]);
+  }, [selectedService, collectAllFormData, onClose, convertToBookingData]);
 
   // Optimized tab click handler
   const handleTabClick = useCallback(
@@ -392,35 +451,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     });
   }, []);
 
-  // Form submission handler
-  const handleFormSubmit = useCallback(
-    async (data: any) => {
-      if (!selectedService) return;
-
-      setIsSubmitting(true);
-      try {
-        const completeFormData = {
-          ...formData,
-          ...data,
-          service: selectedService,
-        };
-
-        // Use BookingContext to submit the booking
-        await submitBooking();
-
-        // Also call the optional onFormSubmit prop for backward compatibility
-        await onFormSubmit?.(completeFormData);
-
-        onClose();
-      } catch (error) {
-        console.error("Form submission error:", error);
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [formData, selectedService, submitBooking, onFormSubmit, onClose]
-  );
-
   // Memoized tab buttons
   const tabButtons = useMemo(
     () =>
@@ -428,13 +458,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         <button
           key={tab.id}
           className={`
-          px-4 py-1.5 text-[0.75rem] font-medium border-b-2 transition-colors
+          px-4 py-1.5 text-[0.75rem] font-medium transition-colors relative
           ${
             activeTab === tab.id
-              ? "border-[#0D4B37] text-[#0D4B37]"
+              ? "text-[#0D4B37]"
               : tab.isEnabled
-              ? "border-transparent  text-gray-500 hover:text-gray-700"
-              : "border-transparent  text-gray-300 cursor-not-allowed"
+              ? "text-gray-500 hover:text-gray-700"
+              : "text-gray-300 cursor-not-allowed"
           }
         `}
           onClick={() => handleTabClick(tab.id)}
@@ -443,6 +473,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           role="tab"
         >
           {tab.label}
+          {/* Green underline for active tab */}
+          {activeTab === tab.id && (
+            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-[2px] bg-[#0D4B37] z-20"></span>
+          )}
         </button>
       )),
     [tabs, activeTab, handleTabClick]
@@ -498,27 +532,31 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         title={title}
         width="xl"
       >
-        <div>
+        <div className="relative h-full">
           <div className="flex flex-col h-full">
-            {/* Tabs */}
+            {/* Tabs - Fixed at top */}
             <div
-              className="flex w-full border-b border-gray-200 space-x-0 px-6 -mt-2 -ml-2"
+              className="absolute top-0 left-0 right-0 z-10 -mt-2 flex w-full space-x-0 px-4 bg-white"
               role="tablist"
             >
               {tabButtons}
             </div>
 
-            {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto" role="tabpanel">
+            {/* Divider line below tabs */}
+            <div className="absolute top-5.5 left-7 right-8 z-10 border-b border-gray-200"></div>
+
+            {/* Tab Content - Scrollable with padding for fixed header */}
+            <div className="flex-1 overflow-y-auto pt-7" role="tabpanel">
               {/* dont unmount General Info */}
               <div
                 style={{ display: activeTab === "general" ? "block" : "none" }}
               >
                 <GeneralInfoForm
-                  formData={formData}
+                  initialFormData={formData}
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting}
                   formRef={generalFormRef as React.RefObject<HTMLFormElement>}
+                  onAddDocuments={addBookingDocuments}
                 />
               </div>
 
@@ -531,125 +569,90 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting}
                   formRef={serviceFormRef}
-                  selectedService={selectedService}
+                  selectedService={selectedService || initialData?.quotationType}
+                  onAddDocuments={addBookingDocuments}
                 />
               </div>
-            </div>
 
-            {/* Footer Actions */}
+              {/* Footer Actions */}
 
-            <div className="border-t border-gray-200 p-4 mt-4">
-              <div className="flex justify-between">
-                {activeTab === "general" ? (
-                  // Cancel Button (General Tab)
-                  <button
-                    onClick={() => setIsConfirmModalOpen(true)}
-                    className="px-3 py-1 text-[0.85rem] text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </button>
-                ) : (
-                  // Previous Button (Service Tab)
-                  <button
-                    onClick={() => {
-                      const currentIndex = tabs.findIndex(
-                        (tab) => tab.id === activeTab
-                      );
-                      const prevTab = tabs[currentIndex - 1];
-                      if (prevTab?.isEnabled) setActiveTab(prevTab.id);
-                    }}
-                    className="px-3 py-1 text-[#114958] text-[0.85rem] border border-[#114958] rounded-lg hover:bg-[#114958] hover:text-white transition-colors"
-                    disabled={isSubmitting}
-                  >
-                    Previous
-                  </button>
-                )}
-
-                {/* RIGHT SIDE BUTTONS */}
-                <div className="flex space-x-2">
-                  {/* GENERAL TAB BUTTONS */}
-                  {activeTab === "general" && (
-                    <>
-                      {/* Save Draft */}
-                      <button
-                        onClick={async () => {
-                          try {
-                            const formValues = {
-                              ...collectAllFormData(),
-                              ...formDataRef.current,
-                            };
-                            const draftName = `${
-                              selectedService?.title || "Booking"
-                            } - ${formValues.customer || "Draft"}`;
-                            await saveDraft(formValues, draftName);
-                            onClose();
-                          } catch (error) {
-                            console.error("Error saving draft:", error);
-                          }
-                        }}
-                        className="px-3 py-2 text-[0.75rem] bg-[#114958] text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
-                        disabled={isSubmitting}
-                      >
-                        Save As Draft
-                      </button>
-
-                      {/* Next */}
-                      <button
+              <div className="border-t border-gray-200 p-4 mt-4">
+                <div className="flex justify-between">
+                  {/* LEFT SIDE BUTTONS */}
+                  <div>
+                    {activeTab === "service" && (
+                      <Button
+                        text="Previous"
                         onClick={() => {
                           const currentIndex = tabs.findIndex(
                             (tab) => tab.id === activeTab
                           );
-                          const nextTab = tabs[currentIndex + 1];
-                          if (nextTab?.isEnabled) setActiveTab(nextTab.id);
+                          const prevTab = tabs[currentIndex - 1];
+                          if (prevTab?.isEnabled) setActiveTab(prevTab.id);
                         }}
-                        className="px-3 bg-[#114958] text-[0.85rem] text-white rounded-lg hover:bg-[#0d3a45] transition-colors"
+                        bgColor="bg-white"
+                        textColor="text-[#114958]"
+                        className="border border-[#114958] hover:bg-[#114958] "
                         disabled={isSubmitting}
-                      >
-                        Next
-                      </button>
-                    </>
-                  )}
+                      />
+                    )}
 
-                  {/* SERVICE TAB BUTTONS */}
-                  {activeTab === "service" && (
-                    <>
-                      {/* Save Draft */}
-                      <button
-                        onClick={async () => {
-                          try {
-                            const formValues = {
-                              ...collectAllFormData(),
-                              ...formData,
-                            };
-                            const draftName = `${
-                              selectedService?.title || "Booking"
-                            } - ${formValues.customer || "Draft"}`;
-                            await saveDraft(formValues, draftName);
-                            onClose();
-                          } catch (error) {
-                            console.error("Error saving draft:", error);
-                          }
-                        }}
-                        className="px-3 py-2 text-[0.75rem] bg-[#cce2e9] text-white rounded-lg hover:bg-gray-700 transition-colors disabled:opacity-50"
-                        disabled={isSubmitting}
-                      >
-                        Save As Draft
-                      </button>
+                    {/* General tab → Nothing shown */}
+                  </div>
 
-                      {/* Create Booking */}
-                      <button
-                        type="button"
-                        onClick={handleSubmit}
-                        className="px-4 py-2 bg-[#114958] text-[0.75rem] text-white rounded-lg hover:cursor-pointer transition-colors disabled:opacity-50"
-                        disabled={isSubmitting || !selectedService}
-                      >
-                        {isSubmitting
-                          ? "Creating Booking..."
-                          : "Create Booking"}
-                      </button>
-                    </>
-                  )}
+                  {/* RIGHT SIDE BUTTONS */}
+                  <div className="flex space-x-2">
+                    {activeTab === "general" && (
+                      <>
+                        <Button
+                          text="Save As Draft"
+                          onClick={handleDraftSubmit}
+                          bgColor="bg-white"
+                          textColor="text-[#114958]"
+                          className="hover:bg-gray-200 border border-[#114958]"
+                          disabled={isSubmitting}
+                        />
+
+                        <Button
+                          text="Next"
+                          onClick={() => {
+                            const currentIndex = tabs.findIndex(
+                              (tab) => tab.id === activeTab
+                            );
+                            const nextTab = tabs[currentIndex + 1];
+                            if (nextTab?.isEnabled) setActiveTab(nextTab.id);
+                          }}
+                          bgColor="bg-[#114958]"
+                          textColor="text-white"
+                          className="hover:bg-[#0d3a45]"
+                          disabled={isSubmitting}
+                        />
+                      </>
+                    )}
+
+                    {activeTab === "service" && (
+                      <>
+                        <Button
+                          text="Save As Draft"
+                          onClick={handleDraftSubmit}
+                          bgColor="bg-white border border-[#114958]"
+                          textColor="text-[#114958]"
+                          disabled={isSubmitting}
+                        />
+
+                        <Button
+                          text="Save"
+                          onClick={() => handleSubmit()}
+                          icon={<LuSave size={16} />}
+                          bgColor="bg-[#0D4B37]"
+                          textColor="text-white"
+                          width="w-auto"
+                          type="button"
+                          disabled={isSubmitting || !selectedService}
+                        />
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

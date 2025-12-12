@@ -8,7 +8,7 @@ interface ModalProps {
   onClose: () => void;
   children: React.ReactNode;
   title?: string;
-  subtitle?: string; // ✅ Added optional subtitle for better structure
+  subtitle?: string; // Added optional subtitle for better structure
   customWidth?: string;
   customeHeight?: string;
   size?: "sm" | "md" | "lg" | "xl" | "full";
@@ -29,7 +29,7 @@ const Modal: React.FC<ModalProps> = ({
   onClose,
   children,
   title = "Modal Title",
-  subtitle,
+  subtitle = "",
   size = "sm",
   customWidth,
   customeHeight,
@@ -110,7 +110,7 @@ const Modal: React.FC<ModalProps> = ({
         `}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ✅ HEADER FIXED LAYOUT */}
+        {/* HEADER FIXED LAYOUT */}
 
         <div className="relative flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100">
           <div className="flex-1 text-center px-6">

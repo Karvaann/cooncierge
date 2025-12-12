@@ -24,6 +24,10 @@ interface BookingHistoryModalProps {
     status: "Successful" | "On Hold" | "In Progress" | "Failed";
     amount: string;
   }[];
+  /** Optional display name for the record (customer/vendor/traveller/team member) */
+  recordName?: string | null;
+  /** Optional id for the record to show next to the name */
+  recordId?: string | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -39,6 +43,8 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
   onViewCustomer,
   onEditCustomer,
   bookings,
+  recordName = null,
+  recordId = null,
 }) => {
   const formatDMY = (dateString: string) => {
     const direct = new Date(dateString);
@@ -141,7 +147,18 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
     >
       <div className="px-2" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-2 -mt-6">
-          <h2 className="text-md font-semibold">Booking History</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-md font-semibold">Booking History</h2>
+
+            <div className="w-px h-6 bg-gray-300" />
+
+            <span className="text-sm font-medium">{recordName ?? "—"}</span>
+
+            <div className="w-[0.5px] h-6 bg-gray-300" />
+
+            <span className="text-sm text-gray-500">{recordId ?? "—"}</span>
+          </div>
+
           <div className="flex items-center gap-2 mr-2">
             <button
               className="p-1.5 rounded-md bg-yellow-100 hover:bg-yellow-200 transition"

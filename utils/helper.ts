@@ -198,6 +198,11 @@ export const formatServiceType = (type: string): string => {
     
     hotel: "Accommodation",
     accommodation: "Accommodation",
+    maritime: "Transportation (Maritime)",
+    "transport-maritime": "Transportation (Maritime)",
+    "maritime transportation": "Transportation (Maritime)",
+    "maritime-transportation": "Transportation (Maritime)",
+    "maritime_transportation": "Transportation (Maritime)",
 
     
     car: "Car Rental",
@@ -225,4 +230,33 @@ export const formatServiceType = (type: string): string => {
 
   return map[normalized] || type;
 };
+
+
+
+export const generateCustomId = (type: "customer" | "vendor" | "traveller" | "team") => {
+  // Prefix mapping
+  const prefixes: Record<typeof type, string> = {
+    customer: "CU",
+    vendor: "VE",
+    traveller: "TR",
+    team: "TE",
+  };
+
+  const prefix = prefixes[type];
+
+  // Generate 2 random uppercase letters
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const letter1 = letters[Math.floor(Math.random() * letters.length)];
+  const letter2 = letters[Math.floor(Math.random() * letters.length)];
+
+  // Generate a random 3-digit number (001–999)
+  const number = String(Math.floor(Math.random() * 999) + 1).padStart(3, "0");
+
+  // Final ID: e.g., CU-AB001
+  return `${prefix}-${letter1}${letter2}${number}`;
+};
+
+
+export default generateCustomId;
+
 

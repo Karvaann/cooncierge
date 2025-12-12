@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useCallback } from "react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 // Type definitions
 interface TableProps {
@@ -12,6 +13,13 @@ interface TableProps {
   onSort?: (column: string) => void;
   hideRowsPerPage?: boolean;
   showCheckboxColumn?: boolean;
+  /* NEW optional DnD props */
+  enableDragAndDrop?: boolean; // default false
+  rowIds?: string[];
+  droppableId?: string;
+  headerClassName?: string;
+  categoryName?: string;
+  sortableHeaderHoverClass?: string;
 }
 
 const Table: React.FC<TableProps> = ({
@@ -23,6 +31,12 @@ const Table: React.FC<TableProps> = ({
   onSort,
   hideRowsPerPage,
   showCheckboxColumn = false,
+  enableDragAndDrop = false,
+  rowIds = [],
+  droppableId = "table-droppable",
+  headerClassName = "",
+  categoryName = "",
+  sortableHeaderHoverClass = "",
 }) => {
   const [page, setPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
@@ -84,15 +98,30 @@ const Table: React.FC<TableProps> = ({
   const displayText = useMemo(() => {
     const start = (page - 1) * rowsPerPage + 1;
     const end = Math.min(page * rowsPerPage, totalRows);
-    return `Showing ${start}-${end} of ${totalRows} entries`;
+    return `Showing ${start}-${end} of ${totalRows} ${
+      categoryName || "entries"
+    }`;
   }, [page, rowsPerPage, totalRows]);
+
+  // Helper to generate a stable draggableId for each visible row
+  const getDraggableId = (visibleIndex: number) => {
+    // compute global index for the row
+    const globalIndex = (page - 1) * rowsPerPage + visibleIndex;
+    return rowIds && rowIds[globalIndex]
+      ? String(rowIds[globalIndex])
+      : `row-${globalIndex}`;
+  };
 
   return (
     <>
       <div className="overflow-visible rounded-xl border border-gray-100">
         <table className="w-full text-sm rounded-xl overflow-hidden">
           <thead>
-            <tr className="bg-[#0D4B37] text-white rounded-t-xl">
+            <tr
+              className={`rounded-t-xl text-white ${
+                headerClassName || "bg-[#0D4B37]"
+              }`}
+            >
               {showCheckboxColumn && (
                 <th className="px-3 py-2 w-[3rem] text-center"></th>
               )}
@@ -121,7 +150,9 @@ const Table: React.FC<TableProps> = ({
             col === "Date Created" ||
             col === "Travel Date" ||
             col === "Joining Date"
-              ? "cursor-pointer hover:bg-[#0f5a43]"
+              ? `cursor-pointer hover:${
+                  sortableHeaderHoverClass || "bg-[#0f5a43]"
+                }`
               : ""
           }
         `}
@@ -134,35 +165,90 @@ const Table: React.FC<TableProps> = ({
               ))}
             </tr>
           </thead>
-          <tbody>
-            {paginatedRows.map((row, idx) => (
-              <tr
-                key={`row-${page}-${idx}`}
-                className={`${
-                  idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                } hover:bg-gray-100 transition-colors h-[2.8rem] text-[0.75rem]`}
-              >
-                {row}
-              </tr>
-            ))}
+          {/* ---------- BODY: conditional Droppable/Draggable rendering ---------- */}
+          {enableDragAndDrop ? (
+            // If DnD enabled, render Droppable + Draggable rows (NOTE: DragDropContext should wrap this component externally
+            // if you want cross-table dragging between multiple Table instances)
+            <Droppable droppableId={droppableId}>
+              {(provided) => (
+                <tbody ref={provided.innerRef} {...provided.droppableProps}>
+                  {paginatedRows.map((row, idx) => (
+                    <Draggable
+                      key={getDraggableId(idx)}
+                      draggableId={getDraggableId(idx)}
+                      index={idx}
+                    >
+                      {(drag) => (
+                        <tr
+                          ref={drag.innerRef}
+                          {...drag.draggableProps}
+                          // NOTE: We attach dragHandleProps to the entire row for simplicity.
+                          // If you want handle-only dragging later, we can change this to pass handle props
+                          // to a specific cell by cloning the row's first child.
+                          {...drag.dragHandleProps}
+                          className={`${
+                            idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                          } hover:bg-gray-100 transition-colors h-[2.8rem] text-[0.75rem]`}
+                        >
+                          {row}
+                        </tr>
+                      )}
+                    </Draggable>
+                  ))}
 
-            {/* Fill empty rows to keep table height consistent */}
-            {emptyRows.map((_, idx) => (
-              <tr
-                key={`empty-${idx}`}
-                className={`${
-                  (paginatedRows.length + idx) % 2 === 0
-                    ? "bg-white"
-                    : "bg-gray-50"
-                } h-[2.8rem] text-[0.75rem]`}
-              >
-                <td
-                  className="px-4 py-3"
-                  colSpan={columns.length + (showCheckboxColumn ? 1 : 0)}
-                ></td>
-              </tr>
-            ))}
-          </tbody>
+                  {/* Fill empty rows to keep table height consistent */}
+                  {emptyRows.map((_, idx) => (
+                    <tr
+                      key={`empty-${idx}`}
+                      className={`${
+                        (paginatedRows.length + idx) % 2 === 0
+                          ? "bg-white"
+                          : "bg-gray-50"
+                      } h-[2.8rem] text-[0.75rem]`}
+                    >
+                      <td
+                        className="px-4 py-3"
+                        colSpan={columns.length + (showCheckboxColumn ? 1 : 0)}
+                      ></td>
+                    </tr>
+                  ))}
+
+                  {provided.placeholder}
+                </tbody>
+              )}
+            </Droppable>
+          ) : (
+            // Non-DnD
+            <tbody>
+              {paginatedRows.map((row, idx) => (
+                <tr
+                  key={`row-${page}-${idx}`}
+                  className={`${
+                    idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                  } hover:bg-gray-100 transition-colors h-[2.8rem] text-[0.75rem]`}
+                >
+                  {row}
+                </tr>
+              ))}
+
+              {/* Fill empty rows to keep table height consistent */}
+              {emptyRows.map((_, idx) => (
+                <tr
+                  key={`empty-${idx}`}
+                  className={`${
+                    (paginatedRows.length + idx) % 2 === 0
+                      ? "bg-white"
+                      : "bg-gray-50"
+                  } h-[2.8rem] text-[0.75rem]`}
+                >
+                  <td
+                    className="px-4 py-3"
+                    colSpan={columns.length + (showCheckboxColumn ? 1 : 0)}
+                  ></td>
+                </tr>
+              ))}
+            </tbody>
+          )}
         </table>
       </div>
 

@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { MdKeyboardArrowDown } from "react-icons/md";
+import { MdOutlineKeyboardArrowUp } from "react-icons/md";
 
 interface RoomSegment {
   id?: string | null;
@@ -9,30 +11,27 @@ interface RoomSegment {
 interface VillaLayoutProps {
   segments: RoomSegment[];
   onSegmentsChange: (segments: RoomSegment[]) => void;
+  villaType?: "entire" | "shared";
 }
 
 const VillaLayout: React.FC<VillaLayoutProps> = ({
   segments,
   onSegmentsChange,
+  villaType,
 }) => {
   const [numRooms, setNumRooms] = useState(segments.length);
   const [roomcount, setRoomcount] = useState(0);
   const [copyToOthers, setCopyToOthers] = useState(false);
-  const [villaType, setVillaType] = useState<"entire" | "shared">("entire");
 
   // Internal state for pax information (not stored in context)
   const [paxData, setPaxData] = useState<
-    Record<string, { adults: number; children: number; infant: number }>
+    Record<string, { adults: number; children: number }>
   >(() => {
-    const initial: Record<
-      string,
-      { adults: number; children: number; infant: number }
-    > = {};
+    const initial: Record<string, { adults: number; children: number }> = {};
     segments.forEach((seg, idx) => {
       initial[seg.id || `room-${idx + 1}`] = {
         adults: 1,
         children: 0,
-        infant: 0,
       };
     });
     return initial;
@@ -66,7 +65,6 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
         newPaxData[roomId] = {
           adults: basePax?.adults ?? 1,
           children: basePax?.children ?? 0,
-          infant: basePax?.infant ?? 0,
         };
       }
 
@@ -121,7 +119,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
 
   const updatePaxCount = (
     roomId: string,
-    field: "adults" | "children" | "infant",
+    field: "adults" | "children",
     increment: boolean
   ) => {
     setPaxData((prev) => {
@@ -135,7 +133,6 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
         [roomId]: {
           adults: field === "adults" ? newValue : current.adults,
           children: field === "children" ? newValue : current.children,
-          infant: field === "infant" ? newValue : current.infant,
         },
       };
     });
@@ -143,75 +140,9 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
 
   return (
     <>
-      <label className="block text-[0.8rem] font-medium text-gray-700 mb-1">
+      <label className="block text-[0.8rem] font-medium text-gray-700 mb-1 mt-3">
         Total Rooms
       </label>
-
-      <div className="flex items-center justify-between mb-2">
-        {/* Entire Villa Room Counter */}
-        <div className="flex items-center gap-2">
-          <div className="flex border border-gray-300 rounded-md overflow-hidden">
-            <input
-              type="text"
-              value={roomcount}
-              onChange={(e) => setRoomcount(parseInt(e.target.value) || 0)}
-              min="1"
-              className="w-[3.5rem] py-1 text-center text-[0.75rem] border-none focus:outline-none focus:ring-0"
-              style={{
-                WebkitAppearance: "none",
-                MozAppearance: "textfield",
-              }}
-            />
-            <div className="flex flex-col">
-              <button
-                type="button"
-                onClick={() => setRoomcount(roomcount + 1)}
-                className="w-[1.5rem] h-[1.1rem] flex items-center justify-center bg-white hover:bg-gray-100 text-[0.75rem] border-b border-gray-300"
-              >
-                ▲
-              </button>
-              <button
-                type="button"
-                onClick={() => setRoomcount(roomcount - 1)}
-                className="w-[1.5rem] h-[1.1rem] flex items-center justify-center bg-white hover:bg-gray-100 text-[0.75rem]"
-              >
-                ▼
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Villa Type Radio Buttons */}
-        <div className="flex items-center gap-4">
-          <label className="flex items-center gap-1 cursor-pointer">
-            <input
-              type="radio"
-              name="villaType"
-              value="entire"
-              checked={villaType === "entire"}
-              onChange={() => setVillaType("entire")}
-              className="w-3 h-3 accent-blue-600"
-            />
-            <span className="text-[0.75rem] text-gray-700 font-medium">
-              Entire Villa
-            </span>
-          </label>
-
-          <label className="flex items-center gap-1 cursor-pointer">
-            <input
-              type="radio"
-              name="villaType"
-              value="shared"
-              checked={villaType === "shared"}
-              onChange={() => setVillaType("shared")}
-              className="w-3 h-3 accent-blue-600"
-            />
-            <span className="text-[0.75rem] text-gray-700 font-medium">
-              Shared Villa
-            </span>
-          </label>
-        </div>
-      </div>
 
       {villaType === "shared" && (
         <div className="w-full max-w-6xl mx-auto p-3 mt-2">
@@ -223,32 +154,33 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
             <div className="flex items-center gap-2">
               <div className="flex border border-gray-300 rounded-md overflow-hidden">
                 <input
-                  type="text"
+                  type="number"
                   value={numRooms}
                   onChange={(e) =>
                     handleRoomCountChange(parseInt(e.target.value) || 1)
                   }
                   min="1"
-                  className="w-[3.5rem] py-1 text-center text-[0.75rem] border-none focus:outline-none focus:ring-0"
-                  style={{
-                    WebkitAppearance: "none",
-                    MozAppearance: "textfield",
-                  }}
+                  className="w-[2.2rem] px-1 py-1.5 text-[0.75rem] text-center 
+               border-none focus:outline-none bg-white"
                 />
-                <div className="flex flex-col">
+
+                <div className="flex flex-col border-l border-black">
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange(numRooms + 1)}
-                    className="w-[1.5rem] h-[1.1rem] flex items-center justify-center bg-white hover:bg-gray-100 text-[0.75rem] border-b border-gray-300"
+                    className="px-[5px] py-[2px] rounded-tr-md text-[0.65rem] 
+                 hover:bg-gray-100 border border-black border-b-0"
                   >
-                    ▲
+                    <MdOutlineKeyboardArrowUp size={16} />
                   </button>
+
                   <button
                     type="button"
                     onClick={() => handleRoomCountChange(numRooms - 1)}
-                    className="w-[1.5rem] h-[1.1rem] flex items-center justify-center bg-white hover:bg-gray-100 text-[0.75rem]"
+                    className="px-[5px] py-[2px] rounded-br-md text-[0.65rem] 
+                 hover:bg-gray-100 border border-black"
                   >
-                    ▼
+                    <MdKeyboardArrowDown size={16} />
                   </button>
                 </div>
               </div>
@@ -268,7 +200,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
               return (
                 <div
                   key={roomId}
-                  className="bg-gray-50 p-3 rounded-md border border-gray-200"
+                  className="bg-[#F9F9F9] p-3 rounded-md border border-gray-200"
                 >
                   {/* Room Header */}
                   <div className="flex items-center justify-between mb-3">
@@ -276,17 +208,44 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                       Room {index + 1}
                     </h3>
                     {index === 0 && (
-                      <label className="flex items-center gap-1 text-[0.7rem] text-gray-600 cursor-pointer">
+                      <div className="flex items-center gap-1 text-[0.7rem] text-gray-600">
                         <input
                           type="checkbox"
+                          id={`villa-copy-checkbox`}
+                          className="hidden peer"
                           checked={copyToOthers}
                           onChange={(e) => setCopyToOthers(e.target.checked)}
-                          className="w-3 h-3 accent-blue-600"
                         />
-                        Copy to Other Rooms
-                      </label>
+
+                        <label
+                          htmlFor={`villa-copy-checkbox`}
+                          className="w-3.5 h-3.5 border border-gray-400 rounded-[4px] 
+                 flex items-center justify-center cursor-pointer"
+                        >
+                          {copyToOthers && (
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="12"
+                              height="11"
+                              viewBox="0 0 12 11"
+                              fill="none"
+                            >
+                              <path
+                                d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                                stroke="#0D4B37"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                              />
+                            </svg>
+                          )}
+                        </label>
+
+                        <span>Copy to Other Rooms</span>
+                      </div>
                     )}
                   </div>
+
+                  <div className="border-b border-gray-300 mb-2 -mt-1"></div>
 
                   {/* Room Category */}
                   <div className="mb-2">
@@ -325,32 +284,61 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                     <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
                       Pax
                     </label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="border-b border-gray-300 mb-2 -mt-1"></div>
+                    <div className="grid grid-cols-2 gap-0">
                       {/* Adults */}
                       <div>
-                        <label className="block text-[0.65rem] text-gray-600 mb-1">
+                        <label className="block text-[0.65rem] text-black mb-1">
                           Adults
                         </label>
-                        <div className="flex items-center border border-gray-300 rounded-md">
+
+                        <div className="flex items-center border border-black rounded-lg px-1 py-1 w-[72px]">
                           <button
+                            type="button"
                             onClick={() =>
-                              updatePaxCount(roomId, "adults", false)
+                              setPaxData((prev) => {
+                                const cur = prev[roomId] ?? {
+                                  adults: 1,
+                                  children: 0,
+                                };
+
+                                return {
+                                  ...prev,
+                                  [roomId]: {
+                                    ...cur,
+                                    adults: Math.max(1, cur.adults - 1),
+                                  },
+                                };
+                              })
                             }
-                            className="px-2 py-1 text-[0.75rem] hover:bg-gray-100"
+                            className="px-2"
                           >
                             −
                           </button>
-                          <input
-                            type="number"
-                            value={pax.adults}
-                            readOnly
-                            className="w-full text-center border-x border-gray-300 py-1 text-[0.75rem]"
-                          />
+
+                          <span className="px-1 text-[0.75rem]">
+                            {pax.adults}
+                          </span>
+
                           <button
+                            type="button"
                             onClick={() =>
-                              updatePaxCount(roomId, "adults", true)
+                              setPaxData((prev) => {
+                                const cur = prev[roomId] ?? {
+                                  adults: 1,
+                                  children: 0,
+                                };
+
+                                return {
+                                  ...prev,
+                                  [roomId]: {
+                                    ...cur,
+                                    adults: Math.min(2, cur.adults + 1),
+                                  },
+                                };
+                              })
                             }
-                            className="px-2 py-1 text-[0.75rem] hover:bg-gray-100"
+                            className="px-2"
                           >
                             +
                           </button>
@@ -358,47 +346,58 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                       </div>
 
                       {/* Children */}
-                      <div>
-                        <label className="block text-[0.65rem] text-gray-600 mb-1">
+                      <div className="p-0 -ml-[4px]">
+                        <label className="block text-[0.65rem] text-black mb-1">
                           Children
                         </label>
-                        <div className="flex flex-col items-center">
-                          <button
-                            onClick={() =>
-                              updatePaxCount(roomId, "children", true)
-                            }
-                            className="w-full px-2 py-1 border border-gray-300 rounded-md bg-white text-[0.7rem] hover:bg-gray-100"
-                          >
-                            ADD
-                          </button>
-                        </div>
-                      </div>
 
-                      {/* Infant */}
-                      <div>
-                        <label className="block text-[0.65rem] text-gray-600 mb-1">
-                          Infant
-                        </label>
-                        <div className="flex items-center border border-gray-300 rounded-md">
+                        <div className="flex items-center border border-black rounded-lg px-1 py-1 w-[72px]">
                           <button
+                            type="button"
                             onClick={() =>
-                              updatePaxCount(roomId, "infant", false)
+                              setPaxData((prev) => {
+                                const cur = prev[roomId] ?? {
+                                  adults: 1,
+                                  children: 0,
+                                };
+
+                                return {
+                                  ...prev,
+                                  [roomId]: {
+                                    ...cur,
+                                    children: Math.max(0, cur.children - 1),
+                                  },
+                                };
+                              })
                             }
-                            className="px-2 py-1 text-[0.75rem] hover:bg-gray-100"
+                            className="px-2"
                           >
                             −
                           </button>
-                          <input
-                            type="number"
-                            value={pax.infant}
-                            readOnly
-                            className="w-full text-center border-x border-gray-300 py-1 text-[0.75rem]"
-                          />
+
+                          <span className="px-1 text-[0.75rem]">
+                            {pax.children}
+                          </span>
+
                           <button
+                            type="button"
                             onClick={() =>
-                              updatePaxCount(roomId, "infant", true)
+                              setPaxData((prev) => {
+                                const cur = prev[roomId] ?? {
+                                  adults: 1,
+                                  children: 0,
+                                };
+
+                                return {
+                                  ...prev,
+                                  [roomId]: {
+                                    ...cur,
+                                    children: Math.min(1, cur.children + 1),
+                                  },
+                                };
+                              })
                             }
-                            className="px-2 py-1 text-[0.75rem] hover:bg-gray-100"
+                            className="px-2"
                           >
                             +
                           </button>

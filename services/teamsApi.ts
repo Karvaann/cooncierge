@@ -1,9 +1,17 @@
 import apiClient from "@/services/apiClient";
 
 // Create Team
-export const createTeam = async (teamData: any) => {
+export const createTeam = async (formData: FormData) => {
   try {
-    const response = await apiClient.post("/team/create-team", teamData);
+    const response = await apiClient.post(
+      "/team/create-team",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
     return response.data.team;
   } catch (error: any) {
     console.error("Failed to create team:", error);

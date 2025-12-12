@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { BookingApiService, DraftManager } from "@/services/bookingApi";
 import type { DraftBooking } from "@/services/bookingApi";
+import apiClient from "@/services/apiClient";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
 // import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
@@ -23,6 +24,7 @@ import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
 import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 import TaskButton from "@/components/TaskButton";
+import { format } from "path";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -55,13 +57,7 @@ const BookingFormSidesheet = dynamic(
   }
 );
 
-type BookingStatus =
-  | "Confirmed"
-  | "Pending"
-  | "Failed"
-  | "confirmed"
-  | "draft"
-  | "Cancelled";
+type BookingStatus = "Confirmed" | "draft" | "Cancelled";
 
 type BookingService = {
   id: string;
@@ -93,10 +89,17 @@ type FilterPayload = {
 
 // API Data Types
 interface QuotationData {
+  customId: string;
   _id: string;
   quotationType: string;
   channel: string;
   partyId: string;
+  customerId: {
+    _id: string;
+    name: string;
+    email: string;
+    phone: string;
+  };
   formFields: {
     customer?: string;
     destination?: string;
@@ -130,7 +133,7 @@ interface QuotationData {
 // }
 
 const columns: string[] = [
-  "#ID",
+  "Booking ID",
   "Lead Pax",
   "Travel Date",
   "Service",
@@ -157,15 +160,15 @@ const columnIconMap: Record<string, JSX.Element> = {
   ),
 };
 
-const getStatusBadgeClass = (status: BookingStatus): string => {
+const getStatusBadgeClass = (status: string): string => {
   switch (status) {
     case "Confirmed":
-      return "px-2 py-1 text-[0.70rem] font-semibold rounded-full bg-green-100 text-green-700";
-    case "Pending":
-      return "px-2 py-1 text-[0.75rem] font-semibold rounded-full bg-yellow-100 text-yellow-700";
-    case "Cancelled":
+      return "px-2 py-1 text-[0.70rem] border border-green-200 font-semibold rounded-full bg-green-100 text-green-700";
+    case "Draft":
+      return "px-2 py-1 text-[0.70rem] border border-yellow-200 font-semibold rounded-full bg-yellow-100 text-yellow-700";
+    case "Deleted":
     default:
-      return "px-2 py-1 text-[0.75rem] font-semibold rounded-full bg-red-100 text-red-700";
+      return "px-2 py-1 text-[0.75rem] border border-red-200 font-semibold rounded-full bg-red-100 text-red-700";
   }
 };
 
@@ -173,11 +176,14 @@ const OSBookingsPage = () => {
   // UI State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
+  const [selectedQuotation, setSelectedQuotation] = useState<any>(
+    null
+  );
   const [selectedService, setSelectedService] = useState<BookingService | null>(
     null
   );
-  const tabOptions = ["Approved", "Pending", "Drafts", "Denied", "Deleted"];
-  const [activeTab, setActiveTab] = useState("Approved");
+  const tabOptions = ["Bookings", "Drafts", "Deleted"];
+  const [activeTab, setActiveTab] = useState("Bookings");
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
@@ -196,7 +202,7 @@ const OSBookingsPage = () => {
 
   // Data State
   const [quotations, setQuotations] = useState<QuotationData[]>([]);
-  const [drafts, setDrafts] = useState<DraftBooking[]>([]);
+  const [drafts, setDrafts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
@@ -281,14 +287,16 @@ const OSBookingsPage = () => {
   // Apply all filters client-side (search, booking date, travel date, owner)
   const filteredQuotations = useMemo(() => {
     return quotations.filter((q, idx) => {
-      // If owners list not ready, allow until mapping loads
-      // Search
       if (filters.search.trim()) {
         const s = filters.search.toLowerCase();
+        const formattedServiceType = formatServiceType(
+          q.quotationType || ""
+        ).toLowerCase();
         const matchesSearch =
-          (q._id || "").toLowerCase().includes(s) ||
+          (q.customId || "").toLowerCase().includes(s) ||
+          formattedServiceType.includes(s) ||
           (q.quotationType || "").toLowerCase().includes(s) ||
-          (q.formFields.customer || "").toLowerCase().includes(s) ||
+          (q.customerId?.name || "").toLowerCase().includes(s) ||
           (q.formFields.traveller1 || "").toLowerCase().includes(s);
         if (!matchesSearch) return false;
       }
@@ -348,6 +356,7 @@ const OSBookingsPage = () => {
         travelStartDate?: string;
         travelEndDate?: string;
         owner?: string | string[];
+        activeTab: string;
       } = {};
 
       if (filters.bookingStartDate)
@@ -357,6 +366,7 @@ const OSBookingsPage = () => {
       if (filters.tripStartDate)
         apiParams.travelStartDate = filters.tripStartDate;
       if (filters.tripEndDate) apiParams.travelEndDate = filters.tripEndDate;
+      apiParams.activeTab = activeTab;
       // Note: Owner filtering is done client-side since API returns owner objects with names
 
       const response = await BookingApiService.getAllQuotations(
@@ -365,7 +375,10 @@ const OSBookingsPage = () => {
 
       if (response.success && response.data) {
         const raw: any = response.data;
-        setQuotations((raw?.quotations as any[]) || (raw as any[]));
+        const allQuotations =
+          (raw?.quotations as any[]) || (raw as any[]) || [];
+
+        setQuotations(allQuotations);
         // calculateSummaryData(response.data?.quotations);
       } else {
         throw new Error(response.message || "Failed to load quotations");
@@ -381,82 +394,23 @@ const OSBookingsPage = () => {
     filters.bookingEndDate,
     filters.tripStartDate,
     filters.tripEndDate,
+    activeTab,
   ]);
 
-  // Load drafts from localStorage
-  const loadDrafts = useCallback(async () => {
-    try {
-      const response = await BookingApiService.getDrafts();
-      if (response.success && response.data) {
-        setDrafts(response.data);
-      }
-    } catch (err) {
-      console.error("Error loading drafts:", err);
-    }
-  }, []);
 
-  // Calculate summary data from quotations
-  // const calculateSummaryData = useCallback((quotationData: QuotationData[]) => {
-  //   const total = quotationData.reduce(
-  //     (sum, q) => sum + (q.totalAmount || 0),
-  //     0
-  //   );
-  //   const confirmed = quotationData.filter((q) => q.status === "confirmed");
-  //   const pending = quotationData.filter(
-  //     (q) => q.status === "draft" || q.status === "pending"
-  //   );
-
-  //   const confirmedAmount = confirmed.reduce(
-  //     (sum, q) => sum + (q.totalAmount || 0),
-  //     0
-  //   );
-  //   const pendingAmount = pending.reduce(
-  //     (sum, q) => sum + (q.totalAmount || 0),
-  //     0
-  //   );
-
-  //   setSummaryData({
-  //     total: {
-  //       amount: `₹ ${total.toLocaleString("en-IN")}`,
-  //       change: `${quotationData.length} total bookings`,
-  //       isPositive: true,
-  //     },
-  //     youGive: {
-  //       amount: `₹ ${pendingAmount.toLocaleString("en-IN")}`,
-  //       change: `${pending.length} pending bookings`,
-  //       isPositive: false,
-  //     },
-  //     youGet: {
-  //       amount: `₹ ${confirmedAmount.toLocaleString("en-IN")}`,
-  //       change: `${confirmed.length} confirmed bookings`,
-  //       isPositive: true,
-  //     },
-  //   });
-  // }, []);
-
-  // Sync drafts with backend
-  const syncDrafts = useCallback(async () => {
-    try {
-      await BookingApiService.syncDraftsWithBackend();
-      await loadDrafts(); // Reload drafts after sync
-    } catch (err) {
-      console.error("Error syncing drafts:", err);
-    }
-  }, [loadDrafts]);
-
-  // Load data on component mount
+  // Load quotations on component mount and filter changes
   useEffect(() => {
     loadQuotations();
-    loadDrafts();
   }, [
     loadQuotations,
-    loadDrafts,
     filters.bookingStartDate,
     filters.bookingEndDate,
     filters.tripStartDate,
     filters.tripEndDate,
     filters.owner,
+    activeTab
   ]);
+
 
   const handleServiceSelect = (service: BookingService) => {
     setSelectedService(service);
@@ -466,9 +420,8 @@ const OSBookingsPage = () => {
   // Handle booking completion (refresh data)
   const handleBookingComplete = useCallback(async () => {
     await loadQuotations();
-    await loadDrafts();
     setIsSideSheetOpen(false);
-  }, [loadQuotations, loadDrafts]);
+  }, [loadQuotations, activeTab]);
 
   const getServiceIcon = (
     quotationType: string
@@ -486,6 +439,11 @@ const OSBookingsPage = () => {
       hotel: "accommodation",
       accommodation: "accommodation",
 
+      maritime: "maritime",
+      "transport-maritime": "maritime",
+      "maritime transportation": "maritime",
+      "maritime-transportation": "maritime",
+      maritime_transportation: "maritime",
       car: "land",
       "land transportation": "land",
       "land-transportation": "land",
@@ -516,8 +474,8 @@ const OSBookingsPage = () => {
         <Image
           src="/icons/service-icons/flight.svg"
           alt="Flight"
-          width={20}
-          height={20}
+          width={16}
+          height={16}
           className="object-contain"
         />
       ),
@@ -525,8 +483,8 @@ const OSBookingsPage = () => {
         <Image
           src="/icons/service-icons/accommodation.svg"
           alt="Accommodation"
-          width={20}
-          height={20}
+          width={16}
+          height={16}
           className="object-contain"
         />
       ),
@@ -582,14 +540,12 @@ const OSBookingsPage = () => {
     return iconMap[key] || "📋"; // fallback
   };
 
-  const mapStatus = (status: string): BookingStatus => {
-    const statusMap: Record<string, BookingStatus> = {
-      confirmed: "Confirmed",
-      draft: "Pending",
-      pending: "Pending",
-      cancelled: "Cancelled",
+  const mapStatus = (status: string, isDeleted: boolean): string => {
+    const statusMap: Record<string, string> = {
+      approved: "Confirmed",
+      draft: "Draft",
     };
-    return statusMap[status?.toLowerCase()] || "Pending";
+    return isDeleted ? "Deleted" : statusMap[status?.toLowerCase()] || 'Confirmed';
   };
 
   // Handle viewing quotation details
@@ -635,7 +591,7 @@ const OSBookingsPage = () => {
         label: "Edit",
         icon: <MdOutlineEdit />,
         color: "text-blue-600",
-        onClick: () => console.log("Edit", row.id),
+        onClick: () => { setIsSideSheetOpen(true); setSelectedQuotation(row); },
       },
       {
         label: "Delete",
@@ -686,6 +642,15 @@ const OSBookingsPage = () => {
       });
     }
 
+    if (tab === "Bookings") {
+      baseActions.push({
+        label: "Move",
+        icon: <TbArrowAutofitRight />,
+        color: "text-gray-400",
+        onClick: () => console.log("Move", row.id),
+      });
+    }
+
     // Default for Pending + Drafts
     baseActions.push({
       label: "Duplicate",
@@ -708,65 +673,72 @@ const OSBookingsPage = () => {
   };
 
   const normalizeDraft = (draft: any) => {
-    const travelDate =
-      draft.flightinfoform?.traveldate ||
-      draft.accommodationinfoform?.traveldate ||
-      draft.otherServiceInfoForm?.traveldate ||
-      draft.landTransportInfoForm?.traveldate ||
-      draft.maritimeinfoform?.traveldate ||
-      draft.ticketsinfoform?.traveldate ||
-      "";
-
-    const amount =
-      draft.flightinfoform?.sellingprice ||
-      draft.accommodationinfoform?.sellingprice ||
-      draft.otherServiceInfoForm?.sellingprice ||
-      draft.landTransportInfoForm?.sellingprice ||
-      draft.maritimeinfoform?.sellingprice ||
-      draft.ticketsinfoform?.sellingprice ||
-      0;
-
+    // Backend drafts are quotations with serviceStatus = 'draft'
+    // They have the same structure as regular quotations
     return {
-      _id: null,
-      quotationType: draft.draftName?.split(" - ")[0]?.toLowerCase() || "draft",
-
-      formFields: {
-        customer:
-          draft.customerform?.firstname ||
-          draft.generalInfo?.customer ||
-          "Unknown",
-        departureDate: travelDate,
-        budget: amount,
-      },
-
-      totalAmount: amount,
+      _id: draft._id,
+      customId: draft.customId || null,
+      quotationType: draft.quotationType || "others",
+      formFields: draft.formFields || {},
+      totalAmount: draft.totalAmount || 0,
       status: "draft",
-      createdAt: draft.timestamp,
+      serviceStatus: draft.serviceStatus,
+      createdAt: draft.createdAt || null,
+      travelDate: draft.travelDate || null,
       isDraft: true,
+      customerId: draft.customerId,
+      vendorId: draft.vendorId,
+      owner: draft.owner || [],
+      travelers: draft.travelers || [],
+      adultTravlers: draft.adultTravlers || 0,
+      childTravlers: draft.childTravlers || 0,
+      remarks: draft.remarks || "",
     };
   };
 
   // Filter quotations based on active tab and status
   const finalQuotations = useMemo(() => {
-    // Drafts tab shows local drafts
+    // Drafts tab shows drafts from backend with search filtering
     if (activeTab === "Drafts") {
-      return drafts.map(normalizeDraft);
+      console.log('Inside Drafts')
+      const normalizedDrafts = drafts.map(normalizeDraft);
+
+      // Apply search filter to drafts
+      if (filters.search.trim()) {
+        const s = filters.search.toLowerCase();
+        return normalizedDrafts.filter((draft: any, index: number) => {
+          const formattedServiceType = formatServiceType(
+            draft.quotationType || ""
+          ).toLowerCase();
+          const draftId = draft.customId || `Draft-${index + 1}`;
+          const customerName =
+            draft.customerId?.name || draft.formFields?.customer || "";
+
+          return (
+            draftId.toLowerCase().includes(s) ||
+            formattedServiceType.includes(s) ||
+            (draft.quotationType || "").toLowerCase().includes(s) ||
+            customerName.toLowerCase().includes(s)
+          );
+        });
+      }
+
+      return normalizedDrafts;
     }
+    console.log('Outside Drafts', filteredQuotations);
 
     // Filter quotations by status based on active tab
     return filteredQuotations.filter((q) => {
-      const status = q.status?.toLowerCase();
+      console.log(q, "STATUS:", q.serviceStatus);
+      const status = q.serviceStatus?.toLowerCase();
 
       switch (activeTab) {
-        case "Approved":
+        case "Bookings":
           // Show confirmed bookings
-          return status === "confirmed";
+          return status === "approved";
         case "Pending":
           // Show pending or draft status bookings
           return status === "pending" || status === "draft";
-        case "Denied":
-          // Show denied or cancelled bookings
-          return status === "denied" || status === "cancelled";
         case "Deleted":
           // Show deleted bookings (if you have a deleted flag or status)
           return status === "deleted";
@@ -774,23 +746,85 @@ const OSBookingsPage = () => {
           return true;
       }
     });
-  }, [activeTab, drafts, filteredQuotations]) as any[];
+  }, [activeTab, filteredQuotations]) as any[];
 
   // Convert quotations to table data
   const tableData = useMemo<JSX.Element[][]>(() => {
-    const combinedData = [
-      // Real quotations from API
-      ...finalQuotations.map((item, index) => ({
-        id: item.customId ? `${item.customId}` : `Draft-${index + 1}`,
-        leadPax:
-          item.customerId?.name || item.formFields?.traveller1 || "Unknown",
-        travelDate: item.travelDate
+    // const combinedData = [
+    //   // Real quotations from API
+    //   ...quotations.map((item, index) => ({
+    //     id: item.customId ? `${item.customId}` : `Draft-${index + 1}`,
+    //     leadPax: item.customerId?.name || item.formFields?.customer || "--",
+    //     travelDate: item.travelDate
+    //       ? formatDMY(item.travelDate)
+    //       : item.formFields?.departureDate
+    //       ? formatDMY(item.formFields.departureDate)
+    //       : item.createdAt
+    //       ? formatDMY(item.createdAt)
+    //       : "--",
+    //     service: (
+    //       <div className="flex items-center justify-center gap-2">
+    //         <div className="w-5 h-5 flex items-center justify-center">
+    //           {getServiceIcon(
+    //             item.quotationType || item.serviceType || "draft"
+    //           )}
+    //         </div>
+    //         <span className="text-center leading-tight">
+    //           {formatServiceType(
+    //             item.quotationType || item.serviceType || "draft"
+    //           )}
+    //         </span>
+    //       </div>
+    //     ),
+
+    //     bookingStatus: mapStatus(item.serviceStatus, item.isDeleted),
+
+    //     amount: item.totalAmount
+    //       ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
+    //       : item.formFields?.budget
+    //       ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
+    //       : "--",
+
+    //     ownerNames: Array.isArray((item as any).owner)
+    //       ? (item as any).owner.map((o: any) => o?.name || "--")
+    //       : [],
+
+    //     tasks: Math.floor(Math.random() * 5) + 1, // Random tasks for demo
+    //     isReal: Boolean(item._id),
+    //     originalIndex: index,
+    //   })),
+    // ];
+
+    const rows = filteredQuotations.map((item, index) => [
+      <td
+        key={`id-${index}`}
+        className="px-4 py-2 text-center font-semibold align-middle h-[4rem]"
+      >
+        {item.customId ? `${item.customId}` : `Draft-${index + 1}`}
+      </td>,
+      <td
+        key={`lead-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
+        {item.customerId?.name || item.formFields?.customer || "--"}
+      </td>,
+      <td
+        key={`date-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
+        {item.travelDate
           ? formatDMY(item.travelDate)
+          : item.formFields?.departureDate
+          ? formatDMY(item.formFields.departureDate)
           : item.createdAt
           ? formatDMY(item.createdAt)
-          : "Not Selected",
-        service: (
-          <div className="flex items-center justify-center gap-1">
+          : "--"}
+      </td>,
+      <td
+        key={`service-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
+        <div className="flex items-center justify-center gap-2">
             <div className="w-5 h-5 flex items-center justify-center">
               {getServiceIcon(
                 item.quotationType || item.serviceType || "draft"
@@ -802,62 +836,24 @@ const OSBookingsPage = () => {
               )}
             </span>
           </div>
-        ),
-
-        bookingStatus: mapStatus(item.status),
-
-        amount: item.totalAmount
-          ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
-          : `₹ ${item.formFields?.budget || "0"}`,
-
-        ownerNames: Array.isArray((item as any).owner)
-          ? (item as any).owner.map((o: any) => o?.name || "Unknown")
-          : [],
-
-        tasks: Math.floor(Math.random() * 5) + 1, // Random tasks for demo
-        isReal: Boolean(item._id),
-        originalIndex: index,
-      })),
-    ];
-
-    const rows = combinedData.map((row, index) => [
-      <td
-        key={`id-${index}`}
-        className="px-4 py-2 text-center font-semibold align-middle h-[4rem]"
-      >
-        {row.id}
-      </td>,
-      <td
-        key={`lead-${index}`}
-        className="px-4 py-2 text-center align-middle h-[4rem]"
-      >
-        {row.leadPax}
-      </td>,
-      <td
-        key={`date-${index}`}
-        className="px-4 py-2 text-center align-middle h-[4rem]"
-      >
-        {row.travelDate}
-      </td>,
-      <td
-        key={`service-${index}`}
-        className="px-4 py-2 text-center align-middle h-[4rem]"
-      >
-        {row.service}
       </td>,
       <td
         key={`status-${index}`}
         className="px-4 py-2 text-center align-middle h-[4rem]"
       >
-        <span className={getStatusBadgeClass(row.bookingStatus)}>
-          {row.bookingStatus}
+        <span className={getStatusBadgeClass(mapStatus(item.serviceStatus, item.isDeleted))}>
+          {mapStatus(item.serviceStatus, item.isDeleted)}
         </span>
       </td>,
       <td
         key={`amount-${index}`}
         className="px-4 py-2 text-center align-middle h-[4rem]"
       >
-        {row.amount}
+        {item.totalAmount
+          ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
+          : item.formFields?.budget
+          ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
+          : "--"}
       </td>,
       <td
         key={`owners-${index}`}
@@ -865,9 +861,24 @@ const OSBookingsPage = () => {
       >
         <div className="flex items-center justify-center">
           <div className="flex items-center">
-            {row.ownerNames?.map((ownerName: string, i: number) => {
-              const ownerMeta = ownersList.find((o) => o.full === ownerName);
+            {(Array.isArray((item as any).owner)
+          ? (item as any).owner.map((o: any) => o?.name || "--")
+          : []).map((ownerName: string, i: number) => {
+              // Try to find owner in ownersList (fetched from API)
+              let ownerMeta = ownersList.find((o) => o.full === ownerName);
+
+              // If not found (e.g., for drafts), create a temporary owner object
+              if (!ownerMeta && ownerName && ownerName !== "--") {
+                ownerMeta = {
+                  short: computeInitials(ownerName),
+                  full: ownerName,
+                  color: (colorPalette[i % colorPalette.length] ||
+                    colorPalette[0]) as string,
+                };
+              }
+
               if (!ownerMeta) return null;
+
               return (
                 <AvatarTooltip
                   key={i}
@@ -886,12 +897,8 @@ const OSBookingsPage = () => {
       >
         <div className="flex justify-center">
           <TaskButton
-            count={row.tasks}
-            bookingId={
-              row.isReal
-                ? finalQuotations[row.originalIndex]?._id || null
-                : null
-            }
+            count={0}
+            bookingId={item._id}
           />
         </div>
       </td>,
@@ -901,7 +908,7 @@ const OSBookingsPage = () => {
         key={`actions-${index}`}
         className="px-4 py-2  text-center align-middle h-[4rem]"
       >
-        <ActionMenu actions={getActionsForTab(activeTab, row)} />
+        <ActionMenu actions={getActionsForTab(activeTab, item)} />
       </td>,
     ]);
     return reverse ? rows.reverse() : rows;
@@ -933,10 +940,11 @@ const OSBookingsPage = () => {
   };
 
   return (
-    <>
-      {/* <div className="flex justify-between items-center gap-4 p-6 w-full mx-[10px] mt-[-20px]"> */}
-      {/* Draft count and sync button */}
-      {/* <div className="flex items-center gap-4">
+    <div className="bg-gray-50">
+      <div className="bg-gray-50">
+        {/* <div className="flex justify-between items-center gap-4 p-6 w-full mx-[10px] mt-[-20px]"> */}
+        {/* Draft count and sync button */}
+        {/* <div className="flex items-center gap-4">
           {drafts.length > 0 && (
             <div className="text-sm text-gray-600">
               <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
@@ -953,10 +961,10 @@ const OSBookingsPage = () => {
             🔄 Sync
           </button>
         </div> */}
-      {/* </div> */}
+        {/* </div> */}
 
-      <div className="min-h-screen">
-        {/* {!error && (
+        <div className="min-h-screen">
+          {/* {!error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             <strong>Error:</strong> {error}
             <button
@@ -969,85 +977,97 @@ const OSBookingsPage = () => {
           </div>
         )} */}
 
-        <Filter
-          onFilterChange={handleFilterChange}
-          onSearchChange={(value) => setSearchValue(value)}
-          serviceTypes={filterOptions.serviceTypes}
-          statuses={filterOptions.statuses}
-          owners={filterOptions.owners}
-          createOpen={isCreateOpen}
-          setCreateOpen={setIsCreateOpen}
-        />
+          <Filter
+            onFilterChange={handleFilterChange}
+            onSearchChange={(value) => setSearchValue(value)}
+            serviceTypes={filterOptions.serviceTypes}
+            statuses={filterOptions.statuses}
+            owners={filterOptions.owners}
+            createOpen={isCreateOpen}
+            setCreateOpen={setIsCreateOpen}
+          />
 
-        <div className="bg-white rounded-2xl shadow mt-4 pt-4 pb-3 px-3 relative">
-          {/* Tabs and Total Count Row */}
-          <div className="flex w-full justify-between items-center mb-2">
-            <div className="flex w-[30.5rem] ml-2 items-center bg-[#F3F3F3] rounded-2xl space-x-4">
-              {tabOptions.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-xl text-[0.85rem] font-medium transition-all duration-200 ${
-                    activeTab === tab
-                      ? "bg-[#0D4B37] text-white shadow-sm"
-                      : "text-[#818181] hover:bg-gray-200"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
+          <div className="bg-white rounded-2xl shadow mt-4 pt-4 pb-3 px-3 relative">
+            {/* Tabs and Total Count Row */}
+            <div className="flex w-full justify-between items-center mb-2">
+              <div className="flex w-[25rem] ml-2 items-center bg-[#F3F3F3] rounded-2xl relative p-1">
+                {/* Sliding background indicator */}
+                <div
+                  className="absolute h-[calc(100%-0.5rem)] bg-[#0D4B37] rounded-xl shadow-sm transition-all duration-300 ease-in-out top-1"
+                  style={{
+                    width: `calc((100% - 0.5rem) / ${tabOptions.length})`,
+                    left: `calc(${
+                      tabOptions.indexOf(activeTab) * (100 / tabOptions.length)
+                    }% + 0.25rem)`,
+                  }}
+                />
+                {tabOptions.map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`relative z-10 px-3 py-1.5 rounded-xl text-[0.85rem] font-medium transition-colors duration-300 flex-1 ${
+                      activeTab === tab
+                        ? "text-white"
+                        : "text-[#818181] hover:text-gray-900"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
 
-            <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
-              <span className="text-gray-600 text-[0.85rem] font-medium">
-                Total
-              </span>
-              <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
-                {finalQuotations.length}
-              </span>
+              <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
+                <span className="text-gray-600 text-[0.85rem] font-medium">
+                  Total
+                </span>
+                <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
+                  {filteredQuotations.length}
+                </span>
+              </div>
             </div>
-          </div>
-          <div className="p-2">
-            {isLoading ? (
-              <TableSkeleton />
-            ) : (
-              <Table
-                data={tableData}
-                columns={columns}
-                columnIconMap={columnIconMap}
-                onSort={handleSort}
-              />
-            )}
+            <div className="p-2">
+              {isLoading ? (
+                <TableSkeleton />
+              ) : (
+                <Table
+                  data={tableData}
+                  columns={columns}
+                  columnIconMap={columnIconMap}
+                  onSort={handleSort}
+                />
+              )}
+            </div>
           </div>
         </div>
+
+        <ConfirmationModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          title="Do you want to delete this quotation?"
+          confirmText="Yes, Delete"
+          cancelText="Cancel"
+          confirmButtonColor="bg-red-600"
+          onConfirm={confirmDelete}
+        />
+
+        {isCreateOpen && (
+          <BookingFormModal
+            isOpen={isCreateOpen}
+            onClose={() => setIsCreateOpen(false)}
+            onSelectedService={handleServiceSelect}
+          />
+        )}
+
+        {isSideSheetOpen && (
+          <BookingFormSidesheet
+            isOpen={isSideSheetOpen}
+            onClose={handleBookingComplete}
+            selectedService={selectedService}
+            initialData={selectedQuotation}
+          />
+        )}
       </div>
-
-      <ConfirmationModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        title="Do you want to delete this quotation?"
-        confirmText="Yes, Delete"
-        cancelText="Cancel"
-        confirmButtonColor="bg-red-600"
-        onConfirm={confirmDelete}
-      />
-
-      {isCreateOpen && (
-        <BookingFormModal
-          isOpen={isCreateOpen}
-          onClose={() => setIsCreateOpen(false)}
-          onSelectedService={handleServiceSelect}
-        />
-      )}
-
-      {isSideSheetOpen && (
-        <BookingFormSidesheet
-          isOpen={isSideSheetOpen}
-          onClose={handleBookingComplete}
-          selectedService={selectedService}
-        />
-      )}
-    </>
+    </div>
   );
 };
 

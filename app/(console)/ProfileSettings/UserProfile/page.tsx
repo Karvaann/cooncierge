@@ -28,29 +28,42 @@ const UserProfile = () => {
     }
   };
 
-  const getProfileCompletion = useCallback((userObj: Record<string, unknown>) => {
-    const values = Object.values(userObj);
-    const filled = values.filter(v => v && String(v).trim() !== "").length;
-    return Math.round((filled / values.length) * 100);
-  }, []);
+  const getProfileCompletion = useCallback(
+    (userObj: Record<string, unknown>) => {
+      const values = Object.values(userObj);
+      const filled = values.filter((v) => v && String(v).trim() !== "").length;
+      return Math.round((filled / values.length) * 100);
+    },
+    []
+  );
 
   // Load user data from localStorage
-  const loadUserData = useCallback((user: Record<string, unknown>) => {
-    setFirstName((user.name as string)?.split(" ")[0] || "");
-    setLastName((user.name as string)?.split(" ")[1] || "");
-    setEmail((user.email as string) || "");
-    setDesignation((user.designation as string) || "");
-    setGender((user.gender as string) || "");
-    setDob((user.dob as string) || "");
-    setEmergencyContact((user.emergencyContact as string) || "");
-    setCountryCode((user.countryCode as string) || "+91");
-    setPhone((user.mobile as string) || "");
-    setProgress(getProfileCompletion(user));
-    // Load profile image from user data
-    if (user.profileImage) {
-      setProfilePhoto(user.profileImage.url as string);
-    }
-  }, [getProfileCompletion]);
+  const loadUserData = useCallback(
+    (user: Record<string, unknown>) => {
+      setFirstName((user.name as string)?.split(" ")[0] || "");
+      setLastName((user.name as string)?.split(" ")[1] || "");
+      setEmail((user.email as string) || "");
+      setDesignation((user.designation as string) || "");
+      setGender((user.gender as string) || "");
+      setDob((user.dob as string) || "");
+      setEmergencyContact((user.emergencyContact as string) || "");
+      setCountryCode((user.countryCode as string) || "+91");
+      setPhone((user.mobile as string) || "");
+      setProgress(getProfileCompletion(user));
+      // Load profile image from user data
+      if (user.profileImage) {
+        if (
+          typeof user.profileImage === "object" &&
+          "url" in user.profileImage
+        ) {
+          setProfilePhoto((user.profileImage as { url: string }).url);
+        } else if (typeof user.profileImage === "string") {
+          setProfilePhoto(user.profileImage as string);
+        }
+      }
+    },
+    [getProfileCompletion]
+  );
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -164,7 +177,9 @@ const UserProfile = () => {
           <div className="px-6 pb-6">
             <div className="flex items-center mt-6 gap-5 mb-8">
               <div
-                className={`relative group ${isUploading ? 'cursor-wait' : 'cursor-pointer'}`}
+                className={`relative group ${
+                  isUploading ? "cursor-wait" : "cursor-pointer"
+                }`}
                 onClick={handlePhotoClick}
               >
                 {/* Hidden file input */}
@@ -182,7 +197,9 @@ const UserProfile = () => {
                     <img
                       src={profilePhoto}
                       alt="Profile"
-                      className={`w-full h-full object-cover ${isUploading ? 'opacity-50' : ''}`}
+                      className={`w-full h-full object-cover ${
+                        isUploading ? "opacity-50" : ""
+                      }`}
                     />
                     {/* Loading overlay */}
                     {isUploading && (
@@ -194,13 +211,19 @@ const UserProfile = () => {
                     {!isUploading && (
                       <div className="absolute inset-0 rounded-full bg-black bg-opacity-40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <MdOutlineAddAPhoto className="w-6 h-6 text-white mb-1" />
-                        <span className="text-xs font-medium text-white">Change</span>
+                        <span className="text-xs font-medium text-white">
+                          Change
+                        </span>
                       </div>
                     )}
                   </div>
                 ) : (
                   // Show add photo placeholder
-                  <div className={`w-28 h-28 mt-2 rounded-full bg-[#818181] flex flex-col items-center justify-center text-white ${isUploading ? '' : 'hover:bg-[#6a6a6a]'} transition-colors`}>
+                  <div
+                    className={`w-28 h-28 mt-2 rounded-full bg-[#818181] flex flex-col items-center justify-center text-white ${
+                      isUploading ? "" : "hover:bg-[#6a6a6a]"
+                    } transition-colors`}
+                  >
                     {isUploading ? (
                       <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
                     ) : (
@@ -358,9 +381,7 @@ const UserProfile = () => {
                     type="text"
                     placeholder="Enter Emergency Contact"
                     value={emergencyContact}
-                    onChange={(e) =>
-                      setEmergencyContact(e.target.value)
-                    }
+                    onChange={(e) => setEmergencyContact(e.target.value)}
                     className="w-[300px] px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-emerald-500 text-base"
                   />
                 </div>

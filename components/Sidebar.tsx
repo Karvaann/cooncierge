@@ -135,7 +135,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       <div
         ref={sidebarRef}
         className={`fixed top-0 left-0 h-screen text-white border-r border-gray-700 transition-all transform duration-500 ease-in-out z-50 pt-3 ${
-          isOpen ? "w-48" : "w-[3.125vw]"
+          isOpen ? "w-48" : "w-13"
         }`}
         style={{
           background:
@@ -190,12 +190,14 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                     onClick={() => setOpenSubMenuIndex(isActive ? null : index)}
                   >
                     <item.icon className="w-4 h-4" />
-                    {isOpen && <span className="text-sm">{item.label}</span>}
+                    {isOpen && (
+                      <span className="text-[0.75rem]">{item.label}</span>
+                    )}
                     {showArrow && (
                       <MdKeyboardArrowUp
                         size={16}
                         className={`ml-auto transform transition-transform duration-300 text-gray-100 ${
-                          isActive ? "rotate-180" : ""
+                          isActive ? "" : "rotate-180"
                         }`}
                       />
                     )}
@@ -225,7 +227,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                 )}
                 {item.subMenu && isOpen && (
                   <ul
-                    className={`relative pl-8 mt-2 transition-all duration-300 ease-in-out overflow-hidden ${
+                    className={`relative pl-8 mt-0 transition-all duration-300 ease-in-out overflow-hidden ${
                       isActive ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
                     }`}
                     style={{
@@ -240,7 +242,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                         <Link
                           prefetch
                           href={sub.href}
-                          className="block text-left text-[0.75rem] py-1 px-2 rounded text-white cursor-pointer"
+                          className="block text-left text-[0.65rem] py-1 px-2 rounded text-white cursor-pointer"
                         >
                           {sub.label}
                         </Link>

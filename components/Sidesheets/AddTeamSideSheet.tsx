@@ -1,12 +1,19 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import SideSheet from "../SideSheet";
 import ConfirmationModal from "../popups/ConfirmationModal";
 import TransferDataModal from "../Modals/TransferDataModal";
 import { createTeam, updateTeam } from "@/services/teamsApi";
 import { getAuthUser } from "@/services/storage/authStorage";
 import { LuSave } from "react-icons/lu";
+import { FiTrash2 } from "react-icons/fi";
+import Button from "../Button";
+import SingleCalendar from "../SingleCalendar";
+import DropDown from "../DropDown";
+import { FaRegFolder } from "react-icons/fa";
+import generateCustomId from "@/utils/helper";
 
 type TeamData = {
   _id?: string;
@@ -41,8 +48,36 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
   isOpen,
   mode = "create",
 }) => {
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const fileRef = useRef<HTMLInputElement | null>(null);
-  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+
+  // Validation helpers / UI state for required fields (firstname, lastname, workEmailId)
+  const firstNameRef = useRef<HTMLInputElement | null>(null);
+  const lastNameRef = useRef<HTMLInputElement | null>(null);
+  const workEmailRef = useRef<HTMLInputElement | null>(null);
+  const [showError, setShowError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [invalidField, setInvalidField] = useState<
+    "firstname" | "lastname" | "workEmail" | null
+  >(null);
+  const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [teamCode, setTeamCode] = useState("");
+
+  useEffect(() => {
+    if (mode === "create") {
+      setTeamCode(generateCustomId("team"));
+    } else {
+      setTeamCode(data?._id || "");
+    }
+  }, [mode, data]);
+
+  // Mounted flag to ensure portal renders client-side only
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -74,20 +109,26 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
     setIsTransferModalOpen(true);
   };
 
-  // Handle file selection
   const handleFileChange = () => {
-    const file = fileRef.current?.files?.[0];
-    if (file) {
-      setAttachedFile(file);
+    const files = fileRef.current?.files;
+    if (!files) return;
+
+    const selected = Array.from(files);
+
+    // Enforce max 3 files
+    const total = attachedFiles.length + selected.length;
+    if (total > 3) {
+      alert("Maximum 3 files can be uploaded");
+      return;
     }
-    // Reset input value to allow re-uploading same file
+
+    setAttachedFiles((prev) => [...prev, ...selected]);
+
     if (fileRef.current) fileRef.current.value = "";
   };
 
-  // Handle file removal
-  const handleDeleteFile = () => {
-    setAttachedFile(null);
-    if (fileRef.current) fileRef.current.value = "";
+  const handleDeleteFile = (index: number) => {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   useEffect(() => {
@@ -137,29 +178,91 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Validate required fields: firstname, lastname, work email id
+    if (!formData.firstname || String(formData.firstname).trim() === "") {
+      setErrorMessage("Please enter first name to proceed");
+      setInvalidField("firstname");
+      setShowError(true);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+      setTimeout(() => {
+        firstNameRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        firstNameRef.current?.focus();
+      }, 100);
+      return;
+    }
+    if (!formData.lastname || String(formData.lastname).trim() === "") {
+      setErrorMessage("Please enter last name to proceed");
+      setInvalidField("lastname");
+      setShowError(true);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+      setTimeout(() => {
+        lastNameRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        lastNameRef.current?.focus();
+      }, 100);
+      return;
+    }
+    if (!formData.workEmailId || String(formData.workEmailId).trim() === "") {
+      setErrorMessage("Please enter work email to proceed");
+      setInvalidField("workEmail");
+      setShowError(true);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+      setTimeout(() => {
+        workEmailRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        workEmailRef.current?.focus();
+      }, 100);
+      return;
+    }
     const user = getAuthUser() as any;
     const roleId = user?.roleId;
 
     const businessId = user?.businessId;
     try {
-      const payload = {
-        name: `${formData.firstname} ${formData.lastname}`.trim(),
-        email: formData.workEmailId,
-        phone: formData.workContactNumber,
-        gender: formData.gender || undefined,
-        designation: formData.designation,
-        alias: formData.alias || undefined,
-        emergencyContact: formData.emergencyContactNumber || undefined,
-        dateOfBirth: formData.dateOfBirth || undefined,
-        dateOfJoining: formData.dateOfJoining || undefined,
-        dateOfLeaving: formData.dateOfLeaving || undefined,
-        address: formData.address || undefined,
-        businessId: businessId,
-        roleId: roleId,
-      };
+      const formToSend = new FormData();
 
-      console.log("FINAL TEAM PAYLOAD:", payload);
-      const response = await createTeam(payload);
+      // Text fields
+      formToSend.append(
+        "name",
+        `${formData.firstname} ${formData.lastname}`.trim()
+      );
+      formToSend.append("email", formData.workEmailId);
+      formToSend.append("phone", formData.workContactNumber);
+      formToSend.append("gender", formData.gender || "");
+      formToSend.append("designation", formData.designation || "");
+      formToSend.append("alias", formData.alias || "");
+      formToSend.append(
+        "emergencyContact",
+        formData.emergencyContactNumber || ""
+      );
+      formToSend.append("dateOfBirth", formData.dateOfBirth || "");
+      formToSend.append("dateOfJoining", formData.dateOfJoining || "");
+      formToSend.append("dateOfLeaving", formData.dateOfLeaving || "");
+      formToSend.append("address", formData.address || "");
+      formToSend.append("remarks", formData.remarks || "");
+      formToSend.append("status", formData.status || "Current");
+      formToSend.append("customId", teamCode || "");
+
+      // Required by backend
+      formToSend.append("businessId", businessId);
+      formToSend.append("roleId", roleId);
+
+      // Documents
+      attachedFiles.forEach((file) => {
+        formToSend.append("documents", file);
+      });
+
+      const response = await createTeam(formToSend);
       if (response?._id) {
         console.log("Team created successfully", response);
         onCancel();
@@ -172,6 +275,52 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
   };
 
   const handleUpdateUser = async () => {
+    // Validate required fields before update
+    if (!formData.firstname || String(formData.firstname).trim() === "") {
+      setErrorMessage("Please enter first name to proceed");
+      setInvalidField("firstname");
+      setShowError(true);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+      setTimeout(() => {
+        firstNameRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        firstNameRef.current?.focus();
+      }, 100);
+      return;
+    }
+    if (!formData.lastname || String(formData.lastname).trim() === "") {
+      setErrorMessage("Please enter last name to proceed");
+      setInvalidField("lastname");
+      setShowError(true);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+      setTimeout(() => {
+        lastNameRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        lastNameRef.current?.focus();
+      }, 100);
+      return;
+    }
+    if (!formData.workEmailId || String(formData.workEmailId).trim() === "") {
+      setErrorMessage("Please enter work email to proceed");
+      setInvalidField("workEmail");
+      setShowError(true);
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+      setTimeout(() => {
+        workEmailRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        workEmailRef.current?.focus();
+      }, 100);
+      return;
+    }
     try {
       const teamId = data?._id;
 
@@ -220,39 +369,91 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
       <SideSheet
         isOpen={isOpen}
         onClose={onCancel}
-        title={
+        title={`${
           mode === "view"
             ? "Team Member Details"
             : mode === "edit"
             ? "Edit Team Member"
             : "Add Team Member"
-        }
+        }${teamCode ? " | " + teamCode : ""}`}
         width="xl"
         position="right"
         showLinkButton={true}
       >
-        <form className="space-y-6 p-4">
+        <form
+          className="space-y-6 p-4"
+          onSubmit={
+            mode === "create" ? handleSubmit : (e) => e.preventDefault()
+          }
+          noValidate
+        >
+          {/* Error Alert Popup (reuse customer toast style) */}
+          {mounted &&
+            showError &&
+            createPortal(
+              <div className="fixed top-8 left-1/2 transform -translate-x-1/2 z-[1100] flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 px-2 py-1 rounded-full shadow-md max-w-[90vw] text-[0.65rem]">
+                <svg
+                  className="w-4 h-4 text-red-500"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    fill="none"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 8v4m0 4h.01"
+                  />
+                </svg>
+                <span className="font-semibold">Error :</span>
+                <span className="">{errorMessage}</span>
+                <button
+                  type="button"
+                  className="ml-2 text-red-400 hover:text-red-600 text-lg font-bold"
+                  aria-label="Close alert"
+                  onClick={() => setShowError(false)}
+                >
+                  ×
+                </button>
+              </div>,
+              document.body
+            )}
+
           {/* ================= STATUS DROPDOWN ================ */}
           <div className="flex flex-col gap-1">
-            <select
-              name="status"
-              required
-              disabled={readOnly}
-              onChange={(e) => {
-                if (e.target.value === "former") {
-                  // handleTransferModalOpen();
-                }
-                setFormData({
-                  ...formData,
-                  status: e.target.value === "current" ? "Current" : "Former",
-                });
-              }}
-              className="w-[13rem] border border-gray-300 rounded-md px-3 py-1.5 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            >
-              <option value="disabled">Select Status</option>
-              <option value="current">Current</option>
-              <option value="former">Former</option>
-            </select>
+            {!readOnly ? (
+              <DropDown
+                options={[
+                  { value: "", label: "Select Status" },
+                  { value: "current", label: "Current" },
+                  { value: "former", label: "Former" },
+                ]}
+                value={formData.status ? formData.status.toLowerCase() : ""}
+                onChange={(v) => {
+                  if (v === "former") {
+                    // handleTransferModalOpen();
+                  }
+                  setFormData({
+                    ...formData,
+                    status: v === "current" ? "Current" : "Former",
+                  });
+                }}
+                customWidth="w-[13rem]"
+                className=""
+              />
+            ) : (
+              <div className="w-[13rem] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 bg-gray-100 cursor-default">
+                {formData.status || "Select Status"}
+              </div>
+            )}
           </div>
 
           {/* ================= BASIC DETAILS ================ */}
@@ -266,16 +467,23 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   First Name <span className="text-red-500">*</span>
                 </label>
                 <input
+                  ref={firstNameRef}
                   name="firstname"
                   type="text"
                   value={formData.firstname}
-                  onChange={(e) =>
-                    setFormData({ ...formData, firstname: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFormData({ ...formData, firstname: v });
+                    if (invalidField === "firstname" && String(v).trim())
+                      setInvalidField(null);
+                  }}
                   placeholder="Enter First Name"
-                  required
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] hover:border-green-400 text-gray-700 disabled:bg-gray-100 disabled:text-gray-700 ${
+                    invalidField === "firstname"
+                      ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
+                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
+                  }`}
                 />
               </div>
 
@@ -284,35 +492,38 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   Last Name <span className="text-red-500">*</span>
                 </label>
                 <input
+                  ref={lastNameRef}
                   name="lastname"
                   type="text"
                   placeholder="Enter Last Name"
                   value={formData.lastname}
-                  onChange={(e) =>
-                    setFormData({ ...formData, lastname: e.target.value })
-                  }
-                  required
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFormData({ ...formData, lastname: v });
+                    if (invalidField === "lastname" && String(v).trim())
+                      setInvalidField(null);
+                  }}
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] text-gray-700 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
+                    invalidField === "lastname"
+                      ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
+                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
+                  }`}
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
-                  Date of Birth
-                </label>
-                <input
-                  name="dateOfBirth"
-                  type="date"
-                  placeholder="DD-MM-YYYY"
-                  value={formData.dateOfBirth}
-                  onChange={(e) =>
-                    setFormData({ ...formData, dateOfBirth: e.target.value })
+                <SingleCalendar
+                  label="Date of Birth"
+                  value={formData.dateOfBirth || ""}
+                  onChange={(iso) =>
+                    setFormData((prev) => ({ ...prev, dateOfBirth: iso }))
                   }
-                  disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                  placeholder="DD-MM-YYYY"
+                  customWidth="w-full mt-1.5 py-2"
+                  readOnly={readOnly}
                 />
               </div>
 
@@ -320,20 +531,31 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Gender
                 </label>
-                <select
-                  name="gender"
-                  value={formData.gender}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  onChange={(e) =>
-                    setFormData({ ...formData, gender: e.target.value })
-                  }
-                  disabled={readOnly}
-                >
-                  <option value="disabled">Select Gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
+                {!readOnly ? (
+                  <DropDown
+                    options={[
+                      { value: "", label: "Select Gender" },
+                      { value: "male", label: "Male" },
+                      { value: "female", label: "Female" },
+                      { value: "other", label: "Other" },
+                    ]}
+                    value={formData.gender}
+                    onChange={(v) => setFormData({ ...formData, gender: v })}
+                    customWidth="w-full mt-0 py-2"
+                    className=""
+                  />
+                ) : (
+                  <div className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 bg-gray-100 cursor-default">
+                    {(() => {
+                      const opt = [
+                        { value: "male", label: "Male" },
+                        { value: "female", label: "Female" },
+                        { value: "other", label: "Other" },
+                      ].find((o) => o.value === formData.gender);
+                      return opt ? opt.label : "Select Gender";
+                    })()}
+                  </div>
+                )}
               </div>
 
               {/* Emergency Contact */}
@@ -350,8 +572,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                         countryCode: e.target.value,
                       })
                     }
-                    className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-                    style={{ width: "70px" }}
+                    className="absolute left-0 top-0 h-full pl-2 pr-2 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 cursor-pointer"
+                    style={{ width: "58px" }}
                     disabled={readOnly}
                   >
                     <option value="+91">+91</option>
@@ -371,7 +593,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     placeholder="Enter Contact Number"
                     required
                     disabled={readOnly}
-                    className="w-[22.3rem] border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-[22.3rem] border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -397,7 +619,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   }
                   placeholder="Enter Alias"
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
 
@@ -414,8 +636,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                         countryCode: e.target.value,
                       })
                     }
-                    className="absolute left-0 top-0 h-full px-3 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
-                    style={{ width: "70px" }}
+                    className="absolute left-0 top-0 h-full pl-2 pr-2 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 cursor-pointer"
+                    style={{ width: "58px" }}
                     disabled={readOnly}
                   >
                     <option value="+91">+91</option>
@@ -435,7 +657,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     placeholder="Enter Contact Number"
                     required
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -445,16 +667,23 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   Work Email ID
                 </label>
                 <input
+                  ref={workEmailRef}
                   name="workEmailId"
                   type="email"
                   value={formData.workEmailId}
-                  onChange={(e) =>
-                    setFormData({ ...formData, workEmailId: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setFormData({ ...formData, workEmailId: v });
+                    if (invalidField === "workEmail" && String(v).trim())
+                      setInvalidField(null);
+                  }}
                   placeholder="Enter Email ID"
-                  required
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] text-gray-700 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
+                    invalidField === "workEmail"
+                      ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
+                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
+                  }`}
                 />
               </div>
 
@@ -472,48 +701,41 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   placeholder="Enter Designation"
                   required
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
-                  Date Of Joining
-                </label>
-                <input
-                  name="dateOfJoining"
-                  type="date"
-                  value={formData.dateOfJoining}
-                  onChange={(e) =>
-                    setFormData({ ...formData, dateOfJoining: e.target.value })
+                <SingleCalendar
+                  label="Date Of Joining"
+                  value={formData.dateOfJoining || ""}
+                  onChange={(iso) =>
+                    setFormData((prev) => ({ ...prev, dateOfJoining: iso }))
                   }
                   placeholder="DD-MM-YYYY"
-                  disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                  customWidth="w-full"
+                  readOnly={readOnly}
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
-                  Date Of Leaving
-                </label>
-                <input
-                  name="dateOfLeaving"
-                  type="date"
-                  value={formData.dateOfLeaving}
-                  onChange={(e) =>
-                    setFormData({ ...formData, dateOfLeaving: e.target.value })
+                <SingleCalendar
+                  label="Date Of Leaving"
+                  value={formData.dateOfLeaving || ""}
+                  onChange={(iso) =>
+                    setFormData((prev) => ({ ...prev, dateOfLeaving: iso }))
                   }
                   placeholder="DD-MM-YYYY"
-                  disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                  customWidth="w-full"
+                  minDate={formData.dateOfJoining}
+                  readOnly={readOnly}
                 />
               </div>
             </div>
           </div>
 
           {/* ================= DOCUMENTS ================ */}
-          {/* <div className="border border-gray-200 rounded-[12px] p-3">
+          <div className="border border-gray-200 rounded-[12px] p-3">
             <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
@@ -523,36 +745,51 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 ref={fileRef}
                 className="hidden"
                 onChange={handleFileChange}
-                accept=".pdf,.jpg,.jpeg,.png"
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt"
+                multiple
               />
+
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border border-[#126ACB] rounded-md text-[0.75rem] hover:bg-gray-200"
+                className="px-3 py-1.5 mt-1 flex gap-1 bg-white text-[#126ACB] border border-[#126ACB] 
+                 rounded-md text-[0.75rem] hover:bg-gray-200"
               >
-                <MdOutlineFileUpload size={16} /> Attach Files
+                Attach Files
               </button>
 
-              {attachedFile && (
-                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-md px-2 py-1.5 w-fit">
-                  <span className="text-gray-700 text-[0.7rem] font-medium truncate">
-                    📎 {attachedFile.name}
-                  </span>
-                  <button
-                    onClick={handleDeleteFile}
-                    className="ml-auto text-red-500 hover:text-red-700 transition-all"
-                    title="Remove file"
+              {/* PREVIEW FILES */}
+              <div className="-mt-1 flex flex-col gap-2 w-full">
+                {attachedFiles.map((file, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between w-full 
+                               bg-white rounded-md 
+                               px-3 py-2 hover:bg-gray-50 transition"
                   >
-                    <FiTrash2 size={14} />
-                  </button>
-                </div>
-              )}
+                    {/* File Name */}
+                    <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[0.75rem] truncate flex items-center gap-2">
+                      <FaRegFolder className="text-blue-500 w-3 h-3" />
+                      {file.name}
+                    </span>
 
-              <div className="text-red-600 text-[0.65rem]">
+                    {/* Delete Icon */}
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteFile(i)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="text-red-600 text-[0.65rem] -mt-3">
                 Note: Maximum of 3 files can be uploaded
               </div>
             </div>
-          </div> */}
+          </div>
 
           {/* ================= REMARKS ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
@@ -569,54 +806,54 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
               rows={5}
               placeholder="Enter Your Remarks Here"
               disabled={readOnly}
-              className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem] mt-2 transition-colors focus:ring focus:ring-blue-200 disabled:bg-gray-100 disabled:text-gray-700"
+              className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem] mt-2 transition-colors focus:ring hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
             />
           </div>
 
           {/* ================= ACTION BUTTONS ================ */}
           <div className="flex justify-end gap-2 pt-2">
             {mode === "view" ? (
-              <button
-                type="button"
-                className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
+              <Button
+                text="Close"
                 onClick={onCancel}
-              >
-                Close
-              </button>
+                bgColor="bg-white"
+                textColor="text-gray-700"
+                className="border border-gray-300 hover:bg-gray-100"
+              />
             ) : mode === "edit" ? (
               <>
-                <button
-                  type="button"
-                  className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
+                <Button
+                  text="Cancel"
                   onClick={onCancel}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
+                  bgColor="bg-white"
+                  textColor="text-gray-700"
+                  className="border border-gray-300 hover:bg-gray-100"
+                />
+                <Button
+                  text="Update Team Member"
                   onClick={handleUpdateUser}
-                  className="px-4 py-2 bg-[#0D4B37] text-white rounded-lg hover:bg-green-900 text-[0.75rem]"
-                >
-                  Update Team Member
-                </button>
+                  bgColor="bg-[#0D4B37]"
+                  textColor="text-white"
+                  className="hover:bg-green-900"
+                />
               </>
             ) : (
               <>
-                <button
-                  type="button"
-                  className="px-4 py-1.5 rounded-md border border-gray-300 text-gray-700 text-[0.75rem] hover:bg-gray-100"
+                <Button
+                  text="Cancel"
                   onClick={onCancel}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSubmit}
-                  className="px-4 py-1.5 rounded-md bg-[#0D4B37] text-white text-[0.75rem] hover:bg-[#0f3d44]"
-                >
-                  <LuSave className="mr-1 inline-block" size={16} />
-                  Save
-                </button>
+                  bgColor="bg-white"
+                  textColor="text-gray-700"
+                  className="border border-gray-300 hover:bg-gray-100"
+                />
+                <Button
+                  text="Save"
+                  onClick={() => handleSubmit}
+                  icon={<LuSave size={16} />}
+                  bgColor="bg-[#0D4B37]"
+                  textColor="text-white"
+                  className="hover:bg-[#0f3d44]"
+                />
               </>
             )}
           </div>

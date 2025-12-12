@@ -26,12 +26,14 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       onClose={onClose}
       title={""}
       size="sm"
-      customWidth="w-[23vw]"
+      customWidth="w-72"
       customeHeight="h-fit"
       showCloseButton={false} // 🔥 custom close button only
       closeOnOverlayClick={true}
       closeOnEscape={true}
       className="p-0"
+      zIndexClass="z-[200]"
+      disableOverlayClick={false}
     >
       <div className="relative px-2 -mt-3 pb-2 -ml-2 flex flex-col items-center">
         {/* 🔥 Custom Close Button */}
@@ -60,7 +62,12 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
         </div>
 
         {/* 🔥 BUTTONS */}
-        <div className="flex flex-row gap-3 w-full justify-center">
+        <div
+          className="flex flex-row gap-3 w-full justify-center"
+          // Prevent clicks inside the buttons area from bubbling to parent overlays
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
+        >
           {/* Cancel */}
           <button
             className="

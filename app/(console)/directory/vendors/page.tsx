@@ -286,7 +286,7 @@ const VendorDirectory = () => {
         const data = await getVendors({ isDeleted: activeTab === "Deleted" });
         const mappedRows: VendorRow[] = data.map((v: any, index: number) => ({
           ...v,
-          vendorID: v._id || `#V00${index + 1}`,
+          vendorID: v.customId || v._id || `#V00${index + 1}`,
           vendorName: v.companyName || v.name || "—",
           poc: v.contactPerson || "—",
           rating: v.tier ? Number(v.tier.replace("tier", "")) : 4,
@@ -392,7 +392,7 @@ const VendorDirectory = () => {
                   {
                     label: "Edit",
                     icon: <FaRegEdit />,
-                    color: "text-green-600",
+                    color: "text-blue-600",
                     onClick: () => {
                       setSelectedVendor(row);
                       setIsSideSheetOpen(true);
@@ -409,6 +409,7 @@ const VendorDirectory = () => {
                     },
                   },
                 ]}
+                width="w-22"
               />
             </div>
           </td>
@@ -435,15 +436,25 @@ const VendorDirectory = () => {
     <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
       <div className="flex items-center justify-between rounded-2xl px-4 py-3">
         {/*  Tabs */}
-        <div className="flex w-[12.3rem] -ml-2 items-center bg-[#F3F3F3] rounded-2xl space-x-4">
+        <div className="flex w-[12.3rem] -ml-2 items-center bg-[#F3F3F3] rounded-2xl relative p-1">
+          <div
+            className="absolute h-[calc(100%-0.5rem)] bg-[#0D4B37] rounded-xl shadow-sm transition-all duration-300 ease-in-out top-1"
+            style={{
+              width: `calc((100% - 0.5rem) / ${tabOptions.length})`,
+              left: `calc(${
+                tabOptions.indexOf(activeTab) * (100 / tabOptions.length)
+              }% + 0.25rem)`,
+            }}
+          />
+
           {tabOptions.map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-1.5 rounded-xl text-[0.85rem] font-semibold transition-all duration-200 ${
+              className={`relative z-10 px-3 py-1.5 rounded-xl text-[0.85rem] font-medium transition-colors duration-300 flex-1 ${
                 activeTab === tab
-                  ? "bg-[#0D4B37] text-white shadow-sm"
-                  : "text-[#818181] hover:bg-gray-200"
+                  ? "text-white"
+                  : "text-[#818181] hover:text-gray-900"
               }`}
             >
               {tab}
@@ -539,6 +550,7 @@ const VendorDirectory = () => {
                   isOpen={isMenuOpen}
                   onClose={handleCloseMenu}
                   onSelect={handleSelectClick} // triggers the switch
+                  entity="vendor"
                 />
               ) : (
                 <DownloadMergeMenu
@@ -560,6 +572,7 @@ const VendorDirectory = () => {
           columnIconMap={columnIconMap}
           showCheckboxColumn={selectMode}
           onSort={handleSort}
+          categoryName="Vendors"
         />
       </div>
       {isSideSheetOpen && (
@@ -634,6 +647,18 @@ const VendorDirectory = () => {
               : undefined
           }
           bookings={historyBookings}
+          recordName={
+            selectedVendor?.companyName ||
+            selectedVendor?.name ||
+            selectedVendor?.vendorName ||
+            "—"
+          }
+          recordId={
+            selectedVendor?._id ||
+            selectedVendor?.vendorID ||
+            selectedVendor?.id ||
+            "—"
+          }
         />
       )}
     </div>

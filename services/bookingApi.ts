@@ -873,11 +873,19 @@ export class BookingApiService {
   }
 
   // Create quotation
-  static async createQuotation(bookingData: any): Promise<ApiResponse<unknown>> {
+  static async createQuotation(formDataToSend: FormData): Promise<ApiResponse<unknown>> {
     try {
       // Get user info
      
-      const response = await apiClient.post('/quotation/create-quotation', bookingData);
+      const response = await apiClient.post(
+      "/quotation/create-quotation",
+      formDataToSend,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
 
       return {
         success: true,
@@ -1108,9 +1116,20 @@ export class BookingApiService {
     travelStartDate?: string;
     travelEndDate?: string;
     owner?: string | string[];
+    activeTab: string
   }): Promise<ApiResponse<unknown>> {
     try {
-      const response = await apiClient.get('/quotation/get-all-quotations', {
+      let endpoint = '/quotation/get-all-quotations';
+      if (params?.activeTab === "Drafts") {
+        endpoint = endpoint + '?serviceStatus=draft';
+      }
+      if (params?.activeTab === "Bookings") {
+        endpoint = endpoint + '?serviceStatus=approved';
+      }
+      if (params?.activeTab === "Deleted") {
+        endpoint = endpoint + '?isDeleted=true';
+      }
+      const response = await apiClient.get(endpoint, {
         params: {
           bookingStartDate: params?.bookingStartDate || undefined,
           bookingEndDate: params?.bookingEndDate || undefined,

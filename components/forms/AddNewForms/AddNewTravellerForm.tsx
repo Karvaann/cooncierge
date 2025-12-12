@@ -1,11 +1,14 @@
 "use client";
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
+import SingleCalendar from "@/components/SingleCalendar";
 import { validateTravellerForm } from "@/services/bookingApi";
 import SideSheet from "@/components/SideSheet";
 import { useBooking } from "@/context/BookingContext";
 import { createTraveller, updateTraveller } from "@/services/travellerApi";
 import { getAuthUser } from "@/services/storage/authStorage";
+import Button from "@/components/Button";
+import generateCustomId from "@/utils/helper";
 // Type definitions
 interface TravellerFormData {
   firstname: string;
@@ -63,6 +66,16 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
   const readOnly = mode === "view";
   const open = typeof isOpen === "boolean" ? isOpen : isAddTravellerOpen;
   const handleClose = onClose || closeAddTraveller;
+
+  const [travellerCode, setTravellerCode] = useState("");
+
+  useEffect(() => {
+    if (mode === "create") {
+      setTravellerCode(generateCustomId("traveller"));
+    } else {
+      setTravellerCode(data?._id || "");
+    }
+  }, [mode, data]);
 
   // Prefill when data provided
   useEffect(() => {
@@ -228,6 +241,35 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
     [validateField, showValidation]
   );
 
+  // Handle date of birth changes coming from SingleCalendar (ISO string)
+  const handleDOBChange = (isoDate: string) => {
+    if (!isoDate) {
+      setFormData((prev) => ({ ...prev, dateofbirth: "" }));
+      setErrors((prev) => ({ ...prev, dateofbirth: "" }));
+      setTouched((prev) => ({ ...prev, dateofbirth: true }));
+      return;
+    }
+
+    const date = new Date(isoDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+
+    if (d > today) {
+      setErrors((prev) => ({
+        ...prev,
+        dateofbirth: "Date of birth cannot be in the future",
+      }));
+      setTouched((prev) => ({ ...prev, dateofbirth: true }));
+      return;
+    }
+
+    setErrors((prev) => ({ ...prev, dateofbirth: "" }));
+    setFormData((prev) => ({ ...prev, dateofbirth: date.toISOString() }));
+    setTouched((prev) => ({ ...prev, dateofbirth: true }));
+  };
+
   // Handle form submission
   const handleSubmit = useCallback(
     async (e?: React.FormEvent) => {
@@ -261,6 +303,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           phone: String(formData.contactnumber || "").trim() || undefined,
           dateOfBirth: formData.dateofbirth || undefined,
           ownerId,
+          customId: travellerCode,
           // remarks is not part of traveller schema in docs; include only if backend accepts it
         };
 
@@ -413,13 +456,13 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
     <SideSheet
       isOpen={open}
       onClose={handleClose}
-      title={
+      title={`${
         mode === "view"
           ? "Traveller Details"
           : mode === "edit"
           ? "Edit Traveller"
           : "Add Traveller"
-      }
+      }${travellerCode ? " | " + travellerCode : ""}`}
       width="xl"
     >
       <div
@@ -451,7 +494,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
             <div className="flex flex-col gap-1">
               <label className="block text-[0.75rem] font-medium text-gray-700">
-                Last Name <span className="text-red-500">*</span>
+                Last Name
               </label>
               <input
                 name="lastname"
@@ -467,7 +510,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
             <div className="flex flex-col gap-1">
               <label className="block text-[0.75rem] font-medium text-gray-700">
-                Nickname/Alias <span className="text-red-500">*</span>
+                Nickname/Alias
               </label>
               <input
                 name="nickname"
@@ -486,7 +529,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1">
               <label className="block text-[0.75rem] font-medium text-gray-700">
-                Contact Number <span className="text-red-500">*</span>
+                Contact Number
               </label>
               <input
                 type="text"
@@ -502,7 +545,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
             <div className="flex flex-col gap-1">
               <label className="block text-[0.75rem] font-medium text-gray-700">
-                Email ID <span className="text-red-500">*</span>
+                Email ID
               </label>
               <input
                 name="emailId"
@@ -518,18 +561,23 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
             <div className="flex flex-col gap-1">
               <label className="block text-[0.75rem] font-medium text-gray-700">
-                Date of Birth <span className="text-red-500">*</span>
+                Date of Birth
               </label>
-              <input
-                type="date"
-                name="dateofbirth"
-                value={formData.dateofbirth}
-                onChange={handleChange}
-                placeholder="DD-MM-YYYY"
-                required
-                disabled={readOnly}
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
-              />
+              <div className="">
+                <SingleCalendar
+                  value={String(formData.dateofbirth || "")}
+                  onChange={(iso) => handleDOBChange(iso)}
+                  placeholder="DD-MM-YYYY"
+                  customWidth="w-full py-2 text-[0.75rem]"
+                  showCalendarIcon={true}
+                  readOnly={readOnly}
+                />
+                {errors.dateofbirth && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {errors.dateofbirth}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -555,16 +603,15 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
         </div>
         <div className="flex justify-end mt-auto gap-2">
           {mode === "view" ? (
-            <button
-              type="button"
+            <Button
+              text="Close"
               onClick={handleClose}
-              className="px-4 py-2 bg-gray-200 text-gray-700 text-[0.75rem] rounded-lg"
-            >
-              Close
-            </button>
+              bgColor="bg-gray-200"
+              textColor="text-gray-700"
+            />
           ) : mode === "edit" ? (
-            <button
-              type="button"
+            <Button
+              text={isSubmitting || submitting ? "Updating..." : "Update"}
               onClick={async () => {
                 try {
                   setSubmitting(true);
@@ -578,35 +625,41 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   const payload: any = {
                     name,
                     email: String(formData.emailId || "").trim() || undefined,
-                    phone: String(formData.contactnumber || "").trim() || undefined,
+                    phone:
+                      String(formData.contactnumber || "").trim() || undefined,
                     dateOfBirth: formData.dateofbirth || undefined,
                   };
                   const id = data?._id || data?.id;
                   if (!id) throw new Error("Missing traveller id");
                   const updated = await updateTraveller(String(id), payload);
                   const displayName = updated?.name || name;
-                  setLastAddedTraveller({ id: updated?._id || id, name: displayName });
+                  setLastAddedTraveller({
+                    id: updated?._id || id,
+                    name: displayName,
+                  });
                   handleClose();
                 } catch (err: any) {
-                  console.error("[AddNewTravellerForm] Error updating traveller:", err?.response?.data?.message || err?.message);
+                  console.error(
+                    "[AddNewTravellerForm] Error updating traveller:",
+                    err?.response?.data?.message || err?.message
+                  );
                 } finally {
                   setSubmitting(false);
                 }
               }}
               disabled={isSubmitting || submitting}
-              className="px-4 py-2 bg-[#0D4B37] text-white text-[0.75rem] rounded-lg disabled:opacity-50"
-            >
-              {isSubmitting || submitting ? "Updating..." : "Update"}
-            </button>
+              bgColor="bg-[#0D4B37]"
+              textColor="text-white"
+            />
           ) : (
-            <button
-              type="button"
+            <Button
+              text={isSubmitting || submitting ? "Saving..." : "Save"}
               onClick={() => handleSubmit()}
               disabled={isSubmitting || submitting}
-              className="px-4 py-2 bg-[#114958] text-white text-[0.75rem] rounded-lg hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting || submitting ? "Saving..." : "Save"}
-            </button>
+              bgColor="bg-[#114958]"
+              textColor="text-white"
+              className="hover:bg-[#0d3a45]"
+            />
           )}
         </div>
       </div>

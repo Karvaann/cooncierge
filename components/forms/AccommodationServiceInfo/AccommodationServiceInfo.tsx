@@ -2,13 +2,19 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { validateAccommodationInfoForm } from "@/services/bookingApi";
-import { MdKeyboardArrowDown } from "react-icons/md";
-import { MdOutlineFileUpload } from "react-icons/md";
+import {
+  MdOutlineFileUpload,
+  MdKeyboardArrowDown,
+  MdOutlineKeyboardArrowUp,
+} from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
 import HotelLayout from "./HotelLayout";
 import { useRef } from "react";
 import VillaLayout from "./VillaLayout";
 import { CiSearch } from "react-icons/ci";
+import DropDown from "@/components/DropDown";
+import SingleCalendar from "@/components/SingleCalendar";
+import StyledDescription from "@/components/StyledDescription";
 // Type definitions
 interface AccommodationInfoFormData {
   bookingdate: string;
@@ -154,12 +160,36 @@ interface ValidationErrors {
   [key: string]: string;
 }
 
+interface ExternalFormData {
+  formFields?: {
+    bookingdate?: string;
+    traveldate?: string;
+    bookingstatus?: string;
+    costprice?: string;
+    sellingprice?: string;
+    confirmationNumber?: string;
+    checkindate?: string;
+    checkintime?: string;
+    checkoutdate?: string;
+    checkouttime?: string;
+    pax?: string;
+    mealPlan?: string;
+    propertyName?: string;
+    propertyAddress?: string;
+    googleMapsLink?: string;
+    remarks?: string;
+    // Add other fields as needed
+  };
+}
+
 interface AccommodationInfoFormProps {
   onSubmit?: (data: AccommodationInfoFormData) => void;
   isSubmitting?: boolean;
   showValidation?: boolean;
   formRef?: React.RefObject<HTMLDivElement | null>;
   onFormDataUpdate: (data: any) => void;
+  onAddDocuments?: (files: File[]) => void;
+  externalFormData?: ExternalFormData;
 }
 
 const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
@@ -168,25 +198,27 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   showValidation = true,
   formRef,
   onFormDataUpdate,
+  onAddDocuments,
+  externalFormData,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<AccommodationInfoFormData>({
-    bookingdate: "",
-    traveldate: "",
-    bookingstatus: "",
-    costprice: "",
-    sellingprice: "",
-    confirmationNumber: "",
-    checkindate: "",
-    checkintime: "",
-    checkoutdate: "",
-    checkouttime: "",
+    bookingdate: externalFormData?.formFields?.bookingdate || "",
+    traveldate: externalFormData?.formFields?.traveldate || "",
+    bookingstatus: externalFormData?.formFields?.bookingstatus || "",
+    costprice: externalFormData?.formFields?.costprice || "",
+    sellingprice: externalFormData?.formFields?.sellingprice || "",
+    confirmationNumber: externalFormData?.formFields?.confirmationNumber || "",
+    checkindate: externalFormData?.formFields?.checkindate || "",
+    checkintime: externalFormData?.formFields?.checkintime || "",
+    checkoutdate: externalFormData?.formFields?.checkoutdate || "",
+    checkouttime: externalFormData?.formFields?.checkouttime || "",
     checkOutPeriod: "AM",
-    pax: "",
-    mealPlan: "",
-    propertyName: "",
-    propertyAddress: "",
-    googleMapsLink: "",
+    pax: externalFormData?.formFields?.pax || "",
+    mealPlan: externalFormData?.formFields?.mealPlan || "",
+    propertyName: externalFormData?.formFields?.propertyName || "",
+    propertyAddress: externalFormData?.formFields?.propertyAddress || "",
+    googleMapsLink: externalFormData?.formFields?.googleMapsLink || "",
     segments: [
       {
         id: "room-1",
@@ -196,7 +228,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     ],
     accommodationType: "",
 
-    remarks: "",
+    remarks: externalFormData?.formFields?.remarks || "",
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -205,25 +237,32 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
   // Advanced Pricing State
   const [showAdvancedPricing, setShowAdvancedPricing] = useState(false);
-  const [vendorCurrency, setVendorCurrency] = useState("USD");
-  const [vendorAmount, setVendorAmount] = useState("");
-  const [vendorROE, setVendorROE] = useState("88.05");
-  const [vendorINR, setVendorINR] = useState("0");
-  const [bankChargesCurrency, setBankChargesCurrency] = useState("INR");
-  const [bankChargesAmount, setBankChargesAmount] = useState("");
-  const [cashbackCurrency, setCashbackCurrency] = useState("INR");
-  const [cashbackAmount, setCashbackAmount] = useState("");
-  const [cashbackMethod, setCashbackMethod] = useState("Wallet");
-  const [customerSellingCurrency, setCustomerSellingCurrency] = useState("INR");
-  const [customerSellingAmount, setCustomerSellingAmount] = useState("");
-  const [commissionCurrency, setCommissionCurrency] = useState("INR");
-  const [commissionAmount, setCommissionAmount] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [filesAdded, setFilesAdded] = useState({
-    document: false,
-  });
-  const [attachedFile, setAttachedFile] = useState<File | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+
+  // Villa type controlled by parent: 'entire' or 'shared'
+  const [villaType, setVillaType] = useState<"entire" | "shared">("entire");
+
+  // Handle selecting multiple files
+  const handleFileChange = () => {
+    const files = fileInputRef.current?.files;
+    if (!files) return;
+
+    const selected = Array.from(files);
+
+    setAttachedFiles((prev) => [...prev, ...selected]);
+
+    onAddDocuments?.(selected);
+
+    // Reset so selecting the same file again is possible
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // Remove one file
+  const handleDeleteFile = (index: number) => {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleCopyGoogleLink = async () => {
     try {
@@ -241,9 +280,46 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     }));
   };
 
+  // Handle total rooms change when Villa is selected and mode is entire
+  const handleVillaRoomCountChange = (newCount: number) => {
+    if (newCount < 1) return;
+    const current = formData.segments || [];
+
+    if (newCount > current.length) {
+      const newSegments: RoomSegment[] = [...current];
+      for (let i = current.length; i < newCount; i++) {
+        const roomId = `room-${i + 1}`;
+        newSegments.push({ id: roomId, roomCategory: "", bedType: "" });
+      }
+      handleSegmentsChange(newSegments);
+    } else if (newCount < current.length) {
+      handleSegmentsChange(current.slice(0, newCount));
+    }
+  };
+
+  // Sync with external form data when it changes
+  useEffect(() => {
+    if (externalFormData?.formFields) {
+      setFormData(prev => ({
+        ...prev,
+        ...externalFormData.formFields
+      }));
+    }
+  }, [externalFormData]);
+
   useEffect(() => {
     onFormDataUpdate({ accommodationinfoform: formData });
   }, [formData]);
+
+  const options = [
+    { value: "confirmed", label: "Confirmed" },
+    { value: "cancelled", label: "Cancelled" },
+    // { value: "", label: "Booking Status" },
+  ];
+
+  const handleBookingStatusChange = (value: string) => {
+    setFormData((prev) => ({ ...prev, bookingstatus: value }));
+  };
 
   // const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
   //   const file = e.target.files?.[0];
@@ -262,13 +338,6 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   //   setAttachedFile(null);
   //   if (fileInputRef.current) fileInputRef.current.value = "";
   // };
-
-  const handleBookingStatusChange = (
-    e: React.ChangeEvent<HTMLSelectElement>
-  ) => {
-    const bookingStatus = e.target.value;
-    setFormData((prev) => ({ ...prev, bookingstatus: bookingStatus }));
-  };
 
   type FieldRule = {
     required: boolean;
@@ -471,72 +540,50 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     };
   };
 
-  const today = new Date().toISOString().split("T")[0];
-
   return (
     <>
       <div className="space-y-4 p-4 -mt-1" ref={formRef as any}>
         <div className="px-2 py-1">
           {/* Booking and Travel Date */}
-          <div className="flex flex-wrap items-end justify-between mb-3 px-5 -mx-5">
+          <div className="flex flex-wrap items-end justify-between gap-y-2 mb-3 px-5 -mx-5">
             {/* Left section: Booking + Travel Date */}
-            <div className="flex items-end gap-2">
+            <div className="flex flex-wrap items-end gap-2">
               {/* Booking Date */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Booking Date
-                </label>
-                <input
-                  type="date"
-                  name="bookingdate"
-                  value={formData.bookingdate}
-                  onChange={handleChange}
-                  placeholder="DD-MM-YYYY"
-                  className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+              <SingleCalendar
+                label="Booking Date"
+                value={formData.bookingdate}
+                onChange={(date) =>
+                  setFormData((prev) => ({ ...prev, bookingdate: date }))
+                }
+                placeholder="DD-MM-YYYY"
+              />
 
               {/* Travel Date */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Travel Date
-                </label>
-                <input
-                  type="date"
-                  name="traveldate"
-                  value={formData.traveldate}
-                  onChange={handleChange}
-                  min={today}
-                  className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
+              <SingleCalendar
+                label="Travel Date"
+                value={formData.traveldate}
+                onChange={(date) =>
+                  setFormData((prev) => ({ ...prev, traveldate: date }))
+                }
+                placeholder="DD-MM-YYYY"
+                minDate={formData.bookingdate}
+              />
             </div>
 
             {/* Right section: Booking Status */}
             <div>
-              <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                Booking Status
-              </label>
-              <div className="relative">
-                <select
-                  name="bookingstatus"
-                  className="w-[12rem] px-2 py-1.5 text-[0.75rem] border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
-                  value={formData.bookingstatus}
-                  onChange={handleBookingStatusChange}
-                >
-                  <option>Select Status</option>
-                  <option>Confirmed</option>
-                  <option>Pending</option>
-                  <option>Cancelled</option>
-                </select>
-                <MdKeyboardArrowDown className="absolute right-2 top-2 h-4 w-4 text-gray-400 pointer-events-none" />
-              </div>
+              <DropDown
+                options={options}
+                placeholder="Booking Status"
+                value={formData.bookingstatus}
+                onChange={handleBookingStatusChange}
+              />
             </div>
           </div>
 
           {/* Amount Section */}
 
-          <div className="mb-4 border border-gray-200 rounded-lg p-3">
+          <div className=" w-[100%] mb-4 border border-gray-200 rounded-lg p-3">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[0.75rem] font-medium text-gray-700">
                 Amount
@@ -552,7 +599,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 />
                 <label
                   htmlFor="remember"
-                  className="w-5 h-5 border border-gray-400 rounded-md flex items-center justify-center cursor-pointer peer-checked:bg-green-600"
+                  className="w-4 h-4 border border-gray-400 rounded-md flex items-center justify-center cursor-pointer peer-checked:bg-green-600"
                 >
                   {showAdvancedPricing && (
                     <svg
@@ -601,7 +648,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                       value={formData.costprice}
                       onChange={handleChange}
                       placeholder="Enter Cost Price"
-                      className="w-[20rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md focus:outline-none"
+                      className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                     />
                   </div>
                 </div>
@@ -626,7 +673,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                       value={formData.sellingprice}
                       onChange={handleChange}
                       placeholder="Enter Selling Price"
-                      className="w-[20rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md focus:outline-none"
+                      className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                     />
                   </div>
                 </div>
@@ -699,7 +746,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                         <input
                           type="text"
                           placeholder="Enter Amount"
-                          className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                          className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none"
                         />
 
                         {/* Notes Input */}
@@ -710,7 +757,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                             value={formData.costprice}
                             onChange={handleChange}
                             placeholder="Enter notes here..."
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none"
                           />
                         )}
 
@@ -749,7 +796,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                         value={formData.sellingprice}
                         onChange={handleChange}
                         placeholder="Enter Amount"
-                        className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                        className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none"
                       />
                     </div>
                   </div>
@@ -789,7 +836,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             )}
           </div>
 
-          <div className="w-[48vw] border border-gray-200 rounded-[12px] p-3 mt-4">
+          <div className="w-full border border-gray-200 rounded-[12px] p-3 mt-4">
             <h1 className="text-[0.75rem] font-medium text-gray-700 mb-2">
               Accommodation Info
             </h1>
@@ -803,123 +850,209 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
               <input
                 type="text"
                 placeholder="Enter Confirmation Number"
-                className="w-[18rem] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-[18rem] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
               />
             </div>
 
             {/* Check-in / Check-out Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
-              {/* Check-In Date */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-In Date
-                </label>
-                <input
-                  type="date"
+            <div className="flex items-end justify-between mb-3">
+              <div className="flex items-end gap-0">
+                {/* Check-In Date */}
+                <SingleCalendar
+                  label="Check-In Date"
                   value={formData.checkindate}
-                  min={today}
-                  onChange={(e) =>
+                  onChange={(date) =>
                     setFormData((prev) => ({
                       ...prev,
-                      checkindate: e.target.value,
+                      checkindate: date,
                     }))
                   }
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="DD-MM-YYYY"
+                  customWidth="w-[95%]"
+                  labelClassName="block text-gray-700 mb-1 text-[0.65rem] font-medium"
+                  inputClassName="flex-1 text-[0.65rem] text-gray-700 outline-none bg-transparent"
+                  showCalendarIcon={false}
                 />
-              </div>
 
-              {/* Check-In Time */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-In Time
-                </label>
-                <div className="flex items-center gap-1 border border-gray-300 rounded-md px-2 py-1 w-fit">
+                {/* Check-In Time */}
+                <div>
+                  <label className="block text-[0.65rem] font-medium text-gray-700 mb-1">
+                    Check-In Time
+                  </label>
                   <input
-                    type="time"
+                    type="text"
                     value={formData.checkintime}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      // Only allow digits and colon
+                      let val = e.target.value.replace(/[^0-9:]/g, "");
+
+                      // Prevent multiple colons
+                      const colonCount = (val.match(/:/g) || []).length;
+                      if (colonCount > 1) {
+                        val = val.replace(/:([^:]*)$/, "$1");
+                      }
+
+                      // Auto-insert colon after 2 digits
+                      if (
+                        val.length === 2 &&
+                        !val.includes(":") &&
+                        formData.checkintime.length < 2
+                      ) {
+                        val = val + ":";
+                      }
+
+                      // Limit to HH:MM format (5 chars)
+                      if (val.length > 5) val = val.slice(0, 5);
+
+                      // Validate hours (0-23) and minutes (0-59)
+                      if (val.includes(":")) {
+                        const parts = val.split(":");
+                        const hours = parts[0] || "";
+                        const minutes = parts[1] || "";
+                        let validHours = hours;
+                        let validMinutes = minutes;
+
+                        // Validate hours
+                        if (hours.length > 0) {
+                          const hourNum = parseInt(hours, 10);
+                          if (hours.length === 2 && hourNum > 23) {
+                            validHours = "23";
+                          }
+                        }
+
+                        // Validate minutes
+                        if (validMinutes.length > 0) {
+                          const minNum = parseInt(validMinutes, 10);
+                          if (validMinutes.length === 2 && minNum > 59) {
+                            validMinutes = "59";
+                          }
+                        }
+
+                        val = validHours + ":" + validMinutes;
+                      } else {
+                        // Validate hours before colon is added
+                        if (val.length === 2) {
+                          const hourNum = parseInt(val, 10);
+                          if (hourNum > 23) {
+                            val = "23";
+                          }
+                        }
+                      }
+
                       setFormData((prev) => ({
                         ...prev,
-                        checkintime: e.target.value,
-                      }))
-                    }
-                    placeholder="12:00"
-                    className="w-16 text-center border-none bg-transparent text-[0.75rem] focus:outline-none"
+                        checkintime: val,
+                      }));
+                    }}
+                    placeholder="HH:MM"
+                    maxLength={5}
+                    className="w-[60%] px-2 py-1.5 border border-gray-300 rounded-md text-[0.65rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                   />
-                  <select
-                    value={formData.checkOutPeriod}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        checkOutPeriod: e.target.value as "AM" | "PM",
-                      }))
-                    }
-                    className="border-none bg-transparent text-center text-[0.75rem] focus:outline-none"
-                  >
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                  </select>
                 </div>
               </div>
 
-              {/* Check-Out Date */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-Out Date
-                </label>
-                <input
-                  type="date"
+              {/* Right side: Check-Out Date and Time */}
+              <div className="flex items-end gap-0 ml-62">
+                {/* Check-Out Date */}
+                <SingleCalendar
+                  label="Check-Out Date"
                   value={formData.checkoutdate}
-                  min={today}
-                  onChange={(e) =>
+                  onChange={(date) =>
                     setFormData((prev) => ({
                       ...prev,
-                      checkoutdate: e.target.value,
+                      checkoutdate: date,
                     }))
                   }
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="DD-MM-YYYY"
+                  minDate={formData.checkindate}
+                  customWidth="w-[95%]"
+                  labelClassName="block text-gray-700 mb-1 text-[0.65rem] font-medium"
+                  inputClassName="flex-1 text-[0.65rem] text-gray-700 outline-none bg-transparent"
+                  showCalendarIcon={false}
                 />
-              </div>
 
-              {/* Check-Out Time */}
-              <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Check-Out Time
-                </label>
-                <div className="flex items-center gap-1 border border-gray-300 rounded-md px-2 py-1 w-fit">
+                {/* Check-Out Time */}
+                <div>
+                  <label className="block text-[0.65rem] font-medium text-gray-700 mb-1">
+                    Check-Out Time
+                  </label>
                   <input
-                    type="time"
+                    type="text"
                     value={formData.checkouttime}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      // Only allow digits and colon
+                      let val = e.target.value.replace(/[^0-9:]/g, "");
+
+                      // Prevent multiple colons
+                      const colonCount = (val.match(/:/g) || []).length;
+                      if (colonCount > 1) {
+                        val = val.replace(/:([^:]*)$/, "$1");
+                      }
+
+                      // Auto-insert colon after 2 digits
+                      if (
+                        val.length === 2 &&
+                        !val.includes(":") &&
+                        formData.checkouttime.length < 2
+                      ) {
+                        val = val + ":";
+                      }
+
+                      // Limit to HH:MM format (5 chars)
+                      if (val.length > 5) val = val.slice(0, 5);
+
+                      // Validate hours (0-23) and minutes (0-59)
+                      if (val.includes(":")) {
+                        const parts = val.split(":");
+                        const hours = parts[0] || "";
+                        const minutes = parts[1] || "";
+                        let validHours = hours;
+                        let validMinutes = minutes;
+
+                        // Validate hours
+                        if (hours.length > 0) {
+                          const hourNum = parseInt(hours, 10);
+                          if (hours.length === 2 && hourNum > 23) {
+                            validHours = "23";
+                          }
+                        }
+
+                        // Validate minutes
+                        if (validMinutes.length > 0) {
+                          const minNum = parseInt(validMinutes, 10);
+                          if (validMinutes.length === 2 && minNum > 59) {
+                            validMinutes = "59";
+                          }
+                        }
+
+                        val = validHours + ":" + validMinutes;
+                      } else {
+                        // Validate hours before colon is added
+                        if (val.length === 2) {
+                          const hourNum = parseInt(val, 10);
+                          if (hourNum > 23) {
+                            val = "23";
+                          }
+                        }
+                      }
+
                       setFormData((prev) => ({
                         ...prev,
-                        checkouttime: e.target.value,
-                      }))
-                    }
-                    placeholder="11:00"
-                    className="w-16 text-center border-none bg-transparent text-[0.75rem] focus:outline-none"
+                        checkouttime: val,
+                      }));
+                    }}
+                    placeholder="HH:MM"
+                    maxLength={5}
+                    className="w-[60%] px-2 py-1.5 border border-gray-300 rounded-md text-[0.65rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                   />
-                  <select
-                    value={formData.checkOutPeriod}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        checkOutPeriod: e.target.value as "AM" | "PM",
-                      }))
-                    }
-                    className="border-none bg-transparent text-center text-[0.75rem] focus:outline-none"
-                  >
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                  </select>
                 </div>
               </div>
             </div>
 
             {/* Pax & Meal Plan */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div className="flex items-end gap-3 mb-3">
               <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                <label className="block text-[0.65rem] font-medium text-gray-700 mb-1">
                   Pax
                 </label>
                 <input
@@ -928,35 +1061,33 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, pax: e.target.value }))
                   }
-                  className="w-[10rem] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="0"
+                  className="w-[8rem] px-2 py-1.5 border border-gray-300 rounded-md text-[0.65rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                 />
               </div>
 
               <div>
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                  Select Meal Plan
+                <label className="block text-[0.65rem] font-medium text-gray-700 mb-1">
+                  Meal Plan
                 </label>
-                <select
+                <DropDown
+                  options={[
+                    { value: "EPAI", label: "EPAI" },
+                    { value: "CPAI", label: "CPAI" },
+                    { value: "MAPAI", label: "MAPAI" },
+                    { value: "APAI", label: "APAI" },
+                    { value: "Room Only", label: "Room Only" },
+                  ]}
+                  placeholder="Select Plan"
                   value={formData.mealPlan}
-                  onChange={(e) =>
+                  onChange={(value) =>
                     setFormData((prev) => ({
                       ...prev,
-                      mealPlan: e.target.value,
+                      mealPlan: value,
                     }))
                   }
-                  className="w-[14rem] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "right 10px center",
-                  }}
-                >
-                  <option value="EPAI">EPAI</option>
-                  <option value="CPAI">CPAI</option>
-                  <option value="MAPAI">MAPAI</option>
-                  <option value="APAI">APAI</option>
-                  <option value="Room Only">Room Only</option>
-                </select>
+                  customWidth="w-[9rem]"
+                />
               </div>
             </div>
 
@@ -965,73 +1096,110 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
               <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
                 Select Accommodation Type
               </label>
-              <div className="relative w-[14rem] mb-2">
-                <select
-                  defaultValue=""
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      accommodationType: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-1.5 pr-10 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 appearance-none"
-                >
-                  <option value="" disabled>
-                    Select Stay Type
-                  </option>
-                  <option>Hotel</option>
-                  <option>Resort</option>
-                  <option>Hostel</option>
-                  <option>Villa</option>
-                </select>
-                <MdKeyboardArrowDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+              <div className="flex items-center justify-between mb-2">
+                <div className="w-[27%]">
+                  <DropDown
+                    options={[
+                      { value: "Hotel", label: "Hotel" },
+                      { value: "Resort", label: "Resort" },
+                      { value: "Hostel", label: "Hostel" },
+                      { value: "Villa", label: "Villa" },
+                    ]}
+                    placeholder="Select Stay Type"
+                    value={formData.accommodationType}
+                    onChange={(val) => {
+                      setFormData((prev) => ({
+                        ...prev,
+                        accommodationType: val,
+                      }));
+                      if (val !== "Villa") setVillaType("entire");
+                    }}
+                    customWidth="w-full"
+                  />
+                </div>
+
+                {/* Villa type radio buttons shown only when Villa is selected */}
+                {formData.accommodationType === "Villa" ? (
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="villaType"
+                        value="entire"
+                        checked={villaType === "entire"}
+                        onChange={() => setVillaType("entire")}
+                        className="w-3 h-3 accent-blue-600"
+                      />
+                      <span className="text-[0.75rem] text-gray-700 font-medium">
+                        Entire Villa
+                      </span>
+                    </label>
+
+                    <label className="flex items-center gap-1 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="villaType"
+                        value="shared"
+                        checked={villaType === "shared"}
+                        onChange={() => setVillaType("shared")}
+                        className="w-3 h-3 accent-blue-600"
+                      />
+                      <span className="text-[0.75rem] text-gray-700 font-medium">
+                        Shared Villa
+                      </span>
+                    </label>
+                  </div>
+                ) : (
+                  <div />
+                )}
               </div>
 
               {formData.accommodationType && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                  <div>
-                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                      {formData.accommodationType} Name
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.propertyName}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          propertyName: e.target.value,
-                        }))
-                      }
-                      placeholder={`Enter ${formData.accommodationType} Name`}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
+                <>
+                  <div className="flex gap-2 mt-2 items-end">
+                    <div className="w-[30%]">
+                      <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                        {formData.accommodationType} Name
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.propertyName}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            propertyName: e.target.value,
+                          }))
+                        }
+                        placeholder={`Enter ${formData.accommodationType} Name`}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                      />
+                    </div>
+
+                    <div className="w-[70%]">
+                      <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                        {formData.accommodationType} Address
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.propertyAddress}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            propertyAddress: e.target.value,
+                          }))
+                        }
+                        placeholder={`Enter ${formData.accommodationType} Address`}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                      />
+                    </div>
                   </div>
 
-                  <div>
-                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                      {formData.accommodationType} Address
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.propertyAddress}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          propertyAddress: e.target.value,
-                        }))
-                      }
-                      placeholder={`Enter ${formData.accommodationType} Address`}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-
-                  <div className="md:col-span-2">
+                  <div className="mt-2">
                     <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
                       Google Maps Link
                     </label>
 
                     <div className="flex w-full">
-                      {/* Input */}
                       <input
                         type="text"
                         value={formData.googleMapsLink}
@@ -1042,10 +1210,9 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                           }))
                         }
                         placeholder="Paste Google Maps Link"
-                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-l-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-l-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                       />
 
-                      {/* Copy Button */}
                       <button
                         type="button"
                         onClick={handleCopyGoogleLink}
@@ -1054,8 +1221,63 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                         <MdOutlineFileUpload size={16} /> Copy Link
                       </button>
                     </div>
+
+                    {/* Total Rooms counter shown for Entire Villa */}
+                    {formData.accommodationType === "Villa" &&
+                      villaType === "entire" && (
+                        <div className="mt-3">
+                          <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                            Total Rooms
+                          </label>
+
+                          <div className="flex items-center gap-2">
+                            <div className="flex border border-gray-300 rounded-md overflow-hidden">
+                              <input
+                                type="number"
+                                value={formData.segments?.length || 0}
+                                onChange={(e) =>
+                                  handleVillaRoomCountChange(
+                                    parseInt(e.target.value) || 1
+                                  )
+                                }
+                                min="1"
+                                className="w-[2.2rem] px-1 py-1.5 text-[0.75rem] text-center border-none focus:outline-none bg-white"
+                              />
+
+                              <div className="flex flex-col border-l border-black">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleVillaRoomCountChange(
+                                      (formData.segments?.length || 0) + 1
+                                    )
+                                  }
+                                  className="px-[5px] py-[2px] rounded-tr-md text-[0.65rem] hover:bg-gray-100 border border-black border-b-0"
+                                >
+                                  <MdOutlineKeyboardArrowUp size={16} />
+                                </button>
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleVillaRoomCountChange(
+                                      Math.max(
+                                        1,
+                                        (formData.segments?.length || 1) - 1
+                                      )
+                                    )
+                                  }
+                                  className="px-[5px] py-[2px] rounded-br-md text-[0.65rem] hover:bg-gray-100 border border-black"
+                                >
+                                  <MdKeyboardArrowDown size={16} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                   </div>
-                </div>
+                </>
               )}
 
               {/* Layout Components */}
@@ -1077,66 +1299,77 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   onSegmentsChange={handleSegmentsChange}
                 />
               )}
-              {formData.accommodationType === "Villa" && (
-                <VillaLayout
-                  segments={formData.segments}
-                  onSegmentsChange={handleSegmentsChange}
-                />
-              )}
+              {formData.accommodationType === "Villa" &&
+                villaType === "shared" && (
+                  <VillaLayout
+                    segments={formData.segments}
+                    onSegmentsChange={handleSegmentsChange}
+                    villaType={villaType}
+                  />
+                )}
+              <div className="-mt-1 space-y-3">
+                <StyledDescription label="Add Ons" />
+                <StyledDescription label="Special Requests" />
+                <StyledDescription label="Important Information" />
+                <StyledDescription label="Cancellation Policy" />
+              </div>
             </div>
           </div>
         </div>
 
         {/* ID PROOFS */}
-        {/* <div className="border border-gray-200  w-[48vw] ml-2.5 -mt-3 rounded-[12px] p-3">
+        <div className="w-[98%] ml-2 border border-gray-200 rounded-[12px] p-3">
           <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-          <div className="flex flex-col gap-4">
-            <div className="flex gap-5"> */}
-        {/* Documents */}
-        {/* <div className="flex flex-col gap-1">
-                <div className="flex flex-col gap-3 items-start">
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1 bg-white text-[#126ACB] border border-[#126ACB]  text-[0.725rem] mt-2 rounded-md hover:bg-gray-200 flex items-center gap-1"
-                  >
-                    <MdOutlineFileUpload size={16} /> Attach Files
-                  </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileChange}
+            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt"
+            multiple
+          />
 
-                  {attachedFile && (
-                    <div className="flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 w-[8rem]">
-                      <span className="text-gray-700 text-[0.65rem] font-medium truncate">
-                        📎 {attachedFile.name}
-                      </span>
-                      <button
-                        onClick={handleDeleteFile}
-                        className="ml-auto text-red-500 hover:text-red-700 transition-all"
-                        title="Remove file"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
-                  )}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
+                       border-[#126ACB] rounded-md text-[0.75rem] hover:bg-gray-200"
+          >
+            <MdOutlineFileUpload size={16} /> Attach Files
+          </button>
 
-                  <div className="text-red-600 -mt-1 text-[0.65rem]">
-                    Note: Maximum of 3 files can be uploaded
-                  </div>
-                </div>
+          {/* Selected files */}
+          <div className="mt-2 flex flex-col gap-2">
+            {attachedFiles.map((file, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-2 bg-gray-50 border border-gray-200 
+                       rounded-md px-2 py-1.5 w-fit"
+              >
+                <span className="text-gray-700 text-[0.75rem] truncate">
+                  📎 {file.name}
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => handleDeleteFile(i)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <FiTrash2 size={14} />
+                </button>
               </div>
-            </div>
+            ))}
           </div>
-        </div> */}
+
+          <div className="text-red-600 text-[0.65rem]">
+            Note: Maximum of 3 files can be uploaded
+          </div>
+        </div>
 
         {/* Remarks Section */}
-        <div className="border border-gray-200 w-[48vw] ml-2.5 rounded-[12px] p-3 mt-4">
+        <div className="border border-gray-200 w-[98%] ml-2.5 rounded-[12px] p-3 mt-4">
           <label className="block text-[0.75rem] font-medium text-gray-700">
             Remarks
           </label>
@@ -1149,7 +1382,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             onBlur={handleBlur}
             placeholder="Enter Your Remarks Here"
             disabled={isSubmitting}
-            className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[0.75rem] mt-1 transition-colors focus:ring focus:ring-blue-200 ${
+            className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[0.75rem] mt-1 transition-colors hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 ${
               isSubmitting ? "opacity-50 cursor-not-allowed" : ""
             }`}
           />
