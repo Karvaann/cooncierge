@@ -5,7 +5,13 @@ export const createVendor = async (formData: FormData) => {
   try {
     // Let the browser/axios set the Content-Type (including boundary)
     // when sending FormData.
-    const response = await apiClient.post("/vendor/create-vendor", formData);
+    const response = await apiClient.post("/vendor/create-vendor",formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
     return response.data.vendor; // <-- backend returns { vendor }
   } catch (error: any) {
     console.error("Failed to create vendor:", error);
@@ -77,3 +83,25 @@ export const getVendorBookingHistory = async (
     throw error.response?.data || { message: "Something went wrong" };
   }
 };
+
+// MERGE VENDORS
+export const mergeVendors = async ({
+  primaryVendorId,
+  secondaryVendorsId,
+}: {
+  primaryVendorId: string;
+  secondaryVendorsId: string[];
+}) => {
+  try {
+    const response = await apiClient.post("/vendor/merge-vendors", {
+      primaryVendorId,
+      secondaryVendorsId,
+    });
+
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to merge vendors:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+

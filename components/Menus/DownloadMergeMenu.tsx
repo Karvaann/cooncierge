@@ -142,6 +142,7 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
         isOpen={isMergeModalOpen}
         onClose={() => setIsMergeModalOpen(false)}
         items={items}
+        mode={entity as "customer" | "vendor"}
       />
       <DownloadModal
         isOpen={isDownloadModalOpen}

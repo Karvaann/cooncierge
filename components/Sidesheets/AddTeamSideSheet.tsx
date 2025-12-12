@@ -12,6 +12,8 @@ import { FiTrash2 } from "react-icons/fi";
 import Button from "../Button";
 import SingleCalendar from "../SingleCalendar";
 import DropDown from "../DropDown";
+import { FaRegFolder } from "react-icons/fa";
+import generateCustomId from "@/utils/helper";
 
 type TeamData = {
   _id?: string;
@@ -59,6 +61,16 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
     "firstname" | "lastname" | "workEmail" | null
   >(null);
   const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const [teamCode, setTeamCode] = useState("");
+
+  useEffect(() => {
+    if (mode === "create") {
+      setTeamCode(generateCustomId("team"));
+    } else {
+      setTeamCode(data?._id || "");
+    }
+  }, [mode, data]);
 
   // Mounted flag to ensure portal renders client-side only
   const [mounted, setMounted] = useState(false);
@@ -239,6 +251,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
       formToSend.append("address", formData.address || "");
       formToSend.append("remarks", formData.remarks || "");
       formToSend.append("status", formData.status || "Current");
+      formToSend.append("customId", teamCode || "");
 
       // Required by backend
       formToSend.append("businessId", businessId);
@@ -356,13 +369,13 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
       <SideSheet
         isOpen={isOpen}
         onClose={onCancel}
-        title={
+        title={`${
           mode === "view"
             ? "Team Member Details"
             : mode === "edit"
             ? "Edit Team Member"
             : "Add Team Member"
-        }
+        }${teamCode ? " | " + teamCode : ""}`}
         width="xl"
         position="right"
         showLinkButton={true}
@@ -429,7 +442,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   status: e.target.value === "current" ? "Current" : "Former",
                 });
               }}
-              className="w-[13rem] border border-gray-300 rounded-md px-3 py-1.5 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="w-[13rem] border border-gray-300 rounded-md px-3 py-1.5 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400"
             >
               <option value="disabled">Select Status</option>
               <option value="current">Current</option>
@@ -460,10 +473,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   }}
                   placeholder="Enter First Name"
                   disabled={readOnly}
-                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] text-gray-700 disabled:bg-gray-100 disabled:text-gray-700 ${
+                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] hover:border-green-400 text-gray-700 disabled:bg-gray-100 disabled:text-gray-700 ${
                     invalidField === "firstname"
                       ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
-                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
                   }`}
                 />
               </div>
@@ -485,10 +498,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                       setInvalidField(null);
                   }}
                   disabled={readOnly}
-                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] text-gray-700 disabled:bg-gray-100 disabled:text-gray-700 ${
+                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] text-gray-700 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
                     invalidField === "lastname"
                       ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
-                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
                   }`}
                 />
               </div>
@@ -553,7 +566,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                         countryCode: e.target.value,
                       })
                     }
-                    className="absolute left-0 top-0 h-full pl-2 pr-2 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    className="absolute left-0 top-0 h-full pl-2 pr-2 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 cursor-pointer"
                     style={{ width: "58px" }}
                     disabled={readOnly}
                   >
@@ -574,7 +587,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     placeholder="Enter Contact Number"
                     required
                     disabled={readOnly}
-                    className="w-[22.3rem] border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-[22.3rem] border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -600,7 +613,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   }
                   placeholder="Enter Alias"
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
 
@@ -617,7 +630,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                         countryCode: e.target.value,
                       })
                     }
-                    className="absolute left-0 top-0 h-full pl-2 pr-2 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    className="absolute left-0 top-0 h-full pl-2 pr-2 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 cursor-pointer"
                     style={{ width: "58px" }}
                     disabled={readOnly}
                   >
@@ -638,7 +651,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     placeholder="Enter Contact Number"
                     required
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-md pl-20 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -660,10 +673,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   }}
                   placeholder="Enter Email ID"
                   disabled={readOnly}
-                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] text-gray-700 disabled:bg-gray-100 disabled:text-gray-700 ${
+                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] text-gray-700 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
                     invalidField === "workEmail"
                       ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
-                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
                   }`}
                 />
               </div>
@@ -682,7 +695,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   placeholder="Enter Designation"
                   required
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
 
@@ -739,24 +752,28 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 Attach Files
               </button>
 
-              {/* Selected Files */}
-              <div className="flex flex-col gap-2">
+              {/* PREVIEW FILES */}
+              <div className="mt-2 flex flex-col gap-2">
                 {attachedFiles.map((file, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-2 bg-gray-50 border border-gray-200 
-                     rounded-md px-2 py-1.5 w-fit"
+                    className="flex items-center justify-between w-full 
+                               bg-white rounded-md 
+                               px-3 py-2 hover:bg-gray-50 transition"
                   >
-                    <span className="text-gray-700 text-[0.75rem] truncate">
-                      📎 {file.name}
+                    {/* File Name */}
+                    <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[0.75rem] truncate flex items-center gap-2">
+                      <FaRegFolder className="text-blue-500 w-3 h-3" />
+                      {file.name}
                     </span>
 
+                    {/* Delete Icon */}
                     <button
                       type="button"
                       onClick={() => handleDeleteFile(i)}
                       className="text-red-500 hover:text-red-700"
                     >
-                      <FiTrash2 size={14} />
+                      <FiTrash2 size={16} />
                     </button>
                   </div>
                 ))}
@@ -783,7 +800,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
               rows={5}
               placeholder="Enter Your Remarks Here"
               disabled={readOnly}
-              className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem] mt-2 transition-colors focus:ring focus:ring-blue-200 disabled:bg-gray-100 disabled:text-gray-700"
+              className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem] mt-2 transition-colors focus:ring hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
             />
           </div>
 

@@ -8,6 +8,7 @@ import { useBooking } from "@/context/BookingContext";
 import { createTraveller, updateTraveller } from "@/services/travellerApi";
 import { getAuthUser } from "@/services/storage/authStorage";
 import Button from "@/components/Button";
+import generateCustomId from "@/utils/helper";
 // Type definitions
 interface TravellerFormData {
   firstname: string;
@@ -65,6 +66,16 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
   const readOnly = mode === "view";
   const open = typeof isOpen === "boolean" ? isOpen : isAddTravellerOpen;
   const handleClose = onClose || closeAddTraveller;
+
+  const [travellerCode, setTravellerCode] = useState("");
+
+  useEffect(() => {
+    if (mode === "create") {
+      setTravellerCode(generateCustomId("traveller"));
+    } else {
+      setTravellerCode(data?._id || "");
+    }
+  }, [mode, data]);
 
   // Prefill when data provided
   useEffect(() => {
@@ -292,6 +303,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           phone: String(formData.contactnumber || "").trim() || undefined,
           dateOfBirth: formData.dateofbirth || undefined,
           ownerId,
+          customId: travellerCode,
           // remarks is not part of traveller schema in docs; include only if backend accepts it
         };
 
@@ -444,13 +456,13 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
     <SideSheet
       isOpen={open}
       onClose={handleClose}
-      title={
+      title={`${
         mode === "view"
           ? "Traveller Details"
           : mode === "edit"
           ? "Edit Traveller"
           : "Add Traveller"
-      }
+      }${travellerCode ? " | " + travellerCode : ""}`}
       width="xl"
     >
       <div

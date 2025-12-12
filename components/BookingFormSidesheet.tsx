@@ -264,7 +264,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     bookingDataTemp.append("businessId", businessId._id);
     bookingDataTemp.append("formFields", JSON.stringify(formFields));
     bookingDataTemp.append("totalAmount", String(flatInfoForm.sellingprice));
-    
+
     bookingDataTemp.append("status", flatInfoForm.bookingstatus);
     bookingDataTemp.append("serviceStatus", serviceStatus);
     bookingDataTemp.append("createdAt", new Date().toISOString());
@@ -635,7 +635,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                         <Button
                           text="Save As Draft"
                           onClick={handleDraftSubmit}
-                          bgColor="bg-white"
+                          bgColor="bg-white border border-[#114958]"
                           textColor="text-[#114958]"
                           disabled={isSubmitting}
                         />
@@ -644,7 +644,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           text="Save"
                           onClick={() => handleSubmit()}
                           icon={<LuSave size={16} />}
-                          bgColor="bg-[#114958]"
+                          bgColor="bg-[#0D4B37]"
                           textColor="text-white"
                           width="w-auto"
                           type="button"

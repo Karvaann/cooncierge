@@ -5,10 +5,13 @@ import { LuTrash2 } from "react-icons/lu";
 import {
   downloadBulkTemplate,
   uploadBulkCustomers,
+  uploadBulkVendors,
+  downloadBulkVendorTemplate,
+  uploadBulkTeams,
+  downloadBulkTeamTemplate,
 } from "@/services/uploadApi";
-import { getAuthUser } from "@/services/storage/authStorage";
 
-// Modal Component (WITHOUT PORTAL)
+// Modal Component
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -100,10 +103,10 @@ const Modal: React.FC<ModalProps> = ({
         `}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between mt-3 items-center p-4">
+        <div className="flex justify-between items-center px-4 pt-5">
           <h2
             id="modal-title"
-            className="text-black text-xl md:text-2xl font-bold flex-1 text-center pr-2"
+            className="text-black text-base md:text-lg font-semibold flex-1 text-center ml-2"
           >
             {title}
           </h2>
@@ -144,6 +147,7 @@ interface FileUploadProps {
   onUpload?: (files: File[]) => void;
   acceptedTypes?: string[];
   maxFiles?: number;
+  entity?: "customer" | "vendor" | "team";
 }
 
 const FileUploadModal: React.FC<FileUploadProps> = ({
@@ -152,6 +156,7 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
   onUpload,
   acceptedTypes = [".xlsx", ".csv"],
   maxFiles = 5,
+  entity = "customer",
 }) => {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -172,7 +177,12 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
     setUploadResult(null);
 
     try {
-      const result = await uploadBulkCustomers(firstFile);
+      const result =
+        entity === "vendor"
+          ? await uploadBulkVendors(firstFile)
+          : entity === "team"
+          ? await uploadBulkTeams(firstFile)
+          : await uploadBulkCustomers(firstFile);
 
       setUploadResult(result);
       setUploadedFiles([]);
@@ -196,7 +206,13 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
     }
 
     const allowedFormat = format === "csv" ? "csv" : "xlsx";
-    await downloadBulkTemplate(allowedFormat);
+    if (entity === "vendor") {
+      await downloadBulkVendorTemplate(allowedFormat as "csv" | "xlsx");
+    } else if (entity === "team") {
+      await downloadBulkTeamTemplate(allowedFormat as "csv" | "xlsx");
+    } else {
+      await downloadBulkTemplate(allowedFormat as "csv" | "xlsx");
+    }
   };
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
@@ -264,20 +280,20 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
       title="Upload Files"
       size="xl"
       customWidth="w-[600px]"
-      customeHeight="h-[59vh]"
+      customeHeight="h-[57vh]"
       className="max-w-3xl"
     >
       <div className="space-y-2 p-2">
-        <p className="text-gray-500 text-center mb-3 -mt-7 text-[0.75rem]">
+        <p className="text-gray-500 text-center -mt-5 mb-4 text-[0.75rem]">
           Please upload the required file here
         </p>
 
         <div className="border border-gray-200 rounded-[10px] py-3 px-3">
           {/* Download Template Section */}
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center mb-4">
             <button
               onClick={handleDownloadTemplate}
-              className="flex items-center gap-1.5 px-3 py-1 border border-[#5856D6] text-[#5856D6] rounded-md hover:bg-blue-50 transition-colors text-[0.75rem] font-medium"
+              className="flex items-center gap-1.5 px-3 py-1 border border-[#5856D6] text-[#5856D6] rounded-l-md hover:bg-blue-50 transition-colors text-[0.75rem] font-medium"
             >
               <svg
                 className="w-4 h-4"
@@ -300,7 +316,7 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
               <select
                 value={selectedFormat}
                 onChange={(e) => setSelectedFormat(e.target.value)}
-                className="appearance-none px-3 py-1 pr-8 border border-gray-300 rounded-md bg-white cursor-pointer hover:border-gray-400 transition-colors text-[0.75rem] font-medium w-[8rem]"
+                className="appearance-none px-3 py-1 pr-4 border border-[#5856D6] border-l-0 rounded-r-md bg-white cursor-pointer hover:border-gray-400 transition-colors text-[0.75rem] font-medium w-[5rem]"
               >
                 <option value="CSV">CSV</option>
                 <option value="XLSX">XLSX</option>
@@ -328,7 +344,7 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-md p-4 mb-2 text-center transition-colors ${
+            className={`border-2 border-dashed bg-blue-100 rounded-md p-4 mb-2 text-center transition-colors ${
               uploadedFiles.length >= 1
                 ? "border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed"
                 : isDragging
@@ -438,7 +454,7 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
               ${
                 isUploading
                   ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-green-700 hover:bg-green-800"
+                  : "bg-[#0D4B37] hover:bg-green-800"
               }
             `}
           >

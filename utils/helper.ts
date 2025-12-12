@@ -233,35 +233,30 @@ export const formatServiceType = (type: string): string => {
 
 
 
-function generateCode() {
-  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-  const digits = "0123456789";
+export const generateCustomId = (type: "customer" | "vendor" | "traveller" | "team") => {
+  // Prefix mapping
+  const prefixes: Record<typeof type, string> = {
+    customer: "CU",
+    vendor: "VE",
+    traveller: "TR",
+    team: "TE",
+  };
 
-  // pick at least 2 letters
-  let result = [
-    letters[Math.floor(Math.random() * letters.length)],
-    letters[Math.floor(Math.random() * letters.length)],
-  ];
+  const prefix = prefixes[type];
 
-  // pick at least 2 digits
-  result.push(
-    digits[Math.floor(Math.random() * digits.length)],
-    digits[Math.floor(Math.random() * digits.length)]
-  );
+  // Generate 2 random uppercase letters
+  const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+  const letter1 = letters[Math.floor(Math.random() * letters.length)];
+  const letter2 = letters[Math.floor(Math.random() * letters.length)];
 
-  // add 1 more random character (letter or digit)
-  const all = letters + digits;
-  result.push(all[Math.floor(Math.random() * all.length)]);
+  // Generate a random 3-digit number (001–999)
+  const number = String(Math.floor(Math.random() * 999) + 1).padStart(3, "0");
 
-  // shuffle the array
-  for (let i = result.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [result[i], result[j]] = [result[j], result[i]];
-  }
+  // Final ID: e.g., CU-AB001
+  return `${prefix}-${letter1}${letter2}${number}`;
+};
 
-  // join to string
-  return result.join("");
-}
 
-console.log(generateCode());
+export default generateCustomId;
+
 

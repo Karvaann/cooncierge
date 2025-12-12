@@ -303,7 +303,7 @@ const CustomerDirectory = () => {
           const mappedRows: CustomerRow[] = customers.map(
             (c: any, index: number) => ({
               ...c,
-              customerID: c._id || `#C00${index + 1}`,
+              customerID: c.customId || c._id || `#C00${index + 1}`,
               name: c.name,
               owner:
                 typeof c.ownerId === "object" && c.ownerId !== null
@@ -322,7 +322,7 @@ const CustomerDirectory = () => {
           const data = await getTravellers({ isDeleted: false });
 
           const mappedTravellers = data.map((t: any) => ({
-            travellerID: t._id,
+            travellerID: t.customId || t._id || `#T00${t._id}`,
             name: t.name,
             owner:
               t.ownerId && typeof t.ownerId === "object" ? t.ownerId.name : "—",
@@ -339,7 +339,7 @@ const CustomerDirectory = () => {
           const mappedRows: CustomerRow[] = deleted.map(
             (c: any, index: number) => ({
               ...c,
-              customerID: c._id || `#D00${index + 1}`,
+              customerID: c.customId || c._id || `#D00${index + 1}`,
               name: c.name,
               owner:
                 typeof c.ownerId === "object" && c.ownerId !== null
@@ -490,6 +490,7 @@ const CustomerDirectory = () => {
                       },
                     },
                   ]}
+                  width="w-22"
                 />
               </div>
             </div>
@@ -816,6 +817,7 @@ const CustomerDirectory = () => {
             columnIconMap={columnIconMap}
             showCheckboxColumn={selectMode}
             onSort={handleSort}
+            categoryName="Customers"
           />
         )}
 
@@ -826,6 +828,7 @@ const CustomerDirectory = () => {
             columnIconMap={travellerColumnIconMap}
             onSort={handleTravellerSort}
             showCheckboxColumn={selectMode}
+            categoryName="Travellers"
           />
         )}
 

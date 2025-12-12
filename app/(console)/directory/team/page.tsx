@@ -249,7 +249,7 @@ const TeamDirectory = () => {
               : u.userStatus || u.status || "Current";
           return {
             ...u,
-            ID: u._id || `#T00${index + 1}`,
+            ID: u.customId || u._id || `#T00${index + 1}`,
             memberName: fullName,
             alias: alias,
             userStatus: normalizedStatus,
@@ -519,6 +519,7 @@ const TeamDirectory = () => {
                   isOpen={isMenuOpen}
                   onClose={handleCloseMenu}
                   onSelect={handleSelectClick} // triggers the switch
+                  entity="team"
                 />
               ) : (
                 <DownloadMergeMenu
@@ -540,6 +541,7 @@ const TeamDirectory = () => {
           columnIconMap={columnIconMap}
           showCheckboxColumn={selectMode}
           onSort={handleSort}
+          categoryName="Teams"
         />
       </div>
       {isSideSheetOpen && (

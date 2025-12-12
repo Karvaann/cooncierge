@@ -7,12 +7,14 @@ type SelectUploadMenuProps = {
   isOpen: boolean;
   onClose: () => void;
   onSelect?: () => void;
+  entity?: "customer" | "vendor" | "team";
 };
 
 const SelectUploadMenu: React.FC<SelectUploadMenuProps> = ({
   isOpen,
   onClose,
   onSelect,
+  entity = "customer",
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [isFileUploadModalOpen, setIsFileUploadModalOpen] =
@@ -86,6 +88,7 @@ const SelectUploadMenu: React.FC<SelectUploadMenuProps> = ({
       <FileUploadModal
         isOpen={isFileUploadModalOpen}
         onClose={() => setIsFileUploadModalOpen(false)}
+        entity={entity}
       />
     </div>
   );

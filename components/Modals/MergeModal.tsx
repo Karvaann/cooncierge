@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { unstable_batchedUpdates } from "react-dom";
 import Image from "next/image";
 import { FaRegStar } from "react-icons/fa";
 import { MdOutlineHistory, MdHistory } from "react-icons/md";
@@ -11,18 +12,23 @@ import Table from "@/components/Table";
 import ConfirmationModal from "../popups/ConfirmationModal";
 import BookingHistoryModal from "./BookingHistoryModal";
 import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
+import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
 import { BookingProvider } from "@/context/BookingContext";
 import {
   mergeCustomers,
   getBookingHistoryByCustomer,
   getCustomerById,
 } from "@/services/customerApi";
+import { getVendorBookingHistory, getVendorById } from "@/services/vendorApi";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
+import { mergeVendors } from "@/services/vendorApi";
+import { LuMenu } from "react-icons/lu";
 
 interface MergeModalProps {
   isOpen: boolean;
   onClose: () => void;
   items?: DeletableItem[]; // selected customers passed from parent menu
+  mode: "customer" | "vendor";
 }
 
 type DeletableItem = {
@@ -35,15 +41,8 @@ type DeletableItem = {
 
 /* --- drag handle --- */
 const DragHandle = () => (
-  <div className="flex items-center justify-center text-gray-400">
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-      <circle cx="4" cy="3" r="1.3" />
-      <circle cx="12" cy="3" r="1.3" />
-      <circle cx="4" cy="8" r="1.3" />
-      <circle cx="12" cy="8" r="1.3" />
-      <circle cx="4" cy="13" r="1.3" />
-      <circle cx="12" cy="13" r="1.3" />
-    </svg>
+  <div className="flex items-center justify-center text-gray-400 cursor-grab">
+    <LuMenu size={16} />
   </div>
 );
 
@@ -51,16 +50,28 @@ const MergeModal: React.FC<MergeModalProps> = ({
   isOpen,
   onClose,
   items = [],
+  mode,
 }) => {
-  const columns = [
-    "",
-    "Customer ID",
-    "Name",
-    "Owner",
-    "Rating",
-    "Date Modified",
-    "Actions",
-  ];
+  const columns =
+    mode === "vendor"
+      ? [
+          "",
+          "Vendor ID",
+          "Vendor Name",
+          "POC",
+          "Date Modified",
+          "Rating",
+          "Actions",
+        ]
+      : [
+          "",
+          "Customer ID",
+          "Name",
+          "Owner",
+          "Rating",
+          "Date Modified",
+          "Actions",
+        ];
 
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
@@ -68,7 +79,7 @@ const MergeModal: React.FC<MergeModalProps> = ({
   const [mergeIntoItems, setMergeIntoItems] = useState<DeletableItem[]>([]);
   const [mergeFromItems, setMergeFromItems] = useState<DeletableItem[]>([]);
 
-  // sync local state when `items` prop changes
+  // sync local state when items prop changes
   useEffect(() => {
     if (items && items.length > 0) {
       setMergeIntoItems([items[0]!]);
@@ -85,6 +96,13 @@ const MergeModal: React.FC<MergeModalProps> = ({
 
   // reverse arrays when sortable headers are clicked
   const handleSort = (column: string) => {
+    if (mode === "vendor") {
+      if (column === "Rating" || column === "Date Modified") {
+        setMergeFromItems((prev) => [...prev].reverse());
+      }
+      return;
+    }
+
     if (
       column === "Customer ID" ||
       column === "Rating" ||
@@ -94,13 +112,16 @@ const MergeModal: React.FC<MergeModalProps> = ({
     }
   };
 
-  const primaryCustomerId = primaryItem?.id;
-  const secondaryCustomersId = secondaryItems.map((i) => i.id);
+  const primaryId = primaryItem?.id;
+  const secondaryIds = secondaryItems.map((i) => i.id);
 
   // Booking history / sidesheet state
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [bookingHistory, setBookingHistory] = useState<any[]>([]);
   const [selectedCustomerFull, setSelectedCustomerFull] = useState<any | null>(
+    null
+  );
+  const [selectedVendorFull, setSelectedVendorFull] = useState<any | null>(
     null
   );
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
@@ -158,6 +179,29 @@ const MergeModal: React.FC<MergeModalProps> = ({
 
   const handleOpenBookingHistory = async (item: DeletableItem) => {
     try {
+      if (mode === "vendor") {
+        // vendor booking history
+        const resp = await getVendorBookingHistory(item.id, {
+          sortBy: "createdAt",
+          sortOrder: "desc",
+          page: 1,
+          limit: 10,
+        } as any);
+        const quotations = resp?.quotations || resp || [];
+        setBookingHistory(mapQuotationsToModal(quotations));
+
+        try {
+          const vendor = await getVendorById(item.id);
+          setSelectedVendorFull(vendor);
+        } catch (e) {
+          setSelectedVendorFull(null);
+        }
+
+        setIsHistoryOpen(true);
+        return;
+      }
+
+      // default: customer
       const history = await getBookingHistoryByCustomer(item.id);
       const quotations = history?.quotations || history || [];
       setBookingHistory(mapQuotationsToModal(quotations));
@@ -177,58 +221,124 @@ const MergeModal: React.FC<MergeModalProps> = ({
     }
   };
 
-  const columnIconMap = {
-    "Customer ID": <HiArrowsUpDown className="w-3 h-3" />,
-    Name: <CiFilter className="w-3 h-3" />,
-    Owner: <CiFilter className="w-3 h-3" />,
-    Rating: <HiArrowsUpDown className="w-3 h-3" />,
-    "Date Modified": <HiArrowsUpDown className="w-3 h-3" />,
+  const columnIconMap =
+    mode === "vendor"
+      ? {
+          "Vendor Name": (
+            <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+          ),
+          POC: (
+            <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+          ),
+          Rating: (
+            <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+          ),
+          "Date Modified": (
+            <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+          ),
+        }
+      : {
+          "Customer ID": <HiArrowsUpDown className="w-3 h-3" />,
+          Name: <CiFilter className="w-3 h-3" />,
+          Owner: <CiFilter className="w-3 h-3" />,
+          Rating: <HiArrowsUpDown className="w-3 h-3" />,
+          "Date Modified": <HiArrowsUpDown className="w-3 h-3" />,
+        };
+
+  // Convert item to a <td> row for the Table component
+  const toRow = (item: DeletableItem) => {
+    const displayName = (item as any).vendorName || item.name || "—";
+    const displayPOC = (item as any).poc || item.owner || "—";
+    const displayDate = item.dateModified || "—";
+
+    if (mode === "vendor") {
+      return [
+        <td key="drag" className="px-2 py-2 text-center">
+          <DragHandle />
+        </td>,
+        <td
+          key="id"
+          className="px-2 py-2 text-center font-medium text-gray-900 text-[0.75rem]"
+        >
+          {item.id}
+        </td>,
+        <td key="vendorName" className="px-2 py-2 text-center">
+          <div className="font-medium text-gray-900 text-[0.75rem]">
+            {displayName}
+          </div>
+        </td>,
+        <td
+          key="poc"
+          className="px-2 py-2 text-center text-gray-700 text-[0.75rem]"
+        >
+          {displayPOC}
+        </td>,
+        <td
+          key="date"
+          className="px-2 py-2 text-center text-gray-700 text-[0.75rem]"
+        >
+          {displayDate}
+        </td>,
+        <td key="rating" className="px-2 py-2 text-center">
+          {getRatingBadge(item.rating)}
+        </td>,
+        <td key="actions" className="px-2 py-2 text-center">
+          <button
+            type="button"
+            className="bg-[#E9ECF0] text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
+            onClick={async () => await handleOpenBookingHistory(item)}
+          >
+            <MdHistory className="inline mr-1" size={14} />
+            Booking History
+          </button>
+        </td>,
+      ];
+    }
+
+    return [
+      <td key="drag" className="px-2 py-2 text-center">
+        <DragHandle />
+      </td>,
+      <td
+        key="id"
+        className="px-2 py-2 text-center font-medium text-gray-900 text-[0.75rem]"
+      >
+        {item.id}
+      </td>,
+      <td key="name" className="px-2 py-2 text-center">
+        <div className="font-medium text-gray-900 text-[0.75rem]">
+          {item.name}
+        </div>
+      </td>,
+      <td
+        key="owner"
+        className="px-2 py-2 text-center text-gray-700 text-[0.75rem]"
+      >
+        {item.owner || "—"}
+      </td>,
+      <td key="rating" className="px-2 py-2 text-center">
+        {getRatingBadge(item.rating)}
+      </td>,
+      <td
+        key="date"
+        className="px-2 py-2 text-center text-gray-700 text-[0.75rem]"
+      >
+        {item.dateModified || "—"}
+      </td>,
+      <td key="actions" className="px-2 py-2 text-center">
+        <button
+          type="button"
+          className="bg-[#E9ECF0] text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
+          onClick={async () => await handleOpenBookingHistory(item)}
+        >
+          <MdHistory className="inline mr-1" size={14} />
+          Booking History
+        </button>
+      </td>,
+    ];
   };
 
-  // Convert item to a <td>[] row for the Table component
-  const toRow = (item: DeletableItem) => [
-    <td key="drag" className="px-2 py-2 text-center">
-      <DragHandle />
-    </td>,
-    <td
-      key="id"
-      className="px-2 py-2 text-center font-medium text-gray-900 text-[0.75rem]"
-    >
-      {item.id}
-    </td>,
-    <td key="name" className="px-2 py-2 text-center">
-      <div className="font-medium text-gray-900 text-[0.75rem]">
-        {item.name}
-      </div>
-    </td>,
-    <td
-      key="owner"
-      className="px-2 py-2 text-center text-gray-700 text-[0.75rem]"
-    >
-      {item.owner || "—"}
-    </td>,
-    <td key="rating" className="px-2 py-2 text-center">
-      {getRatingBadge(item.rating)}
-    </td>,
-    <td
-      key="date"
-      className="px-2 py-2 text-center text-gray-700 text-[0.75rem]"
-    >
-      {item.dateModified || "—"}
-    </td>,
-    <td key="actions" className="px-2 py-2 text-center">
-      <button
-        type="button"
-        className="bg-[#E9ECF0] text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
-        onClick={async () => await handleOpenBookingHistory(item)}
-      >
-        <MdHistory className="inline mr-1" size={14} />
-        Booking History
-      </button>
-    </td>,
-  ];
-
-  /* ---- data built from passed items ---- */
+  /*  data built from passed items  */
   const mergeIntoData = mergeIntoItems.map((i) => toRow(i));
 
   const mergeFromData = mergeFromItems.map((i) => toRow(i));
@@ -255,7 +365,7 @@ const MergeModal: React.FC<MergeModalProps> = ({
           return;
 
         const [moved] = updated.splice(source.index, 1);
-        if (!moved) return; // TYPE-SAFE: moved might be undefined
+        if (!moved) return;
         updated.splice(destination.index, 0, moved);
         setMergeIntoItems(updated);
       } else {
@@ -274,8 +384,7 @@ const MergeModal: React.FC<MergeModalProps> = ({
       return;
     }
 
-    // move between tables
-    // create copies
+    // move between tables with swap logic enforcing max 1 item in mergeIntoItems
     const sourceIsInto = source.droppableId === "into";
     const destIsInto = destination.droppableId === "into";
 
@@ -296,21 +405,63 @@ const MergeModal: React.FC<MergeModalProps> = ({
     const [moved] = sourceList.splice(source.index, 1);
     if (!moved) return;
 
+    // If destination is the 'into' table, enforce only one item there.
+    if (destIsInto) {
+      // If 'into' is empty, simply place moved there.
+      if (destList.length === 0) {
+        destList.splice(destination.index, 0, moved);
+
+        // batch state updates to avoid intermediate re-renders
+        unstable_batchedUpdates(() => {
+          if (sourceIsInto) setMergeIntoItems(sourceList);
+          else setMergeFromItems(sourceList);
+
+          setMergeIntoItems(destList);
+        });
+
+        return;
+      }
+      const previousInto = destList[0]!;
+      // remove previous from dest
+      destList.splice(0, 1);
+
+      // insert moved into dest
+      const insertIndexInto = Math.min(destination.index, destList.length);
+      destList.splice(insertIndexInto, 0, moved);
+
+      // insert previousInto into sourceList at the original source.index position
+      const insertIndexSource = Math.min(source.index, sourceList.length);
+      sourceList.splice(insertIndexSource, 0, previousInto);
+
+      // batch state updates to avoid flicker during swap
+      unstable_batchedUpdates(() => {
+        if (sourceIsInto) setMergeIntoItems(sourceList);
+        else setMergeFromItems(sourceList);
+
+        setMergeIntoItems(destList);
+      });
+
+      return;
+    }
+
+    // Normal move into `from` table (dest is not into)
     destList.splice(destination.index, 0, moved);
 
-    // write back to state depending on which lists were source/dest
-    if (sourceIsInto) setMergeIntoItems(sourceList);
-    else setMergeFromItems(sourceList);
+    // batch final writes to state to avoid visual jank
+    unstable_batchedUpdates(() => {
+      if (sourceIsInto) setMergeIntoItems(sourceList);
+      else setMergeFromItems(sourceList);
 
-    if (destIsInto) setMergeIntoItems(destList);
-    else setMergeFromItems(destList);
+      if (destIsInto) setMergeIntoItems(destList);
+      else setMergeFromItems(destList);
+    });
   };
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Merge Customers"
+      title={mode === "customer" ? "Merge Customers" : "Merge Vendors"}
       size="xl"
       className="text-[0.75rem]"
       customWidth="w-[900px]"
@@ -337,10 +488,10 @@ const MergeModal: React.FC<MergeModalProps> = ({
               columns={columns}
               initialRowsPerPage={2}
               columnIconMap={columnIconMap}
-              hideRowsPerPage={true}
               enableDragAndDrop={true}
               rowIds={mergeIntoRowIds}
               droppableId="into"
+              categoryName={mode === "customer" ? "Customers" : "Vendors"}
             />
           </div>
 
@@ -356,11 +507,13 @@ const MergeModal: React.FC<MergeModalProps> = ({
               columns={columns}
               initialRowsPerPage={2}
               columnIconMap={columnIconMap}
-              hideRowsPerPage={true}
               onSort={handleSort}
               enableDragAndDrop={true}
               rowIds={mergeFromRowIds}
               droppableId="from"
+              headerClassName="bg-blue-900"
+              categoryName={mode === "customer" ? "Customers" : "Vendors"}
+              sortableHeaderHoverClass="bg-blue-800"
             />
           </div>
 
@@ -395,7 +548,9 @@ const MergeModal: React.FC<MergeModalProps> = ({
             ? `Do you want to merge ${secondaryItems
                 .map((s) => s.name || s.id)
                 .join(", ")} into ${primaryItem.name || primaryItem.id}?`
-            : "Select at least two customers to merge"
+            : mode === "customer"
+            ? "Select at least two customers to merge"
+            : "Select at least two vendors to merge"
         }
         cancelText="Cancel"
         confirmButtonColor="bg-[#3B8132]"
@@ -403,19 +558,33 @@ const MergeModal: React.FC<MergeModalProps> = ({
         confirmText={isMerging ? "Merging..." : "Yes, Merge"}
         onConfirm={async () => {
           try {
-            if (!primaryCustomerId || secondaryCustomersId.length === 0) {
+            if (!primaryId || secondaryIds.length === 0) {
               console.error("Invalid selection for merge");
               return;
             }
+
             setIsMerging(true);
-            await mergeCustomers({ primaryCustomerId, secondaryCustomersId });
-            console.log("Customers merged successfully");
+
+            if (mode === "customer") {
+              await mergeCustomers({
+                primaryCustomerId: primaryId,
+                secondaryCustomersId: secondaryIds,
+              });
+              console.log("Customers merged successfully");
+            }
+
+            if (mode === "vendor") {
+              await mergeVendors({
+                primaryVendorId: primaryId,
+                secondaryVendorsId: secondaryIds,
+              });
+              console.log("Vendors merged successfully");
+            }
+
             setIsConfirmationModalOpen(false);
             onClose();
           } catch (err: any) {
-            const message =
-              err?.message || err?.data?.message || "Merge failed";
-            console.error("Merge error:", message, err);
+            console.error("Merge Error:", err?.message || "Merge failed", err);
           } finally {
             setIsMerging(false);
           }
@@ -431,12 +600,51 @@ const MergeModal: React.FC<MergeModalProps> = ({
             isOpen={isHistoryOpen}
             onClose={() => setIsHistoryOpen(false)}
             bookings={bookingHistory}
-            onViewCustomer={() => {
+            recordName={
+              mode === "vendor"
+                ? selectedVendorFull?.companyName ||
+                  selectedVendorFull?.name ||
+                  selectedVendorFull?.vendorName ||
+                  "—"
+                : selectedCustomerFull?.name ||
+                  selectedCustomerFull?.companyName ||
+                  selectedCustomerFull?.vendorName ||
+                  "—"
+            }
+            recordId={
+              mode === "vendor"
+                ? selectedVendorFull?._id ||
+                  selectedVendorFull?.vendorID ||
+                  selectedVendorFull?.id ||
+                  "—"
+                : selectedCustomerFull?._id ||
+                  selectedCustomerFull?.customerID ||
+                  selectedCustomerFull?.id ||
+                  "—"
+            }
+            onViewCustomer={async () => {
+              // open appropriate side sheet depending on mode
+              if (mode === "vendor") {
+                // ensure vendor data exists (was set when opening history)
+                setSideSheetMode("view");
+                setIsSideSheetOpen(true);
+                setIsHistoryOpen(false);
+                return;
+              }
+
+              // customer flow
               setSideSheetMode("view");
               setIsSideSheetOpen(true);
               setIsHistoryOpen(false);
             }}
-            onEditCustomer={() => {
+            onEditCustomer={async () => {
+              if (mode === "vendor") {
+                setSideSheetMode("edit");
+                setIsSideSheetOpen(true);
+                setIsHistoryOpen(false);
+                return;
+              }
+
               setSideSheetMode("edit");
               setIsSideSheetOpen(true);
               setIsHistoryOpen(false);
@@ -447,16 +655,29 @@ const MergeModal: React.FC<MergeModalProps> = ({
 
       {isSideSheetOpen && (
         <BookingProvider>
-          <AddCustomerSideSheet
-            isOpen={isSideSheetOpen}
-            onCancel={() => {
-              setIsSideSheetOpen(false);
-              setSelectedCustomerFull(null);
-              setSideSheetMode("view");
-            }}
-            data={selectedCustomerFull}
-            mode={sideSheetMode}
-          />
+          {mode === "vendor" ? (
+            <AddVendorSideSheet
+              isOpen={isSideSheetOpen}
+              onCancel={() => {
+                setIsSideSheetOpen(false);
+                setSelectedVendorFull(null);
+                setSideSheetMode("view");
+              }}
+              data={selectedVendorFull}
+              mode={sideSheetMode}
+            />
+          ) : (
+            <AddCustomerSideSheet
+              isOpen={isSideSheetOpen}
+              onCancel={() => {
+                setIsSideSheetOpen(false);
+                setSelectedCustomerFull(null);
+                setSideSheetMode("view");
+              }}
+              data={selectedCustomerFull}
+              mode={sideSheetMode}
+            />
+          )}
         </BookingProvider>
       )}
     </Modal>

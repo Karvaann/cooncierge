@@ -135,7 +135,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       <div
         ref={sidebarRef}
         className={`fixed top-0 left-0 h-screen text-white border-r border-gray-700 transition-all transform duration-500 ease-in-out z-50 pt-3 ${
-          isOpen ? "w-48" : "w-[3.125vw]"
+          isOpen ? "w-48" : "w-12"
         }`}
         style={{
           background:
@@ -190,7 +190,9 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                     onClick={() => setOpenSubMenuIndex(isActive ? null : index)}
                   >
                     <item.icon className="w-4 h-4" />
-                    {isOpen && <span className="text-sm">{item.label}</span>}
+                    {isOpen && (
+                      <span className="text-[0.75rem]">{item.label}</span>
+                    )}
                     {showArrow && (
                       <MdKeyboardArrowUp
                         size={16}
