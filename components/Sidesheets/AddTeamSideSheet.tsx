@@ -429,25 +429,31 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
 
           {/* ================= STATUS DROPDOWN ================ */}
           <div className="flex flex-col gap-1">
-            <select
-              name="status"
-              required
-              disabled={readOnly}
-              onChange={(e) => {
-                if (e.target.value === "former") {
-                  // handleTransferModalOpen();
-                }
-                setFormData({
-                  ...formData,
-                  status: e.target.value === "current" ? "Current" : "Former",
-                });
-              }}
-              className="w-[13rem] border border-gray-300 rounded-md px-3 py-1.5 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400"
-            >
-              <option value="disabled">Select Status</option>
-              <option value="current">Current</option>
-              <option value="former">Former</option>
-            </select>
+            {!readOnly ? (
+              <DropDown
+                options={[
+                  { value: "", label: "Select Status" },
+                  { value: "current", label: "Current" },
+                  { value: "former", label: "Former" },
+                ]}
+                value={formData.status ? formData.status.toLowerCase() : ""}
+                onChange={(v) => {
+                  if (v === "former") {
+                    // handleTransferModalOpen();
+                  }
+                  setFormData({
+                    ...formData,
+                    status: v === "current" ? "Current" : "Former",
+                  });
+                }}
+                customWidth="w-[13rem]"
+                className=""
+              />
+            ) : (
+              <div className="w-[13rem] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 bg-gray-100 cursor-default">
+                {formData.status || "Select Status"}
+              </div>
+            )}
           </div>
 
           {/* ================= BASIC DETAILS ================ */}
@@ -753,7 +759,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
               </button>
 
               {/* PREVIEW FILES */}
-              <div className="mt-2 flex flex-col gap-2">
+              <div className="-mt-1 flex flex-col gap-2 w-full">
                 {attachedFiles.map((file, i) => (
                   <div
                     key={i}
@@ -779,7 +785,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 ))}
               </div>
 
-              <div className="text-red-600 text-[0.65rem] -mt-2">
+              <div className="text-red-600 text-[0.65rem] -mt-3">
                 Note: Maximum of 3 files can be uploaded
               </div>
             </div>

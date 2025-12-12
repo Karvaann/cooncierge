@@ -717,6 +717,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 ]}
                 value={tier}
                 onChange={(v) => setTier(v)}
+                disabled={readOnly}
                 customWidth="w-[10rem]"
                 className=""
                 // readOnly={readOnly}

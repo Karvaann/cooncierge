@@ -13,6 +13,7 @@ interface DropdownProps {
   className?: string;
   customWidth?: string;
   menuWidth?: string;
+  disabled?: boolean;
 }
 
 const DropDown: React.FC<DropdownProps> = ({
@@ -23,6 +24,7 @@ const DropDown: React.FC<DropdownProps> = ({
   customWidth,
   className = "",
   menuWidth,
+  disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(value || "");
@@ -57,6 +59,7 @@ const DropDown: React.FC<DropdownProps> = ({
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (disabled) return;
     setIsOpen(!isOpen);
   };
 
@@ -77,7 +80,11 @@ const DropDown: React.FC<DropdownProps> = ({
       <button
         type="button"
         onClick={handleToggle}
-        className={`${inputWidthClass} flex items-center justify-between px-2 py-1.5 bg-white rounded-md border border-gray-300 hover:border-green-300 transition-colors text-left text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-green-400`}
+        disabled={disabled}
+        aria-disabled={disabled}
+        className={`${inputWidthClass} flex items-center justify-between px-2 py-1.5 ${
+          disabled ? "bg-gray-100 cursor-not-allowed text-gray-600" : "bg-white"
+        } rounded-md border border-gray-300 hover:border-green-300 transition-colors text-left text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-green-400`}
       >
         <span className={`${selectedValue ? "text-black" : "text-gray-400"}`}>
           {displayText}
@@ -100,7 +107,7 @@ const DropDown: React.FC<DropdownProps> = ({
       </button>
 
       {/* Dropdown Menu */}
-      {isOpen && (
+      {isOpen && !disabled && (
         <div
           className={`${menuWidthClass} absolute top-full left-0 mt-1 bg-white rounded-md border border-gray-300 shadow-lg overflow-hidden z-10`}
         >

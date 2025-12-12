@@ -738,7 +738,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               </button>
 
               {/* PREVIEW FILES */}
-              <div className="mt-2 flex flex-col gap-2">
+              <div className="-mt-2 flex flex-col gap-2 w-full">
                 {attachedFiles.map((file, i) => (
                   <div
                     key={i}
@@ -858,6 +858,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 ]}
                 value={tier}
                 onChange={(v) => setTier(v)}
+                disabled={readOnly}
                 customWidth="w-[10rem]"
                 className=""
                 // readOnly={readOnly}
