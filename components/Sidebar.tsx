@@ -227,7 +227,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                 )}
                 {item.subMenu && isOpen && (
                   <ul
-                    className={`relative pl-8 mt-2 transition-all duration-300 ease-in-out overflow-hidden ${
+                    className={`relative pl-8 mt-0 transition-all duration-300 ease-in-out overflow-hidden ${
                       isActive ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
                     }`}
                     style={{
@@ -242,7 +242,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                         <Link
                           prefetch
                           href={sub.href}
-                          className="block text-left text-[0.75rem] py-1 px-2 rounded text-white cursor-pointer"
+                          className="block text-left text-[0.70rem] py-1 px-2 rounded text-white cursor-pointer"
                         >
                           {sub.label}
                         </Link>

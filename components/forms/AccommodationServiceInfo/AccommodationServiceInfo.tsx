@@ -160,6 +160,28 @@ interface ValidationErrors {
   [key: string]: string;
 }
 
+interface ExternalFormData {
+  formFields?: {
+    bookingdate?: string;
+    traveldate?: string;
+    bookingstatus?: string;
+    costprice?: string;
+    sellingprice?: string;
+    confirmationNumber?: string;
+    checkindate?: string;
+    checkintime?: string;
+    checkoutdate?: string;
+    checkouttime?: string;
+    pax?: string;
+    mealPlan?: string;
+    propertyName?: string;
+    propertyAddress?: string;
+    googleMapsLink?: string;
+    remarks?: string;
+    // Add other fields as needed
+  };
+}
+
 interface AccommodationInfoFormProps {
   onSubmit?: (data: AccommodationInfoFormData) => void;
   isSubmitting?: boolean;
@@ -167,6 +189,7 @@ interface AccommodationInfoFormProps {
   formRef?: React.RefObject<HTMLDivElement | null>;
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
+  externalFormData?: ExternalFormData;
 }
 
 const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
@@ -176,25 +199,26 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   formRef,
   onFormDataUpdate,
   onAddDocuments,
+  externalFormData,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<AccommodationInfoFormData>({
-    bookingdate: "",
-    traveldate: "",
-    bookingstatus: "",
-    costprice: "",
-    sellingprice: "",
-    confirmationNumber: "",
-    checkindate: "",
-    checkintime: "",
-    checkoutdate: "",
-    checkouttime: "",
+    bookingdate: externalFormData?.formFields?.bookingdate || "",
+    traveldate: externalFormData?.formFields?.traveldate || "",
+    bookingstatus: externalFormData?.formFields?.bookingstatus || "",
+    costprice: externalFormData?.formFields?.costprice || "",
+    sellingprice: externalFormData?.formFields?.sellingprice || "",
+    confirmationNumber: externalFormData?.formFields?.confirmationNumber || "",
+    checkindate: externalFormData?.formFields?.checkindate || "",
+    checkintime: externalFormData?.formFields?.checkintime || "",
+    checkoutdate: externalFormData?.formFields?.checkoutdate || "",
+    checkouttime: externalFormData?.formFields?.checkouttime || "",
     checkOutPeriod: "AM",
-    pax: "",
-    mealPlan: "",
-    propertyName: "",
-    propertyAddress: "",
-    googleMapsLink: "",
+    pax: externalFormData?.formFields?.pax || "",
+    mealPlan: externalFormData?.formFields?.mealPlan || "",
+    propertyName: externalFormData?.formFields?.propertyName || "",
+    propertyAddress: externalFormData?.formFields?.propertyAddress || "",
+    googleMapsLink: externalFormData?.formFields?.googleMapsLink || "",
     segments: [
       {
         id: "room-1",
@@ -204,7 +228,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     ],
     accommodationType: "",
 
-    remarks: "",
+    remarks: externalFormData?.formFields?.remarks || "",
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -272,6 +296,16 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
       handleSegmentsChange(current.slice(0, newCount));
     }
   };
+
+  // Sync with external form data when it changes
+  useEffect(() => {
+    if (externalFormData?.formFields) {
+      setFormData(prev => ({
+        ...prev,
+        ...externalFormData.formFields
+      }));
+    }
+  }, [externalFormData]);
 
   useEffect(() => {
     onFormDataUpdate({ accommodationinfoform: formData });

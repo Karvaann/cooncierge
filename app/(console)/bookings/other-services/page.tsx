@@ -160,11 +160,13 @@ const columnIconMap: Record<string, JSX.Element> = {
   ),
 };
 
-const getStatusBadgeClass = (status: BookingStatus): string => {
+const getStatusBadgeClass = (status: string): string => {
   switch (status) {
     case "Confirmed":
       return "px-2 py-1 text-[0.70rem] border border-green-200 font-semibold rounded-full bg-green-100 text-green-700";
-    case "Cancelled":
+    case "Draft":
+      return "px-2 py-1 text-[0.70rem] border border-yellow-200 font-semibold rounded-full bg-yellow-100 text-yellow-700";
+    case "Deleted":
     default:
       return "px-2 py-1 text-[0.75rem] border border-red-200 font-semibold rounded-full bg-red-100 text-red-700";
   }
@@ -174,6 +176,9 @@ const OSBookingsPage = () => {
   // UI State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
+  const [selectedQuotation, setSelectedQuotation] = useState<any>(
+    null
+  );
   const [selectedService, setSelectedService] = useState<BookingService | null>(
     null
   );
@@ -351,6 +356,7 @@ const OSBookingsPage = () => {
         travelStartDate?: string;
         travelEndDate?: string;
         owner?: string | string[];
+        activeTab: string;
       } = {};
 
       if (filters.bookingStartDate)
@@ -360,6 +366,7 @@ const OSBookingsPage = () => {
       if (filters.tripStartDate)
         apiParams.travelStartDate = filters.tripStartDate;
       if (filters.tripEndDate) apiParams.travelEndDate = filters.tripEndDate;
+      apiParams.activeTab = activeTab;
       // Note: Owner filtering is done client-side since API returns owner objects with names
 
       const response = await BookingApiService.getAllQuotations(
@@ -371,16 +378,7 @@ const OSBookingsPage = () => {
         const allQuotations =
           (raw?.quotations as any[]) || (raw as any[]) || [];
 
-        // on the Bookings tab, show only quotations that do NOT have
-        // the `serviceStatus` property.
-        let toShow = allQuotations;
-        if (activeTab === "Bookings") {
-          toShow = allQuotations.filter((q: any) => {
-            return !Object.prototype.hasOwnProperty.call(q, "serviceStatus");
-          });
-        }
-
-        setQuotations(toShow);
+        setQuotations(allQuotations);
         // calculateSummaryData(response.data?.quotations);
       } else {
         throw new Error(response.message || "Failed to load quotations");
@@ -399,72 +397,6 @@ const OSBookingsPage = () => {
     activeTab,
   ]);
 
-  // Load drafts from backend (quotations with serviceStatus = 'draft')
-  const loadDrafts = useCallback(async () => {
-    try {
-      const response = await BookingApiService.getAllQuotations();
-      if (response.success && response.data) {
-        const raw: any = response.data;
-        const allQuotations = raw?.quotations || raw || [];
-        // Filter quotations with serviceStatus = 'draft'
-        const draftQuotations = allQuotations.filter(
-          (q: any) => q.serviceStatus === "draft"
-        );
-        setDrafts(draftQuotations);
-      }
-    } catch (err) {
-      console.error("Error loading drafts:", err);
-    }
-  }, []);
-
-  // Calculate summary data from quotations
-  // const calculateSummaryData = useCallback((quotationData: QuotationData[]) => {
-  //   const total = quotationData.reduce(
-  //     (sum, q) => sum + (q.totalAmount || 0),
-  //     0
-  //   );
-  //   const confirmed = quotationData.filter((q) => q.status === "confirmed");
-  //   const pending = quotationData.filter(
-  //     (q) => q.status === "draft" || q.status === "pending"
-  //   );
-
-  //   const confirmedAmount = confirmed.reduce(
-  //     (sum, q) => sum + (q.totalAmount || 0),
-  //     0
-  //   );
-  //   const pendingAmount = pending.reduce(
-  //     (sum, q) => sum + (q.totalAmount || 0),
-  //     0
-  //   );
-
-  //   setSummaryData({
-  //     total: {
-  //       amount: `₹ ${total.toLocaleString("en-IN")}`,
-  //       change: `${quotationData.length} total bookings`,
-  //       isPositive: true,
-  //     },
-  //     youGive: {
-  //       amount: `₹ ${pendingAmount.toLocaleString("en-IN")}`,
-  //       change: `${pending.length} pending bookings`,
-  //       isPositive: false,
-  //     },
-  //     youGet: {
-  //       amount: `₹ ${confirmedAmount.toLocaleString("en-IN")}`,
-  //       change: `${confirmed.length} confirmed bookings`,
-  //       isPositive: true,
-  //     },
-  //   });
-  // }, []);
-
-  // Sync drafts with backend
-  const syncDrafts = useCallback(async () => {
-    try {
-      await BookingApiService.syncDraftsWithBackend();
-      await loadDrafts(); // Reload drafts after sync
-    } catch (err) {
-      console.error("Error syncing drafts:", err);
-    }
-  }, [loadDrafts]);
 
   // Load quotations on component mount and filter changes
   useEffect(() => {
@@ -476,14 +408,9 @@ const OSBookingsPage = () => {
     filters.tripStartDate,
     filters.tripEndDate,
     filters.owner,
+    activeTab
   ]);
 
-  // Load drafts when Drafts tab is clicked
-  useEffect(() => {
-    if (activeTab === "Drafts") {
-      loadDrafts();
-    }
-  }, [activeTab, loadDrafts]);
 
   const handleServiceSelect = (service: BookingService) => {
     setSelectedService(service);
@@ -493,12 +420,8 @@ const OSBookingsPage = () => {
   // Handle booking completion (refresh data)
   const handleBookingComplete = useCallback(async () => {
     await loadQuotations();
-    // Reload drafts if we're on the Drafts tab
-    if (activeTab === "Drafts") {
-      await loadDrafts();
-    }
     setIsSideSheetOpen(false);
-  }, [loadQuotations, loadDrafts, activeTab]);
+  }, [loadQuotations, activeTab]);
 
   const getServiceIcon = (
     quotationType: string
@@ -617,12 +540,12 @@ const OSBookingsPage = () => {
     return iconMap[key] || "📋"; // fallback
   };
 
-  const mapStatus = (status: string): BookingStatus => {
-    const statusMap: Record<string, BookingStatus> = {
-      confirmed: "Confirmed",
-      cancelled: "Cancelled",
+  const mapStatus = (status: string, isDeleted: boolean): string => {
+    const statusMap: Record<string, string> = {
+      approved: "Confirmed",
+      draft: "Draft",
     };
-    return statusMap[status?.toLowerCase()] || "Cancelled";
+    return isDeleted ? "Deleted" : statusMap[status?.toLowerCase()] || 'Confirmed';
   };
 
   // Handle viewing quotation details
@@ -668,7 +591,7 @@ const OSBookingsPage = () => {
         label: "Edit",
         icon: <MdOutlineEdit />,
         color: "text-blue-600",
-        onClick: () => console.log("Edit", row.id),
+        onClick: () => { setIsSideSheetOpen(true); setSelectedQuotation(row); },
       },
       {
         label: "Delete",
@@ -711,6 +634,15 @@ const OSBookingsPage = () => {
 
     // Approved
     if (tab === "Approved") {
+      baseActions.push({
+        label: "Move",
+        icon: <TbArrowAutofitRight />,
+        color: "text-gray-400",
+        onClick: () => console.log("Move", row.id),
+      });
+    }
+
+    if (tab === "Bookings") {
       baseActions.push({
         label: "Move",
         icon: <TbArrowAutofitRight />,
@@ -768,6 +700,7 @@ const OSBookingsPage = () => {
   const finalQuotations = useMemo(() => {
     // Drafts tab shows drafts from backend with search filtering
     if (activeTab === "Drafts") {
+      console.log('Inside Drafts')
       const normalizedDrafts = drafts.map(normalizeDraft);
 
       // Apply search filter to drafts
@@ -792,21 +725,20 @@ const OSBookingsPage = () => {
 
       return normalizedDrafts;
     }
+    console.log('Outside Drafts', filteredQuotations);
 
     // Filter quotations by status based on active tab
     return filteredQuotations.filter((q) => {
-      const status = q.status?.toLowerCase();
+      console.log(q, "STATUS:", q.serviceStatus);
+      const status = q.serviceStatus?.toLowerCase();
 
       switch (activeTab) {
-        case "Approved":
+        case "Bookings":
           // Show confirmed bookings
-          return status === "confirmed";
+          return status === "approved";
         case "Pending":
           // Show pending or draft status bookings
           return status === "pending" || status === "draft";
-        case "Denied":
-          // Show denied or cancelled bookings
-          return status === "denied" || status === "cancelled";
         case "Deleted":
           // Show deleted bookings (if you have a deleted flag or status)
           return status === "deleted";
@@ -814,24 +746,85 @@ const OSBookingsPage = () => {
           return true;
       }
     });
-  }, [activeTab, drafts, filteredQuotations]) as any[];
+  }, [activeTab, filteredQuotations]) as any[];
 
   // Convert quotations to table data
   const tableData = useMemo<JSX.Element[][]>(() => {
-    const combinedData = [
-      // Real quotations from API
-      ...finalQuotations.map((item, index) => ({
-        id: item.customId ? `${item.customId}` : `Draft-${index + 1}`,
-        leadPax: item.customerId?.name || item.formFields?.customer || "--",
-        travelDate: item.travelDate
+    // const combinedData = [
+    //   // Real quotations from API
+    //   ...quotations.map((item, index) => ({
+    //     id: item.customId ? `${item.customId}` : `Draft-${index + 1}`,
+    //     leadPax: item.customerId?.name || item.formFields?.customer || "--",
+    //     travelDate: item.travelDate
+    //       ? formatDMY(item.travelDate)
+    //       : item.formFields?.departureDate
+    //       ? formatDMY(item.formFields.departureDate)
+    //       : item.createdAt
+    //       ? formatDMY(item.createdAt)
+    //       : "--",
+    //     service: (
+    //       <div className="flex items-center justify-center gap-2">
+    //         <div className="w-5 h-5 flex items-center justify-center">
+    //           {getServiceIcon(
+    //             item.quotationType || item.serviceType || "draft"
+    //           )}
+    //         </div>
+    //         <span className="text-center leading-tight">
+    //           {formatServiceType(
+    //             item.quotationType || item.serviceType || "draft"
+    //           )}
+    //         </span>
+    //       </div>
+    //     ),
+
+    //     bookingStatus: mapStatus(item.serviceStatus, item.isDeleted),
+
+    //     amount: item.totalAmount
+    //       ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
+    //       : item.formFields?.budget
+    //       ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
+    //       : "--",
+
+    //     ownerNames: Array.isArray((item as any).owner)
+    //       ? (item as any).owner.map((o: any) => o?.name || "--")
+    //       : [],
+
+    //     tasks: Math.floor(Math.random() * 5) + 1, // Random tasks for demo
+    //     isReal: Boolean(item._id),
+    //     originalIndex: index,
+    //   })),
+    // ];
+
+    const rows = quotations.map((item, index) => [
+      <td
+        key={`id-${index}`}
+        className="px-4 py-2 text-center font-semibold align-middle h-[4rem]"
+      >
+        {item.customId ? `${item.customId}` : `Draft-${index + 1}`}
+      </td>,
+      <td
+        key={`lead-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
+        {item.customerId?.name || item.formFields?.customer || "--"}
+      </td>,
+      <td
+        key={`date-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
+        {item.travelDate
           ? formatDMY(item.travelDate)
           : item.formFields?.departureDate
           ? formatDMY(item.formFields.departureDate)
           : item.createdAt
           ? formatDMY(item.createdAt)
-          : "--",
-        service: (
-          <div className="flex items-center justify-center gap-2">
+          : "--"}
+      </td>,
+      <td
+        key={`service-${index}`}
+        className="px-4 py-2 text-center align-middle h-[4rem]"
+      >
+        <div className="flex items-center justify-center gap-2">
             <div className="w-5 h-5 flex items-center justify-center">
               {getServiceIcon(
                 item.quotationType || item.serviceType || "draft"
@@ -843,64 +836,24 @@ const OSBookingsPage = () => {
               )}
             </span>
           </div>
-        ),
-
-        bookingStatus: mapStatus(item.status),
-
-        amount: item.totalAmount
-          ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
-          : item.formFields?.budget
-          ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
-          : "--",
-
-        ownerNames: Array.isArray((item as any).owner)
-          ? (item as any).owner.map((o: any) => o?.name || "--")
-          : [],
-
-        tasks: Math.floor(Math.random() * 5) + 1, // Random tasks for demo
-        isReal: Boolean(item._id),
-        originalIndex: index,
-      })),
-    ];
-
-    const rows = combinedData.map((row, index) => [
-      <td
-        key={`id-${index}`}
-        className="px-4 py-2 text-center font-semibold align-middle h-[4rem]"
-      >
-        {row.id}
-      </td>,
-      <td
-        key={`lead-${index}`}
-        className="px-4 py-2 text-center align-middle h-[4rem]"
-      >
-        {row.leadPax}
-      </td>,
-      <td
-        key={`date-${index}`}
-        className="px-4 py-2 text-center align-middle h-[4rem]"
-      >
-        {row.travelDate}
-      </td>,
-      <td
-        key={`service-${index}`}
-        className="px-4 py-2 text-center align-middle h-[4rem]"
-      >
-        {row.service}
       </td>,
       <td
         key={`status-${index}`}
         className="px-4 py-2 text-center align-middle h-[4rem]"
       >
-        <span className={getStatusBadgeClass(row.bookingStatus)}>
-          {row.bookingStatus}
+        <span className={getStatusBadgeClass(mapStatus(item.serviceStatus, item.isDeleted))}>
+          {mapStatus(item.serviceStatus, item.isDeleted)}
         </span>
       </td>,
       <td
         key={`amount-${index}`}
         className="px-4 py-2 text-center align-middle h-[4rem]"
       >
-        {row.amount}
+        {item.totalAmount
+          ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
+          : item.formFields?.budget
+          ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
+          : "--"}
       </td>,
       <td
         key={`owners-${index}`}
@@ -908,7 +861,9 @@ const OSBookingsPage = () => {
       >
         <div className="flex items-center justify-center">
           <div className="flex items-center">
-            {row.ownerNames?.map((ownerName: string, i: number) => {
+            {(Array.isArray((item as any).owner)
+          ? (item as any).owner.map((o: any) => o?.name || "--")
+          : []).map((ownerName: string, i: number) => {
               // Try to find owner in ownersList (fetched from API)
               let ownerMeta = ownersList.find((o) => o.full === ownerName);
 
@@ -942,10 +897,10 @@ const OSBookingsPage = () => {
       >
         <div className="flex justify-center">
           <TaskButton
-            count={row.tasks}
+            count={Math.floor(Math.random() * 5) + 1}
             bookingId={
-              row.isReal
-                ? finalQuotations[row.originalIndex]?._id || null
+              Boolean(item._id)
+                ? finalQuotations[index]?._id || null
                 : null
             }
           />
@@ -957,7 +912,7 @@ const OSBookingsPage = () => {
         key={`actions-${index}`}
         className="px-4 py-2  text-center align-middle h-[4rem]"
       >
-        <ActionMenu actions={getActionsForTab(activeTab, row)} />
+        <ActionMenu actions={getActionsForTab(activeTab, item)} />
       </td>,
     ]);
     return reverse ? rows.reverse() : rows;
@@ -1112,6 +1067,7 @@ const OSBookingsPage = () => {
             isOpen={isSideSheetOpen}
             onClose={handleBookingComplete}
             selectedService={selectedService}
+            initialData={selectedQuotation}
           />
         )}
       </div>

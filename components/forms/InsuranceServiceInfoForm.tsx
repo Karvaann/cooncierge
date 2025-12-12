@@ -28,6 +28,21 @@ interface ValidationErrors {
   [key: string]: string;
 }
 
+interface ExternalFormData {
+  formFields?: {
+    bookingdate?: string;
+    traveldate?: string;
+    bookingstatus?: string;
+    costprice?: string;
+    sellingprice?: string;
+    confirmationNumber?: string;
+    title?: string;
+    description?: string;
+    remarks?: string;
+    // Add other fields as needed
+  };
+}
+
 interface OtherInfoFormProps {
   onSubmit?: (data: OtherServiceInfoFormData) => void;
   isSubmitting?: boolean;
@@ -35,6 +50,7 @@ interface OtherInfoFormProps {
   formRef?: React.RefObject<HTMLDivElement | null>;
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
+  externalFormData?: ExternalFormData;
 }
 
 const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
@@ -44,19 +60,20 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   formRef,
   onFormDataUpdate,
   onAddDocuments,
+  externalFormData,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<OtherServiceInfoFormData>({
-    bookingdate: "",
-    traveldate: "",
-    bookingstatus: "",
-    costprice: "",
-    sellingprice: "",
-    confirmationNumber: "",
-    title: "",
-    description: "",
+    bookingdate: externalFormData?.formFields?.bookingdate || "",
+    traveldate: externalFormData?.formFields?.traveldate || "",
+    bookingstatus: externalFormData?.formFields?.bookingstatus || "",
+    costprice: externalFormData?.formFields?.costprice || "",
+    sellingprice: externalFormData?.formFields?.sellingprice || "",
+    confirmationNumber: externalFormData?.formFields?.confirmationNumber || "",
+    title: externalFormData?.formFields?.title || "",
+    description: externalFormData?.formFields?.description || "",
     documents: "",
-    remarks: "",
+    remarks: externalFormData?.formFields?.remarks || "",
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -123,6 +140,16 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   const handleBookingStatusChange = (value: string) => {
     setFormData((prev) => ({ ...prev, bookingstatus: value }));
   };
+
+  // Sync with external form data when it changes
+  useEffect(() => {
+    if (externalFormData?.formFields) {
+      setFormData(prev => ({
+        ...prev,
+        ...externalFormData.formFields
+      }));
+    }
+  }, [externalFormData]);
 
   useEffect(() => {
     onFormDataUpdate({ insuranceinfoform: formData });

@@ -57,6 +57,19 @@ interface ValidationErrors {
   [key: string]: string;
 }
 
+interface ExternalFormData {
+  formFields?: {
+    bookingdate?: string;
+    traveldate?: string;
+    bookingstatus?: string;
+    costprice?: string;
+    sellingprice?: string;
+    PNR?: string;
+    remarks?: string;
+    // Add other fields as needed
+  };
+}
+
 interface FlightInfoFormProps {
   onSubmit?: (data: FlightInfoFormData) => void;
   isSubmitting?: boolean;
@@ -64,6 +77,7 @@ interface FlightInfoFormProps {
   formRef?: React.RefObject<HTMLFormElement | null>;
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
+  externalFormData?: ExternalFormData;
 }
 
 const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
@@ -73,15 +87,16 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   formRef,
   onFormDataUpdate,
   onAddDocuments,
+  externalFormData,
 }) => {
   // Internal form state
   const [formData, setFormData] = useState<FlightInfoFormData>({
-    bookingdate: "",
-    traveldate: "",
-    bookingstatus: "",
-    costprice: "",
-    sellingprice: "",
-    PNR: "",
+    bookingdate: externalFormData?.formFields?.bookingdate || "",
+    traveldate: externalFormData?.formFields?.traveldate || "",
+    bookingstatus: externalFormData?.formFields?.bookingstatus || "",
+    costprice: externalFormData?.formFields?.costprice || "",
+    sellingprice: externalFormData?.formFields?.sellingprice || "",
+    PNR: externalFormData?.formFields?.PNR || "",
     segments: [
       {
         id: "1",
@@ -101,14 +116,10 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
     pnrEnabled: true,
     samePNRForAllSegments: false,
     flightType: "One Way",
-    remarks: "",
+    remarks: externalFormData?.formFields?.remarks || "",
   });
 
-  // Sync initial form state to parent on mount
-  useEffect(() => {
-    onFormDataUpdate({ flightinfoform: formData });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  console.log("Flight External Form Data:", externalFormData);
 
   const [errors, setErrors] = useState<ValidationErrors>({});
 
@@ -172,6 +183,16 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   const handleDeleteFile = (index: number) => {
     setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
+
+  // Sync with external form data when it changes
+  useEffect(() => {
+    if (externalFormData?.formFields) {
+      setFormData(prev => ({
+        ...prev,
+        ...externalFormData.formFields
+      }));
+    }
+  }, [externalFormData]);
 
   useEffect(() => {
     onFormDataUpdate({ flightinfoform: formData });

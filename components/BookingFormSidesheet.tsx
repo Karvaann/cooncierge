@@ -61,12 +61,14 @@ interface TabConfig {
 }
 
 function ServiceInfoFormSwitcher(props: any) {
-  const { selectedService, onAddDocuments } = props;
-  console.log("CATEGORY:", selectedService?.category);
+  const { selectedService, onAddDocuments, formData } = props;
+  console.log("CATEGORY:", selectedService?.category, formData?.quotationType);
 
-  if (!selectedService) return null;
+  const service = selectedService?.category || formData?.quotationType;
 
-  switch (selectedService.category) {
+  if (!service) return null;
+
+  switch (service) {
     case "travel":
       return (
         <FlightServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
@@ -202,10 +204,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         id: "service",
         label: "Service Info",
         component: ServiceInfoFormSwitcher,
-        isEnabled: !!selectedService,
+        isEnabled: true,
       },
     ],
-    [selectedService]
+    []
   );
 
   function convertToBookingData(
@@ -281,43 +283,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       bookingDataTemp.append("documents", file);
     });
     bookingDataTemp.append("customId", "OS-992CV");
-
-    const bookingData = {
-      quotationType, // replace if needed
-      channel: "B2C",
-      businessId: businessId._id,
-
-      formFields,
-
-      totalAmount: Number(
-        flatInfoForm.sellingprice ?? flatInfoForm.costprice ?? 0
-      ),
-      // Only include status if bookingstatus has a value, otherwise omit it
-      ...(flatInfoForm.bookingstatus && flatInfoForm.bookingstatus.trim() !== ""
-        ? { status: flatInfoForm.bookingstatus }
-        : {}),
-
-      createdAt: new Date(),
-      updatedAt: new Date(),
-
-      owner: [input.bookingOwner],
-
-      travelDate:
-        traveldate || flatInfoForm.traveldate
-          ? new Date(flatInfoForm.traveldate)
-          : null,
-
-      customerId: input.customer,
-      vendorId: input.vendor,
-
-      travelers,
-
-      adultTravlers: adults ?? 0,
-      childTravlers: children ?? 0,
-      serviceStatus,
-
-      remarks: remarks ?? "",
-    };
 
     return bookingDataTemp;
   }
@@ -463,7 +428,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedService, collectAllFormData, onClose, bookingDocuments]);
+  }, [selectedService, collectAllFormData, onClose, convertToBookingData]);
 
   // Optimized tab click handler
   const handleTabClick = useCallback(
@@ -485,35 +450,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       return merged;
     });
   }, []);
-
-  // Form submission handler
-  const handleFormSubmit = useCallback(
-    async (data: any) => {
-      if (!selectedService) return;
-
-      setIsSubmitting(true);
-      try {
-        const completeFormData = {
-          ...formData,
-          ...data,
-          service: selectedService,
-        };
-
-        // Use BookingContext to submit the booking
-        await submitBooking();
-
-        // Also call the optional onFormSubmit prop for backward compatibility
-        await onFormSubmit?.(completeFormData);
-
-        onClose();
-      } catch (error) {
-        console.error("Form submission error:", error);
-      } finally {
-        setIsSubmitting(false);
-      }
-    },
-    [formData, selectedService, submitBooking, onFormSubmit, onClose]
-  );
 
   // Memoized tab buttons
   const tabButtons = useMemo(
@@ -616,7 +552,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                 style={{ display: activeTab === "general" ? "block" : "none" }}
               >
                 <GeneralInfoForm
-                  formData={formData}
+                  initialFormData={formData}
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting}
                   formRef={generalFormRef as React.RefObject<HTMLFormElement>}
@@ -633,7 +569,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting}
                   formRef={serviceFormRef}
-                  selectedService={selectedService}
+                  selectedService={selectedService || initialData?.quotationType}
                   onAddDocuments={addBookingDocuments}
                 />
               </div>
