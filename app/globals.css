@@ -95,4 +95,13 @@ select:-webkit-autofill {
   -webkit-text-fill-color: inherit !important;
 }
 
+@keyframes loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-loader-spin {
+  animation: loader-spin 0.9s linear infinite;
+}
 

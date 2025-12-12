@@ -2,89 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import type { IconType } from "react-icons";
 import { MdKeyboardArrowUp } from "react-icons/md";
-import { TbGraph } from "react-icons/tb";
-import { LuLayoutDashboard } from "react-icons/lu";
-import { GoPeople } from "react-icons/go";
-import { TbLuggage } from "react-icons/tb";
-import { LuClipboardList } from "react-icons/lu";
-import { PiCurrencyCircleDollar } from "react-icons/pi";
-import { TbBrandNetbeans } from "react-icons/tb";
-import { RiContactsBook3Line } from "react-icons/ri";
-
-interface SubMenuItem {
-  label: string;
-  href: string;
-}
-
-interface MenuItem {
-  label: string;
-  icon: IconType;
-  href?: string | undefined;
-  subMenu?: SubMenuItem[];
-}
-
-const menuItems: MenuItem[] = [
-  {
-    label: "Dashboard",
-    icon: LuLayoutDashboard,
-    href: "/dashboard",
-  },
-  {
-    label: "Leads",
-    icon: GoPeople,
-    href: "/leads",
-  },
-  {
-    label: "Sales",
-    icon: TbGraph,
-    subMenu: [
-      { label: "Limitless", href: "/sales/limitless" },
-      { label: "Other Services", href: "/sales/other-services" },
-    ],
-  },
-  {
-    label: "Operations",
-    icon: TbBrandNetbeans,
-    subMenu: [
-      { label: "Limitless", href: "/operations/limitless" },
-      { label: "Other Services", href: "/operations/other-services" },
-    ],
-  },
-  {
-    label: "Bookings",
-    icon: TbLuggage,
-    subMenu: [
-      { label: "Limitless", href: "/bookings/limitless" },
-      { label: "Other Services", href: "/bookings/other-services" },
-    ],
-  },
-  {
-    label: "Content",
-    icon: LuClipboardList,
-    href: undefined,
-  },
-  {
-    label: "Finance",
-    icon: PiCurrencyCircleDollar,
-    subMenu: [
-      { label: "Limitless", href: "/finance/limitless" },
-      { label: "Other Services", href: "/finance/other-services" },
-    ],
-  },
-  {
-    label: "Directory",
-    icon: RiContactsBook3Line,
-    subMenu: [
-      { label: "Customers", href: "/directory/customers" },
-      { label: "Vendors", href: "/directory/vendors" },
-      { label: "Team", href: "/directory/team" },
-    ],
-  },
-];
+import { menuItems } from "@/components/navigation/menuItems";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -94,7 +14,6 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [openSubMenuIndex, setOpenSubMenuIndex] = useState<number | null>(null);
-  const router = useRouter();
   const sidebarRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -113,18 +32,6 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [setIsOpen]);
-
-  useEffect(() => {
-    menuItems.forEach((item) => {
-      if (item.href) {
-        router.prefetch(item.href);
-      }
-
-      item.subMenu?.forEach((sub) => {
-        router.prefetch(sub.href);
-      });
-    });
-  }, [router]);
 
   return (
     <div

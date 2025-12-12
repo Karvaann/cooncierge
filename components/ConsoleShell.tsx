@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 import SidebarSkeleton from "@/components/skeletons/SidebarSkeleton";
 import HeaderSkeleton from "@/components/skeletons/HeaderSkeleton";
+import RoutePrefetcher from "@/components/RoutePrefetcher";
 
 const Sidebar = dynamic(() => import("@/components/Sidebar"), {
   loading: () => <SidebarSkeleton />,
@@ -32,6 +33,7 @@ export default function ConsoleShell({ children }: ConsoleShellProps) {
 
   return (
     <div className="min-h-screen bg-slate-100">
+      <RoutePrefetcher />
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       <div className="ml-[3.125vw]">
         <Header isOpen={isSidebarOpen} />
