@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
   type ReactNode,
+  useRef,
 } from "react";
 import { usePathname } from "next/navigation";
 import {
@@ -26,9 +27,9 @@ interface LoadingContextValue {
 const LoadingContext = createContext<LoadingContextValue | null>(null);
 
 export const LoadingProvider = ({ children }: { children: ReactNode }) => {
-  const pathname = usePathname();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [hydrated, setHydrated] = useState(false);
+  const initialLoadStarted = useRef(false);
 
   useEffect(() => {
     setHydrated(true);
@@ -41,14 +42,19 @@ export const LoadingProvider = ({ children }: { children: ReactNode }) => {
     return unsubscribe;
   }, []);
 
+  // Only show the loader for the first page render (initial navigation / hard reload)
   useEffect(() => {
-    const token = startGlobalLoading("route-change");
+    if (initialLoadStarted.current) return;
+    initialLoadStarted.current = true;
+
+    const token = startGlobalLoading("initial-route");
     const timeout = setTimeout(() => finishGlobalLoading(token), 1200);
+
     return () => {
       clearTimeout(timeout);
       finishGlobalLoading(token);
     };
-  }, [pathname]);
+  }, []);
 
   const value = useMemo(
     () => ({

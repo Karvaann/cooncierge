@@ -446,7 +446,7 @@ const CustomerDirectory = () => {
                       row.customerID
                     );
                     setBookingHistory(
-                      mapQuotationsToModal(history.quotations || [])
+                      history.quotations
                     );
                   } catch (err) {
                     console.error("Failed to load booking history:", err);
@@ -581,8 +581,7 @@ const CustomerDirectory = () => {
                       limit: 10,
                     }
                   );
-                  const mapped = mapQuotationsToModal(resp?.quotations || []);
-                  setBookingHistory(mapped);
+                  setBookingHistory(resp?.quotations);
                 } catch (err) {
                   console.error(
                     "Failed to load traveller booking history:",

@@ -49,6 +49,7 @@ interface BookingFormSidesheetProps {
   selectedService: Service | null | undefined;
   onFormSubmit?: (formData: any) => void;
   initialData?: any;
+  mode?: "view" | "edit";
 }
 
 type TabType = "general" | "service" | "review";
@@ -135,6 +136,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   selectedService,
   onFormSubmit,
   initialData,
+  mode = "edit",
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>("general");
   const [formData, setFormData] = useState<any>(initialData || {});
@@ -159,6 +161,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const addBookingDocuments = (files: File[]) => {
     setBookingDocuments((prev) => [...prev, ...files]);
   };
+
+  const isReadOnly = mode === "view";
 
   // Ref to always have access to latest formData in callbacks
   const formDataRef = useRef(formData);
@@ -550,11 +554,12 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
               {/* dont unmount General Info */}
               <div
                 style={{ display: activeTab === "general" ? "block" : "none" }}
+                className={isReadOnly ? "opacity-90" : ""}
               >
                 <GeneralInfoForm
                   initialFormData={formData}
                   onFormDataUpdate={handleFormDataUpdate}
-                  isSubmitting={isSubmitting}
+                  isSubmitting={isSubmitting || isReadOnly}
                   formRef={generalFormRef as React.RefObject<HTMLFormElement>}
                   onAddDocuments={addBookingDocuments}
                 />
@@ -563,11 +568,12 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
               {/* Always mount Service Info */}
               <div
                 style={{ display: activeTab === "service" ? "block" : "none" }}
+                className={isReadOnly ? "opacity-90" : ""}
               >
                 <ServiceInfoFormSwitcher
                   formData={formData}
                   onFormDataUpdate={handleFormDataUpdate}
-                  isSubmitting={isSubmitting}
+                  isSubmitting={isSubmitting || isReadOnly}
                   formRef={serviceFormRef}
                   selectedService={selectedService || initialData?.quotationType}
                   onAddDocuments={addBookingDocuments}
@@ -576,85 +582,87 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
               {/* Footer Actions */}
 
-              <div className="border-t border-gray-200 p-4 mt-4">
-                <div className="flex justify-between">
-                  {/* LEFT SIDE BUTTONS */}
-                  <div>
-                    {activeTab === "service" && (
-                      <Button
-                        text="Previous"
-                        onClick={() => {
-                          const currentIndex = tabs.findIndex(
-                            (tab) => tab.id === activeTab
-                          );
-                          const prevTab = tabs[currentIndex - 1];
-                          if (prevTab?.isEnabled) setActiveTab(prevTab.id);
-                        }}
-                        bgColor="bg-white"
-                        textColor="text-[#114958]"
-                        className="border border-[#114958] hover:bg-[#114958] "
-                        disabled={isSubmitting}
-                      />
-                    )}
-
-                    {/* General tab → Nothing shown */}
-                  </div>
-
-                  {/* RIGHT SIDE BUTTONS */}
-                  <div className="flex space-x-2">
-                    {activeTab === "general" && (
-                      <>
+              {!isReadOnly && (
+                <div className="border-t border-gray-200 p-4 mt-4">
+                  <div className="flex justify-between">
+                    {/* LEFT SIDE BUTTONS */}
+                    <div>
+                      {activeTab === "service" && (
                         <Button
-                          text="Save As Draft"
-                          onClick={handleDraftSubmit}
-                          bgColor="bg-white"
-                          textColor="text-[#114958]"
-                          className="hover:bg-gray-200 border border-[#114958]"
-                          disabled={isSubmitting}
-                        />
-
-                        <Button
-                          text="Next"
+                          text="Previous"
                           onClick={() => {
                             const currentIndex = tabs.findIndex(
                               (tab) => tab.id === activeTab
                             );
-                            const nextTab = tabs[currentIndex + 1];
-                            if (nextTab?.isEnabled) setActiveTab(nextTab.id);
+                            const prevTab = tabs[currentIndex - 1];
+                            if (prevTab?.isEnabled) setActiveTab(prevTab.id);
                           }}
-                          bgColor="bg-[#114958]"
-                          textColor="text-white"
-                          className="hover:bg-[#0d3a45]"
-                          disabled={isSubmitting}
-                        />
-                      </>
-                    )}
-
-                    {activeTab === "service" && (
-                      <>
-                        <Button
-                          text="Save As Draft"
-                          onClick={handleDraftSubmit}
-                          bgColor="bg-white border border-[#114958]"
+                          bgColor="bg-white"
                           textColor="text-[#114958]"
+                          className="border border-[#114958] hover:bg-[#114958] "
                           disabled={isSubmitting}
                         />
+                      )}
 
-                        <Button
-                          text="Save"
-                          onClick={() => handleSubmit()}
-                          icon={<LuSave size={16} />}
-                          bgColor="bg-[#0D4B37]"
-                          textColor="text-white"
-                          width="w-auto"
-                          type="button"
-                          disabled={isSubmitting || !selectedService}
-                        />
-                      </>
-                    )}
+                      {/* General tab → Nothing shown */}
+                    </div>
+
+                    {/* RIGHT SIDE BUTTONS */}
+                    <div className="flex space-x-2">
+                      {activeTab === "general" && (
+                        <>
+                          <Button
+                            text="Save As Draft"
+                            onClick={handleDraftSubmit}
+                            bgColor="bg-white"
+                            textColor="text-[#114958]"
+                            className="hover:bg-gray-200 border border-[#114958]"
+                            disabled={isSubmitting}
+                          />
+
+                          <Button
+                            text="Next"
+                            onClick={() => {
+                              const currentIndex = tabs.findIndex(
+                                (tab) => tab.id === activeTab
+                              );
+                              const nextTab = tabs[currentIndex + 1];
+                              if (nextTab?.isEnabled) setActiveTab(nextTab.id);
+                            }}
+                            bgColor="bg-[#114958]"
+                            textColor="text-white"
+                            className="hover:bg-[#0d3a45]"
+                            disabled={isSubmitting}
+                          />
+                        </>
+                      )}
+
+                      {activeTab === "service" && (
+                        <>
+                          <Button
+                            text="Save As Draft"
+                            onClick={handleDraftSubmit}
+                            bgColor="bg-white border border-[#114958]"
+                            textColor="text-[#114958]"
+                            disabled={isSubmitting}
+                          />
+
+                          <Button
+                            text="Save"
+                            onClick={() => handleSubmit()}
+                            icon={<LuSave size={16} />}
+                            bgColor="bg-[#0D4B37]"
+                            textColor="text-white"
+                            width="w-auto"
+                            type="button"
+                            disabled={isSubmitting || !selectedService}
+                          />
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

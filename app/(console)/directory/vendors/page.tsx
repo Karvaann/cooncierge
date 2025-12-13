@@ -252,14 +252,7 @@ const VendorDirectory = () => {
       });
 
       const quotations = resp?.quotations || [];
-      const mapped = quotations.map((q: any) => ({
-        id: q.customId || q._id,
-        bookingDate: q.createdAt ? formatDMY(q.createdAt) : "—",
-        travelDate: q.travelDate ? String(q.travelDate) : "",
-        status: mapStatusForModal(q.status),
-        amount: q.totalAmount != null ? String(q.totalAmount) : "0",
-      }));
-      setHistoryBookings(mapped);
+      setHistoryBookings(quotations);
       setIsHistoryOpen(true);
     } catch (e) {
       console.error("Failed to open vendor history:", e);

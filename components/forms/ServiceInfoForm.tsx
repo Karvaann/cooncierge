@@ -226,7 +226,7 @@ const ServiceInfoForm: React.FC<ServiceInfoFormProps> = ({
       <input
         type={type}
         name={name}
-        value={name}
+        value={(formData[name] as string | number | undefined) ?? ""}
         onChange={handleChange}
         onBlur={handleBlur}
         placeholder={placeholder}

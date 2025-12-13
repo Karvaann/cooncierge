@@ -173,15 +173,8 @@ const TeamDirectory = () => {
             return "In Progress" as const;
         }
       };
-      const formattedBookings = res.quotations.map((q: any) => ({
-        id: q._id,
-        bookingDate: q.createdAt,
-        travelDate: q.travelDate,
-        status: mapStatusForModal(q.status),
-        totalAmount: q.totalAmount,
-      }));
 
-      setHistoryData(formattedBookings);
+      setHistoryData(res.quotations);
       setIsHistoryOpen(true);
     } catch (error) {
       console.error("Error loading booking history", error);
