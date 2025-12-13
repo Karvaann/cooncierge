@@ -29,6 +29,11 @@ interface ValidationErrors {
   [key: string]: string;
 }
 
+interface ExternalFormData {
+  formFields?: Partial<OtherServiceInfoFormData>;
+  maritimeinfoform?: Partial<OtherServiceInfoFormData>;
+}
+
 interface OtherInfoFormProps {
   onSubmit?: (data: OtherServiceInfoFormData) => void;
   isSubmitting?: boolean;
@@ -36,7 +41,12 @@ interface OtherInfoFormProps {
   formRef?: React.RefObject<HTMLDivElement | null>;
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
+<<<<<<< HEAD
   externalFormData?: any;
+=======
+  externalFormData?: ExternalFormData | Record<string, unknown>;
+  formData?: Record<string, unknown>;
+>>>>>>> 22ee6e2c211c2b0eca0af603045345bd586112d7
 }
 
 const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
@@ -47,19 +57,29 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   onFormDataUpdate,
   onAddDocuments,
   externalFormData,
+  formData: incomingFormData,
 }) => {
+  const normalizedExternalData = useMemo(() => {
+    const source = externalFormData ?? incomingFormData ?? {};
+    const fields =
+      (source as ExternalFormData)?.formFields ??
+      (source as ExternalFormData)?.maritimeinfoform ??
+      source;
+    return fields as Partial<OtherServiceInfoFormData>;
+  }, [externalFormData, incomingFormData]);
+
   // Internal form state
   const [formData, setFormData] = useState<OtherServiceInfoFormData>({
-    bookingdate: externalFormData?.formFields?.bookingdate || "",
-    traveldate: externalFormData?.formFields?.traveldate || "",
-    bookingstatus: externalFormData?.formFields?.bookingstatus || "",
-    costprice: externalFormData?.formFields?.costprice || "",
-    sellingprice: externalFormData?.formFields?.sellingprice || "",
-    confirmationNumber: externalFormData?.formFields?.confirmationNumber || "",
-    title: externalFormData?.formFields?.title || "",
-    description: externalFormData?.formFields?.description || "",
+    bookingdate: normalizedExternalData?.bookingdate || "",
+    traveldate: normalizedExternalData?.traveldate || "",
+    bookingstatus: normalizedExternalData?.bookingstatus || "",
+    costprice: normalizedExternalData?.costprice || "",
+    sellingprice: normalizedExternalData?.sellingprice || "",
+    confirmationNumber: normalizedExternalData?.confirmationNumber || "",
+    title: normalizedExternalData?.title || "",
+    description: normalizedExternalData?.description || "",
     documents: "",
-    remarks: externalFormData?.formFields?.remarks || "",
+    remarks: normalizedExternalData?.remarks || "",
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});

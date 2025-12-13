@@ -78,7 +78,8 @@ interface FlightInfoFormProps {
   formRef?: React.RefObject<HTMLFormElement | null>;
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
-  externalFormData?: ExternalFormData;
+  externalFormData?: ExternalFormData | Record<string, unknown>;
+  formData?: Record<string, unknown>; // raw booking data passed from parent (for edit)
 }
 
 const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
@@ -89,38 +90,71 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   onFormDataUpdate,
   onAddDocuments,
   externalFormData,
+  formData: incomingFormData,
 }) => {
-  // Internal form state
-  const [formData, setFormData] = useState<FlightInfoFormData>({
-    bookingdate: externalFormData?.formFields?.bookingdate || "",
-    traveldate: externalFormData?.formFields?.traveldate || "",
-    bookingstatus: externalFormData?.formFields?.bookingstatus || "",
-    costprice: externalFormData?.formFields?.costprice || "",
-    sellingprice: externalFormData?.formFields?.sellingprice || "",
-    PNR: externalFormData?.formFields?.PNR || "",
-    segments: [
-      {
-        id: "1",
-        flightnumber: "",
-        traveldate: "",
-        cabinclass: "",
-      },
-    ], // Start with one segment
-    returnSegments: [
-      {
-        id: "return-1",
-        flightnumber: "",
-        traveldate: "",
-        cabinclass: "",
-      },
-    ],
-    pnrEnabled: true,
-    samePNRForAllSegments: false,
-    flightType: "One Way",
-    remarks: externalFormData?.formFields?.remarks || "",
-  });
+  // Normalize incoming data so we can hydrate the form from either
+  // `externalFormData`, `externalFormData.formFields`, `externalFormData.flightinfoform`,
+  // or the raw `formData` passed from BookingFormSideSheet when editing.
+  const normalizedExternalData = useMemo(() => {
+    const source =
+      externalFormData ??
+      (incomingFormData as Record<string, unknown> | undefined) ??
+      {};
+    const fields =
+      (source as ExternalFormData)?.formFields ??
+      (source as any)?.flightinfoform ??
+      source;
+    return fields as Partial<FlightInfoFormData>;
+  }, [externalFormData, incomingFormData]);
 
-  console.log("Flight External Form Data:", externalFormData);
+  // Internal form state
+  const [formData, setFormData] = useState<FlightInfoFormData>(() => ({
+    bookingdate: normalizedExternalData?.bookingdate || "",
+    traveldate: normalizedExternalData?.traveldate || "",
+    bookingstatus: normalizedExternalData?.bookingstatus || "",
+    costprice: normalizedExternalData?.costprice || "",
+    sellingprice: normalizedExternalData?.sellingprice || "",
+    PNR: normalizedExternalData?.PNR || "",
+    segments:
+      normalizedExternalData?.segments && normalizedExternalData.segments.length
+        ? normalizedExternalData.segments.map((seg, idx) => ({
+            id: seg.id ?? `seg-${idx}`,
+            ...seg,
+          }))
+        : [
+            {
+              id: "1",
+              flightnumber: "",
+              traveldate: "",
+              cabinclass: "",
+            },
+          ],
+    returnSegments:
+      normalizedExternalData?.returnSegments &&
+      normalizedExternalData.returnSegments.length
+        ? normalizedExternalData.returnSegments.map((seg, idx) => ({
+            id: seg.id ?? `return-${idx + 1}`,
+            ...seg,
+          }))
+        : [
+            {
+              id: "return-1",
+              flightnumber: "",
+              traveldate: "",
+              cabinclass: "",
+            },
+          ],
+    pnrEnabled:
+      normalizedExternalData?.pnrEnabled !== undefined
+        ? Boolean(normalizedExternalData.pnrEnabled)
+        : true,
+    samePNRForAllSegments:
+      normalizedExternalData?.samePNRForAllSegments ?? false,
+    flightType:
+      (normalizedExternalData?.flightType as FlightInfoFormData["flightType"]) ||
+      "One Way",
+    remarks: normalizedExternalData?.remarks || "",
+  }));
 
   const [errors, setErrors] = useState<ValidationErrors>({});
 
@@ -185,15 +219,41 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
     setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Sync with external form data when it changes
+  // Sync with external/initial form data when it changes (edit mode)
   useEffect(() => {
-    if (externalFormData?.formFields) {
-      setFormData((prev) => ({
-        ...prev,
-        ...externalFormData.formFields,
-      }));
-    }
-  }, [externalFormData]);
+    if (!normalizedExternalData) return;
+
+    setFormData((prev) => ({
+      ...prev,
+      ...normalizedExternalData,
+      segments:
+        normalizedExternalData.segments &&
+        normalizedExternalData.segments.length
+          ? normalizedExternalData.segments.map((seg, idx) => ({
+              id: seg.id ?? `seg-${idx}`,
+              ...seg,
+            }))
+          : prev.segments,
+      returnSegments:
+        normalizedExternalData.returnSegments &&
+        normalizedExternalData.returnSegments.length
+          ? normalizedExternalData.returnSegments.map((seg, idx) => ({
+              id: seg.id ?? `return-${idx + 1}`,
+              ...seg,
+            }))
+          : prev.returnSegments,
+      pnrEnabled: normalizedExternalData.pnrEnabled ?? prev.pnrEnabled ?? true,
+      samePNRForAllSegments:
+        normalizedExternalData.samePNRForAllSegments ??
+        prev.samePNRForAllSegments ??
+        false,
+      flightType:
+        (normalizedExternalData.flightType as
+          | "One Way"
+          | "Round Trip"
+          | "Multi-City") ?? prev.flightType,
+    }));
+  }, [normalizedExternalData]);
 
   useEffect(() => {
     onFormDataUpdate({ flightinfoform: formData });

@@ -30,7 +30,8 @@ interface ValidationErrors {
 }
 
 interface ExternalFormData {
-  formFields: OtherServiceInfoFormData;
+  formFields?: Partial<OtherServiceInfoFormData>;
+  ticketsinfoform?: Partial<OtherServiceInfoFormData>;
 }
 
 interface OtherInfoFormProps {
@@ -40,7 +41,8 @@ interface OtherInfoFormProps {
   formRef?: React.RefObject<HTMLDivElement | null>;
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
-  externalFormData?: ExternalFormData;
+  externalFormData?: ExternalFormData | Record<string, unknown>;
+  formData?: Record<string, unknown>;
 }
 
 const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
@@ -51,19 +53,29 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   onFormDataUpdate,
   onAddDocuments,
   externalFormData,
+  formData: incomingFormData,
 }) => {
+  const normalizedExternalData = useMemo(() => {
+    const source = externalFormData ?? incomingFormData ?? {};
+    const fields =
+      (source as ExternalFormData)?.formFields ??
+      (source as ExternalFormData)?.ticketsinfoform ??
+      source;
+    return fields as Partial<OtherServiceInfoFormData>;
+  }, [externalFormData, incomingFormData]);
+
   // Internal form state
   const [formData, setFormData] = useState<OtherServiceInfoFormData>({
-    bookingdate: externalFormData?.formFields?.bookingdate || "",
-    traveldate: externalFormData?.formFields?.traveldate || "",
-    bookingstatus: externalFormData?.formFields?.bookingstatus || "",
-    costprice: externalFormData?.formFields?.costprice || "",
-    sellingprice: externalFormData?.formFields?.sellingprice || "",
-    confirmationNumber: externalFormData?.formFields?.confirmationNumber || "",
-    title: externalFormData?.formFields?.title || "",
-    description: externalFormData?.formFields?.description || "",
+    bookingdate: normalizedExternalData?.bookingdate || "",
+    traveldate: normalizedExternalData?.traveldate || "",
+    bookingstatus: normalizedExternalData?.bookingstatus || "",
+    costprice: normalizedExternalData?.costprice || "",
+    sellingprice: normalizedExternalData?.sellingprice || "",
+    confirmationNumber: normalizedExternalData?.confirmationNumber || "",
+    title: normalizedExternalData?.title || "",
+    description: normalizedExternalData?.description || "",
     documents: "",
-    remarks: externalFormData?.formFields?.remarks || "",
+    remarks: normalizedExternalData?.remarks || "",
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
