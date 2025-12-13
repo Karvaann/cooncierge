@@ -41,12 +41,8 @@ interface OtherInfoFormProps {
   formRef?: React.RefObject<HTMLDivElement | null>;
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
-<<<<<<< HEAD
-  externalFormData?: any;
-=======
   externalFormData?: ExternalFormData | Record<string, unknown>;
   formData?: Record<string, unknown>;
->>>>>>> 22ee6e2c211c2b0eca0af603045345bd586112d7
 }
 
 const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
