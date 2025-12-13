@@ -11,6 +11,7 @@ import RoundTripLayout from "./RoundTripLayout";
 import MultiCityLayout from "./MultiCityLayout";
 import DropDown from "@/components/DropDown";
 import SingleCalendar from "@/components/SingleCalendar";
+import { FaRegFolder } from "react-icons/fa";
 // Type definitions
 interface FlightInfoFormData {
   bookingdate: string;
@@ -226,7 +227,8 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
       ...prev,
       ...normalizedExternalData,
       segments:
-        normalizedExternalData.segments && normalizedExternalData.segments.length
+        normalizedExternalData.segments &&
+        normalizedExternalData.segments.length
           ? normalizedExternalData.segments.map((seg, idx) => ({
               id: seg.id ?? `seg-${idx}`,
               ...seg,
@@ -240,8 +242,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
               ...seg,
             }))
           : prev.returnSegments,
-      pnrEnabled:
-        normalizedExternalData.pnrEnabled ?? prev.pnrEnabled ?? true,
+      pnrEnabled: normalizedExternalData.pnrEnabled ?? prev.pnrEnabled ?? true,
       samePNRForAllSegments:
         normalizedExternalData.samePNRForAllSegments ??
         prev.samePNRForAllSegments ??
@@ -982,24 +983,28 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             <MdOutlineFileUpload size={16} /> Attach Files
           </button>
 
-          {/* Selected files */}
+          {/* PREVIEW FILES */}
           <div className="mt-2 flex flex-col gap-2">
             {attachedFiles.map((file, i) => (
               <div
                 key={i}
-                className="flex items-center gap-2 bg-gray-50 border border-gray-200 
-                               rounded-md px-2 py-1.5 w-fit"
+                className="flex items-center justify-between w-full 
+                           bg-white rounded-md 
+                           px-3 py-2 hover:bg-gray-50 transition"
               >
-                <span className="text-gray-700 text-[0.75rem] truncate">
-                  📎 {file.name}
+                {/* File Name */}
+                <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[0.75rem] truncate flex items-center gap-2">
+                  <FaRegFolder className="text-blue-500 w-3 h-3" />
+                  {file.name}
                 </span>
 
+                {/* Delete Icon */}
                 <button
                   type="button"
                   onClick={() => handleDeleteFile(i)}
                   className="text-red-500 hover:text-red-700"
                 >
-                  <FiTrash2 size={14} />
+                  <FiTrash2 size={16} />
                 </button>
               </div>
             ))}

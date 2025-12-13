@@ -8,7 +8,7 @@ interface SideSheetProps {
   isOpen: boolean;
   onClose: () => void;
   onCloseButtonClick?: () => void;
-  title?: string;
+  title?: React.ReactNode;
   children: React.ReactNode;
   width?: "sm" | "md" | "lg" | "xl" | "full";
   position?: "left" | "right";

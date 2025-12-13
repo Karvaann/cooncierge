@@ -165,7 +165,7 @@ const TeamDirectory = () => {
       const mapStatusForModal = (status?: string) => {
         switch ((status || "").toLowerCase()) {
           case "confirmed":
-            return "Successful" as const;
+            return "Confirmed" as const;
           case "cancelled":
             return "Cancelled" as const;
           case "draft":
@@ -576,6 +576,7 @@ const TeamDirectory = () => {
         recordId={
           selectedTeam?._id || selectedTeam?.ID || selectedTeam?.id || "—"
         }
+        categoryName="team members"
       />
 
       {isConfirmModalOpen && (

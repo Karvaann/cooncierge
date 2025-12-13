@@ -8,6 +8,8 @@ import { createLog, updateLog } from "@/services/logsApi";
 import { getTeams } from "@/services/teamsApi";
 import { getAuthUser } from "@/services/storage/authStorage";
 import Button from "../Button";
+import DropDown from "../DropDown";
+import SingleCalendar from "../SingleCalendar";
 
 interface AddTaskModalProps {
   isOpen: boolean;
@@ -111,10 +113,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
     if (dueISO) {
       const d = new Date(dueISO);
       if (!isNaN(d.getTime())) {
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, "0");
-        const dd = String(d.getDate()).padStart(2, "0");
-        setStartDate(`${yyyy}-${mm}-${dd}`);
+        setStartDate(d.toISOString());
         setDueHours(d.getHours());
         setDueMinutes(d.getMinutes());
       }
@@ -333,23 +332,26 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
               <label className="block text-[0.75rem] text-gray-700 mb-1">
                 Category
               </label>
-              <select
-                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
+              <DropDown
+                options={[
+                  { value: "", label: "Select Category" },
+                  { value: "bookings-os", label: "Bookings - OS" },
+                  {
+                    value: "bookings-limitless",
+                    label: "Bookings - Limitless Category",
+                  },
+                  {
+                    value: "directory-customers",
+                    label: "Directory - Customers",
+                  },
+                  { value: "directory-vendors", label: "Directory - Vendors" },
+                  { value: "directory-team", label: "Directory - Team" },
+                  { value: "general", label: "General" },
+                ]}
                 value={nature}
-                onChange={(e) => setNature(e.target.value)}
-              >
-                <option value="">Select Category</option>
-                <option value="bookings-os">Bookings - OS</option>
-                <option value="bookings-limitless">
-                  Bookings - Limitless Category
-                </option>
-                <option value="directory-customers">
-                  Directory - Customers
-                </option>
-                <option value="directory-vendors">Directory - Vendors</option>
-                <option value="directory-team">Directory - Team</option>
-                <option value="general">General</option>
-              </select>
+                onChange={(v) => setNature(v)}
+                customWidth="w-full"
+              />
             </div>
 
             {/* Category ID */}
@@ -370,18 +372,19 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
               <label className="block text-[0.75rem] text-gray-700 mb-1">
                 Task Type
               </label>
-              <select
-                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
+              <DropDown
+                options={[
+                  { value: "", label: "Select Task Type" },
+                  { value: "Documents", label: "Documents" },
+                  { value: "Finance", label: "Finance" },
+                  { value: "Follow up", label: "Follow up" },
+                  { value: "Feedback", label: "Feedback" },
+                  { value: "General", label: "General" },
+                ]}
                 value={taskType}
-                onChange={(e) => setTaskType(e.target.value)}
-              >
-                <option value="">Select Task Type</option>
-                <option value="Documents">Documents</option>
-                <option value="Finance">Finance</option>
-                <option value="Follow up">Follow up</option>
-                <option value="Feedback">Feedback</option>
-                <option value="General">General</option>
-              </select>
+                onChange={(v) => setTaskType(v)}
+                customWidth="w-full"
+              />
             </div>
 
             {/* Description */}
@@ -421,16 +424,17 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
               <label className="block text-[0.75rem] text-gray-700 mb-1">
                 Priority
               </label>
-              <select
-                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
+              <DropDown
+                options={[
+                  { value: "", label: "Select Priority" },
+                  { value: "High", label: "High" },
+                  { value: "Medium", label: "Medium" },
+                  { value: "Low", label: "Low" },
+                ]}
                 value={priority}
-                onChange={(e) => setPriority(e.target.value)}
-              >
-                <option value="">Select Priority</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
+                onChange={(v) => setPriority(v)}
+                customWidth="w-full"
+              />
             </div>
 
             {/* Assigned To */}
@@ -540,11 +544,12 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
               <label className="block text-[0.75rem] text-gray-700 mb-1">
                 Due Date
               </label>
-              <input
-                type="date"
-                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
+              <SingleCalendar
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(iso) => setStartDate(iso)}
+                customWidth="w-full"
+                placeholder="DD-MM-YYYY"
+                popupMaxHeight="h-40"
               />
             </div>
 

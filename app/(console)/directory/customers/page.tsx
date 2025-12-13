@@ -64,9 +64,6 @@ const travellerColumnIconMap: Record<string, JSX.Element> = {
 };
 
 const columnIconMap: Record<string, JSX.Element> = {
-  "Customer ID": (
-    <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1] " />
-  ),
   Name: (
     <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
   ),
@@ -157,7 +154,7 @@ const CustomerDirectory = () => {
   const mapStatusForModal = (status?: string) => {
     switch ((status || "").toLowerCase()) {
       case "confirmed":
-        return "Successful" as const;
+        return "Confirmed" as const;
       case "cancelled":
         // Align with BookingHistoryModal expected status union which uses 'Cancelled'
         return "Cancelled" as const;
@@ -955,6 +952,7 @@ const CustomerDirectory = () => {
                 "—"
               : "—"
           }
+          categoryName={activeTab === "Customers" ? "customers" : "travellers"}
         />
       )}
 

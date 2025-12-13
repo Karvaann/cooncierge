@@ -28,6 +28,8 @@ interface BookingHistoryModalProps {
   recordName?: string | null;
   /** Optional id for the record to show next to the name */
   recordId?: string | null;
+  /** Category used for table display text (e.g. "customers", "vendors", "teams") */
+  categoryName?: string | null;
 }
 
 const statusColors: Record<string, string> = {
@@ -44,10 +46,14 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
   bookings,
   recordName = null,
   recordId = null,
+  categoryName = null,
 }) => {
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
   const [sideSheetMode, setSideSheetMode] = useState<"view" | "edit">("edit");
-  const [selectedBooking, setSelectedBooking] = useState<Record<string, any> | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<Record<
+    string,
+    any
+  > | null>(null);
 
   const formatDMY = (dateString: string) => {
     const direct = new Date(dateString);
@@ -70,7 +76,14 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
     }
     return dateString || "—";
   };
-  const columns = ["ID", "Booking Date", "Travel Date", "Status", "Amount", "Action"];
+  const columns = [
+    "ID",
+    "Booking Date",
+    "Travel Date",
+    "Status",
+    "Amount",
+    "Action",
+  ];
 
   const columnIconMap: Record<string, JSX.Element> = {
     "Booking Date": (
@@ -90,8 +103,11 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
     { label: "Vendor", icon: <FaStore size={18} /> },
   ];
 
-  const handleOpenSideSheet = (booking: Record<string, any>, mode: "view" | "edit") => {
-    console.log('Opening Booking', booking, mode);
+  const handleOpenSideSheet = (
+    booking: Record<string, any>,
+    mode: "view" | "edit"
+  ) => {
+    console.log("Opening Booking", booking, mode);
     setSelectedBooking(booking);
     setSideSheetMode(mode);
     setIsSideSheetOpen(true);
@@ -109,7 +125,9 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
       key={`${item._id}-bdate`}
       className="px-2 py-2 text-center text-[0.75rem]"
     >
-      {item.formFields.bookingdate ? formatDMY(item.formFields.bookingdate) : "—"}
+      {item.formFields.bookingdate
+        ? formatDMY(item.formFields.bookingdate)
+        : "—"}
     </td>,
 
     <td
@@ -213,6 +231,7 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
           columnIconMap={columnIconMap}
           initialRowsPerPage={5}
           hideRowsPerPage={false}
+          categoryName={categoryName ?? "entries"}
         />
       </div>
 

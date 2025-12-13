@@ -245,10 +245,10 @@ export default function OneWayLayout({
 
       const preview: SegmentPreview = {
         airline: f.airline?.name || f.airline?.airline_name || "--",
-        origin: `${f.departure?.airport ?? "--"} (${
+        origin: `${f.departure?.iata_code ?? "--"} (${
           f.departure?.iata ?? "--"
         })`,
-        destination: `${f.arrival?.airport ?? "--"} (${
+        destination: `${f.arrival?.iata_code ?? "--"} (${
           f.arrival?.iata ?? "--"
         })`,
         departureTime: formatTime(f.departure?.scheduled),

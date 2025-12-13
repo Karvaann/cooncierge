@@ -233,13 +233,14 @@ export const formatServiceType = (type: string): string => {
 
 
 
-export const generateCustomId = (type: "customer" | "vendor" | "traveller" | "team") => {
+export const generateCustomId = (type: "customer" | "vendor" | "traveller" | "team" | "bookings") => {
   // Prefix mapping
   const prefixes: Record<typeof type, string> = {
     customer: "CU",
     vendor: "VE",
     traveller: "TR",
     team: "TE",
+    bookings: "OS",
   };
 
   const prefix = prefixes[type];

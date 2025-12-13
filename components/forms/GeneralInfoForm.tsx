@@ -341,22 +341,36 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 }) => {
   // Internal form state
 
-    console.log('Initial External Form Data', externalFormData);
+  console.log("Initial External Form Data", externalFormData);
 
   const [formData, setFormData] = useState<GeneralInfoFormData>({
     customer: externalFormData?.customerId?._id || "",
     vendor: externalFormData?.vendorId?._id || "",
-    vendorName: externalFormData?.vendorId?.contactPerson || externalFormData?.vendorId?.companyName || externalFormData?.formFields?.vendorName || "",
-    adults: externalFormData?.adults || externalFormData?.formFields?.adults || 1,
-    children: externalFormData?.children || externalFormData?.formFields?.children || 0,
-    infants: externalFormData?.infants || externalFormData?.formFields?.infants || 1,
-    childAges: externalFormData?.childAges || externalFormData?.formFields?.childAges || [],
+    vendorName:
+      externalFormData?.vendorId?.contactPerson ||
+      externalFormData?.vendorId?.companyName ||
+      externalFormData?.formFields?.vendorName ||
+      "",
+    adults:
+      externalFormData?.adults || externalFormData?.formFields?.adults || 1,
+    children:
+      externalFormData?.children || externalFormData?.formFields?.children || 1,
+    infants:
+      externalFormData?.infants || externalFormData?.formFields?.infants || 1,
+    childAges:
+      externalFormData?.childAges ||
+      externalFormData?.formFields?.childAges ||
+      [],
     adultTravellers: externalFormData?.formFields?.adultTravellers || [""], // Adult 1 (Lead Pax) - Names for display
     infantTravellers: externalFormData?.formFields?.infantTravellers || [""], // Names for display
     adultTravellerIds: externalFormData?.formFields?.adultTravellerIds || [""], // IDs for backend
-    infantTravellerIds: externalFormData?.formFields?.infantTravellerIds || [""], // IDs for backend
-    bookingOwner: externalFormData?.owner?.[0]?._id || externalFormData?.bookingOwner || "",
-    remarks: externalFormData?.remarks || externalFormData?.formFields?.remarks || "",
+    infantTravellerIds: externalFormData?.formFields?.infantTravellerIds || [
+      "",
+    ], // IDs for backend
+    bookingOwner:
+      externalFormData?.owner?.[0]?._id || externalFormData?.bookingOwner || "",
+    remarks:
+      externalFormData?.remarks || externalFormData?.formFields?.remarks || "",
   });
 
   // Sync initial form state to parent on mount
@@ -397,10 +411,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const [allTeams, setAllTeams] = useState<TeamDataType[]>([]);
   const [allTravellers, setAllTravellers] = useState<TravellerDataType[]>([]);
 
-  const [customerResults, setCustomerResults] = useState<CustomerDataType[]>([]);
+  const [customerResults, setCustomerResults] = useState<CustomerDataType[]>(
+    []
+  );
   const [vendorResults, setVendorResults] = useState<VendorDataType[]>([]);
   const [TeamsResults, setTeamsResults] = useState<TeamDataType[]>([]);
-  const [travellerResults, setTravellerResults] = useState<TravellerDataType[]>([]);
+  const [travellerResults, setTravellerResults] = useState<TravellerDataType[]>(
+    []
+  );
 
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
@@ -425,13 +443,17 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   // View customer sidesheet state
   const [isViewCustomerOpen, setIsViewCustomerOpen] = useState(false);
-  const [viewCustomerData, setViewCustomerData] = useState<CustomerDataType | null>(null);
+  const [viewCustomerData, setViewCustomerData] =
+    useState<CustomerDataType | null>(null);
   // View vendor sidesheet state
   const [isViewVendorOpen, setIsViewVendorOpen] = useState(false);
-  const [viewVendorData, setViewVendorData] = useState<VendorDataType | null>(null);
+  const [viewVendorData, setViewVendorData] = useState<VendorDataType | null>(
+    null
+  );
   // View traveller sidesheet state
   const [isViewTravellerOpen, setIsViewTravellerOpen] = useState(false);
-  const [viewTravellerData, setViewTravellerData] = useState<TravellerDataType | null>(null);
+  const [viewTravellerData, setViewTravellerData] =
+    useState<TravellerDataType | null>(null);
 
   // Add refs for click-outside detection
   const customerRef = useRef<HTMLDivElement | null>(null);
@@ -610,10 +632,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   // Hydrate owner from externalFormData
   useEffect(() => {
-    if (!externalFormData?.bookingOwner && !externalFormData?.owner?.[0]) return;
+    if (!externalFormData?.bookingOwner && !externalFormData?.owner?.[0])
+      return;
     if (!Array.isArray(allTeams) || allTeams.length === 0) return;
-    
-    const ownerId = externalFormData.owner?.[0]?._id || externalFormData.bookingOwner || "";
+
+    const ownerId =
+      externalFormData.owner?.[0]?._id || externalFormData.bookingOwner || "";
     if (ownerId && externalFormData.owner?.[0]) {
       const match = allTeams.find((t) => t._id === ownerId);
       if (match) {
@@ -630,15 +654,27 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     if (!externalFormData?.vendorId) return;
     if (!Array.isArray(allVendors) || allVendors.length === 0) return;
 
-    const match = allVendors.find((v) => v._id === externalFormData.vendorId?._id);
+    const match = allVendors.find(
+      (v) => v._id === externalFormData.vendorId?._id
+    );
     if (match) {
-      setVendorList([{ id: match._id, name: match.contactPerson || match.companyName || "" }]);
-    } else if (externalFormData.vendorId.contactPerson || externalFormData.vendorId.companyName) {
+      setVendorList([
+        { id: match._id, name: match.contactPerson || match.companyName || "" },
+      ]);
+    } else if (
+      externalFormData.vendorId.contactPerson ||
+      externalFormData.vendorId.companyName
+    ) {
       // If we can't find in vendors, use the name from external data
-      setVendorList([{
-        id: externalFormData.vendorId._id,
-        name: externalFormData.vendorId.contactPerson || externalFormData.vendorId.companyName || ""
-      }]);
+      setVendorList([
+        {
+          id: externalFormData.vendorId._id,
+          name:
+            externalFormData.vendorId.contactPerson ||
+            externalFormData.vendorId.companyName ||
+            "",
+        },
+      ]);
     }
   }, [externalFormData?.vendorId, allVendors]);
 
@@ -647,37 +683,53 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     if (!externalFormData?.customerId) return;
     if (!Array.isArray(allCustomers) || allCustomers.length === 0) return;
 
-    const match = allCustomers.find((c) => c._id === externalFormData.customerId?._id);
+    const match = allCustomers.find(
+      (c) => c._id === externalFormData.customerId?._id
+    );
     if (match) {
       setCustomerList([{ id: match._id, name: match.name }]);
     } else if (externalFormData.customerId.name) {
       // If we can't find in customers, use the name from external data
-      setCustomerList([{
-        id: externalFormData.customerId._id,
-        name: externalFormData.customerId.name
-      }]);
+      setCustomerList([
+        {
+          id: externalFormData.customerId._id,
+          name: externalFormData.customerId.name,
+        },
+      ]);
     }
   }, [externalFormData?.customerId, allCustomers]);
 
   // Hydrate travellers from externalFormData
   useEffect(() => {
-    if (!externalFormData?.travelers || !Array.isArray(externalFormData.travelers)) return;
-    
+    if (
+      !externalFormData?.travelers ||
+      !Array.isArray(externalFormData.travelers)
+    )
+      return;
+
     // Process adult travellers
     if (externalFormData.travelers.length > 0) {
-      const adultNames = externalFormData.travelers.map((traveller: TravellerDataType) => traveller.name || "");
-      const adultIds = externalFormData.travelers.map((traveller: TravellerDataType) => traveller._id || "");
-      
-      setFormData(prev => ({
+      const adultNames = externalFormData.travelers.map(
+        (traveller: TravellerDataType) => traveller.name || ""
+      );
+      const adultIds = externalFormData.travelers.map(
+        (traveller: TravellerDataType) => traveller._id || ""
+      );
+
+      setFormData((prev) => ({
         ...prev,
         adultTravellers: adultNames,
-        adultTravellerIds: adultIds
+        adultTravellerIds: adultIds,
       }));
     }
   }, [externalFormData?.travelers]);
 
   // Fuzzy search helper
-  const runFuzzySearch = <T,>(list: T[], term: string, keys: (keyof T)[]): T[] => {
+  const runFuzzySearch = <T,>(
+    list: T[],
+    term: string,
+    keys: (keyof T)[]
+  ): T[] => {
     if (!term.trim()) return [];
 
     const fuse = new Fuse(list, {
@@ -1296,6 +1348,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         rating = 4;
                       }
                       rating = Math.min(Math.max(rating || 4, 1), 5);
+                      const alias =
+                        (cust as any)?.alias || (cust as any)?.nickname || "";
 
                       return (
                         <div
@@ -1322,6 +1376,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             <div className="flex items-center gap-1">
                               <p className="font-medium text-[0.75rem] text-gray-900">
                                 {cust.name}
+                              </p>
+                              <span className="text-gray-300">|</span>
+                              <p className="text-[0.70rem] text-gray-600 truncate">
+                                {alias || "-"}
                               </p>
                               <span className="text-gray-300">|</span>
                               <p className="text-[0.70rem] text-gray-600 truncate">
@@ -1440,6 +1498,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   }
                   if (rating !== null)
                     rating = Math.min(Math.max(rating, 1), 5);
+                  const alias = (v as any)?.alias || (v as any)?.nickname || "";
 
                   return (
                     <div
@@ -1463,6 +1522,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         <div className="flex items-center gap-1">
                           <p className="font-normal text-[0.75rem] text-gray-900">
                             {v.name || v.contactPerson}
+                          </p>
+                          <span className="text-gray-300">|</span>
+                          <p className="text-[0.70rem] text-gray-600 truncate">
+                            {alias || "-"}
                           </p>
                           <span className="text-gray-300">|</span>
                           <p className="text-[0.70rem] text-gray-600 truncate">
@@ -1554,7 +1617,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 onClick={() =>
                   setFormData({
                     ...formData,
-                    children: Math.max(0, formData.children - 1),
+                    children: Math.max(1, formData.children - 1),
                   })
                 }
                 className="px-1 text-lg font-semibold"

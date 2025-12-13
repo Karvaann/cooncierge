@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+} from "react";
 import ConfirmPopupModal from "./popups/BookingPopups/ConfirmPopupModal";
 import SuccessPopupModal from "./popups/BookingPopups/SuccessPopupModal";
 import { BookingProvider, useBooking } from "@/context/BookingContext";
@@ -24,6 +30,7 @@ import Button from "./Button";
 import { LuSave } from "react-icons/lu";
 
 import { getAuthUser } from "@/services/storage/authStorage";
+import generateCustomId from "@/utils/helper";
 
 // Type definitions
 interface Service {
@@ -162,6 +169,20 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     setBookingDocuments((prev) => [...prev, ...files]);
   };
 
+  const [customerCode, setCustomerCode] = useState("");
+  const [bookingCode, setBookingCode] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      // generate a booking code each time the sidesheet opens
+      try {
+        const code = generateCustomId("bookings");
+        setBookingCode(code);
+      } catch (e) {
+        setBookingCode("");
+      }
+    }
+  }, [isOpen]);
   const isReadOnly = mode === "view";
 
   // Ref to always have access to latest formData in callbacks
@@ -286,7 +307,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     bookingDocuments.map((file) => {
       bookingDataTemp.append("documents", file);
     });
-    bookingDataTemp.append("customId", "OS-992CV");
+    bookingDataTemp.append("customId", bookingCode || "");
 
     return bookingDataTemp;
   }
@@ -517,11 +538,23 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   //   isSubmitting,
   // ]);
 
-  // Memoized title
+  // Memoized title (returns JSX to allow styled divider)
   const title = useMemo(() => {
-    if (!selectedService) return "Booking Form";
-    return `${selectedService.title} - Booking Form`;
-  }, [selectedService]);
+    if (!selectedService) return <span>Booking Form</span>;
+    return (
+      <div className="flex items-center">
+        <span className="text-md font-semibold">{selectedService.title}</span>
+        {bookingCode ? (
+          <>
+            <span className="mx-2 w-px h-4 bg-gray-200" aria-hidden />
+            <span className="font-mono text-[0.8rem] text-black">
+              {bookingCode}
+            </span>
+          </>
+        ) : null}
+      </div>
+    );
+  }, [selectedService, bookingCode]);
 
   // Confirm modal title text
   const confirmModalText =
@@ -561,7 +594,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting || isReadOnly}
                   formRef={generalFormRef as React.RefObject<HTMLFormElement>}
-                  onAddDocuments={addBookingDocuments}
                 />
               </div>
 
@@ -575,7 +607,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting || isReadOnly}
                   formRef={serviceFormRef}
-                  selectedService={selectedService || initialData?.quotationType}
+                  selectedService={
+                    selectedService || initialData?.quotationType
+                  }
                   onAddDocuments={addBookingDocuments}
                 />
               </div>
