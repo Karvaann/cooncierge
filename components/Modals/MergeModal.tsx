@@ -492,6 +492,7 @@ const MergeModal: React.FC<MergeModalProps> = ({
               rowIds={mergeIntoRowIds}
               droppableId="into"
               categoryName={mode === "customer" ? "Customers" : "Vendors"}
+              hideEntriesText={true}
             />
           </div>
 

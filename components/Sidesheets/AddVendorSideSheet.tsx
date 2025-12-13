@@ -104,7 +104,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       id: string;
       bookingDate: string;
       travelDate: string;
-      status: "Successful" | "On Hold" | "In Progress" | "Failed";
+      status: "Confirmed" | "On Hold" | "In Progress" | "Failed";
       amount: string;
     }[]
   >([]);
@@ -120,7 +120,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   const mapStatusForModal = (status?: string) => {
     switch ((status || "").toLowerCase()) {
       case "confirmed":
-        return "Successful" as const;
+        return "Confirmed" as const;
       case "cancelled":
         // Align with BookingHistoryModal expected status union which uses 'Cancelled'
         return "Cancelled" as const;

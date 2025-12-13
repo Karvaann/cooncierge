@@ -16,6 +16,7 @@ type Props = {
   inputClassName?: string; // Custom class for the input text
   showCalendarIcon?: boolean; // Whether to show the calendar icon (default: true)
   readOnly?: boolean; // When true, input is disabled and calendar cannot be opened
+  popupMaxHeight?: string; // Tailwind max-height class for calendar popup (e.g. 'max-h-44')
 };
 
 export default function SingleCalendar({
@@ -30,6 +31,7 @@ export default function SingleCalendar({
   inputClassName,
   showCalendarIcon = true,
   readOnly = false,
+  popupMaxHeight,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -511,7 +513,9 @@ export default function SingleCalendar({
 
       {open && (
         <div
-          className="absolute mt-2 z-50 rounded-lg shadow-2xl bg-white border border-gray-200 p-3 w-[16rem]"
+          className={`absolute mt-2 z-[9999] rounded-lg shadow-2xl bg-white border border-gray-200 p-3 w-[16rem] ${
+            popupMaxHeight || "max-h-72"
+          } overflow-auto`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Calendar navigation */}

@@ -129,7 +129,7 @@ const VendorDirectory = () => {
       id: string;
       bookingDate: string;
       travelDate: string;
-      status: "Successful" | "On Hold" | "In Progress" | "Failed";
+      status: "Confirmed" | "On Hold" | "In Progress" | "Failed";
       amount: string;
     }[]
   >([]);
@@ -228,7 +228,7 @@ const VendorDirectory = () => {
   const mapStatusForModal = (status?: string) => {
     switch ((status || "").toLowerCase()) {
       case "confirmed":
-        return "Successful" as const;
+        return "Confirmed" as const;
       case "cancelled":
         // Align with BookingHistoryModal expected status union which uses 'Failed'
         return "Failed" as const;
@@ -659,6 +659,7 @@ const VendorDirectory = () => {
             selectedVendor?.id ||
             "—"
           }
+          categoryName="vendors"
         />
       )}
     </div>

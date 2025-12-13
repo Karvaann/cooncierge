@@ -20,6 +20,7 @@ interface TableProps {
   headerClassName?: string;
   categoryName?: string;
   sortableHeaderHoverClass?: string;
+  hideEntriesText?: boolean;
 }
 
 const Table: React.FC<TableProps> = ({
@@ -37,6 +38,7 @@ const Table: React.FC<TableProps> = ({
   headerClassName = "",
   categoryName = "",
   sortableHeaderHoverClass = "",
+  hideEntriesText = false,
 }) => {
   const [page, setPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
@@ -132,7 +134,6 @@ const Table: React.FC<TableProps> = ({
                     if (!onSort) return;
 
                     if (
-                      col === "Customer ID" ||
                       col === "Rating" ||
                       col === "Date Modified" ||
                       col === "Date Created" ||
@@ -144,7 +145,6 @@ const Table: React.FC<TableProps> = ({
                   }}
                   className={`px-4 py-2 text-center text-gray-200 font-semibold leading-4 tracking-[0.6px] text-[0.65rem]
           ${
-            col === "Customer ID" ||
             col === "Rating" ||
             col === "Date Modified" ||
             col === "Date Created" ||
@@ -275,7 +275,9 @@ const Table: React.FC<TableProps> = ({
           </div>
         )}
 
-        <div className="text-gray-600 text-[0.75rem]">{displayText}</div>
+        {!hideEntriesText && (
+          <div className="text-gray-600 text-[0.75rem]">{displayText}</div>
+        )}
 
         <div className="flex items-center gap-2">
           <button

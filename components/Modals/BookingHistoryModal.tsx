@@ -21,17 +21,19 @@ interface BookingHistoryModalProps {
     id: string;
     bookingDate: string;
     travelDate: string;
-    status: "Successful" | "On Hold" | "In Progress" | "Failed";
+    status: "Confirmed" | "On Hold" | "In Progress" | "Failed";
     amount: string;
   }[];
   /** Optional display name for the record (customer/vendor/traveller/team member) */
   recordName?: string | null;
   /** Optional id for the record to show next to the name */
   recordId?: string | null;
+  /** Category used for table display text (e.g. "customers", "vendors", "teams") */
+  categoryName?: string | null;
 }
 
 const statusColors: Record<string, string> = {
-  Successful: "bg-green-100 text-green-700",
+  Confirmed: "bg-green-100 text-green-700",
   "On Hold": "bg-yellow-100 text-yellow-800",
   "In Progress": "bg-orange-100 text-orange-500",
   Failed: "bg-red-100 text-red-700",
@@ -45,6 +47,7 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
   bookings,
   recordName = null,
   recordId = null,
+  categoryName = null,
 }) => {
   const formatDMY = (dateString: string) => {
     const direct = new Date(dateString);
@@ -182,6 +185,7 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
           columnIconMap={columnIconMap}
           initialRowsPerPage={5}
           hideRowsPerPage={false}
+          categoryName={categoryName ?? "entries"}
         />
       </div>
     </Modal>
