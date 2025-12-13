@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import FullScreenLoader from "@/components/FullScreenLoader";
+import { LoadingProvider } from "@/context/LoadingContext";
+import LoadingOverlay from "@/components/LoadingOverlay";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -22,7 +24,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={poppins.className}>
-        <Suspense fallback={<FullScreenLoader />}>{children}</Suspense>
+        <Suspense fallback={<FullScreenLoader />}>
+          <LoadingProvider>
+            <LoadingOverlay />
+            {children}
+          </LoadingProvider>
+        </Suspense>
       </body>
     </html>
   );
