@@ -1,5 +1,6 @@
 import axios from "axios";
 import { clearAuthStorage, getAuthToken } from "@/services/storage/authStorage";
+import { pushToast } from "@/utils/toastService";
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080",
@@ -23,6 +24,14 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    const message =
+      error.response?.data?.message ||
+      error.response?.data?.error ||
+      error.message ||
+      "Something went wrong. Please try again.";
+    // Fire a global toast for API errors
+    pushToast({ message, type: "error" });
+
     if (error.response?.status === 401) {
       // clearAuthStorage();
       // if (typeof window !== "undefined") {

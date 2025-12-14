@@ -70,7 +70,6 @@ interface TabConfig {
 
 function ServiceInfoFormSwitcher(props: any) {
   const { selectedService, onAddDocuments, initialData } = props;
-  console.log("CATEGORY:", selectedService?.category, initialData?.quotationType);
 
   const service = selectedService?.category || initialData?.quotationType;
 
@@ -207,16 +206,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     // Get data from General Info form
     if (generalFormRef.current instanceof HTMLFormElement) {
       const generalData = new FormData(generalFormRef.current);
-      console.log("General Data:", generalData);
       generalData.forEach((value, key) => {
         allFormData[key] = value;
       });
     }
 
     // Get data from Service Info form
-    console.log("Service Form Ref:", serviceFormRef.current);
     if (serviceFormRef.current instanceof HTMLFormElement) {
-      console.log("Service Form Ref:", serviceFormRef.current);
       const serviceData = new FormData(serviceFormRef.current as any);
 
       serviceData.forEach((value, key) => {
@@ -337,16 +333,11 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       // Use ref to get latest formData to avoid stale closure issues
       const currentFormData = formDataRef.current;
 
-      console.log("COLLECTING ALL FORM DATA");
-      console.log("COLLECTED FORM DATA:", collectAllFormData());
-      console.log("FORM DATA (from ref):", currentFormData);
-
       const formValues = {
         ...collectAllFormData(),
         ...currentFormData,
       };
 
-      console.log("Form Values:", formValues);
 
       const bookingData = convertToBookingData(
         formValues,
@@ -362,12 +353,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         formDataToSend.append("documents", file);
       });
 
-      console.log("Submitting Booking Data:", bookingData);
-
       const response = await BookingApiService.createQuotation(formDataToSend);
 
       if (response.success) {
-        console.log("Booking created successfully!", response.data);
         setIsSuccessModalOpen(true);
 
         // Reset all forms
@@ -408,17 +396,11 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     try {
       // Use ref to get latest formData to avoid stale closure issues
       const currentFormData = formDataRef.current;
-
-      console.log("COLLECTING ALL FORM DATA");
-      console.log("COLLECTED FORM DATA:", collectAllFormData());
-      console.log("FORM DATA (from ref):", currentFormData);
-
       const formValues = {
         ...collectAllFormData(),
         ...currentFormData,
       };
 
-      console.log("Form Values:", formValues);
 
       const bookingData = convertToBookingData(
         formValues,
@@ -433,12 +415,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       //   formDataToSend.append("documents", file);
       // });
 
-      console.log("Submitting Booking Data:", bookingData);
 
       const response = await BookingApiService.createQuotation(bookingData);
 
       if (response.success) {
-        console.log("Booking created successfully!", response.data);
         setIsSuccessModalOpen(true);
 
         // Reset all forms
@@ -479,10 +459,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
   // Form data update handler
   const handleFormDataUpdate = useCallback((newData: any) => {
-    console.log("handleFormDataUpdate called with:", newData);
     setFormData((prev: any) => {
       const merged = { ...prev, ...newData };
-      console.log("Merged formData:", merged);
       return merged;
     });
   }, []);

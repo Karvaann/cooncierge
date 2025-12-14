@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { subscribeToToasts, pushToast as pushToastEvent } from "@/utils/toastService";
 
 type Toast = {
   id: number;
@@ -33,6 +34,14 @@ export const ToastProvider = ({ children }: { children: ReactNode }) => {
     },
     []
   );
+
+  // Bridge global toast events into the provider
+  React.useEffect(() => {
+    const unsubscribe = subscribeToToasts(({ message, type, duration }) =>
+      showToast(message, type, duration)
+    );
+    return unsubscribe;
+  }, [showToast]);
 
   return (
     <ToastContext.Provider value={{ showToast }}>

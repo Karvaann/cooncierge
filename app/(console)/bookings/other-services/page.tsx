@@ -550,14 +550,6 @@ const OSBookingsPage = () => {
     return statusMap[status?.toLowerCase()] || 'Confirmed';
   };
 
-  // Handle viewing quotation details
-  const handleViewQuotation = useCallback(async (quotation: QuotationData) => {
-    console.log("Viewing quotation:", quotation);
-    // You can implement a modal or navigation to view quotation details
-  }, []);
-
-  console.log(quotations);
-
   const handleDeleteClick = (quotationId: string) => {
     setSelectedDeleteId(quotationId);
     setIsDeleteModalOpen(true);
@@ -702,7 +694,6 @@ const OSBookingsPage = () => {
   const finalQuotations = useMemo(() => {
     // Drafts tab shows drafts from backend with search filtering
     if (activeTab === "Drafts") {
-      console.log('Inside Drafts')
       const normalizedDrafts = drafts.map(normalizeDraft);
 
       // Apply search filter to drafts
@@ -727,11 +718,9 @@ const OSBookingsPage = () => {
 
       return normalizedDrafts;
     }
-    console.log('Outside Drafts', filteredQuotations);
 
     // Filter quotations by status based on active tab
     return filteredQuotations.filter((q) => {
-      console.log(q, "STATUS:", q.serviceStatus);
       const status = q.serviceStatus?.toLowerCase();
 
       switch (activeTab) {

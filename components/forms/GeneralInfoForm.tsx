@@ -371,10 +371,17 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     buildInitialState(externalFormData)
   );
 
-  // Reset/prefill whenever incoming data changes (e.g., opening with a different record)
+  const isSameState = (next: GeneralInfoFormData, prev: GeneralInfoFormData) =>
+    JSON.stringify(next) === JSON.stringify(prev);
+
+  // Reset/prefill when incoming data truly changes (avoids render loops)
   useEffect(() => {
-    setFormData(buildInitialState(externalFormData));
-    onFormDataUpdate?.(buildInitialState(externalFormData));
+    const nextState = buildInitialState(externalFormData);
+    setFormData((prev) => {
+      if (isSameState(nextState, prev)) return prev;
+      onFormDataUpdate?.(nextState);
+      return nextState;
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalFormData]);
 
@@ -607,9 +614,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   useEffect(() => {
     const fetchLists = async () => {
       try {
-        console.log(
-          "[GeneralInfoForm] Fetching lists: customers, vendors, teams"
-        );
         const [cRes, travellerRes, vRes, tRes] = await Promise.all([
           getCustomers(),
           getTravellers(),
@@ -1211,13 +1215,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     [formData, validateForm, onSubmit, validationRules]
   );
 
-  // Sync with external form data
-  useEffect(() => {
-    if (externalFormData && Object.keys(externalFormData).length > 0) {
-      setFormData((prev) => ({ ...prev, ...externalFormData }));
-    }
-  }, [externalFormData]);
-
   // Memoized traveller count
   const totalTravellers = useMemo(
     () => formData.adults + formData.children + formData.infants,
@@ -1238,6 +1235,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     const hasError = !!(errors[name] && touched[name]);
     const hasValue = formData[name] && String(formData[name]).trim();
     const isValid = !options?.skipValidation && !!hasValue && !hasError;
+
+    console.log(name, "isValid:", isValid, "hasError:", hasError, 'hasValue:', hasValue, 'fieldValue:', fieldValue);
 
     return {
       value: fieldValue as string | number,
@@ -1288,13 +1287,13 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   className="w-full text-[0.75rem] py-2"
                   type="text"
                   {...getInputProps("customer", {
-                    value: customerList[index]?.name ?? "", // SHOW NAME
+                    value: customer?.name ?? "", // SHOW NAME
                     onChange: (e) => {
                       const value = e.target.value;
 
                       // Update name only, ID stays same until selected from dropdown
                       updateCustomerField(index, {
-                        id: customerList[index]?.id ?? "",
+                        id: customer?.id ?? "",
                         name: value,
                       });
 
@@ -1616,18 +1615,18 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 onClick={() =>
                   setFormData({
                     ...formData,
-                    children: Math.max(1, formData.children - 1),
+                    infants: Math.max(1, formData.infants - 1),
                   })
                 }
                 className="px-1 text-lg font-semibold"
               >
                 <FiMinus size={12} />
               </button>
-              <span className="px-2 text-[0.75rem] ">{formData.children}</span>
+              <span className="px-2 text-[0.75rem] ">{formData.infants}</span>
               <button
                 type="button"
                 onClick={() =>
-                  setFormData({ ...formData, children: formData.children + 1 })
+                  setFormData({ ...formData, infants: formData.infants + 1 })
                 }
                 className="px-1 text-lg font-semibold"
               >
@@ -1655,11 +1654,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   name="adultTravellers"
                   placeholder={`Adult ${index + 1}`}
                   required={index === 0}
+                  type="text"
                   {...getInputProps("adultTravellers", {
-                    value: trav,
+                    value: trav ?? "",
                     onChange: (e) => {
                       const value = e.target.value;
-                      updateTraveller("adultTravellers", index, value);
 
                       // Run fuzzy search
                       const results = runFuzzySearch(allTravellers, value, [
