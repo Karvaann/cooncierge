@@ -35,31 +35,114 @@ body {
   border-radius: 14px;
 }
 
-.date-range-popover .rdrCalendarWrapper {
+/* .date-range-popover .rdrCalendarWrapper {
   width: 100%;
   border: none;
   box-shadow: none;
+} */
+
+/* Layout months side-by-side with consistent gap */
+/* .date-range-popover .rdrMonthsHorizontal {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+} */
+
+.date-range-popover .rdrMonth {
+  padding: 0 12px 12px;
+  background: transparent;
+  border-radius: 8px;
+  box-shadow: none;
 }
+
+/* -------------------------------------------------------------
+   Ensure both month calendars stay inside the popover and don't
+   overflow. We compute available width as: popover width minus
+   the left presets column (9rem) and padding (24px), then split
+   the remainder equally between the two months.
+   This keeps calendars compact and contained.
+   ------------------------------------------------------------- */
+.date-range-popover {
+  box-sizing: border-box;
+  max-width: 32rem;
+}
+
+.date-range-popover .rdrCalendarWrapper {
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: auto;   /* allow scroll if ever needed */
+  overflow-y: hidden;
+}
+
+.date-range-popover .rdrDateRangeWrapper {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+
+
+.date-range-popover .rdrMonthsHorizontal {
+  display: flex;
+  width: 100%;
+}
+
+.date-range-popover .rdrMonth {
+  flex: 1 1 0;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
 
 .date-range-popover .rdrMonth {
   padding: 0 12px 12px;
 }
 
-.date-range-popover .rdrMonthName {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin-bottom: 6px;
+/* shift the left month slightly to the right so it doesn't collide with
+   the left divider. This creates a small breathing gap between divider
+   and date cells. */
+.date-range-popover .rdrMonth:first-child {
+  margin-left: 6px;
 }
 
+/* Draw a full-height divider for the presets column regardless of
+   the presets content height. This uses a pseudo-element so the line
+   stretches from the top to the bottom of the popover. */
+.date-range-popover .presets-column {
+  position: relative;
+}
+.date-range-popover .presets-column::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0; /* place at the existing border's x position */
+  bottom: 0;
+  width: 1px;
+  background: #e5e7eb; /* match border-gray-200 */
+  z-index: 40;
+}
+
+/* Header area (used for spacing/alignment, library headings are used) */
+.date-range-popover .calendar-header {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  padding-top: 6px;
+  padding-bottom: 6px;
+  position: relative;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Weekday and day number styling */
 .date-range-popover .rdrWeekDays {
-  font-size: 0.8rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  color: #9ca3af;
+  color: #6b7280;
+  gap: 6px;
+
 }
 
 .date-range-popover .rdrDayNumber span {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 600;
   color: #111827;
 }
@@ -68,51 +151,162 @@ body {
   color: #d1d5db;
 }
 
-.date-range-popover .rdrDayToday .rdrDayNumber span:after {
+/* Show and style the library month headings so they update on navigation */
+.date-range-popover .rdrMonthName {
+  display: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+  text-align: center;
+  margin: 6px 0 8px 0;
+  width: 60%;
+   /* horizontal positioning */
+  padding-left: 28px;   /* shift right */
+  padding-right: 8px; /* center within month area */
+  margin-top: -25%; /* adjust vertical position to align with nav buttons */
+}
+
+/* hide native month/year dropdowns inside the month header */
+.date-range-popover .rdrMonthAndYearPickers {
   display: none;
 }
 
-.date-range-popover .rdrInRange,
-.date-range-popover .rdrDayHovered {
-  background: #dcf5f1;
-}
-
-.date-range-popover .rdrStartEdge,
-.date-range-popover .rdrEndEdge {
-  background: #0d4b37;
-  color: #fff;
-}
-
-.date-range-popover .rdrDayStartPreview,
-.date-range-popover .rdrDayEndPreview {
-  border: none;
-}
-
-.date-range-popover .rdrDay {
-  height: 42px;
-}
-
-.date-range-popover .rdrDayNumber {
-  width: 36px;
+.calendar-shared-header {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   height: 36px;
+  padding: 0 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.calendar-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111827;
+  gap: 8rem;
+}
+
+.calendar-shared-header button {
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.calendar-shared-header button:hover {
+  background: #f3f4f6;
+  border-radius: 6px;
+}
+
+
+/* make hover and in-range a neutral gray across cells */
+.date-range-popover .rdrDay:hover .rdrDayNumber span,
+.date-range-popover .rdrInRange,
+.date-range-popover .rdrDayHovered {
+  background: #eef6f4;
 }
 
 .date-range-popover .rdrDayDisabled {
   background: transparent;
 }
 
-.date-range-popover .rdrPprevButton,
+/* navigation buttons: hide per-month controls, show only outer prev/next */
+.date-range-popover .rdrPrevButton,
 .date-range-popover .rdrNextButton {
+  display: none !important;
+}
+
+.date-range-popover .rdrDayDisabled .rdrDayNumber span {
+  color: #d1d5db;
   background: transparent;
-  color: #6b7280;
+}
+
+/* selected start/end and today cells use dark gray */
+.date-range-popover .rdrStartEdge,
+.date-range-popover .rdrEndEdge,
+.date-range-popover .rdrDayToday .rdrDayNumber span,
+.date-range-popover .rdrSelected {
+  background: #0d4b37;
+  color: #ffffff;
+  border-radius: 6px;
 }
 
 .date-range-popover .rdrDateDisplayWrapper {
   display: none;
+}
+
+.date-range-popover .rdrMonth {
+  position: relative;
+}
+
+/* remove reserved space from hidden month header */
+.date-range-popover .rdrMonthAndYearWrapper {
+  height: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.date-range-popover .rdrMonthAndYearPickers {
+  display: none;
+}
+
+/* restore subtle grid lines between days */
+.date-range-popover .rdrDay {
+  padding: 6px;
+  background: transparent;
+}
+
+.date-range-popover .rdrDayNumber {
+  width: 34px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+
+
+
+.date-range-popover .rdrDayDisabled {
+  border-color: transparent;
+}
+
+/* avoid double borders */
+/* .date-range-popover .rdrMonth table {
+  border-collapse: collapse;
+} */
+
+
+
+.date-range-popover .rdrDayDisabled .rdrDayNumber span {
+  color: #d1d5db;
+  background: transparent;
+}
+
+/* allow months to shrink below library defaults so they fit inside
+   our constrained popover. Remove implicit min-widths and force tables
+   to size to container. */
+.date-range-popover .rdrMonth {
+  min-width: 0;
+}
+.date-range-popover .rdrMonth table {
+  width: 100%;
+  table-layout: fixed;
+}
+.date-range-popover .rdrMonth .rdrDayNumber span {
+  font-size: 0.80rem;
+}
+
+/* small cap so popover doesn't grow wider than intended */
+.date-range-popover {
+  max-width: 32rem;
 }
 
 /* Use focus-visible so mouse users don't see the ring but keyboard users do */

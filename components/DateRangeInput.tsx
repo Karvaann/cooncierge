@@ -1,8 +1,10 @@
-'use client';
+"use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DateRange, type RangeKeyDict } from "react-date-range";
+// @ts-ignore: CSS module has no type declarations in this project
 import "react-date-range/dist/styles.css";
+// @ts-ignore: CSS module has no type declarations in this project
 import "react-date-range/dist/theme/default.css";
 import { FaRegCalendar } from "react-icons/fa6";
 
@@ -70,6 +72,10 @@ export default function DateRangeInput({
     },
   ]);
 
+  const [shownDate, setShownDate] = useState<Date>(
+    ranges[0]?.startDate ?? new Date()
+  );
+
   useEffect(() => {
     setRanges([
       {
@@ -107,12 +113,31 @@ export default function DateRangeInput({
     };
   }, [startDate, endDate]);
 
+  const firstMonthDate = shownDate;
+
+  const firstMonthLabel = firstMonthDate.toLocaleString("en-GB", {
+    month: "long",
+    year: "numeric",
+  });
+  const secondMonthDate = new Date(
+    firstMonthDate.getFullYear(),
+    firstMonthDate.getMonth() + 1,
+    1
+  );
+  const secondMonthLabel = secondMonthDate.toLocaleString("en-GB", {
+    month: "long",
+    year: "numeric",
+  });
+
   const handleRangeChange = (items: RangeKeyDict) => {
     const sel = items.selection;
     if (!sel) return;
+
     const nextStart = sel.startDate ?? new Date();
     const nextEnd = sel.endDate ?? nextStart;
-    setRanges([{ ...sel, startDate: nextStart, endDate: nextEnd }]);
+
+    setRanges([{ startDate: nextStart, endDate: nextEnd, key: "selection" }]);
+    setShownDate(nextStart); // 👈 keep calendar header in sync
     onChange(nextStart.toISOString(), nextEnd.toISOString());
   };
 
@@ -123,43 +148,111 @@ export default function DateRangeInput({
     setOpen(false);
   };
 
+  // Clear both dates and reset internal ranges
+  const clearDates = () => {
+    setRanges([
+      {
+        startDate: new Date(),
+        endDate: new Date(),
+        key: "selection",
+      },
+    ]);
+    setShownDate(new Date());
+    onChange("", "");
+  };
+
+  const goPrevMonth = () => {
+    setShownDate(
+      (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+    );
+  };
+
+  const goNextMonth = () => {
+    setShownDate(
+      (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+    );
+  };
+
   return (
-    <div className="relative date-range-custom" ref={ref}>
+    <div className="relative date-range-custom mt-0.5" ref={ref}>
       <label className="block text-gray-700 mb-1 text-xs font-medium">
         {label}
       </label>
 
       <button
         type="button"
-        className="relative flex items-center min-w-[20rem] w-[23rem] gap-3 border border-gray-300 rounded-xl px-4 py-2 bg-white hover:border-gray-400 shadow-sm transition-colors select-none text-[0.85rem]"
+        className="relative flex items-center min-w-[12rem] w-[16rem] gap-3 border border-gray-300 rounded-sm px-3 py-1.5 bg-white hover:border-gray-400 transition-colors select-none text-[0.80rem]"
         onClick={() => setOpen((prev) => !prev)}
       >
-        <span className="text-gray-700 font-medium">{displayValue.start}</span>
+        <span className="text-gray-400 font-normal">{displayValue.start}</span>
         <span className="text-gray-400 mx-1">→</span>
-        <span className="text-gray-700 font-medium flex-1 text-left">
+        <span className="text-gray-400 font-normal flex-1 text-left">
           {displayValue.end}
         </span>
-        <span className="text-gray-400 -mt-1">
-          <FaRegCalendar />
-        </span>
+        {startDate && endDate ? (
+          <span
+            role="button"
+            aria-label="Clear dates"
+            onClick={(e) => {
+              e.stopPropagation();
+              clearDates();
+            }}
+            className="text-gray-400 -mt-1 hover:text-gray-600 p-1 rounded-sm cursor-pointer"
+          >
+            {/* simple X SVG */}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-4 h-4"
+            >
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </span>
+        ) : (
+          <span className="text-gray-400 -mt-1">
+            <FaRegCalendar />
+          </span>
+        )}
       </button>
 
       {open && (
-        <div className="absolute mt-2 z-50 rounded-xl shadow-2xl bg-white border border-gray-200 p-0 w-[38rem] date-range-popover">
+        <div className="absolute mt-2 z-50 rounded-md bg-white border border-gray-200 p-2 w-[32rem] date-range-popover">
           <div className="flex gap-0">
-            <div className="w-36 border-r border-gray-200 p-2 space-y-1">
+            {/* Left presets column (menu + divider). Added `presets-column` so
+              we can draw a full-height divider via CSS and keep it separate
+              from the calendar cells. */}
+            <div className="presets-column w-26 border-r border-gray-200 p-2 space-y-1">
               {presetRanges.map((p) => (
                 <button
                   key={p.label}
                   type="button"
                   onClick={() => applyPreset(p.getValue)}
-                  className="block w-full text-left text-sm text-gray-800 hover:bg-gray-50 py-2 px-3 rounded transition-colors"
+                  className="block w-full text-left text-[0.70rem] text-gray-800 hover:bg-gray-50 py-2 px-3 rounded transition-colors"
                 >
                   {p.label}
                 </button>
               ))}
             </div>
-            <div className="flex-1 p-2">
+            <div className="flex-1 p-2 overflow-x-hidden ">
+              <div className="calendar-shared-header">
+                <button type="button" onClick={goPrevMonth}>
+                  ‹
+                </button>
+
+                <div className="calendar-title">
+                  {firstMonthLabel} {secondMonthLabel}
+                </div>
+
+                <button type="button" onClick={goNextMonth}>
+                  ›
+                </button>
+              </div>
               <DateRange
                 className="date-range-picker"
                 ranges={ranges}
@@ -169,7 +262,11 @@ export default function DateRangeInput({
                 rangeColors={["#0D4B37"]}
                 months={2}
                 direction="horizontal"
-                editableDateInputs
+                editableDateInputs={false}
+                shownDate={shownDate}
+                onShownDateChange={(date) => {
+                  setShownDate(date);
+                }}
               />
             </div>
           </div>
