@@ -226,36 +226,36 @@ const TeamDirectory = () => {
     return `${day}-${month}-${year}`;
   };
 
+  const fetchTeamsData = async () => {
+    try {
+      const teamsResponse = await getTeams({
+        isDeleted: activeTab === "Deleted",
+      });
+      const teamArray = Array.isArray(teamsResponse) ? teamsResponse : [];
+      const mappedRows: TeamRow[] = teamArray.map((u: any, index: number) => {
+        const fullName = u.name || "—";
+        const alias = u.alias || "—";
+        const normalizedStatus =
+          (u.userStatus || u.status || "Current") === "Active"
+            ? "Current"
+            : u.userStatus || u.status || "Current";
+        return {
+          ...u,
+          ID: u.customId || u._id || `#T00${index + 1}`,
+          memberName: fullName,
+          alias: alias,
+          userStatus: normalizedStatus,
+          joiningDate: u.dateOfJoining ? formatDMY(u.dateOfJoining) : "—",
+          actions: "⋮",
+          isDeleted: Boolean(u.isDeleted),
+        };
+      });
+      setTeams(mappedRows);
+    } catch (err) {
+      console.error("Failed to fetch team members:", err);
+    }
+  };
   useEffect(() => {
-    const fetchTeamsData = async () => {
-      try {
-        const teamsResponse = await getTeams({
-          isDeleted: activeTab === "Deleted",
-        });
-        const teamArray = Array.isArray(teamsResponse) ? teamsResponse : [];
-        const mappedRows: TeamRow[] = teamArray.map((u: any, index: number) => {
-          const fullName = u.name || "—";
-          const alias = u.alias || "—";
-          const normalizedStatus =
-            (u.userStatus || u.status || "Current") === "Active"
-              ? "Current"
-              : u.userStatus || u.status || "Current";
-          return {
-            ...u,
-            ID: u.customId || u._id || `#T00${index + 1}`,
-            memberName: fullName,
-            alias: alias,
-            userStatus: normalizedStatus,
-            joiningDate: u.dateOfJoining ? formatDMY(u.dateOfJoining) : "—",
-            actions: "⋮",
-            isDeleted: Boolean(u.isDeleted),
-          };
-        });
-        setTeams(mappedRows);
-      } catch (err) {
-        console.error("Failed to fetch team members:", err);
-      }
-    };
     fetchTeamsData();
   }, [activeTab]);
 
@@ -463,7 +463,7 @@ const TeamDirectory = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleCancelSelectMode}
-                className="px-2 py-1.5 w-[5rem] text-[0.75rem]  font-medium text-[#414141] border border-gray-200 bg-[#F9F9F9] hover:bg-gray-100 rounded-lg"
+                className="px-2 py-1.5 w-[5rem] text-[0.75rem]  font-semibold text-[#414141] border border-gray-200 bg-[#F9F9F9] hover:bg-gray-100 rounded-md"
               >
                 Cancel
               </button>
@@ -477,7 +477,7 @@ const TeamDirectory = () => {
                     setSelectedTeamMembers(filteredTeams.map((c) => c.ID));
                   }
                 }}
-                className="px-2 py-1.5 w-[6rem] mr-3 text-[0.75rem] font-medium rounded-lg border border-gray-300 bg-white hover:bg-gray-100"
+                className="px-2 py-1.5 w-[5rem] mr-3 text-[0.75rem] font-semibold rounded-md border border-gray-300 bg-white hover:bg-gray-100"
               >
                 {selectedTeamMembers.length === filteredTeams.length &&
                 filteredTeams.length > 0
@@ -547,6 +547,7 @@ const TeamDirectory = () => {
           }}
           data={selectedTeam} // REQUIRED
           mode={mode}
+          onSuccess={fetchTeamsData}
         />
       )}
 

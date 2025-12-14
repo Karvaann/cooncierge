@@ -176,9 +176,7 @@ const OSBookingsPage = () => {
   // UI State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
-  const [selectedQuotation, setSelectedQuotation] = useState<any>(
-    null
-  );
+  const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [selectedService, setSelectedService] = useState<BookingService | null>(
     null
   );
@@ -397,7 +395,6 @@ const OSBookingsPage = () => {
     activeTab,
   ]);
 
-
   // Load quotations on component mount and filter changes
   useEffect(() => {
     loadQuotations();
@@ -408,9 +405,8 @@ const OSBookingsPage = () => {
     filters.tripStartDate,
     filters.tripEndDate,
     filters.owner,
-    activeTab
+    activeTab,
   ]);
-
 
   const handleServiceSelect = (service: BookingService) => {
     setSelectedQuotation(null);
@@ -547,7 +543,7 @@ const OSBookingsPage = () => {
       confirmed: "Confirmed",
       cancelled: "Cancelled",
     };
-    return statusMap[status?.toLowerCase()] || 'Confirmed';
+    return statusMap[status?.toLowerCase()] || "Confirmed";
   };
 
   const handleDeleteClick = (quotationId: string) => {
@@ -585,7 +581,10 @@ const OSBookingsPage = () => {
         label: "Edit",
         icon: <MdOutlineEdit />,
         color: "text-blue-600",
-        onClick: () => { setIsSideSheetOpen(true); setSelectedQuotation(row); },
+        onClick: () => {
+          setIsSideSheetOpen(true);
+          setSelectedQuotation(row);
+        },
       },
       {
         label: "Delete",
@@ -816,17 +815,15 @@ const OSBookingsPage = () => {
         className="px-4 py-2 text-center align-middle h-[4rem]"
       >
         <div className="flex items-center justify-center gap-2">
-            <div className="w-5 h-5 flex items-center justify-center">
-              {getServiceIcon(
-                item.quotationType || item.serviceType || "draft"
-              )}
-            </div>
-            <span className="text-center leading-tight">
-              {formatServiceType(
-                item.quotationType || item.serviceType || "draft"
-              )}
-            </span>
+          <div className="w-5 h-5 flex items-center justify-center">
+            {getServiceIcon(item.quotationType || item.serviceType || "draft")}
           </div>
+          <span className="text-center leading-tight">
+            {formatServiceType(
+              item.quotationType || item.serviceType || "draft"
+            )}
+          </span>
+        </div>
       </td>,
       <td
         key={`status-${index}`}
@@ -853,8 +850,9 @@ const OSBookingsPage = () => {
         <div className="flex items-center justify-center">
           <div className="flex items-center">
             {(Array.isArray((item as any).owner)
-          ? (item as any).owner.map((o: any) => o?.name || "--")
-          : []).map((ownerName: string, i: number) => {
+              ? (item as any).owner.map((o: any) => o?.name || "--")
+              : []
+            ).map((ownerName: string, i: number) => {
               // Try to find owner in ownersList (fetched from API)
               let ownerMeta = ownersList.find((o) => o.full === ownerName);
 
@@ -887,10 +885,7 @@ const OSBookingsPage = () => {
         className="px-4 py-2 text-center align-middle h-[2.5rem]"
       >
         <div className="flex justify-center">
-          <TaskButton
-            count={0}
-            bookingId={item._id}
-          />
+          <TaskButton count={0} bookingId={item._id} />
         </div>
       </td>,
 
@@ -1025,6 +1020,7 @@ const OSBookingsPage = () => {
                   columns={columns}
                   columnIconMap={columnIconMap}
                   onSort={handleSort}
+                  categoryName="Bookings"
                 />
               )}
             </div>

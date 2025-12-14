@@ -47,6 +47,7 @@ type AddVendorSideSheetProps = {
   isOpen: boolean;
   mode?: "create" | "edit" | "view";
   formRef?: React.RefObject<HTMLFormElement | null>;
+  onSuccess?: () => void;
 };
 
 const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
@@ -55,6 +56,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   isOpen,
   mode,
   formRef,
+  onSuccess,
 }) => {
   const { updateGeneralInfo, setLastAddedVendor } = useBooking();
   const readOnly = mode === "view";
@@ -315,6 +317,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         const displayName =
           created.name || created.companyName || created.contactPerson || "";
         setLastAddedVendor?.({ id: created._id, name: displayName });
+        onSuccess?.();
       }
 
       onCancel();
@@ -383,6 +386,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       const response = await updateVendor(vendorId, vendorData);
       console.log("Vendor updated successfully:", response);
 
+      onSuccess?.();
       onCancel(); // close sheet
     } catch (error: any) {
       console.error("Error updating vendor:", error.message || error);
@@ -507,23 +511,23 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Contact Number
                 </label>
-                <div className="relative">
-                  <select
+                <div className="flex items-center">
+                  <DropDown
+                    options={[
+                      { value: "+91", label: "+91" },
+                      { value: "+1", label: "+1" },
+                      { value: "+44", label: "+44" },
+                    ]}
                     value={formData.countryCode}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        countryCode: e.target.value,
-                      })
+                    onChange={(v) =>
+                      setFormData({ ...formData, countryCode: v })
                     }
-                    className="absolute left-0 top-0 h-full pl-2 pr-2 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 cursor-pointer"
-                    style={{ width: "58px" }}
                     disabled={readOnly}
-                  >
-                    <option value="+91">+91</option>
-                    <option value="+1">+1</option>
-                    <option value="+44">+44</option>
-                  </select>
+                    customWidth="w-[58px]"
+                    menuWidth="w-[58px]"
+                    className="flex-shrink-0"
+                    customHeight="h-9"
+                  />
                   <input
                     name="phone"
                     value={formData.phone}
@@ -532,7 +536,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     }
                     placeholder="Enter Contact Number"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md pl-17 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -631,23 +635,22 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 <label className="block text-[0.75rem] font-medium text-gray-700">
                   Contact Number
                 </label>
-                <div className="relative">
-                  <select
+                <div className="flex items-center">
+                  <DropDown
+                    options={[
+                      { value: "+91", label: "+91" },
+                      { value: "+1", label: "+1" },
+                      { value: "+44", label: "+44" },
+                    ]}
                     value={formData.countryCode}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        countryCode: e.target.value,
-                      })
+                    onChange={(v) =>
+                      setFormData({ ...formData, countryCode: v })
                     }
-                    className="absolute left-0 top-0 h-full pl-2 pr-2 py-2 border border-gray-300 rounded-l-md bg-white text-[0.75rem] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 cursor-pointer"
-                    style={{ width: "58px" }}
                     disabled={readOnly}
-                  >
-                    <option value="+91">+91</option>
-                    <option value="+1">+1</option>
-                    <option value="+44">+44</option>
-                  </select>
+                    customWidth="w-[58px]"
+                    menuWidth="w-[58px]"
+                    className="flex-shrink-0"
+                  />
                   <input
                     placeholder="Enter Contact Number"
                     type="text"
@@ -656,7 +659,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       setFormData({ ...formData, phone: e.target.value })
                     }
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md pl-17 pr-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="flex-1 h-[2rem] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -764,7 +767,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 ))}
               </div>
 
-              <div className="text-red-600 text-[0.65rem] -mt-4">
+              <div className="text-red-600 text-[0.65rem] -mt-3">
                 Note: Maximum of 3 files can be uploaded
               </div>
             </div>
@@ -860,6 +863,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 onChange={(v) => setTier(v)}
                 disabled={readOnly}
                 customWidth="w-[10rem]"
+                menuWidth="w-[10rem]"
                 className=""
                 // readOnly={readOnly}
               />
