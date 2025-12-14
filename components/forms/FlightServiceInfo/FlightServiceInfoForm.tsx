@@ -10,7 +10,7 @@ import OneWayLayout from "./OneWayLayout";
 import RoundTripLayout from "./RoundTripLayout";
 import MultiCityLayout from "./MultiCityLayout";
 import DropDown from "@/components/DropDown";
-import SingleCalendar from "@/components/SingleCalendar";
+import DateRangeInput from "@/components/DateRangeInput";
 import { FaRegFolder } from "react-icons/fa";
 // Type definitions
 interface FlightInfoFormData {
@@ -566,24 +566,23 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             {/* Left section: Booking + Travel Date */}
             <div className="flex items-end flex-wrap gap-2">
               {/* Booking Date */}
-              <SingleCalendar
+              <DateRangeInput
                 label="Booking Date"
-                value={formData.bookingdate}
-                onChange={(date) =>
-                  setFormData((prev) => ({ ...prev, bookingdate: date }))
+                startDate={formData.bookingdate || ""}
+                endDate={formData.bookingdate || ""}
+                onChange={(start) =>
+                  setFormData((prev) => ({ ...prev, bookingdate: start }))
                 }
-                placeholder="DD-MM-YYYY"
               />
 
               {/* Travel Date */}
-              <SingleCalendar
+              <DateRangeInput
                 label="Travel Date"
-                value={formData.traveldate}
-                onChange={(date) =>
-                  setFormData((prev) => ({ ...prev, traveldate: date }))
+                startDate={formData.traveldate || ""}
+                endDate={formData.traveldate || ""}
+                onChange={(start) =>
+                  setFormData((prev) => ({ ...prev, traveldate: start }))
                 }
-                placeholder="DD-MM-YYYY"
-                minDate={formData.bookingdate}
               />
             </div>
 

@@ -26,6 +26,95 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* react-date-range overrides to match custom UI */
+.date-range-custom .date-range-picker {
+  font-family: "Inter", "Poppins", "Arial", sans-serif;
+}
+
+.date-range-popover {
+  border-radius: 14px;
+}
+
+.date-range-popover .rdrCalendarWrapper {
+  width: 100%;
+  border: none;
+  box-shadow: none;
+}
+
+.date-range-popover .rdrMonth {
+  padding: 0 12px 12px;
+}
+
+.date-range-popover .rdrMonthName {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 6px;
+}
+
+.date-range-popover .rdrWeekDays {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #9ca3af;
+}
+
+.date-range-popover .rdrDayNumber span {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.date-range-popover .rdrDayPassive .rdrDayNumber span {
+  color: #d1d5db;
+}
+
+.date-range-popover .rdrDayToday .rdrDayNumber span:after {
+  display: none;
+}
+
+.date-range-popover .rdrInRange,
+.date-range-popover .rdrDayHovered {
+  background: #dcf5f1;
+}
+
+.date-range-popover .rdrStartEdge,
+.date-range-popover .rdrEndEdge {
+  background: #0d4b37;
+  color: #fff;
+}
+
+.date-range-popover .rdrDayStartPreview,
+.date-range-popover .rdrDayEndPreview {
+  border: none;
+}
+
+.date-range-popover .rdrDay {
+  height: 42px;
+}
+
+.date-range-popover .rdrDayNumber {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+.date-range-popover .rdrDayDisabled {
+  background: transparent;
+}
+
+.date-range-popover .rdrPprevButton,
+.date-range-popover .rdrNextButton {
+  background: transparent;
+  color: #6b7280;
+}
+
+.date-range-popover .rdrDateDisplayWrapper {
+  display: none;
+}
+
 /* Use focus-visible so mouse users don't see the ring but keyboard users do */
 :where(input, textarea, select, button) {
   outline: none;
@@ -104,4 +193,3 @@ select:-webkit-autofill {
 .animate-loader-spin {
   animation: loader-spin 0.9s linear infinite;
 }
-
