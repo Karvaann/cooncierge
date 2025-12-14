@@ -291,70 +291,70 @@ const CustomerDirectory = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        if (activeTab === "Customers") {
-          const customers = await getCustomers({ isDeleted: false });
+  const fetchData = async () => {
+    try {
+      if (activeTab === "Customers") {
+        const customers = await getCustomers({ isDeleted: false });
 
-          const mappedRows: CustomerRow[] = customers.map(
-            (c: any, index: number) => ({
-              ...c,
-              customerID: c.customId || c._id || `#C00${index + 1}`,
-              name: c.name,
-              owner:
-                typeof c.ownerId === "object" && c.ownerId !== null
-                  ? c.ownerId.name
-                  : c.ownerId || "—",
-              rating: c.tier ? Number(c.tier.replace("tier", "")) : 4,
-              dateCreated: formatDMY(c.createdAt),
-              actions: "⋮",
-            })
-          );
-
-          setCustomers(mappedRows);
-        }
-
-        if (activeTab === "Travellers") {
-          const data = await getTravellers({ isDeleted: false });
-
-          const mappedTravellers = data.map((t: any) => ({
-            travellerID: t.customId || t._id || `#T00${t._id}`,
-            name: t.name,
+        const mappedRows: CustomerRow[] = customers.map(
+          (c: any, index: number) => ({
+            ...c,
+            customerID: c.customId || c._id || `#C00${index + 1}`,
+            name: c.name,
             owner:
-              t.ownerId && typeof t.ownerId === "object" ? t.ownerId.name : "—",
-            dateCreated: formatDMY(t.createdAt),
+              typeof c.ownerId === "object" && c.ownerId !== null
+                ? c.ownerId.name
+                : c.ownerId || "—",
+            rating: c.tier ? Number(c.tier.replace("tier", "")) : 4,
+            dateCreated: formatDMY(c.createdAt),
             actions: "⋮",
-          }));
+          })
+        );
 
-          setTravellers(mappedTravellers);
-        }
-
-        if (activeTab === "Deleted") {
-          const deleted = await getCustomers({ isDeleted: true });
-
-          const mappedRows: CustomerRow[] = deleted.map(
-            (c: any, index: number) => ({
-              ...c,
-              customerID: c.customId || c._id || `#D00${index + 1}`,
-              name: c.name,
-              owner:
-                typeof c.ownerId === "object" && c.ownerId !== null
-                  ? c.ownerId.name
-                  : c.ownerId || "—",
-              rating: c.tier ? Number(c.tier.replace("tier", "")) : 4,
-              dateCreated: formatDMY(c.createdAt),
-              actions: "⋮",
-            })
-          );
-
-          setCustomers(mappedRows);
-        }
-      } catch (err) {
-        console.error("Failed to fetch:", err);
+        setCustomers(mappedRows);
       }
-    };
 
+      if (activeTab === "Travellers") {
+        const data = await getTravellers({ isDeleted: false });
+
+        const mappedTravellers = data.map((t: any) => ({
+          travellerID: t.customId || t._id || `#T00${t._id}`,
+          name: t.name,
+          owner:
+            t.ownerId && typeof t.ownerId === "object" ? t.ownerId.name : "—",
+          dateCreated: formatDMY(t.createdAt),
+          actions: "⋮",
+        }));
+
+        setTravellers(mappedTravellers);
+      }
+
+      if (activeTab === "Deleted") {
+        const deleted = await getCustomers({ isDeleted: true });
+
+        const mappedRows: CustomerRow[] = deleted.map(
+          (c: any, index: number) => ({
+            ...c,
+            customerID: c.customId || c._id || `#D00${index + 1}`,
+            name: c.name,
+            owner:
+              typeof c.ownerId === "object" && c.ownerId !== null
+                ? c.ownerId.name
+                : c.ownerId || "—",
+            rating: c.tier ? Number(c.tier.replace("tier", "")) : 4,
+            dateCreated: formatDMY(c.createdAt),
+            actions: "⋮",
+          })
+        );
+
+        setCustomers(mappedRows);
+      }
+    } catch (err) {
+      console.error("Failed to fetch:", err);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, [activeTab]);
 
@@ -442,9 +442,7 @@ const CustomerDirectory = () => {
                     const history = await getBookingHistoryByCustomer(
                       row.customerID
                     );
-                    setBookingHistory(
-                      history.quotations
-                    );
+                    setBookingHistory(history.quotations);
                   } catch (err) {
                     console.error("Failed to load booking history:", err);
                     setBookingHistory([]);
@@ -849,6 +847,7 @@ const CustomerDirectory = () => {
             }}
             data={selectedCustomer} // REQUIRED
             mode={mode}
+            onSuccess={fetchData}
           />
         </BookingProvider>
       )}

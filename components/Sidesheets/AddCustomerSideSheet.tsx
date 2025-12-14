@@ -41,6 +41,7 @@ type AddCustomerSideSheetProps = {
   isOpen: boolean;
   mode?: "create" | "edit" | "view";
   formRef?: React.RefObject<HTMLFormElement | null>;
+  onSuccess?: () => void;
 };
 
 const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
@@ -49,6 +50,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   isOpen,
   mode,
   formRef,
+  onSuccess,
 }) => {
   const { updateGeneralInfo, setLastAddedCustomer } = useBooking();
   const readOnly = mode === "view";
@@ -256,6 +258,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         // Update booking general info and notify listeners
         updateGeneralInfo({ customer: created._id });
         setLastAddedCustomer({ id: created._id, name: created.name || "" });
+
+        onSuccess?.();
       }
 
       onCancel();
@@ -324,6 +328,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
       const updated = await updateCustomer(customerId, updatePayload);
       console.log("Customer updated:", updated);
+      onSuccess?.();
       onCancel(); // close sheet
     } catch (error) {
       console.error("Update error:", error);

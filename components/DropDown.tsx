@@ -28,6 +28,7 @@ const DropDown: React.FC<DropdownProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(value || "");
+  const [openUpwards, setOpenUpwards] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Sync selected value when parent changes `value` prop
@@ -56,6 +57,34 @@ const DropDown: React.FC<DropdownProps> = ({
       document.removeEventListener("click", handleClickOutside, true);
     };
   }, [isOpen]);
+
+  // Decide whether to open menu upwards when there isn't enough space below
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const computePlacement = () => {
+      if (!dropdownRef.current) return;
+      const rect = dropdownRef.current.getBoundingClientRect();
+      const itemHeight = 36; // estimated option height in px
+      const menuHeight = Math.min(options.length * itemHeight, 400);
+      const availableBelow = window.innerHeight - rect.bottom;
+      const availableAbove = rect.top;
+
+      // Open upwards when below space is smaller than menu and above has more space
+      setOpenUpwards(
+        availableBelow < menuHeight && availableAbove > availableBelow
+      );
+    };
+
+    // compute initially and on scroll/resize
+    computePlacement();
+    window.addEventListener("resize", computePlacement);
+    window.addEventListener("scroll", computePlacement, true);
+    return () => {
+      window.removeEventListener("resize", computePlacement);
+      window.removeEventListener("scroll", computePlacement, true);
+    };
+  }, [isOpen, options.length]);
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -109,7 +138,9 @@ const DropDown: React.FC<DropdownProps> = ({
       {/* Dropdown Menu */}
       {isOpen && !disabled && (
         <div
-          className={`${menuWidthClass} absolute top-full left-0 mt-1 bg-white rounded-md border border-gray-300 shadow-lg overflow-hidden z-10`}
+          className={`${menuWidthClass} absolute ${
+            openUpwards ? "bottom-full left-0 mb-1" : "top-full left-0 mt-1"
+          } bg-white rounded-md border border-gray-300 shadow-lg overflow-hidden z-10`}
         >
           {options.map((option) => (
             <button

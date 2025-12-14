@@ -226,36 +226,37 @@ const TeamDirectory = () => {
     return `${day}-${month}-${year}`;
   };
 
+  const fetchTeamsData = async () => {
+    try {
+      const teamsResponse = await getTeams({
+        isDeleted: activeTab === "Deleted",
+      });
+      const teamArray = Array.isArray(teamsResponse) ? teamsResponse : [];
+      const mappedRows: TeamRow[] = teamArray.map((u: any, index: number) => {
+        const fullName = u.name || "—";
+        const alias = u.alias || "—";
+        const normalizedStatus =
+          (u.userStatus || u.status || "Current") === "Active"
+            ? "Current"
+            : u.userStatus || u.status || "Current";
+        return {
+          ...u,
+          ID: u.customId || u._id || `#T00${index + 1}`,
+          memberName: fullName,
+          alias: alias,
+          userStatus: normalizedStatus,
+          joiningDate: u.dateOfJoining ? formatDMY(u.dateOfJoining) : "—",
+          actions: "⋮",
+          isDeleted: Boolean(u.isDeleted),
+        };
+      });
+      setTeams(mappedRows);
+    } catch (err) {
+      console.error("Failed to fetch team members:", err);
+    }
+  };
+
   useEffect(() => {
-    const fetchTeamsData = async () => {
-      try {
-        const teamsResponse = await getTeams({
-          isDeleted: activeTab === "Deleted",
-        });
-        const teamArray = Array.isArray(teamsResponse) ? teamsResponse : [];
-        const mappedRows: TeamRow[] = teamArray.map((u: any, index: number) => {
-          const fullName = u.name || "—";
-          const alias = u.alias || "—";
-          const normalizedStatus =
-            (u.userStatus || u.status || "Current") === "Active"
-              ? "Current"
-              : u.userStatus || u.status || "Current";
-          return {
-            ...u,
-            ID: u.customId || u._id || `#T00${index + 1}`,
-            memberName: fullName,
-            alias: alias,
-            userStatus: normalizedStatus,
-            joiningDate: u.dateOfJoining ? formatDMY(u.dateOfJoining) : "—",
-            actions: "⋮",
-            isDeleted: Boolean(u.isDeleted),
-          };
-        });
-        setTeams(mappedRows);
-      } catch (err) {
-        console.error("Failed to fetch team members:", err);
-      }
-    };
     fetchTeamsData();
   }, [activeTab]);
 
@@ -547,6 +548,7 @@ const TeamDirectory = () => {
           }}
           data={selectedTeam} // REQUIRED
           mode={mode}
+          onSuccess={fetchTeamsData}
         />
       )}
 

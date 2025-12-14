@@ -273,25 +273,25 @@ const VendorDirectory = () => {
     }
   };
 
-  useEffect(() => {
-    const fetchVendors = async () => {
-      try {
-        const data = await getVendors({ isDeleted: activeTab === "Deleted" });
-        const mappedRows: VendorRow[] = data.map((v: any, index: number) => ({
-          ...v,
-          vendorID: v.customId || v._id || `#V00${index + 1}`,
-          vendorName: v.companyName || v.name || "—",
-          poc: v.contactPerson || "—",
-          rating: v.tier ? Number(v.tier.replace("tier", "")) : 4,
-          dateModified: formatDMY(v.createdAt),
-          actions: "⋮",
-        }));
-        setVendors(mappedRows);
-      } catch (err) {
-        console.error("Failed to fetch Vendors:", err);
-      }
-    };
+  const fetchVendors = async () => {
+    try {
+      const data = await getVendors({ isDeleted: activeTab === "Deleted" });
+      const mappedRows: VendorRow[] = data.map((v: any, index: number) => ({
+        ...v,
+        vendorID: v.customId || v._id || `#V00${index + 1}`,
+        vendorName: v.companyName || v.name || "—",
+        poc: v.contactPerson || "—",
+        rating: v.tier ? Number(v.tier.replace("tier", "")) : 4,
+        dateModified: formatDMY(v.createdAt),
+        actions: "⋮",
+      }));
+      setVendors(mappedRows);
+    } catch (err) {
+      console.error("Failed to fetch Vendors:", err);
+    }
+  };
 
+  useEffect(() => {
     fetchVendors();
   }, [activeTab]);
 
@@ -579,6 +579,7 @@ const VendorDirectory = () => {
             }}
             data={selectedVendor} // REQUIRED
             mode={mode}
+            onSuccess={fetchVendors}
           />
         </BookingProvider>
       )}

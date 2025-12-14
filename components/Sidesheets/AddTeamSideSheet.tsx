@@ -40,6 +40,7 @@ type AddTeamSideSheetProps = {
   onCancel: () => void;
   isOpen: boolean;
   mode?: "create" | "edit" | "view";
+  onSuccess?: () => void;
 };
 
 const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
@@ -47,6 +48,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
   onCancel,
   isOpen,
   mode = "create",
+  onSuccess,
 }) => {
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -269,6 +271,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
       } else {
         console.error("Failed to create team", response);
       }
+      onSuccess?.();
     } catch (err: any) {
       console.error("Unexpected error:", err.message || err);
     }
@@ -359,6 +362,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
       } else {
         console.error("Failed to update team member", response);
       }
+      onSuccess?.();
     } catch (err: any) {
       console.error("Unexpected error:", err.message || err);
     }

@@ -47,6 +47,7 @@ type AddVendorSideSheetProps = {
   isOpen: boolean;
   mode?: "create" | "edit" | "view";
   formRef?: React.RefObject<HTMLFormElement | null>;
+  onSuccess?: () => void;
 };
 
 const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
@@ -55,6 +56,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   isOpen,
   mode,
   formRef,
+  onSuccess,
 }) => {
   const { updateGeneralInfo, setLastAddedVendor } = useBooking();
   const readOnly = mode === "view";
@@ -315,6 +317,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         const displayName =
           created.name || created.companyName || created.contactPerson || "";
         setLastAddedVendor?.({ id: created._id, name: displayName });
+
+        onSuccess?.();
       }
 
       onCancel();
@@ -382,6 +386,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
       const response = await updateVendor(vendorId, vendorData);
       console.log("Vendor updated successfully:", response);
+      onSuccess?.();
 
       onCancel(); // close sheet
     } catch (error: any) {

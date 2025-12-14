@@ -1,4 +1,4 @@
-'use client'
+"use client";
 
 import { useState, useRef, useEffect } from "react";
 import { FaRegCalendar } from "react-icons/fa6";
@@ -6,6 +6,7 @@ import { MdKeyboardArrowRight } from "react-icons/md";
 import { MdKeyboardArrowLeft } from "react-icons/md";
 import { MdKeyboardDoubleArrowRight } from "react-icons/md";
 import { MdKeyboardDoubleArrowLeft } from "react-icons/md";
+import { MdClose } from "react-icons/md";
 
 type Props = {
   label: string;
@@ -116,7 +117,6 @@ export default function DateRangeInput({
 
   // Fixed date comparison to handle dates without time component
   const handleDateClick = (date: Date, e?: React.MouseEvent) => {
-
     const dateOnly = new Date(
       date.getFullYear(),
       date.getMonth(),
@@ -350,17 +350,17 @@ export default function DateRangeInput({
               >
                 {/* ✅ CHANGE: Only show range background for current month dates */}
                 {inRange && !position && isCurrentMonth && (
-                  <div className="absolute inset-0 bg-gray-100" />
+                  <div className="absolute inset-0 bg-gray-100 pointer-events-none z-0" />
                 )}
                 {position === "start" && isCurrentMonth && (
                   <div
-                    className="absolute inset-0 bg-gray-100"
+                    className="absolute inset-0 bg-gray-100 pointer-events-none z-0"
                     style={{ marginLeft: "50%" }}
                   />
                 )}
                 {position === "end" && isCurrentMonth && (
                   <div
-                    className="absolute inset-0 bg-gray-100"
+                    className="absolute inset-0 bg-gray-100 pointer-events-none z-0"
                     style={{ marginRight: "50%" }}
                   />
                 )}
@@ -372,7 +372,7 @@ export default function DateRangeInput({
                     }
                   }}
                   disabled={!isCurrentMonth} // ✅ CHANGE: Disable dates from adjacent months
-                  className={`relative w-full h-full flex items-center justify-center text-[0.75rem] font-medium transition-colors select-none
+                  className={`relative z-10 w-full h-full flex items-center justify-center text-[0.75rem] font-medium transition-colors select-none
                     ${!isCurrentMonth ? "text-gray-300 cursor-default" : ""} 
                     ${
                       isCurrentMonth && position
@@ -412,19 +412,43 @@ export default function DateRangeInput({
         className="relative flex items-center w-[14.75rem] gap-2 border border-gray-300 rounded-lg px-3 py-1.5 cursor-pointer bg-white hover:border-gray-400 transition-colors select-none"
         onClick={() => setOpen(!open)}
       >
-        <span className="text-[0.65rem] text-gray-500">
+        <span
+          className={`text-[0.65rem] ${
+            start ? "text-gray-700 font-semibold" : "text-gray-500"
+          }`}
+        >
           {formatDate(start)}
         </span>
 
         <span className="text-gray-400 mx-2">→</span>
 
-        <span className="text-[0.65rem] text-gray-500 flex-1">
+        <span
+          className={`text-[0.65rem] flex-1 ${
+            end ? "text-gray-700 font-semibold" : "text-gray-500"
+          }`}
+        >
           {end ? formatDate(end) : "End Date"}
         </span>
 
-        <div className="text-gray-400 -mt-1">
-          <FaRegCalendar />
-        </div>
+        {start && end ? (
+          <button
+            type="button"
+            aria-label="Clear dates"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange("", "");
+              setHoveredDate(null);
+              setOpen(false);
+            }}
+            className="text-gray-400 -mt-0 p-1 rounded hover:text-gray-600"
+          >
+            <MdClose />
+          </button>
+        ) : (
+          <div className="text-gray-400 -mt-1">
+            <FaRegCalendar />
+          </div>
+        )}
       </div>
 
       {open && (
