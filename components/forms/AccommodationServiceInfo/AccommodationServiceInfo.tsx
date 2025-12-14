@@ -174,7 +174,6 @@ interface AccommodationInfoFormProps {
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
   externalFormData?: ExternalFormData | Record<string, unknown>;
-  formData?: Record<string, unknown>;
 }
 
 const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
@@ -185,16 +184,15 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   onFormDataUpdate,
   onAddDocuments,
   externalFormData,
-  formData: incomingFormData,
 }) => {
   const normalizedExternalData = useMemo(() => {
-    const source = externalFormData ?? incomingFormData ?? {};
+    const source = externalFormData ?? {};
     const fields =
       (source as ExternalFormData)?.formFields ??
       (source as ExternalFormData)?.accommodationinfoform ??
       source;
     return fields as Partial<AccommodationInfoFormData>;
-  }, [externalFormData, incomingFormData]);
+  }, [externalFormData]);
 
   // Internal form state
   const [formData, setFormData] = useState<AccommodationInfoFormData>({

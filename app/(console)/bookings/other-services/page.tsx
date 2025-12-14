@@ -413,6 +413,7 @@ const OSBookingsPage = () => {
 
 
   const handleServiceSelect = (service: BookingService) => {
+    setSelectedQuotation(null);
     setSelectedService(service);
     setIsSideSheetOpen(true);
   };
@@ -421,6 +422,7 @@ const OSBookingsPage = () => {
   const handleBookingComplete = useCallback(async () => {
     await loadQuotations();
     setIsSideSheetOpen(false);
+    setSelectedQuotation(null);
   }, [loadQuotations, activeTab]);
 
   const getServiceIcon = (
@@ -540,12 +542,12 @@ const OSBookingsPage = () => {
     return iconMap[key] || "📋"; // fallback
   };
 
-  const mapStatus = (status: string, isDeleted: boolean): string => {
+  const mapStatus = (status: string, serviceSatatus: string): string => {
     const statusMap: Record<string, string> = {
-      approved: "Confirmed",
-      draft: "Draft",
+      confirmed: "Confirmed",
+      cancelled: "Cancelled",
     };
-    return isDeleted ? "Deleted" : statusMap[status?.toLowerCase()] || 'Confirmed';
+    return serviceSatatus === 'draft' ? "Draft" : statusMap[status?.toLowerCase()] || 'Confirmed';
   };
 
   // Handle viewing quotation details
@@ -800,7 +802,7 @@ const OSBookingsPage = () => {
         key={`id-${index}`}
         className="px-4 py-2 text-center font-semibold align-middle h-[4rem]"
       >
-        {item.customId ? `${item.customId}` : `Draft-${index + 1}`}
+        {item.customId ? `${item.customId}` : `${item._id}`}
       </td>,
       <td
         key={`lead-${index}`}
@@ -841,8 +843,8 @@ const OSBookingsPage = () => {
         key={`status-${index}`}
         className="px-4 py-2 text-center align-middle h-[4rem]"
       >
-        <span className={getStatusBadgeClass(mapStatus(item.serviceStatus, item.isDeleted))}>
-          {mapStatus(item.serviceStatus, item.isDeleted)}
+        <span className={getStatusBadgeClass(mapStatus(item.status, item.serviceStatus))}>
+          {mapStatus(item.status, item.serviceStatus)}
         </span>
       </td>,
       <td
@@ -1060,6 +1062,7 @@ const OSBookingsPage = () => {
 
         {isSideSheetOpen && (
           <BookingFormSidesheet
+            key={selectedQuotation?._id || "create"}
             isOpen={isSideSheetOpen}
             onClose={handleBookingComplete}
             selectedService={selectedService}
