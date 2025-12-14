@@ -543,13 +543,7 @@ const OSBookingsPage = () => {
       confirmed: "Confirmed",
       cancelled: "Cancelled",
     };
-<<<<<<< HEAD
-    return isDeleted
-      ? "Deleted"
-      : statusMap[status?.toLowerCase()] || "Confirmed";
-=======
-    return statusMap[status?.toLowerCase()] || 'Confirmed';
->>>>>>> e3b3ea5a1733fb44b4ee223e69d4fe051aa86991
+    return statusMap[status?.toLowerCase()] || "Confirmed";
   };
 
   // Handle viewing quotation details
@@ -846,17 +840,8 @@ const OSBookingsPage = () => {
         key={`status-${index}`}
         className="px-4 py-2 text-center align-middle h-[4rem]"
       >
-<<<<<<< HEAD
-        <span
-          className={getStatusBadgeClass(
-            mapStatus(item.serviceStatus, item.isDeleted)
-          )}
-        >
-          {mapStatus(item.serviceStatus, item.isDeleted)}
-=======
         <span className={getStatusBadgeClass(mapStatus(item.status))}>
           {mapStatus(item.status)}
->>>>>>> e3b3ea5a1733fb44b4ee223e69d4fe051aa86991
         </span>
       </td>,
       <td
