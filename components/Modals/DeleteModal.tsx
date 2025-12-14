@@ -603,6 +603,15 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
                 initialRowsPerPage={5}
                 maxRowsPerPageOptions={[5, 10, 25, 50]}
                 hideRowsPerPage={false}
+                categoryName={
+                  entity === "customer"
+                    ? "customers"
+                    : entity === "vendor"
+                    ? "vendors"
+                    : entity === "traveller"
+                    ? "travellers"
+                    : "teams"
+                }
               />
             </div>
 
@@ -666,6 +675,15 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
                   : undefined
               }
               bookings={bookingHistory}
+              categoryName={
+                entity === "customer"
+                  ? "customers"
+                  : entity === "vendor"
+                  ? "vendors"
+                  : entity === "traveller"
+                  ? "travellers"
+                  : "teams"
+              }
             />
           </div>
         )}

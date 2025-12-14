@@ -1,4 +1,7 @@
+"use client";
+
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 interface DropdownOption {
   value: string;
@@ -30,6 +33,14 @@ const DropDown: React.FC<DropdownProps> = ({
   const [selectedValue, setSelectedValue] = useState(value || "");
   const [openUpwards, setOpenUpwards] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const [menuPos, setMenuPos] = useState<{
+    left: number;
+    top?: number;
+    bottom?: number;
+    width: number;
+    openUpwards: boolean;
+  } | null>(null);
 
   // Sync selected value when parent changes `value` prop
   useEffect(() => {
@@ -41,10 +52,12 @@ const DropDown: React.FC<DropdownProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      const target = event.target as Node;
+      const clickedInsideDropdown =
+        dropdownRef.current && dropdownRef.current.contains(target);
+      const clickedInsideMenu =
+        menuRef.current && menuRef.current.contains(target);
+      if (!clickedInsideDropdown && !clickedInsideMenu) {
         setIsOpen(false);
       }
     };
@@ -60,7 +73,7 @@ const DropDown: React.FC<DropdownProps> = ({
 
   // Decide whether to open menu upwards when there isn't enough space below
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !dropdownRef.current) return;
 
     const computePlacement = () => {
       if (!dropdownRef.current) return;
@@ -70,10 +83,19 @@ const DropDown: React.FC<DropdownProps> = ({
       const availableBelow = window.innerHeight - rect.bottom;
       const availableAbove = rect.top;
 
-      // Open upwards when below space is smaller than menu and above has more space
-      setOpenUpwards(
-        availableBelow < menuHeight && availableAbove > availableBelow
-      );
+      const shouldOpenUp =
+        availableBelow < menuHeight && availableAbove > availableBelow;
+      const left = Math.max(8, rect.left);
+      const width = rect.width || 200;
+
+      if (shouldOpenUp) {
+        const bottom = window.innerHeight - rect.top;
+        setMenuPos({ left, bottom, width, openUpwards: true });
+      } else {
+        const top = rect.bottom;
+        setMenuPos({ left, top, width, openUpwards: false });
+      }
+      setOpenUpwards(shouldOpenUp);
     };
 
     // compute initially and on scroll/resize
@@ -83,6 +105,7 @@ const DropDown: React.FC<DropdownProps> = ({
     return () => {
       window.removeEventListener("resize", computePlacement);
       window.removeEventListener("scroll", computePlacement, true);
+      setMenuPos(null);
     };
   }, [isOpen, options.length]);
 
@@ -136,24 +159,39 @@ const DropDown: React.FC<DropdownProps> = ({
       </button>
 
       {/* Dropdown Menu */}
-      {isOpen && !disabled && (
-        <div
-          className={`${menuWidthClass} absolute ${
-            openUpwards ? "bottom-full left-0 mb-1" : "top-full left-0 mt-1"
-          } bg-white rounded-md border border-gray-300 shadow-lg overflow-hidden z-10`}
-        >
-          {options.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              onClick={() => handleSelect(option.value)}
-              className={`w-full block px-2 py-1.5 text-left text-[0.75rem] text-black hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0`}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      )}
+      {isOpen &&
+        !disabled &&
+        menuPos &&
+        (typeof document !== "undefined" && document.body
+          ? createPortal(
+              <div
+                ref={(el: HTMLDivElement | null) => {
+                  menuRef.current = el;
+                }}
+                style={{
+                  left: Math.max(8, menuPos.left),
+                  width: menuPos.width,
+                  ...(menuPos.openUpwards
+                    ? { bottom: menuPos.bottom }
+                    : { top: menuPos.top }),
+                  position: "fixed",
+                }}
+                className={`${menuWidthClass} bg-white rounded-md border border-gray-300 shadow-lg overflow-hidden z-[1100]`}
+              >
+                {options.map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => handleSelect(option.value)}
+                    className={`w-full block px-2 py-1.5 text-left text-[0.75rem] text-black hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>,
+              document.body
+            )
+          : null)}
     </div>
   );
 };

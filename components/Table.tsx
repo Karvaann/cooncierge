@@ -269,8 +269,8 @@ const Table: React.FC<TableProps> = ({
               }))}
               value={String(rowsPerPage)}
               onChange={(v) => handleRowsPerPageChange(Number(v))}
-              customWidth="w-[4.5rem]"
-              menuWidth="w-[4.5rem]"
+              customWidth="w-[3.5rem]"
+              menuWidth="w-[3.5rem]"
               className=""
             />
           </div>
