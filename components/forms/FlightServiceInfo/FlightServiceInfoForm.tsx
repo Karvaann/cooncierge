@@ -10,8 +10,9 @@ import OneWayLayout from "./OneWayLayout";
 import RoundTripLayout from "./RoundTripLayout";
 import MultiCityLayout from "./MultiCityLayout";
 import DropDown from "@/components/DropDown";
-import SingleCalendar from "@/components/SingleCalendar";
+import DateRangeInput from "@/components/DateRangeInput";
 import { FaRegFolder } from "react-icons/fa";
+import SingleCalendar from "@/components/SingleCalendar";
 // Type definitions
 interface FlightInfoFormData {
   bookingdate: string;
