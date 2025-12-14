@@ -291,7 +291,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
     const bookingDataTemp = new FormData();
 
-    bookingDataTemp.append("quotationType", quotationType);
+    // Map frontend category to backend enum when needed.
+    const mappedQuotationType =
+      quotationType === "accommodation" ? "hotel" : quotationType;
+    bookingDataTemp.append("quotationType", mappedQuotationType);
     bookingDataTemp.append("channel", "B2C");
     bookingDataTemp.append("businessId", businessId._id);
     bookingDataTemp.append("formFields", JSON.stringify(formFields));
@@ -338,7 +341,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         ...currentFormData,
       };
 
-
       const bookingData = convertToBookingData(
         formValues,
         selectedService.category,
@@ -346,14 +348,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       );
 
       // Prepare multipart form data
-      const formDataToSend = new FormData();
-      formDataToSend.append("data", JSON.stringify(bookingData));
+      // const formDataToSend = new FormData();
+      // formDataToSend.append("data", JSON.stringify(bookingData));
 
-      bookingDocuments.forEach((file) => {
-        formDataToSend.append("documents", file);
-      });
+      // bookingDocuments.forEach((file) => {
+      //   formDataToSend.append("documents", file);
+      // });
 
-      const response = await BookingApiService.createQuotation(formDataToSend);
+      const response = await BookingApiService.createQuotation(bookingData);
 
       if (response.success) {
         setIsSuccessModalOpen(true);
@@ -401,7 +403,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         ...currentFormData,
       };
 
-
       const bookingData = convertToBookingData(
         formValues,
         selectedService.category,
@@ -414,7 +415,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       // bookingDocuments.forEach((file) => {
       //   formDataToSend.append("documents", file);
       // });
-
 
       const response = await BookingApiService.createQuotation(bookingData);
 

@@ -331,7 +331,9 @@ interface GeneralInfoFormProps {
   formRef?: React.RefObject<HTMLFormElement>;
 }
 
-const buildInitialState = (externalFormData: any = {}): GeneralInfoFormData => ({
+const buildInitialState = (
+  externalFormData: any = {}
+): GeneralInfoFormData => ({
   customer: externalFormData?.customerId?._id || "",
   vendor: externalFormData?.vendorId?._id || "",
   vendorName:
@@ -342,7 +344,8 @@ const buildInitialState = (externalFormData: any = {}): GeneralInfoFormData => (
   adults: externalFormData?.adults || externalFormData?.formFields?.adults || 1,
   children:
     externalFormData?.children || externalFormData?.formFields?.children || 1,
-  infants: externalFormData?.infants || externalFormData?.formFields?.infants || 1,
+  infants:
+    externalFormData?.infants || externalFormData?.formFields?.infants || 1,
   childAges:
     externalFormData?.childAges ||
     externalFormData?.formFields?.childAges ||
@@ -352,9 +355,7 @@ const buildInitialState = (externalFormData: any = {}): GeneralInfoFormData => (
   adultTravellerIds: externalFormData?.formFields?.adultTravellerIds || [""], // IDs for backend
   infantTravellerIds: externalFormData?.formFields?.infantTravellerIds || [""], // IDs for backend
   bookingOwner:
-    externalFormData?.owner?.[0]?._id ||
-    externalFormData?.bookingOwner ||
-    "",
+    externalFormData?.owner?.[0]?._id || externalFormData?.bookingOwner || "",
   remarks:
     externalFormData?.remarks || externalFormData?.formFields?.remarks || "",
 });
@@ -386,9 +387,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     if (externalSignature === lastExternalSignature.current) return;
 
     const nextState = buildInitialState(externalFormData);
-    setFormData((prev) =>
-      isSameState(nextState, prev) ? prev : nextState
-    );
+    setFormData((prev) => (isSameState(nextState, prev) ? prev : nextState));
 
     lastExternalSignature.current = externalSignature;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -423,13 +422,13 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     { id: "", name: "" },
   ]);
 
-  const [adultTravellerList, setAdultTravellerList] = useState<{ id: string; name: string }[]>([
-    { id: "", name: "" },
-  ]);
+  const [adultTravellerList, setAdultTravellerList] = useState<
+    { id: string; name: string }[]
+  >([{ id: "", name: "" }]);
 
-  const [infantTravellerList, setInfantTravellerList] = useState<{ id: string; name: string }[]>([
-    { id: "", name: "" },
-  ]);
+  const [infantTravellerList, setInfantTravellerList] = useState<
+    { id: string; name: string }[]
+  >([{ id: "", name: "" }]);
 
   // const [vendorData, setVendorData] = useState<{ id: string; name: string }>({
   //   id: "",
@@ -634,7 +633,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       try {
         traveller = await getTravellerById(idFromState);
       } catch (err) {
-    // console.error("Failed to fetch traveller by id:", err);
+        // console.error("Failed to fetch traveller by id:", err);
         return;
       }
     }
@@ -670,7 +669,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         setAllTeams(tRes || []);
         setAllTravellers(travellerRes || []);
       } catch (err) {
-    // console.error("[GeneralInfoForm] Failed loading lists", err);
+        // console.error("[GeneralInfoForm] Failed loading lists", err);
       }
     };
 
@@ -896,7 +895,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     value: string,
     id?: string // Optional ID - if provided, also update the ID array
   ) => {
-
     // console.log("Updating traveller:", type, index, value, id, formData);
 
     const idType =
@@ -904,7 +902,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
     // console.log("Adult Traveller List:", adultTravellerList);
 
-      if (type === "adultTravellers") {
+    if (type === "adultTravellers") {
       setAdultTravellerList((prev) => {
         const updated = [...prev];
         updated[index] = { id: id ?? "", name: value };
@@ -923,7 +921,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       while (updated.length <= index) updated.push("");
       updated[index] = value;
 
-    // console.log("Updated traveller:", updated);
+      // console.log("Updated traveller:", updated);
 
       const updatedIds = [...prev[idType]];
       while (updatedIds.length <= index) updatedIds.push("");
@@ -1287,33 +1285,33 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   // Helper to get input field props
   const getInputProps = (
-  name: keyof GeneralInfoFormData,
-  options?: {
-    value?: string | number;
-    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    skipValidation?: boolean;
-  }
-) => {
-  const value =
-    options?.value !== undefined ? options.value : "";
+    name: keyof GeneralInfoFormData,
+    options?: {
+      value?: string | number;
+      onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+      skipValidation?: boolean;
+    }
+  ) => {
+    const value = options?.value !== undefined ? options.value : "";
 
-  const hasError = !!(errors[name] && touched[name]);
-  const hasValue =
-    typeof value === "string" ? value.trim().length > 0 : value.toString() !== "";
+    const hasError = !!(errors[name] && touched[name]);
+    const hasValue =
+      typeof value === "string"
+        ? value.trim().length > 0
+        : value.toString() !== "";
 
-  const isValid = !options?.skipValidation && hasValue && !hasError;
+    const isValid = !options?.skipValidation && hasValue && !hasError;
 
-  return {
-    value,
-    onChange: options?.onChange || handleChange,
-    onBlur: handleBlur,
-    disabled: isSubmitting,
-    hasError,
-    errorMessage: errors[name],
-    isValid,
+    return {
+      value,
+      onChange: options?.onChange || handleChange,
+      onBlur: handleBlur,
+      disabled: isSubmitting,
+      hasError,
+      errorMessage: errors[name],
+      isValid,
+    };
   };
-};
-
 
   return (
     <form
@@ -1824,7 +1822,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
               <RightSideIcons
                 fieldName="adultTravellers"
-                value={trav}
+                value={formData.adultTravellers[index] ?? ""}
                 overrideSetter={(val) =>
                   updateTraveller("adultTravellers", index, val)
                 }
