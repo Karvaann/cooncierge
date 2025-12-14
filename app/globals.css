@@ -277,6 +277,14 @@ body {
   display: none;
 }
 
+.rdrNextPrevButton {
+  display: none;
+}
+
+.rdrPprevButton {
+  display: none;
+}
+
 /* remove reserved space from hidden month header */
 .date-range-popover .rdrMonthAndYearWrapper {
   height: 0;
