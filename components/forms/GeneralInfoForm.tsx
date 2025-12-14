@@ -373,17 +373,34 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   const isSameState = (next: GeneralInfoFormData, prev: GeneralInfoFormData) =>
     JSON.stringify(next) === JSON.stringify(prev);
+  const lastPushedFormData = useRef<GeneralInfoFormData>(formData);
 
   // Reset/prefill when incoming data truly changes (avoids render loops)
+  const externalSignature = useMemo(
+    () => JSON.stringify(externalFormData ?? {}),
+    [externalFormData]
+  );
+  const lastExternalSignature = useRef(externalSignature);
+
   useEffect(() => {
+    if (externalSignature === lastExternalSignature.current) return;
+
     const nextState = buildInitialState(externalFormData);
-    setFormData((prev) => {
-      if (isSameState(nextState, prev)) return prev;
-      onFormDataUpdate?.(nextState);
-      return nextState;
-    });
+    setFormData((prev) =>
+      isSameState(nextState, prev) ? prev : nextState
+    );
+
+    lastExternalSignature.current = externalSignature;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [externalFormData]);
+  }, [externalSignature]);
+
+  // Push changes upward after local state settles (avoid duplicate pushes)
+  useEffect(() => {
+    if (!isSameState(formData, lastPushedFormData.current)) {
+      onFormDataUpdate?.(formData);
+      lastPushedFormData.current = formData;
+    }
+  }, [formData, onFormDataUpdate]);
 
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -403,6 +420,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   >([{ id: "", name: "" }]);
 
   const [vendorList, setVendorList] = useState<{ id: string; name: string }[]>([
+    { id: "", name: "" },
+  ]);
+
+  const [adultTravellerList, setAdultTravellerList] = useState<{ id: string; name: string }[]>([
+    { id: "", name: "" },
+  ]);
+
+  const [infantTravellerList, setInfantTravellerList] = useState<{ id: string; name: string }[]>([
     { id: "", name: "" },
   ]);
 
@@ -446,6 +471,25 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const [ownerList, setOwnerList] = useState<{ id: string; name: string }[]>([
     { id: "", name: "" },
   ]);
+
+  // Keep traveller display lists aligned with stored ids/names
+  useEffect(() => {
+    setAdultTravellerList(
+      (formData.adultTravellers || [""]).map((name, idx) => ({
+        id: formData.adultTravellerIds?.[idx] ?? "",
+        name: name || "",
+      }))
+    );
+  }, [formData.adultTravellers, formData.adultTravellerIds]);
+
+  useEffect(() => {
+    setInfantTravellerList(
+      (formData.infantTravellers || [""]).map((name, idx) => ({
+        id: formData.infantTravellerIds?.[idx] ?? "",
+        name: name || "",
+      }))
+    );
+  }, [formData.infantTravellers, formData.infantTravellerIds]);
 
   // View customer sidesheet state
   const [isViewCustomerOpen, setIsViewCustomerOpen] = useState(false);
@@ -590,7 +634,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       try {
         traveller = await getTravellerById(idFromState);
       } catch (err) {
-        console.error("Failed to fetch traveller by id:", err);
+    // console.error("Failed to fetch traveller by id:", err);
         return;
       }
     }
@@ -626,7 +670,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         setAllTeams(tRes || []);
         setAllTravellers(travellerRes || []);
       } catch (err) {
-        console.error("[GeneralInfoForm] Failed loading lists", err);
+    // console.error("[GeneralInfoForm] Failed loading lists", err);
       }
     };
 
@@ -733,15 +777,25 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     term: string,
     keys: (keyof T)[]
   ): T[] => {
-    if (!term.trim()) return [];
+    if (!term.trim()) return list;
 
     const fuse = new Fuse(list, {
       threshold: 0.3,
       keys: keys as string[],
     });
 
-    return fuse.search(term).map((r) => r.item);
+    const results = fuse.search(term).map((r) => r.item);
+    return results.length ? results : list;
   };
+
+  const getTravellerDisplayName = (t: TravellerDataType) =>
+    t.name ||
+    (t as any)?.fullName ||
+    (t as any)?.travellerName ||
+    (t as any)?.customerName ||
+    t.email ||
+    t.phone ||
+    "Traveller";
 
   // useEffect(() => {
   //   if (!externalFormData?.vendor) return;
@@ -816,10 +870,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     });
   }, [formData.infants]);
 
-  const addCustomerField = () => {
-    setCustomerList([...customerList, { id: "", name: "" }]);
-  };
-
   const removeCustomerField = (index: number) => {
     setCustomerList(customerList.filter((_, i) => i !== index));
   };
@@ -846,22 +896,41 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     value: string,
     id?: string // Optional ID - if provided, also update the ID array
   ) => {
-    const updated = [...formData[type]];
-    updated[index] = value;
+
+    // console.log("Updating traveller:", type, index, value, id, formData);
 
     const idType =
       type === "adultTravellers" ? "adultTravellerIds" : "infantTravellerIds";
-    const updatedIds = [...formData[idType]];
-    if (id !== undefined) {
-      updatedIds[index] = id;
+
+    // console.log("Adult Traveller List:", adultTravellerList);
+
+      if (type === "adultTravellers") {
+      setAdultTravellerList((prev) => {
+        const updated = [...prev];
+        updated[index] = { id: id ?? "", name: value };
+        return updated;
+      });
     } else {
-      // If no ID provided (user typing), clear the ID
-      updatedIds[index] = "";
+      setInfantTravellerList((prev) => {
+        const updated = [...prev];
+        updated[index] = { id: id ?? "", name: value };
+        return updated;
+      });
     }
 
-    const newFormData = { ...formData, [type]: updated, [idType]: updatedIds };
-    setFormData(newFormData);
-    onFormDataUpdate?.(newFormData);
+    setFormData((prev) => {
+      const updated = [...prev[type]];
+      while (updated.length <= index) updated.push("");
+      updated[index] = value;
+
+    // console.log("Updated traveller:", updated);
+
+      const updatedIds = [...prev[idType]];
+      while (updatedIds.length <= index) updatedIds.push("");
+      updatedIds[index] = id ?? "";
+
+      return { ...prev, [type]: updated, [idType]: updatedIds };
+    });
   };
 
   const clearField = (fieldName: string) => {
@@ -881,7 +950,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     });
     const newFormData = { ...formData, customer: lastAddedCustomer.id };
     setFormData(newFormData);
-    onFormDataUpdate?.(newFormData);
     // Clear any error on customer field
     setErrors((prev) => ({ ...prev, customer: "" }));
   }, [lastAddedCustomer]);
@@ -892,7 +960,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     setVendorList([{ id: lastAddedVendor.id, name: lastAddedVendor.name }]);
     const newFormData = { ...formData, vendor: lastAddedVendor.id };
     setFormData(newFormData);
-    onFormDataUpdate?.(newFormData);
     setErrors((prev) => ({ ...prev, vendor: "" }));
   }, [lastAddedVendor]);
 
@@ -926,7 +993,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           infantTravellerIds: infantIds,
         };
       }
-      onFormDataUpdate?.(newFormData);
       return newFormData;
     });
 
@@ -1158,9 +1224,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
     // build next state from current formData
     if (name !== "vendor") {
-      const next = { ...formData, [name]: processedValue };
-      setFormData(next);
-      onFormDataUpdate?.(next);
+      setFormData((prev) => ({ ...prev, [name]: processedValue }));
     }
 
     if (errors[name]) {
@@ -1223,31 +1287,33 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   // Helper to get input field props
   const getInputProps = (
-    name: keyof GeneralInfoFormData,
-    options?: {
-      value?: string | number;
-      onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-      skipValidation?: boolean;
-    }
-  ) => {
-    const fieldValue =
-      options?.value !== undefined ? options.value : formData[name];
-    const hasError = !!(errors[name] && touched[name]);
-    const hasValue = formData[name] && String(formData[name]).trim();
-    const isValid = !options?.skipValidation && !!hasValue && !hasError;
+  name: keyof GeneralInfoFormData,
+  options?: {
+    value?: string | number;
+    onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    skipValidation?: boolean;
+  }
+) => {
+  const value =
+    options?.value !== undefined ? options.value : "";
 
-    console.log(name, "isValid:", isValid, "hasError:", hasError, 'hasValue:', hasValue, 'fieldValue:', fieldValue);
+  const hasError = !!(errors[name] && touched[name]);
+  const hasValue =
+    typeof value === "string" ? value.trim().length > 0 : value.toString() !== "";
 
-    return {
-      value: fieldValue as string | number,
-      onChange: options?.onChange || handleChange,
-      onBlur: handleBlur,
-      disabled: isSubmitting,
-      hasError,
-      errorMessage: errors[name],
-      isValid,
-    };
+  const isValid = !options?.skipValidation && hasValue && !hasError;
+
+  return {
+    value,
+    onChange: options?.onChange || handleChange,
+    onBlur: handleBlur,
+    disabled: isSubmitting,
+    hasError,
+    errorMessage: errors[name],
+    isValid,
   };
+};
+
 
   return (
     <form
@@ -1305,7 +1371,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           customerName: "",
                         };
                         setFormData(newFormData);
-                        onFormDataUpdate?.(newFormData);
                       } else {
                         // Update customerName for draft display
                         const newFormData = {
@@ -1313,7 +1378,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           customerName: value,
                         };
                         setFormData(newFormData);
-                        onFormDataUpdate?.(newFormData);
                       }
 
                       const results = runFuzzySearch(allCustomers, value, [
@@ -1366,7 +1430,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                               customerName: cust.name,
                             };
                             setFormData(newFormData);
-                            onFormDataUpdate?.(newFormData);
                             setShowCustomerDropdown(false);
                           }}
                         >
@@ -1463,7 +1526,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   vendorName: value,
                 };
                 setFormData(newFormData);
-                onFormDataUpdate?.(newFormData);
 
                 const results = runFuzzySearch(allVendors, value, [
                   "name",
@@ -1513,7 +1575,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           vendorName: v.name ?? v.contactPerson ?? "",
                         };
                         setFormData(newFormData);
-                        onFormDataUpdate?.(newFormData);
                       }}
                     >
                       <div className="flex items-center justify-between">
@@ -1642,7 +1703,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             <span className="text-red-500">*</span> Adult
           </label>
 
-          {formData.adultTravellers.map((trav, index) => (
+          {adultTravellerList.map((trav, index) => (
             <div key={index} className="flex items-center gap-2 my-2">
               <div
                 className="w-[30rem] relative"
@@ -1656,11 +1717,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   required={index === 0}
                   type="text"
                   {...getInputProps("adultTravellers", {
-                    value: trav ?? "",
+                    value: formData.adultTravellers[index] ?? "",
                     onChange: (e) => {
                       const value = e.target.value;
 
-                      // Run fuzzy search
+                      updateTraveller("adultTravellers", index, value);
+
                       const results = runFuzzySearch(allTravellers, value, [
                         "name",
                         "email",
@@ -1689,7 +1751,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             updateTraveller(
                               "adultTravellers",
                               index,
-                              t.name,
+                              getTravellerDisplayName(t),
                               t._id
                             );
                             setActiveTravellerDropdown(null);
@@ -1872,7 +1934,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                 updateTraveller(
                                   "infantTravellers",
                                   index,
-                                  t.name,
+                                  getTravellerDisplayName(t),
                                   t._id
                                 );
                                 setActiveTravellerDropdown(null);
@@ -1969,7 +2031,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 ownerName: value,
               };
               setFormData(newFormData);
-              onFormDataUpdate?.(newFormData);
 
               const results = runFuzzySearch(allTeams, value, [
                 "name",
@@ -1995,7 +2056,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       ownerName: t.name,
                     };
                     setFormData(newFormData);
-                    onFormDataUpdate?.(newFormData);
                     setShowTeamsDropdown(false);
                   }}
                 >
