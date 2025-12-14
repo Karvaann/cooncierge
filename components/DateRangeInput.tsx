@@ -9,34 +9,31 @@ import { MdKeyboardDoubleArrowLeft } from "react-icons/md";
 
 type Props = {
   label: string;
+  onChange: (start: string, end: string) => void;
   startDate: string;
   endDate: string;
-  onChange: (start: string, end: string) => void;
 };
 
 export default function DateRangeInput({
   label,
-  startDate,
-  endDate,
   onChange,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [starTDate, setStartDate] = useState<Date | null>(null);
+  const [enDDate, setEndDate] = useState<Date | null>(null);
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const ref = useRef<HTMLDivElement>(null);
 
-  const start = startDate ? new Date(startDate) : null;
-  const end = endDate ? new Date(endDate) : null;
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  // useEffect(() => {
+  //   function handleClickOutside(e: MouseEvent) {
+  //     if (ref.current && !ref.current.contains(e.target as Node)) {
+  //       setOpen(false);
+  //     }
+  //   }
+  //   document.addEventListener("mousedown", handleClickOutside);
+  //   return () => document.removeEventListener("mousedown", handleClickOutside);
+  // }, []);
 
   const predefinedRanges = [
     {
@@ -116,6 +113,7 @@ export default function DateRangeInput({
 
   // Fixed date comparison to handle dates without time component
   const handleDateClick = (date: Date, e?: React.MouseEvent) => {
+    console.log('Date Clicked', date, e);
 
     const dateOnly = new Date(
       date.getFullYear(),
@@ -123,28 +121,34 @@ export default function DateRangeInput({
       date.getDate()
     );
 
-    if (!start || (start && end)) {
-      onChange(dateOnly.toISOString(), "");
+    if (!starTDate || (starTDate && enDDate)) {
+      // onChange(dateOnly.toISOString(), "");
+      setStartDate(dateOnly);
       setHoveredDate(null);
     } else {
       const startOnly = new Date(
-        start.getFullYear(),
-        start.getMonth(),
-        start.getDate()
+        starTDate.getFullYear(),
+        starTDate.getMonth(),
+        starTDate.getDate()
       );
       if (dateOnly < startOnly) {
-        onChange(dateOnly.toISOString(), startOnly.toISOString());
+        setStartDate(dateOnly);
+        // onChange(dateOnly.toISOString(), startOnly.toISOString());
       } else {
-        onChange(startOnly.toISOString(), dateOnly.toISOString());
+        setEndDate(dateOnly);
+        onChange(starTDate.toISOString(), dateOnly.toISOString());
+        setOpen(false);
+        setHoveredDate(null);
+        // onChange(startOnly.toISOString(), dateOnly.toISOString());
       }
-      setHoveredDate(null);
-      setOpen(false);
     }
   };
 
   // Added calendar navigation when clicking predefined ranges
   const handleRangeClick = (range: { start: Date; end: Date }) => {
     onChange(range.start.toISOString(), range.end.toISOString());
+    setStartDate(range.start);
+    setEndDate(range.end);
     // Set the calendar to show the range months
     setCurrentMonth(
       new Date(range.start.getFullYear(), range.start.getMonth(), 1)
@@ -159,19 +163,19 @@ export default function DateRangeInput({
       date.getDate()
     );
 
-    if (!start) return false;
+    if (!starTDate) return false;
 
     const startOnly = new Date(
-      start.getFullYear(),
-      start.getMonth(),
-      start.getDate()
+      starTDate.getFullYear(),
+      starTDate.getMonth(),
+      starTDate.getDate()
     );
 
-    if (end) {
+    if (enDDate) {
       const endOnly = new Date(
-        end.getFullYear(),
-        end.getMonth(),
-        end.getDate()
+        enDDate.getFullYear(),
+        enDDate.getMonth(),
+        enDDate.getDate()
       );
       return dateOnly >= startOnly && dateOnly <= endOnly;
     }
@@ -201,35 +205,35 @@ export default function DateRangeInput({
       date.getDate()
     );
 
-    if (start) {
+    if (starTDate) {
       const startOnly = new Date(
-        start.getFullYear(),
-        start.getMonth(),
-        start.getDate()
+        starTDate.getFullYear(),
+        starTDate.getMonth(),
+        starTDate.getDate()
       );
       if (dateOnly.getTime() === startOnly.getTime()) return "start";
     }
 
-    if (end) {
+    if (enDDate) {
       const endOnly = new Date(
-        end.getFullYear(),
-        end.getMonth(),
-        end.getDate()
+        enDDate.getFullYear(),
+        enDDate.getMonth(),
+        enDDate.getDate()
       );
       if (dateOnly.getTime() === endOnly.getTime()) return "end";
     }
 
     // Handle hover preview end point
-    if (!end && hoveredDate && start) {
+    if (!enDDate && hoveredDate && starTDate) {
       const hoverOnly = new Date(
         hoveredDate.getFullYear(),
         hoveredDate.getMonth(),
         hoveredDate.getDate()
       );
       const startOnly = new Date(
-        start.getFullYear(),
-        start.getMonth(),
-        start.getDate()
+        starTDate.getFullYear(),
+        starTDate.getMonth(),
+        starTDate.getDate()
       );
 
       if (
@@ -344,7 +348,7 @@ export default function DateRangeInput({
                 key={index}
                 className="relative w-9 h-8" // ✅ CHANGE: Reduced height from h-9 to h-8 for compact layout
                 onMouseEnter={() =>
-                  isCurrentMonth && start && !end && setHoveredDate(day)
+                  isCurrentMonth && starTDate && !enDDate && setHoveredDate(day)
                 } // ✅ CHANGE: Only hover on current month dates
                 onMouseLeave={() => setHoveredDate(null)}
               >
@@ -367,6 +371,7 @@ export default function DateRangeInput({
                 <button
                   type="button"
                   onClick={(e) => {
+                    console.log(day, e);
                     if (isCurrentMonth) {
                       handleDateClick(day, e);
                     }
@@ -413,13 +418,13 @@ export default function DateRangeInput({
         onClick={() => setOpen(!open)}
       >
         <span className="text-[0.65rem] text-gray-500">
-          {formatDate(start)}
+          {formatDate(starTDate)}
         </span>
 
         <span className="text-gray-400 mx-2">→</span>
 
         <span className="text-[0.65rem] text-gray-500 flex-1">
-          {end ? formatDate(end) : "End Date"}
+          {enDDate ? formatDate(enDDate) : "End Date"}
         </span>
 
         <div className="text-gray-400 -mt-1">
@@ -429,7 +434,6 @@ export default function DateRangeInput({
 
       {open && (
         <div className="absolute mt-2 z-50 rounded-lg shadow-2xl bg-white border border-gray-200 p-1 pr-2 w-[33rem] h-[16.25rem]">
-          {" "}
           <div className="flex gap-4">
             <div className="w-34 border-r border-gray-200">
               {/* Today & Yesterday */}
