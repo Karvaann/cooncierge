@@ -331,6 +331,34 @@ interface GeneralInfoFormProps {
   formRef?: React.RefObject<HTMLFormElement>;
 }
 
+const buildInitialState = (externalFormData: any = {}): GeneralInfoFormData => ({
+  customer: externalFormData?.customerId?._id || "",
+  vendor: externalFormData?.vendorId?._id || "",
+  vendorName:
+    externalFormData?.vendorId?.contactPerson ||
+    externalFormData?.vendorId?.companyName ||
+    externalFormData?.formFields?.vendorName ||
+    "",
+  adults: externalFormData?.adults || externalFormData?.formFields?.adults || 1,
+  children:
+    externalFormData?.children || externalFormData?.formFields?.children || 1,
+  infants: externalFormData?.infants || externalFormData?.formFields?.infants || 1,
+  childAges:
+    externalFormData?.childAges ||
+    externalFormData?.formFields?.childAges ||
+    [],
+  adultTravellers: externalFormData?.formFields?.adultTravellers || [""], // Adult 1 (Lead Pax) - Names for display
+  infantTravellers: externalFormData?.formFields?.infantTravellers || [""], // Names for display
+  adultTravellerIds: externalFormData?.formFields?.adultTravellerIds || [""], // IDs for backend
+  infantTravellerIds: externalFormData?.formFields?.infantTravellerIds || [""], // IDs for backend
+  bookingOwner:
+    externalFormData?.owner?.[0]?._id ||
+    externalFormData?.bookingOwner ||
+    "",
+  remarks:
+    externalFormData?.remarks || externalFormData?.formFields?.remarks || "",
+});
+
 const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   initialFormData: externalFormData = {},
   onFormDataUpdate,
@@ -339,45 +367,16 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   showValidation = true,
   formRef,
 }) => {
-  // Internal form state
+  const [formData, setFormData] = useState<GeneralInfoFormData>(
+    buildInitialState(externalFormData)
+  );
 
-  console.log("Initial External Form Data", externalFormData);
-
-  const [formData, setFormData] = useState<GeneralInfoFormData>({
-    customer: externalFormData?.customerId?._id || "",
-    vendor: externalFormData?.vendorId?._id || "",
-    vendorName:
-      externalFormData?.vendorId?.contactPerson ||
-      externalFormData?.vendorId?.companyName ||
-      externalFormData?.formFields?.vendorName ||
-      "",
-    adults:
-      externalFormData?.adults || externalFormData?.formFields?.adults || 1,
-    children:
-      externalFormData?.children || externalFormData?.formFields?.children || 1,
-    infants:
-      externalFormData?.infants || externalFormData?.formFields?.infants || 1,
-    childAges:
-      externalFormData?.childAges ||
-      externalFormData?.formFields?.childAges ||
-      [],
-    adultTravellers: externalFormData?.formFields?.adultTravellers || [""], // Adult 1 (Lead Pax) - Names for display
-    infantTravellers: externalFormData?.formFields?.infantTravellers || [""], // Names for display
-    adultTravellerIds: externalFormData?.formFields?.adultTravellerIds || [""], // IDs for backend
-    infantTravellerIds: externalFormData?.formFields?.infantTravellerIds || [
-      "",
-    ], // IDs for backend
-    bookingOwner:
-      externalFormData?.owner?.[0]?._id || externalFormData?.bookingOwner || "",
-    remarks:
-      externalFormData?.remarks || externalFormData?.formFields?.remarks || "",
-  });
-
-  // Sync initial form state to parent on mount
+  // Reset/prefill whenever incoming data changes (e.g., opening with a different record)
   useEffect(() => {
-    onFormDataUpdate?.(formData);
+    setFormData(buildInitialState(externalFormData));
+    onFormDataUpdate?.(buildInitialState(externalFormData));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, [externalFormData]);
 
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});

@@ -42,7 +42,6 @@ interface OtherInfoFormProps {
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
   externalFormData?: ExternalFormData | Record<string, unknown>;
-  formData?: Record<string, unknown>;
 }
 
 const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
@@ -53,16 +52,15 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   onFormDataUpdate,
   onAddDocuments,
   externalFormData,
-  formData: incomingFormData,
 }) => {
   const normalizedExternalData = useMemo(() => {
-    const source = externalFormData ?? incomingFormData ?? {};
+    const source = externalFormData ?? {};
     const fields =
       (source as ExternalFormData)?.formFields ??
       (source as ExternalFormData)?.othersinfoform ??
       source;
     return fields as Partial<OtherServiceInfoFormData>;
-  }, [externalFormData, incomingFormData]);
+  }, [externalFormData]);
 
   // Internal form state
   const [formData, setFormData] = useState<OtherServiceInfoFormData>({

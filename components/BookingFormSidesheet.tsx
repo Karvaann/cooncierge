@@ -69,10 +69,10 @@ interface TabConfig {
 }
 
 function ServiceInfoFormSwitcher(props: any) {
-  const { selectedService, onAddDocuments, formData } = props;
-  console.log("CATEGORY:", selectedService?.category, formData?.quotationType);
+  const { selectedService, onAddDocuments, initialData } = props;
+  console.log("CATEGORY:", selectedService?.category, initialData?.quotationType);
 
-  const service = selectedService?.category || formData?.quotationType;
+  const service = selectedService?.category || initialData?.quotationType;
 
   if (!service) return null;
 
@@ -183,6 +183,17 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       }
     }
   }, [isOpen]);
+
+  // Reset form state when opening or when initialData changes
+  useEffect(() => {
+    if (!isOpen) return;
+    if (initialData && Object.keys(initialData).length > 0) {
+      setFormData(initialData);
+    } else {
+      setFormData({});
+    }
+    setActiveTab("general");
+  }, [initialData, isOpen]);
   const isReadOnly = mode === "view";
 
   // Ref to always have access to latest formData in callbacks
@@ -590,7 +601,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                 className={isReadOnly ? "opacity-90" : ""}
               >
                 <GeneralInfoForm
-                  initialFormData={formData}
+                  initialFormData={initialData || {}}
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting || isReadOnly}
                   formRef={generalFormRef as React.RefObject<HTMLFormElement>}
@@ -603,7 +614,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                 className={isReadOnly ? "opacity-90" : ""}
               >
                 <ServiceInfoFormSwitcher
-                  formData={formData}
+                  initialData={initialData}
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting || isReadOnly}
                   formRef={serviceFormRef}

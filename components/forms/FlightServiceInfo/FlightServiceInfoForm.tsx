@@ -79,7 +79,6 @@ interface FlightInfoFormProps {
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
   externalFormData?: ExternalFormData | Record<string, unknown>;
-  formData?: Record<string, unknown>; // raw booking data passed from parent (for edit)
 }
 
 const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
@@ -90,22 +89,18 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   onFormDataUpdate,
   onAddDocuments,
   externalFormData,
-  formData: incomingFormData,
 }) => {
   // Normalize incoming data so we can hydrate the form from either
   // `externalFormData`, `externalFormData.formFields`, `externalFormData.flightinfoform`,
   // or the raw `formData` passed from BookingFormSideSheet when editing.
   const normalizedExternalData = useMemo(() => {
-    const source =
-      externalFormData ??
-      (incomingFormData as Record<string, unknown> | undefined) ??
-      {};
+    const source = externalFormData ?? {};
     const fields =
       (source as ExternalFormData)?.formFields ??
       (source as any)?.flightinfoform ??
       source;
     return fields as Partial<FlightInfoFormData>;
-  }, [externalFormData, incomingFormData]);
+  }, [externalFormData]);
 
   // Internal form state
   const [formData, setFormData] = useState<FlightInfoFormData>(() => ({
