@@ -6,9 +6,9 @@ import { FaRegCalendar } from "react-icons/fa6";
 
 type Props = {
   label: string;
-  onChange: (start: string, end: string) => void;
   startDate: string;
   endDate: string;
+  onChange: (start: string, end: string) => void;
 };
 
 const presetRanges = [
@@ -107,6 +107,8 @@ const toDate = (val?: string) => (val ? new Date(val) : null);
 
 export default function DateRangeInput({
   label,
+  startDate,
+  endDate,
   onChange,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
@@ -215,7 +217,7 @@ export default function DateRangeInput({
 
     const elem = document.getElementsByClassName('rdrPprevButton')[0];
     console.log(elem);
-    if (elem) {
+    if (elem && elem instanceof HTMLButtonElement) {
       elem.click();
     }
 
@@ -228,7 +230,7 @@ export default function DateRangeInput({
 
     const elem = document.getElementsByClassName('rdrNextButton')[0];
     console.log(elem);
-    if (elem) {
+    if (elem && elem instanceof HTMLButtonElement) {
       elem.click();
     }
   };
