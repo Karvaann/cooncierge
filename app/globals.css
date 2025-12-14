@@ -64,7 +64,6 @@ body {
    ------------------------------------------------------------- */
 .date-range-popover {
   box-sizing: border-box;
-  max-width: 32rem;
 }
 
 .date-range-popover .rdrCalendarWrapper {
@@ -142,8 +141,8 @@ body {
 }
 
 .date-range-popover .rdrDayNumber span {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 400;
   color: #111827;
 }
 
@@ -184,9 +183,11 @@ body {
 }
 
 .calendar-title {
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 400;
   color: #111827;
+  line-height: 20px;
+  letter-spacing: 1.3%;
   gap: 8rem;
 }
 
@@ -212,7 +213,8 @@ body {
 .date-range-popover .rdrDay:hover .rdrDayNumber span,
 .date-range-popover .rdrInRange,
 .date-range-popover .rdrDayHovered {
-  background: #eef6f4;
+  background: #E1FAF7;
+  color: #111827;
 }
 
 .date-range-popover .rdrDayDisabled {
@@ -233,11 +235,26 @@ body {
 /* selected start/end and today cells use dark gray */
 .date-range-popover .rdrStartEdge,
 .date-range-popover .rdrEndEdge,
-.date-range-popover .rdrDayToday .rdrDayNumber span,
 .date-range-popover .rdrSelected {
   background: #0d4b37;
   color: #ffffff;
-  border-radius: 6px;
+  padding: 2px;
+}
+
+
+.date-range-popover .rdrDayToday .rdrDayNumber span {
+  background-color: transparent;
+  color: #171818;
+}
+
+.date-range-popover .rdrStartEdge {
+  border-radius: 6px 0 0 6px;
+ 
+}
+
+.date-range-popover .rdrEndEdge {
+  border-radius: 0px 6px 6px 0px;
+ 
 }
 
 .date-range-popover .rdrDateDisplayWrapper {
@@ -246,6 +263,18 @@ body {
 
 .date-range-popover .rdrMonth {
   position: relative;
+}
+
+.rdrMonthAndYearWrapper {
+  display: none;
+}
+
+.rdrNextPrevButton {
+  display: none;
+}
+
+.rdrNextPrevButton .rdrPprevButton {
+  display: none;
 }
 
 /* remove reserved space from hidden month header */
@@ -264,13 +293,6 @@ body {
   padding: 6px;
   background: transparent;
 }
-
-.date-range-popover .rdrDayNumber {
-  width: 34px;
-  height: 32px;
-  border-radius: 6px;
-}
-
 
 
 
@@ -302,11 +324,6 @@ body {
 }
 .date-range-popover .rdrMonth .rdrDayNumber span {
   font-size: 0.80rem;
-}
-
-/* small cap so popover doesn't grow wider than intended */
-.date-range-popover {
-  max-width: 32rem;
 }
 
 /* Use focus-visible so mouse users don't see the ring but keyboard users do */
@@ -386,4 +403,16 @@ select:-webkit-autofill {
 
 .animate-loader-spin {
   animation: loader-spin 0.9s linear infinite;
+}
+
+
+/* In-between range dates */
+.rdrDay:not(.rdrDayPassive) .rdrInRange ~ .rdrDayNumber span {
+  color: #111827;
+}
+
+/* Start & End dates */
+.rdrDay:not(.rdrDayPassive) .rdrStartEdge ~ .rdrDayNumber span,
+.rdrDay:not(.rdrDayPassive) .rdrEndEdge ~ .rdrDayNumber span {
+  color: #ffffff;
 }

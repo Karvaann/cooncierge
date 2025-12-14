@@ -2,10 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { DateRange, type RangeKeyDict } from "react-date-range";
-// @ts-ignore: CSS module has no type declarations in this project
-import "react-date-range/dist/styles.css";
-// @ts-ignore: CSS module has no type declarations in this project
-import "react-date-range/dist/theme/default.css";
 import { FaRegCalendar } from "react-icons/fa6";
 
 type Props = {
@@ -20,18 +16,59 @@ const presetRanges = [
     label: "Today",
     getValue: () => {
       const today = new Date();
-      return { startDate: today, endDate: today };
+      return {
+        startDate: today,
+        endDate: today,
+      };
     },
   },
+
   {
-    label: "Last 7 Days",
+    label: "Yesterday",
     getValue: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setDate(end.getDate() - 6);
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      return {
+        startDate: yesterday,
+        endDate: yesterday,
+      };
+    },
+  },
+
+  {
+    label: "This Week",
+    getValue: () => {
+      const now = new Date();
+      const day = now.getDay(); // 0 (Sun) - 6 (Sat)
+      const diff = day === 0 ? -6 : 1 - day; // Monday as first day
+
+      const start = new Date(now);
+      start.setDate(now.getDate() + diff);
+
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+
       return { startDate: start, endDate: end };
     },
   },
+
+  {
+    label: "Last Week",
+    getValue: () => {
+      const now = new Date();
+      const day = now.getDay();
+      const diff = day === 0 ? -6 : 1 - day;
+
+      const start = new Date(now);
+      start.setDate(now.getDate() + diff - 7);
+
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+
+      return { startDate: start, endDate: end };
+    },
+  },
+
   {
     label: "This Month",
     getValue: () => {
@@ -42,6 +79,7 @@ const presetRanges = [
       };
     },
   },
+
   {
     label: "Last Month",
     getValue: () => {
@@ -49,6 +87,17 @@ const presetRanges = [
       return {
         startDate: new Date(now.getFullYear(), now.getMonth() - 1, 1),
         endDate: new Date(now.getFullYear(), now.getMonth(), 0),
+      };
+    },
+  },
+
+  {
+    label: "This Year",
+    getValue: () => {
+      const now = new Date();
+      return {
+        startDate: new Date(now.getFullYear(), 0, 1),
+        endDate: new Date(now.getFullYear(), 11, 31),
       };
     },
   },
@@ -165,12 +214,25 @@ export default function DateRangeInput({
     setShownDate(
       (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
     );
+
+    const elem = document.getElementsByClassName('rdrPprevButton')[0];
+    console.log(elem);
+    if (elem) {
+      elem.click();
+    }
+
   };
 
   const goNextMonth = () => {
     setShownDate(
       (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
     );
+
+    const elem = document.getElementsByClassName('rdrNextButton')[0];
+    console.log(elem);
+    if (elem) {
+      elem.click();
+    }
   };
 
   return (
@@ -222,7 +284,7 @@ export default function DateRangeInput({
       </button>
 
       {open && (
-        <div className="absolute mt-2 z-50 rounded-md bg-white border border-gray-200 p-2 w-[32rem] date-range-popover">
+        <div className="absolute mt-2 z-50 rounded-md bg-white border border-gray-200 p-2 w-[600px] date-range-popover">
           <div className="flex gap-0">
             {/* Left presets column (menu + divider). Added `presets-column` so
               we can draw a full-height divider via CSS and keep it separate
@@ -246,7 +308,11 @@ export default function DateRangeInput({
                 </button>
 
                 <div className="calendar-title">
-                  {firstMonthLabel} {secondMonthLabel}
+                  {firstMonthLabel}
+                </div>
+
+                <div className="calendar-title">
+                  {secondMonthLabel}
                 </div>
 
                 <button type="button" onClick={goNextMonth}>
@@ -264,6 +330,7 @@ export default function DateRangeInput({
                 direction="horizontal"
                 editableDateInputs={false}
                 shownDate={shownDate}
+                showMonthAndYearPickers={false}
                 onShownDateChange={(date) => {
                   setShownDate(date);
                 }}
