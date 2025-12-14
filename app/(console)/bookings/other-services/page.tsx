@@ -542,12 +542,12 @@ const OSBookingsPage = () => {
     return iconMap[key] || "📋"; // fallback
   };
 
-  const mapStatus = (status: string, serviceSatatus: string): string => {
+  const mapStatus = (status: string): string => {
     const statusMap: Record<string, string> = {
       confirmed: "Confirmed",
       cancelled: "Cancelled",
     };
-    return serviceSatatus === 'draft' ? "Draft" : statusMap[status?.toLowerCase()] || 'Confirmed';
+    return statusMap[status?.toLowerCase()] || 'Confirmed';
   };
 
   // Handle viewing quotation details
@@ -843,8 +843,8 @@ const OSBookingsPage = () => {
         key={`status-${index}`}
         className="px-4 py-2 text-center align-middle h-[4rem]"
       >
-        <span className={getStatusBadgeClass(mapStatus(item.status, item.serviceStatus))}>
-          {mapStatus(item.status, item.serviceStatus)}
+        <span className={getStatusBadgeClass(mapStatus(item.status))}>
+          {mapStatus(item.status)}
         </span>
       </td>,
       <td
