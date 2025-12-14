@@ -300,7 +300,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     bookingDataTemp.append("formFields", JSON.stringify(formFields));
     bookingDataTemp.append("totalAmount", String(flatInfoForm.sellingprice));
 
-    bookingDataTemp.append("status", flatInfoForm.bookingstatus);
+    if (flatInfoForm.bookingstatus && flatInfoForm.bookingstatus !== "") {
+      bookingDataTemp.append("status", flatInfoForm.bookingstatus);
+    }
     bookingDataTemp.append("serviceStatus", serviceStatus);
     bookingDataTemp.append("createdAt", new Date().toISOString());
     bookingDataTemp.append("updatedAt", new Date().toISOString());
