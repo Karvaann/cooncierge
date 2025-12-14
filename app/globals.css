@@ -237,7 +237,7 @@ body {
 .date-range-popover .rdrEndEdge,
 .date-range-popover .rdrSelected {
   background: #0d4b37;
-  color: #ffffff;
+  color: #0d4b37;
   padding: 2px;
 }
 
@@ -277,11 +277,20 @@ body {
   display: none;
 }
 
+.rdrNextPrevButton {
+  display: none;
+}
+
+.rdrPprevButton {
+  display: none;
+}
+
 /* remove reserved space from hidden month header */
 .date-range-popover .rdrMonthAndYearWrapper {
   height: 0;
   padding: 0;
   margin: 0;
+  display: none;
 }
 
 .date-range-popover .rdrMonthAndYearPickers {
@@ -405,14 +414,17 @@ select:-webkit-autofill {
   animation: loader-spin 0.9s linear infinite;
 }
 
-
-/* In-between range dates */
-.rdrDay:not(.rdrDayPassive) .rdrInRange ~ .rdrDayNumber span {
-  color: #111827;
-}
-
 /* Start & End dates */
 .rdrDay:not(.rdrDayPassive) .rdrStartEdge ~ .rdrDayNumber span,
 .rdrDay:not(.rdrDayPassive) .rdrEndEdge ~ .rdrDayNumber span {
-  color: #ffffff;
+  color: #ffffff !important;
 }
+
+
+
+/* In-between range dates */
+.rdrDay:not(.rdrDayPassive) .rdrInRange ~ .rdrDayNumber span {
+  color: #111827 !important;
+}
+
+

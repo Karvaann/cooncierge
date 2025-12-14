@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Poppins } from "next/font/google";
+
+import "./globals.css";
 // @ts-ignore: CSS module has no type declarations in this project
 import "react-date-range/dist/styles.css";
 // @ts-ignore: CSS module has no type declarations in this project
 import "react-date-range/dist/theme/default.css";
-import "./globals.css";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import { LoadingProvider } from "@/context/LoadingContext";
 import LoadingOverlay from "@/components/LoadingOverlay";
