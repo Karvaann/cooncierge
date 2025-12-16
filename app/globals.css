@@ -1,4 +1,7 @@
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700;900&display=swap');
 @import "tailwindcss";
+
 
 
 :root {
@@ -23,12 +26,12 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Poppins";
 }
 
 /* react-date-range overrides to match custom UI */
 .date-range-custom .date-range-picker {
-  font-family: "Inter", "Poppins", "Arial", sans-serif;
+  font-family: "Poppins", "Arial", sans-serif;
 }
 
 .date-range-popover {

@@ -8,6 +8,7 @@ import { FiEye } from "react-icons/fi";
 import { FiEyeOff } from "react-icons/fi";
 import type { AxiosError } from "axios";
 import { AuthApi } from "@/services/authApi";
+import OTPInput from "react-otp-input";
 
 export default function SignIn() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function SignIn() {
   const [success, setSuccess] = useState(false);
   const [checked, setChecked] = useState(false);
 
-  const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
+  const [otp, setOtp] = useState<string>('');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -53,27 +54,6 @@ export default function SignIn() {
     return undefined;
   }, [mode, timer]);
 
-  // Optimized OTP input change handler
-  const handleOtpChange = useCallback(
-    (value: string, index: number) => {
-      if (/^\d*$/.test(value)) {
-        setOtp((prev) => {
-          const newOtp = [...prev];
-          newOtp[index] = value;
-          return newOtp;
-        });
-
-        // Auto-focus next field
-        if (value && index < otp.length - 1) {
-          const nextInput = document.getElementById(
-            `otp-input-${index + 1}`
-          ) as HTMLInputElement | null;
-          nextInput?.focus();
-        }
-      }
-    },
-    [otp.length]
-  );
 
   const handleForgotPassword = useCallback(() => {
     setMode("forgot");
@@ -95,7 +75,7 @@ export default function SignIn() {
         console.log("inside try");
         const response = await AuthApi.login({ email, password });
 
-        setOtp(["", "", "", "", "", ""]);
+        setOtp('');
         setMode("otp");
       } catch (error: unknown) {
         const err = error as AxiosError<{ message?: string }>;
@@ -111,8 +91,7 @@ export default function SignIn() {
   );
 
   const handleOtpSubmit = useCallback(async () => {
-    const enteredOtp = otp.join("");
-    if (enteredOtp.length < otp.length) {
+    if (otp.length < 6) {
       setErrorMessage("Invalid OTP, please retry.");
       setShowError(true);
       return;
@@ -124,7 +103,7 @@ export default function SignIn() {
     try {
       await AuthApi.verifyTwoFa({
         email,
-        twoFACode: enteredOtp,
+        twoFACode: otp,
       });
       await router.push("/bookings/other-services");
     } catch (error: unknown) {
@@ -202,33 +181,28 @@ export default function SignIn() {
         </div>
       )}
       {/* Top Vectors */}
-      <div className="absolute top-[-20px] left-0 w-full overflow-hidden">
+      <div className="left-0 absolute w-full overflow-hidden">
         <Image
           src="/login/vectors/Vector 1.svg"
           alt="Decorative gradient"
           width={1920}
           height={500}
-          className="w-full h-auto relative z-30"
+          className="w-full h-auto fixed top-[0px]  z-30"
           priority
-          quality={70}
         />
         <Image
           src="/login/vectors/Vector 2.svg"
           alt="Decorative gradient"
           width={1920}
           height={500}
-          className="w-full h-auto mt-[-370px] opacity-50 relative z-20"
-          loading="lazy"
-          quality={70}
+          className="w-full h-auto fixed top-[0px] z-20"
         />
         <Image
           src="/login/vectors/Vector 3.svg"
           alt="Decorative gradient"
           width={1920}
           height={500}
-          className="w-full h-auto mt-[-410px] opacity-40 relative z-10"
-          loading="lazy"
-          quality={70}
+          className="w-full h-auto fixed top-[0px] z-10"
         />
       </div>
 
@@ -239,7 +213,7 @@ export default function SignIn() {
           alt="Decorative shape"
           width={520}
           height={360}
-          className="absolute bottom-0 right-0 w-[520px] h-auto z-30 mr-[-120px]"
+          className="absolute bottom-0 right-[-25px] w-[520px] h-auto z-30 mr-[-120px]"
           loading="lazy"
           quality={70}
         />
@@ -248,7 +222,7 @@ export default function SignIn() {
           alt="Decorative shape"
           width={520}
           height={360}
-          className="absolute bottom-0 right-0 w-[520px] h-auto mr-[-100px] opacity-50 z-20"
+          className="absolute bottom-0 right-[-25px] w-[520px] h-auto mr-[-100px] opacity-50 z-20"
           loading="lazy"
           quality={70}
         />
@@ -257,7 +231,7 @@ export default function SignIn() {
           alt="Decorative shape"
           width={520}
           height={360}
-          className="absolute bottom-0 right-0 w-[520px] h-auto mr-[-80px] opacity-40 z-10"
+          className="absolute bottom-0 right-[-25px] w-[520px] h-auto mr-[-80px] opacity-40 z-10"
           loading="lazy"
           quality={70}
         />
@@ -265,25 +239,24 @@ export default function SignIn() {
 
       {/* Background illustrations - Optimized for performance */}
       <Image
-        src="/login/wallet.png"
+        src="/login/wallet.svg"
         alt="Wallet illustration"
-        width={400}
-        height={400}
+        width={650}
+        height={650}
         priority
-        sizes="(max-width: 768px) 200px, 400px"
-        className="absolute top-10 left-[180px] w-[400px] rotate-[-5deg]"
+        className="absolute top-25 left-[1.5vw] w-[465px]"
       />
       <Image
-        src="/login/booking.png"
+        src="/login/mobile.svg"
         alt="Booking illustration"
-        width={492}
-        height={492}
+        width={515}
+        height={515}
         loading="lazy"
-        sizes="(max-width: 768px) 246px, 492px"
-        className="absolute bottom-6 left-30 w-[492px] rotate-[-6deg]"
+        sizes="(max-width: 768px) 246px, 515px"
+        className="absolute bottom-[-50px] left-[2vw] w-[515px]"
       />
       <Image
-        src="/login/world.png"
+        src="/login/world.svg"
         alt="World illustration"
         width={332}
         height={332}
@@ -292,7 +265,7 @@ export default function SignIn() {
         className="absolute -top-5 right-[40%] w-[332px] rotate-[5deg]"
       />
       <Image
-        src="/login/traveller.png"
+        src="/login/airport.svg"
         alt="Traveler illustration"
         width={320}
         height={320}
@@ -301,21 +274,21 @@ export default function SignIn() {
         className="absolute -bottom-1 right-[30%] w-[320px]"
       />
       <Image
-        src="/login/group.png"
+        src="/login/travel.svg"
         alt="Group illustration"
         width={480}
         height={500}
         loading="lazy"
         sizes="(max-width: 768px) 240px, 480px"
-        className="absolute mt-100 ml-305 w-[480.47px] h-[500.29px] -translate-y-1/2"
+        className="absolute w-[515px] top-[10vh] right-[2vw]"
       />
 
       {/* Sign-in box */}
-      <div className="relative z-10 bg-white rounded-2xl shadow-lg px-6 py-6 w-[430px]">
+      <div className="fixed flex flex-col items-center top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 bg-white rounded-2xl shadow-lg px-[24px] py-[24px] w-[348px]">
         {/* Logo */}
-        <div className="flex justify-center mb-4">
+        <div className="w-full flex justify-center">
           <Image
-            src="/cooncierge-logo-tagline.svg"
+            src="/full_logo.svg"
             alt="Cooncierge Logo"
             width={240}
             height={80}
@@ -325,13 +298,13 @@ export default function SignIn() {
         </div>
         {mode === "signin" && (
           <>
-            <h2 className="text-lg mt-9 font-semibold text-center mb-6 text-black">
+            <h2 className="text-[15px] mt-[18px] mb-[18px] font-[600] text-[#020202]">
               Welcome!
             </h2>
-            <form className="space-y-5" onSubmit={handleSignIn}>
+            <form className="space-y-3 w-full" onSubmit={handleSignIn}>
               {/* Email */}
-              <div className="mt-[-10px]">
-                <label className="block text-sm text-left font-medium text-gray-700 mb-1">
+              <div className="w-full">
+                <label className="block text-[12px] text-left font-medium text-gray-700 mb-1">
                   Email
                 </label>
                 <input
@@ -341,14 +314,14 @@ export default function SignIn() {
                   placeholder="Enter Email"
                   autoComplete="off"
                   data-lpignore="true"
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-green-400 focus:outline-none text-black"
+                  className="w-full border font-[400] text-[12px] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] hover:border-[#AFD7D2] focus:ring-1 focus:ring-[#AFD7D2] focus:outline-none"
                 />
               </div>
 
               {/* Password */}
               <div>
                 <div className="relative">
-                  <label className="block text-sm text-left font-medium text-gray-700 mb-1">
+                  <label className="block text-[12px] text-left font-medium text-gray-700 mb-1">
                     Password
                   </label>
                   <input
@@ -357,22 +330,22 @@ export default function SignIn() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter Password"
                     autoComplete="new-password"
-                    className="w-full border border-gray-300 rounded-md px-3 mb-2 py-2 focus:ring-2 focus:ring-green-400 focus:outline-none text-black pr-10"
+                    className="w-full border font-[400] text-[12px] hover:border-[#AFD7D2] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] focus:ring-2 focus:ring-green-400 focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
                     className="absolute right-3 top-9 text-gray-500 hover:text-gray-700"
                   >
-                    {showPassword ? (
-                      <FiEyeOff size={19} />
+                    {!showPassword ? (
+                      <FiEyeOff size={13} />
                     ) : (
-                      <FiEye size={19} />
+                      <FiEye size={13} />
                     )}
                   </button>
                 </div>
 
-                <div className="mt-6 mb-6">
+                <div className="mt-4 mb-4">
                   <div className="flex items-center gap-2 mt-1 mb-1">
                     <input
                       type="checkbox"
@@ -383,14 +356,14 @@ export default function SignIn() {
                     />
                     <label
                       htmlFor="remember"
-                      className="w-5 h-5 border border-gray-400 rounded-md flex items-center justify-center cursor-pointer peer-checked:bg-green-600"
+                      className="w-4 h-4 border border-[#0D4B37] rounded-sm flex items-center justify-center cursor-pointer peer-checked:bg-[0D4B37]"
                     >
                       {checked && (
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          width="12"
-                          height="11"
-                          viewBox="0 0 12 11"
+                          width="11"
+                          height="10"
+                          viewBox="0 0 11 10"
                           fill="none"
                         >
                           <path
@@ -402,13 +375,14 @@ export default function SignIn() {
                         </svg>
                       )}
                     </label>
-                    <span className="text-black text-sm ">Remember Me</span>
+                    <span style={{fontFamily: 'Roboto'}} className="text-[#414141] font-[400] text-[12px] ">Remember Me</span>
                   </div>
                   <div className="flex justify-end mt-[-30px]">
                     <button
                       type="button"
                       onClick={handleForgotPassword}
-                      className="text-right text-[#0D4B37] px-2 py-1 mt-1 underline text-sm hover:text-green-900"
+                      style={{fontFamily: 'Roboto'}}
+                      className="text-right text-[#0D4B37] px-2 py-1 mt-1 underline font-[400] text-[12px] hover:text-green-900"
                     >
                       Forgot Password?
                     </button>
@@ -418,7 +392,7 @@ export default function SignIn() {
 
               <button
                 type="submit"
-                className="w-full h-13 bg-[#0D4B37] text-white py-2 rounded-md shadow-xl font-medium hover:bg-green-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full h-10 text-[12px] bg-[#0D4B37] text-white py-[10px] rounded-md shadow-xl font-medium hover:text-[14px] hover:bg-[#125E45] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Signing In..." : "Sign In"}
@@ -427,57 +401,62 @@ export default function SignIn() {
           </>
         )}
         {mode === "otp" && (
-          <div className="p-5">
-            <div className="flex items-center mb-6">
+          <div className="w-full px-[18px]">
+            <div className="flex items-center mt-[18px]">
               <button
                 type="button"
                 onClick={() => {
                   setMode("signin");
                   setOtpMessage(null);
                 }}
-                className="p-1 rounded-full mt-2 hover:bg-gray-200 transition-colors"
+                className="p-1 rounded-full hover:bg-gray-200 transition-colors"
               >
-                <IoMdArrowBack size={20} />
+                <IoMdArrowBack size={15} />
               </button>
-              <h2 className="text-lg font-semibold mr-4 text-center flex-1 text-black">
+              <h2 className="w-[80%] text-[14px] text-center font-[600] text-[#020202]">
                 Please enter OTP
               </h2>
             </div>
-            <div className="flex justify-center gap-3 mb-6">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  id={`otp-input-${index}`}
-                  type="text"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleOtpChange(e.target.value, index)}
-                  className={`w-12 h-12 border rounded-md text-center text-lg focus:ring-2 focus:outline-none transition-all duration-200
-        ${
-          showError
-            ? "border-red-500 focus:ring-red-400"
-            : "border-gray-300 focus:ring-green-400"
-        }`}
-                />
-              ))}
+            <div className="flex justify-center gap-3 mb-6 mt-[18px]">
+              <OTPInput
+                value={otp}
+                onChange={setOtp}
+                numInputs={6}
+                renderSeparator={<span></span>}
+                containerStyle={{ gap: "4px" }}
+                inputStyle={{
+                  width: "35px",
+                  height: "35px",
+                  fontSize: "16px",
+                  fontWeight: '400',
+                  borderRadius: "6px",
+                  border: otpMessage?.tone === "error" ? "1px solid #EB382B" : "1px solid #E2E1E1",
+                  textAlign: "center",
+                  background: '#FFF',
+                  lineHeight: '24px'
+                }}
+                renderInput={(props) => <input {...props} />}
+              />
             </div>
-            <p className="text-[12px] text-center text-blue-600 mb-4 -mt-3">
+            <p style={{fontFamily: 'Roboto'}} className="text-[10px] font-[400] text-center text-[#126ACB] mb-4 -mt-3">
               OTP has been sent to {email}.
             </p>
-            <button
-              onClick={handleOtpSubmit}
-              className="w-full h-13 bg-[#0D4B37] text-white py-2 rounded-md font-medium hover:bg-green-800 transition disabled:opacity-60 disabled:cursor-not-allowed"
-              disabled={isOtpSubmitting}
-            >
-              {isOtpSubmitting ? "Verifying..." : "Verify OTP"}
-            </button>
-            <div className="flex justify-end mt-4">
+             <button
+                onClick={handleOtpSubmit}
+                className="w-full h-10 text-[12px] bg-[#0D4B37] text-white py-[10px] rounded-md shadow-xl font-medium hover:text-[14px] hover:bg-[#125E45] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={isOtpSubmitting || otp.length < 6}
+              >
+                {isOtpSubmitting ? "Verifying..." : "Verify OTP"}
+              </button>
+            <div className="flex justify-between mt-4">
+              <div style={{fontFamily: 'Roboto'}} className="text-[#414141] text-[12px] font-[400]">(00:{timer > 9 ? timer : `0${timer}`})</div>
               {!canResend ? (
                 // Disabled resend with timer display
                 <button
                   type="button"
                   disabled
-                  className="text-gray-500 text-sm cursor-not-allowed"
+                  style={{fontFamily: 'Roboto'}}
+                  className="text-[#0D4B37] text-[12px] font-[400] opacity-60 underline hover:text-[#125E45]"
                 >
                   Resend OTP
                 </button>
@@ -490,7 +469,8 @@ export default function SignIn() {
                     setCanResend(false);
                     // resend OTP logic here
                   }}
-                  className="text-green-900 px-2 py-1 underline text-sm hover:text-green-800"
+                  style={{fontFamily: 'Roboto'}}
+                  className="text-[#0D4B37] text-[12px] font-[400] underline hover:text-[#125E45]"
                 >
                   Resend OTP
                 </button>
@@ -503,41 +483,42 @@ export default function SignIn() {
           <>
             {!success ? (
               <div className="space-y-4">
-                <div className="flex items-center mb-6">
+                <div className="flex items-center mt-[18px]">
                   <button
                     type="button"
                     onClick={() => {
                       setMode("signin");
                       setOtpMessage(null);
                     }}
-                    className="p-1 rounded-full hover:bg-gray-200 mt-6 transition-colors"
+                    className="p-1 rounded-full hover:bg-gray-200 transition-colors"
                   >
                     <IoMdArrowBack size={20} />
                   </button>
-                  <h2 className="text-lg font-semibold text-center mr-4 mt-6 flex-1 text-black">
+                  <h2 className="w-[85%] text-[14px] text-center font-[600] text-[#020202]">
                     Forgot Password
                   </h2>
                 </div>
                 <form
-                  className="space-y-4"
+                  className="space-y-0"
                   onSubmit={(e) => {
                     e.preventDefault();
                     handlePasswordReset();
                   }}
                 >
                   <div>
-                    <p className="text-sm text-center text-black mb-4 mt-4">
+                    <p className="text-[12px] text-justify font-[400] text-[#414141] mb-[18px] mt-[18px]">
                       Don&apos;t worry! Just enter your email and we&apos;ll
                       notify your admin to reset your password.
                     </p>
                     <input
-                      type="email"
-                      placeholder="Enter Email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full mt-3 mb-3 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-green-400 focus:outline-none text-black"
-                      required
-                    />
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="Enter Email"
+                        autoComplete="off"
+                        data-lpignore="true"
+                        className="w-full mb-[18px] hover:border-[#AFD7D2] border font-[400] text-[12px] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] focus:ring-2 focus:ring-green-400 focus:outline-none"
+                      />
                   </div>
 
                   {otpMessage && (
@@ -551,16 +532,13 @@ export default function SignIn() {
                       {otpMessage.text}
                     </p>
                   )}
-                  <div className="flex justify-end">
-                    <button
-                      type="submit"
-                      className="w-full h-13 bg-[#0D4B37] text-white py-2 rounded-md font-medium hover:bg-green-900 transition"
-                    >
-                      <span className="transition text-medium duration-700 hover:text-lg">
-                        Send
-                      </span>
-                    </button>
-                  </div>
+                  <button
+                    type="submit"
+                    className="w-full h-10 text-[12px] bg-[#0D4B37] text-white py-[10px] rounded-md shadow-xl font-medium hover:text-[14px] hover:bg-[#125E45] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+                    disabled={isSubmitting}
+                  >
+                    Send
+                  </button>
                 </form>
               </div>
             ) : (

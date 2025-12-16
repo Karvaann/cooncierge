@@ -178,6 +178,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         const code = generateCustomId("bookings");
         setBookingCode(code);
       } catch (e) {
+        console.error("Error generating booking code:", e);
         setBookingCode("");
       }
     }
@@ -319,8 +320,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     bookingDocuments.map((file) => {
       bookingDataTemp.append("documents", file);
     });
-    bookingDataTemp.append("customId", bookingCode || "");
-
+    console.log("Booking data temp:", bookingCode);
+    if (bookingCode && bookingCode.trim() !== "") {
+      bookingDataTemp.append("customId", bookingCode);
+    }
     return bookingDataTemp;
   }
 

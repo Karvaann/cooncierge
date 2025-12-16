@@ -37,7 +37,7 @@ export interface PasswordResetRequest {
 const AUTH_ROUTES = {
   login: "/auth/login",
   verifyTwoFa: "/auth/verify-2fa",
-  requestPasswordReset: "/auth/password-reset",
+  requestPasswordReset: "/auth/forgot-password",
   logout: "/auth/logout",
 } as const;
 
