@@ -273,25 +273,24 @@ const VendorDirectory = () => {
     }
   };
 
+  const fetchVendors = async () => {
+    try {
+      const data = await getVendors({ isDeleted: activeTab === "Deleted" });
+      const mappedRows: VendorRow[] = data.map((v: any, index: number) => ({
+        ...v,
+        vendorID: v.customId || v._id || `#V00${index + 1}`,
+        vendorName: v.companyName || v.name || "—",
+        poc: v.contactPerson || "—",
+        rating: v.tier ? Number(v.tier.replace("tier", "")) : 4,
+        dateModified: formatDMY(v.createdAt),
+        actions: "⋮",
+      }));
+      setVendors(mappedRows);
+    } catch (err) {
+      console.error("Failed to fetch Vendors:", err);
+    }
+  };
   useEffect(() => {
-    const fetchVendors = async () => {
-      try {
-        const data = await getVendors({ isDeleted: activeTab === "Deleted" });
-        const mappedRows: VendorRow[] = data.map((v: any, index: number) => ({
-          ...v,
-          vendorID: v.customId || v._id || `#V00${index + 1}`,
-          vendorName: v.companyName || v.name || "—",
-          poc: v.contactPerson || "—",
-          rating: v.tier ? Number(v.tier.replace("tier", "")) : 4,
-          dateModified: formatDMY(v.createdAt),
-          actions: "⋮",
-        }));
-        setVendors(mappedRows);
-      } catch (err) {
-        console.error("Failed to fetch Vendors:", err);
-      }
-    };
-
     fetchVendors();
   }, [activeTab]);
 
@@ -497,7 +496,7 @@ const VendorDirectory = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={handleCancelSelectMode}
-                className="px-2 py-1.5 w-[5rem] text-[0.75rem] font-medium text-[#414141] border border-gray-200 bg-[#F9F9F9] hover:bg-gray-100 rounded-lg"
+                className="px-2 py-1.5 w-[5rem] text-[0.75rem] font-semibold text-[#414141] border border-gray-200 bg-[#F9F9F9] hover:bg-gray-100 rounded-md"
               >
                 Cancel
               </button>
@@ -509,7 +508,7 @@ const VendorDirectory = () => {
                     setSelectedVendors(vendors.map((v) => v.vendorID)); // select all
                   }
                 }}
-                className="px-2 py-1.5 w-[6rem] mr-3 text-[0.75rem] font-medium rounded-lg border border-gray-300 bg-white hover:bg-gray-100"
+                className="px-2 py-1.5 w-[5rem] mr-3 text-[0.75rem] font-semibold rounded-md border border-gray-300 bg-white hover:bg-gray-100"
               >
                 {selectedVendors.length === vendors.length
                   ? "Deselect All"
@@ -579,6 +578,7 @@ const VendorDirectory = () => {
             }}
             data={selectedVendor} // REQUIRED
             mode={mode}
+            onSuccess={fetchVendors}
           />
         </BookingProvider>
       )}

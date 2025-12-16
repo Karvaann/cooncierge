@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-
+import DropDown from "./DropDown";
 // Type definitions
 interface TableProps {
   data: React.ReactNode[][];
@@ -261,17 +261,17 @@ const Table: React.FC<TableProps> = ({
         {!hideRowsPerPage && (
           <div className="flex items-center gap-2">
             <span className="text-gray-600 text-[0.75rem]">Rows per page:</span>
-            <select
-              className="border border-gray-300 rounded text-[0.75rem] px-1 py-1 text-gray-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#155e75] transition-colors"
-              value={rowsPerPage}
-              onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
-            >
-              {maxRowsPerPageOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
+            <DropDown
+              options={maxRowsPerPageOptions.map((o) => ({
+                value: String(o),
+                label: String(o),
+              }))}
+              value={String(rowsPerPage)}
+              onChange={(v) => handleRowsPerPageChange(Number(v))}
+              customWidth="w-[3.5rem]"
+              menuWidth="w-[3.5rem]"
+              className=""
+            />
           </div>
         )}
 
