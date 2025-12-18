@@ -136,15 +136,15 @@ const SideSheet: React.FC<SideSheetProps> = ({
         >
           {/* Header */}
           <div className="flex items-center justify-between px-2 py-2">
-            <div className="flex items-center gap-2 flex-1">
+            <div className="flex items-center gap-2 mt-1 flex-1">
               {showCloseButton && (
                 <button
                   onClick={onCloseButtonClick ? onCloseButtonClick : onClose}
-                  className="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-full hover:bg-gray-100"
+                  className="text-gray-500 hover:text-gray-600 transition-colors p-2 rounded-full hover:bg-gray-100"
                   aria-label="Close side sheet"
                 >
                   <svg
-                    className="w-5 h-5"
+                    className="w-3.5 h-3.5"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"

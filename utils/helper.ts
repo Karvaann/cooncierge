@@ -226,6 +226,7 @@ export const formatServiceType = (type: string): string => {
 
    
     visa: "Visa",
+     visas: "Visa",
   };
 
   return map[normalized] || type;

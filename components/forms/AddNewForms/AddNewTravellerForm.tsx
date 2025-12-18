@@ -472,12 +472,12 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
       >
         {/* ================= BASIC DETAILS ================ */}
         <div className="border border-gray-200 rounded-[12px] p-3">
-          <h2 className="text-[0.75rem] font-medium mb-2">Basic Details</h2>
+          <h2 className="text-[13px] font-medium mb-2">Basic Details</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
             <div className="flex flex-col gap-1">
-              <label className="block text-[0.75rem] font-medium text-gray-700">
+              <label className="block text-[13px] font-medium text-gray-700">
                 First Name <span className="text-red-500">*</span>
               </label>
               <input
@@ -488,12 +488,12 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 placeholder="Enter First Name"
                 required
                 disabled={readOnly}
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="block text-[0.75rem] font-medium text-gray-700">
+              <label className="block text-[13px] font-medium text-gray-700">
                 Last Name
               </label>
               <input
@@ -504,12 +504,12 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 placeholder="Enter Last Name"
                 required
                 disabled={readOnly}
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="block text-[0.75rem] font-medium text-gray-700">
+              <label className="block text-[13px] font-medium text-gray-700">
                 Nickname/Alias
               </label>
               <input
@@ -520,7 +520,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 placeholder="Enter Nickname/Alias"
                 required
                 disabled={readOnly}
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
           </div>
@@ -528,7 +528,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           {/* Second row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex flex-col gap-1">
-              <label className="block text-[0.75rem] font-medium text-gray-700">
+              <label className="block text-[13px] font-medium text-gray-700">
                 Contact Number
               </label>
               <input
@@ -539,12 +539,12 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 placeholder="Enter Contact Number"
                 required
                 disabled={readOnly}
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="block text-[0.75rem] font-medium text-gray-700">
+              <label className="block text-[13px] font-medium text-gray-700">
                 Email ID
               </label>
               <input
@@ -555,12 +555,12 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 placeholder="Enter Email ID"
                 required
                 disabled={readOnly}
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="block text-[0.75rem] font-medium text-gray-700">
+              <label className="block text-[13px] font-medium text-gray-700">
                 Date of Birth
               </label>
               <div className="">
@@ -568,7 +568,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   value={String(formData.dateofbirth || "")}
                   onChange={(iso) => handleDOBChange(iso)}
                   placeholder="DD-MM-YYYY"
-                  customWidth="w-full py-2 text-[0.75rem]"
+                  customWidth="w-full py-2 text-[13px]"
                   showCalendarIcon={true}
                   readOnly={readOnly}
                 />
@@ -584,7 +584,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
         {/* ================= REMARKS ================ */}
         <div className="border border-gray-200 rounded-[12px] p-3">
-          <label className="block text-[0.75rem] font-medium text-gray-700">
+          <label className="block text-[13px] font-medium text-gray-700">
             Remarks
           </label>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -596,7 +596,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
             onBlur={handleBlur}
             placeholder="Enter Your Remarks Here"
             disabled={isSubmitting || readOnly}
-            className={`w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem] mt-2 transition-colors focus:ring focus:ring-blue-200 ${
+            className={`w-full border border-gray-200 rounded-md px-3 py-2 text-[13px] mt-2 transition-colors focus:ring focus:ring-blue-200 ${
               isSubmitting || readOnly ? "opacity-50 cursor-not-allowed" : ""
             }`}
           />

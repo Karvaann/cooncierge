@@ -82,19 +82,6 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   // Advanced Pricing State
   const [showAdvancedPricing, setShowAdvancedPricing] = useState(false);
-  const [vendorCurrency, setVendorCurrency] = useState("USD");
-  const [vendorAmount, setVendorAmount] = useState("");
-  const [vendorROE, setVendorROE] = useState("88.05");
-  const [vendorINR, setVendorINR] = useState("0");
-  const [bankChargesCurrency, setBankChargesCurrency] = useState("INR");
-  const [bankChargesAmount, setBankChargesAmount] = useState("");
-  const [cashbackCurrency, setCashbackCurrency] = useState("INR");
-  const [cashbackAmount, setCashbackAmount] = useState("");
-  const [cashbackMethod, setCashbackMethod] = useState("Wallet");
-  const [customerSellingCurrency, setCustomerSellingCurrency] = useState("INR");
-  const [customerSellingAmount, setCustomerSellingAmount] = useState("");
-  const [commissionCurrency, setCommissionCurrency] = useState("INR");
-  const [commissionAmount, setCommissionAmount] = useState("");
   // Advanced pricing vendor payment summary states
   const [vendorBasePrice, setVendorBasePrice] = useState<string>("");
   const [vendorIncentiveReceived, setVendorIncentiveReceived] =
@@ -110,6 +97,27 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+
+  // Allow only digits and a single decimal point for price fields
+  const sanitizeNumeric = (val: string) => {
+    const v = String(val || "").replace(/[^0-9.]/g, "");
+    const parts = v.split(".");
+    if (parts.length <= 1) return parts[0];
+    // join remaining parts (remove extra dots) and keep first dot only
+    return parts[0] + "." + parts.slice(1).join("");
+  };
+
+  const handlePriceChange =
+    (field: "costprice" | "sellingprice") =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const raw = e.target.value;
+      const sanitized = sanitizeNumeric(raw);
+      setFormData((prev) => ({ ...prev, [field]: sanitized }));
+      if ((errors as any)[field]) {
+        setErrors((prev) => ({ ...prev, [field]: "" }));
+      }
+      setTouched((prev) => ({ ...prev, [field]: true }));
+    };
 
   // Handle selecting multiple files
   const handleFileChange = () => {
@@ -424,6 +432,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   setFormData((prev) => ({ ...prev, bookingdate: date }))
                 }
                 placeholder="DD-MM-YYYY"
+                showCalendarIcon={false}
               />
 
               {/* Travel Date */}
@@ -435,6 +444,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 }
                 placeholder="DD-MM-YYYY"
                 minDate={formData.bookingdate}
+                showCalendarIcon={false}
               />
             </div>
 
@@ -453,9 +463,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
           <div className="mb-4 border border-gray-200 rounded-lg p-3">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[0.75rem] font-medium text-gray-700">
-                Amount
-              </h3>
+              <h3 className="text-[13px] font-medium text-gray-700">Amount</h3>
 
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -486,7 +494,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                     </svg>
                   )}
                 </label>
-                <span className="text-[0.75rem] text-gray-700">
+                <span className="text-[13px] text-gray-700">
                   Show Advanced Pricing
                 </span>
               </label>
@@ -498,14 +506,14 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
               <>
                 {/* Cost Price */}
                 <div className="mb-3">
-                  <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                  <label className="block text-[13px] font-medium text-gray-700 mb-1">
                     Cost Price
                   </label>
                   <div className="flex">
                     <div className="relative">
                       <button
                         type="button"
-                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[0.75rem] font-medium text-gray-700 hover:bg-gray-100"
+                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[13px] font-medium text-gray-700 hover:bg-gray-100"
                       >
                         ₹
                       </button>
@@ -514,23 +522,23 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                       type="text"
                       name="costprice"
                       value={formData.costprice}
-                      onChange={handleChange}
+                      onChange={handlePriceChange("costprice")}
                       placeholder="Enter Cost Price"
-                      className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
+                      className="w-[10rem] px-2 py-1.5 text-[13px] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                     />
                   </div>
                 </div>
 
                 {/* Selling Price */}
                 <div>
-                  <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                  <label className="block text-[13px] font-medium text-gray-700 mb-1">
                     Selling Price
                   </label>
                   <div className="flex">
                     <div className="relative">
                       <button
                         type="button"
-                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[0.75rem] font-medium text-gray-700 hover:bg-gray-100"
+                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[13px] font-medium text-gray-700 hover:bg-gray-100"
                       >
                         ₹
                       </button>
@@ -539,23 +547,23 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                       type="text"
                       name="sellingprice"
                       value={formData.sellingprice}
-                      onChange={handleChange}
+                      onChange={handlePriceChange("sellingprice")}
                       placeholder="Enter Selling Price"
-                      className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
+                      className="w-[10rem] px-2 py-1.5 text-[13px] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                     />
                   </div>
                 </div>
 
                 <div className="w-[9rem] rounded-lg p-1 mt-1 bg-white">
                   {/* Label on top */}
-                  <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
+                  <span className="text-[13px] font-medium text-gray-700 block mb-2">
                     Net
                   </span>
 
                   {/* Amount + percentage row */}
                   <div className="flex items-center gap-3">
                     {/* Blue pill amount */}
-                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
+                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[13px] font-medium rounded-md">
                       {`INR ${
                         Number(formData.sellingprice) -
                         Number(formData.costprice)
@@ -563,7 +571,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                     </span>
 
                     {/* Percentage */}
-                    <span className="text-[0.75rem] text-gray-700 font-medium">
+                    <span className="text-[13px] text-gray-700 font-medium">
                       {formData.costprice && formData.sellingprice
                         ? `${(
                             ((Number(formData.sellingprice) -
@@ -579,7 +587,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
             ) : (
               /* Advanced Pricing Component */
               <div className="space-y-3">
-                <h4 className="text-[0.75rem] font-medium text-gray-700 mb-3">
+                <h4 className="text-[13px] font-medium text-gray-700 mb-3">
                   Vendor Payment Summary
                 </h4>
                 <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
@@ -605,6 +613,8 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                         {item.key !== "cost" ? (
                           <input
                             type="text"
+                            inputMode="decimal"
+                            pattern="^\\d*(?:\\.\\d*)?$"
                             placeholder="Enter Amount"
                             value={
                               item.key === "price"
@@ -614,13 +624,15 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                                 : commissionPaid
                             }
                             onChange={(e) => {
-                              const val = e.target.value;
-                              if (item.key === "price") setVendorBasePrice(val);
+                              const raw = e.target.value;
+                              const sanitized = sanitizeNumeric(raw);
+                              if (item.key === "price")
+                                setVendorBasePrice(String(sanitized));
                               else if (item.key === "received")
-                                setVendorIncentiveReceived(val);
-                              else setCommissionPaid(val);
+                                setVendorIncentiveReceived(String(sanitized));
+                              else setCommissionPaid(String(sanitized));
                             }}
-                            className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-300 focus:outline-none"
+                            className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[13px] hover:border-green-400 focus:ring-1 focus:ring-green-300 focus:outline-none"
                           />
                         ) : (
                           <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">
@@ -631,7 +643,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                           <input
                             type="text"
                             placeholder="Enter notes here..."
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-300 focus:outline-none"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[13px] hover:border-green-400 focus:ring-1 focus:ring-green-300 focus:outline-none"
                           />
                         )}
                       </div>
@@ -652,30 +664,34 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                       </div>
                       <input
                         type="text"
+                        inputMode="decimal"
+                        pattern="^\\d*(?:\\.\\d*)?$"
                         placeholder="Enter Amount"
                         value={String(formData.sellingprice ?? "")}
                         onChange={(e) =>
                           setFormData((prev) => ({
                             ...prev,
-                            sellingprice: e.target.value,
+                            sellingprice: String(
+                              sanitizeNumeric(e.target.value)
+                            ),
                           }))
                         }
-                        className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-300 focus:outline-none"
+                        className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[13px] hover:border-green-400 focus:ring-1 focus:ring-green-300 focus:outline-none"
                       />
                     </div>
                   </div>
                 </div>
                 <div className="w-[12rem] rounded-lg p-1 mt-1 bg-white">
-                  <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
+                  <span className="text-[13px] font-medium text-gray-700 block mb-2">
                     Net
                   </span>
                   <div className="flex items-center gap-3">
-                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
+                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[13px] font-medium rounded-md">
                       {`INR ${(
                         (Number(formData.sellingprice) || 0) - derivedCostPrice
                       ).toFixed(2)}`}
                     </span>
-                    <span className="text-[0.75rem] text-gray-700 font-medium">
+                    <span className="text-[13px] text-gray-700 font-medium">
                       {derivedCostPrice > 0 && formData.sellingprice
                         ? `${(
                             (((Number(formData.sellingprice) || 0) -
@@ -703,7 +719,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
             <div className="flex flex-col gap-3 w-full mb-4">
               {/* Confirmation number */}
               <div className="flex flex-col w-full">
-                <label className="text-[0.75rem] font-medium text-gray-700 mb-1">
+                <label className="text-[13px] font-medium text-gray-700 mb-1">
                   Confirmation number
                 </label>
                 <input
@@ -712,13 +728,13 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   value={formData.confirmationNumber}
                   onChange={handleChange}
                   placeholder="Abc12345"
-                  className="w-[30%] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
+                  className="w-[30%] px-3 py-1.5 border border-gray-300 rounded-md text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                 />
               </div>
 
               {/* Title */}
               <div className="flex flex-col w-full">
-                <label className="text-[0.75rem] font-medium text-gray-700 mb-1">
+                <label className="text-[13px] font-medium text-gray-700 mb-1">
                   Title
                 </label>
                 <input
@@ -727,7 +743,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="Title …"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                 />
               </div>
             </div>
@@ -740,7 +756,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
         {/* ID PROOFS */}
         <div className=" w-[98%] ml-2 border border-gray-200 rounded-[12px] p-3">
-          <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
+          <h2 className="text-[13px] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
           <input
@@ -756,7 +772,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
-                                                       border-[#126ACB] rounded-md text-[0.75rem] hover:bg-gray-200"
+                                                       border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200"
           >
             <MdOutlineFileUpload size={16} /> Attach Files
           </button>
@@ -771,7 +787,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                                                px-3 py-2 hover:bg-gray-50 transition"
               >
                 {/* File Name */}
-                <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[0.75rem] truncate flex items-center gap-2">
+                <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
                   <FaRegFolder className="text-blue-500 w-3 h-3" />
                   {file.name}
                 </span>
@@ -795,7 +811,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
         {/* Remarks Section */}
         <div className="border border-gray-200 w-[48vw] ml-2.5 rounded-[12px] p-3 mt-4">
-          <label className="block text-[0.75rem] font-medium text-gray-700">
+          <label className="block text-[13px] font-medium text-gray-700">
             Remarks
           </label>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -807,7 +823,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
             onBlur={handleBlur}
             placeholder="Enter Your Remarks Here"
             disabled={isSubmitting}
-            className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[0.75rem] mt-1 transition-colors hover:border-green-400 focus:ring focus:ring-green-300 ${
+            className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[13px] mt-1 transition-colors hover:border-green-400 focus:ring focus:ring-green-300 ${
               isSubmitting ? "opacity-50 cursor-not-allowed" : ""
             }`}
           />

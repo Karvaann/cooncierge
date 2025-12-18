@@ -11,15 +11,18 @@ type MenuAction = {
 
 interface ActionMenuProps {
   actions: MenuAction[];
-  /** Tailwind width class (e.g. 'w-30', 'w-40'). If omitted, uses existing default 'w-30'. */
+  /** Tailwind width class */
   width?: string;
+
+  right?: string;
 }
 
-const ActionMenu: React.FC<ActionMenuProps> = ({ actions, width }) => {
+const ActionMenu: React.FC<ActionMenuProps> = ({ actions, width, right }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const menuWidthClass = width ?? "w-30";
+  const menuRightClass = right ?? "right-10";
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -54,21 +57,21 @@ const ActionMenu: React.FC<ActionMenuProps> = ({ actions, width }) => {
       {isOpen && (
         <div
           className={`
-            absolute right-9 top-1/2 -translate-y-1/2
+            absolute ${menuRightClass} top-1/2 -translate-y-1/2
             bg-white border border-gray-200 rounded-md shadow-xl 
             ${menuWidthClass} z-20
           `}
         >
           <div
-            className="
-              absolute 
+            className={`
+              absolute
               -right-2
               top-1/2 -translate-y-1/2
               w-3 h-3
-              bg-white 
+              bg-white
               border-t border-r border-gray-200
               rotate-45
-            "
+            `}
           ></div>
 
           {/* Menu items */}

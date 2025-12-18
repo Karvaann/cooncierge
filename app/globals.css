@@ -71,6 +71,7 @@ body {
 
 .date-range-popover .rdrCalendarWrapper {
   width: 100%;
+  height: auto;
   box-sizing: border-box;
   overflow-x: auto;   /* allow scroll if ever needed */
   overflow-y: hidden;
@@ -97,13 +98,15 @@ body {
 
 .date-range-popover .rdrMonth {
   padding: 0 12px 12px;
+  margin-right: 12px;
+  height: auto;
 }
 
 /* shift the left month slightly to the right so it doesn't collide with
    the left divider. This creates a small breathing gap between divider
    and date cells. */
 .date-range-popover .rdrMonth:first-child {
-  margin-left: 6px;
+  margin-left: 0px;
 }
 
 /* Draw a full-height divider for the presets column regardless of
@@ -111,6 +114,7 @@ body {
    stretches from the top to the bottom of the popover. */
 .date-range-popover .presets-column {
   position: relative;
+  padding: 4px 6px;       /* top/bottom | left/right */
 }
 .date-range-popover .presets-column::after {
   content: "";
@@ -121,6 +125,14 @@ body {
   width: 1px;
   background: #e5e7eb; /* match border-gray-200 */
   z-index: 40;
+}
+
+/* Compact preset buttons inside date range popover */
+.date-range-popover .presets-column button {
+  padding: 6px 8px;           
+  font-size: 0.70rem; 
+  line-height: 1.1;           /* tighter vertical height */
+  margin-bottom: 6px;        
 }
 
 /* Header area (used for spacing/alignment, library headings are used) */
@@ -134,23 +146,17 @@ body {
   border-bottom: 1px solid #e5e7eb;
 }
 
-/* Weekday and day number styling */
-.date-range-popover .rdrWeekDays {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: #6b7280;
-  gap: 6px;
 
-}
 
 .date-range-popover .rdrDayNumber span {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 400;
   color: #111827;
 }
 
 .date-range-popover .rdrDayPassive .rdrDayNumber span {
   color: #d1d5db;
+  
 }
 
 /* Show and style the library month headings so they update on navigation */
@@ -179,19 +185,21 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 36px;
-  padding: 0 8px;
-  margin-bottom: 4px;
+  height: 22px;
+  padding: 0 6px;
+  margin-bottom: 3px;
   border-bottom: 1px solid #e5e7eb;
+  margin-top: -10px;
 }
 
 .calendar-title {
-  font-size: 14px;
+  font-size: 0.75rem;
   font-weight: 400;
   color: #111827;
   line-height: 20px;
   letter-spacing: 1.3%;
   gap: 8rem;
+  
 }
 
 .calendar-shared-header button {
@@ -207,18 +215,17 @@ body {
 }
 
 .calendar-shared-header button:hover {
-  background: #f3f4f6;
   border-radius: 6px;
+  padding: 1px;
 }
 
 
 /* make hover and in-range a neutral gray across cells */
-.date-range-popover .rdrDay:hover .rdrDayNumber span,
+/* .date-range-popover .rdrDay:hover .rdrDayNumber span,
 .date-range-popover .rdrInRange,
 .date-range-popover .rdrDayHovered {
-  background: #E1FAF7;
-  color: #111827;
-}
+  color: #888e9c;
+} */
 
 .date-range-popover .rdrDayDisabled {
   background: transparent;
@@ -247,7 +254,7 @@ body {
 
 .date-range-popover .rdrDayToday .rdrDayNumber span {
   background-color: transparent;
-  color: #171818;
+  color: #333;
 }
 
 .date-range-popover .rdrStartEdge {
@@ -301,21 +308,36 @@ body {
 }
 
 /* restore subtle grid lines between days */
-.date-range-popover .rdrDay {
-  padding: 6px;
+/* .date-range-popover .rdrDay {
+  padding: 10px;
+  font-size: 0.70rem;
   background: transparent;
+} */
+
+/* Weekday and day number styling */
+.date-range-popover .rdrWeekDays {
+  font-size: 0.70rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin: 2px;
 }
 
+.date-range-popover .rdrWeekDays,
+.date-range-popover .rdrDays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+}
 
+.date-range-popover .rdrDayNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 2px;               /* ⬅ spacing between cells */
+}
 
 .date-range-popover .rdrDayDisabled {
   border-color: transparent;
 }
-
-/* avoid double borders */
-/* .date-range-popover .rdrMonth table {
-  border-collapse: collapse;
-} */
 
 
 
@@ -333,9 +355,6 @@ body {
 .date-range-popover .rdrMonth table {
   width: 100%;
   table-layout: fixed;
-}
-.date-range-popover .rdrMonth .rdrDayNumber span {
-  font-size: 0.80rem;
 }
 
 /* Use focus-visible so mouse users don't see the ring but keyboard users do */
@@ -427,7 +446,7 @@ select:-webkit-autofill {
 
 /* In-between range dates */
 .rdrDay:not(.rdrDayPassive) .rdrInRange ~ .rdrDayNumber span {
-  color: #111827 !important;
+  color: #333 !important;
 }
 
 

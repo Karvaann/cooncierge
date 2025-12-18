@@ -41,7 +41,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     >
       <div
         ref={sidebarRef}
-        className={`fixed top-0 left-0 h-screen text-white border-r border-gray-700 transition-all transform duration-500 ease-in-out z-50 pt-3 ${
+        className={`fixed top-0 left-0 h-screen text-white border-r border-gray-700 transition-all transform duration-500 ease-in-out z-50 pt-5 ${
           isOpen ? "w-48" : "w-13"
         }`}
         style={{
@@ -71,12 +71,12 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           )}
         </div>
 
-        <ul className="mt-4 space-y-1">
+        <ul className="mt-6 space-y-1">
           {menuItems.map((item, index) => {
             const isActive = openSubMenuIndex === index;
             const showArrow = isOpen && Boolean(item.subMenu);
             const commonItemClasses =
-              "flex items-center gap-2 px-4 h-8 transition-colors";
+              "flex items-center gap-3 px-4 h-8 transition-colors";
 
             return (
               <li
@@ -98,7 +98,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                   >
                     <item.icon className="w-4 h-4" />
                     {isOpen && (
-                      <span className="text-[0.75rem]">{item.label}</span>
+                      <span className="text-[14px]">{item.label}</span>
                     )}
                     {showArrow && (
                       <MdKeyboardArrowUp
@@ -117,7 +117,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                   >
                     <item.icon className="w-4 h-4" />
                     {isOpen && (
-                      <span className="text-[0.75rem]">{item.label}</span>
+                      <span className="text-[14px]">{item.label}</span>
                     )}
                   </Link>
                 ) : (
@@ -128,7 +128,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                   >
                     <item.icon className="w-4 h-4" />
                     {isOpen && (
-                      <span className="text-[0.75rem]">{item.label}</span>
+                      <span className="text-[14px]">{item.label}</span>
                     )}
                   </button>
                 )}
@@ -149,7 +149,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
                         <Link
                           prefetch
                           href={sub.href}
-                          className="block text-left text-[0.65rem] py-1 px-2 rounded text-white cursor-pointer"
+                          className="block text-left text-[12px] py-1 px-2 rounded text-white cursor-pointer"
                         >
                           {sub.label}
                         </Link>

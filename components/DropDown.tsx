@@ -141,7 +141,7 @@ const DropDown: React.FC<DropdownProps> = ({
           customHeight ? customHeight : "py-1.5"
         } flex items-center justify-between px-2 ${
           disabled ? "bg-gray-100 cursor-not-allowed text-gray-600" : "bg-white"
-        } rounded-md border border-gray-300 hover:border-green-300 transition-colors text-left text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-green-400`}
+        } rounded-md border border-gray-300 hover:border-green-300 transition-colors text-left text-[13px] focus:outline-none focus:ring-1 focus:ring-green-400`}
       >
         <span className={`${selectedValue ? "text-black" : "text-gray-400"}`}>
           {displayText}
@@ -194,7 +194,7 @@ const DropDown: React.FC<DropdownProps> = ({
                     key={option.value}
                     type="button"
                     onClick={() => handleSelect(option.value)}
-                    className={`w-full block px-2 py-1.5 text-left text-[0.75rem] text-black hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0`}
+                    className={`w-full block px-2 py-1.5 text-left text-[13px] text-black hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0`}
                   >
                     {option.label}
                   </button>

@@ -14,6 +14,7 @@ export interface Assignee {
 export interface PriorityTaskCardProps {
   priority: "high" | "medium" | "low" | "completed";
   taskId: string;
+  taskCustomId?: string;
   date: string;
   title: string;
   description: string;
@@ -27,6 +28,7 @@ export interface PriorityTaskCardProps {
 const PriorityTaskCard: React.FC<PriorityTaskCardProps> = ({
   priority,
   taskId,
+  taskCustomId,
   date,
   title,
 
@@ -79,7 +81,8 @@ const PriorityTaskCard: React.FC<PriorityTaskCardProps> = ({
         )}
 
         <div className="flex-1 text-center text-xs text-gray-600">
-          Task ID: <span className="font-semibold">{taskId}</span>
+          Task ID:{" "}
+          <span className="font-semibold">{taskCustomId || taskId}</span>
         </div>
 
         <div className="text-xs text-gray-500">{date}</div>

@@ -26,7 +26,7 @@ import { FaRegStar } from "react-icons/fa";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import { MdHistory } from "react-icons/md";
 import Image from "next/image";
-// (Removed traveller form integration per request)
+import CustomIdApi from "@/services/customIdApi";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -125,6 +125,8 @@ const VendorDirectory = () => {
     width: 0,
     left: 0,
   });
+
+  const [generatedVendorCode, setGeneratedVendorCode] = useState("");
 
   const [selectedVendor, setSelectedVendor] = useState<any | null>(null);
   const [mode, setMode] = useState<"create" | "edit" | "view">("create");
@@ -383,7 +385,10 @@ const VendorDirectory = () => {
 
         // Normal Table Columns
         cells.push(
-          <td key={`vendorID-${index}`} className="px-4 py-3 font-[500] text-left">
+          <td
+            key={`vendorID-${index}`}
+            className="px-4 py-3 font-[500] text-left"
+          >
             {row.vendorID}
           </td>,
           <td key={`vendorName-${index}`} className="px-4 py-3  text-center">
@@ -464,7 +469,7 @@ const VendorDirectory = () => {
           ref={tabsContainerRef}
         >
           <div
-            className="absolute h-[calc(100%-0.60rem)] bg-[#0D4B37] rounded-[8px] shadow-sm
+            className="absolute h-[calc(100%-0.60rem)] bg-[#0D4B37] rounded-[8px]
              shadow-sm transition-all duration-300 ease-in-out
              top-1/2 -translate-y-1/2"
             style={{
@@ -505,7 +510,20 @@ const VendorDirectory = () => {
             </span>
           </div>
           <button
-            onClick={() => setIsSideSheetOpen(true)}
+            onClick={async () => {
+              try {
+                const res = await CustomIdApi.generate("vendor");
+
+                // IMPORTANT: use backend field name
+                setGeneratedVendorCode(res?.customId);
+
+                setSelectedVendor(null);
+                setMode("create");
+                setIsSideSheetOpen(true);
+              } catch (err) {
+                console.error("Failed to generate vendor code", err);
+              }
+            }}
             className="flex items-center text-[14px] cursor-pointer gap-[8px] px-[16px] py-[7px] rounded-[6px] bg-[#0D4B37] text-white font-[500]"
             type="button"
           >
@@ -615,9 +633,11 @@ const VendorDirectory = () => {
               setIsSideSheetOpen(false);
               setSelectedVendor(null);
               setMode("create");
+              setGeneratedVendorCode("");
             }}
             data={selectedVendor} // REQUIRED
             mode={mode}
+            vendorCode={generatedVendorCode}
             onSuccess={fetchVendors}
           />
         </BookingProvider>

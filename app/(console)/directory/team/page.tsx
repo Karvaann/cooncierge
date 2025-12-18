@@ -19,6 +19,7 @@ import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import { MdHistory } from "react-icons/md";
 import { getBookingHistoryByTeamMember } from "@/services/teamsApi";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
+import CustomIdApi from "@/services/customIdApi";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -111,6 +112,8 @@ const TeamDirectory = () => {
 
   const [selectMode, setSelectMode] = useState(false);
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
+
+  const [generatedTeamCode, setGeneratedTeamCode] = useState("");
 
   const [historyData, setHistoryData] = useState([]);
   const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<
@@ -430,7 +433,7 @@ const TeamDirectory = () => {
           ref={tabsContainerRef}
         >
           <div
-            className="absolute h-[calc(100%-0.60rem)] bg-[#0D4B37] rounded-[8px] shadow-sm
+            className="absolute h-[calc(100%-0.60rem)] bg-[#0D4B37] rounded-[8px]
              shadow-sm transition-all duration-300 ease-in-out
              top-1/2 -translate-y-1/2"
             style={{
@@ -471,7 +474,20 @@ const TeamDirectory = () => {
             </span>
           </div>
           <button
-            onClick={() => setIsSideSheetOpen(true)}
+            onClick={async () => {
+              try {
+                const res = await CustomIdApi.generate("team");
+
+                // IMPORTANT: backend field name
+                setGeneratedTeamCode(res?.customId);
+
+                setSelectedTeam(null);
+                setMode("create");
+                setIsSideSheetOpen(true);
+              } catch (err) {
+                console.error("Failed to generate team code", err);
+              }
+            }}
             className="flex items-center text-[14px] cursor-pointer gap-[8px] px-[16px] py-[7px] rounded-[6px] bg-[#0D4B37] text-white font-[500]"
             type="button"
           >
@@ -583,9 +599,11 @@ const TeamDirectory = () => {
             setIsSideSheetOpen(false);
             setSelectedTeam(null);
             setMode("create");
+            setGeneratedTeamCode("");
           }}
           data={selectedTeam} // REQUIRED
           mode={mode}
+          teamCode={generatedTeamCode}
           onSuccess={fetchTeamsData}
         />
       )}

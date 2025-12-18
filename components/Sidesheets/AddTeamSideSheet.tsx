@@ -13,10 +13,12 @@ import Button from "../Button";
 import SingleCalendar from "../SingleCalendar";
 import DropDown from "../DropDown";
 import { FaRegFolder } from "react-icons/fa";
-import generateCustomId from "@/utils/helper";
+import ErrorToast from "../ErrorToast";
+import { MdOutlineFileUpload } from "react-icons/md";
 
 type TeamData = {
   _id?: string;
+  customId?: string;
   name?: string;
   firstname: string;
   lastname: string;
@@ -41,6 +43,7 @@ type AddTeamSideSheetProps = {
   isOpen: boolean;
   mode?: "create" | "edit" | "view";
   onSuccess?: () => void;
+  teamCode?: string;
 };
 
 const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
@@ -49,6 +52,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
   isOpen,
   mode = "create",
   onSuccess,
+  teamCode: teamCodeProp,
 }) => {
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -57,8 +61,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
   const firstNameRef = useRef<HTMLInputElement | null>(null);
   const lastNameRef = useRef<HTMLInputElement | null>(null);
   const workEmailRef = useRef<HTMLInputElement | null>(null);
-  const [showError, setShowError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [invalidField, setInvalidField] = useState<
     "firstname" | "lastname" | "workEmail" | null
   >(null);
@@ -68,11 +71,11 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
 
   useEffect(() => {
     if (mode === "create") {
-      setTeamCode(generateCustomId("team"));
+      setTeamCode(teamCodeProp || "");
     } else {
-      setTeamCode(data?._id || "");
+      setTeamCode(data?.customId || data?._id || "");
     }
-  }, [mode, data]);
+  }, [mode, data, teamCodeProp]);
 
   // Mounted flag to ensure portal renders client-side only
   const [mounted, setMounted] = useState(false);
@@ -80,6 +83,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
     setMounted(true);
     return () => setMounted(false);
   }, []);
+
+  const showErrorToast = (message: string) => {
+    setError(message);
+  };
 
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -117,14 +124,12 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
 
     const selected = Array.from(files);
 
-    // Enforce max 3 files
-    const total = attachedFiles.length + selected.length;
-    if (total > 3) {
-      alert("Maximum 3 files can be uploaded");
-      return;
-    }
+    // simple enforcement: only add up to remaining slots (max 3)
+    const remaining = 3 - attachedFiles.length;
+    if (remaining <= 0) return;
 
-    setAttachedFiles((prev) => [...prev, ...selected]);
+    const toAdd = selected.slice(0, remaining);
+    setAttachedFiles((prev) => [...prev, ...toAdd]);
 
     if (fileRef.current) fileRef.current.value = "";
   };
@@ -178,15 +183,13 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
     }
   }, [data]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     // Validate required fields: firstname, lastname, work email id
     if (!formData.firstname || String(formData.firstname).trim() === "") {
-      setErrorMessage("Please enter first name to proceed");
+      showErrorToast("Please enter first name to proceed");
       setInvalidField("firstname");
-      setShowError(true);
-      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
-      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+
       setTimeout(() => {
         firstNameRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -197,11 +200,9 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
       return;
     }
     if (!formData.lastname || String(formData.lastname).trim() === "") {
-      setErrorMessage("Please enter last name to proceed");
+      showErrorToast("Please enter last name to proceed");
       setInvalidField("lastname");
-      setShowError(true);
-      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
-      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+
       setTimeout(() => {
         lastNameRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -212,11 +213,9 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
       return;
     }
     if (!formData.workEmailId || String(formData.workEmailId).trim() === "") {
-      setErrorMessage("Please enter work email to proceed");
+      showErrorToast("Please enter work email to proceed");
       setInvalidField("workEmail");
-      setShowError(true);
-      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
-      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+
       setTimeout(() => {
         workEmailRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -227,7 +226,6 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
       return;
     }
     const user = getAuthUser() as any;
-    const roleId = user?.roleId;
 
     const businessId = user?.businessId;
     try {
@@ -257,7 +255,6 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
 
       // Required by backend
       formToSend.append("businessId", businessId);
-      formToSend.append("roleId", roleId);
 
       // Documents
       attachedFiles.forEach((file) => {
@@ -280,11 +277,9 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
   const handleUpdateUser = async () => {
     // Validate required fields before update
     if (!formData.firstname || String(formData.firstname).trim() === "") {
-      setErrorMessage("Please enter first name to proceed");
+      showErrorToast("Please enter first name to proceed");
       setInvalidField("firstname");
-      setShowError(true);
-      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
-      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+
       setTimeout(() => {
         firstNameRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -295,11 +290,9 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
       return;
     }
     if (!formData.lastname || String(formData.lastname).trim() === "") {
-      setErrorMessage("Please enter last name to proceed");
+      showErrorToast("Please enter last name to proceed");
       setInvalidField("lastname");
-      setShowError(true);
-      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
-      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+
       setTimeout(() => {
         lastNameRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -310,11 +303,9 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
       return;
     }
     if (!formData.workEmailId || String(formData.workEmailId).trim() === "") {
-      setErrorMessage("Please enter work email to proceed");
+      showErrorToast("Please enter work email to proceed");
       setInvalidField("workEmail");
-      setShowError(true);
-      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
-      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+
       setTimeout(() => {
         workEmailRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -393,7 +384,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
           noValidate
         >
           {/* Error Alert Popup (reuse customer toast style) */}
-          {mounted &&
+          {/* {mounted &&
             showError &&
             createPortal(
               <div className="fixed top-8 left-1/2 transform -translate-x-1/2 z-[1100] flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 px-2 py-1 rounded-full shadow-md max-w-[90vw] text-[0.65rem]">
@@ -430,7 +421,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 </button>
               </div>,
               document.body
-            )}
+            )} */}
 
           {/* ================= STATUS DROPDOWN ================ */}
           <div className="flex flex-col gap-1">
@@ -452,6 +443,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   });
                 }}
                 customWidth="w-[13rem]"
+                menuWidth="w-[13rem]"
                 className=""
               />
             ) : (
@@ -598,7 +590,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     placeholder="Enter Contact Number"
                     required
                     disabled={readOnly}
-                    className="w-[18.7rem] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-[41%] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -662,7 +654,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     placeholder="Enter Contact Number"
                     required
                     disabled={readOnly}
-                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -752,15 +744,21 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 onChange={handleFileChange}
                 accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt"
                 multiple
+                disabled={readOnly || attachedFiles.length >= 3}
               />
 
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="px-3 py-1.5 mt-1 flex gap-1 bg-white text-[#126ACB] border border-[#126ACB] 
-                 rounded-md text-[0.75rem] hover:bg-gray-200"
+                disabled={readOnly || attachedFiles.length >= 3}
+                className={`px-3 py-1.5 mt-1 flex gap-1 bg-white text-[#126ACB] border border-[#126ACB] 
+                 rounded-md text-[0.75rem] hover:bg-gray-200 ${
+                   readOnly || attachedFiles.length >= 3
+                     ? "opacity-50 cursor-not-allowed hover:bg-white"
+                     : ""
+                 }`}
               >
-                Attach Files
+                <MdOutlineFileUpload size={16} /> Attach Files
               </button>
 
               {/* PREVIEW FILES */}
@@ -853,7 +851,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 />
                 <Button
                   text="Save"
-                  onClick={() => handleSubmit}
+                  onClick={handleSubmit}
                   icon={<LuSave size={16} />}
                   bgColor="bg-[#0D4B37]"
                   textColor="text-white"
@@ -863,6 +861,11 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
             )}
           </div>
         </form>
+        <ErrorToast
+          message={error || ""}
+          visible={!!error}
+          onClose={() => setError(null)}
+        />
       </SideSheet>
       <ConfirmationModal
         isOpen={isConfirmationModalOpen}

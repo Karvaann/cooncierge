@@ -117,16 +117,17 @@ const Table: React.FC<TableProps> = ({
   return (
     <>
       <div className="overflow-visible rounded-xl border border-gray-100">
-        <table style={{tableLayout: 'auto'}} className="w-full text-sm rounded-xl overflow-hidden">
+        <table
+          style={{ tableLayout: "auto" }}
+          className="w-full text-sm rounded-xl overflow-hidden"
+        >
           <thead>
             <tr
               className={`rounded-t-xl text-white ${
                 headerClassName || "bg-[#0D4B37]"
               }`}
             >
-              {showCheckboxColumn && (
-                <th className="px-3 py-2 w-[3rem]"></th>
-              )}
+              {showCheckboxColumn && <th className="px-3 py-2 w-[3rem]"></th>}
               {columns.map((col, index) => (
                 <th
                   key={`${col}-${index}`}
@@ -157,8 +158,18 @@ const Table: React.FC<TableProps> = ({
           }
         `}
                 >
-                  <div className="flex items-center justify-center gap-2">
-                    <span style={{textAlign: index === 0 ? "left" : "center", width: '100%'}}> {col} </span>
+                  <div
+                    className={`flex items-center gap-2 ${
+                      index === 0 ? "justify-start" : "justify-center"
+                    }`}
+                  >
+                    <span
+                      className={`truncate ${
+                        index === 0 ? "text-left" : "text-center"
+                      }`}
+                    >
+                      {col}
+                    </span>
                     {columnIconMap?.[col]}
                   </div>
                 </th>
@@ -188,7 +199,7 @@ const Table: React.FC<TableProps> = ({
                           {...drag.dragHandleProps}
                           className={`${
                             idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                          } hover:bg-gray-100 transition-colors h-[2.8rem] text-[0.75rem]`}
+                          } hover:bg-gray-100 transition-colors h-[3rem] text-[12px]`}
                         >
                           {row}
                         </tr>
@@ -204,10 +215,10 @@ const Table: React.FC<TableProps> = ({
                         (paginatedRows.length + idx) % 2 === 0
                           ? "bg-white"
                           : "bg-gray-50"
-                      } h-[2.8rem] text-[0.75rem]`}
+                      } h-[1.5rem] text-[14px]`}
                     >
                       <td
-                        className="px-4 py-3"
+                        className="px-4 py-2"
                         colSpan={columns.length + (showCheckboxColumn ? 1 : 0)}
                       ></td>
                     </tr>
@@ -221,17 +232,17 @@ const Table: React.FC<TableProps> = ({
             // Non-DnD
             <tbody>
               {paginatedRows.map((row, idx) => {
-                return(
-                <tr
-                  key={`row-${page}-${idx}`}
-                  className={`${
-                    idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                  } hover:bg-gray-100 transition-colors h-[2.8rem] text-[14px]`}
-                >
-                  {row}
-                </tr>
-              )}
-              )}
+                return (
+                  <tr
+                    key={`row-${page}-${idx}`}
+                    className={`${
+                      idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                    } hover:bg-gray-100 transition-colors  text-[14px]`}
+                  >
+                    {row}
+                  </tr>
+                );
+              })}
 
               {/* Fill empty rows to keep table height consistent */}
               {emptyRows.map((_, idx) => (
@@ -241,10 +252,10 @@ const Table: React.FC<TableProps> = ({
                     (paginatedRows.length + idx) % 2 === 0
                       ? "bg-white"
                       : "bg-gray-50"
-                  } h-[2.8rem] text-[0.75rem]`}
+                  } h-[3rem] text-[14px]`}
                 >
                   <td
-                    className="px-4 py-3"
+                    className="px-4 py-2"
                     colSpan={columns.length + (showCheckboxColumn ? 1 : 0)}
                   ></td>
                 </tr>

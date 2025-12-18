@@ -44,6 +44,7 @@ interface FilterProps {
   initialFilters?: Partial<FilterState>;
   createOpen?: boolean;
   setCreateOpen?: (open: boolean) => void;
+  onCreateClick?: () => void;
 }
 
 const Filter: React.FC<FilterProps> = ({
@@ -55,6 +56,7 @@ const Filter: React.FC<FilterProps> = ({
   createOpen = false,
   setCreateOpen,
   onSearchChange,
+  onCreateClick,
 }) => {
   const [filters, setFilters] = useState<FilterState>({
     serviceType: initialFilters.serviceType || "",
@@ -235,15 +237,18 @@ const Filter: React.FC<FilterProps> = ({
   );
 
   return (
-    <div className="bg-white rounded-2xl shadow pt-4 pb-3 px-3 w-full relative">
+    <div className="bg-white rounded-xl shadow pt-4.5 pb-4.5 px-4 w-full relative">
       <div className="flex justify-between items-center mb-1">
-        <h2 className="text-[0.85rem] font-semibold text-[#1F2937]">Filters</h2>
+        <h2 className="text-[1rem] font-semibold text-[#1F2937]">Filters</h2>
         <Button
           text="+ Create"
-          onClick={() => setCreateOpen?.(true)}
+          onClick={() => {
+            if (onCreateClick) onCreateClick();
+            else setCreateOpen?.(true);
+          }}
           bgColor="bg-[#0D4B37]"
           textColor="text-white"
-          className="border border-[#0D4B37] hover:bg-green-800"
+          className="border border-[#0D4B37] hover:bg-[#125E45] px-3.5 cursor-pointer"
         />
       </div>
 
@@ -292,14 +297,14 @@ const Filter: React.FC<FilterProps> = ({
           {/* Booking Owner */}
 
           <div>
-            <label className="block text-gray-700 mb-1 text-[0.75rem]">
+            <label className="block text-[#414141] font-medium mb-1.5 text-[14px]">
               Booking Owner
             </label>
 
             <div className="relative" ref={ownerDropdownRef}>
               {/* Input area with pills */}
               <div
-                className="w-[14.75rem] min-h-[2.25rem] -mt-0.5 border border-gray-300 rounded-md px-2 py-2 flex items-center flex-wrap gap-1 cursor-pointer"
+                className="w-[14.75rem] min-h-[2.4rem] -mt-0.5 border border-gray-300 hover:border-green-200 rounded-sm px-2.5 py-2.5 flex items-center flex-wrap gap-1 cursor-pointer"
                 onClick={(e) => {
                   e.stopPropagation();
                   // Compute position to render portal dropdown
@@ -320,7 +325,7 @@ const Filter: React.FC<FilterProps> = ({
                   selectedOwners.map((o) => (
                     <span
                       key={o}
-                      className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[0.65rem]"
+                      className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[12px]"
                     >
                       <button
                         type="button"
@@ -328,14 +333,15 @@ const Filter: React.FC<FilterProps> = ({
                           e.stopPropagation();
                           toggleOwner(o);
                         }}
+                        className="py-1"
                       >
-                        <IoClose size={12} />
+                        <IoClose size={16} className="text-[#818181]" />
                       </button>
                       {o}
                     </span>
                   ))
                 ) : (
-                  <span className="text-gray-400 text-[0.7rem] flex items-center w-full">
+                  <span className="text-gray-400 text-[15px] flex items-center w-full">
                     Select Owner
                     <MdOutlineKeyboardArrowDown className="ml-auto text-gray-400 pointer-events-none" />
                   </span>
@@ -375,7 +381,7 @@ const Filter: React.FC<FilterProps> = ({
                               toggleOwner(owner);
                             }}
                           >
-                            <div className="w-4 h-4 border border-gray-400 rounded-md flex items-center justify-center">
+                            <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
                               {checked && (
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
@@ -394,7 +400,7 @@ const Filter: React.FC<FilterProps> = ({
                               )}
                             </div>
 
-                            <span className="text-gray-700 text-[0.75rem]">
+                            <span className="text-black text-[14px]">
                               {owner}
                             </span>
                           </label>
@@ -440,10 +446,10 @@ const Filter: React.FC<FilterProps> = ({
                   updateFilter("search", e.target.value);
                   onSearchChange?.(e.target.value); // <-- SEND TO PARENT
                 }}
-                className="w-90 border border-gray-300 text-[0.75rem] rounded-lg pl-3 pr-9 py-2.5 text-gray-600 focus:ring-2 focus:ring-[#0D4B37]"
+                className="w-98 border border-gray-300 hover:border-green-300 text-[14px] rounded-md pl-3 pr-9 py-2.5 text-gray-600 focus:ring-2 focus:ring-[#0D4B37]"
               />
               <CiSearch
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-800"
                 size={18}
               />
             </div>
@@ -453,10 +459,10 @@ const Filter: React.FC<FilterProps> = ({
               <Button
                 text="Reset"
                 onClick={handleReset}
-                icon={<RiRefreshLine size={16} />}
+                icon={<RiRefreshLine size={18} />}
                 bgColor="bg-white"
-                textColor="text-[#0D4B37]"
-                className="border border-[#0D4B37] hover:bg-gray-200"
+                textColor="text-[#414141]"
+                className="border border-[#414141] hover:bg-gray-200 font-semibold"
               />
             </div>
           </div>

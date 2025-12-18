@@ -69,7 +69,7 @@ const ConfirmPopupModal: React.FC<ConfirmPopupModalProps> = ({
 
           <button
             className="border border-[#D32F2F] bg-[#D32F2F] text-white
-              rounded-md px-4 py-1 text-[0.75rem] font-medium
+              rounded-md px-4 py-1 text-[13px] font-medium
               hover:bg-[#b71c1c] transition-colors"
             onClick={onDontSave}
           >
@@ -78,7 +78,7 @@ const ConfirmPopupModal: React.FC<ConfirmPopupModalProps> = ({
 
           <button
             className="border border-[#1A7F64] bg-[#3B8132] text-white
-              rounded-md px-4 py-1.5 text-[0.75rem] font-medium
+              rounded-md px-4 py-1.5 text-[13px] font-medium
               hover:bg-[#145c47] transition-colors"
             onClick={onSaveAsDrafts}
           >

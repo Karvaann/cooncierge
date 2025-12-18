@@ -26,7 +26,7 @@ const AvatarTooltip: React.FC<AvatarTooltipProps> = ({
       onBlur={() => setShowTooltip(false)}
     >
       <div
-        className={`w-7 h-7 rounded-full shadow-md bg-white flex items-center justify-center text-[0.65rem] font-semibold border ${color} cursor-pointer select-none`}
+        className={`w-7 h-7 rounded-full shadow-md bg-white flex items-center justify-center text-[11px] font-semibold border ${color} cursor-pointer select-none`}
         tabIndex={0}
         role="button"
         aria-label={full}

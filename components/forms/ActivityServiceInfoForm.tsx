@@ -118,6 +118,27 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Allow only digits and a single decimal point for price fields
+  const sanitizeNumeric = (val: string) => {
+    const v = String(val || "").replace(/[^0-9.]/g, "");
+    const parts = v.split(".");
+    if (parts.length <= 1) return parts[0];
+    // join remaining parts (remove extra dots) and keep first dot only
+    return parts[0] + "." + parts.slice(1).join("");
+  };
+
+  const handlePriceChange =
+    (field: "costprice" | "sellingprice") =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const raw = e.target.value;
+      const sanitized = sanitizeNumeric(raw);
+      setFormData((prev) => ({ ...prev, [field]: sanitized }));
+      if ((errors as any)[field]) {
+        setErrors((prev) => ({ ...prev, [field]: "" }));
+      }
+      setTouched((prev) => ({ ...prev, [field]: true }));
+    };
+
   const options = [
     { value: "confirmed", label: "Confirmed" },
     { value: "cancelled", label: "Cancelled" },
@@ -501,7 +522,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                       type="text"
                       name="costprice"
                       value={formData.costprice}
-                      onChange={handleChange}
+                      onChange={handlePriceChange("costprice")}
                       placeholder="Enter Cost Price"
                       className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                     />
@@ -526,14 +547,14 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                       type="text"
                       name="sellingprice"
                       value={formData.sellingprice}
-                      onChange={handleChange}
+                      onChange={handlePriceChange("sellingprice")}
                       placeholder="Enter Selling Price"
                       className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                     />
                   </div>
                 </div>
 
-                <div className="w-[9rem] rounded-lg p-1 mt-1 bg-white">
+                <div className="w-fit rounded-lg p-1 mt-1 bg-white">
                   {/* Label on top */}
                   <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
                     Net
@@ -592,6 +613,8 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                         {item.key !== "cost" ? (
                           <input
                             type="text"
+                            inputMode="decimal"
+                            pattern="^\\d*(?:\\.\\d*)?$"
                             placeholder="Enter Amount"
                             value={
                               item.key === "price"
@@ -601,11 +624,13 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                                 : commissionPaid
                             }
                             onChange={(e) => {
-                              const val = e.target.value;
-                              if (item.key === "price") setVendorBasePrice(val);
+                              const raw = e.target.value;
+                              const sanitized = sanitizeNumeric(raw);
+                              if (item.key === "price")
+                                setVendorBasePrice(String(sanitized));
                               else if (item.key === "received")
-                                setVendorIncentiveReceived(val);
-                              else setCommissionPaid(val);
+                                setVendorIncentiveReceived(String(sanitized));
+                              else setCommissionPaid(String(sanitized));
                             }}
                             className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-300 focus:outline-none"
                           />
@@ -639,12 +664,16 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                       </div>
                       <input
                         type="text"
+                        inputMode="decimal"
+                        pattern="^\\d*(?:\\.\\d*)?$"
                         placeholder="Enter Amount"
                         value={String(formData.sellingprice ?? "")}
                         onChange={(e) =>
                           setFormData((prev) => ({
                             ...prev,
-                            sellingprice: e.target.value,
+                            sellingprice: String(
+                              sanitizeNumeric(e.target.value)
+                            ),
                           }))
                         }
                         className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-300 focus:outline-none"
@@ -652,7 +681,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                     </div>
                   </div>
                 </div>
-                <div className="w-[12rem] rounded-lg p-1 mt-1 bg-white">
+                <div className="w-fit rounded-lg p-1 mt-1 bg-white">
                   <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
                     Net
                   </span>

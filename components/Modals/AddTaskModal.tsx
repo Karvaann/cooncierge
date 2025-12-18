@@ -19,6 +19,7 @@ interface AddTaskModalProps {
   initialData?: any;
   isEditMode?: boolean;
   bookingId?: string; // booking against which task is created
+  taskCode?: string;
 }
 
 const AddTaskModal: React.FC<AddTaskModalProps> = ({
@@ -29,6 +30,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
   initialData = {},
   isEditMode = false,
   bookingId,
+  taskCode,
 }) => {
   const [nature, setNature] = useState(initialData.nature || "");
   const [description, setDescription] = useState(initialData.description || "");
@@ -267,6 +269,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
         subCategory,
         bookingId: bookingObjectId,
         assignedTo: validAssignees,
+        customId: taskCode || undefined,
       };
 
       const maybeId = (initialData as any)?._id as string | undefined;
@@ -318,7 +321,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Tasks"
+      title={taskCode ? `Tasks | ${taskCode}` : "Tasks"}
       size="sm"
       customWidth="w-[50vw]"
       customeHeight="h-fit"

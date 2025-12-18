@@ -72,7 +72,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <button
             className="
               border border-[#1A7F64] text-[#1A7F64] bg-white
-              rounded-md px-4 py-1.5 text-[0.75rem] font-medium
+              rounded-md px-4 py-1.5 text-[13px] font-medium
               hover:bg-[#1A7F64]/10 transition-colors
             "
             onClick={onClose}
@@ -84,7 +84,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           <button
             className={`
               text-white ${confirmButtonColor}
-              rounded-md px-4 py-1.5 text-[0.75rem] font-medium
+              rounded-md px-4 py-1.5 text-[13px] font-medium
               hover:opacity-90 transition-colors
             `}
             onClick={onConfirm}

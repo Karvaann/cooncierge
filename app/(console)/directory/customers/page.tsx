@@ -31,6 +31,7 @@ import { getTravellerById } from "@/services/travellerApi";
 import { MdHistory } from "react-icons/md";
 import { getBookingHistoryByCustomer } from "@/services/customerApi";
 import Image from "next/image";
+import CustomIdApi from "@/services/customIdApi";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -126,16 +127,17 @@ const CustomerDirectory = () => {
   const [activeTab, setActiveTab] = useState("Customers");
   const [searchValue, setSearchValue] = useState("");
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
-  const tabOptions = useMemo(
-    () => ["Customers", "Travellers", "Deleted"],
-    []
-  );
+  const tabOptions = useMemo(() => ["Customers", "Travellers", "Deleted"], []);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuMode, setMenuMode] = useState<"main" | "action">("main");
 
   const [selectMode, setSelectMode] = useState(false);
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
   const [selectedTravellers, setSelectedTravellers] = useState<string[]>([]);
+
+  const [generatedCustomerCode, setGeneratedCustomerCode] =
+    useState<string>("");
+  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
 
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
   const [mode, setMode] = useState<"create" | "edit" | "view">("create");
@@ -448,7 +450,10 @@ const CustomerDirectory = () => {
           );
         }
         cells.push(
-          <td key={`customerID-${index}`} className="px-4 py-3 font-[500]  text-left">
+          <td
+            key={`customerID-${index}`}
+            className="px-4 py-3 font-[500]  text-left"
+          >
             {row.customerID}
           </td>,
           <td key={`name-${index}`} className="px-4 py-3  text-center">
@@ -690,7 +695,7 @@ const CustomerDirectory = () => {
           ref={tabsContainerRef}
         >
           <div
-            className="absolute h-[calc(100%-0.60rem)] bg-[#0D4B37] rounded-[8px] shadow-sm
+            className="absolute h-[calc(100%-0.60rem)] bg-[#0D4B37] rounded-[8px]
              shadow-sm transition-all duration-300 ease-in-out
              top-1/2 -translate-y-1/2"
             style={{
@@ -733,7 +738,23 @@ const CustomerDirectory = () => {
             </span>
           </div>
           <button
-            onClick={() => setIsSideSheetOpen(true)}
+            onClick={async () => {
+              try {
+                setIsGeneratingCode(true);
+
+                const res = await CustomIdApi.generate("customer");
+                // assuming backend returns { code: "CU-AB001" }
+                setGeneratedCustomerCode(res?.customId || null);
+
+                setMode("create");
+                setSelectedCustomer(null);
+                setIsSideSheetOpen(true);
+              } catch (err) {
+                console.error("Failed to generate customer code", err);
+              } finally {
+                setIsGeneratingCode(false);
+              }
+            }}
             className="flex items-center text-[14px] cursor-pointer gap-[8px] px-[16px] py-[7px] rounded-[6px] bg-[#0D4B37] text-white font-[500]"
             type="button"
           >
@@ -887,9 +908,11 @@ const CustomerDirectory = () => {
               setIsSideSheetOpen(false);
               setSelectedCustomer(null);
               setMode("create");
+              setGeneratedCustomerCode(""); // Reset generated code on close
             }}
             data={selectedCustomer} // REQUIRED
             mode={mode}
+            customerCode={generatedCustomerCode}
             onSuccess={fetchData}
           />
         </BookingProvider>

@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import ConfirmPopupModal from "./popups/BookingPopups/ConfirmPopupModal";
 import SuccessPopupModal from "./popups/BookingPopups/SuccessPopupModal";
+import ErrorToast from "./ErrorToast";
 import { BookingProvider, useBooking } from "@/context/BookingContext";
 import { BookingApiService } from "@/services/bookingApi";
 import apiClient from "@/services/apiClient";
@@ -30,7 +31,6 @@ import Button from "./Button";
 import { LuSave } from "react-icons/lu";
 
 import { getAuthUser } from "@/services/storage/authStorage";
-import generateCustomId from "@/utils/helper";
 
 // Type definitions
 interface Service {
@@ -57,6 +57,9 @@ interface BookingFormSidesheetProps {
   onFormSubmit?: (formData: any) => void;
   initialData?: any;
   mode?: "view" | "edit";
+  bookingCode?: string;
+  customerCode?: string;
+  vendorCode?: string;
 }
 
 type TabType = "general" | "service" | "review";
@@ -70,26 +73,94 @@ interface TabConfig {
 
 function ServiceInfoFormSwitcher(props: any) {
   const { selectedService, onAddDocuments, initialData } = props;
+  // selectedService can be either a full service object (with .category)
+  // or a string coming from initialData.quotationType (eg. "flight", "hotel").
+  // Normalize common backend/frontend quotationType values to the category
+  // values expected by the service forms.
+  const rawServiceValue =
+    (selectedService &&
+      typeof selectedService === "object" &&
+      selectedService.category) ||
+    (typeof selectedService === "string" ? selectedService : undefined) ||
+    initialData?.quotationType;
 
-  const service = selectedService?.category || initialData?.quotationType;
+  if (!rawServiceValue) return null;
 
-  if (!service) return null;
+  const normalizeService = (val: string) => {
+    const v = String(val).toLowerCase().trim();
+    const map: Record<string, string> = {
+      // flights / travel -> flight form mapped to 'travel'
+      flight: "travel",
+      flights: "travel",
+      travel: "travel",
+
+      // hotels / accommodation
+      hotel: "accommodation",
+      hotels: "accommodation",
+      accommodation: "accommodation",
+
+      // land transport
+      car: "transport-land",
+      "transport-land": "transport-land",
+      "land-transport": "transport-land",
+      land: "transport-land",
+      transportation: "transport-land",
+
+      // maritime
+      maritime: "transport-maritime",
+      "transport-maritime": "transport-maritime",
+      "maritime-transportation": "transport-maritime",
+
+      // tickets
+      ticket: "tickets",
+      tickets: "tickets",
+
+      // activity
+      activity: "activity",
+      activities: "activity",
+
+      // insurance
+      insurance: "travel insurance",
+      "travel insurance": "travel insurance",
+
+      // visa
+      visa: "visas",
+      visas: "visas",
+
+      // others
+      others: "others",
+      package: "others",
+    };
+
+    return map[v] || v;
+  };
+
+  const service = normalizeService(rawServiceValue);
 
   switch (service) {
     case "travel":
       return (
-        <FlightServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+        <FlightServiceInfoForm
+          {...props}
+          externalFormData={initialData}
+          onAddDocuments={onAddDocuments}
+        />
       );
 
     case "accommodation":
       return (
-        <AccommodationServiceInfo {...props} onAddDocuments={onAddDocuments} />
+        <AccommodationServiceInfo
+          {...props}
+          externalFormData={initialData}
+          onAddDocuments={onAddDocuments}
+        />
       );
 
     case "transport-land":
       return (
         <LandTransportServiceInfoForm
           {...props}
+          externalFormData={initialData}
           onAddDocuments={onAddDocuments}
         />
       );
@@ -98,32 +169,53 @@ function ServiceInfoFormSwitcher(props: any) {
       return (
         <MaritimeTransportServiceInfoForm
           {...props}
+          externalFormData={initialData}
           onAddDocuments={onAddDocuments}
         />
       );
     case "tickets":
       return (
-        <TicketsServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+        <TicketsServiceInfoForm
+          {...props}
+          externalFormData={initialData}
+          onAddDocuments={onAddDocuments}
+        />
       );
 
     case "activity":
       return (
-        <ActivityServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+        <ActivityServiceInfoForm
+          {...props}
+          externalFormData={initialData}
+          onAddDocuments={onAddDocuments}
+        />
       );
 
     case "travel insurance":
       return (
-        <InsuranceServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+        <InsuranceServiceInfoForm
+          {...props}
+          externalFormData={initialData}
+          onAddDocuments={onAddDocuments}
+        />
       );
 
     case "visas":
       return (
-        <VisasServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+        <VisasServiceInfoForm
+          {...props}
+          externalFormData={initialData}
+          onAddDocuments={onAddDocuments}
+        />
       );
 
     case "others":
       return (
-        <OthersServiceInfoForm {...props} onAddDocuments={onAddDocuments} />
+        <OthersServiceInfoForm
+          {...props}
+          externalFormData={initialData}
+          onAddDocuments={onAddDocuments}
+        />
       );
 
     // you can keep adding cases for "transport" or "activity" later
@@ -143,12 +235,17 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   onFormSubmit,
   initialData,
   mode = "edit",
+  bookingCode: bookingCodeProp,
+  customerCode: customerCodeProp,
+  vendorCode: vendorCodeProp,
 }) => {
   const [activeTab, setActiveTab] = useState<TabType>("general");
   const [formData, setFormData] = useState<any>(initialData || {});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [apiErrorMessage, setApiErrorMessage] = useState<string>("");
+  const [showApiErrorToast, setShowApiErrorToast] = useState<boolean>(false);
   const { isAddCustomerOpen, isAddVendorOpen, isAddTravellerOpen } =
     useBooking();
   const { closeAddCustomer, closeAddVendor } = useBooking();
@@ -170,19 +267,26 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
   const [customerCode, setCustomerCode] = useState("");
   const [bookingCode, setBookingCode] = useState("");
+  const [vendorCode, setVendorCode] = useState("");
+
+  // Accept bookingCode from parent
+  useEffect(() => {
+    if (bookingCodeProp) {
+      setBookingCode(bookingCodeProp);
+    }
+  }, [bookingCodeProp]);
 
   useEffect(() => {
-    if (isOpen) {
-      // generate a booking code each time the sidesheet opens
-      try {
-        const code = generateCustomId("bookings");
-        setBookingCode(code);
-      } catch (e) {
-        console.error("Error generating booking code:", e);
-        setBookingCode("");
-      }
+    if (customerCodeProp) {
+      setCustomerCode(customerCodeProp);
     }
-  }, [isOpen]);
+  }, [customerCodeProp]);
+
+  useEffect(() => {
+    if (vendorCodeProp) {
+      setVendorCode(vendorCodeProp);
+    }
+  }, [vendorCodeProp]);
 
   // Reset form state when opening or when initialData changes
   useEffect(() => {
@@ -320,35 +424,41 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     bookingDocuments.map((file) => {
       bookingDataTemp.append("documents", file);
     });
-    console.log("Booking data temp:", bookingCode);
-    if (bookingCode && bookingCode.trim() !== "") {
-      bookingDataTemp.append("customId", bookingCode);
-    }
+    bookingDataTemp.append("customId", bookingCodeProp || "");
+
     return bookingDataTemp;
   }
 
   const handleDraftSubmit = useCallback(async () => {
     setIsSubmitting(true);
 
-    if (!selectedService) {
-      console.error("No service selected");
-      alert("Please select a service");
+    // Allow saving drafts even when selectedService is not provided
+    // by falling back to initialData or collected form values.
+    const currentFormData = formDataRef.current;
+    const formValues = {
+      ...collectAllFormData(),
+      ...currentFormData,
+    };
+
+    const quotationTypeForDraft =
+      selectedService?.category ||
+      initialData?.quotationType ||
+      formValues.quotationType;
+
+    if (!quotationTypeForDraft) {
+      console.error("No service selected or detected for draft");
+      alert(
+        "Please select a service or set a service type before saving a draft"
+      );
       setIsSubmitting(false);
       return;
     }
 
     try {
-      // Use ref to get latest formData to avoid stale closure issues
-      const currentFormData = formDataRef.current;
-
-      const formValues = {
-        ...collectAllFormData(),
-        ...currentFormData,
-      };
-
+      // booking type may come from selectedService, initialData or the form values
       const bookingData = convertToBookingData(
         formValues,
-        selectedService.category,
+        quotationTypeForDraft,
         "draft"
       );
 
@@ -378,13 +488,18 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           response.message,
           response.errors
         );
+        // show existing alert and also display error toast with API message
         alert(
           `Failed to create booking: ${response.message || "Unknown error"}`
         );
+        setApiErrorMessage(response.message || "Failed to create booking");
+        setShowApiErrorToast(true);
       }
     } catch (err: any) {
       console.error("Unexpected error creating booking:", err.message || err);
       alert(`Error creating booking: ${err.message || "Please try again"}`);
+      setApiErrorMessage(err.message || "Error creating booking");
+      setShowApiErrorToast(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -408,9 +523,23 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         ...currentFormData,
       };
 
+      const quotationTypeForSubmit =
+        selectedService?.category ||
+        initialData?.quotationType ||
+        formValues.quotationType;
+
+      if (!quotationTypeForSubmit) {
+        console.error("No service selected or detected for submit");
+        alert(
+          "Please select a service or set a service type before submitting"
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
       const bookingData = convertToBookingData(
         formValues,
-        selectedService.category,
+        quotationTypeForSubmit,
         "approved"
       );
 
@@ -442,10 +571,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         alert(
           `Failed to create booking: ${response.message || "Unknown error"}`
         );
+        setApiErrorMessage(response.message || "Failed to create booking");
+        setShowApiErrorToast(true);
       }
     } catch (err: any) {
       console.error("Unexpected error creating booking:", err.message || err);
       alert(`Error creating booking: ${err.message || "Please try again"}`);
+      setApiErrorMessage(err.message || "Error creating booking");
+      setShowApiErrorToast(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -537,11 +670,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     if (!selectedService) return <span>Booking Form</span>;
     return (
       <div className="flex items-center">
-        <span className="text-md font-semibold">{selectedService.title}</span>
+        <span className="text-[16px] font-semibold">
+          {selectedService.title}
+        </span>
         {bookingCode ? (
           <>
             <span className="mx-2 w-px h-4 bg-gray-200" aria-hidden />
-            <span className="font-mono text-[0.8rem] text-black">
+            <span className="font-mono text-[16px] text-black">
               {bookingCode}
             </span>
           </>
@@ -567,14 +702,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           <div className="flex flex-col h-full">
             {/* Tabs - Fixed at top */}
             <div
-              className="absolute top-0 left-0 right-0 z-10 -mt-2 flex w-full space-x-0 px-4 bg-white"
+              className="absolute top-0 left-0 right-0 z-10 -ml-1 -mt-1 flex w-full space-x-0 px-4 bg-white"
               role="tablist"
             >
               {tabButtons}
             </div>
 
             {/* Divider line below tabs */}
-            <div className="absolute top-5.5 left-7 right-8 z-10 border-b border-gray-200"></div>
+            <div className="absolute top-6.5 left-6 right-8 z-10 border-b border-gray-200"></div>
 
             {/* Tab Content - Scrollable with padding for fixed header */}
             <div className="flex-1 overflow-y-auto pt-7" role="tabpanel">
@@ -694,6 +829,12 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
             </div>
           </div>
         </div>
+
+        <ErrorToast
+          message={apiErrorMessage}
+          visible={showApiErrorToast}
+          onClose={() => setShowApiErrorToast(false)}
+        />
       </SideSheet>
 
       {/* Confirm Popup Modal */}
@@ -733,6 +874,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           mode="create"
           data={null}
           formRef={addCustomerFormRef}
+          customerCode={customerCode}
         />
       )}
       {isAddVendorOpen && (
@@ -742,6 +884,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           mode="create"
           data={null}
           formRef={addVendorFormRef}
+          vendorCode={vendorCode}
         />
       )}
       {isAddTravellerOpen && (
