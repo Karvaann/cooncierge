@@ -158,15 +158,17 @@ const Table: React.FC<TableProps> = ({
           }
         `}
                 >
-                  <div className="flex items-center justify-center gap-2">
+                  <div
+                    className={`flex items-center gap-2 ${
+                      index === 0 ? "justify-start" : "justify-center"
+                    }`}
+                  >
                     <span
-                      style={{
-                        textAlign: index === 0 ? "left" : "center",
-                        width: "100%",
-                      }}
+                      className={`truncate ${
+                        index === 0 ? "text-left" : "text-center"
+                      }`}
                     >
-                      {" "}
-                      {col}{" "}
+                      {col}
                     </span>
                     {columnIconMap?.[col]}
                   </div>
