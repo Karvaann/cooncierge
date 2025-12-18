@@ -12,7 +12,7 @@ import OTPInput from "react-otp-input";
 
 export default function SignIn() {
   const router = useRouter();
-  const [mode, setMode] = useState<"signin" | "otp" | "forgot">("forgot");
+  const [mode, setMode] = useState<"signin" | "otp" | "forgot">("signin");
   const [success, setSuccess] = useState(false);
   const [checked, setChecked] = useState(false);
 
