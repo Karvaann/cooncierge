@@ -447,7 +447,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 className=""
               />
             ) : (
-              <div className="w-[13rem] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 bg-gray-100 cursor-default">
+              <div className="w-[13rem] border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 bg-gray-100 cursor-default">
                 {formData.status || "Select Status"}
               </div>
             )}
@@ -455,12 +455,12 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
 
           {/* ================= BASIC DETAILS ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
-            <h2 className="text-[0.75rem] font-medium mb-2">Personal Info</h2>
+            <h2 className="text-[13px] font-medium mb-2">Personal Info</h2>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
               <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
+                <label className="block text-[13px] font-medium text-gray-700">
                   First Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -476,7 +476,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   }}
                   placeholder="Enter First Name"
                   disabled={readOnly}
-                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] hover:border-green-400 text-gray-700 disabled:bg-gray-100 disabled:text-gray-700 ${
+                  className={`w-full rounded-md px-3 py-2 text-[13px] hover:border-green-400 text-gray-700 disabled:bg-gray-100 disabled:text-gray-700 ${
                     invalidField === "firstname"
                       ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
                       : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
@@ -485,7 +485,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
+                <label className="block text-[13px] font-medium text-gray-700">
                   Last Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -501,7 +501,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                       setInvalidField(null);
                   }}
                   disabled={readOnly}
-                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] text-gray-700 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
+                  className={`w-full rounded-md px-3 py-2 text-[13px] text-gray-700 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
                     invalidField === "lastname"
                       ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
                       : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
@@ -525,7 +525,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
+                <label className="block text-[13px] font-medium text-gray-700">
                   Gender
                 </label>
                 {!readOnly ? (
@@ -542,7 +542,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     className=""
                   />
                 ) : (
-                  <div className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 bg-gray-100 cursor-default">
+                  <div className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 bg-gray-100 cursor-default">
                     {(() => {
                       const opt = [
                         { value: "male", label: "Male" },
@@ -557,7 +557,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
 
               {/* Emergency Contact */}
               <div className="flex flex-col gap-1 md:col-span-2">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
+                <label className="block text-[13px] font-medium text-gray-700">
                   Emergency Contact Number
                 </label>
                 <div className="flex items-center">
@@ -590,7 +590,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     placeholder="Enter Contact Number"
                     required
                     disabled={readOnly}
-                    className="w-[41%] border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-[41%] border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -599,12 +599,12 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
 
           {/* ================= WORK INFO ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
-            <h2 className="text-[0.75rem] font-medium mb-2">Work Info</h2>
+            <h2 className="text-[13px] font-medium mb-2">Work Info</h2>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
+                <label className="block text-[13px] font-medium text-gray-700">
                   Alias
                 </label>
                 <input
@@ -616,12 +616,12 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   }
                   placeholder="Enter Alias"
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
+                <label className="block text-[13px] font-medium text-gray-700">
                   Work Contact Number
                 </label>
                 <div className="flex items-center">
@@ -654,13 +654,13 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     placeholder="Enter Contact Number"
                     required
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
+                <label className="block text-[13px] font-medium text-gray-700">
                   Work Email ID
                 </label>
                 <input
@@ -676,7 +676,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   }}
                   placeholder="Enter Email ID"
                   disabled={readOnly}
-                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] text-gray-700 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
+                  className={`w-full rounded-md px-3 py-2 text-[13px] text-gray-700 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
                     invalidField === "workEmail"
                       ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
                       : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
@@ -685,7 +685,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
+                <label className="block text-[13px] font-medium text-gray-700">
                   Designation
                 </label>
                 <input
@@ -698,7 +698,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   placeholder="Enter Designation"
                   required
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
 
@@ -733,7 +733,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
 
           {/* ================= DOCUMENTS ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
-            <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
+            <h2 className="text-[13px] font-medium mb-2">Documents</h2>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
             <div className="flex flex-col gap-3 mt-2 items-start">
@@ -752,7 +752,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 onClick={() => fileRef.current?.click()}
                 disabled={readOnly || attachedFiles.length >= 3}
                 className={`px-3 py-1.5 mt-1 flex gap-1 bg-white text-[#126ACB] border border-[#126ACB] 
-                 rounded-md text-[0.75rem] hover:bg-gray-200 ${
+                 rounded-md text-[13px] hover:bg-gray-200 ${
                    readOnly || attachedFiles.length >= 3
                      ? "opacity-50 cursor-not-allowed hover:bg-white"
                      : ""
@@ -771,7 +771,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                                px-3 py-2 hover:bg-gray-50 transition"
                   >
                     {/* File Name */}
-                    <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[0.75rem] truncate flex items-center gap-2">
+                    <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
                       <FaRegFolder className="text-blue-500 w-3 h-3" />
                       {file.name}
                     </span>
@@ -796,7 +796,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
 
           {/* ================= REMARKS ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
-            <label className="block text-[0.75rem] font-medium text-gray-700">
+            <label className="block text-[13px] font-medium text-gray-700">
               Remarks
             </label>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -809,7 +809,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
               rows={5}
               placeholder="Enter Your Remarks Here"
               disabled={readOnly}
-              className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem] mt-2 transition-colors focus:ring hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+              className="w-full border border-gray-200 rounded-md px-3 py-2 text-[13px] mt-2 transition-colors focus:ring hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
             />
           </div>
 
