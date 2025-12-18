@@ -117,16 +117,17 @@ const Table: React.FC<TableProps> = ({
   return (
     <>
       <div className="overflow-visible rounded-xl border border-gray-100">
-        <table className="w-full text-sm rounded-xl overflow-hidden">
+        <table
+          style={{ tableLayout: "auto" }}
+          className="w-full text-sm rounded-xl overflow-hidden"
+        >
           <thead>
             <tr
               className={`rounded-t-xl text-white ${
                 headerClassName || "bg-[#0D4B37]"
               }`}
             >
-              {showCheckboxColumn && (
-                <th className="px-3 py-2 w-[3rem] text-center"></th>
-              )}
+              {showCheckboxColumn && <th className="px-3 py-2 w-[3rem]"></th>}
               {columns.map((col, index) => (
                 <th
                   key={`${col}-${index}`}
@@ -143,7 +144,7 @@ const Table: React.FC<TableProps> = ({
                       onSort(col);
                     }
                   }}
-                  className={`px-4 py-3 text-center text-gray-200 font-medium leading-4 tracking-[0.6px] text-[12px]
+                  className={`px-[18px] py-[12px] text-gray-200 font-[500] leading-4 tracking-[0.6px] text-[12px]
           ${
             col === "Rating" ||
             col === "Date Modified" ||
@@ -158,7 +159,15 @@ const Table: React.FC<TableProps> = ({
         `}
                 >
                   <div className="flex items-center justify-center gap-2">
-                    <span> {col} </span>
+                    <span
+                      style={{
+                        textAlign: index === 0 ? "left" : "center",
+                        width: "100%",
+                      }}
+                    >
+                      {" "}
+                      {col}{" "}
+                    </span>
                     {columnIconMap?.[col]}
                   </div>
                 </th>
@@ -220,16 +229,18 @@ const Table: React.FC<TableProps> = ({
           ) : (
             // Non-DnD
             <tbody>
-              {paginatedRows.map((row, idx) => (
-                <tr
-                  key={`row-${page}-${idx}`}
-                  className={`${
-                    idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                  } hover:bg-gray-100 transition-colors  text-[14px]`}
-                >
-                  {row}
-                </tr>
-              ))}
+              {paginatedRows.map((row, idx) => {
+                return (
+                  <tr
+                    key={`row-${page}-${idx}`}
+                    className={`${
+                      idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                    } hover:bg-gray-100 transition-colors  text-[14px]`}
+                  >
+                    {row}
+                  </tr>
+                );
+              })}
 
               {/* Fill empty rows to keep table height consistent */}
               {emptyRows.map((_, idx) => (

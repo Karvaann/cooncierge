@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import { FiSearch } from "react-icons/fi";
@@ -115,10 +115,16 @@ const VendorDirectory = () => {
   const [searchValue, setSearchValue] = useState("");
   const [vendors, setVendors] = useState<VendorRow[]>([]);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const tabOptions = ["Vendors", "Deleted"];
+  const tabOptions = useMemo(() => ["Vendors", "Deleted"], []);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
   const [menuMode, setMenuMode] = useState<"main" | "action">("main");
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const tabsContainerRef = useRef<HTMLDivElement | null>(null);
+  const [indicatorStyle, setIndicatorStyle] = useState({
+    width: 0,
+    left: 0,
+  });
 
   const [generatedVendorCode, setGeneratedVendorCode] = useState("");
 
@@ -296,6 +302,31 @@ const VendorDirectory = () => {
     fetchVendors();
   }, [activeTab]);
 
+  useEffect(() => {
+    const updateIndicator = () => {
+      const activeIndex = tabOptions.indexOf(activeTab);
+      const activeEl = tabRefs.current[activeIndex];
+      const container = tabsContainerRef.current;
+
+      if (activeEl && container) {
+        const { width, left } = activeEl.getBoundingClientRect();
+        const containerLeft = container.getBoundingClientRect().left;
+
+        setIndicatorStyle({
+          width,
+          left: left - containerLeft,
+        });
+      }
+    };
+
+    updateIndicator();
+    window.addEventListener("resize", updateIndicator);
+
+    return () => {
+      window.removeEventListener("resize", updateIndicator);
+    };
+  }, [activeTab, tabOptions]);
+
   const tableData = useMemo<JSX.Element[][]>(
     () =>
       filteredVendors.map((row, index) => {
@@ -354,7 +385,10 @@ const VendorDirectory = () => {
 
         // Normal Table Columns
         cells.push(
-          <td key={`vendorID-${index}`} className="px-4 py-3  text-center">
+          <td
+            key={`vendorID-${index}`}
+            className="px-4 py-3 font-[500] text-left"
+          >
             {row.vendorID}
           </td>,
           <td key={`vendorName-${index}`} className="px-4 py-3  text-center">
@@ -430,26 +464,35 @@ const VendorDirectory = () => {
     <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
       <div className="flex items-center justify-between rounded-2xl px-4 py-3">
         {/*  Tabs */}
-        <div className="flex w-[12.3rem] -ml-2 items-center bg-[#F3F3F3] rounded-2xl relative p-1">
+        <div
+          className="flex items-center bg-[#F3F3F3] gap-[36px] rounded-[10px] relative p-1"
+          ref={tabsContainerRef}
+        >
           <div
-            className="absolute h-[calc(100%-0.5rem)] bg-[#0D4B37] rounded-xl shadow-sm transition-all duration-300 ease-in-out top-1"
+            className="absolute h-[calc(100%-0.60rem)] bg-[#0D4B37] rounded-[8px]
+             shadow-sm transition-all duration-300 ease-in-out
+             top-1/2 -translate-y-1/2"
             style={{
-              width: `calc((100% - 0.5rem) / ${tabOptions.length})`,
-              left: `calc(${
-                tabOptions.indexOf(activeTab) * (100 / tabOptions.length)
-              }% + 0.25rem)`,
+              width:
+                indicatorStyle.width > 0
+                  ? `${indicatorStyle.width}px`
+                  : `calc((100% - 3.25rem) / ${tabOptions.length})`,
+              left: `${indicatorStyle.left}px`,
             }}
           />
 
-          {tabOptions.map((tab) => (
+          {tabOptions.map((tab, idx) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`relative z-10 px-3 py-1.5 rounded-xl text-[0.85rem] font-medium transition-colors duration-300 flex-1 ${
+              className={`relative z-10 px-[12px] py-[6px]  rounded-[8px] text-[14px] font-medium transition-colors duration-300 flex-1 ${
                 activeTab === tab
                   ? "text-white"
                   : "text-[#818181] hover:text-gray-900"
               }`}
+              ref={(el) => {
+                tabRefs.current[idx] = el;
+              }}
             >
               {tab}
             </button>
@@ -481,7 +524,7 @@ const VendorDirectory = () => {
                 console.error("Failed to generate vendor code", err);
               }
             }}
-            className="flex items-center text-[0.85rem] cursor-pointer gap-2 border border-green-900 text-white bg-green-900 px-3 py-1.5 rounded-md font-semibold transition-all duration-200"
+            className="flex items-center text-[14px] cursor-pointer gap-[8px] px-[16px] py-[7px] rounded-[6px] bg-[#0D4B37] text-white font-[500]"
             type="button"
           >
             + Add Vendor

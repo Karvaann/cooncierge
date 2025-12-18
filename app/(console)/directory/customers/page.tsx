@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import { FiSearch } from "react-icons/fi";
@@ -127,7 +127,7 @@ const CustomerDirectory = () => {
   const [activeTab, setActiveTab] = useState("Customers");
   const [searchValue, setSearchValue] = useState("");
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
-  const tabOptions = ["Customers", "Travellers", "Deleted"];
+  const tabOptions = useMemo(() => ["Customers", "Travellers", "Deleted"], []);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuMode, setMenuMode] = useState<"main" | "action">("main");
 
@@ -150,6 +150,12 @@ const CustomerDirectory = () => {
   const [travellerMode, setTravellerMode] = useState<
     "create" | "edit" | "view"
   >("view");
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const tabsContainerRef = useRef<HTMLDivElement | null>(null);
+  const [indicatorStyle, setIndicatorStyle] = useState({
+    width: 0,
+    left: 0,
+  });
   const [selectedTravellerRow, setSelectedTravellerRow] = useState<any | null>(
     null
   );
@@ -251,7 +257,7 @@ const CustomerDirectory = () => {
             unoptimized // Important for local PNGs served from /public
           />
         </div>
-        <span className="text-[0.75rem] font-semibold text-gray-700">
+        <span className="text-[0.75rem] font-[400] text-gray-700">
           {rating}
         </span>
       </div>
@@ -363,6 +369,31 @@ const CustomerDirectory = () => {
     fetchData();
   }, [activeTab]);
 
+  useEffect(() => {
+    const updateIndicator = () => {
+      const activeIndex = tabOptions.indexOf(activeTab);
+      const activeEl = tabRefs.current[activeIndex];
+      const container = tabsContainerRef.current;
+
+      if (activeEl && container) {
+        const { width, left } = activeEl.getBoundingClientRect();
+        const containerLeft = container.getBoundingClientRect().left;
+
+        setIndicatorStyle({
+          width,
+          left: left - containerLeft,
+        });
+      }
+    };
+
+    updateIndicator();
+    window.addEventListener("resize", updateIndicator);
+
+    return () => {
+      window.removeEventListener("resize", updateIndicator);
+    };
+  }, [activeTab, tabOptions]);
+
   const tableData = useMemo<JSX.Element[][]>(
     () =>
       filteredCustomers.map((row, index) => {
@@ -419,7 +450,10 @@ const CustomerDirectory = () => {
           );
         }
         cells.push(
-          <td key={`customerID-${index}`} className="px-4 py-3  text-center">
+          <td
+            key={`customerID-${index}`}
+            className="px-4 py-3 font-[500]  text-left"
+          >
             {row.customerID}
           </td>,
           <td key={`name-${index}`} className="px-4 py-3  text-center">
@@ -653,29 +687,38 @@ const CustomerDirectory = () => {
   }, [travellers, selectedTravellers]);
 
   return (
-    <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
-      <div className="flex items-center justify-between rounded-2xl px-4 py-3">
+    <div className="bg-white rounded-[8px] shadow px-[18px] py-[18px] mb-5 w-full">
+      <div className="flex items-center justify-between rounded-[8px]">
         {/*  Tabs */}
-        <div className="flex w-[21rem] -ml-2 items-center bg-[#F3F3F3] rounded-2xl relative p-1">
+        <div
+          className="flex items-center bg-[#F3F3F3] gap-[36px] rounded-[10px] relative p-1"
+          ref={tabsContainerRef}
+        >
           <div
-            className="absolute h-[calc(100%-0.5rem)] bg-[#0D4B37] rounded-xl shadow-sm transition-all duration-300 ease-in-out top-1"
+            className="absolute h-[calc(100%-0.60rem)] bg-[#0D4B37] rounded-[8px]
+             shadow-sm transition-all duration-300 ease-in-out
+             top-1/2 -translate-y-1/2"
             style={{
-              width: `calc((100% - 0.5rem) / ${tabOptions.length})`,
-              left: `calc(${
-                tabOptions.indexOf(activeTab) * (100 / tabOptions.length)
-              }% + 0.25rem)`,
+              width:
+                indicatorStyle.width > 0
+                  ? `${indicatorStyle.width}px`
+                  : `calc((100% - 3.25rem) / ${tabOptions.length})`,
+              left: `${indicatorStyle.left}px`,
             }}
           />
 
-          {tabOptions.map((tab) => (
+          {tabOptions.map((tab, idx) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`relative z-10 px-3 py-1.5 rounded-xl text-[0.85rem] font-medium transition-colors duration-300 flex-1 ${
+              className={`relative z-10 px-[12px] py-[6px]  rounded-[8px] text-[14px] font-medium transition-colors duration-300 flex-1 ${
                 activeTab === tab
                   ? "text-white"
                   : "text-[#818181] hover:text-gray-900"
               }`}
+              ref={(el) => {
+                tabRefs.current[idx] = el;
+              }}
             >
               {tab}
             </button>
@@ -712,7 +755,7 @@ const CustomerDirectory = () => {
                 setIsGeneratingCode(false);
               }
             }}
-            className="flex items-center text-[0.85rem] cursor-pointer gap-2 border border-green-900 text-white bg-green-900 px-3 py-1.5 rounded-md font-semibold transition-all duration-200"
+            className="flex items-center text-[14px] cursor-pointer gap-[8px] px-[16px] py-[7px] rounded-[6px] bg-[#0D4B37] text-white font-[500]"
             type="button"
           >
             + Add Customer
@@ -720,7 +763,7 @@ const CustomerDirectory = () => {
         </div>
       </div>
 
-      <div className="border-t border-gray-200 mb-4 mt-2"></div>
+      <div className="border-t border-gray-200 mb-4 mt-4"></div>
 
       {/* SEARCH & SORT */}
       <div className="flex items-center justify-between mb-4 px-2">
