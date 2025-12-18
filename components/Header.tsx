@@ -138,8 +138,8 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
     const urlPieces = pathname.split("/").slice(1);
     return urlPieces.map((piece, index) => (
       <span key={`${piece}-${index}`} className="flex items-center">
-        <span className="text-gray-400 text-[0.75rem] mx-1">/</span>
-        <span className="text-[#114958] text-[0.55rem] mr-1">
+        <span className="text-gray-400 text-[11px] mx-1">/</span>
+        <span className="text-[#114958] text-[11px] mr-1">
           {PIECE_MAP[piece as PieceMapKey] || piece}
         </span>
       </span>
@@ -188,7 +188,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
         <div className="flex justify-between items-center px-5 py-1 border-b border-gray-200 bg-white">
           {/* Left: Page Title */}
           <div>
-            <h1 className="font-[Poppins] font-semibold text-[0.95rem] leading-[1.75rem] tracking-normal align-middle">
+            <h1 className="font-[Poppins] font-semibold text-[18px] leading-[1.75rem] tracking-normal align-middle">
               {headerTitle}
             </h1>
           </div>

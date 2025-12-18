@@ -354,7 +354,7 @@ export default function SingleCalendar({
                     }
                   }}
                   disabled={isDisabled}
-                  className={`relative w-full h-full flex items-center justify-center text-[0.75rem] font-medium transition-colors select-none
+                  className={`relative w-full h-full flex items-center justify-center text-[13px] font-medium transition-colors select-none
                     ${!isCurrentMonth ? "text-gray-300 cursor-default" : ""}
                     ${
                       (isPastDate || isBeforeMinDate) && isCurrentMonth
@@ -413,7 +413,7 @@ export default function SingleCalendar({
             e.stopPropagation();
             handleMonthSelect(index);
           }}
-          className={`px-2 py-2 text-[0.75rem] rounded-md transition-colors
+          className={`px-2 py-2 text-[13px] rounded-md transition-colors
             ${
               currentMonth.getMonth() === index
                 ? "bg-gray-700 text-white"
@@ -438,7 +438,7 @@ export default function SingleCalendar({
             e.stopPropagation();
             handleYearSelect(year);
           }}
-          className={`px-2 py-1.5 text-[0.75rem] rounded-md transition-colors
+          className={`px-2 py-1.5 text-[13px] rounded-md transition-colors
             ${
               currentMonth.getFullYear() === year
                 ? "bg-gray-700 text-white"
@@ -491,8 +491,8 @@ export default function SingleCalendar({
           className={
             inputClassName ||
             (readOnly
-              ? "flex-1 text-[0.75rem] text-gray-700 bg-gray-100 cursor-default"
-              : "flex-1 text-[0.75rem] text-gray-700 outline-none bg-transparent")
+              ? "flex-1 text-[13px] text-gray-700 bg-gray-100 cursor-default"
+              : "flex-1 text-[13px] text-gray-700 outline-none bg-transparent")
           }
         />
 
@@ -542,7 +542,7 @@ export default function SingleCalendar({
                   setShowMonthPicker(!showMonthPicker);
                   setShowYearPicker(false);
                 }}
-                className="text-[0.75rem] font-medium text-gray-700 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                className="text-[13px] font-medium text-gray-700 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
               >
                 {months[currentMonth.getMonth()]}
               </button>
@@ -554,7 +554,7 @@ export default function SingleCalendar({
                   setShowYearPicker(!showYearPicker);
                   setShowMonthPicker(false);
                 }}
-                className="text-[0.75rem] font-medium text-gray-700 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                className="text-[13px] font-medium text-gray-700 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
               >
                 {currentMonth.getFullYear()}
               </button>

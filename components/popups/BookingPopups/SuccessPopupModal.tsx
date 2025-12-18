@@ -41,7 +41,7 @@ const SuccessPopupModal: React.FC<SuccessPopupModalProps> = ({
           className="w-[3.5rem] h-[3.5rem]"
         />
 
-        <div className="text-center mt-2 text-[#1A7F64] text-[0.75rem] font-semibold">
+        <div className="text-center mt-2 text-[#1A7F64] text-[13px] font-semibold">
           {title}
         </div>
       </div>

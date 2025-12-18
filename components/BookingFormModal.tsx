@@ -71,7 +71,7 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(
     return (
       <div
         className={`
-    cursor-pointer rounded-[24px] w-full relative overflow-hidden
+    cursor-pointer rounded-t-[16px] w-full relative overflow-hidden
     transition-all duration-300 hover:shadow-lg group
     ${isLoading ? "opacity-50 cursor-not-allowed" : ""}
   `}
@@ -86,18 +86,18 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(
         }}
         aria-label={`Select ${service.title} service`}
       >
-        <div className="relative w-full aspect-[3/2.5]">
+        <div className="relative w-full aspect-[6/5] overflow-hidden isolate">
           <Image
             src={service.image}
             alt={`${service.title} service`}
             fill
-            className="object-cover rounded-[24px] w-full h-full transition-all duration-300 group-hover:brightness-115 group-hover:opacity-100"
+            className="object-cover w-full h-full scale-[1.01] transform-gpu transition-all duration-300 group-hover:brightness-115 group-hover:opacity-100"
             sizes="(max-width: 768px) 50vw, (max-width: 1200px) 25vw, 20vw"
           />
 
           {/* Loading overlay */}
           {isLoading && (
-            <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-[24px]">
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center rounded-[16px]">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#114958]" />
             </div>
           )}
@@ -123,56 +123,56 @@ const BookingFormModal: React.FC<BookingFormModalProps> = ({
       {
         id: "flights",
         title: "Flights",
-        image: "/images/flight.png",
+        image: "/images/flight-icon.png",
         category: "travel",
         description: "Book domestic and international flights",
       },
       {
         id: "accommodation",
         title: "Accommodation",
-        image: "/images/accomodation.png",
+        image: "/images/accommodation-icon.png",
         category: "accommodation",
         description: "Hotels, resorts, and vacation rentals",
       },
       {
         id: "transportation-land",
         title: "Transportation (Land)",
-        image: "/images/transportation(land).png",
+        image: "/images/transportation(land)-icon.png",
         category: "transport-land",
         description: "Car rentals, buses, and ground transport",
       },
       {
         id: "transportation-maritime",
         title: "Transportation (Maritime)",
-        image: "/images/transportation(maritime).png",
+        image: "/images/transportation(maritime)-icon.png",
         category: "transport-maritime",
         description: "Ferry, cruise, and water transport",
       },
       {
         id: "tickets-attraction",
         title: "Tickets (Attraction)",
-        image: "/images/ticket.png",
+        image: "/images/ticket-icon.png",
         category: "tickets",
         description: "Theme parks, museums, and attractions",
       },
       {
         id: "activity",
         title: "Activity",
-        image: "/images/activity.png",
+        image: "/images/activity-icon.png",
         category: "activity",
         description: "Tours, experiences, and activities",
       },
       {
         id: "travel-insurance",
         title: "Travel Insurance",
-        image: "/images/insurance.png",
+        image: "/images/insurance-icon.png",
         category: "travel insurance",
         description: "Comprehensive travel protection",
       },
       {
         id: "visas",
         title: "Visas",
-        image: "/images/visas.png",
+        image: "/images/visa-icon.png",
         category: "visas",
         description: "Visa processing and documentation",
       },
@@ -188,7 +188,7 @@ const BookingFormModal: React.FC<BookingFormModalProps> = ({
     {
       id: "others",
       title: "Others",
-      image: "/images/others-service-image1.png",
+      image: "/images/others-icon.png",
       category: "others",
       description: "Other services",
     },
@@ -219,19 +219,29 @@ const BookingFormModal: React.FC<BookingFormModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Select Service"
+      title={
+        <div
+          style={{
+            fontFamily: "Roboto, sans-serif",
+            display: "block",
+            padding: "8px 0",
+          }}
+        >
+          <div style={{ fontSize: "28px", lineHeight: 1.4, fontWeight: 700 }}>
+            Select Service
+          </div>
+          <p className="text-gray-500 text-sm mt-[6px]">
+            Choose from the range of services provided by{" "}
+            <span className="text-[#020202] font-bold">Company ABC</span>
+          </p>
+        </div>
+      }
       size="xl"
-      customWidth="w-[900px]"
-      customeHeight="h-fit"
+      customWidth="w-[1000px]"
+      customeHeight="min-h-[620px]"
       // className="w-[90vw]"
     >
-      <div className="h-full justify between flex flex-col -mt-5">
-        {/* HEADER TEXT */}
-        <div className="text-gray-500 text-sm text-center w-full mb-8">
-          Choose from the range of services provided by{" "}
-          <span className="text-[#114958] font-bold">Company ABC</span>
-        </div>
-
+      <div className="h-full flex flex-col -mt-2">
         {/* TOP CONTENT AREA — TAKES SPACE */}
         <div className="flex-grow flex flex-col items-center justify-start">
           {/* LOADING */}
@@ -257,7 +267,7 @@ const BookingFormModal: React.FC<BookingFormModalProps> = ({
 
           {/* SERVICE CARDS */}
           {!isLoading && services.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-[95%]">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-3 gap-y-4 w-full px-1 md:px-2 py-1">
               {cardsToShow.map((service) => (
                 <ServiceCard
                   key={service.id}
@@ -272,11 +282,11 @@ const BookingFormModal: React.FC<BookingFormModalProps> = ({
 
         {/* BOTTOM ARROWS FIXED */}
         {!isLoading && services.length > 0 && (
-          <div className="h-[60px] flex items-center justify-center gap-2 pb-2 mt-4">
+          <div className="h-[60px] flex items-center justify-center -gap-3 pb-1 mt-4">
             <button
               onClick={() => setPage(1)}
               disabled={page === 1}
-              className={`text-gray-400 transition ${
+              className={`text-gray-400 transition -mr-2 ${
                 page === 1
                   ? "opacity-40 cursor-not-allowed"
                   : "hover:text-[#114958]"

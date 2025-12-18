@@ -16,6 +16,7 @@ import { LuSave } from "react-icons/lu";
 import Button from "../Button";
 import DropDown from "../DropDown";
 import generateCustomId from "@/utils/helper";
+import ErrorToast from "../ErrorToast";
 
 type CustomerData = {
   _id?: string;
@@ -42,6 +43,7 @@ type AddCustomerSideSheetProps = {
   mode?: "create" | "edit" | "view";
   formRef?: React.RefObject<HTMLFormElement | null>;
   onSuccess?: () => void;
+  customerCode?: string;
 };
 
 const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
@@ -51,6 +53,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   mode,
   formRef,
   onSuccess,
+  customerCode: customerCodeProp,
 }) => {
   const { updateGeneralInfo, setLastAddedCustomer } = useBooking();
   const readOnly = mode === "view";
@@ -80,8 +83,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   // Validation helpers / UI state for required fields
   const firstNameRef = useRef<HTMLInputElement | null>(null);
   const lastNameRef = useRef<HTMLInputElement | null>(null);
-  const [showError, setShowError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [invalidField, setInvalidField] = useState<
     "firstname" | "lastname" | null
   >(null);
@@ -91,11 +93,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
   useEffect(() => {
     if (mode === "create") {
-      setCustomerCode(generateCustomId("customer"));
+      if (customerCodeProp) setCustomerCode(customerCodeProp);
+      // else setCustomerCode(generateCustomId("customer"));
     } else {
       setCustomerCode(data?._id || "");
     }
-  }, [mode, data]);
+    console.log("customerCodeProp received:", customerCodeProp);
+  }, [mode, data, customerCodeProp]);
 
   // Mounted flag to ensure portal renders client-side only
   const [mounted, setMounted] = useState(false);
@@ -103,6 +107,10 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     setMounted(true);
     return () => setMounted(false);
   }, []);
+
+  const showErrorToast = (message: string) => {
+    setError(message);
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -128,7 +136,18 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
     const selected = Array.from(files);
 
-    setAttachedFiles((prev) => [...prev, ...selected]);
+    // Respect max 3 files total
+    const remaining = 3 - attachedFiles.length;
+    if (remaining <= 0) {
+      // No more files allowed
+      return;
+    }
+
+    const toAdd = selected.slice(0, remaining);
+
+    setAttachedFiles((prev) => [...prev, ...toAdd]);
+
+    // simple: just append the allowed files to local state
 
     // Reset so selecting the same file again is possible
     if (fileRef.current) fileRef.current.value = "";
@@ -184,11 +203,10 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     e.preventDefault();
     // Validate required fields: if missing, show toast and focus the field
     if (!formData.firstname || String(formData.firstname).trim() === "") {
-      setErrorMessage("Please enter first name to proceed");
+      showErrorToast("Please enter first name to proceed");
+
       setInvalidField("firstname");
-      setShowError(true);
-      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
-      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+
       setTimeout(() => {
         firstNameRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -199,11 +217,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       return;
     }
     if (!formData.lastname || String(formData.lastname).trim() === "") {
-      setErrorMessage("Please enter last name to proceed");
+      showErrorToast("Please enter last name to proceed");
       setInvalidField("lastname");
-      setShowError(true);
-      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
-      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+
       setTimeout(() => {
         lastNameRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -270,11 +286,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   const handleUpdateCustomer = async () => {
     // Validate required fields before update
     if (!formData.firstname || String(formData.firstname).trim() === "") {
-      setErrorMessage("Please enter first name to proceed");
+      showErrorToast("Please enter first name to proceed");
       setInvalidField("firstname");
-      setShowError(true);
-      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
-      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
       setTimeout(() => {
         firstNameRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -285,11 +298,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       return;
     }
     if (!formData.lastname || String(formData.lastname).trim() === "") {
-      setErrorMessage("Please enter last name to proceed");
+      showErrorToast("Please enter last name to proceed");
       setInvalidField("lastname");
-      setShowError(true);
-      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
-      errorTimerRef.current = setTimeout(() => setShowError(false), 4000);
+
       setTimeout(() => {
         lastNameRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -357,7 +368,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
           noValidate
         >
           {/* Error Alert Popup (reuse login style) */}
-          {mounted &&
+          {/* {mounted &&
             showError &&
             createPortal(
               <div className="fixed top-8 left-1/2 transform -translate-x-1/2 z-[1100] flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 px-2 py-1 rounded-full shadow-md max-w-[90vw] text-[0.65rem]">
@@ -394,16 +405,16 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 </button>
               </div>,
               document.body
-            )}
+            )} */}
           {/* ================= BASIC DETAILS ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3 -mt-2">
-            <h2 className="text-[0.75rem] font-medium mb-2">Basic Details</h2>
+            <h2 className="text-[13px] font-medium mb-2">Basic Details</h2>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
             {/* Row 1: First + Last */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
               <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
+                <label className="block text-[13px] font-medium text-gray-700">
                   First Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -414,7 +425,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   onChange={handleChange}
                   placeholder="Enter First Name"
                   disabled={readOnly}
-                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] focus:outline-none hover:border-green-400 focus:ring-green-400 focus:ring-1 disabled:bg-gray-100 disabled:text-gray-700 ${
+                  className={`w-full rounded-md px-3 py-2 text-[13px] focus:outline-none hover:border-green-400 focus:ring-green-400 focus:ring-1 disabled:bg-gray-100 disabled:text-gray-700 ${
                     invalidField === "firstname"
                       ? "border border-red-300 focus:ring-red-200"
                       : "border border-gray-300 "
@@ -422,7 +433,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
+                <label className="block text-[13px] font-medium text-gray-700">
                   Last Name <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -433,7 +444,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   onChange={handleChange}
                   placeholder="Enter Last Name"
                   disabled={readOnly}
-                  className={`w-full rounded-md px-3 py-2 text-[0.75rem] focus:outline-none hover:border-green-400 focus:ring-green-400 focus:ring-1 disabled:bg-gray-100 disabled:text-gray-700 ${
+                  className={`w-full rounded-md px-3 py-2 text-[13px] focus:outline-none hover:border-green-400 focus:ring-green-400 focus:ring-1 disabled:bg-gray-100 disabled:text-gray-700 ${
                     invalidField === "lastname"
                       ? "border border-red-300 focus:ring-red-200"
                       : "border border-gray-300 focus:ring-green-400"
@@ -445,7 +456,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             {/* Row 2: Alias + Phone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
               <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
+                <label className="block text-[13px] font-medium text-gray-700">
                   Nickname/Alias
                 </label>
                 <input
@@ -455,11 +466,11 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   onChange={handleChange}
                   placeholder="Enter Nickname/Alias"
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
+                <label className="block text-[13px] font-medium text-gray-700">
                   Contact Number
                 </label>
                 <div className="flex items-center">
@@ -484,7 +495,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={handleChange}
                     placeholder="Enter Contact Number"
                     disabled={readOnly}
-                    className="flex-1  border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="flex-1  border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -493,7 +504,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             {/* Row 3: Email + DOB */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="flex flex-col gap-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700">
+                <label className="block text-[13px] font-medium text-gray-700">
                   Email ID
                 </label>
                 <input
@@ -503,7 +514,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   onChange={handleChange}
                   placeholder="Enter Email ID"
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
               <div className="flex flex-col gap-1 w-full">
@@ -524,7 +535,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
           {/* ================= COMPANY DETAILS ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
-            <h2 className="text-[0.75rem] font-medium mb-2">
+            <h2 className="text-[13px] font-medium mb-2">
               Company Details (Optional)
             </h2>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -532,7 +543,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             <div className="flex gap-6">
               {/* GSTIN */}
               <div className="flex flex-col w-[18rem] relative">
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                <label className="block text-[13px] font-medium text-gray-700 mb-1">
                   GSTIN
                 </label>
                 <input
@@ -542,13 +553,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   onChange={handleChange}
                   placeholder="Please Provide Your GST No."
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] pr-16 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] pr-16 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
 
               {/* Company Name */}
               <div className="flex flex-col w-[20rem]">
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                <label className="block text-[13px] font-medium text-gray-700 mb-1">
                   Company Name
                 </label>
                 <input
@@ -558,7 +569,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   onChange={handleChange}
                   placeholder="Enter Company Name"
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[0.75rem] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
             </div>
@@ -566,7 +577,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
           {/* ================= DOCUMENTS ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
-            <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
+            <h2 className="text-[13px] font-medium mb-2">Documents</h2>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
             <input
@@ -576,13 +587,19 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               onChange={handleFileChange}
               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt"
               multiple
+              disabled={readOnly || attachedFiles.length >= 3}
             />
 
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
-               border-[#126ACB] rounded-md text-[0.75rem] hover:bg-gray-200"
+              disabled={readOnly || attachedFiles.length >= 3}
+              className={`px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
+               border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200 ${
+                 readOnly || attachedFiles.length >= 3
+                   ? "opacity-50 cursor-not-allowed hover:bg-white"
+                   : ""
+               }`}
             >
               <MdOutlineFileUpload size={16} /> Attach Files
             </button>
@@ -597,7 +614,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                  px-3 py-2 hover:bg-gray-50 transition"
                 >
                   {/* File Name */}
-                  <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[0.75rem] truncate flex items-center gap-2">
+                  <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
                     <FaRegFolder className="text-blue-500 w-3 h-3" />
                     {file.name}
                   </span>
@@ -621,7 +638,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
           {/* ================= BILLING ADDRESS ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
-            <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+            <label className="block text-[13px] font-medium text-gray-700 mb-1">
               Billing Address
             </label>
             <hr className="mt-1 mb-3 border-t border-gray-200" />
@@ -633,16 +650,16 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               }
               placeholder="Enter Billing Address"
               disabled={readOnly}
-              className="w-full border border-gray-300 hover:border-green-400 focus:ring-green-400 rounded-md px-3 py-2 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
+              className="w-full border border-gray-300 hover:border-green-400 focus:ring-green-400 rounded-md px-3 py-2 text-[13px] disabled:bg-gray-100 disabled:text-gray-700"
             />
           </div>
           {/* ================= OPENING BALANCE ================ */}
           <div className="border border-gray-200 rounded-[12px] p-3">
-            <h2 className="text-[0.75rem] font-medium mb-2">Opening Balance</h2>
+            <h2 className="text-[13px] font-medium mb-2">Opening Balance</h2>
             <hr className="mt-1 mb-3 border-t border-gray-200" />
 
             <div className="flex items-center gap-6 mb-3">
-              <label className="flex items-center gap-2 cursor-pointer text-[0.75rem]">
+              <label className="flex items-center gap-2 cursor-pointer text-[13px]">
                 <input
                   type="radio"
                   name="balanceType"
@@ -655,7 +672,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 <span className="text-gray-700">Debit</span>
               </label>
 
-              <label className="flex items-center gap-2 cursor-pointer text-[0.75rem]">
+              <label className="flex items-center gap-2 cursor-pointer text-[13px]">
                 <input
                   type="radio"
                   name="balanceType"
@@ -671,7 +688,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
             <div className="relative">
               <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-green-400">
-                <span className="text-gray-500 mr-2 text-[0.75rem]">₹</span>
+                <span className="text-gray-500 mr-2 text-[13px]">₹</span>
                 <input
                   type="text"
                   value={balanceAmount}
@@ -692,16 +709,16 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       : "Enter Credit Amount"
                   }
                   disabled={readOnly}
-                  className="flex-1 outline-none text-gray-700 text-[0.75rem] disabled:bg-gray-100 disabled:text-gray-700"
+                  className="flex-1 outline-none text-gray-700 text-[13px] disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
               <div className="absolute right-3 top-2 text-sm font-medium">
                 {balanceType === "debit" ? (
-                  <span className="text-red-500 text-[0.75rem]">
+                  <span className="text-red-500 text-[13px]">
                     Customer pays you ₹{balanceAmount || ""}
                   </span>
                 ) : (
-                  <span className="text-green-500 text-[0.75rem]">
+                  <span className="text-green-500 text-[13px]">
                     You pay the customer ₹{balanceAmount || ""}
                   </span>
                 )}
@@ -711,7 +728,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
           {/* ================= TIER ================ */}
           <div className=" p-1 -mt-4">
-            <h2 className="text-[0.75rem] font-medium mb-2">Rating</h2>
+            <h2 className="text-[13px] font-medium mb-2">Rating</h2>
 
             <div className="flex flex-col">
               <DropDown
@@ -735,7 +752,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
           {/* Remarks */}
           <div className="border border-gray-200 rounded-xl p-3 -mt-2">
-            <label className="block text-[0.75rem]  font-medium text-gray-700">
+            <label className="block text-[13px]  font-medium text-gray-700">
               Remarks
             </label>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -747,7 +764,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               placeholder="Enter Your Remarks Here"
               disabled={readOnly}
               className={`
-            w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem]  mt-2 transition-colors
+            w-full border border-gray-200 rounded-md px-3 py-2 text-[13px]  mt-2 transition-colors
             focus:ring hover:border-green-400 focus:ring-green-400
             disabled:bg-gray-100 disabled:text-gray-700
           `}
@@ -796,6 +813,11 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             )}
           </div>
         </form>
+        <ErrorToast
+          message={error || ""}
+          visible={!!error}
+          onClose={() => setError(null)}
+        />
       </SideSheet>
     </>
   );

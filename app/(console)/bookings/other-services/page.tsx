@@ -1,8 +1,16 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState, useEffect, useCallback } from "react";
+import {
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useLayoutEffect,
+} from "react";
 import { BookingApiService, DraftManager } from "@/services/bookingApi";
+import { CustomIdApi } from "@/services/customIdApi";
 import type { DraftBooking } from "@/services/bookingApi";
 import apiClient from "@/services/apiClient";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
@@ -19,12 +27,11 @@ import { MdOutlineEdit } from "react-icons/md";
 import { TbArrowAutofitRight } from "react-icons/tb";
 import { FiCopy } from "react-icons/fi";
 import { CiFilter } from "react-icons/ci";
-import { HiArrowsUpDown } from "react-icons/hi2";
+import { TbArrowsUpDown } from "react-icons/tb";
 import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
 import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 import TaskButton from "@/components/TaskButton";
-import { format } from "path";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -152,7 +159,7 @@ interface Owner {
 
 const columnIconMap: Record<string, JSX.Element> = {
   "Travel Date": (
-    <HiArrowsUpDown className="inline w-3 h-3 text-white stroke-[1.5]" />
+    <TbArrowsUpDown className="inline w-3 h-3 text-white stroke-[1.5]" />
   ),
   Service: <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />,
   "Booking Status": (
@@ -163,25 +170,57 @@ const columnIconMap: Record<string, JSX.Element> = {
 const getStatusBadgeClass = (status: string): string => {
   switch (status) {
     case "Confirmed":
-      return "px-2 py-1 text-[0.70rem] border border-green-200 font-semibold rounded-full bg-green-100 text-green-700";
+      return "px-2 py-1 text-[0.70rem] border border-green-100 font-semibold rounded-full bg-[#F0FDF4] text-[#15803D]";
     case "Draft":
       return "px-2 py-1 text-[0.70rem] border border-yellow-200 font-semibold rounded-full bg-yellow-100 text-yellow-700";
     case "Deleted":
     default:
-      return "px-2 py-1 text-[0.75rem] border border-red-200 font-semibold rounded-full bg-red-100 text-red-700";
+      return "px-2 py-1 text-[0.75rem] border border-red-100 font-semibold rounded-full bg-[#FEE2E2] text-[#991B1B]";
   }
 };
 
 const OSBookingsPage = () => {
   // UI State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [generatedBookingCode, setGeneratedBookingCode] = useState<
+    string | null
+  >(null);
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [selectedService, setSelectedService] = useState<BookingService | null>(
     null
   );
+  const [generatedCustomerCode, setGeneratedCustomerCode] = useState<
+    string | null
+  >(null);
+  const [generatedVendorCode, setGeneratedVendorCode] = useState<string | null>(
+    null
+  );
   const tabOptions = ["Bookings", "Drafts", "Deleted"];
   const [activeTab, setActiveTab] = useState("Bookings");
+
+  const tabContainerRef = useRef<HTMLDivElement | null>(null);
+  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
+
+  useLayoutEffect(() => {
+    const update = () => {
+      const container = tabContainerRef.current;
+      if (!container) return;
+      const activeBtn = container.querySelector(
+        `[data-tab="${activeTab}"]`
+      ) as HTMLElement | null;
+      if (!activeBtn) return;
+      // Use offsetLeft/offsetWidth so measurement is relative to container and ignores container padding
+      const shrinkPx = 5;
+      const left = activeBtn.offsetLeft + Math.round(shrinkPx / 2);
+      const width = Math.max(0, activeBtn.offsetWidth - shrinkPx);
+      setIndicator({ left, width });
+    };
+
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [activeTab]);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
@@ -414,6 +453,41 @@ const OSBookingsPage = () => {
     setIsSideSheetOpen(true);
   };
 
+  // When user requests create from Filter, generate custom id first then open create modal
+  const handleCreateRequested = async () => {
+    try {
+      // simple guard against rapid duplicate calls
+      const now = Date.now();
+      const last = (window as any).__lastBookingCodeRequestAt || 0;
+      const IGNORE_MS = 1200;
+      if (now - last < IGNORE_MS) {
+        setIsCreateOpen(true);
+        return;
+      }
+      (window as any).__lastBookingCodeRequestAt = now;
+
+      // generate booking and customer ids in parallel
+      const [bookingResp, customerResp, vendorResp] = await Promise.all([
+        CustomIdApi.generate("booking"),
+        CustomIdApi.generate("customer"),
+        CustomIdApi.generate("vendor"),
+      ]);
+      const bookingId = bookingResp?.customId || null;
+      const customerId = customerResp?.customId || null;
+      const vendorId = vendorResp?.customId || null;
+      setGeneratedBookingCode(bookingId);
+      setGeneratedCustomerCode(customerId);
+      setGeneratedVendorCode(vendorId);
+    } catch (err) {
+      console.error("Failed to generate custom id:", err);
+      setGeneratedBookingCode(null);
+      setGeneratedCustomerCode(null);
+      setGeneratedVendorCode(null);
+    } finally {
+      setIsCreateOpen(true);
+    }
+  };
+
   // Handle booking completion (refresh data)
   const handleBookingComplete = useCallback(async () => {
     await loadQuotations();
@@ -460,6 +534,7 @@ const OSBookingsPage = () => {
       insurance: "insurance",
 
       visa: "visa",
+      visas: "visa",
 
       ticket: "ticket",
       tickets: "ticket",
@@ -481,8 +556,8 @@ const OSBookingsPage = () => {
         <Image
           src="/icons/service-icons/accommodation.svg"
           alt="Accommodation"
-          width={16}
-          height={16}
+          width={14}
+          height={14}
           className="object-contain"
         />
       ),
@@ -490,8 +565,8 @@ const OSBookingsPage = () => {
         <Image
           src="/icons/service-icons/activity.svg"
           alt="Activity"
-          width={16}
-          height={16}
+          width={9}
+          height={9}
           className="object-contain"
         />
       ),
@@ -499,8 +574,8 @@ const OSBookingsPage = () => {
         <Image
           src="/icons/service-icons/insurance.svg"
           alt="Insurance"
-          width={16}
-          height={16}
+          width={14}
+          height={14}
           className="object-contain"
         />
       ),
@@ -508,8 +583,8 @@ const OSBookingsPage = () => {
         <Image
           src="/icons/service-icons/ticket.svg"
           alt="Tickets"
-          width={16}
-          height={16}
+          width={14}
+          height={14}
           className="object-contain"
         />
       ),
@@ -517,8 +592,8 @@ const OSBookingsPage = () => {
         <Image
           src="/icons/service-icons/ticket.svg"
           alt="Tickets"
-          width={16}
-          height={16}
+          width={14}
+          height={14}
           className="object-contain"
         />
       ),
@@ -526,12 +601,20 @@ const OSBookingsPage = () => {
         <Image
           src="/icons/service-icons/land-icon.svg"
           alt="Land Transport"
-          width={16}
-          height={16}
+          width={11}
+          height={11}
           className="object-contain"
         />
       ),
-      visa: "Visa",
+      visa: (
+        <Image
+          src="/icons/service-icons/visa-icon-final.svg"
+          alt="visa"
+          width={12}
+          height={12}
+          className="object-contain"
+        />
+      ),
       package: "Package", // optional: add a package icon later
     };
 
@@ -571,10 +654,85 @@ const OSBookingsPage = () => {
     setSelectedDeleteId(null);
   };
 
+  // Map various quotationType values to the service category used by sidesheet
+  const mapQuotationTypeToCategory = (qt?: string) => {
+    const v = (qt || "").toLowerCase().trim();
+    const map: Record<string, string> = {
+      flight: "travel",
+      flights: "travel",
+      travel: "travel",
+      hotel: "accommodation",
+      accommodation: "accommodation",
+      car: "transport-land",
+      "transport-land": "transport-land",
+      "land-transport": "transport-land",
+      land: "transport-land",
+      transportation: "transport-land",
+      maritime: "transport-maritime",
+      "transport-maritime": "transport-maritime",
+      ticket: "tickets",
+      tickets: "tickets",
+      activity: "activity",
+      activities: "activity",
+      insurance: "travel insurance",
+      "travel insurance": "travel insurance",
+      visa: "visas",
+      visas: "visas",
+      others: "others",
+      package: "others",
+    };
+
+    return (map[v] as any) || "others";
+  };
+
+  // fetch new booking custom id, clone quotation and open sidesheet
+  const handleDuplicate = async (item: any) => {
+    try {
+      // fetch custom id for booking
+      const resp = await CustomIdApi.generate("booking");
+      const newId = resp?.customId || resp?.customid || null;
+      if (!newId) {
+        console.error("Failed to generate booking custom id", resp);
+        return;
+      }
+
+      // prepare cloned data for editing as a new quotation
+      const clone = JSON.parse(JSON.stringify(item || {}));
+      // remove database id
+      delete clone._id;
+      // ensure customId is blank
+      clone.customId = null;
+
+      // determine and set service object expected by sidesheet
+      const quotationType = clone.quotationType || clone.serviceType || "";
+      const category = mapQuotationTypeToCategory(quotationType);
+      const title = formatServiceType(quotationType || "others");
+
+      setGeneratedBookingCode(newId);
+      setSelectedQuotation(clone);
+      setSelectedService({
+        id: newId,
+        title,
+        image: "",
+        category,
+        description: "",
+      });
+
+      // open sidesheet only after id was fetched and state set
+      setIsSideSheetOpen(true);
+    } catch (err) {
+      console.error("Error duplicating quotation:", err);
+    }
+  };
+
   const getActionsForTab = (tab: string, row: any) => {
-    const id = row.isReal
-      ? quotations?.[row.originalIndex]?._id
-      : finalQuotations[row.originalIndex]?.id;
+    // Accept both, the table "row metadata" shape
+    const id =
+      row?._id ||
+      row?.id ||
+      (row.isReal
+        ? quotations?.[row.originalIndex]?._id
+        : finalQuotations?.[row.originalIndex]?.id);
 
     const baseActions = [
       {
@@ -608,7 +766,7 @@ const OSBookingsPage = () => {
         label: "Duplicate",
         icon: <FiCopy />,
         color: "text-gray-400",
-        onClick: () => console.log("Duplicate", row.id),
+        onClick: () => handleDuplicate(row),
       });
       return baseActions;
     }
@@ -649,7 +807,7 @@ const OSBookingsPage = () => {
       label: "Duplicate",
       icon: <FiCopy />,
       color: "text-gray-400",
-      onClick: () => console.log("Duplicate", row.id),
+      onClick: () => handleDuplicate(row),
     });
 
     return baseActions;
@@ -740,67 +898,22 @@ const OSBookingsPage = () => {
 
   // Convert quotations to table data
   const tableData = useMemo<JSX.Element[][]>(() => {
-    // const combinedData = [
-    //   // Real quotations from API
-    //   ...quotations.map((item, index) => ({
-    //     id: item.customId ? `${item.customId}` : `Draft-${index + 1}`,
-    //     leadPax: item.customerId?.name || item.formFields?.customer || "--",
-    //     travelDate: item.travelDate
-    //       ? formatDMY(item.travelDate)
-    //       : item.formFields?.departureDate
-    //       ? formatDMY(item.formFields.departureDate)
-    //       : item.createdAt
-    //       ? formatDMY(item.createdAt)
-    //       : "--",
-    //     service: (
-    //       <div className="flex items-center justify-center gap-2">
-    //         <div className="w-5 h-5 flex items-center justify-center">
-    //           {getServiceIcon(
-    //             item.quotationType || item.serviceType || "draft"
-    //           )}
-    //         </div>
-    //         <span className="text-center leading-tight">
-    //           {formatServiceType(
-    //             item.quotationType || item.serviceType || "draft"
-    //           )}
-    //         </span>
-    //       </div>
-    //     ),
-
-    //     bookingStatus: mapStatus(item.serviceStatus, item.isDeleted),
-
-    //     amount: item.totalAmount
-    //       ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
-    //       : item.formFields?.budget
-    //       ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
-    //       : "--",
-
-    //     ownerNames: Array.isArray((item as any).owner)
-    //       ? (item as any).owner.map((o: any) => o?.name || "--")
-    //       : [],
-
-    //     tasks: Math.floor(Math.random() * 5) + 1, // Random tasks for demo
-    //     isReal: Boolean(item._id),
-    //     originalIndex: index,
-    //   })),
-    // ];
-
     const rows = filteredQuotations.map((item, index) => [
       <td
         key={`id-${index}`}
-        className="px-4 py-2 text-center font-semibold align-middle h-[4rem]"
+        className="px-4 py-3 text-center text-[#020202]  font-medium align-middle h-[3rem]"
       >
         {item.customId ? `${item.customId}` : `${item._id}`}
       </td>,
       <td
         key={`lead-${index}`}
-        className="px-4 py-2 text-center align-middle h-[4rem]"
+        className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem]"
       >
         {item.customerId?.name || item.formFields?.customer || "--"}
       </td>,
       <td
         key={`date-${index}`}
-        className="px-4 py-2 text-center align-middle h-[4rem]"
+        className="px-4 py-3 text-center align-middle h-[3rem]"
       >
         {item.travelDate
           ? formatDMY(item.travelDate)
@@ -812,10 +925,10 @@ const OSBookingsPage = () => {
       </td>,
       <td
         key={`service-${index}`}
-        className="px-4 py-2 text-center align-middle h-[4rem]"
+        className="px-4 py-3 text-center text-[14px] text-[#020202] font-normal align-middle h-[3rem]"
       >
         <div className="flex items-center justify-center gap-2">
-          <div className="w-5 h-5 flex items-center justify-center">
+          <div className="w-4 h-4 flex items-center justify-center">
             {getServiceIcon(item.quotationType || item.serviceType || "draft")}
           </div>
           <span className="text-center leading-tight">
@@ -827,7 +940,7 @@ const OSBookingsPage = () => {
       </td>,
       <td
         key={`status-${index}`}
-        className="px-4 py-2 text-center align-middle h-[4rem]"
+        className="px-4 py-3 text-center align-middle text-[14px] h-[3rem]"
       >
         <span className={getStatusBadgeClass(mapStatus(item.status))}>
           {mapStatus(item.status)}
@@ -835,7 +948,7 @@ const OSBookingsPage = () => {
       </td>,
       <td
         key={`amount-${index}`}
-        className="px-4 py-2 text-center align-middle h-[4rem]"
+        className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem]"
       >
         {item.totalAmount
           ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
@@ -845,7 +958,7 @@ const OSBookingsPage = () => {
       </td>,
       <td
         key={`owners-${index}`}
-        className="px-4 py-2 text-center align-middle h-[2.5rem]"
+        className="px-4 py-3 text-center align-middle h-[3rem]"
       >
         <div className="flex items-center justify-center">
           <div className="flex items-center">
@@ -882,7 +995,7 @@ const OSBookingsPage = () => {
       </td>,
       <td
         key={`tasks-${index}`}
-        className="px-4 py-2 text-center align-middle h-[2.5rem]"
+        className="px-4 py-3 text-center align-middle h-[3rem]"
       >
         <div className="flex justify-center">
           <TaskButton count={0} bookingId={item._id} />
@@ -892,9 +1005,12 @@ const OSBookingsPage = () => {
       // ACTIONS COLUMN
       <td
         key={`actions-${index}`}
-        className="px-4 py-2  text-center align-middle h-[4rem]"
+        className="px-4 py-3 text-center align-middle h-[3rem]"
       >
-        <ActionMenu actions={getActionsForTab(activeTab, item)} />
+        <ActionMenu
+          actions={getActionsForTab(activeTab, item)}
+          right="right-15"
+        />
       </td>,
     ]);
     return reverse ? rows.reverse() : rows;
@@ -971,30 +1087,34 @@ const OSBookingsPage = () => {
             owners={filterOptions.owners}
             createOpen={isCreateOpen}
             setCreateOpen={setIsCreateOpen}
+            onCreateClick={handleCreateRequested}
           />
 
-          <div className="bg-white rounded-2xl shadow mt-4 pt-4 pb-3 px-3 relative">
+          <div className="bg-white rounded-2xl shadow mt-4 pt-5 pb-3 px-3 relative">
             {/* Tabs and Total Count Row */}
             <div className="flex w-full justify-between items-center mb-2">
-              <div className="flex w-[25rem] ml-2 items-center bg-[#F3F3F3] rounded-2xl relative p-1">
-                {/* Sliding background indicator */}
+              <div
+                ref={tabContainerRef}
+                className="flex w-[20.5rem] ml-2 items-center bg-[#F3F3F3] rounded-xl relative py-1.5 gap-8.5"
+              >
+                {/* Sliding background indicator sized to active button */}
                 <div
                   className="absolute h-[calc(100%-0.5rem)] bg-[#0D4B37] rounded-xl shadow-sm transition-all duration-300 ease-in-out top-1"
                   style={{
-                    width: `calc((100% - 0.5rem) / ${tabOptions.length})`,
-                    left: `calc(${
-                      tabOptions.indexOf(activeTab) * (100 / tabOptions.length)
-                    }% + 0.25rem)`,
+                    left: `${indicator.left}px`,
+                    width: `${indicator.width}px`,
                   }}
                 />
+
                 {tabOptions.map((tab) => (
                   <button
                     key={tab}
+                    data-tab={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`relative z-10 px-3 py-1.5 rounded-xl text-[0.85rem] font-medium transition-colors duration-300 flex-1 ${
+                    className={`relative z-10 py-1 px-4 rounded-lg text-[14px] font-medium transition-colors duration-300 text-center ${
                       activeTab === tab
                         ? "text-white"
-                        : "text-[#818181] hover:text-gray-900"
+                        : "text-[#818181] hover:text-gray-900 font-semibold"
                     }`}
                   >
                     {tab}
@@ -1003,15 +1123,15 @@ const OSBookingsPage = () => {
               </div>
 
               <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
-                <span className="text-gray-600 text-[0.85rem] font-medium">
+                <span className="text-gray-600 text-[14px] font-medium">
                   Total
                 </span>
-                <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
+                <span className="bg-gray-100 text-black font-semibold text-[14px] px-2 mr-1 rounded-lg shadow-sm">
                   {filteredQuotations.length}
                 </span>
               </div>
             </div>
-            <div className="p-2">
+            <div className="p-2 mt-2">
               {isLoading ? (
                 <TableSkeleton />
               ) : (
@@ -1052,6 +1172,9 @@ const OSBookingsPage = () => {
             onClose={handleBookingComplete}
             selectedService={selectedService}
             initialData={selectedQuotation}
+            bookingCode={generatedBookingCode ?? ""}
+            customerCode={generatedCustomerCode ?? ""}
+            vendorCode={generatedVendorCode ?? ""}
           />
         )}
       </div>

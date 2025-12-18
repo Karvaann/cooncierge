@@ -343,17 +343,17 @@ const buildInitialState = (
     "",
   adults: externalFormData?.adults || externalFormData?.formFields?.adults || 1,
   children:
-    externalFormData?.children || externalFormData?.formFields?.children || 1,
+    externalFormData?.children || externalFormData?.formFields?.children || 0,
   infants:
-    externalFormData?.infants || externalFormData?.formFields?.infants || 1,
+    externalFormData?.infants || externalFormData?.formFields?.infants || 0,
   childAges:
     externalFormData?.childAges ||
     externalFormData?.formFields?.childAges ||
     [],
   adultTravellers: externalFormData?.formFields?.adultTravellers || [""], // Adult 1 (Lead Pax) - Names for display
-  infantTravellers: externalFormData?.formFields?.infantTravellers || [""], // Names for display
+  infantTravellers: externalFormData?.formFields?.infantTravellers || [], // Names for display (start empty)
   adultTravellerIds: externalFormData?.formFields?.adultTravellerIds || [""], // IDs for backend
-  infantTravellerIds: externalFormData?.formFields?.infantTravellerIds || [""], // IDs for backend
+  infantTravellerIds: externalFormData?.formFields?.infantTravellerIds || [], // IDs for backend (start empty)
   bookingOwner:
     externalFormData?.owner?.[0]?._id || externalFormData?.bookingOwner || "",
   remarks:
@@ -483,7 +483,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   useEffect(() => {
     setInfantTravellerList(
-      (formData.infantTravellers || [""]).map((name, idx) => ({
+      (formData.infantTravellers || []).map((name, idx) => ({
         id: formData.infantTravellerIds?.[idx] ?? "",
         name: name || "",
       }))
@@ -834,15 +834,16 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       const infants = [...prev.infantTravellers];
       const infantIds = [...prev.infantTravellerIds];
 
-      // always at least one infant input
-      if (infants.length === 0) infants.push("");
-      if (infantIds.length === 0) infantIds.push("");
+      // If infants count is zero, clear infant inputs/ids
+      if (prev.infants === 0) {
+        return { ...prev, infantTravellers: [], infantTravellerIds: [] };
+      }
 
       while (infants.length < prev.infants) {
         infants.push("");
         infantIds.push("");
       }
-      while (infants.length > prev.infants && infants.length > 1) {
+      while (infants.length > prev.infants) {
         infants.pop();
         infantIds.pop();
       }
@@ -855,15 +856,16 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     });
   }, [formData.infants]);
 
-  // Sync childAges array with infants count, defaulting to null (no selection)
+  // Sync childAges array with infants count, defaulting to null
   useEffect(() => {
     setFormData((prev) => {
       const ages = [...(prev.childAges || [])];
 
-      if (ages.length === 0) ages.push(null);
+      // If there are no infants- clear ages
+      if (prev.infants === 0) return { ...prev, childAges: [] };
 
       while (ages.length < prev.infants) ages.push(null);
-      while (ages.length > prev.infants && ages.length > 1) ages.pop();
+      while (ages.length > prev.infants) ages.pop();
 
       return { ...prev, childAges: ages };
     });
@@ -893,14 +895,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     type: "adultTravellers" | "infantTravellers",
     index: number,
     value: string,
-    id?: string // Optional ID - if provided, also update the ID array
+    id?: string
   ) => {
-    // console.log("Updating traveller:", type, index, value, id, formData);
-
     const idType =
       type === "adultTravellers" ? "adultTravellerIds" : "infantTravellerIds";
-
-    // console.log("Adult Traveller List:", adultTravellerList);
 
     if (type === "adultTravellers") {
       setAdultTravellerList((prev) => {
@@ -1348,7 +1346,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   name="customer"
                   placeholder="Search by Customer Name/ID"
                   required
-                  className="w-full text-[0.75rem] py-2"
+                  className="w-full text-[13px] py-2"
                   type="text"
                   {...getInputProps("customer", {
                     value: customer?.name ?? "", // SHOW NAME
@@ -1433,15 +1431,15 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1">
-                              <p className="font-medium text-[0.75rem] text-gray-900">
+                              <p className="font-medium text-[13px] text-gray-900">
                                 {cust.name}
                               </p>
                               <span className="text-gray-300">|</span>
-                              <p className="text-[0.70rem] text-gray-600 truncate">
+                              <p className="text-[13px] text-gray-600 truncate">
                                 {alias || "-"}
                               </p>
                               <span className="text-gray-300">|</span>
-                              <p className="text-[0.70rem] text-gray-600 truncate">
+                              <p className="text-[13px] text-gray-600 truncate">
                                 {cust._id}
                               </p>
                             </div>
@@ -1452,7 +1450,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                 alt={`Tier ${rating}`}
                                 className="w-4 h-4 object-contain"
                               />
-                              <span className="text-[0.75rem] font-semibold text-gray-700">
+                              <span className="text-[13px] font-semibold text-gray-700">
                                 {rating}
                               </span>
                             </div>
@@ -1496,10 +1494,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       </div>
       {/* Vendor Section */}
       <div className="border border-gray-200 rounded-[12px] px-3 py-4">
-        <h2 className="text-[0.75rem]  font-medium mb-2">Vendors</h2>
+        <h2 className="text-[13px]  font-medium mb-2">Vendors</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-        <label className="block text-[0.75rem] mt-3 font-medium text-gray-700 mb-1">
+        <label className="block text-[13px] mt-3 font-medium text-gray-700 mb-1">
           <span className="text-red-500">*</span> Vendor
         </label>
 
@@ -1509,7 +1507,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               name="vendor"
               placeholder="Search by Vendor Name/ID"
               required
-              className="w-full text-[0.75rem] py-2"
+              className="w-full text-[13px] py-2"
               value={vendorList[0]?.name ?? ""}
               onChange={(e) => {
                 const value = e.target.value;
@@ -1577,15 +1575,15 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1">
-                          <p className="font-normal text-[0.75rem] text-gray-900">
+                          <p className="font-normal text-[13px] text-gray-900">
                             {v.name || v.contactPerson}
                           </p>
                           <span className="text-gray-300">|</span>
-                          <p className="text-[0.70rem] text-gray-600 truncate">
+                          <p className="text-[13px] text-gray-600 truncate">
                             {alias || "-"}
                           </p>
                           <span className="text-gray-300">|</span>
-                          <p className="text-[0.70rem] text-gray-600 truncate">
+                          <p className="text-[13px] text-gray-600 truncate">
                             {v._id}
                           </p>
                         </div>
@@ -1635,7 +1633,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
       {/* Travellers Counter Section */}
       <div className="border border-gray-200 rounded-xl p-3">
-        <h2 className="text-[0.75rem]  font-medium mb-1">Travellers</h2>
+        <h2 className="text-[13px]  font-medium mb-1">Travellers</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
 
         <div className="flex gap-6 mb-4 mt-3 ">
@@ -1654,7 +1652,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               >
                 <FiMinus size={12} />
               </button>
-              <span className="px-2 text-[0.75rem] ">{formData.adults}</span>
+              <span className="px-2 text-[13px] ">{formData.adults}</span>
               <button
                 type="button"
                 onClick={() =>
@@ -1674,14 +1672,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 onClick={() =>
                   setFormData({
                     ...formData,
-                    infants: Math.max(1, formData.infants - 1),
+                    infants: Math.max(0, formData.infants - 1),
                   })
                 }
                 className="px-1 text-lg font-semibold"
               >
                 <FiMinus size={12} />
               </button>
-              <span className="px-2 text-[0.75rem] ">{formData.infants}</span>
+              <span className="px-2 text-[13px] ">{formData.infants}</span>
               <button
                 type="button"
                 onClick={() =>
@@ -1697,7 +1695,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
         {/* Traveller Details */}
         <div className="mt-4 space-y-4">
-          <label className="block text-[0.75rem] mt-3 font-medium text-gray-700 mb-1">
+          <label className="block text-[13px] mt-3 font-medium text-gray-700 mb-1">
             <span className="text-red-500">*</span> Adult
           </label>
 
@@ -1758,11 +1756,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1">
-                              <p className="font-normal text-[0.75rem] text-gray-900">
+                              <p className="font-normal text-[13px] text-gray-900">
                                 {t.name}
                               </p>
                               <span className="text-gray-300">|</span>
-                              <p className="text-[0.70rem] text-gray-600 truncate">
+                              <p className="text-[13px] text-gray-600 truncate">
                                 {t._id}
                               </p>
                             </div>
@@ -1791,7 +1789,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                       alt={`Tier ${rating}`}
                                       className="w-4 h-4 object-contain"
                                     />
-                                    <span className="text-[0.75rem] font-semibold text-gray-700">
+                                    <span className="text-[13px] font-semibold text-gray-700">
                                       {rating}
                                     </span>
                                   </div>
@@ -1812,7 +1810,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           setTravellerResults([]);
                         }}
                       >
-                        <p className="font-medium text-[0.70rem] text-gray-700">
+                        <p className="font-medium text-[13px] text-gray-700">
                           Don&apos;t have the name? Enter TBA
                         </p>
                       </div>
@@ -1841,7 +1839,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               {/* LABEL and AGE DROPDOWN IN ONE ROW */}
               <div className="flex items-center justify-between pr-65 mb-1">
                 {/* Children label only for first row */}
-                <label className="text-[0.75rem] font-medium text-gray-700">
+                <label className="text-[13px] font-medium text-gray-700">
                   <span className="text-red-500">*</span>{" "}
                   {/* {index === 0 ? "Children" : ""} */}
                   Children
@@ -1941,11 +1939,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1">
-                                  <p className="font-normal text-[0.75rem] text-gray-900">
+                                  <p className="font-normal text-[13px] text-gray-900">
                                     {t.name}
                                   </p>
                                   <span className="text-gray-300">|</span>
-                                  <p className="text-[0.70rem] text-gray-600 truncate">
+                                  <p className="text-[13px] text-gray-600 truncate">
                                     {t._id}
                                   </p>
                                 </div>
@@ -1957,7 +1955,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                       alt={`Tier ${rating}`}
                                       className="w-4 h-4 object-contain"
                                     />
-                                    <span className="text-[0.75rem] font-semibold text-gray-700">
+                                    <span className="text-[13px] font-semibold text-gray-700">
                                       {rating}
                                     </span>
                                   </div>
@@ -1976,7 +1974,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             setTravellerResults([]);
                           }}
                         >
-                          <p className="font-medium text-[0.70rem] text-gray-700">
+                          <p className="font-medium text-[13px] text-gray-700">
                             Don&apos;t have the name? Enter TBA
                           </p>
                         </div>
@@ -2005,17 +2003,17 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
       {/* Booking Owner */}
       <div className="border border-gray-200 rounded-xl p-3">
-        <h2 className="text-[0.75rem] font-medium mb-2">Booking Owner</h2>
+        <h2 className="text-[13px] font-medium mb-2">Booking Owner</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
-        <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+        <label className="block text-[13px] font-medium text-gray-700 mb-1">
           <span className="text-red-500">*</span> User
         </label>
-        <div className="w-[66%] relative" ref={teamsRef}>
+        <div className="w-[59%] relative" ref={teamsRef}>
           <InputField
             name="bookingOwner"
             placeholder="Search by Name/Username/ID"
             required
-            className="mt-1 text-[0.75rem] py-2"
+            className="mt-1 text-[13px] py-2"
             // show the NAME from ownerList, never formData.bookingOwner
             value={ownerList[0]?.name || ""}
             onChange={(e) => {
@@ -2057,7 +2055,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     setShowTeamsDropdown(false);
                   }}
                 >
-                  <p className="font-medium text-[0.75rem]">{t.name}</p>
+                  <p className="font-medium text-[13px]">{t.name}</p>
                 </div>
               ))}
             </div>
@@ -2067,7 +2065,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
       {/* Remarks */}
       <div className="border border-gray-200 rounded-xl p-3">
-        <label className="block text-[0.75rem]  font-medium text-gray-700">
+        <label className="block text-[13px]  font-medium text-gray-700">
           Remarks
         </label>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -2080,7 +2078,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           placeholder="Enter Your Remarks Here"
           disabled={isSubmitting}
           className={`
-            w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem]  mt-2 transition-colors
+            w-full border border-gray-200 rounded-md px-3 py-2 text-[13px]  mt-2 transition-colors
             focus:ring focus:ring-blue-200
             ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}
           `}

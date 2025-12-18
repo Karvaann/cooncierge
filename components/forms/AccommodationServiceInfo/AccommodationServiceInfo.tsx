@@ -237,6 +237,18 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   // Villa type controlled by parent: 'entire' or 'shared'
   const [villaType, setVillaType] = useState<"entire" | "shared">("entire");
 
+  const [vendorBasePrice, setVendorBasePrice] = useState<string>("");
+  const [vendorIncentiveReceived, setVendorIncentiveReceived] =
+    useState<string>("");
+  const [commissionPaid, setCommissionPaid] = useState<string>("");
+
+  const derivedCostPrice = useMemo(() => {
+    const a = Number(vendorBasePrice) || 0;
+    const b = Number(vendorIncentiveReceived) || 0;
+    const c = Number(commissionPaid) || 0;
+    return a - b + c;
+  }, [commissionPaid, vendorBasePrice, vendorIncentiveReceived]);
+
   // Handle selecting multiple files
   const handleFileChange = () => {
     const files = fileInputRef.current?.files;
@@ -468,6 +480,27 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     setTouched((prev) => ({ ...prev, [name]: true }));
   };
 
+  // Allow only digits and a single decimal point for price fields
+  const sanitizeNumeric = (val: string) => {
+    const v = String(val || "").replace(/[^0-9.]/g, "");
+    const parts = v.split(".");
+    if (parts.length <= 1) return parts[0];
+    // join remaining parts (remove extra dots) and keep first dot only
+    return parts[0] + "." + parts.slice(1).join("");
+  };
+
+  const handlePriceChange =
+    (field: "costprice" | "sellingprice") =>
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const raw = e.target.value;
+      const sanitized = sanitizeNumeric(raw);
+      setFormData((prev) => ({ ...prev, [field]: sanitized }));
+      if ((errors as any)[field]) {
+        setErrors((prev) => ({ ...prev, [field]: "" }));
+      }
+      setTouched((prev) => ({ ...prev, [field]: true }));
+    };
+
   // Enhanced blur handler with API validation
   const handleBlur = useCallback(
     async (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -548,6 +581,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   setFormData((prev) => ({ ...prev, bookingdate: date }))
                 }
                 placeholder="DD-MM-YYYY"
+                showCalendarIcon={false}
               />
 
               {/* Travel Date */}
@@ -559,6 +593,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 }
                 placeholder="DD-MM-YYYY"
                 minDate={formData.bookingdate}
+                showCalendarIcon={false}
               />
             </div>
 
@@ -577,9 +612,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
           <div className=" w-[100%] mb-4 border border-gray-200 rounded-lg p-3">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[0.75rem] font-medium text-gray-700">
-                Amount
-              </h3>
+              <h3 className="text-[13px] font-medium text-gray-700">Amount</h3>
 
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -610,7 +643,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     </svg>
                   )}
                 </label>
-                <span className="text-[0.75rem] text-gray-700">
+                <span className="text-[13px] text-gray-700">
                   Show Advanced Pricing
                 </span>
               </label>
@@ -622,14 +655,14 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
               <>
                 {/* Cost Price */}
                 <div className="mb-3">
-                  <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                  <label className="block text-[13px] font-medium text-gray-700 mb-1">
                     Cost Price
                   </label>
                   <div className="flex">
                     <div className="relative">
                       <button
                         type="button"
-                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[0.75rem] font-medium text-gray-700 hover:bg-gray-100"
+                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[13px] font-medium text-gray-700 hover:bg-gray-100"
                       >
                         ₹
                       </button>
@@ -638,23 +671,23 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                       type="text"
                       name="costprice"
                       value={formData.costprice}
-                      onChange={handleChange}
+                      onChange={handlePriceChange("costprice")}
                       placeholder="Enter Cost Price"
-                      className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                      className="w-[10rem] px-2 py-1.5 text-[13px] border border-l-0 border-gray-300 rounded-r-md hover:border-green-300 focus:outline-none focus:ring-1 focus:ring-green-400"
                     />
                   </div>
                 </div>
 
                 {/* Selling Price */}
                 <div>
-                  <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                  <label className="block text-[13px] font-medium text-gray-700 mb-1">
                     Selling Price
                   </label>
                   <div className="flex">
                     <div className="relative">
                       <button
                         type="button"
-                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[0.75rem] font-medium text-gray-700 hover:bg-gray-100"
+                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[13px] font-medium text-gray-700 hover:bg-gray-100"
                       >
                         ₹
                       </button>
@@ -663,23 +696,23 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                       type="text"
                       name="sellingprice"
                       value={formData.sellingprice}
-                      onChange={handleChange}
+                      onChange={handlePriceChange("sellingprice")}
                       placeholder="Enter Selling Price"
-                      className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                      className="w-[10rem] px-2 py-1.5 text-[13px] border border-l-0 border-gray-300 rounded-r-md hover:border-green-300 focus:outline-none focus:ring-1 focus:ring-green-400"
                     />
                   </div>
                 </div>
 
-                <div className="w-[9rem] rounded-lg p-1 mt-1 bg-white">
+                <div className="w-fit rounded-lg p-1 mt-1 bg-white">
                   {/* Label on top */}
-                  <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
+                  <span className="text-[13px] font-medium text-gray-700 block mb-2">
                     Net
                   </span>
 
                   {/* Amount + percentage row */}
                   <div className="flex items-center gap-3">
                     {/* Blue pill amount */}
-                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
+                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[13px] font-medium rounded-md">
                       {`INR ${
                         Number(formData.sellingprice) -
                         Number(formData.costprice)
@@ -687,7 +720,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     </span>
 
                     {/* Percentage */}
-                    <span className="text-[0.75rem] text-gray-700 font-medium">
+                    <span className="text-[13px] text-gray-700 font-medium">
                       {formData.costprice && formData.sellingprice
                         ? `${(
                             ((Number(formData.sellingprice) -
@@ -705,59 +738,68 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
               <div className="space-y-3">
                 {/* Vendor Payment Summary */}
 
-                <h4 className="text-[0.75rem] font-medium text-gray-700 mb-3">
+                <h4 className="text-[13px] font-medium text-gray-700 mb-3">
                   Vendor Payment Summary
                 </h4>
 
                 {/* Container */}
                 <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                  {/* Row */}
                   {[
-                    "Vendor Invoice (Base)",
-                    "Supplier Incentive Received",
-                    "Partner Payout",
-                    "Cost Price",
-                  ].map((label, index) => (
+                    { label: "Vendor Base Price", key: "price" },
+                    { label: "Vendor Incentive Received", key: "received" },
+                    { label: "Commission Paid", key: "payout" },
+                    { label: "Cost Price", key: "cost" },
+                  ].map((item, index) => (
                     <div
                       key={index}
                       className="grid grid-cols-12 border-b last:border-b-0 border-gray-200"
                     >
-                      {/* Left label */}
                       <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
-                        {label}
+                        {item.label}
                       </div>
-
-                      {/* Right inputs */}
                       <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
-                        {/* Rupee icon */}
-                        <div className="text-gray-600 text-[0.85rem] font-medium">
-                          ₹
-                        </div>
-
-                        {/* Amount Input */}
-                        <input
-                          type="text"
-                          placeholder="Enter Amount"
-                          className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none"
-                        />
-
-                        {/* Notes Input */}
-                        {label !== "Cost Price" && (
-                          <input
-                            type="text"
-                            name="costprice"
-                            value={formData.costprice}
-                            onChange={handleChange}
-                            placeholder="Enter notes here..."
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none"
-                          />
+                        {item.key !== "cost" && (
+                          <div className="text-gray-600 text-[0.85rem] font-medium">
+                            ₹
+                          </div>
                         )}
 
-                        {/* Cost Price Blue Value */}
-                        {label === "Cost Price" && (
+                        {item.key !== "cost" ? (
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            pattern="^\\d*(?:\\.\\d*)?$"
+                            placeholder="Enter Amount"
+                            value={
+                              item.key === "price"
+                                ? vendorBasePrice
+                                : item.key === "received"
+                                ? vendorIncentiveReceived
+                                : commissionPaid
+                            }
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const sanitized = sanitizeNumeric(raw);
+                              if (item.key === "price")
+                                setVendorBasePrice(String(sanitized));
+                              else if (item.key === "received")
+                                setVendorIncentiveReceived(String(sanitized));
+                              else setCommissionPaid(String(sanitized));
+                            }}
+                            className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[13px] focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                          />
+                        ) : (
                           <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">
-                            ₹ 0.00
+                            {`₹ ${derivedCostPrice.toFixed(2)}`}
                           </div>
+                        )}
+
+                        {item.key !== "cost" && (
+                          <input
+                            type="text"
+                            placeholder="Enter notes here..."
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[13px] hover:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none"
+                          />
                         )}
                       </div>
                     </div>
@@ -784,40 +826,47 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
                       <input
                         type="text"
-                        name="sellingprice"
-                        value={formData.sellingprice}
-                        onChange={handleChange}
+                        inputMode="decimal"
+                        pattern="^\\d*(?:\\.\\d*)?$"
                         placeholder="Enter Amount"
-                        className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none"
+                        value={String(formData.sellingprice ?? "")}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            sellingprice: String(
+                              sanitizeNumeric(e.target.value)
+                            ),
+                          }))
+                        }
+                        className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[13px] hover:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Net */}
-                <div className="w-[9rem] rounded-lg p-1 mt-1 bg-white">
+                <div className="w-fit rounded-lg p-1 mt-1 bg-white">
                   {/* Label on top */}
-                  <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
+                  <span className="text-[13px] font-medium text-gray-700 block mb-2">
                     Net
                   </span>
 
                   {/* Amount + percentage row */}
                   <div className="flex items-center gap-3">
                     {/* Blue pill amount */}
-                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
-                      {`INR ${
-                        Number(formData.sellingprice) -
-                        Number(formData.costprice)
-                      }`}
+                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[13px] font-medium rounded-md">
+                      {`INR ${(
+                        (Number(formData.sellingprice) || 0) - derivedCostPrice
+                      ).toFixed(2)}`}
                     </span>
 
                     {/* Percentage */}
-                    <span className="text-[0.75rem] text-gray-700 font-medium">
-                      {formData.costprice && formData.sellingprice
+                    <span className="text-[13px] text-gray-700 font-medium">
+                      {derivedCostPrice > 0 && formData.sellingprice
                         ? `${(
-                            ((Number(formData.sellingprice) -
-                              Number(formData.costprice)) /
-                              Number(formData.costprice)) *
+                            (((Number(formData.sellingprice) || 0) -
+                              derivedCostPrice) /
+                              derivedCostPrice) *
                             100
                           ).toFixed(2)}%`
                         : "0%"}
@@ -829,20 +878,20 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
           </div>
 
           <div className="w-full border border-gray-200 rounded-[12px] p-3 mt-4">
-            <h1 className="text-[0.75rem] font-medium text-gray-700 mb-2">
+            <h1 className="text-[13px] font-medium text-gray-700 mb-2">
               Accommodation Info
             </h1>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
             {/* Confirmation Number */}
             <div className="mb-3">
-              <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+              <label className="block text-[13px] font-medium text-gray-700 mb-1">
                 Confirmation Number
               </label>
               <input
                 type="text"
                 placeholder="Enter Confirmation Number"
-                className="w-[18rem] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                className="w-[18rem] px-3 py-1.5 border border-gray-300 rounded-md text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
               />
             </div>
 
@@ -1085,7 +1134,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
             {/* Accommodation Type Section */}
             <div className="border border-gray-200 rounded-[12px] p-3 mt-3">
-              <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+              <label className="block text-[13px] font-medium text-gray-700 mb-1">
                 Select Accommodation Type
               </label>
               <div className="flex items-center justify-between mb-2">
@@ -1122,7 +1171,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                         onChange={() => setVillaType("entire")}
                         className="w-3 h-3 accent-blue-600"
                       />
-                      <span className="text-[0.75rem] text-gray-700 font-medium">
+                      <span className="text-[13px] text-gray-700 font-medium">
                         Entire Villa
                       </span>
                     </label>
@@ -1136,7 +1185,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                         onChange={() => setVillaType("shared")}
                         className="w-3 h-3 accent-blue-600"
                       />
-                      <span className="text-[0.75rem] text-gray-700 font-medium">
+                      <span className="text-[13px] text-gray-700 font-medium">
                         Shared Villa
                       </span>
                     </label>
@@ -1150,7 +1199,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 <>
                   <div className="flex gap-2 mt-2 items-end">
                     <div className="w-[30%]">
-                      <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                      <label className="block text-[13px] font-medium text-gray-700 mb-1">
                         {formData.accommodationType} Name
                       </label>
                       <input
@@ -1163,12 +1212,12 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                           }))
                         }
                         placeholder={`Enter ${formData.accommodationType} Name`}
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                       />
                     </div>
 
                     <div className="w-[70%]">
-                      <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                      <label className="block text-[13px] font-medium text-gray-700 mb-1">
                         {formData.accommodationType} Address
                       </label>
                       <input
@@ -1181,13 +1230,13 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                           }))
                         }
                         placeholder={`Enter ${formData.accommodationType} Address`}
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                       />
                     </div>
                   </div>
 
                   <div className="mt-2">
-                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                    <label className="block text-[13px] font-medium text-gray-700 mb-1">
                       Google Maps Link
                     </label>
 
@@ -1202,13 +1251,13 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                           }))
                         }
                         placeholder="Paste Google Maps Link"
-                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-l-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-l-md text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                       />
 
                       <button
                         type="button"
                         onClick={handleCopyGoogleLink}
-                        className="px-4 py-1.5 flex items-center gap-1 bg-[#126ACB] text-white rounded-r-md text-[0.75rem] hover:bg-blue-700 border border-[#126ACB]"
+                        className="px-4 py-1.5 flex items-center gap-1 bg-[#126ACB] text-white rounded-r-md text-[13px] hover:bg-blue-700 border border-[#126ACB]"
                       >
                         <MdOutlineFileUpload size={16} /> Copy Link
                       </button>
@@ -1218,7 +1267,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     {formData.accommodationType === "Villa" &&
                       villaType === "entire" && (
                         <div className="mt-3">
-                          <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                          <label className="block text-[13px] font-medium text-gray-700 mb-1">
                             Total Rooms
                           </label>
 
@@ -1233,7 +1282,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                                   )
                                 }
                                 min="1"
-                                className="w-[2.2rem] px-1 py-1.5 text-[0.75rem] text-center border-none focus:outline-none bg-white"
+                                className="w-[2.2rem] px-1 py-1.5 text-[13px] text-center border-none focus:outline-none bg-white"
                               />
 
                               <div className="flex flex-col border-l border-black">
@@ -1311,7 +1360,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
         {/* ID PROOFS */}
         <div className="w-[98%] ml-2 border border-gray-200 rounded-[12px] p-3">
-          <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
+          <h2 className="text-[13px] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
           <input
@@ -1327,7 +1376,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
-                       border-[#126ACB] rounded-md text-[0.75rem] hover:bg-gray-200"
+                       border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200"
           >
             <MdOutlineFileUpload size={16} /> Attach Files
           </button>
@@ -1342,7 +1391,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                                      px-3 py-2 hover:bg-gray-50 transition"
               >
                 {/* File Name */}
-                <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[0.75rem] truncate flex items-center gap-2">
+                <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
                   <FaRegFolder className="text-blue-500 w-3 h-3" />
                   {file.name}
                 </span>
@@ -1366,7 +1415,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
         {/* Remarks Section */}
         <div className="border border-gray-200 w-[98%] ml-2.5 rounded-[12px] p-3 mt-4">
-          <label className="block text-[0.75rem] font-medium text-gray-700">
+          <label className="block text-[13px] font-medium text-gray-700">
             Remarks
           </label>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -1378,7 +1427,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             onBlur={handleBlur}
             placeholder="Enter Your Remarks Here"
             disabled={isSubmitting}
-            className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[0.75rem] mt-1 transition-colors hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 ${
+            className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[13px] mt-1 transition-colors hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 ${
               isSubmitting ? "opacity-50 cursor-not-allowed" : ""
             }`}
           />

@@ -215,12 +215,11 @@ export default function DateRangeInput({
       (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
     );
 
-    const elem = document.getElementsByClassName('rdrPprevButton')[0];
+    const elem = document.getElementsByClassName("rdrPprevButton")[0];
     console.log(elem);
     if (elem && elem instanceof HTMLButtonElement) {
       elem.click();
     }
-
   };
 
   const goNextMonth = () => {
@@ -228,7 +227,7 @@ export default function DateRangeInput({
       (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
     );
 
-    const elem = document.getElementsByClassName('rdrNextButton')[0];
+    const elem = document.getElementsByClassName("rdrNextButton")[0];
     console.log(elem);
     if (elem && elem instanceof HTMLButtonElement) {
       elem.click();
@@ -236,19 +235,19 @@ export default function DateRangeInput({
   };
 
   return (
-    <div className="relative date-range-custom mt-0.5" ref={ref}>
-      <label className="block text-gray-700 mb-1 text-xs font-medium">
+    <div className="relative date-range-custom" ref={ref}>
+      <label className="block text-gray-700 mb-1 text-[14px] font-medium">
         {label}
       </label>
 
       <button
         type="button"
-        className="relative flex items-center min-w-[12rem] w-[16rem] gap-3 border border-gray-300 rounded-sm px-3 py-1.5 bg-white hover:border-gray-400 transition-colors select-none text-[0.80rem]"
+        className="relative flex items-center min-w-[12rem] w-[17rem] max-h-[2.8rem]  gap-3 border border-gray-300 rounded-sm px-3 py-3 bg-white hover:border-green-200 transition-colors select-none text-[14px]"
         onClick={() => setOpen((prev) => !prev)}
       >
-        <span className="text-gray-400 font-normal">{displayValue.start}</span>
+        <span className="text-[#9CA3AF] font-medium">{displayValue.start}</span>
         <span className="text-gray-400 mx-1">→</span>
-        <span className="text-gray-400 font-normal flex-1 text-left">
+        <span className="text-[#9CA3AF] font-medium flex-1 text-left">
           {displayValue.end}
         </span>
         {startDate && endDate ? (
@@ -259,7 +258,7 @@ export default function DateRangeInput({
               e.stopPropagation();
               clearDates();
             }}
-            className="text-gray-400 -mt-1 hover:text-gray-600 p-1 rounded-sm cursor-pointer"
+            className="text-[#9CA3AF] -mt-1 hover:text-gray-600 rounded-sm cursor-pointer"
           >
             {/* simple X SVG */}
             <svg
@@ -284,36 +283,29 @@ export default function DateRangeInput({
       </button>
 
       {open && (
-        <div className="absolute mt-2 z-50 rounded-md bg-white border border-gray-200 p-2 w-[600px] date-range-popover">
+        <div className="absolute mt-2 z-50 rounded-md bg-white border border-gray-200 p-2 w-[500px] h-[240px] date-range-popover">
           <div className="flex gap-0">
-            {/* Left presets column (menu + divider). Added `presets-column` so
-              we can draw a full-height divider via CSS and keep it separate
-              from the calendar cells. */}
-            <div className="presets-column w-26 border-r border-gray-200 p-2 space-y-1">
+            <div className="presets-column h-fit w-26 border-r border-gray-200 p-2 space-y-1">
               {presetRanges.map((p) => (
                 <button
                   key={p.label}
                   type="button"
                   onClick={() => applyPreset(p.getValue)}
-                  className="block w-full text-left text-[0.70rem] text-gray-800 hover:bg-gray-50 py-2 px-3 rounded transition-colors"
+                  className="block w-full text-left text-[0.70rem] text-gray-800 hover:bg-gray-50 py-2 px-2 rounded transition-colors"
                 >
                   {p.label}
                 </button>
               ))}
             </div>
-            <div className="flex-1 p-2 overflow-x-hidden ">
+            <div className="flex-1 p-2 overflow-x-hidden">
               <div className="calendar-shared-header">
                 <button type="button" onClick={goPrevMonth}>
                   ‹
                 </button>
 
-                <div className="calendar-title">
-                  {firstMonthLabel}
-                </div>
+                <div className="calendar-title">{firstMonthLabel}</div>
 
-                <div className="calendar-title">
-                  {secondMonthLabel}
-                </div>
+                <div className="calendar-title">{secondMonthLabel}</div>
 
                 <button type="button" onClick={goNextMonth}>
                   ›

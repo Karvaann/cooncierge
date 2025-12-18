@@ -143,7 +143,7 @@ const Table: React.FC<TableProps> = ({
                       onSort(col);
                     }
                   }}
-                  className={`px-4 py-2 text-center text-gray-200 font-semibold leading-4 tracking-[0.6px] text-[0.65rem]
+                  className={`px-4 py-3 text-center text-gray-200 font-medium leading-4 tracking-[0.6px] text-[12px]
           ${
             col === "Rating" ||
             col === "Date Modified" ||
@@ -188,7 +188,7 @@ const Table: React.FC<TableProps> = ({
                           {...drag.dragHandleProps}
                           className={`${
                             idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                          } hover:bg-gray-100 transition-colors h-[2.8rem] text-[0.75rem]`}
+                          } hover:bg-gray-100 transition-colors h-[3rem] text-[12px]`}
                         >
                           {row}
                         </tr>
@@ -204,10 +204,10 @@ const Table: React.FC<TableProps> = ({
                         (paginatedRows.length + idx) % 2 === 0
                           ? "bg-white"
                           : "bg-gray-50"
-                      } h-[2.8rem] text-[0.75rem]`}
+                      } h-[1.5rem] text-[14px]`}
                     >
                       <td
-                        className="px-4 py-3"
+                        className="px-4 py-2"
                         colSpan={columns.length + (showCheckboxColumn ? 1 : 0)}
                       ></td>
                     </tr>
@@ -225,7 +225,7 @@ const Table: React.FC<TableProps> = ({
                   key={`row-${page}-${idx}`}
                   className={`${
                     idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                  } hover:bg-gray-100 transition-colors h-[2.8rem] text-[0.75rem]`}
+                  } hover:bg-gray-100 transition-colors  text-[14px]`}
                 >
                   {row}
                 </tr>
@@ -239,10 +239,10 @@ const Table: React.FC<TableProps> = ({
                     (paginatedRows.length + idx) % 2 === 0
                       ? "bg-white"
                       : "bg-gray-50"
-                  } h-[2.8rem] text-[0.75rem]`}
+                  } h-[3rem] text-[14px]`}
                 >
                   <td
-                    className="px-4 py-3"
+                    className="px-4 py-2"
                     colSpan={columns.length + (showCheckboxColumn ? 1 : 0)}
                   ></td>
                 </tr>
@@ -260,7 +260,7 @@ const Table: React.FC<TableProps> = ({
       >
         {!hideRowsPerPage && (
           <div className="flex items-center gap-2">
-            <span className="text-gray-600 text-[0.75rem]">Rows per page:</span>
+            <span className="text-gray-600 text-[14px]">Rows per page:</span>
             <DropDown
               options={maxRowsPerPageOptions.map((o) => ({
                 value: String(o),
@@ -276,7 +276,7 @@ const Table: React.FC<TableProps> = ({
         )}
 
         {!hideEntriesText && (
-          <div className="text-gray-600 text-[0.75rem]">{displayText}</div>
+          <div className="text-gray-600 text-[14px]">{displayText}</div>
         )}
 
         <div className="flex items-center gap-2">

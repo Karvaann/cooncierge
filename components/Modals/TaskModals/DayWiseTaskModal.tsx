@@ -2,6 +2,7 @@
 import { getTeams } from "@/services/teamsApi";
 import React, { useEffect, useCallback, useState } from "react";
 import AddTaskModal from "../AddTaskModal";
+import { CustomIdApi } from "@/services/customIdApi";
 import { RxCross2 } from "react-icons/rx";
 import { FiAlertTriangle } from "react-icons/fi";
 import ViewTaskModal from "./ViewTaskModal";
@@ -162,6 +163,10 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = React.useState<PriorityTab>("high");
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = React.useState(false);
+  const [generatedTaskCode, setGeneratedTaskCode] = useState<string | null>(
+    null
+  );
+  const [isGeneratingTaskCode, setIsGeneratingTaskCode] = useState(false);
   const [isViewTaskOpen, setIsViewTaskOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
   const [isEditingTask, setIsEditingTask] = useState(false);
@@ -258,11 +263,24 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
     (l) => l.status?.toLowerCase() === "completed"
   );
 
-  const openAddTaskModal = () => {
+  const openAddTaskModal = async () => {
     // Creation mode: ensure previous edit context cleared
     setSelectedTask(null);
     setIsEditingTask(false);
-    setIsAddTaskModalOpen(true);
+
+    try {
+      setIsGeneratingTaskCode(true);
+      const resp = await CustomIdApi.generate("task");
+      const code = resp?.customId || null;
+      setGeneratedTaskCode(code);
+      if (!code) throw new Error("Empty task id received");
+      setIsAddTaskModalOpen(true);
+    } catch (err) {
+      console.error("Failed to generate task id:", err);
+      alert("Failed to generate task id. Please try again.");
+    } finally {
+      setIsGeneratingTaskCode(false);
+    }
   };
 
   const handleEscape = useCallback(
@@ -490,6 +508,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                     key={task._id}
                     priority="high"
                     taskId={task._id}
+                    taskCustomId={task?.customId || task?._id}
                     date={task?.dateTime ? formatDateTime(task.dateTime) : "-"}
                     title={task?.subCategory || task?.category || "Task"}
                     description={task?.activity || "-"}
@@ -508,6 +527,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                     onClick={() => {
                       setSelectedTask({
                         ...task,
+                        taskId: task?.customId || task?._id,
                         assignees: resolveAssignedToNames(task),
                         assignedByName:
                           typeof task?.assignedBy === "object"
@@ -535,6 +555,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                   key={task._id}
                   priority="medium"
                   taskId={task._id}
+                  taskCustomId={task?.customId || task?._id}
                   date={task?.dateTime ? formatDateTime(task.dateTime) : "-"}
                   title={task?.subCategory || task?.category || "Task"}
                   description={task?.activity || "-"}
@@ -553,6 +574,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                   onClick={() => {
                     setSelectedTask({
                       ...task,
+                      taskId: task?.customId || task?._id,
                       assignees: resolveAssignedToNames(task),
                       assignedByName:
                         typeof task?.assignedBy === "object"
@@ -576,6 +598,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                   key={task._id}
                   priority="low"
                   taskId={task._id}
+                  taskCustomId={task?.customId || task?._id}
                   date={task?.dateTime ? formatDateTime(task.dateTime) : "-"}
                   title={task?.subCategory || task?.category || "Task"}
                   description={task?.activity || "-"}
@@ -594,6 +617,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                   onClick={() => {
                     setSelectedTask({
                       ...task,
+                      taskId: task?.customId || task?._id,
                       assignees: resolveAssignedToNames(task),
                       assignedByName:
                         typeof task?.assignedBy === "object"
@@ -618,6 +642,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                   key={task._id}
                   priority="completed"
                   taskId={task._id}
+                  taskCustomId={task?.customId || task?._id}
                   date={task?.dateTime ? formatDateTime(task.dateTime) : "-"}
                   title={task?.subCategory || task?.category || "Task"}
                   description={task?.activity || "-"}
@@ -636,6 +661,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
                   onClick={() => {
                     setSelectedTask({
                       ...task,
+                      taskId: task?.customId || task?._id,
                       assignees: resolveAssignedToNames(task),
                       assignedByName:
                         typeof task?.assignedBy === "object"
@@ -654,11 +680,14 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
           <button
             type="button"
             onClick={openAddTaskModal}
-            className="flex items-center text-[0.75rem] justify-center h-7 px-3 py-2 rounded-lg font-semibold 
+            disabled={isGeneratingTaskCode}
+            className={`flex items-center text-[0.75rem] justify-center h-7 px-3 py-2 rounded-lg font-semibold 
                border border-[#0D4B37] bg-white text-[#0D4B37] text-center 
-               font-poppins text-base leading-6 hover:bg-gray-200 transition-colors"
+               font-poppins text-base leading-6 hover:bg-gray-200 transition-colors ${
+                 isGeneratingTaskCode ? "opacity-60 cursor-wait" : ""
+               }`}
           >
-            + Add Task
+            {isGeneratingTaskCode ? "Generating ID..." : "+ Add Task"}
           </button>
         </div>
       </div>
@@ -683,6 +712,7 @@ const DayWiseTaskModal: React.FC<DayWiseTaskModalProps> = ({
           );
         }}
         {...(bookingId ? { bookingId } : {})}
+        {...(generatedTaskCode ? { taskCode: generatedTaskCode } : {})}
       />
 
       <ViewTaskModal

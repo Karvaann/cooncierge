@@ -19,6 +19,7 @@ import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import { MdHistory } from "react-icons/md";
 import { getBookingHistoryByTeamMember } from "@/services/teamsApi";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
+import CustomIdApi from "@/services/customIdApi";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -106,6 +107,8 @@ const TeamDirectory = () => {
 
   const [selectMode, setSelectMode] = useState(false);
   const [selectedTeamMembers, setSelectedTeamMembers] = useState<string[]>([]);
+
+  const [generatedTeamCode, setGeneratedTeamCode] = useState("");
 
   const [historyData, setHistoryData] = useState([]);
   const [selectedTeamMemberId, setSelectedTeamMemberId] = useState<
@@ -432,7 +435,20 @@ const TeamDirectory = () => {
             </span>
           </div>
           <button
-            onClick={() => setIsSideSheetOpen(true)}
+            onClick={async () => {
+              try {
+                const res = await CustomIdApi.generate("team");
+
+                // IMPORTANT: backend field name
+                setGeneratedTeamCode(res?.customId);
+
+                setSelectedTeam(null);
+                setMode("create");
+                setIsSideSheetOpen(true);
+              } catch (err) {
+                console.error("Failed to generate team code", err);
+              }
+            }}
             className="flex items-center text-[0.85rem] cursor-pointer gap-2 border border-green-900 text-white bg-green-900 px-3 py-1.5 rounded-md font-semibold transition-all duration-200"
             type="button"
           >
@@ -544,9 +560,11 @@ const TeamDirectory = () => {
             setIsSideSheetOpen(false);
             setSelectedTeam(null);
             setMode("create");
+            setGeneratedTeamCode("");
           }}
           data={selectedTeam} // REQUIRED
           mode={mode}
+          teamCode={generatedTeamCode}
           onSuccess={fetchTeamsData}
         />
       )}

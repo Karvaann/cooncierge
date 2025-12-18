@@ -26,7 +26,7 @@ import { FaRegStar } from "react-icons/fa";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import { MdHistory } from "react-icons/md";
 import Image from "next/image";
-// (Removed traveller form integration per request)
+import CustomIdApi from "@/services/customIdApi";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -119,6 +119,8 @@ const VendorDirectory = () => {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
   const [menuMode, setMenuMode] = useState<"main" | "action">("main");
+
+  const [generatedVendorCode, setGeneratedVendorCode] = useState("");
 
   const [selectedVendor, setSelectedVendor] = useState<any | null>(null);
   const [mode, setMode] = useState<"create" | "edit" | "view">("create");
@@ -465,7 +467,20 @@ const VendorDirectory = () => {
             </span>
           </div>
           <button
-            onClick={() => setIsSideSheetOpen(true)}
+            onClick={async () => {
+              try {
+                const res = await CustomIdApi.generate("vendor");
+
+                // IMPORTANT: use backend field name
+                setGeneratedVendorCode(res?.customId);
+
+                setSelectedVendor(null);
+                setMode("create");
+                setIsSideSheetOpen(true);
+              } catch (err) {
+                console.error("Failed to generate vendor code", err);
+              }
+            }}
             className="flex items-center text-[0.85rem] cursor-pointer gap-2 border border-green-900 text-white bg-green-900 px-3 py-1.5 rounded-md font-semibold transition-all duration-200"
             type="button"
           >
@@ -575,9 +590,11 @@ const VendorDirectory = () => {
               setIsSideSheetOpen(false);
               setSelectedVendor(null);
               setMode("create");
+              setGeneratedVendorCode("");
             }}
             data={selectedVendor} // REQUIRED
             mode={mode}
+            vendorCode={generatedVendorCode}
             onSuccess={fetchVendors}
           />
         </BookingProvider>

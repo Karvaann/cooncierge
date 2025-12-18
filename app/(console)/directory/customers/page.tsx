@@ -31,6 +31,7 @@ import { getTravellerById } from "@/services/travellerApi";
 import { MdHistory } from "react-icons/md";
 import { getBookingHistoryByCustomer } from "@/services/customerApi";
 import Image from "next/image";
+import CustomIdApi from "@/services/customIdApi";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -133,6 +134,10 @@ const CustomerDirectory = () => {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedCustomers, setSelectedCustomers] = useState<string[]>([]);
   const [selectedTravellers, setSelectedTravellers] = useState<string[]>([]);
+
+  const [generatedCustomerCode, setGeneratedCustomerCode] =
+    useState<string>("");
+  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
 
   const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
   const [mode, setMode] = useState<"create" | "edit" | "view">("create");
@@ -690,7 +695,23 @@ const CustomerDirectory = () => {
             </span>
           </div>
           <button
-            onClick={() => setIsSideSheetOpen(true)}
+            onClick={async () => {
+              try {
+                setIsGeneratingCode(true);
+
+                const res = await CustomIdApi.generate("customer");
+                // assuming backend returns { code: "CU-AB001" }
+                setGeneratedCustomerCode(res?.customId || null);
+
+                setMode("create");
+                setSelectedCustomer(null);
+                setIsSideSheetOpen(true);
+              } catch (err) {
+                console.error("Failed to generate customer code", err);
+              } finally {
+                setIsGeneratingCode(false);
+              }
+            }}
             className="flex items-center text-[0.85rem] cursor-pointer gap-2 border border-green-900 text-white bg-green-900 px-3 py-1.5 rounded-md font-semibold transition-all duration-200"
             type="button"
           >
@@ -844,9 +865,11 @@ const CustomerDirectory = () => {
               setIsSideSheetOpen(false);
               setSelectedCustomer(null);
               setMode("create");
+              setGeneratedCustomerCode(""); // Reset generated code on close
             }}
             data={selectedCustomer} // REQUIRED
             mode={mode}
+            customerCode={generatedCustomerCode}
             onSuccess={fetchData}
           />
         </BookingProvider>
