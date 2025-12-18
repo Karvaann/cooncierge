@@ -117,7 +117,7 @@ const Table: React.FC<TableProps> = ({
   return (
     <>
       <div className="overflow-visible rounded-xl border border-gray-100">
-        <table className="w-full text-sm rounded-xl overflow-hidden">
+        <table style={{tableLayout: 'auto'}} className="w-full text-sm rounded-xl overflow-hidden">
           <thead>
             <tr
               className={`rounded-t-xl text-white ${
@@ -125,7 +125,7 @@ const Table: React.FC<TableProps> = ({
               }`}
             >
               {showCheckboxColumn && (
-                <th className="px-3 py-2 w-[3rem] text-center"></th>
+                <th className="px-3 py-2 w-[3rem]"></th>
               )}
               {columns.map((col, index) => (
                 <th
@@ -143,7 +143,7 @@ const Table: React.FC<TableProps> = ({
                       onSort(col);
                     }
                   }}
-                  className={`px-4 py-2 text-center text-gray-200 font-semibold leading-4 tracking-[0.6px] text-[0.65rem]
+                  className={`px-[18px] py-[12px] text-gray-200 font-[500] leading-4 tracking-[0.6px] text-[12px]
           ${
             col === "Rating" ||
             col === "Date Modified" ||
@@ -158,7 +158,7 @@ const Table: React.FC<TableProps> = ({
         `}
                 >
                   <div className="flex items-center justify-center gap-2">
-                    <span> {col} </span>
+                    <span style={{textAlign: index === 0 ? "left" : "center", width: '100%'}}> {col} </span>
                     {columnIconMap?.[col]}
                   </div>
                 </th>
@@ -220,16 +220,18 @@ const Table: React.FC<TableProps> = ({
           ) : (
             // Non-DnD
             <tbody>
-              {paginatedRows.map((row, idx) => (
+              {paginatedRows.map((row, idx) => {
+                return(
                 <tr
                   key={`row-${page}-${idx}`}
                   className={`${
                     idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                  } hover:bg-gray-100 transition-colors h-[2.8rem] text-[0.75rem]`}
+                  } hover:bg-gray-100 transition-colors h-[2.8rem] text-[14px]`}
                 >
                   {row}
                 </tr>
-              ))}
+              )}
+              )}
 
               {/* Fill empty rows to keep table height consistent */}
               {emptyRows.map((_, idx) => (
@@ -260,7 +262,7 @@ const Table: React.FC<TableProps> = ({
       >
         {!hideRowsPerPage && (
           <div className="flex items-center gap-2">
-            <span className="text-gray-600 text-[0.75rem]">Rows per page:</span>
+            <span className="text-gray-600 text-[14px]">Rows per page:</span>
             <DropDown
               options={maxRowsPerPageOptions.map((o) => ({
                 value: String(o),
@@ -276,7 +278,7 @@ const Table: React.FC<TableProps> = ({
         )}
 
         {!hideEntriesText && (
-          <div className="text-gray-600 text-[0.75rem]">{displayText}</div>
+          <div className="text-gray-600 text-[14px]">{displayText}</div>
         )}
 
         <div className="flex items-center gap-2">

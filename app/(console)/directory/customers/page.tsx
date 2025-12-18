@@ -255,7 +255,7 @@ const CustomerDirectory = () => {
             unoptimized // Important for local PNGs served from /public
           />
         </div>
-        <span className="text-[0.75rem] font-semibold text-gray-700">
+        <span className="text-[0.75rem] font-[400] text-gray-700">
           {rating}
         </span>
       </div>
@@ -448,7 +448,7 @@ const CustomerDirectory = () => {
           );
         }
         cells.push(
-          <td key={`customerID-${index}`} className="px-4 py-3  text-center">
+          <td key={`customerID-${index}`} className="px-4 py-3 font-[500]  text-left">
             {row.customerID}
           </td>,
           <td key={`name-${index}`} className="px-4 py-3  text-center">
@@ -706,7 +706,7 @@ const CustomerDirectory = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`relative z-10 px-[12px] py-[6px]  rounded-[8px] text-[12px] font-medium transition-colors duration-300 flex-1 ${
+              className={`relative z-10 px-[12px] py-[6px]  rounded-[8px] text-[14px] font-medium transition-colors duration-300 flex-1 ${
                 activeTab === tab
                   ? "text-white"
                   : "text-[#818181] hover:text-gray-900"
@@ -734,7 +734,7 @@ const CustomerDirectory = () => {
           </div>
           <button
             onClick={() => setIsSideSheetOpen(true)}
-            className="flex items-center text-[0.85rem] cursor-pointer gap-2 border border-green-900 text-white bg-green-900 px-3 py-1.5 rounded-md font-semibold transition-all duration-200"
+            className="flex items-center text-[14px] cursor-pointer gap-[8px] px-[16px] py-[7px] rounded-[6px] bg-[#0D4B37] text-white font-[500]"
             type="button"
           >
             + Add Customer
