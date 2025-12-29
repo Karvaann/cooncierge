@@ -57,6 +57,7 @@ const AUTH_ROUTES = {
   requestPasswordReset: "/auth/forgot-password",
   logout: "/auth/logout",
   createOrUpdateUser: "/auth/create-or-update",
+  resetPassword: "/auth/reset-password",
 } as const;
 
 export const AuthApi = {
@@ -73,7 +74,7 @@ export const AuthApi = {
     return data;
   },
 
-  async verifyTwoFa(payload: VerifyTwoFaRequest): Promise<VerifyTwoFaResponse> {
+  async verifyTwoFa(payload: VerifyTwoFaRequest, setMode: React.Dispatch<React.SetStateAction<string>>): Promise<VerifyTwoFaResponse> {
     const { data } = await apiClient.post<VerifyTwoFaResponse>(
       AUTH_ROUTES.verifyTwoFa,
       payload
@@ -81,8 +82,12 @@ export const AuthApi = {
 
     if (data.token) {
       setAuthToken(data.token);
-      if (data.user) {
-        setAuthUser(data.user);
+      if (data.user?.resetPasswordRequired) {
+        setMode("reset");
+      } else {
+        if (data.user) {
+          setAuthUser(data.user);
+        }
       }
     }
 
@@ -104,6 +109,17 @@ export const AuthApi = {
   async createOrUpdateUser(payload: CreateOrUpdateUserRequest): Promise<CreateOrUpdateUserResponse> {
     const { data } = await apiClient.post<CreateOrUpdateUserResponse>(AUTH_ROUTES.createOrUpdateUser, payload);
     return data;
+  },
+
+  async resetPassword(payload: { email: string; newPassword: string }): Promise<void> {
+    await apiClient.post(AUTH_ROUTES.resetPassword, payload)
+      .then(() => {
+        console.log("Password reset successful");
+        window.location.reload();
+      })
+      .catch((error) => {
+        console.error("Password reset failed:", error);
+      });
   },
 };
 
