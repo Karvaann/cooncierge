@@ -18,6 +18,9 @@ interface DropdownProps {
   customHeight?: string;
   menuWidth?: string;
   itemHeight?: number;
+  noBorder?: boolean;
+  buttonClassName?: string;
+  iconOnly?: boolean;
   disabled?: boolean;
 }
 
@@ -31,6 +34,9 @@ const DropDown: React.FC<DropdownProps> = ({
   className = "",
   menuWidth,
   itemHeight,
+  noBorder = false,
+  buttonClassName = "",
+  iconOnly = false,
   disabled = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -137,16 +143,22 @@ const DropDown: React.FC<DropdownProps> = ({
         onClick={handleToggle}
         disabled={disabled}
         aria-disabled={disabled}
+        aria-label={iconOnly ? placeholder : undefined}
         className={`${inputWidthClass} ${
           customHeight ? customHeight : "py-1.5"
         } flex items-center justify-between px-2 ${
           disabled ? "bg-gray-100 cursor-not-allowed text-gray-600" : "bg-white"
-        } rounded-md border border-gray-300 hover:border-green-300 transition-colors text-left text-[13px] focus:outline-none focus:ring-1 focus:ring-green-400`}
+        } rounded-md ${
+          noBorder ? "" : "border border-gray-300"
+        } hover:border-green-300 transition-colors text-left text-[13px] focus:outline-none focus:ring-1 focus:ring-green-400 ${buttonClassName}`}
       >
-        <span className={`${selectedValue ? "text-black" : "text-gray-400"}`}>
-          {displayText}
-        </span>
+        {!iconOnly && (
+          <span className={`${selectedValue ? "text-black" : "text-gray-400"}`}>
+            {displayText}
+          </span>
+        )}
         <svg
+          aria-hidden={iconOnly ? "false" : "true"}
           className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
             isOpen ? "rotate-180" : ""
           }`}

@@ -48,7 +48,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({ actions, width, right }) => {
     >
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-1.5 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+        className="p-1.5 hover:bg-gray-100 border border-gray-200 rounded-sm transition-colors"
         aria-label="More actions"
       >
         <PiDotsThreeBold className="w-4 h-4 text-gray-600" />
@@ -75,7 +75,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({ actions, width, right }) => {
           ></div>
 
           {/* Menu items */}
-          <div className="flex flex-col py-0.5 px-1 mr-2 text-xs">
+          <div className="flex flex-col py-1 px-1 mr-2 text-xs">
             {actions.map((action, index) => (
               <React.Fragment key={index}>
                 <button

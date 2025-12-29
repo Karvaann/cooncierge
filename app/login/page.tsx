@@ -12,11 +12,13 @@ import OTPInput from "react-otp-input";
 
 export default function SignIn() {
   const router = useRouter();
-  const [mode, setMode] = useState<"signin" | "otp" | "forgot">("signin");
+  const [mode, setMode] = useState<"signin" | "otp" | "forgot" | "reset">(
+    "signin"
+  );
   const [success, setSuccess] = useState(false);
   const [checked, setChecked] = useState(false);
 
-  const [otp, setOtp] = useState<string>('');
+  const [otp, setOtp] = useState<string>("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -28,6 +30,14 @@ export default function SignIn() {
   const [isOtpSubmitting, setIsOtpSubmitting] = useState(false);
   const [timer, setTimer] = useState(30);
   const [canResend, setCanResend] = useState(false);
+
+  // Reset password state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [otpMessage, setOtpMessage] = useState<{
     text: string;
@@ -54,7 +64,6 @@ export default function SignIn() {
     return undefined;
   }, [mode, timer]);
 
-
   const handleForgotPassword = useCallback(() => {
     setMode("forgot");
   }, []);
@@ -75,7 +84,7 @@ export default function SignIn() {
         console.log("inside try");
         const response = await AuthApi.login({ email, password });
 
-        setOtp('');
+        setOtp("");
         setMode("otp");
       } catch (error: unknown) {
         const err = error as AxiosError<{ message?: string }>;
@@ -139,6 +148,47 @@ export default function SignIn() {
       setShowError(true);
     }
   }, [email]);
+
+  const goToResetMode = useCallback(() => {
+    // keep `email` value as entered in signin/forgot and move to reset screen
+    setMode("reset");
+    setOtpMessage(null);
+  }, []);
+
+  // Password requirement checks for new password
+  const hasMinLength = newPassword.length >= 8;
+  const hasUpper = /[A-Z]/.test(newPassword);
+  const hasLower = /[a-z]/.test(newPassword);
+  const hasNumber = /[0-9]/.test(newPassword);
+  const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
+  const allRequirementsMet =
+    hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial;
+  const passwordsMatch =
+    newPassword !== "" && newPassword === confirmNewPassword;
+  const canSetNewPassword =
+    allRequirementsMet && passwordsMatch && currentPassword.length > 0;
+
+  const handleSetNewPassword = useCallback(async () => {
+    if (!canSetNewPassword) return;
+    // No backend endpoint available here; replace with real API call if added
+    try {
+      setIsSubmitting(true);
+      console.log("Setting new password for:", email);
+      // placeholder: await AuthApi.resetPassword?.({ email, currentPassword, newPassword });
+      // simulate success
+      setTimeout(() => {
+        setIsSubmitting(false);
+        setMode("signin");
+        setOtpMessage({
+          text: "Password updated successfully. Please sign in.",
+          tone: "info",
+        });
+      }, 700);
+    } catch (err) {
+      setIsSubmitting(false);
+      setOtpMessage({ text: "Failed to set new password.", tone: "error" });
+    }
+  }, [canSetNewPassword, email, currentPassword, newPassword]);
 
   return (
     <div className="fixed inset-0 overflow-hidden bg-[#E8F5F1] flex items-center justify-center">
@@ -375,13 +425,18 @@ export default function SignIn() {
                         </svg>
                       )}
                     </label>
-                    <span style={{fontFamily: 'Roboto'}} className="text-[#414141] font-[400] text-[15px] ">Remember Me</span>
+                    <span
+                      style={{ fontFamily: "Roboto" }}
+                      className="text-[#414141] font-[400] text-[15px] "
+                    >
+                      Remember Me
+                    </span>
                   </div>
                   <div className="flex justify-end">
                     <button
                       type="button"
                       onClick={handleForgotPassword}
-                      style={{fontFamily: 'Roboto'}}
+                      style={{ fontFamily: "Roboto" }}
                       className="text-right text-[#0D4B37] py-[14px] mt-1 underline font-[400] text-[15px] hover:text-green-900"
                     >
                       Forgot Password?
@@ -428,34 +483,45 @@ export default function SignIn() {
                   width: "38px",
                   height: "38px",
                   fontSize: "15px",
-                  fontWeight: '400',
+                  fontWeight: "400",
                   borderRadius: "6px",
-                  border: otpMessage?.tone === "error" ? "1px solid #EB382B" : "1px solid #E2E1E1",
+                  border:
+                    otpMessage?.tone === "error"
+                      ? "1px solid #EB382B"
+                      : "1px solid #E2E1E1",
                   textAlign: "center",
-                  background: '#FFF',
-                  lineHeight: '24px'
+                  background: "#FFF",
+                  lineHeight: "24px",
                 }}
                 renderInput={(props) => <input {...props} />}
               />
             </div>
-            <p style={{fontFamily: 'Roboto'}} className="text-[12px] font-[400] text-center text-[#126ACB] mb-4 -mt-3">
+            <p
+              style={{ fontFamily: "Roboto" }}
+              className="text-[12px] font-[400] text-center text-[#126ACB] mb-4 -mt-3"
+            >
               OTP has been sent to {email}.
             </p>
-             <button
-                onClick={handleOtpSubmit}
-                className="w-full h-10 text-[15px] bg-[#0D4B37] text-white py-[10px] rounded-md shadow-xl font-medium hover:text-[17px] hover:bg-[#125E45] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
-                disabled={isOtpSubmitting || otp.length < 6}
-              >
-                {isOtpSubmitting ? "Verifying..." : "Verify OTP"}
-              </button>
+            <button
+              onClick={handleOtpSubmit}
+              className="w-full h-10 text-[15px] bg-[#0D4B37] text-white py-[10px] rounded-md shadow-xl font-medium hover:text-[17px] hover:bg-[#125E45] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={isOtpSubmitting || otp.length < 6}
+            >
+              {isOtpSubmitting ? "Verifying..." : "Verify OTP"}
+            </button>
             <div className="flex w-full justify-between mt-4">
-              <div style={{fontFamily: 'Roboto'}} className="text-[#414141] text-[15px] font-[400]">(00:{timer > 9 ? timer : `0${timer}`})</div>
+              <div
+                style={{ fontFamily: "Roboto" }}
+                className="text-[#414141] text-[15px] font-[400]"
+              >
+                (00:{timer > 9 ? timer : `0${timer}`})
+              </div>
               {!canResend ? (
                 // Disabled resend with timer display
                 <button
                   type="button"
                   disabled
-                  style={{fontFamily: 'Roboto'}}
+                  style={{ fontFamily: "Roboto" }}
                   className="text-[#0D4B37] text-[15px] font-[400] opacity-60 underline hover:text-[#125E45]"
                 >
                   Resend OTP
@@ -469,7 +535,7 @@ export default function SignIn() {
                     setCanResend(false);
                     // resend OTP logic here
                   }}
-                  style={{fontFamily: 'Roboto'}}
+                  style={{ fontFamily: "Roboto" }}
                   className="text-[#0D4B37] text-[15px] font-[400] underline hover:text-[#125E45]"
                 >
                   Resend OTP
@@ -511,14 +577,14 @@ export default function SignIn() {
                       notify your admin to reset your password.
                     </p>
                     <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter Email"
-                        autoComplete="off"
-                        data-lpignore="true"
-                        className="w-full mb-[18px] hover:border-[#AFD7D2] border font-[400] text-[15px] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] focus:ring-2 focus:ring-green-400 focus:outline-none"
-                      />
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter Email"
+                      autoComplete="off"
+                      data-lpignore="true"
+                      className="w-full mb-[18px] hover:border-[#AFD7D2] border font-[400] text-[15px] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] focus:ring-2 focus:ring-green-400 focus:outline-none"
+                    />
                   </div>
 
                   {otpMessage && (
@@ -571,9 +637,191 @@ export default function SignIn() {
                     Back to Sign In
                   </span>
                 </button>
+                <button
+                  onClick={() => {
+                    setSuccess(false);
+                    goToResetMode();
+                  }}
+                  className="w-full mt-2 h-13 bg-[#0D4B37] text-white py-2 rounded-md font-medium hover:bg-[#125E45]  transition"
+                >
+                  <span className="transition text-medium duration-700 hover:text-lg">
+                    Set a new password
+                  </span>
+                </button>
               </div>
             )}
           </>
+        )}
+        {mode === "reset" && (
+          <div className="w-full px-[12px]">
+            <div className="flex items-center mt-[8px] mb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode("signin");
+                  setOtpMessage(null);
+                }}
+                className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+              >
+                <IoMdArrowBack size={20} />
+              </button>
+              <h2 className="w-[85%] text-[17px] text-center font-[600] text-[#020202]">
+                Set a new password
+              </h2>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[14px] text-left font-medium text-gray-700 mb-1">
+                  Current Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter Password"
+                    className="w-full border font-[400] text-[15px] hover:border-[#AFD7D2] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] focus:ring-2 focus:ring-green-400 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword((p) => !p)}
+                    className="absolute right-3 top-[50%] tranlate-y-[-50%] text-gray-500 hover:text-gray-700"
+                  >
+                    {!showCurrentPassword ? (
+                      <FiEyeOff size={14} />
+                    ) : (
+                      <FiEye size={14} />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[14px] text-left font-medium text-gray-700 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter Email"
+                  autoComplete="off"
+                  data-lpignore="true"
+                  className="w-full border font-[400] text-[15px] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] hover:border-[#AFD7D2] focus:ring-1 focus:ring-[#AFD7D2] focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[14px] text-left font-medium text-gray-700 mb-1">
+                  New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter Password"
+                    className="w-full border font-[400] text-[15px] hover:border-[#AFD7D2] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] focus:ring-2 focus:ring-green-400 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword((p) => !p)}
+                    className="absolute right-3 top-[50%] tranlate-y-[-50%] text-gray-500 hover:text-gray-700"
+                  >
+                    {!showNewPassword ? (
+                      <FiEyeOff size={14} />
+                    ) : (
+                      <FiEye size={14} />
+                    )}
+                  </button>
+                </div>
+                <div className="mt-3 text-[13px] text-[#414141]">
+                  <p
+                    className={`mb-1 ${
+                      hasMinLength ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    • Minimum 8 characters
+                  </p>
+                  <p
+                    className={`mb-1 ${
+                      hasUpper ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    • Minimum 1 uppercase letter
+                  </p>
+                  <p
+                    className={`mb-1 ${
+                      hasLower ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    • Minimum 1 lowercase letter
+                  </p>
+                  <p
+                    className={`mb-1 ${
+                      hasNumber ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    • Minimum 1 number
+                  </p>
+                  <p
+                    className={`mb-1 ${
+                      hasSpecial ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    • Minimum 1 special character
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[14px] text-left font-medium text-gray-700 mb-1">
+                  Confirm New Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmNewPassword}
+                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    placeholder="Re-enter Password"
+                    className="w-full border font-[400] text-[15px] hover:border-[#AFD7D2] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] focus:ring-2 focus:ring-green-400 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((p) => !p)}
+                    className="absolute right-3 top-[50%] tranlate-y-[-50%] text-gray-500 hover:text-gray-700"
+                  >
+                    {!showConfirmPassword ? (
+                      <FiEyeOff size={14} />
+                    ) : (
+                      <FiEye size={14} />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {otpMessage && (
+                <p
+                  className={`text-sm text-center mb-2 ${
+                    otpMessage.tone === "error"
+                      ? "text-red-600"
+                      : "text-green-600"
+                  }`}
+                >
+                  {otpMessage.text}
+                </p>
+              )}
+
+              <button
+                onClick={handleSetNewPassword}
+                className="w-full h-10 text-[15px] bg-[#0D4B37] text-white py-[10px] rounded-md shadow-xl font-medium hover:bg-[#125E45] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+                disabled={!canSetNewPassword || isSubmitting}
+              >
+                {isSubmitting ? "Setting..." : "Set a new password"}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

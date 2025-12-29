@@ -73,10 +73,6 @@ interface TabConfig {
 
 function ServiceInfoFormSwitcher(props: any) {
   const { selectedService, onAddDocuments, initialData } = props;
-  // selectedService can be either a full service object (with .category)
-  // or a string coming from initialData.quotationType (eg. "flight", "hotel").
-  // Normalize common backend/frontend quotationType values to the category
-  // values expected by the service forms.
   const rawServiceValue =
     (selectedService &&
       typeof selectedService === "object" &&
@@ -440,8 +436,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       ...currentFormData,
     };
 
+    const selectedServiceValue =
+      typeof selectedService === "string"
+        ? selectedService
+        : (selectedService as any)?.category;
+
     const quotationTypeForDraft =
-      selectedService?.category ||
+      selectedServiceValue ||
       initialData?.quotationType ||
       formValues.quotationType;
 
@@ -508,13 +509,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
 
-    if (!selectedService) {
-      console.error("No service selected");
-      alert("Please select a service");
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
       // Use ref to get latest formData to avoid stale closure issues
       const currentFormData = formDataRef.current;
@@ -522,9 +516,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         ...collectAllFormData(),
         ...currentFormData,
       };
+      const selectedServiceValue =
+        typeof selectedService === "string"
+          ? selectedService
+          : (selectedService as any)?.category;
 
       const quotationTypeForSubmit =
-        selectedService?.category ||
+        selectedServiceValue ||
         initialData?.quotationType ||
         formValues.quotationType;
 
@@ -818,7 +816,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                             textColor="text-white"
                             width="w-auto"
                             type="button"
-                            disabled={isSubmitting || !selectedService}
+                            disabled={
+                              isSubmitting || !(selectedService || initialData)
+                            }
                           />
                         </>
                       )}

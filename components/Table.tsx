@@ -13,6 +13,7 @@ interface TableProps {
   onSort?: (column: string) => void;
   hideRowsPerPage?: boolean;
   showCheckboxColumn?: boolean;
+  headerCheckbox?: React.ReactNode;
   /* NEW optional DnD props */
   enableDragAndDrop?: boolean; // default false
   rowIds?: string[];
@@ -32,6 +33,7 @@ const Table: React.FC<TableProps> = ({
   onSort,
   hideRowsPerPage,
   showCheckboxColumn = false,
+  headerCheckbox,
   enableDragAndDrop = false,
   rowIds = [],
   droppableId = "table-droppable",
@@ -127,7 +129,9 @@ const Table: React.FC<TableProps> = ({
                 headerClassName || "bg-[#0D4B37]"
               }`}
             >
-              {showCheckboxColumn && <th className="px-3 py-2 w-[3rem]"></th>}
+              {showCheckboxColumn && (
+                <th className="px-3 py-2 w-[3rem]">{headerCheckbox}</th>
+              )}
               {columns.map((col, index) => (
                 <th
                   key={`${col}-${index}`}
@@ -176,10 +180,9 @@ const Table: React.FC<TableProps> = ({
               ))}
             </tr>
           </thead>
-          {/* ---------- BODY: conditional Droppable/Draggable rendering ---------- */}
+          {/* BODY: conditional Droppable/Draggable rendering */}
           {enableDragAndDrop ? (
-            // If DnD enabled, render Droppable + Draggable rows (NOTE: DragDropContext should wrap this component externally
-            // if you want cross-table dragging between multiple Table instances)
+            // If DnD enabled, render Droppable + Draggable rows
             <Droppable droppableId={droppableId}>
               {(provided) => (
                 <tbody ref={provided.innerRef} {...provided.droppableProps}>

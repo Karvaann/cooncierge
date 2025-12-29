@@ -18,6 +18,7 @@ interface ModalProps {
   className?: string;
   zIndexClass?: string;
   disableOverlayClick?: boolean;
+  headerLeft?: React.ReactNode;
 }
 
 type ModalSize = {
@@ -39,6 +40,7 @@ const Modal: React.FC<ModalProps> = ({
   className = "",
   zIndexClass = "z-[140]",
   disableOverlayClick = false,
+  headerLeft,
 }) => {
   const sizeClasses: ModalSize = useMemo(
     () => ({
@@ -113,20 +115,24 @@ const Modal: React.FC<ModalProps> = ({
         {/* HEADER FIXED LAYOUT */}
 
         <div className="relative flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100">
-          <div className="flex-1 text-center px-6">
-            <h2
-              id="modal-title"
-              className="text-black text-[1rem] md:text-[1.15rem] font-semibold leading-snug m-0"
-            >
-              {title}
-            </h2>
+          {headerLeft ? (
+            <div className="flex-initial ml-3">{headerLeft}</div>
+          ) : (
+            <div className="flex-1 text-center px-6">
+              <h2
+                id="modal-title"
+                className="text-black text-[1rem] md:text-[1.15rem] font-semibold leading-snug m-0"
+              >
+                {title}
+              </h2>
 
-            {subtitle && (
-              <p className="text-gray-500 text-[0.8rem] mt-1 leading-tight">
-                {subtitle}
-              </p>
-            )}
-          </div>
+              {subtitle && (
+                <p className="text-gray-500 text-[0.8rem] mt-1 leading-tight">
+                  {subtitle}
+                </p>
+              )}
+            </div>
+          )}
 
           {showCloseButton && (
             <button

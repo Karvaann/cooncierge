@@ -34,11 +34,29 @@ export interface PasswordResetRequest {
   email: string;
 }
 
+export interface CreateOrUpdateUserRequest {
+  mobile: string;
+  email: string;
+  roleId: string;
+  gender: string;
+  phoneCode: number;
+  userId?: string;
+  businessId?: string;
+}
+
+export interface CreateOrUpdateUserResponse {
+  success?: boolean;
+  message?: string;
+  user?: unknown;
+  data?: unknown;
+}
+
 const AUTH_ROUTES = {
   login: "/auth/login",
   verifyTwoFa: "/auth/verify-2fa",
   requestPasswordReset: "/auth/forgot-password",
   logout: "/auth/logout",
+  createOrUpdateUser: "/auth/create-or-update",
 } as const;
 
 export const AuthApi = {
@@ -81,6 +99,11 @@ export const AuthApi = {
     } finally {
       clearAuthStorage();
     }
+  },
+
+  async createOrUpdateUser(payload: CreateOrUpdateUserRequest): Promise<CreateOrUpdateUserResponse> {
+    const { data } = await apiClient.post<CreateOrUpdateUserResponse>(AUTH_ROUTES.createOrUpdateUser, payload);
+    return data;
   },
 };
 

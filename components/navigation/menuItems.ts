@@ -5,6 +5,7 @@ import { TbGraph, TbLuggage, TbBrandNetbeans } from "react-icons/tb";
 import { LuClipboardList } from "react-icons/lu";
 import { PiCurrencyCircleDollar } from "react-icons/pi";
 import { RiContactsBook3Line } from "react-icons/ri";
+import { IoSettingsOutline } from "react-icons/io5";
 
 export interface SubMenuItem {
   label: string;
@@ -74,6 +75,11 @@ export const menuItems: MenuItem[] = [
       { label: "Vendors", href: "/directory/vendors" },
       { label: "Team", href: "/directory/team" },
     ],
+  },
+  {
+    label: "Settings",
+    icon: IoSettingsOutline,
+    href: "/settings",
   },
 ];
 

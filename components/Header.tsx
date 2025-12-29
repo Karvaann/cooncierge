@@ -36,6 +36,7 @@ type PieceMapKey =
   | "customers"
   | "team"
   | "vendors"
+  | "settings"
   | "ProfileSettings"
   | "UserProfile";
 
@@ -54,6 +55,7 @@ type HeaderMapKey =
   | "/directory/customers"
   | "/directory/team"
   | "/dashboard"
+  | "/settings"
   | "/ProfileSettings"
   | "/ProfileSettings/UserProfile";
 
@@ -74,6 +76,7 @@ const PIECE_MAP: Record<PieceMapKey, string> = {
   vendors: "Vendors",
   ProfileSettings: "Profile Settings",
   UserProfile: "User Profile",
+  settings: "Settings",
 } as const;
 
 const HEADER_MAP: Record<HeaderMapKey, string> = {
@@ -93,6 +96,7 @@ const HEADER_MAP: Record<HeaderMapKey, string> = {
   "/dashboard": "Dashboard",
   "/ProfileSettings": "Profile Settings",
   "/ProfileSettings/UserProfile": "User Profile",
+  "/settings": "Settings",
 } as const;
 
 const Header: React.FC<HeaderProps> = ({ isOpen }) => {
@@ -163,7 +167,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
 
   const dropdownClasses = useMemo(
     () =>
-      `absolute right-0 top-full mt-4 -mr-3 w-75 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden transition-all duration-300 ease-in-out ${
+      `absolute right-0 top-full mt-4 -mr-3 w-70 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden transition-all duration-300 ease-in-out ${
         isDropDownOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
       }`,
     [isDropDownOpen]
@@ -240,17 +244,17 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
 
               {/* Dropdown menu */}
               <div className={dropdownClasses}>
-                <div className="border-t border-gray-100 py-2 px-3 text-[0.75rem]">
+                <div className="border-t border-gray-100 py-2 px-3 text-[14px]">
                   {/* User Info */}
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 bg-[#0D4B37] rounded-full flex items-center justify-center text-white">
                       <IoPersonOutline className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="text-gray-900 text-[0.8rem] font-medium">
+                      <div className="text-gray-900 text-[14px] font-medium">
                         {currentUser?.name || "User Name"}
                       </div>
-                      <div className="text-[0.65rem] text-gray-500">
+                      <div className="text-[12px] text-gray-500">
                         {currentUser?.email || "user@email.com"}
                       </div>
                     </div>
@@ -262,17 +266,17 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
                   <button
                     type="button"
                     onClick={handleSettingsClick}
-                    className="flex items-center w-full px-2 py-1.5 text-[0.75rem] hover:text-gray-700 transition-colors"
+                    className="flex items-center w-full px-2 py-1.5 text-[14px] hover:text-gray-700 transition-colors"
                   >
                     <SlSettings className="mr-2 text-gray-600 w-3.5 h-3.5" />
-                    Profile Settings
+                    Profile Info
                   </button>
 
                   {/* Raise Request */}
                   <button
                     type="button"
                     onClick={openRaiseRequestModal}
-                    className="flex items-center w-full px-2 py-1.5 text-[0.75rem] hover:text-gray-700 transition-colors"
+                    className="flex items-center w-full px-2 py-1.5 text-[14px] hover:text-gray-700 transition-colors"
                   >
                     <HiOutlineHandRaised className="mr-2 text-gray-600 w-3.5 h-3.5" />
                     Raise Request
@@ -282,7 +286,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
 
                   {/* Logout */}
                   <button
-                    className="flex items-center w-full px-2 py-1.5 text-red-500 text-[0.75rem] transition-colors"
+                    className="flex items-center w-full px-2 py-1.5 text-red-500 text-[14px] transition-colors"
                     onClick={handleLogOut}
                   >
                     <GoSignOut className="mr-2 w-3.5 h-3.5" />
@@ -295,10 +299,12 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
         </div>
 
         {/* Breadcrumb Row */}
-        <div className="flex items-center px-5 py-1 bg-gray-100">
-          <IoHomeOutline className="w-[14px] h-5 mr-2 text-[#114958]" />
-          {breadcrumbElements}
-        </div>
+        {pathname !== "/settings" && (
+          <div className="flex items-center px-5 py-1 bg-gray-100">
+            <IoHomeOutline className="w-[14px] h-5 mr-2 text-[#114958]" />
+            {breadcrumbElements}
+          </div>
+        )}
 
         <RaiseRequestModal
           isOpen={isRaiseRequestModalOpen}
