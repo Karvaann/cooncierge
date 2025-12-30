@@ -56,12 +56,8 @@ const AUTH_ROUTES = {
   verifyTwoFa: "/auth/verify-2fa",
   requestPasswordReset: "/auth/forgot-password",
   logout: "/auth/logout",
-<<<<<<< HEAD
   createOrUpdateUser: "/auth/create-or-update-user",
-=======
-  createOrUpdateUser: "/auth/create-or-update",
   resetPassword: "/auth/reset-password",
->>>>>>> 2d13f45f6a7fd0ce4ecce41b24300d21f1ec48ea
 } as const;
 
 export const AuthApi = {
