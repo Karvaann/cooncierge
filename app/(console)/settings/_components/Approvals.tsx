@@ -31,45 +31,9 @@ interface Team {
 
 const columns = ["Team Name", "Checkers", "Makers", "Team Status", "Actions"];
 
-const sampleTeams: Team[] = [
-  {
-    id: "t1",
-    name: "Team 1",
-    checkers: [{ id: "u1", name: "YM" }],
-    makers: [
-      { id: "u2", name: "AS" },
-      { id: "u3", name: "VG" },
-    ],
-    status: "Inactive",
-  },
-  {
-    id: "t2",
-    name: "Team 2",
-    checkers: [{ id: "u2", name: "VG" }],
-    makers: [
-      { id: "u2", name: "AS" },
-      { id: "u4", name: "AK" },
-      { id: "u5", name: "SR" },
-      { id: "u3", name: "VG" },
-    ],
-    status: "Active",
-  },
-  {
-    id: "t3",
-    name: "Team 3",
-    checkers: [{ id: "u1", name: "YM" }],
-    makers: [
-      { id: "u4", name: "AK" },
-      { id: "u5", name: "SR" },
-      { id: "u3", name: "VG" },
-    ],
-    status: "Active",
-  },
-];
-
 export default function Approvals(): React.ReactElement {
   const [activeTab, setActiveTab] = useState("Bookings");
-  const [teams, setTeams] = useState<Team[]>(sampleTeams);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
 
@@ -214,17 +178,13 @@ export default function Approvals(): React.ReactElement {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h2 className="text-[18px] font-semibold">Approvals</h2>
-        </div>
-      </div>
+      <h2 className="text-[15px] font-[600] mb-[12px]">Approvals</h2>
 
-      <div className="mb-3 -mt-2 -ml-2">
+      <div className="mb-[14px]">
         <nav className="flex gap-2 relative" role="tablist">
           <button
             onClick={() => setActiveTab("Bookings")}
-            className={`px-4 py-1.5 text-[14px] font-medium transition-colors relative ${
+            className={`px-1 py-1.5 text-[14px] font-[400] transition-colors relative ${
               activeTab === "Bookings"
                 ? "text-[#0D4B37]"
                 : "text-gray-500 hover:text-gray-700"
@@ -234,13 +194,13 @@ export default function Approvals(): React.ReactElement {
           >
             Bookings
             {activeTab === "Bookings" && (
-              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-[2px] bg-[#0D4B37] z-20"></span>
+              <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-[100%] h-[2px] bg-[#0D4B37] z-20"></span>
             )}
           </button>
 
           <button
             onClick={() => setActiveTab("Finance")}
-            className={`px-4 py-1.5 text-[14px] font-medium transition-colors relative ${
+            className={`px-4 py-1.5 text-[14px] font-[400] transition-colors relative ${
               activeTab === "Finance"
                 ? "text-[#0D4B37]"
                 : "text-gray-500 hover:text-gray-700"
@@ -250,7 +210,7 @@ export default function Approvals(): React.ReactElement {
           >
             Finance
             {activeTab === "Finance" && (
-              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-[2px] bg-[#0D4B37] z-20"></span>
+              <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-4/5 h-[2px] bg-[#0D4B37] z-20"></span>
             )}
           </button>
         </nav>
@@ -267,7 +227,7 @@ export default function Approvals(): React.ReactElement {
           <div>
             <button
               onClick={() => setIsCreateOpen(true)}
-              className="px-4 py-2 text-[14px] font-semibold leading-5 bg-[#0D4B37] text-white rounded-md"
+              className="px-[14px] py-[6px] text-[14px] font-[500] leading-5 bg-[#0D4B37] text-white rounded-md"
             >
               + Create Team
             </button>

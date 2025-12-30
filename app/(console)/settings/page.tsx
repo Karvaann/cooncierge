@@ -51,21 +51,21 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen flex bg-gray-50">
-      <aside className="hidden md:block w-60 shrink-0 bg-white py-5 px-1">
-        <div className="mb-5 items-center ml-6">
+      <aside className="hidden md:block w-[200px] shrink-0 bg-white">
+        <div className="  py-[14px] px-[14px]">
           <Link
             href="/bookings/other-services"
-            className="text-sm text-black flex gap-2 hover:underline"
+            className="text-[13px] flex items-center text-[#020202] font-[400] flex gap-[10px] hover:underline"
           >
-            <MdKeyboardArrowLeft className=" text-black mt-0.5" /> Back to Home
+            <MdKeyboardArrowLeft className=" text-[#020202]" /> Back to Home
           </Link>
         </div>
-        <hr className="mb-4 -mt-2 border-t border-gray-200" />
+        <hr className="border-t border-gray-200" />
 
         <nav aria-label="Settings navigation">
           {nav.map((section) => (
-            <div key={section.title} className="mb-6 px-3 ml-3">
-              <div className="text-sm text-gray-400 uppercase mb-2">
+            <div style={{paddingBottom: '0px'}} key={section.title} className="px-[14px] py-[14px]">
+              <div className="text-sm text-gray-400 mb-2">
                 {section.title}
               </div>
               <ul className="space-y-0.5">
@@ -82,11 +82,11 @@ export default function SettingsPage() {
                         <span className="w-4 text-center font-normal text-[#020202] text-[13px]">
                           {it.icon
                             ? React.createElement(it.icon, {
-                                className: "w-3.5 h-3.5",
+                                className: "w-[14px] h-[14px]",
                               })
                             : "•"}
                         </span>
-                        <span className="font-normal text-[#020202] text-[13px]">
+                        <span className="font-[400] text-[#020202] text-[12px]">
                           {it.label}
                         </span>
                       </button>
@@ -101,11 +101,11 @@ export default function SettingsPage() {
                         <span className="w-4 text-center font-normal text-[#020202] text-[13px]">
                           {it.icon
                             ? React.createElement(it.icon, {
-                                className: "w-3.5 h-3.5",
+                                className: "w-[14px] h-[14px]",
                               })
                             : "•"}
                         </span>
-                        <span className="font-normal text-[#020202] text-[13px]">
+                        <span className="font-[400] text-[#020202] text-[12px]">
                           {it.label}
                         </span>
                       </button>
@@ -118,16 +118,16 @@ export default function SettingsPage() {
         </nav>
       </aside>
 
-      <main className="flex-1 min-w-0 w-full px-6 py-4 bg-gray-100">
+      <main className="flex-1 min-w-0 w-full px-5 py-2 bg-gray-100">
         {/* BREADCRUMB */}
-        <div className="flex items-center text-[12px] text-gray-500 mb-1">
-          <span className="text-[#114958] font-medium">
-            <IoHomeOutline className="w-[14px] h-5 mr-1 -mt-1 text-[#114958]" />
+        <div className="flex items-center text-[11px] text-gray-500 mb-1">
+          <span className="text-[#0D4B37] font-medium">
+            <IoHomeOutline className="w-[18px] text-[#114958]" />
           </span>
           <span className="mx-1">/</span>
-          <span className="text-[#114958] font-medium">Settings</span>
+          <span className="text-[#0D4B37] font-[400]">Settings</span>
         </div>
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-100 w-full">
+        <div className="bg-white rounded-lg p-[18px] shadow-sm border border-gray-100 w-full">
           <div>
             {selected === "company" ? (
               <CompanyDetails />

@@ -285,17 +285,13 @@ export default function AllUsers(): JSX.Element {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4 -mt-1">
-        <div>
-          <h2 className="text-[18px] font-semibold">All Users / Roles</h2>
-        </div>
-      </div>
+      <h2 className="text-[15px] font-[600] mb-[12px]">All Users / Roles</h2>
 
-      <div className="mb-3 -mt-2 -ml-2">
+      <div className="mb-[14px]">
         <nav className="flex gap-2 relative" role="tablist">
           <button
             onClick={() => setActiveTab("All Users")}
-            className={`px-4 py-1.5 text-[14px] font-medium transition-colors relative ${
+            className={`px-1 py-1.5 text-[14px] font-[400] transition-colors relative ${
               activeTab === "All Users"
                 ? "text-[#0D4B37]"
                 : "text-gray-500 hover:text-gray-700"
@@ -305,13 +301,13 @@ export default function AllUsers(): JSX.Element {
           >
             All Users
             {activeTab === "All Users" && (
-              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-[2px] bg-[#0D4B37] z-20"></span>
+              <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-[100%] h-[2px] bg-[#0D4B37] z-20"></span>
             )}
           </button>
 
           <button
             onClick={() => setActiveTab("Roles & Permissions")}
-            className={`px-4 py-1.5 text-[14px] font-medium transition-colors relative ${
+            className={`px-4 py-1.5 text-[14px] font-[400] transition-colors relative ${
               activeTab === "Roles & Permissions"
                 ? "text-[#0D4B37]"
                 : "text-gray-500 hover:text-gray-700"
@@ -321,7 +317,7 @@ export default function AllUsers(): JSX.Element {
           >
             Roles & Permissions
             {activeTab === "Roles & Permissions" && (
-              <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-[2px] bg-[#0D4B37] z-20"></span>
+              <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-[100%] h-[2px] bg-[#0D4B37] z-20"></span>
             )}
           </button>
         </nav>
@@ -337,11 +333,11 @@ export default function AllUsers(): JSX.Element {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-[10px]">
             {activeTab === "Roles & Permissions" ? (
               <button
                 onClick={() => setIsCreateRoleOpen(true)}
-                className="px-4 py-2 text-[14px] font-semibold leading-5 bg-[#0D4B37] text-white rounded-md"
+                className="px-[14px] py-[6px] text-[14px] font-[500] leading-5 bg-[#0D4B37] text-white rounded-md"
               >
                 + Add New Role
               </button>
@@ -349,19 +345,19 @@ export default function AllUsers(): JSX.Element {
               <>
                 <button
                   onClick={() => setIsActivateModalOpen(true)}
-                  className="px-4 py-2 text-[15px] font-semibold leading-5 border border-[#4CA640] text-[#4CA640] rounded-md bg-[#4CA6401A]"
+                  className="px-[14px] py-[6px] text-[14px] font-[500] leading-5 border border-[#4CA640] text-[#4CA640] rounded-md bg-[#4CA6401A]"
                 >
                   Activate (1 Left)
                 </button>
                 <button
                   onClick={() => setIsDeactivateModalOpen(true)}
-                  className="px-4 py-2 text-[15px] font-semibold leading-5 border border-[#DD1425] text-[#DD1425] rounded-md bg-[#DD14251A]"
+                  className="px-[14px] py-[6px] text-[14px] font-[500] leading-5 border border-[#DD1425] text-[#DD1425] rounded-md bg-[#DD14251A]"
                 >
                   Deactivate
                 </button>
                 <button
                   onClick={() => setIsAddOpen(true)}
-                  className="px-4 py-2 text-[15px] font-semibold leading-5 bg-[#0D4B37] text-white rounded-md"
+                  className="px-[14px] py-[6px] text-[14px] font-[500] leading-5 bg-[#0D4B37] text-white rounded-md"
                 >
                   + Add User
                 </button>

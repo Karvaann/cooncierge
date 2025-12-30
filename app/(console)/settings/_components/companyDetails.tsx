@@ -139,12 +139,12 @@ export default function CompanyDetails() {
 
   return (
     <>
-      <h2 className="text-lg font-semibold mb-4 -mt-1">Company Details</h2>
+      <h2 className="text-[15px] font-[600] mb-[14px]">Company Details</h2>
 
       <div className="bg-white rounded-lg border border-gray-200 p-0 overflow-hidden">
-        <div className="grid grid-cols-12 gap-0">
+        <div className="grid grid-cols-14 gap-0">
           <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-200 flex items-center justify-center ">
-            <label className="text-base font-semibold text-[#414141]">
+            <label className="text-[14px] font-[500] text-[#414141]">
               Company Logo
             </label>
           </div>
@@ -207,9 +207,9 @@ export default function CompanyDetails() {
         </div>
 
         {/* Company Name */}
-        <div className="grid grid-cols-12 border-t border-gray-200">
+        <div className="grid grid-cols-14 border-t border-gray-200">
           <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-200 flex items-center justify-center">
-            <label className="text-base font-semibold text-[#414141]">
+            <label className="text-[14px] font-[500] text-[#414141]">
               Company Name
             </label>
           </div>
@@ -225,9 +225,9 @@ export default function CompanyDetails() {
         </div>
 
         {/* Company Phone */}
-        <div className="grid grid-cols-12 border-t border-gray-200">
+        <div className="grid grid-cols-14 border-t border-gray-200">
           <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-200 flex items-center justify-center">
-            <label className="text-base font-semibold text-[#414141]">
+            <label className="text-[14px] font-[500] text-[#414141]">
               Company Phone
             </label>
           </div>
@@ -254,9 +254,9 @@ export default function CompanyDetails() {
         </div>
 
         {/* Company Email */}
-        <div className="grid grid-cols-12 border-t border-gray-200">
+        <div className="grid grid-cols-14 border-t border-gray-200">
           <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-200 flex items-center justify-center">
-            <label className="text-base font-semibold text-[#414141]">
+            <label className="text-[14px] font-[500] text-[#414141]">
               Company Email
             </label>
           </div>
@@ -272,9 +272,9 @@ export default function CompanyDetails() {
         </div>
 
         {/* Alternative Contact */}
-        <div className="grid grid-cols-12 border-t border-gray-200">
+        <div className="grid grid-cols-14 border-t border-gray-200">
           <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-200 flex items-center justify-center">
-            <label className="text-base font-semibold text-[#414141]">
+            <label className="text-[14px] font-[500] text-[#414141]">
               Alternative Contact Number
             </label>
           </div>
@@ -301,9 +301,9 @@ export default function CompanyDetails() {
         </div>
 
         {/* Website */}
-        <div className="grid grid-cols-12 border-t border-gray-100">
+        <div className="grid grid-cols-14 border-t border-gray-100">
           <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-100 flex items-center justify-center">
-            <label className="text-base font-semibold text-[#414141]">
+            <label className="text-[14px] font-[500] text-[#414141]">
               Website
             </label>
           </div>
@@ -319,9 +319,9 @@ export default function CompanyDetails() {
         </div>
 
         {/* Default Currency */}
-        <div className="grid grid-cols-12 border-t border-gray-100">
+        <div className="grid grid-cols-14 border-t border-gray-100">
           <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-100 flex items-center justify-center">
-            <label className="text-base font-semibold text-[#414141]">
+            <label className="text-[14px] font-[500] text-[#414141]">
               Default Currency
             </label>
           </div>
