@@ -9,6 +9,7 @@ import AddUserSidesheet from "../../../../components/Sidesheets/AddUserSidesheet
 import CreateRoleModal from "../../../../components/Modals/CreateRoleModal";
 import ActivateusersModal from "../../../../components/Modals/ActivateusersModal";
 import ActionMenu from "../../../../components/Menus/ActionMenu";
+import { AuthApi } from "@/services/authApi";
 import { MdOutlineEdit } from "react-icons/md";
 import { FaRegTrashAlt } from "react-icons/fa";
 import type { JSX } from "react";
@@ -19,30 +20,6 @@ const roleColumns = ["Role", "Users", "Access Level", "Actions"];
 
 // users will be fetched from backend
 
-const sampleRoles = [
-  {
-    id: "r1",
-    role: "Operations",
-    users: [
-      { id: "1", name: "AS", fullName: "Abhishek Singh" },
-      { id: "2", name: "VG", fullName: "Vikram Gupta" },
-    ],
-    access: "Limited Access",
-  },
-  {
-    id: "r2",
-    role: "Admin",
-    users: [{ id: "3", name: "YM", fullName: "Yash Manocha" }],
-    access: "Admin Access",
-  },
-  {
-    id: "r3",
-    role: "Sales",
-    users: [{ id: "2", name: "VG", fullName: "Vikram Gupta" }],
-    access: "Limited Access",
-  },
-];
-
 export default function AllUsers(): JSX.Element {
   const [activeTab, setActiveTab] = useState("All Users");
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -52,6 +29,18 @@ export default function AllUsers(): JSX.Element {
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [roles, setRoles] = useState<any[]>([]);
+
+  const calculateAccessLevel = (permissions: Record<string, boolean>) => {
+    if (!permissions || Object.keys(permissions).length === 0) {
+      return "Limited Access";
+    }
+
+    const values = Object.values(permissions);
+    const allChecked = values.every(Boolean);
+
+    return allChecked ? "Admin Access" : "Limited Access";
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -93,8 +82,57 @@ export default function AllUsers(): JSX.Element {
     };
   }, []);
 
+  // load business roles for Roles & Permissions tab
+  useEffect(() => {
+    let mounted = true;
+    const loadRoles = async () => {
+      try {
+        const res = await AuthApi.getBusinessRoles();
+        const list = res?.output || (res as any)?.data || [];
+        if (!Array.isArray(list) || list.length === 0) {
+          if (mounted) setRoles([]);
+          return;
+        }
+
+        const mapped = list.map((r: any) => {
+          const roleId = r._id || r.id || r.roleId || String(Math.random());
+          const roleName = r.roleName || r.name || r.role || "";
+
+          const usersArr = Array.isArray(r.users)
+            ? r.users.map((u: any) => ({
+                id: u._id || u.id || u.userId || String(Math.random()),
+                name:
+                  (u.shortName && String(u.shortName)) ||
+                  (u.name || "")
+                    .split(" ")
+                    .map((p: string) => (p[0] || "").toUpperCase())
+                    .join("")
+                    .slice(0, 2) ||
+                  "U",
+                fullName: u.name || u.fullName || u.displayName || "",
+              }))
+            : [];
+
+          const access = calculateAccessLevel(r.permissions || {});
+
+          return { id: roleId, role: roleName, users: usersArr, access };
+        });
+
+        if (!mounted) return;
+        setRoles(mapped);
+      } catch (e) {
+        console.error("Failed to load roles", e);
+      }
+    };
+
+    loadRoles();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const rolesTableData = useMemo<React.ReactNode[][]>(() => {
-    return sampleRoles.map((r) => {
+    return roles.map((r) => {
       const row: JSX.Element[] = [];
 
       row.push(
@@ -106,7 +144,7 @@ export default function AllUsers(): JSX.Element {
       row.push(
         <td key={`users-${r.id}`} className="px-6 py-4 text-center">
           <div className="inline-flex items-center">
-            {r.users.map((u, idx) => (
+            {r.users.map((u: any, idx: number) => (
               <AvatarToolTip
                 key={u.id}
                 short={u.name}
@@ -159,7 +197,7 @@ export default function AllUsers(): JSX.Element {
 
       return row;
     });
-  }, []);
+  }, [roles]);
 
   const tableData = useMemo<React.ReactNode[][]>(() => {
     return users.map((u) => {
@@ -188,12 +226,10 @@ export default function AllUsers(): JSX.Element {
           <div className="inline-flex items-center gap-2 justify-center">
             <span>{u.role}</span>
             <DropDown
-              options={[
-                { value: "Admin", label: "Admin" },
-                { value: "Operations", label: "Operations" },
-                { value: "Sales", label: "Sales" },
-                { value: "Finance", label: "Finance" },
-              ]}
+              options={roles.map((r: any) => ({
+                value: r.role,
+                label: r.role,
+              }))}
               value={u.role}
               onChange={(v) =>
                 setUsers((prev) =>
@@ -281,7 +317,7 @@ export default function AllUsers(): JSX.Element {
 
       return row;
     });
-  }, [users]);
+  }, [users, roles]);
 
   return (
     <div>

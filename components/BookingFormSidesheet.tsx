@@ -535,10 +535,15 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         return;
       }
 
+      const user = getAuthUser() as any;
+      const isBookingMaker =
+        user?.isBookingMaker === true || user?.isBookingMaker === "true";
+      const serviceStatus = isBookingMaker ? "pending" : "approved";
+
       const bookingData = convertToBookingData(
         formValues,
         quotationTypeForSubmit,
-        "approved"
+        serviceStatus
       );
 
       // const formDataToSend = new FormData();

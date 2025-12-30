@@ -32,6 +32,9 @@ export default function AddUserSidesheet({
   const [mobile, setMobile] = useState<string>("");
   const [userStatus, setUserStatus] = useState<string>("");
   const [role, setRole] = useState<string>("");
+  const [rolesOptions, setRolesOptions] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
 
   const [autoCreate, setAutoCreate] = useState(true);
   const [password, setPassword] = useState("");
@@ -73,7 +76,9 @@ export default function AddUserSidesheet({
         (countryCode || "").toString().replace("+", "")
       );
 
-      const roleIdFinal = roleIdFromStorage || "000000000000000000000000";
+      // Prefer selected role from dropdown, fallback to stored role
+      const roleIdFinal =
+        role || roleIdFromStorage || "000000000000000000000000";
 
       // Build request payload matching backend required fields and model
       const reqPayload = {
@@ -142,6 +147,37 @@ export default function AddUserSidesheet({
     onUpdateUser,
   ]);
 
+  // Fetch business roles when the sidesheet opens
+  useEffect(() => {
+    let mounted = true;
+    const fetchRoles = async () => {
+      try {
+        // debug log
+        console.debug("AddUserSidesheet: fetching business roles...");
+        const res = await AuthApi.getBusinessRoles();
+        const output = res?.output || [];
+        const opts = output.map((r: any) => ({
+          value: String(r.id ?? r._id ?? ""),
+          label: String(
+            r.name ?? r.roleName ?? r.roleName ?? r.id ?? r._id ?? ""
+          ),
+        }));
+        if (!mounted) return;
+        setRolesOptions(opts);
+        const first = opts[0];
+        if (!role && first) setRole(first.value);
+      } catch (e) {
+        // ignore
+
+        console.error("Failed to fetch roles", e);
+      }
+    };
+
+    if (isOpen) fetchRoles();
+    return () => {
+      mounted = false;
+    };
+  }, [isOpen]);
   // Prefill when editing
   useEffect(() => {
     if (isEdit && initialData) {
@@ -234,7 +270,10 @@ export default function AddUserSidesheet({
                     ]}
                     value={countryCode}
                     onChange={(v) => setCountryCode(v)}
-                    customWidth="w-[6rem] mt-1.5 h-[2.2rem]"
+                    customWidth="w-[6rem]"
+                    customHeight="h-[2.2rem]"
+                    className="mt-1.5"
+                    menuWidth="w-[6rem]"
                   />
                 </div>
                 <div className="col-span-5">
@@ -268,11 +307,7 @@ export default function AddUserSidesheet({
                   *Role
                 </label>
                 <DropDown
-                  options={[
-                    { value: "admin", label: "Admin" },
-                    { value: "operations", label: "Operations" },
-                    { value: "sales", label: "Sales" },
-                  ]}
+                  options={rolesOptions}
                   value={role}
                   onChange={(v) => setRole(v)}
                   customWidth="w-full"

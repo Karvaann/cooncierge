@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { AuthApi } from "@/services/authApi";
 import SideSheet from "../SideSheet";
 
 interface Props {
@@ -123,6 +124,31 @@ const AddRolesSidesheet: React.FC<Props> = ({
 
   const toggle = (key: keyof typeof state) => {
     setState((s) => ({ ...s, [key]: !s[key] }));
+  };
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      const payload = {
+        roleName,
+        permission: { ...state },
+      };
+
+      const res = await AuthApi.createRole(payload as any);
+      if (res && (res.success || res.data)) {
+        // created successfully
+        onClose();
+      } else {
+        console.error("Create role failed", res);
+      }
+    } catch (e) {
+      console.error("Error creating role", e);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const Row: React.FC<{
@@ -755,15 +781,14 @@ const AddRolesSidesheet: React.FC<Props> = ({
           {/* Save Button bottom-right */}
           <div className="absolute bottom-4 right-4">
             <button
-              onClick={() => {
-                // simple save handler — in real usage call api
-                // console.log('save', state)
-                onClose();
-              }}
-              className="text-white font-medium text-[13px] px-4 py-2 rounded"
+              onClick={handleSave}
+              disabled={isSaving}
+              className={`text-white font-medium text-[13px] px-4 py-2 rounded ${
+                isSaving ? "opacity-60 cursor-not-allowed" : ""
+              }`}
               style={{ backgroundColor: "#0D4B37" }}
             >
-              Save Role
+              {isSaving ? "Saving..." : "Save Role"}
             </button>
           </div>
         </div>

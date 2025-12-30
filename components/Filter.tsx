@@ -16,6 +16,7 @@ import DateRangeInput from "./DateRangeInput";
 import Button from "./Button";
 import DropDown from "./DropDown";
 import { CiSearch } from "react-icons/ci";
+import FilterInputShell from "./FilterInputShell";
 
 interface FilterOption {
   id?: string;
@@ -101,6 +102,17 @@ const Filter: React.FC<FilterProps> = ({
     height: number;
   } | null>(null);
 
+  // Booking Type dropdown (owner-style)
+  const bookingTypeRef = useRef<HTMLDivElement>(null);
+  const bookingTypePortalRef = useRef<HTMLDivElement | null>(null);
+  const [bookingTypeOpen, setBookingTypeOpen] = useState(false);
+  const [bookingTypePos, setBookingTypePos] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
   const toggleOwner = (name: string) => {
     setSelectedOwners((prev) => {
       const newSelected = prev.includes(name)
@@ -143,6 +155,51 @@ const Filter: React.FC<FilterProps> = ({
     document.addEventListener("click", handler, true);
     return () => document.removeEventListener("click", handler, true);
   }, [ownerDropdownOpen]);
+
+  // Outside click for booking type
+  useEffect(() => {
+    if (!bookingTypeOpen) return;
+
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (bookingTypeRef.current && bookingTypeRef.current.contains(target))
+        return;
+      if (
+        bookingTypePortalRef.current &&
+        bookingTypePortalRef.current.contains(target)
+      )
+        return;
+      setBookingTypeOpen(false);
+    };
+
+    document.addEventListener("click", handler, true);
+    return () => document.removeEventListener("click", handler, true);
+  }, [bookingTypeOpen]);
+
+  // Recalculate booking type dropdown position when open or on resize/scroll
+  useEffect(() => {
+    if (!bookingTypeOpen) return;
+
+    const recalc = () => {
+      const rect = bookingTypeRef.current?.getBoundingClientRect();
+      if (rect) {
+        setBookingTypePos({
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+        });
+      }
+    };
+
+    recalc();
+    window.addEventListener("resize", recalc);
+    window.addEventListener("scroll", recalc, true);
+    return () => {
+      window.removeEventListener("resize", recalc);
+      window.removeEventListener("scroll", recalc, true);
+    };
+  }, [bookingTypeOpen]);
 
   // Recalculate dropdown position when selectedOwners change, container resizes, or window scroll/resize
   useEffect(() => {
@@ -315,11 +372,10 @@ const Filter: React.FC<FilterProps> = ({
 
             <div className="relative" ref={ownerDropdownRef}>
               {/* Input area with pills */}
-              <div
-                className="w-[14.75rem] min-h-[2.4rem] -mt-0.5 border border-gray-300 hover:border-green-200 rounded-sm px-2.5 py-2.5 flex items-center flex-wrap gap-1 cursor-pointer"
+              <FilterInputShell
+                placeholder="Select Owner"
                 onClick={(e) => {
                   e.stopPropagation();
-                  // Compute position to render portal dropdown
                   const rect =
                     ownerDropdownRef.current?.getBoundingClientRect();
                   if (rect) {
@@ -353,12 +409,11 @@ const Filter: React.FC<FilterProps> = ({
                     </span>
                   ))
                 ) : (
-                  <span className="text-gray-400 text-[15px] flex items-center w-full">
+                  <span className="text-gray-400 text-[15px] flex items-center flex-1">
                     Select Owner
-                    <MdOutlineKeyboardArrowDown className="ml-auto text-gray-400 pointer-events-none" />
                   </span>
                 )}
-              </div>
+              </FilterInputShell>
 
               {/* Dropdown: render into portal to avoid clipping by parent containers */}
               {ownerDropdownOpen &&
@@ -432,19 +487,71 @@ const Filter: React.FC<FilterProps> = ({
               <label className="block text-[#414141] font-medium mb-1.5 text-[14px]">
                 Booking Type
               </label>
-              <div>
-                <DropDown
-                  options={[
-                    { value: "os", label: "OS" },
-                    { value: "limitless", label: "Limitless" },
-                  ]}
+
+              <div className="relative" ref={bookingTypeRef}>
+                <FilterInputShell
+                  value={
+                    (filters as any).bookingType === "os"
+                      ? "OS"
+                      : (filters as any).bookingType === "limitless"
+                      ? "Limitless"
+                      : ""
+                  }
                   placeholder="Select Booking Type"
-                  value={(filters as any).bookingType}
-                  onChange={(v) => updateFilter("bookingType" as any, v)}
-                  customWidth="w-[14.75rem]"
-                  menuWidth="w-[14.75rem]"
-                  className="text-[13px]"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const rect =
+                      bookingTypeRef.current?.getBoundingClientRect();
+                    if (rect) {
+                      setBookingTypePos({
+                        left: rect.left,
+                        top: rect.top,
+                        width: rect.width,
+                        height: rect.height,
+                      });
+                    }
+                    setBookingTypeOpen((prev) => !prev);
+                  }}
                 />
+
+                {bookingTypeOpen &&
+                  bookingTypePos &&
+                  createPortal(
+                    <div
+                      ref={bookingTypePortalRef}
+                      style={{
+                        position: "fixed",
+                        left: bookingTypePos.left,
+                        top: bookingTypePos.top + bookingTypePos.height + 6,
+                        width: bookingTypePos.width,
+                        zIndex: 9999,
+                        minHeight: 32,
+                      }}
+                      className="bg-white border border-gray-200 rounded-md shadow-xl max-h-48 overflow-y-auto"
+                    >
+                      {[
+                        { value: "os", label: "OS" },
+                        { value: "limitless", label: "Limitless" },
+                      ].map((opt) => (
+                        <label
+                          key={opt.value}
+                          className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateFilter("bookingType" as any, opt.value);
+                            setBookingTypeOpen(false);
+                          }}
+                        >
+                          <span className="text-black text-[14px]">
+                            {opt.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>,
+                    typeof document !== "undefined"
+                      ? document.body
+                      : (null as any)
+                  )}
               </div>
             </div>
           )}

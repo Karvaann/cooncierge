@@ -51,6 +51,17 @@ export interface CreateOrUpdateUserResponse {
   data?: unknown;
 }
 
+export interface CreateRoleRequest {
+  roleName: string;
+  permission: any; // keep flexible shape for permissions
+}
+
+export interface CreateRoleResponse {
+  success?: boolean;
+  message?: string;
+  data?: any;
+}
+
 const AUTH_ROUTES = {
   login: "/auth/login",
   verifyTwoFa: "/auth/verify-2fa",
@@ -58,6 +69,10 @@ const AUTH_ROUTES = {
   logout: "/auth/logout",
   createOrUpdateUser: "/auth/create-or-update-user",
   resetPassword: "/auth/reset-password",
+  getBusinessRoles: "/auth/business/roles",
+  createRole: "/auth/create-new-role",
+  getCompanyDetails: "/auth/get-company-details",
+  updateCompanyDetails: "/auth/update-company-details",
 } as const;
 
 export const AuthApi = {
@@ -120,6 +135,28 @@ export const AuthApi = {
       .catch((error) => {
         console.error("Password reset failed:", error);
       });
+  },
+
+  async getBusinessRoles(): Promise<{ success?: boolean; output?: any[] }>
+  {
+    const { data } = await apiClient.get(AUTH_ROUTES.getBusinessRoles);
+    return data;
+  },
+
+  async getCompanyDetails(): Promise<{ success?: boolean; business?: any }> {
+    const { data } = await apiClient.get(AUTH_ROUTES.getCompanyDetails);
+    return data;
+  },
+
+  async updateCompanyDetails(payload: any): Promise<{ success?: boolean; business?: any }> {
+    const { data } = await apiClient.patch(AUTH_ROUTES.updateCompanyDetails, payload);
+    return data;
+  },
+
+  async createRole(payload: CreateRoleRequest): Promise<CreateRoleResponse> {
+    const { data } = await apiClient.post<CreateRoleResponse>(AUTH_ROUTES.createRole, payload);
+    return data;
+    
   },
 };
 

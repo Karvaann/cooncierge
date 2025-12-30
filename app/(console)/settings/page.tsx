@@ -55,7 +55,7 @@ export default function SettingsPage() {
         <div className="  py-[14px] px-[14px]">
           <Link
             href="/bookings/other-services"
-            className="text-[13px] flex items-center text-[#020202] font-[400] flex gap-[10px] hover:underline"
+            className="text-[13px] flex items-center text-[#020202] font-[400] gap-[10px] hover:underline"
           >
             <MdKeyboardArrowLeft className=" text-[#020202]" /> Back to Home
           </Link>
@@ -64,10 +64,12 @@ export default function SettingsPage() {
 
         <nav aria-label="Settings navigation">
           {nav.map((section) => (
-            <div style={{paddingBottom: '0px'}} key={section.title} className="px-[14px] py-[14px]">
-              <div className="text-sm text-gray-400 mb-2">
-                {section.title}
-              </div>
+            <div
+              style={{ paddingBottom: "0px" }}
+              key={section.title}
+              className="px-[14px] py-[14px]"
+            >
+              <div className="text-sm text-gray-400 mb-2">{section.title}</div>
               <ul className="space-y-0.5">
                 {section.items.map((it) => (
                   <li key={it.label}>

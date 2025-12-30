@@ -5,7 +5,7 @@ import { MdOutlineAddAPhoto } from "react-icons/md";
 import { LuEye } from "react-icons/lu";
 import { FiTrash2 } from "react-icons/fi";
 import DropDown from "../../../../components/DropDown";
-import BusinessApi from "../../../../services/businessApi";
+import { AuthApi } from "../../../../services/authApi";
 
 export default function CompanyDetails() {
   const [businessId, setBusinessId] = useState<string | null>(null);
@@ -28,10 +28,28 @@ export default function CompanyDetails() {
     if (storedUser) {
       try {
         const user = JSON.parse(storedUser as string);
-        bId = (user && (user.businessId || user.business?._id)) || null;
+
+        // Normalize business id: user.businessId may be an object or string,
+
+        const rawBiz = user?.businessId ?? user?.business ?? null;
+        if (rawBiz) {
+          if (typeof rawBiz === "string") {
+            bId = rawBiz;
+          } else if (rawBiz._id) {
+            bId = String(rawBiz._id);
+          } else {
+            // fallback to string coercion
+            bId = String(rawBiz);
+          }
+        }
+
         setBusinessId(bId);
 
-        const business = (user && user.business) || null;
+        const business =
+          user?.business ??
+          (user?.businessId && typeof user.businessId !== "string"
+            ? user.businessId
+            : null);
         if (business) {
           setLogoUrl(business.logo || null);
           setCompanyName(business.businessName || "");
@@ -48,9 +66,9 @@ export default function CompanyDetails() {
     }
 
     // Fetch fresh business data from API and overwrite fields if available
-    const fetchBusiness = async (id: string) => {
+    const fetchBusiness = async () => {
       try {
-        const res = await BusinessApi.get(id);
+        const res = await AuthApi.getCompanyDetails();
         if (res && res.success && res.business) {
           const business = res.business as any;
           setLogoUrl(business.logo || null);
@@ -67,7 +85,8 @@ export default function CompanyDetails() {
       }
     };
 
-    if (bId) fetchBusiness(bId);
+    // fetch latest business details from server
+    fetchBusiness();
   }, []);
 
   const handlePhotoClick = () => {
@@ -113,7 +132,8 @@ export default function CompanyDetails() {
         // leave logo field untouched here — upload handled separately later
         settings: { defaultCurrency: currency },
       } as any;
-      const res = await BusinessApi.update(businessId, payload);
+
+      const res = await AuthApi.updateCompanyDetails(payload);
 
       if (res && res.success) {
         // Update localStorage user.business so UI reflects changes

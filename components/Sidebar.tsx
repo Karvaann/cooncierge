@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { MdKeyboardArrowUp } from "react-icons/md";
 import { menuItems } from "@/components/navigation/menuItems";
+import { getAuthUser } from "@/services/storage/authStorage";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -72,94 +73,110 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         </div>
 
         <ul className="mt-6 space-y-1">
-          {menuItems.map((item, index) => {
-            const isActive = openSubMenuIndex === index;
-            const showArrow = isOpen && Boolean(item.subMenu);
-            const commonItemClasses =
-              "flex items-center gap-3 px-4 h-8 transition-colors";
+          {(() => {
+            // const user = getAuthUser() as any;
+            // const showApprovals =
+            //   user?.isBookingChecker === true ||
+            //   user?.isBookingChecker === "true";
+            // const itemsToRender = menuItems.filter((it) => {
+            //   if (it.href === "/approvals") return showApprovals;
+            //   return true;
+            // });
+            const itemsToRender = menuItems;
 
-            return (
-              <li
-                key={item.label}
-                className={`relative group ${isActive ? "bg-[#387a64]" : ""}`}
-                style={{
-                  background:
-                    isActive || hoveredIndex === index ? "#387a64" : undefined,
-                  transition: "background 0.3s",
-                }}
-                onMouseEnter={() => setHoveredIndex(index)}
-                onMouseLeave={() => setHoveredIndex(null)}
-              >
-                {item.subMenu ? (
-                  <button
-                    type="button"
-                    className={`${commonItemClasses} w-full text-left text-white`}
-                    onClick={() => setOpenSubMenuIndex(isActive ? null : index)}
-                  >
-                    <item.icon className="w-4 h-4" />
-                    {isOpen && (
-                      <span className="text-[14px]">{item.label}</span>
-                    )}
-                    {showArrow && (
-                      <MdKeyboardArrowUp
-                        size={16}
-                        className={`ml-auto transform transition-transform duration-300 text-gray-100 ${
-                          isActive ? "" : "rotate-180"
-                        }`}
-                      />
-                    )}
-                  </button>
-                ) : item.href ? (
-                  <Link
-                    prefetch
-                    href={item.href}
-                    className={`${commonItemClasses} text-white block w-full`}
-                  >
-                    <item.icon className="w-4 h-4" />
-                    {isOpen && (
-                      <span className="text-[14px]">{item.label}</span>
-                    )}
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    className={`${commonItemClasses} w-full text-left text-white/70 cursor-default`}
-                    disabled
-                  >
-                    <item.icon className="w-4 h-4" />
-                    {isOpen && (
-                      <span className="text-[14px]">{item.label}</span>
-                    )}
-                  </button>
-                )}
-                {item.subMenu && isOpen && (
-                  <ul
-                    className={`relative pl-8 mt-0 transition-all duration-300 ease-in-out overflow-hidden ${
-                      isActive ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
-                    }`}
-                    style={{
-                      background: isActive ? "#387a64" : undefined,
-                      borderRadius: "0.5rem",
-                      transition: "background 0.3s",
-                    }}
-                  >
-                    {item.subMenu.map((sub) => (
-                      <li key={sub.href}>
-                        <div className="absolute left-7 top-2 bottom-2 w-[1px] bg-white"></div>
-                        <Link
-                          prefetch
-                          href={sub.href}
-                          className="block text-left text-[12px] py-1 px-2 rounded text-white cursor-pointer"
-                        >
-                          {sub.label}
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </li>
-            );
-          })}
+            return itemsToRender.map((item, index) => {
+              const isActive = openSubMenuIndex === index;
+              const showArrow = isOpen && Boolean(item.subMenu);
+              const commonItemClasses =
+                "flex items-center gap-3 px-4 h-8 transition-colors";
+
+              return (
+                <li
+                  key={item.label}
+                  className={`relative group ${isActive ? "bg-[#387a64]" : ""}`}
+                  style={{
+                    background:
+                      isActive || hoveredIndex === index
+                        ? "#387a64"
+                        : undefined,
+                    transition: "background 0.3s",
+                  }}
+                  onMouseEnter={() => setHoveredIndex(index)}
+                  onMouseLeave={() => setHoveredIndex(null)}
+                >
+                  {item.subMenu ? (
+                    <button
+                      type="button"
+                      className={`${commonItemClasses} w-full text-left text-white`}
+                      onClick={() =>
+                        setOpenSubMenuIndex(isActive ? null : index)
+                      }
+                    >
+                      <item.icon className="w-4 h-4" />
+                      {isOpen && (
+                        <span className="text-[14px]">{item.label}</span>
+                      )}
+                      {showArrow && (
+                        <MdKeyboardArrowUp
+                          size={16}
+                          className={`ml-auto transform transition-transform duration-300 text-gray-100 ${
+                            isActive ? "" : "rotate-180"
+                          }`}
+                        />
+                      )}
+                    </button>
+                  ) : item.href ? (
+                    <Link
+                      prefetch
+                      href={item.href}
+                      className={`${commonItemClasses} text-white block w-full`}
+                    >
+                      <item.icon className="w-4 h-4" />
+                      {isOpen && (
+                        <span className="text-[14px]">{item.label}</span>
+                      )}
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      className={`${commonItemClasses} w-full text-left text-white/70 cursor-default`}
+                      disabled
+                    >
+                      <item.icon className="w-4 h-4" />
+                      {isOpen && (
+                        <span className="text-[14px]">{item.label}</span>
+                      )}
+                    </button>
+                  )}
+                  {item.subMenu && isOpen && (
+                    <ul
+                      className={`relative pl-8 mt-0 transition-all duration-300 ease-in-out overflow-hidden ${
+                        isActive ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+                      }`}
+                      style={{
+                        background: isActive ? "#387a64" : undefined,
+                        borderRadius: "0.5rem",
+                        transition: "background 0.3s",
+                      }}
+                    >
+                      {item.subMenu.map((sub) => (
+                        <li key={sub.href}>
+                          <div className="absolute left-7 top-2 bottom-2 w-[1px] bg-white"></div>
+                          <Link
+                            prefetch
+                            href={sub.href}
+                            className="block text-left text-[12px] py-1 px-2 rounded text-white cursor-pointer"
+                          >
+                            {sub.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </li>
+              );
+            });
+          })()}
         </ul>
       </div>
     </div>

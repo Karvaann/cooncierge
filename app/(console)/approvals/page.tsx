@@ -815,9 +815,16 @@ const OSBookingsPage = () => {
           key={`status-${index}`}
           className="px-4 py-3 text-center align-middle text-[14px] h-[3rem]"
         >
-          <span className={getStatusBadgeClass(mapStatus(item.status))}>
-            {mapStatus(item.status)}
-          </span>
+          {(() => {
+            const statusLabel = mapStatus((item as any).status);
+            return statusLabel ? (
+              <span className={getStatusBadgeClass(statusLabel)}>
+                {statusLabel}
+              </span>
+            ) : (
+              <span className="text-gray-500">--</span>
+            );
+          })()}
         </td>,
         <td
           key={`amount-${index}`}
