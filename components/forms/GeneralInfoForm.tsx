@@ -23,7 +23,6 @@ import { getTravellers } from "@/services/travellerApi";
 import DropDown from "@/components/DropDown";
 import { getTravellerById } from "@/services/travellerApi";
 import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerForm";
-import { FiTrash2 } from "react-icons/fi";
 
 // Type definitions
 interface GeneralInfoFormData {

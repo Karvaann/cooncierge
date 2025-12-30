@@ -5,15 +5,15 @@ import apiClient from "@/services/apiClient";
  * If userId is included → update
  * Otherwise → create
  */
-export const createOrUpdateUser = async (userData: any) => {
-  try {
-    const response = await apiClient.post("/auth/create-or-update", userData);
-    return response.data;
-  } catch (error: any) {
-    console.error("Failed to create/update user:", error);
-    throw error.response?.data || { message: "Something went wrong" };
-  }
-};
+// export const createOrUpdateUser = async (userData: any) => {
+//   try {
+//     const response = await apiClient.post("/auth/create-or-update", userData);
+//     return response.data;
+//   } catch (error: any) {
+//     console.error("Failed to create/update user:", error);
+//     throw error.response?.data || { message: "Something went wrong" };
+//   }
+// };
 
 /**
  * Get All Users

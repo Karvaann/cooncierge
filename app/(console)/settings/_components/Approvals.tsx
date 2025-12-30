@@ -6,7 +6,20 @@ import DropDown from "../../../../components/DropDown";
 import AvatarToolTip from "../../../../components/AvatarToolTip";
 import ActionMenu from "../../../../components/Menus/ActionMenu";
 import CreateTeamSidesheet from "../../../../components/Sidesheets/CreateTeamSidesheet";
+import { getMakerCheckerGroups } from "@/services/makerCheckerApi";
 import { FiEdit, FiTrash2, FiEye } from "react-icons/fi";
+
+const getShortName = (name?: string | null): string => {
+  if (!name) return "";
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "";
+  if (parts.length === 1) {
+    return (parts[0] || "").slice(0, 2).toUpperCase();
+  }
+  const first = parts[0]?.[0] ?? "";
+  const last = parts[parts.length - 1]?.[0] ?? "";
+  return (first + last).toUpperCase();
+};
 
 interface Team {
   id: string;
@@ -58,6 +71,7 @@ export default function Approvals(): React.ReactElement {
   const [activeTab, setActiveTab] = useState("Bookings");
   const [teams, setTeams] = useState<Team[]>(sampleTeams);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [loadingGroups, setLoadingGroups] = useState(false);
 
   const tableData = useMemo<React.ReactNode[][]>(() => {
     return teams.map((t) => {
@@ -75,7 +89,7 @@ export default function Approvals(): React.ReactElement {
             {t.checkers.map((u, idx) => (
               <AvatarToolTip
                 key={u.id}
-                short={u.name}
+                short={getShortName(u.name)}
                 full={u.name}
                 color={idx % 2 === 0 ? "border-[#FCA5A5]" : "border-[#BFDBFE]"}
               />
@@ -90,7 +104,7 @@ export default function Approvals(): React.ReactElement {
             {t.makers.map((u, idx) => (
               <AvatarToolTip
                 key={u.id}
-                short={u.name}
+                short={getShortName(u.name)}
                 full={u.name}
                 color={idx % 2 === 0 ? "border-[#FCA5A5]" : "border-[#BFDBFE]"}
               />
@@ -157,6 +171,46 @@ export default function Approvals(): React.ReactElement {
       return row;
     });
   }, [teams]);
+
+  const fetchGroups = async () => {
+    setLoadingGroups(true);
+    try {
+      const res = await getMakerCheckerGroups();
+      const list = res?.groups || res?.data || res || [];
+      const mapped: Team[] = (Array.isArray(list) ? list : []).map((g: any) => {
+        const id = g._id || g.id || String(g._id || g.id || Math.random());
+        const name = g.name || g.title || g.groupName || "Unnamed Team";
+        const makersRaw = g.makers || g.makerIds || g.makersList || [];
+        const checkersRaw = g.checkers || g.checkerIds || g.checkersList || [];
+        const makers = Array.isArray(makersRaw)
+          ? makersRaw.map((m: any) => ({
+              id: m._id || m.id || m,
+              name: m.name || m.fullName || String(m),
+            }))
+          : [];
+        const checkers = Array.isArray(checkersRaw)
+          ? checkersRaw.map((m: any) => ({
+              id: m._1 || m._id || m.id || m,
+              name: m.name || m.fullName || String(m),
+            }))
+          : [];
+        const status =
+          (g.status || g.teamStatus || "Active") === "Active"
+            ? "Active"
+            : "Inactive";
+        return { id, name, makers, checkers, status } as Team;
+      });
+      setTeams(mapped);
+    } catch (err) {
+      console.error("Failed to load maker-checker groups", err);
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
+  React.useEffect(() => {
+    void fetchGroups();
+  }, []);
 
   return (
     <div>
@@ -231,15 +285,8 @@ export default function Approvals(): React.ReactElement {
         <CreateTeamSidesheet
           isOpen={isCreateOpen}
           onClose={() => setIsCreateOpen(false)}
-          onCreate={(payload) => {
-            const newTeam: Team = {
-              id: String(Date.now()),
-              name: payload.teamName || "New Team",
-              checkers: [],
-              makers: [],
-              status: (payload.teamStatus as Team["status"]) || "Active",
-            };
-            setTeams((prev) => [newTeam, ...prev]);
+          onCreate={async (_payload) => {
+            await fetchGroups();
             setIsCreateOpen(false);
           }}
         />

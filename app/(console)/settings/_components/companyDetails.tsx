@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { MdOutlineAddAPhoto } from "react-icons/md";
+import { LuEye } from "react-icons/lu";
+import { FiTrash2 } from "react-icons/fi";
 import DropDown from "../../../../components/DropDown";
 import BusinessApi from "../../../../services/businessApi";
 
@@ -73,6 +75,23 @@ export default function CompanyDetails() {
     if (!isUploading) fileRef.current?.click();
   };
 
+  const handleView = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (typeof window === "undefined") return;
+    if (!logoUrl) return;
+    try {
+      window.open(logoUrl, "_blank");
+    } catch (err) {
+      // ignore
+    }
+  };
+
+  const handleDelete = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setLogoUrl(null);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -122,9 +141,9 @@ export default function CompanyDetails() {
     <>
       <h2 className="text-lg font-semibold mb-4 -mt-1">Company Details</h2>
 
-      <div className="bg-white rounded-lg border border-gray-100 p-0 overflow-hidden">
+      <div className="bg-white rounded-lg border border-gray-200 p-0 overflow-hidden">
         <div className="grid grid-cols-12 gap-0">
-          <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-100 flex items-center justify-center ">
+          <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-200 flex items-center justify-center ">
             <label className="text-base font-semibold text-[#414141]">
               Company Logo
             </label>
@@ -155,24 +174,46 @@ export default function CompanyDetails() {
                     />
                   </div>
                 ) : (
-                  <div className="w-24 h-24 rounded-md bg-gray-100 flex flex-col items-center justify-center text-gray-500">
+                  <div className="w-24 h-24 rounded-md bg-gray-100 group-hover:bg-gray-50 transition-colors flex flex-col items-center justify-center text-gray-500">
                     <MdOutlineAddAPhoto className="w-6 h-6 mb-1" />
                     <div className="text-sm">Add Photo</div>
                   </div>
                 )}
+
+                {/* Hover overlay with actions */}
+                <div className="absolute inset-0 rounded-md flex items-center justify-center pointer-events-none">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity w-full h-full rounded-md bg-white/10 group-hover:bg-white/30 flex items-center justify-center pointer-events-auto">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => handleView(e)}
+                        aria-label="View logo"
+                        className="p-2 bg-white/90 hover:bg-white text-gray-700 rounded-md shadow flex items-center justify-center"
+                      >
+                        <LuEye className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(e)}
+                        aria-label="Delete logo"
+                        className="p-2 bg-white/90 hover:bg-white text-red-600 rounded-md shadow flex items-center justify-center"
+                      >
+                        <FiTrash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Company Name */}
-        <div className="grid grid-cols-12 border-t border-gray-100">
-          <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-100 flex items-center justify-center">
+        <div className="grid grid-cols-12 border-t border-gray-200">
+          <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-200 flex items-center justify-center">
             <label className="text-base font-semibold text-[#414141]">
               Company Name
             </label>
           </div>
-          <div className="col-span-9 px-6 py-4 bg-white">
+          <div className="col-span-9 px-6 py-6 bg-white">
             <input
               type="text"
               placeholder="Enter Company Name"
@@ -184,13 +225,13 @@ export default function CompanyDetails() {
         </div>
 
         {/* Company Phone */}
-        <div className="grid grid-cols-12 border-t border-gray-100">
-          <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-100 flex items-center justify-center">
+        <div className="grid grid-cols-12 border-t border-gray-200">
+          <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-200 flex items-center justify-center">
             <label className="text-base font-semibold text-[#414141]">
               Company Phone
             </label>
           </div>
-          <div className="col-span-9 px-6 py-4 bg-white flex items-center justify-center">
+          <div className="col-span-9 px-6 py-6 bg-white flex items-center justify-center">
             <DropDown
               options={[
                 { value: "+91", label: "+91" },
@@ -213,13 +254,13 @@ export default function CompanyDetails() {
         </div>
 
         {/* Company Email */}
-        <div className="grid grid-cols-12 border-t border-gray-100">
-          <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-100 flex items-center justify-center">
+        <div className="grid grid-cols-12 border-t border-gray-200">
+          <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-200 flex items-center justify-center">
             <label className="text-base font-semibold text-[#414141]">
               Company Email
             </label>
           </div>
-          <div className="col-span-9 px-6 py-4 bg-white">
+          <div className="col-span-9 px-6 py-6 bg-white">
             <input
               type="email"
               placeholder="Enter Company Email"
@@ -231,13 +272,13 @@ export default function CompanyDetails() {
         </div>
 
         {/* Alternative Contact */}
-        <div className="grid grid-cols-12 border-t border-gray-100">
-          <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-100 flex items-center justify-center">
+        <div className="grid grid-cols-12 border-t border-gray-200">
+          <div className="col-span-3 bg-[#F8F8F8] px-6 py-6 border border-gray-200 flex items-center justify-center">
             <label className="text-base font-semibold text-[#414141]">
               Alternative Contact Number
             </label>
           </div>
-          <div className="col-span-9 px-6 py-4 bg-white flex items-center justify-center">
+          <div className="col-span-9 px-6 py-6 bg-white flex items-center justify-center">
             <DropDown
               options={[
                 { value: "+91", label: "+91" },
@@ -266,7 +307,7 @@ export default function CompanyDetails() {
               Website
             </label>
           </div>
-          <div className="col-span-9 px-6 py-4 bg-white">
+          <div className="col-span-9 px-6 py-6 bg-white">
             <input
               type="text"
               placeholder="Enter Website URL"
@@ -284,7 +325,7 @@ export default function CompanyDetails() {
               Default Currency
             </label>
           </div>
-          <div className="col-span-9 px-6 py-4 bg-white">
+          <div className="col-span-9 px-6 py-6 bg-white">
             <DropDown
               options={[
                 { value: "INR", label: "Indian Rupee (INR)" },

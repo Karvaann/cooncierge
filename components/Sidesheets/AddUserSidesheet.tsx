@@ -68,12 +68,11 @@ export default function AddUserSidesheet({
       const businessIdFromStorage =
         authUser?.businessId || authUser?.businessId?._id || undefined;
 
-      // convert phone code like '+91' -> 91 (number)
+      // convert phone code
       const phoneCodeNum = Number(
         (countryCode || "").toString().replace("+", "")
       );
 
-      // fallback to a dummy 24-char mongo id if no roleId available in storage
       const roleIdFinal = roleIdFromStorage || "000000000000000000000000";
 
       // Build request payload matching backend required fields and model
@@ -83,7 +82,7 @@ export default function AddUserSidesheet({
         roleId: roleIdFinal,
         gender: "other",
         phoneCode: isNaN(phoneCodeNum) ? 91 : phoneCodeNum,
-        // include optional fields to match User schema expectations
+
         name: fullName || "",
         designation: "Staff",
         businessId: businessIdFromStorage,
@@ -149,7 +148,6 @@ export default function AddUserSidesheet({
       setFullName(String(initialData.name || ""));
       setEmail(String(initialData.email || ""));
 
-      // Use phoneCode directly when available; default to +91 otherwise.
       let code = "+91";
       if (
         initialData.phoneCode !== undefined &&
@@ -165,7 +163,6 @@ export default function AddUserSidesheet({
 
       setCountryCode(code);
 
-      // Do NOT extract code from mobile — display mobile as-is
       setMobile(String(initialData.mobile || initialData.phone || ""));
       setUserStatus(String(initialData.status || "").toLowerCase());
       setRole(String(initialData.role || ""));

@@ -6,6 +6,7 @@ import { LuClipboardList } from "react-icons/lu";
 import { PiCurrencyCircleDollar } from "react-icons/pi";
 import { RiContactsBook3Line } from "react-icons/ri";
 import { IoSettingsOutline } from "react-icons/io5";
+import { IoMdCheckboxOutline } from "react-icons/io";
 
 export interface SubMenuItem {
   label: string;
@@ -53,6 +54,11 @@ export const menuItems: MenuItem[] = [
       { label: "Limitless", href: "/bookings/limitless" },
       { label: "Other Services", href: "/bookings/other-services" },
     ],
+  },
+  {
+    label: "Approvals",
+    icon: IoMdCheckboxOutline,
+    href: "/approvals",
   },
   {
     label: "Content",

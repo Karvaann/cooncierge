@@ -14,6 +14,7 @@ import { FaRegCalendar } from "react-icons/fa6";
 import { IoClose } from "react-icons/io5";
 import DateRangeInput from "./DateRangeInput";
 import Button from "./Button";
+import DropDown from "./DropDown";
 import { CiSearch } from "react-icons/ci";
 
 interface FilterOption {
@@ -28,6 +29,7 @@ interface FilterState {
   serviceType: string;
   status: string;
   owner: string | string[];
+  bookingType: string;
   search: string;
   bookingStartDate: string;
   bookingEndDate: string;
@@ -45,6 +47,8 @@ interface FilterProps {
   createOpen?: boolean;
   setCreateOpen?: (open: boolean) => void;
   onCreateClick?: () => void;
+  showBookingType?: boolean;
+  searchWidth?: string;
 }
 
 const Filter: React.FC<FilterProps> = ({
@@ -57,11 +61,14 @@ const Filter: React.FC<FilterProps> = ({
   setCreateOpen,
   onSearchChange,
   onCreateClick,
+  showBookingType = false,
+  searchWidth,
 }) => {
   const [filters, setFilters] = useState<FilterState>({
     serviceType: initialFilters.serviceType || "",
     status: initialFilters.status || "",
     owner: initialFilters.owner || "",
+    bookingType: (initialFilters as any).bookingType || "",
     search: initialFilters.search || "",
     bookingStartDate: initialFilters.bookingStartDate || "",
     bookingEndDate: initialFilters.bookingEndDate || "",
@@ -185,11 +192,16 @@ const Filter: React.FC<FilterProps> = ({
     []
   );
 
+  // Decide search input width: explicit prop > compact when booking type shown > default
+  const searchInputWidth =
+    searchWidth ?? (showBookingType ? "w-[18rem]" : "w-98");
+
   const handleReset = useCallback(() => {
     const resetFilters: FilterState = {
       serviceType: "",
       status: "",
       owner: "",
+      bookingType: "",
       search: "",
       bookingStartDate: "",
       bookingEndDate: "",
@@ -254,8 +266,8 @@ const Filter: React.FC<FilterProps> = ({
 
       <hr className="mb-2 mt-2 border-t-1 border-[#e4dfdb]" />
 
-      <div className="flex flex-wrap items-end justify-between mt-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      <div className="flex flex-wrap items-end justify-between gap-4 mt-4">
+        <div className="flex items-end gap-4 flex-wrap max-w-full">
           {/* Service Type */}
           {/* <div>
                 <label className="block text-gray-700 mb-1 text-[0.75rem]">Service Type</label>
@@ -296,7 +308,7 @@ const Filter: React.FC<FilterProps> = ({
 
           {/* Booking Owner */}
 
-          <div>
+          <div className="flex-shrink-0">
             <label className="block text-[#414141] font-medium mb-1.5 text-[14px]">
               Booking Owner
             </label>
@@ -414,9 +426,31 @@ const Filter: React.FC<FilterProps> = ({
                 )}
             </div>
           </div>
+
+          {showBookingType && (
+            <div className="flex-shrink-0">
+              <label className="block text-[#414141] font-medium mb-1.5 text-[14px]">
+                Booking Type
+              </label>
+              <div>
+                <DropDown
+                  options={[
+                    { value: "os", label: "OS" },
+                    { value: "limitless", label: "Limitless" },
+                  ]}
+                  placeholder="Select Booking Type"
+                  value={(filters as any).bookingType}
+                  onChange={(v) => updateFilter("bookingType" as any, v)}
+                  customWidth="w-[14.75rem]"
+                  menuWidth="w-[14.75rem]"
+                  className="text-[13px]"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Second Row: Owner + Search + Buttons */}
+        {/* Right Group: Owner + Search + Buttons */}
         <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
           {/* Owner */}
           {/* <div>
@@ -434,9 +468,8 @@ const Filter: React.FC<FilterProps> = ({
               </div>
             </div> */}
 
-          <div className="flex items-end gap-3 w-[100%]">
+          <div className="flex items-end gap-3 flex-shrink-0 ml-auto">
             {/* Search */}
-
             <div className="relative">
               <input
                 type="text"
@@ -444,9 +477,9 @@ const Filter: React.FC<FilterProps> = ({
                 value={filters.search}
                 onChange={(e) => {
                   updateFilter("search", e.target.value);
-                  onSearchChange?.(e.target.value); // <-- SEND TO PARENT
+                  onSearchChange?.(e.target.value);
                 }}
-                className="w-98 border border-gray-300 hover:border-green-300 text-[14px] rounded-md pl-3 pr-9 py-2.5 text-gray-600 focus:ring-2 focus:ring-[#0D4B37]"
+                className={`${searchInputWidth} border border-gray-300 hover:border-green-300 text-[14px] rounded-md pl-3 pr-9 py-2.5`}
               />
               <CiSearch
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-800"
@@ -454,17 +487,15 @@ const Filter: React.FC<FilterProps> = ({
               />
             </div>
 
-            {/* Buttons */}
-            <div className="flex items-center gap-3">
-              <Button
-                text="Reset"
-                onClick={handleReset}
-                icon={<RiRefreshLine size={18} />}
-                bgColor="bg-white"
-                textColor="text-[#414141]"
-                className="border border-[#414141] hover:bg-gray-200 font-semibold"
-              />
-            </div>
+            {/* Reset */}
+            <Button
+              text="Reset"
+              onClick={handleReset}
+              icon={<RiRefreshLine size={18} />}
+              bgColor="bg-white"
+              textColor="text-[#414141]"
+              className="border border-[#414141] hover:bg-gray-200 font-semibold"
+            />
           </div>
         </div>
       </div>

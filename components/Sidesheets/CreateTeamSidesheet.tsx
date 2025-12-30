@@ -5,7 +5,12 @@ import { createPortal } from "react-dom";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { IoClose } from "react-icons/io5";
 import SideSheet from "../SideSheet";
+import DropDown from "../DropDown";
+import Toggle from "../Toggle";
 import Button from "../Button";
+import { createMakerCheckerGroup } from "@/services/makerCheckerApi";
+import { pushToast } from "@/utils/toastService";
+import { getUsers } from "@/services/userApi";
 
 interface CreateTeamSidesheetProps {
   isOpen: boolean;
@@ -23,16 +28,11 @@ export default function CreateTeamSidesheet({
   const [bookingsOs, setBookingsOs] = useState(false);
   const [bookingsLimitless, setBookingsLimitless] = useState(false);
 
-  // Dummy contacts
-  const contacts = useMemo(
-    () => [
-      { id: "1", name: "Alice Johnson" },
-      { id: "2", name: "Bob Smith" },
-      { id: "3", name: "Carla Gomez" },
-      { id: "4", name: "Daniel Lee" },
-    ],
+  // Contacts fetched from backend
+  const [contacts, setContacts] = useState<Array<{ id: string; name: string }>>(
     []
   );
+  const [contactsLoading, setContactsLoading] = useState(false);
 
   // Checkers dropdown state
   const [checkersDropdownOpen, setCheckersDropdownOpen] = useState(false);
@@ -58,23 +58,55 @@ export default function CreateTeamSidesheet({
     height: number;
   }>(null);
 
-  const toggleChecker = (name: string) => {
+  const toggleChecker = (id: string) => {
     setSelectedCheckers((prev) => {
-      const next = prev.includes(name)
-        ? prev.filter((p) => p !== name)
-        : [...prev, name];
+      const next = prev.includes(id)
+        ? prev.filter((p) => p !== id)
+        : [...prev, id];
       return next;
     });
   };
 
-  const toggleMaker = (name: string) => {
+  const toggleMaker = (id: string) => {
     setSelectedMakers((prev) => {
-      const next = prev.includes(name)
-        ? prev.filter((p) => p !== name)
-        : [...prev, name];
+      const next = prev.includes(id)
+        ? prev.filter((p) => p !== id)
+        : [...prev, id];
       return next;
     });
   };
+
+  // Load contacts when the sheet opens
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        setContactsLoading(true);
+        const res = await getUsers();
+        const list = res?.data || [];
+        if (!mounted) return;
+        const mapped = list.map((u: any) => ({
+          id: u._id || u.id,
+          name:
+            u.name ||
+            `${u.firstName || ""} ${u.lastName || ""}`.trim() ||
+            u.email ||
+            "",
+        }));
+        setContacts(mapped);
+      } catch (err) {
+        console.error("Failed to load contacts", err);
+        setContacts([]);
+      } finally {
+        setContactsLoading(false);
+      }
+    };
+
+    if (isOpen) load();
+    return () => {
+      mounted = false;
+    };
+  }, [isOpen]);
 
   // Outside click handlers for both dropdowns
   useEffect(() => {
@@ -134,14 +166,38 @@ export default function CreateTeamSidesheet({
   }, [makersDropdownOpen, selectedMakers]);
 
   const handleCreate = () => {
-    const payload = {
-      teamName,
-      teamStatus,
-      bookingsOs,
-      bookingsLimitless,
-    };
-    if (onCreate) onCreate(payload);
-    onClose();
+    // placeholder - replaced by async handler
+  };
+
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+  const handleCreateSubmit = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      // selected arrays already contain user IDs
+      const makerIds = selectedMakers;
+      const checkerIds = selectedCheckers;
+
+      const payload = {
+        name: teamName,
+        description: teamStatus || "",
+        type: "booking",
+        makers: makerIds,
+        checkers: checkerIds,
+      } as any;
+
+      const res = await createMakerCheckerGroup(payload);
+      pushToast({ message: "Team created successfully", type: "success" });
+      if (onCreate) onCreate(res);
+      onClose();
+    } catch (e: any) {
+      const msg = e?.message || e?.error || "Failed to create team";
+      pushToast({ message: String(msg), type: "error" });
+      console.error("create team error", e);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -155,7 +211,7 @@ export default function CreateTeamSidesheet({
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            handleCreate();
+            void handleCreateSubmit();
           }}
         >
           <div className="border border-gray-200 rounded-lg p-4 -mt-3">
@@ -193,24 +249,27 @@ export default function CreateTeamSidesheet({
                     }}
                   >
                     {selectedCheckers.length > 0 ? (
-                      selectedCheckers.map((o) => (
-                        <span
-                          key={o}
-                          className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[12px]"
-                        >
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleChecker(o);
-                            }}
-                            className="py-1"
+                      selectedCheckers.map((id) => {
+                        const contact = contacts.find((c) => c.id === id);
+                        return (
+                          <span
+                            key={id}
+                            className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[12px]"
                           >
-                            <IoClose size={14} className="text-[#818181]" />
-                          </button>
-                          {o}
-                        </span>
-                      ))
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleChecker(id);
+                              }}
+                              className="py-1"
+                            >
+                              <IoClose size={14} className="text-[#818181]" />
+                            </button>
+                            {contact?.name || id}
+                          </span>
+                        );
+                      })
                     ) : (
                       <span className="text-gray-400 text-[15px] flex items-center w-full">
                         Select Checkers
@@ -234,14 +293,14 @@ export default function CreateTeamSidesheet({
                         className="bg-white border border-gray-200 rounded-md shadow-xl max-h-48 overflow-y-auto"
                       >
                         {contacts.map((c) => {
-                          const checked = selectedCheckers.includes(c.name);
+                          const checked = selectedCheckers.includes(c.id);
                           return (
                             <label
                               key={c.id}
                               className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleChecker(c.name);
+                                toggleChecker(c.id);
                               }}
                             >
                               <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
@@ -297,24 +356,27 @@ export default function CreateTeamSidesheet({
                     }}
                   >
                     {selectedMakers.length > 0 ? (
-                      selectedMakers.map((o) => (
-                        <span
-                          key={o}
-                          className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[12px]"
-                        >
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleMaker(o);
-                            }}
-                            className="py-1"
+                      selectedMakers.map((id) => {
+                        const contact = contacts.find((c) => c.id === id);
+                        return (
+                          <span
+                            key={id}
+                            className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[12px]"
                           >
-                            <IoClose size={14} className="text-[#818181]" />
-                          </button>
-                          {o}
-                        </span>
-                      ))
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleMaker(id);
+                              }}
+                              className="py-1"
+                            >
+                              <IoClose size={14} className="text-[#818181]" />
+                            </button>
+                            {contact?.name || id}
+                          </span>
+                        );
+                      })
                     ) : (
                       <span className="text-gray-400 text-[15px] flex items-center w-full">
                         Select Makers
@@ -338,14 +400,14 @@ export default function CreateTeamSidesheet({
                         className="bg-white border border-gray-200 rounded-md shadow-xl max-h-48 overflow-y-auto"
                       >
                         {contacts.map((c) => {
-                          const checked = selectedMakers.includes(c.name);
+                          const checked = selectedMakers.includes(c.id);
                           return (
                             <label
                               key={c.id}
                               className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                toggleMaker(c.name);
+                                toggleMaker(c.id);
                               }}
                             >
                               <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
@@ -384,8 +446,19 @@ export default function CreateTeamSidesheet({
                 <label className="text-[13px] font-medium text-[#414141]">
                   Team Status
                 </label>
-                <div className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md text-gray-500">
-                  Select User Status
+                <div className="mt-1">
+                  <DropDown
+                    options={[
+                      { value: "active", label: "Active" },
+                      { value: "inactive", label: "Inactive" },
+                    ]}
+                    placeholder="Select User Status"
+                    value={teamStatus}
+                    onChange={(v) => setTeamStatus(v)}
+                    customWidth="w-full"
+                    menuWidth="w-full"
+                    className="text-[13px]"
+                  />
                 </div>
               </div>
 
@@ -394,76 +467,20 @@ export default function CreateTeamSidesheet({
                   <span className="text-[13px] text-[#414141]">
                     Bookings - OS
                   </span>
-                  <input
-                    type="checkbox"
-                    id={`bookingsOsToggle`}
-                    className="hidden"
+                  <Toggle
                     checked={bookingsOs}
-                    onChange={() => setBookingsOs((s) => !s)}
+                    onChange={(v) => setBookingsOs(v)}
                   />
-                  <label
-                    htmlFor={`bookingsOsToggle`}
-                    className={`w-4.5 h-4.5 rounded-sm pb-0.5 pt-0.5 flex items-center justify-center cursor-pointer border transition ${
-                      bookingsOs
-                        ? "bg-[#126ACB] border-[#126ACB]"
-                        : "border-[#0D4B37] bg-white"
-                    }`}
-                  >
-                    {bookingsOs && (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="11"
-                        height="10"
-                        viewBox="0 0 11 10"
-                        fill="none"
-                      >
-                        <path
-                          d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                          stroke="#FFFFFF"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    )}
-                  </label>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <span className="text-[13px] text-[#414141]">
                     Bookings - Limitless
                   </span>
-                  <input
-                    type="checkbox"
-                    id={`bookingsLimitlessToggle`}
-                    className="hidden"
+                  <Toggle
                     checked={bookingsLimitless}
-                    onChange={() => setBookingsLimitless((s) => !s)}
+                    onChange={(v) => setBookingsLimitless(v)}
                   />
-                  <label
-                    htmlFor={`bookingsLimitlessToggle`}
-                    className={`w-4.5 h-4.5 rounded-sm pb-0.5 pt-0.5 flex items-center justify-center cursor-pointer border transition ${
-                      bookingsLimitless
-                        ? "bg-[#126ACB] border-[#126ACB]"
-                        : "border-[#0D4B37] bg-white"
-                    }`}
-                  >
-                    {bookingsLimitless && (
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="11"
-                        height="10"
-                        viewBox="0 0 11 10"
-                        fill="none"
-                      >
-                        <path
-                          d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                          stroke="#FFFFFF"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                    )}
-                  </label>
                 </div>
               </div>
             </div>
@@ -471,10 +488,11 @@ export default function CreateTeamSidesheet({
 
           <div className="mt-4 flex justify-end">
             <Button
-              text="Create Team"
+              text={isSubmitting ? "Creating..." : "Create Team"}
               type="submit"
               bgColor="bg-[#0D4B37]"
               textColor="text-white text-[13px] py-2"
+              disabled={isSubmitting}
             />
           </div>
         </form>

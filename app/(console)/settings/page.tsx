@@ -7,26 +7,41 @@ import AllUsers from "./_components/AllUsers";
 import Approvals from "./_components/Approvals";
 import { MdKeyboardArrowLeft } from "react-icons/md";
 import { IoHomeOutline } from "react-icons/io5";
+import { TbBuildingSkyscraper } from "react-icons/tb";
+import { LuUsers } from "react-icons/lu";
+import { TbCheckbox } from "react-icons/tb";
+import { TbReceipt } from "react-icons/tb";
+import { TbWorld } from "react-icons/tb";
+import { TbSpeakerphone } from "react-icons/tb";
+import { PiHeadsetBold } from "react-icons/pi";
+import type { IconType } from "react-icons";
 
-const nav = [
+const nav: {
+  title: string;
+  items: { label: string; href: string; icon?: IconType }[];
+}[] = [
   {
     title: "Profile",
     items: [
-      { label: "Company Details", href: "#company" },
-      { label: "All Users / Roles", href: "#users" },
+      {
+        label: "Company Details",
+        href: "#company",
+        icon: TbBuildingSkyscraper,
+      },
+      { label: "All Users / Roles", href: "#users", icon: LuUsers },
     ],
   },
   {
     title: "Modules",
-    items: [{ label: "Approvals", href: "#approvals" }],
+    items: [{ label: "Approvals", href: "#approvals", icon: TbCheckbox }],
   },
   {
     title: "Others",
     items: [
-      { label: "Billing", href: "#billing" },
-      { label: "Social Links", href: "#social" },
-      { label: "Referral", href: "#referral" },
-      { label: "Support", href: "#support" },
+      { label: "Billing", href: "#billing", icon: TbReceipt },
+      { label: "Social Links", href: "#social", icon: TbWorld },
+      { label: "Referral", href: "#referral", icon: TbSpeakerphone },
+      { label: "Support", href: "#support", icon: PiHeadsetBold },
     ],
   },
 ];
@@ -60,27 +75,39 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={() => setSelected("company")}
-                        className={`flex w-full items-center gap-2 py-1 px-2 rounded hover:bg-gray-100 text-gray-600 text-sm ${
+                        className={`flex w-full items-center gap-2 py-1 px-2 rounded hover:bg-[#F9F9F9] text-gray-600 text-sm ${
                           selected === "company" ? "bg-gray-100" : ""
                         }`}
                       >
-                        <span className="w-4 text-center text-gray-400 text-sm">
-                          •
+                        <span className="w-4 text-center font-normal text-[#020202] text-[13px]">
+                          {it.icon
+                            ? React.createElement(it.icon, {
+                                className: "w-3.5 h-3.5",
+                              })
+                            : "•"}
                         </span>
-                        <span>{it.label}</span>
+                        <span className="font-normal text-[#020202] text-[13px]">
+                          {it.label}
+                        </span>
                       </button>
                     ) : (
                       <button
                         type="button"
                         onClick={() => setSelected(it.label)}
-                        className={`flex w-full items-center gap-2 py-1 px-2 rounded hover:bg-gray-100 text-gray-600 text-sm ${
+                        className={`flex w-full items-center gap-2 py-1 px-2 rounded hover:bg-[#F9F9F9] text-gray-600 text-[13px] ${
                           selected === it.label ? "bg-gray-100" : ""
                         }`}
                       >
-                        <span className="w-4 text-center text-gray-400 text-sm">
-                          •
+                        <span className="w-4 text-center font-normal text-[#020202] text-[13px]">
+                          {it.icon
+                            ? React.createElement(it.icon, {
+                                className: "w-3.5 h-3.5",
+                              })
+                            : "•"}
                         </span>
-                        <span>{it.label}</span>
+                        <span className="font-normal text-[#020202] text-[13px]">
+                          {it.label}
+                        </span>
                       </button>
                     )}
                   </li>

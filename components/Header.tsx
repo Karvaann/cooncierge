@@ -37,6 +37,7 @@ type PieceMapKey =
   | "team"
   | "vendors"
   | "settings"
+  | "approvals"
   | "ProfileSettings"
   | "UserProfile";
 
@@ -56,6 +57,7 @@ type HeaderMapKey =
   | "/directory/team"
   | "/dashboard"
   | "/settings"
+  | "/approvals"
   | "/ProfileSettings"
   | "/ProfileSettings/UserProfile";
 
@@ -77,6 +79,7 @@ const PIECE_MAP: Record<PieceMapKey, string> = {
   ProfileSettings: "Profile Settings",
   UserProfile: "User Profile",
   settings: "Settings",
+  approvals: "Approvals",
 } as const;
 
 const HEADER_MAP: Record<HeaderMapKey, string> = {
@@ -97,6 +100,7 @@ const HEADER_MAP: Record<HeaderMapKey, string> = {
   "/ProfileSettings": "Profile Settings",
   "/ProfileSettings/UserProfile": "User Profile",
   "/settings": "Settings",
+  "/approvals": "Approvals",
 } as const;
 
 const Header: React.FC<HeaderProps> = ({ isOpen }) => {
