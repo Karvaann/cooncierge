@@ -71,61 +71,107 @@ const AddRolesSidesheet: React.FC<Props> = ({
   const [tab, setTab] = useState<string>("cooncierge");
 
   const [state, setState] = useState({
-    bookings_master: false,
-    bookings_limitless: false,
-    bookings_os: false,
-    directory_master: false,
-    directory_customer: false,
-    directory_vendor: false,
-    directory_team: false,
-    settings: false,
-    company_view: false,
-    company_add: false,
-    company_edit: false,
-    company_delete: false,
-    billing_view: false,
-    billing_add: false,
-    billing_edit: false,
-    billing_delete: false,
-    users_view: false,
-    users_add: false,
-    users_edit: false,
-    users_delete: false,
-    roles_view: false,
-    roles_add: false,
-    roles_edit: false,
-    roles_delete: false,
-    approval_view: false,
-    approval_add: false,
-    approval_edit: false,
-    approval_delete: false,
-    approval_delete_after_approval: false,
-    approval_noneditable_after_travel_date: false,
-    os_primary_view: false,
-    os_primary_add: false,
-    os_primary_edit: false,
-    os_primary_delete: false,
-    os_secondary_view: false,
-    os_secondary_add: false,
-    os_secondary_edit: false,
-    os_secondary_delete: false,
-    limitless_primary_view: false,
-    limitless_primary_add: false,
-    limitless_primary_edit: false,
-    limitless_primary_delete: false,
-    limitless_secondary_view: false,
-    limitless_secondary_add: false,
-    limitless_secondary_edit: false,
-    limitless_secondary_delete: false,
-  });
+  "cooncierce": {
+    "bookings": {
+      "limitless": false,
+      "os": false
+    },
+    "directory": {
+      "customer": false,
+      "vendor": false,
+      "team": false
+    }
+  },
+  "settings": {
+    "companyDetails": {
+      "view": false,
+      "add": false,
+      "edit": false,
+      "delete": false
+    },
+    "billing": {
+      "view": false,
+      "add": false,
+      "edit": false,
+      "delete": false
+    },
+    "users": {
+      "view": false,
+      "add": false,
+      "edit": false,
+      "delete": false
+    },
+    "roles": {
+      "view": false,
+      "add": false,
+      "edit": false,
+      "delete": false
+    },
+    "approval": {
+      "view": false,
+      "add": false,
+      "edit": false,
+      "delete": false
+    },
+    "deleteAfterApproval": false,
+    "noEditAfterTravelDate": false,
+    "osPrimary": {
+      "view": false,
+      "add": false,
+      "edit": false,
+      "delete": false
+    },
+    "osSecondary": {
+      "view": false,
+      "add": false,
+      "edit": false,
+      "delete": false
+    },
+    "limitlessPrimary": {
+      "view": false,
+      "add": false,
+      "edit": false,
+      "delete": false
+    },
+    "limitlessSecondary": {
+      "view": false,
+      "add": false,
+      "edit": false,
+      "delete": false
+    }
+  },
+  "bookings": {
+    "deleteAfterApproval": false,
+    "noEditAfterTravelDate": false,
+    "osPrimary": {
+      "view": false,
+      "add": false,
+      "edit": false,
+      "delete": false
+    },
+    "osSecondary": {
+      "view": false,
+      "add": false,
+      "edit": false,
+      "delete": false
+    },
+    "limitlessPrimary": {
+      "view": false,
+      "add": false,
+      "edit": false,
+      "delete": false
+    },
+    "limitlessSecondary": {
+      "view": false,
+      "add": false,
+      "edit": false,
+      "delete": false
+    }
+  }
+});
 
   const [bookingsOpen, setBookingsOpen] = useState<boolean>(true);
   const [directoryOpen, setDirectoryOpen] = useState<boolean>(true);
-
-  const toggle = (key: keyof typeof state) => {
-    setState((s) => ({ ...s, [key]: !s[key] }));
-  };
-
   const [isSaving, setIsSaving] = useState(false);
 
   const handleSave = async () => {
