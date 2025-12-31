@@ -18,6 +18,24 @@ const columns = ["Name", "Mobile", "Email", "Role", "User Status", "Actions"];
 
 const roleColumns = ["Role", "Users", "Access Level", "Actions"];
 
+function areAllPermissionsTrue(obj: unknown): boolean {
+  if (!obj || typeof obj !== "object") {
+    return true; // nothing to validate
+  }
+
+  return Object.values(obj).every(value => {
+    if (typeof value === "boolean") {
+      return value === true;
+    }
+
+    if (typeof value === "object" && value !== null) {
+      return areAllPermissionsTrue(value);
+    }
+
+    return true;
+  });
+}
+
 // users will be fetched from backend
 
 export default function AllUsers(): JSX.Element {
@@ -113,7 +131,7 @@ export default function AllUsers(): JSX.Element {
               }))
             : [];
 
-          const access = calculateAccessLevel(r.permissions || {});
+          const access = areAllPermissionsTrue(r.permissions) ? 'Admin Access' : 'Limited Access';
 
           return { id: roleId, role: roleName, users: usersArr, access };
         });
