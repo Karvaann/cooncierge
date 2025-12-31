@@ -11,6 +11,7 @@ export default function CompanyDetails() {
   const [businessId, setBusinessId] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [companyName, setCompanyName] = useState("");
   const [countryCode, setCountryCode] = useState("+91");
   const [companyPhone, setCompanyPhone] = useState("");
@@ -51,7 +52,12 @@ export default function CompanyDetails() {
             ? user.businessId
             : null);
         if (business) {
-          setLogoUrl(business.logo || null);
+          setLogoUrl(
+            business.profileImage?.url ||
+              business.logo ||
+              business.logoUrl ||
+              null
+          );
           setCompanyName(business.businessName || "");
           setCompanyPhone(business.phone || "");
           setCompanyEmail(business.email || "");
@@ -71,7 +77,12 @@ export default function CompanyDetails() {
         const res = await AuthApi.getCompanyDetails();
         if (res && res.success && res.business) {
           const business = res.business as any;
-          setLogoUrl(business.logo || null);
+          setLogoUrl(
+            business.profileImage?.url ||
+              business.logo ||
+              business.logoUrl ||
+              null
+          );
           setCompanyName(business.businessName || "");
           setCompanyPhone(business.phone || "");
           setCompanyEmail(business.email || "");
@@ -108,6 +119,7 @@ export default function CompanyDetails() {
   const handleDelete = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     setLogoUrl(null);
+    setSelectedFile(null);
     if (fileRef.current) fileRef.current.value = "";
   };
 
@@ -115,21 +127,55 @@ export default function CompanyDetails() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // create a local preview and store the selected file
     const preview = URL.createObjectURL(file);
     setLogoUrl(preview);
-    // Revoke preview blob URL on next change or when component unmounts.
-    setTimeout(() => URL.revokeObjectURL(preview), 10000);
+    setSelectedFile(file);
   };
 
   const handleSave = async () => {
     if (!businessId) return;
     try {
+      // If a new file was selected, upload it first
+      if (selectedFile) {
+        setIsUploading(true);
+        try {
+          const uploadRes = await AuthApi.uploadCompanyLogo(selectedFile);
+          if (uploadRes && uploadRes.success && uploadRes.profileImage?.url) {
+            setLogoUrl(uploadRes.profileImage.url);
+
+            // persist profileImage to localStorage user.business
+            if (typeof window !== "undefined") {
+              const stored = localStorage.getItem("user");
+              if (stored) {
+                try {
+                  const user = JSON.parse(stored as string);
+                  user.business = user.business || {};
+                  user.business.profileImage = uploadRes.profileImage;
+                  localStorage.setItem("user", JSON.stringify(user));
+                } catch (e) {}
+              }
+            }
+          } else {
+            console.error(
+              "Upload did not return expected profileImage",
+              uploadRes
+            );
+          }
+        } catch (err) {
+          console.error("Failed to upload company logo:", err);
+        } finally {
+          setIsUploading(false);
+          setSelectedFile(null);
+          if (fileRef.current) fileRef.current.value = "";
+        }
+      }
+
       const payload = {
         businessName: companyName,
         phone: companyPhone,
         email: companyEmail,
         website: website,
-        // leave logo field untouched here — upload handled separately later
         settings: { defaultCurrency: currency },
       } as any;
 
@@ -200,27 +246,34 @@ export default function CompanyDetails() {
                   </div>
                 )}
 
-                {/* Hover overlay with actions */}
-                <div className="absolute inset-0 rounded-md flex items-center justify-center pointer-events-none">
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity w-full h-full rounded-md bg-white/10 group-hover:bg-white/30 flex items-center justify-center pointer-events-auto">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={(e) => handleView(e)}
-                        aria-label="View logo"
-                        className="p-2 bg-white/90 hover:bg-white text-gray-700 rounded-md shadow flex items-center justify-center"
-                      >
-                        <LuEye className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => handleDelete(e)}
-                        aria-label="Delete logo"
-                        className="p-2 bg-white/90 hover:bg-white text-red-600 rounded-md shadow flex items-center justify-center"
-                      >
-                        <FiTrash2 className="w-4 h-4" />
-                      </button>
+                {logoUrl && (
+                  <div className="absolute inset-0 rounded-md flex items-center justify-center pointer-events-none">
+                    <div className="opacity-0 group-hover:opacity-100 transition-opacity w-full h-full rounded-md bg-white/10 group-hover:bg-white/30 flex items-center justify-center pointer-events-auto">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleView(e);
+                          }}
+                          aria-label="View logo"
+                          className="p-2 bg-white/90 hover:bg-white text-gray-700 rounded-md shadow flex items-center justify-center"
+                        >
+                          <LuEye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePhotoClick();
+                          }}
+                          aria-label="Edit logo"
+                          className="p-2 bg-white/90 hover:bg-white text-gray-700 rounded-md shadow flex items-center justify-center"
+                        >
+                          <FiTrash2 className="w-4 h-4 text-red-500" />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

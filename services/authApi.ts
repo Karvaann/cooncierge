@@ -73,6 +73,8 @@ const AUTH_ROUTES = {
   createRole: "/auth/create-new-role",
   getCompanyDetails: "/auth/get-company-details",
   updateCompanyDetails: "/auth/update-company-details",
+  uploadCompanyLogo: "/auth/upload-company-logo",
+  deleteCompanyLogo: "/auth/delete-company-logo",
 } as const;
 
 export const AuthApi = {
@@ -147,7 +149,22 @@ export const AuthApi = {
     const { data } = await apiClient.get(AUTH_ROUTES.getCompanyDetails);
     return data;
   },
+  async uploadCompanyLogo(file: File): Promise<{ success?: boolean; profileImage?: any }> {
+    const formData = new FormData();
+    // backend expects field name `profileImage`
+    formData.append("profileImage", file);
 
+    const { data } = await apiClient.post(AUTH_ROUTES.uploadCompanyLogo, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    return data;
+  },
+
+  async deleteCompanyLogo(): Promise<{ success?: boolean; message?: string }> {
+    const { data } = await apiClient.delete(AUTH_ROUTES.deleteCompanyLogo);
+    return data;
+  },
   async updateCompanyDetails(payload: any): Promise<{ success?: boolean; business?: any }> {
     const { data } = await apiClient.patch(AUTH_ROUTES.updateCompanyDetails, payload);
     return data;

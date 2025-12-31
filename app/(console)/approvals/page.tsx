@@ -14,6 +14,7 @@ import { CustomIdApi } from "@/services/customIdApi";
 import type { DraftBooking } from "@/services/bookingApi";
 import apiClient from "@/services/apiClient";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
+import ApproveDenyModal from "@/components/Modals/ApproveDenyModal";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
 // import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
@@ -227,6 +228,11 @@ const OSBookingsPage = () => {
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
+  const [isApproveDenyOpen, setIsApproveDenyOpen] = useState(false);
+  const [approveDenyAction, setApproveDenyAction] = useState<
+    "approve" | "deny"
+  >("approve");
+  const [approveDenyId, setApproveDenyId] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
   // Filters state
   const [filters, setFilters] = useState<FilterPayload>({
@@ -653,40 +659,35 @@ const OSBookingsPage = () => {
   };
 
   // Approve / Reject handlers used by Pending tab action buttons
-  const handleApproveClick = async (id: string) => {
+  const handleApproveClick = async (id: string, reason?: string) => {
     try {
-      // Try calling backend method if available; otherwise update local state
-      if ((BookingApiService as any)?.approveQuotation) {
-        await (BookingApiService as any).approveQuotation(id);
-      } else if ((BookingApiService as any)?.updateQuotation) {
-        await (BookingApiService as any).updateQuotation(id, {
-          serviceStatus: "approved",
-        });
+      const resp = await BookingApiService.approveQuotation(id, reason);
+      if (resp && resp.success) {
+        setQuotations((prev) =>
+          prev.map((q) =>
+            q._id === id ? { ...q, serviceStatus: "approved" } : q
+          )
+        );
+      } else {
+        console.error("Approve failed:", resp?.message || resp);
       }
-      setQuotations((prev) =>
-        prev.map((q) =>
-          q._id === id ? { ...q, serviceStatus: "approved" } : q
-        )
-      );
     } catch (e) {
       console.error("Approve failed", e);
     }
   };
 
-  const handleRejectClick = async (id: string) => {
+  const handleRejectClick = async (id: string, reason?: string) => {
     try {
-      if ((BookingApiService as any)?.rejectQuotation) {
-        await (BookingApiService as any).rejectQuotation(id);
-      } else if ((BookingApiService as any)?.updateQuotation) {
-        await (BookingApiService as any).updateQuotation(id, {
-          serviceStatus: "rejected",
-        });
+      const resp = await BookingApiService.denyQuotation(id, reason);
+      if (resp && resp.success) {
+        setQuotations((prev) =>
+          prev.map((q) =>
+            q._id === id ? { ...q, serviceStatus: "denied" } : q
+          )
+        );
+      } else {
+        console.error("Reject failed:", resp?.message || resp);
       }
-      setQuotations((prev) =>
-        prev.map((q) =>
-          q._id === id ? { ...q, serviceStatus: "rejected" } : q
-        )
-      );
     } catch (e) {
       console.error("Reject failed", e);
     }
@@ -895,7 +896,11 @@ const OSBookingsPage = () => {
               <button
                 type="button"
                 aria-label="Approve"
-                onClick={() => handleApproveClick(id)}
+                onClick={() => {
+                  setApproveDenyAction("approve");
+                  setApproveDenyId(id);
+                  setIsApproveDenyOpen(true);
+                }}
                 className="flex items-center justify-center w-9 h-9 rounded-md border border-emerald-200 text-emerald-600 hover:bg-emerald-50"
               >
                 <FiCheck className="w-4 h-4" />
@@ -903,7 +908,11 @@ const OSBookingsPage = () => {
               <button
                 type="button"
                 aria-label="Reject"
-                onClick={() => handleRejectClick(id)}
+                onClick={() => {
+                  setApproveDenyAction("deny");
+                  setApproveDenyId(id);
+                  setIsApproveDenyOpen(true);
+                }}
                 className="flex items-center justify-center w-9 h-9 rounded-md border border-red-200 text-red-600 hover:bg-red-50"
               >
                 <FiX className="w-4 h-4" />
@@ -1064,6 +1073,30 @@ const OSBookingsPage = () => {
           cancelText="Cancel"
           confirmButtonColor="bg-red-600"
           onConfirm={confirmDelete}
+        />
+
+        <ApproveDenyModal
+          isOpen={isApproveDenyOpen}
+          onClose={() => {
+            setIsApproveDenyOpen(false);
+            setApproveDenyId(null);
+          }}
+          action={approveDenyAction}
+          confirmColor={
+            approveDenyAction === "deny"
+              ? "bg-[#EB382B] hover:bg-red-700"
+              : "bg-[#4CA640] hover:bg-green-600"
+          }
+          onConfirm={async (reason: string) => {
+            if (!approveDenyId) return;
+            if (approveDenyAction === "approve") {
+              await handleApproveClick(approveDenyId, reason);
+            } else {
+              await handleRejectClick(approveDenyId, reason);
+            }
+            setIsApproveDenyOpen(false);
+            setApproveDenyId(null);
+          }}
         />
 
         {isCreateOpen && (

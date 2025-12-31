@@ -409,7 +409,7 @@ const Filter: React.FC<FilterProps> = ({
                     </span>
                   ))
                 ) : (
-                  <span className="text-gray-400 text-[15px] flex items-center flex-1">
+                  <span className="text-[#9CA3AF] text-[14px] flex items-center flex-1">
                     Select Owner
                   </span>
                 )}
@@ -586,7 +586,7 @@ const Filter: React.FC<FilterProps> = ({
                   updateFilter("search", e.target.value);
                   onSearchChange?.(e.target.value);
                 }}
-                className={`${searchInputWidth} border border-gray-300 hover:border-green-300 text-[14px] rounded-md pl-3 pr-9 py-2.5`}
+                className={`${searchInputWidth} border border-gray-300 hover:border-green-300 text-[14px] font-normal rounded-md pl-3 pr-9 py-2.5`}
               />
               <CiSearch
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-800"

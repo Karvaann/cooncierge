@@ -41,6 +41,8 @@ export default function AddUserSidesheet({
   const [showPassword, setShowPassword] = useState(false);
   const [requireChange, setRequireChange] = useState(false);
 
+  const [showResetPassword, setShowResetPassword] = useState(false);
+
   // Password rules (copied from login reset UI logic)
   const hasMinLength = useMemo(() => password.length >= 8, [password]);
   const hasUpper = useMemo(() => /[A-Z]/.test(password), [password]);
@@ -202,6 +204,11 @@ export default function AddUserSidesheet({
       setMobile(String(initialData.mobile || initialData.phone || ""));
       setUserStatus(String(initialData.status || "").toLowerCase());
       setRole(String(initialData.role || ""));
+      // reset password UI state
+      setShowResetPassword(false);
+      setAutoCreate(true);
+      setPassword("");
+      setRequireChange(false);
     } else if (!isEdit) {
       // reset when opening add form
       setFullName("");
@@ -213,6 +220,7 @@ export default function AddUserSidesheet({
       setAutoCreate(true);
       setPassword("");
       setRequireChange(false);
+      setShowResetPassword(false);
     }
   }, [isEdit, initialData]);
 
@@ -315,152 +323,172 @@ export default function AddUserSidesheet({
                 />
               </div>
 
-              <div className="flex items-center gap-2 mt-1 mb-1">
-                <input
-                  type="checkbox"
-                  id="autoCreate"
-                  className="hidden"
-                  checked={autoCreate}
-                  onChange={() => setAutoCreate(!autoCreate)}
-                />
-                <label
-                  htmlFor="autoCreate"
-                  className={`w-4.5 h-4.5 rounded-sm pb-0.5 pt-0.5 flex items-center justify-center cursor-pointer border transition
+              {isEdit && (
+                <button
+                  type="button"
+                  onClick={() => setShowResetPassword(true)}
+                  className="mt-1 px-2 py-1.5 w-[130px] border border-gray-400 rounded-md text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Reset Password
+                </button>
+              )}
+
+              {(!isEdit || showResetPassword) && (
+                <>
+                  <div className="flex items-center gap-2 mt-1 mb-1">
+                    <input
+                      type="checkbox"
+                      id="autoCreate"
+                      className="hidden"
+                      checked={autoCreate}
+                      onChange={() => setAutoCreate(!autoCreate)}
+                    />
+                    <label
+                      htmlFor="autoCreate"
+                      className={`w-4.5 h-4.5 rounded-sm pb-0.5 pt-0.5 flex items-center justify-center cursor-pointer border transition
       ${
         autoCreate
           ? "bg-[#126ACB] border-[#126ACB]"
           : "border-[#0D4B37] bg-white"
       }
     `}
-                >
-                  {autoCreate && (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="11"
-                      height="10"
-                      viewBox="0 0 11 10"
-                      fill="none"
                     >
-                      <path
-                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                        stroke="#FFFFFF"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
+                      {autoCreate && (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="11"
+                          height="10"
+                          viewBox="0 0 11 10"
+                          fill="none"
+                        >
+                          <path
+                            d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                            stroke="#FFFFFF"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      )}
+                    </label>
+                    <span className="text-[13px] font-normal text-[#414141]">
+                      Automatically create a password
+                    </span>
+                  </div>
+
+                  {!autoCreate && (
+                    <div>
+                      <label className="text-sm font-medium">*Password</label>
+                      <div className="relative mt-1">
+                        <input
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Enter Password"
+                          type={showPassword ? "text" : "password"}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((s) => !s)}
+                          className="absolute right-2 top-2 text-gray-500"
+                          aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                          }
+                        >
+                          {showPassword ? (
+                            <IoEyeOutline />
+                          ) : (
+                            <IoEyeOffOutline />
+                          )}
+                        </button>
+                      </div>
+
+                      <div className="mt-3 text-sm text-gray-600">
+                        Note: Password should consist of minimum 8 characters
+                        <ul className="list-disc pl-5 mt-2 text-[13px] text-gray-600">
+                          <li
+                            className={
+                              hasUpper ? "text-emerald-600" : "text-gray-500"
+                            }
+                          >
+                            Minimum 1 uppercase letter
+                          </li>
+                          <li
+                            className={
+                              hasLower ? "text-emerald-600" : "text-gray-500"
+                            }
+                          >
+                            Minimum 1 lowercase letter
+                          </li>
+                          <li
+                            className={
+                              hasNumber ? "text-emerald-600" : "text-gray-500"
+                            }
+                          >
+                            Minimum 1 number
+                          </li>
+                          <li
+                            className={
+                              hasSpecial ? "text-emerald-600" : "text-gray-500"
+                            }
+                          >
+                            Minimum 1 special character
+                          </li>
+                          <li
+                            className={
+                              hasMinLength
+                                ? "text-emerald-600"
+                                : "text-gray-500"
+                            }
+                          >
+                            Minimum 8 characters
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
                   )}
-                </label>
-                <span className="text-[13px] font-normal text-[#414141]">
-                  Automatically create a password
-                </span>
-              </div>
 
-              {!autoCreate && (
-                <div>
-                  <label className="text-sm font-medium">*Password</label>
-                  <div className="relative mt-1">
+                  <div className="flex items-center gap-2">
                     <input
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Enter Password"
-                      type={showPassword ? "text" : "password"}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                      type="checkbox"
+                      id="requireChange"
+                      className="hidden"
+                      checked={requireChange}
+                      onChange={() => setRequireChange(!requireChange)}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((s) => !s)}
-                      className="absolute right-2 top-2 text-gray-500"
-                      aria-label={
-                        showPassword ? "Hide password" : "Show password"
-                      }
-                    >
-                      {showPassword ? <IoEyeOutline /> : <IoEyeOffOutline />}
-                    </button>
-                  </div>
-
-                  <div className="mt-3 text-sm text-gray-600">
-                    Note: Password should consist of minimum 8 characters
-                    <ul className="list-disc pl-5 mt-2 text-[13px] text-gray-600">
-                      <li
-                        className={
-                          hasUpper ? "text-emerald-600" : "text-gray-500"
-                        }
-                      >
-                        Minimum 1 uppercase letter
-                      </li>
-                      <li
-                        className={
-                          hasLower ? "text-emerald-600" : "text-gray-500"
-                        }
-                      >
-                        Minimum 1 lowercase letter
-                      </li>
-                      <li
-                        className={
-                          hasNumber ? "text-emerald-600" : "text-gray-500"
-                        }
-                      >
-                        Minimum 1 number
-                      </li>
-                      <li
-                        className={
-                          hasSpecial ? "text-emerald-600" : "text-gray-500"
-                        }
-                      >
-                        Minimum 1 special character
-                      </li>
-                      <li
-                        className={
-                          hasMinLength ? "text-emerald-600" : "text-gray-500"
-                        }
-                      >
-                        Minimum 8 characters
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="requireChange"
-                  className="hidden"
-                  checked={requireChange}
-                  onChange={() => setRequireChange(!requireChange)}
-                />
-                <label
-                  htmlFor="requireChange"
-                  className={`w-4.5 h-4.5 rounded-sm pb-0.5 pt-0.5 flex items-center justify-center cursor-pointer border transition
+                    <label
+                      htmlFor="requireChange"
+                      className={`w-4.5 h-4.5 rounded-sm pb-0.5 pt-0.5 flex items-center justify-center cursor-pointer border transition
       ${
         requireChange
           ? "bg-[#126ACB] border-[#126ACB]"
           : "border-[#0D4B37] bg-white"
       }
     `}
-                >
-                  {requireChange && (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="11"
-                      height="10"
-                      viewBox="0 0 11 10"
-                      fill="none"
                     >
-                      <path
-                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                        stroke="#FFFFFF"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  )}
-                </label>
-                <span className="text-[13px] font-normal text-[#414141]">
-                  Require this user to change their password on their first sign
-                  in
-                </span>
-              </div>
+                      {requireChange && (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="11"
+                          height="10"
+                          viewBox="0 0 11 10"
+                          fill="none"
+                        >
+                          <path
+                            d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                            stroke="#FFFFFF"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      )}
+                    </label>
+                    <span className="text-[13px] font-normal text-[#414141]">
+                      Require this user to change their password on their first
+                      sign in
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
           <div className="mt-4 flex justify-end">

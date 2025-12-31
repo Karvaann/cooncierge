@@ -1209,6 +1209,42 @@ export class BookingApiService {
     }
   }
 
+  // Approve a quotation (maker-checker flow)
+  static async approveQuotation(id: string, reason?: string): Promise<ApiResponse<unknown>> {
+    try {
+      const response = await apiClient.post(`/quotation/approve/${id}`, { reason });
+      return {
+        success: true,
+        data: response.data,
+        message: 'Quotation approved successfully',
+      };
+    } catch (error) {
+      console.error('Error approving quotation:', error);
+      return {
+        success: false,
+        message: 'Failed to approve quotation',
+      };
+    }
+  }
+
+  // Deny a quotation (maker-checker flow)
+  static async denyQuotation(id: string, reason?: string): Promise<ApiResponse<unknown>> {
+    try {
+      const response = await apiClient.post(`/quotation/deny/${id}`, { reason });
+      return {
+        success: true,
+        data: response.data,
+        message: 'Quotation denied successfully',
+      };
+    } catch (error) {
+      console.error('Error denying quotation:', error);
+      return {
+        success: false,
+        message: 'Failed to deny quotation',
+      };
+    }
+  }
+
   // Delete quotation
   static async deleteQuotation(id: string): Promise<ApiResponse<unknown>> {
     try {

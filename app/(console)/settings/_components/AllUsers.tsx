@@ -482,7 +482,7 @@ export default function AllUsers(): JSX.Element {
         <ActivateusersModal
           open={isActivateModalOpen}
           onClose={() => setIsActivateModalOpen(false)}
-          users={users}
+          users={users.filter((u) => u.status === "Inactive")}
           onActivate={(ids) => {
             setUsers((prev) =>
               prev.map((u) =>
@@ -495,7 +495,7 @@ export default function AllUsers(): JSX.Element {
         <ActivateusersModal
           open={isDeactivateModalOpen}
           onClose={() => setIsDeactivateModalOpen(false)}
-          users={users}
+          users={users.filter((u) => u.status === "Active")}
           deactivate={true}
           onDeactivate={(ids) => {
             setUsers((prev) =>
