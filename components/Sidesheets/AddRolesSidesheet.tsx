@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AuthApi } from "@/services/authApi";
 import SideSheet from "../SideSheet";
 
@@ -8,6 +8,8 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   roleName?: string;
+  initialPermissions?: Record<string, unknown>;
+  roleId?: string;
 }
 
 const Toggle: React.FC<{
@@ -63,137 +65,168 @@ const SectionRow: React.FC<{
   </div>
 );
 
+const defaultCrud = {
+  view: false,
+  add: false,
+  edit: false,
+  delete: false,
+};
+
+const defaultPermissions = {
+  cooncierce: {
+    bookings: {
+      limitless: false,
+      os: false,
+    },
+    directory: {
+      customer: false,
+      vendor: false,
+      team: false,
+    },
+  },
+  settings: {
+    companyDetails: { ...defaultCrud },
+    billing: { ...defaultCrud },
+    users: { ...defaultCrud },
+    roles: { ...defaultCrud },
+    approval: { ...defaultCrud },
+    deleteAfterApproval: false,
+    noEditAfterTravelDate: false,
+    osPrimary: { ...defaultCrud },
+    osSecondary: { ...defaultCrud },
+    limitlessPrimary: { ...defaultCrud },
+    limitlessSecondary: { ...defaultCrud },
+  },
+  bookings: {
+    deleteAfterApproval: false,
+    noEditAfterTravelDate: false,
+    osPrimary: { ...defaultCrud },
+    osSecondary: { ...defaultCrud },
+    limitlessPrimary: { ...defaultCrud },
+    limitlessSecondary: { ...defaultCrud },
+  },
+};
+
+type PermissionState = typeof defaultPermissions;
+
+const getValue = (obj: PermissionState, path: string): boolean => {
+  const parts = path.split(".");
+  let current: any = obj;
+  for (const part of parts) {
+    current = current?.[part];
+  }
+  return Boolean(current);
+};
+
+const setValue = (
+  obj: PermissionState,
+  path: string,
+  value: boolean
+): PermissionState => {
+  const parts = path.split(".");
+  const next: any = { ...obj };
+  let current: any = next;
+  for (let i = 0; i < parts.length - 1; i += 1) {
+    const key = parts[i];
+    const prev = current[key] ?? {};
+    current[key] = { ...prev };
+    current = current[key];
+  }
+  current[parts[parts.length - 1]] = value;
+  return next as PermissionState;
+};
+
+const mergePermissions = (
+  base: PermissionState,
+  incoming: Record<string, unknown> | undefined
+): PermissionState => {
+  if (!incoming || typeof incoming !== "object") return base;
+  const next: any = Array.isArray(base) ? [...base] : { ...base };
+  Object.keys(base).forEach((key) => {
+    const baseValue = (base as any)[key];
+    const incomingValue = (incoming as any)[key];
+    if (
+      baseValue &&
+      typeof baseValue === "object" &&
+      !Array.isArray(baseValue)
+    ) {
+      next[key] = mergePermissions(baseValue, incomingValue || {});
+    } else if (typeof incomingValue !== "undefined") {
+      next[key] = incomingValue;
+    } else {
+      next[key] = baseValue;
+    }
+  });
+  return next as PermissionState;
+};
+
 const AddRolesSidesheet: React.FC<Props> = ({
   isOpen,
   onClose,
-  roleName = "Sales Associate",
+  roleName,
+  initialPermissions,
+  roleId
 }) => {
   const [tab, setTab] = useState<string>("cooncierge");
 
-  const [state, setState] = useState({
-  "cooncierce": {
-    "bookings": {
-      "limitless": false,
-      "os": false
-    },
-    "directory": {
-      "customer": false,
-      "vendor": false,
-      "team": false
-    }
-  },
-  "settings": {
-    "companyDetails": {
-      "view": false,
-      "add": false,
-      "edit": false,
-      "delete": false
-    },
-    "billing": {
-      "view": false,
-      "add": false,
-      "edit": false,
-      "delete": false
-    },
-    "users": {
-      "view": false,
-      "add": false,
-      "edit": false,
-      "delete": false
-    },
-    "roles": {
-      "view": false,
-      "add": false,
-      "edit": false,
-      "delete": false
-    },
-    "approval": {
-      "view": false,
-      "add": false,
-      "edit": false,
-      "delete": false
-    },
-    "deleteAfterApproval": false,
-    "noEditAfterTravelDate": false,
-    "osPrimary": {
-      "view": false,
-      "add": false,
-      "edit": false,
-      "delete": false
-    },
-    "osSecondary": {
-      "view": false,
-      "add": false,
-      "edit": false,
-      "delete": false
-    },
-    "limitlessPrimary": {
-      "view": false,
-      "add": false,
-      "edit": false,
-      "delete": false
-    },
-    "limitlessSecondary": {
-      "view": false,
-      "add": false,
-      "edit": false,
-      "delete": false
-    }
-  },
-  "bookings": {
-    "deleteAfterApproval": false,
-    "noEditAfterTravelDate": false,
-    "osPrimary": {
-      "view": false,
-      "add": false,
-      "edit": false,
-      "delete": false
-    },
-    "osSecondary": {
-      "view": false,
-      "add": false,
-      "edit": false,
-      "delete": false
-    },
-    "limitlessPrimary": {
-      "view": false,
-      "add": false,
-      "edit": false,
-      "delete": false
-    },
-    "limitlessSecondary": {
-      "view": false,
-      "add": false,
-      "edit": false,
-      "delete": false
-    }
-  }
-});
+  const [state, setState] = useState<PermissionState>(defaultPermissions);
 
   const [bookingsOpen, setBookingsOpen] = useState<boolean>(true);
   const [directoryOpen, setDirectoryOpen] = useState<boolean>(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    setState(mergePermissions(defaultPermissions, initialPermissions));
+  }, [initialPermissions]);
+
+  const bookingsMasterChecked =
+    state.cooncierce.bookings.limitless && state.cooncierce.bookings.os;
+  const directoryMasterChecked =
+    state.cooncierce.directory.customer &&
+    state.cooncierce.directory.vendor &&
+    state.cooncierce.directory.team;
+
   const handleSave = async () => {
     if (isSaving) return;
     setIsSaving(true);
     try {
-      const payload = {
-        roleName,
-        permission: { ...state },
-      };
 
-      const res = await AuthApi.createRole(payload as any);
-      if (res && (res.success || res.data)) {
-        // created successfully
-        onClose();
+      if (roleId) {
+        // update role
+        const payload = {
+          _id: roleId,
+          roleName,
+          permission: { ...state },
+        };
+        const res = await AuthApi.updateRole(payload as any);
+        if (res && (res.success || res.data)) {
+          // updated successfully
+          onClose();
+        } else {
+          console.error("Update role failed", res);
+        }
+        return;
       } else {
-        console.error("Create role failed", res);
+          const payload = {
+            roleName,
+            permission: { ...state },
+          };
+
+          const res = await AuthApi.createRole(payload as any);
+          if (res && (res.success || res.data)) {
+            // created successfully
+            onClose();
+          } else {
+            console.error("Create role failed", res);
+          }
       }
+
+      
     } catch (e) {
       console.error("Error creating role", e);
     } finally {
       setIsSaving(false);
+      window.location.reload()
     }
   };
 
@@ -212,24 +245,21 @@ const AddRolesSidesheet: React.FC<Props> = ({
             id={viewKey}
             type="checkbox"
             className="hidden"
-            checked={!!(state as any)[viewKey]}
+            checked={getValue(state, viewKey)}
             onChange={() =>
-              setState((s) => ({
-                ...(s as any),
-                [viewKey]: !(s as any)[viewKey],
-              }))
+              setState((s) => setValue(s, viewKey, !getValue(s, viewKey)))
             }
           />
           <label
             htmlFor={viewKey}
             className={
               "w-4.5 h-4.5 rounded-sm pb-0.5 pt-0.5 flex items-center justify-center cursor-pointer border transition " +
-              ((state as any)[viewKey]
+              (getValue(state, viewKey)
                 ? "bg-[#126ACB] border-[#126ACB]"
                 : "border-[#0D4B37] bg-white")
             }
           >
-            {(state as any)[viewKey] && (
+            {getValue(state, viewKey) && (
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="11"
@@ -255,24 +285,21 @@ const AddRolesSidesheet: React.FC<Props> = ({
                 id={addKey}
                 type="checkbox"
                 className="hidden"
-                checked={!!(state as any)[addKey]}
+                checked={getValue(state, addKey)}
                 onChange={() =>
-                  setState((s) => ({
-                    ...(s as any),
-                    [addKey]: !(s as any)[addKey],
-                  }))
+                  setState((s) => setValue(s, addKey, !getValue(s, addKey)))
                 }
               />
               <label
                 htmlFor={addKey}
                 className={
                   "w-4.5 h-4.5 rounded-sm pb-0.5 pt-0.5 flex items-center justify-center cursor-pointer border transition " +
-                  ((state as any)[addKey]
+                  (getValue(state, addKey)
                     ? "bg-[#126ACB] border-[#126ACB]"
                     : "border-[#0D4B37] bg-white")
                 }
               >
-                {(state as any)[addKey] && (
+                {getValue(state, addKey) && (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="11"
@@ -302,24 +329,21 @@ const AddRolesSidesheet: React.FC<Props> = ({
                 id={editKey}
                 type="checkbox"
                 className="hidden"
-                checked={!!(state as any)[editKey]}
+                checked={getValue(state, editKey)}
                 onChange={() =>
-                  setState((s) => ({
-                    ...(s as any),
-                    [editKey]: !(s as any)[editKey],
-                  }))
+                  setState((s) => setValue(s, editKey, !getValue(s, editKey)))
                 }
               />
               <label
                 htmlFor={editKey}
                 className={
                   "w-4.5 h-4.5 rounded-sm pb-0.5 pt-0.5 flex items-center justify-center cursor-pointer border transition " +
-                  ((state as any)[editKey]
+                  (getValue(state, editKey)
                     ? "bg-[#126ACB] border-[#126ACB]"
                     : "border-[#0D4B37] bg-white")
                 }
               >
-                {(state as any)[editKey] && (
+                {getValue(state, editKey) && (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="11"
@@ -349,24 +373,23 @@ const AddRolesSidesheet: React.FC<Props> = ({
                 id={deleteKey}
                 type="checkbox"
                 className="hidden"
-                checked={!!(state as any)[deleteKey]}
+                checked={getValue(state, deleteKey)}
                 onChange={() =>
-                  setState((s) => ({
-                    ...(s as any),
-                    [deleteKey]: !(s as any)[deleteKey],
-                  }))
+                  setState((s) =>
+                    setValue(s, deleteKey, !getValue(s, deleteKey))
+                  )
                 }
               />
               <label
                 htmlFor={deleteKey}
                 className={
                   "w-4.5 h-4.5 rounded-sm pb-0.5 pt-0.5 flex items-center justify-center cursor-pointer border transition " +
-                  ((state as any)[deleteKey]
+                  (getValue(state, deleteKey)
                     ? "bg-[#126ACB] border-[#126ACB]"
                     : "border-[#0D4B37] bg-white")
                 }
               >
-                {(state as any)[deleteKey] && (
+                {getValue(state, deleteKey) && (
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="11"
@@ -459,14 +482,17 @@ const AddRolesSidesheet: React.FC<Props> = ({
                     </div>
                     <div className="flex items-center gap-3">
                       <Toggle
-                        checked={state.bookings_master}
+                        checked={bookingsMasterChecked}
                         onChange={(v) => {
-                          setState((s) => ({
-                            ...s,
-                            bookings_master: v,
-                            bookings_limitless: v,
-                            bookings_os: v,
-                          }));
+                          setState((s) => {
+                            let next = setValue(
+                              s,
+                              "cooncierce.bookings.limitless",
+                              v
+                            );
+                            next = setValue(next, "cooncierce.bookings.os", v);
+                            return next;
+                          });
                         }}
                       />
                       <button
@@ -502,16 +528,24 @@ const AddRolesSidesheet: React.FC<Props> = ({
                       <div className="rounded-md p-1 bg-[#F9F9F9]">
                         <SectionRow
                           label="Limitless"
-                          checked={state.bookings_limitless}
+                          checked={state.cooncierce.bookings.limitless}
                           onToggle={(v) =>
-                            setState((s) => ({ ...s, bookings_limitless: v }))
+                            setState((s) =>
+                              setValue(
+                                s,
+                                "cooncierce.bookings.limitless",
+                                v
+                              )
+                            )
                           }
                         />
                         <SectionRow
                           label="OS"
-                          checked={state.bookings_os}
+                          checked={state.cooncierce.bookings.os}
                           onToggle={(v) =>
-                            setState((s) => ({ ...s, bookings_os: v }))
+                            setState((s) =>
+                              setValue(s, "cooncierce.bookings.os", v)
+                            )
                           }
                         />
                       </div>
@@ -532,15 +566,26 @@ const AddRolesSidesheet: React.FC<Props> = ({
                     </div>
                     <div className="flex items-center gap-3">
                       <Toggle
-                        checked={state.directory_master}
+                        checked={directoryMasterChecked}
                         onChange={(v) => {
-                          setState((s) => ({
-                            ...s,
-                            directory_master: v,
-                            directory_customer: v,
-                            directory_vendor: v,
-                            directory_team: v,
-                          }));
+                          setState((s) => {
+                            let next = setValue(
+                              s,
+                              "cooncierce.directory.customer",
+                              v
+                            );
+                            next = setValue(
+                              next,
+                              "cooncierce.directory.vendor",
+                              v
+                            );
+                            next = setValue(
+                              next,
+                              "cooncierce.directory.team",
+                              v
+                            );
+                            return next;
+                          });
                         }}
                       />
                       <button
@@ -576,23 +621,33 @@ const AddRolesSidesheet: React.FC<Props> = ({
                       <div className="rounded-md p-1 bg-[#F9F9F9]">
                         <SectionRow
                           label="Customer"
-                          checked={state.directory_customer}
+                          checked={state.cooncierce.directory.customer}
                           onToggle={(v) =>
-                            setState((s) => ({ ...s, directory_customer: v }))
+                            setState((s) =>
+                              setValue(
+                                s,
+                                "cooncierce.directory.customer",
+                                v
+                              )
+                            )
                           }
                         />
                         <SectionRow
                           label="Vendor"
-                          checked={state.directory_vendor}
+                          checked={state.cooncierce.directory.vendor}
                           onToggle={(v) =>
-                            setState((s) => ({ ...s, directory_vendor: v }))
+                            setState((s) =>
+                              setValue(s, "cooncierce.directory.vendor", v)
+                            )
                           }
                         />
                         <SectionRow
                           label="Team"
-                          checked={state.directory_team}
+                          checked={state.cooncierce.directory.team}
                           onToggle={(v) =>
-                            setState((s) => ({ ...s, directory_team: v }))
+                            setState((s) =>
+                              setValue(s, "cooncierce.directory.team", v)
+                            )
                           }
                         />
                       </div>
@@ -614,12 +669,11 @@ const AddRolesSidesheet: React.FC<Props> = ({
                         </div>
                         <div>
                           <Toggle
-                            checked={!!state.approval_delete_after_approval}
+                            checked={state.bookings.deleteAfterApproval}
                             onChange={(v) =>
-                              setState((s) => ({
-                                ...(s as any),
-                                approval_delete_after_approval: v,
-                              }))
+                              setState((s) =>
+                                setValue(s, "bookings.deleteAfterApproval", v)
+                              )
                             }
                           />
                         </div>
@@ -631,14 +685,15 @@ const AddRolesSidesheet: React.FC<Props> = ({
                         </div>
                         <div>
                           <Toggle
-                            checked={
-                              !!state.approval_noneditable_after_travel_date
-                            }
+                            checked={state.bookings.noEditAfterTravelDate}
                             onChange={(v) =>
-                              setState((s) => ({
-                                ...(s as any),
-                                approval_noneditable_after_travel_date: v,
-                              }))
+                              setState((s) =>
+                                setValue(
+                                  s,
+                                  "bookings.noEditAfterTravelDate",
+                                  v
+                                )
+                              )
                             }
                           />
                         </div>
@@ -658,31 +713,31 @@ const AddRolesSidesheet: React.FC<Props> = ({
                   <div className="rounded-md overflow-hidden border border-transparent">
                     <Row
                       label="OS (Primary)"
-                      viewKey="os_primary_view"
-                      addKey="os_primary_add"
-                      editKey="os_primary_edit"
-                      deleteKey="os_primary_delete"
+                      viewKey="bookings.osPrimary.view"
+                      addKey="bookings.osPrimary.add"
+                      editKey="bookings.osPrimary.edit"
+                      deleteKey="bookings.osPrimary.delete"
                     />
                     <Row
                       label="OS (Secondary)"
-                      viewKey="os_secondary_view"
-                      addKey="os_secondary_add"
-                      editKey="os_secondary_edit"
-                      deleteKey="os_secondary_delete"
+                      viewKey="bookings.osSecondary.view"
+                      addKey="bookings.osSecondary.add"
+                      editKey="bookings.osSecondary.edit"
+                      deleteKey="bookings.osSecondary.delete"
                     />
                     <Row
                       label="Limitless (Primary)"
-                      viewKey="limitless_primary_view"
-                      addKey="limitless_primary_add"
-                      editKey="limitless_primary_edit"
-                      deleteKey="limitless_primary_delete"
+                      viewKey="bookings.limitlessPrimary.view"
+                      addKey="bookings.limitlessPrimary.add"
+                      editKey="bookings.limitlessPrimary.edit"
+                      deleteKey="bookings.limitlessPrimary.delete"
                     />
                     <Row
                       label="Limitless (Secondary)"
-                      viewKey="limitless_secondary_view"
-                      addKey="limitless_secondary_add"
-                      editKey="limitless_secondary_edit"
-                      deleteKey="limitless_secondary_delete"
+                      viewKey="bookings.limitlessSecondary.view"
+                      addKey="bookings.limitlessSecondary.add"
+                      editKey="bookings.limitlessSecondary.edit"
+                      deleteKey="bookings.limitlessSecondary.delete"
                     />
                   </div>
                 </div>
@@ -705,39 +760,39 @@ const AddRolesSidesheet: React.FC<Props> = ({
                   <div className="rounded-md overflow-hidden border border-transparent">
                     <Row
                       label="Company Details"
-                      viewKey="company_view"
-                      addKey="company_add"
-                      editKey="company_edit"
-                      deleteKey="company_delete"
+                      viewKey="settings.companyDetails.view"
+                      addKey="settings.companyDetails.add"
+                      editKey="settings.companyDetails.edit"
+                      deleteKey="settings.companyDetails.delete"
                     />
                     <Row
                       label="Billing & Compliance"
-                      viewKey="billing_view"
-                      addKey="billing_add"
-                      editKey="billing_edit"
-                      deleteKey="billing_delete"
+                      viewKey="settings.billing.view"
+                      addKey="settings.billing.add"
+                      editKey="settings.billing.edit"
+                      deleteKey="settings.billing.delete"
                     />
                     <Row
                       label="Users"
-                      viewKey="users_view"
-                      addKey="users_add"
-                      editKey="users_edit"
-                      deleteKey="users_delete"
+                      viewKey="settings.users.view"
+                      addKey="settings.users.add"
+                      editKey="settings.users.edit"
+                      deleteKey="settings.users.delete"
                     />
                     <Row
                       label="Roles & Permissions"
-                      viewKey="roles_view"
-                      addKey="roles_add"
-                      editKey="roles_edit"
-                      deleteKey="roles_delete"
+                      viewKey="settings.roles.view"
+                      addKey="settings.roles.add"
+                      editKey="settings.roles.edit"
+                      deleteKey="settings.roles.delete"
                     />
 
                     <Row
                       label="Approval / Module Settings"
-                      viewKey="approval_view"
-                      addKey="approval_add"
-                      editKey="approval_edit"
-                      deleteKey="approval_delete"
+                      viewKey="settings.approval.view"
+                      addKey="settings.approval.add"
+                      editKey="settings.approval.edit"
+                      deleteKey="settings.approval.delete"
                     />
 
                     {/* Delete after approval row */}
@@ -749,12 +804,15 @@ const AddRolesSidesheet: React.FC<Props> = ({
                           </div>
                           <div>
                             <Toggle
-                              checked={!!state.approval_delete_after_approval}
+                              checked={state.settings.deleteAfterApproval}
                               onChange={(v) =>
-                                setState((s) => ({
-                                  ...(s as any),
-                                  approval_delete_after_approval: v,
-                                }))
+                                setState((s) =>
+                                  setValue(
+                                    s,
+                                    "settings.deleteAfterApproval",
+                                    v
+                                  )
+                                )
                               }
                             />
                           </div>
@@ -766,14 +824,15 @@ const AddRolesSidesheet: React.FC<Props> = ({
                           </div>
                           <div>
                             <Toggle
-                              checked={
-                                !!state.approval_noneditable_after_travel_date
-                              }
+                              checked={state.settings.noEditAfterTravelDate}
                               onChange={(v) =>
-                                setState((s) => ({
-                                  ...(s as any),
-                                  approval_noneditable_after_travel_date: v,
-                                }))
+                                setState((s) =>
+                                  setValue(
+                                    s,
+                                    "settings.noEditAfterTravelDate",
+                                    v
+                                  )
+                                )
                               }
                             />
                           </div>
@@ -792,31 +851,31 @@ const AddRolesSidesheet: React.FC<Props> = ({
                     </div>
                     <Row
                       label="OS (Primary)"
-                      viewKey="os_primary_view"
-                      addKey="os_primary_add"
-                      editKey="os_primary_edit"
-                      deleteKey="os_primary_delete"
+                      viewKey="settings.osPrimary.view"
+                      addKey="settings.osPrimary.add"
+                      editKey="settings.osPrimary.edit"
+                      deleteKey="settings.osPrimary.delete"
                     />
                     <Row
                       label="OS (Secondary)"
-                      viewKey="os_secondary_view"
-                      addKey="os_secondary_add"
-                      editKey="os_secondary_edit"
-                      deleteKey="os_secondary_delete"
+                      viewKey="settings.osSecondary.view"
+                      addKey="settings.osSecondary.add"
+                      editKey="settings.osSecondary.edit"
+                      deleteKey="settings.osSecondary.delete"
                     />
                     <Row
                       label="Limitless (Primary)"
-                      viewKey="limitless_primary_view"
-                      addKey="limitless_primary_add"
-                      editKey="limitless_primary_edit"
-                      deleteKey="limitless_primary_delete"
+                      viewKey="settings.limitlessPrimary.view"
+                      addKey="settings.limitlessPrimary.add"
+                      editKey="settings.limitlessPrimary.edit"
+                      deleteKey="settings.limitlessPrimary.delete"
                     />
                     <Row
                       label="Limitless (Secondary)"
-                      viewKey="limitless_secondary_view"
-                      addKey="limitless_secondary_add"
-                      editKey="limitless_secondary_edit"
-                      deleteKey="limitless_secondary_delete"
+                      viewKey="settings.limitlessSecondary.view"
+                      addKey="settings.limitlessSecondary.add"
+                      editKey="settings.limitlessSecondary.edit"
+                      deleteKey="settings.limitlessSecondary.delete"
                     />
                   </div>
                 </div>

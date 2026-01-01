@@ -4,7 +4,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import Table from "../Table";
 
 type User = {
-  id: string;
+  id?: string;
+  _id?: string;
   name: string;
   mobile: string;
   email: string;
@@ -29,31 +30,44 @@ const ActivateusersModal: React.FC<Props> = ({
 }) => {
   const [selected, setSelected] = useState<Record<string, boolean>>({});
 
+  const normalizedUsers = useMemo(
+    () =>
+      users.map((u, index) => ({
+        ...u,
+        selectionKey: String(
+          u._id ?? u.id ?? u.email ?? u.mobile ?? index
+        ),
+      })),
+    [users]
+  );
+
   useEffect(() => {
     // Initialize selection state when users change or modal opens
     const map: Record<string, boolean> = {};
-    users.forEach((u) => (map[u.id] = false));
+    normalizedUsers.forEach((u) => (map[u.selectionKey] = false));
     setSelected(map);
-  }, [users, open]);
+  }, [normalizedUsers, open]);
 
   const allSelected = useMemo(() => {
-    if (!users.length) return false;
-    return users.every((u) => selected[u.id]);
-  }, [users, selected]);
+    if (!normalizedUsers.length) return false;
+    return normalizedUsers.every((u) => selected[u.selectionKey]);
+  }, [normalizedUsers, selected]);
 
-  const handleToggle = (id: string) => {
-    setSelected((s) => ({ ...s, [id]: !s[id] }));
+  const handleToggle = (key: string) => {
+    setSelected((s) => ({ ...s, [key]: !s[key] }));
   };
 
   const handleSelectAll = () => {
     const next: Record<string, boolean> = {};
     const toggleTo = !allSelected;
-    users.forEach((u) => (next[u.id] = toggleTo));
+    normalizedUsers.forEach((u) => (next[u.selectionKey] = toggleTo));
     setSelected(next);
   };
 
   const handleActivate = () => {
-    const ids = Object.keys(selected).filter((id) => selected[id]);
+    const ids = normalizedUsers
+      .filter((u) => selected[u.selectionKey])
+      .map((u) => String(u._id ?? u.id ?? u.selectionKey));
     if (deactivate) {
       onDeactivate?.(ids);
     } else {
@@ -63,22 +77,22 @@ const ActivateusersModal: React.FC<Props> = ({
   };
 
   // Build rows as arrays of <td> elements (first cell is the checkbox)
-  const rows = users.map((u) => [
-    <td key={u.id + "-check"} className="px-4 py-3 w-[3rem]">
+  const rows = normalizedUsers.map((u) => [
+    <td key={u.selectionKey + "-check"} className="px-4 py-3 w-[3rem]">
       <input
         type="checkbox"
-        checked={!!selected[u.id]}
-        onChange={() => handleToggle(u.id)}
+        checked={!!selected[u.selectionKey]}
+        onChange={() => handleToggle(u.selectionKey)}
         className="w-4 h-4 text-green-600 rounded border-gray-300"
       />
     </td>,
-    <td key={u.id + "-name"} className="px-4 py-3 text-left">
+    <td key={u.selectionKey + "-name"} className="px-4 py-3 text-left">
       <div className="text-[13px] text-[#020202]">{u.name}</div>
     </td>,
-    <td key={u.id + "-mobile"} className="px-4 py-3 text-center">
+    <td key={u.selectionKey + "-mobile"} className="px-4 py-3 text-center">
       <div className="text-[13px] text-[#020202]">{u.mobile}</div>
     </td>,
-    <td key={u.id + "-email"} className="px-4 py-3 text-center">
+    <td key={u.selectionKey + "-email"} className="px-4 py-3 text-center">
       <div className="text-[13px] text-[#020202]">{u.email}</div>
     </td>,
   ]);

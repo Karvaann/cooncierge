@@ -75,6 +75,7 @@ const AUTH_ROUTES = {
   updateCompanyDetails: "/auth/update-company-details",
   uploadCompanyLogo: "/auth/upload-company-logo",
   deleteCompanyLogo: "/auth/delete-company-logo",
+  updateRole: "/auth/business/roles/update",
 } as const;
 
 export const AuthApi = {
@@ -174,6 +175,11 @@ export const AuthApi = {
     const { data } = await apiClient.post<CreateRoleResponse>(AUTH_ROUTES.createRole, payload);
     return data;
     
+  },
+
+  async updateRole(payload: any): Promise<CreateRoleResponse> {
+    const { data } = await apiClient.patch<CreateRoleResponse>(AUTH_ROUTES.updateRole, payload);
+    return data;
   },
 };
 

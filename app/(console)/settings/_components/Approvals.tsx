@@ -9,7 +9,6 @@ import CreateTeamSidesheet from "../../../../components/Sidesheets/CreateTeamSid
 import {
   getMakerCheckerGroups,
   updateMakerCheckerGroup,
-  deleteMakerCheckerGroup,
 } from "@/services/makerCheckerApi";
 import { FiEdit, FiTrash2, FiEye } from "react-icons/fi";
 
@@ -55,8 +54,7 @@ interface Team {
   name: string;
   checkers: { id: string; name: string }[];
   makers: { id: string; name: string }[];
-  status: "Active" | "Inactive";
-  raw?: any; // original backend group object for full payload
+  active: boolean;
 }
 
 const columns = ["Team Name", "Checkers", "Makers", "Team Status", "Actions"];
@@ -113,12 +111,12 @@ export default function Approvals(): React.ReactElement {
           <div className="inline-flex items-center justify-center gap-2">
             <span
               className={`px-3 py-1 rounded-full text-[12px] font-semibold ${
-                t.status === "Active"
+                t.active
                   ? "bg-[#F0FDF4] text-[#15803D]"
                   : "bg-[#FEE2E2] text-[#991B1B]"
               }`}
             >
-              {t.status}
+              {t.active ? "Active" : "Inactive"}
             </span>
 
             <DropDown
@@ -126,46 +124,13 @@ export default function Approvals(): React.ReactElement {
                 { value: "Active", label: "Active" },
                 { value: "Inactive", label: "Inactive" },
               ]}
-              value={t.status}
-              onChange={async (v) => {
-                const newStatus = v as Team["status"];
-                // build payload using original/raw data when available
-                const payload: any = {
-                  name: t.name,
-                  type: t.raw?.type || undefined,
-                  makers: Array.isArray(t.makers)
-                    ? t.makers.map((m) => m.id)
-                    : (t.raw?.makers || []).map((x: any) => x._id || x),
-                  checkers: Array.isArray(t.checkers)
-                    ? t.checkers.map((c) => c.id)
-                    : (t.raw?.checkers || []).map((x: any) => x._id || x),
-                  status: newStatus === "Active",
-                  businessId: t.raw?.businessId || undefined,
-                };
-
-                try {
-                  const res = await updateMakerCheckerGroup(t.id, payload);
-                  const updatedGroup = res?.group || res;
-                  setTeams((prev) =>
-                    prev.map((p) =>
-                      p.id === t.id
-                        ? {
-                            ...p,
-                            status: newStatus,
-                            raw: updatedGroup || {
-                              ...p.raw,
-                              status: newStatus,
-                            },
-                          }
-                        : p
-                    )
-                  );
-                } catch (err) {
-                  console.error(
-                    "Failed to update maker-checker group status:",
-                    err
-                  );
-                }
+              value={t.active ? "Active" : "Inactive"}
+              onChange={(v) => {
+                void updateMakerCheckerGroup(
+                  t._id,
+                  { active: v === "Active" },
+                  fetchGroups
+                );
               }}
               customWidth="w-8"
               menuWidth="w-[140px]"
@@ -208,35 +173,11 @@ export default function Approvals(): React.ReactElement {
   const fetchGroups = async () => {
     setLoadingGroups(true);
     try {
-      const res = await getMakerCheckerGroups();
+      const res = await getMakerCheckerGroups(
+        activeTab === "Bookings" ? "booking" : "finance"
+      );
       const list = res?.groups || res?.data || res || [];
-      const mapped: Team[] = (Array.isArray(list) ? list : []).map((g: any) => {
-        const id = g._id || g.id || String(g._id || g.id || Math.random());
-        const name = g.name || g.title || g.groupName || "Unnamed Team";
-        const makersRaw = g.makers || g.makerIds || g.makersList || [];
-        const checkersRaw = g.checkers || g.checkerIds || g.checkersList || [];
-        const makers = Array.isArray(makersRaw)
-          ? makersRaw.map((m: any) => ({
-              id: m._id || m.id || m,
-              name: m.name || m.fullName || String(m),
-            }))
-          : [];
-        const checkers = Array.isArray(checkersRaw)
-          ? checkersRaw.map((m: any) => ({
-              id: m._1 || m._id || m.id || m,
-              name: m.name || m.fullName || String(m),
-            }))
-          : [];
-        // status as boolean
-        const status = (g.status === undefined ? true : Boolean(g.status))
-          ? "Active"
-          : "Inactive";
-        return { id, name, makers, checkers, status, raw: g } as Team;
-      });
-      setAllTeams(mapped);
-      // apply initial filter based on activeTab
-      const typeFilter = activeTab === "Finance" ? "finance" : "booking";
-      setTeams(mapped.filter((m) => (m.raw?.type || "booking") === typeFilter));
+      setTeams(list);
     } catch (err) {
       console.error("Failed to load maker-checker groups", err);
     } finally {
@@ -246,7 +187,7 @@ export default function Approvals(): React.ReactElement {
 
   React.useEffect(() => {
     void fetchGroups();
-  }, []);
+  }, [activeTab]);
 
   // Re-filter when activeTab changes
   React.useEffect(() => {

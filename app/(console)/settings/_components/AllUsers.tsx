@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
-import { getUsers } from "@/services/userApi";
+import { getUsers, activateUsers, deactivateUsers, createOrUpdateUser } from "@/services/userApi";
 import Table from "../../../../components/Table";
 import DropDown from "../../../../components/DropDown";
 import AvatarToolTip from "../../../../components/AvatarToolTip";
 import AddUserSidesheet from "../../../../components/Sidesheets/AddUserSidesheet";
+import AddRolesSidesheet from "../../../../components/Sidesheets/AddRolesSidesheet";
 import CreateRoleModal from "../../../../components/Modals/CreateRoleModal";
 import ActivateusersModal from "../../../../components/Modals/ActivateusersModal";
 import ActionMenu from "../../../../components/Menus/ActionMenu";
@@ -43,22 +44,30 @@ export default function AllUsers(): JSX.Element {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
+  const [isEditRoleOpen, setIsEditRoleOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState<any | null>(null);
   const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
   const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
   const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [roles, setRoles] = useState<any[]>([]);
 
-  const calculateAccessLevel = (permissions: Record<string, boolean>) => {
-    if (!permissions || Object.keys(permissions).length === 0) {
-      return "Limited Access";
-    }
+   const loadUsers = async () => {
+      try {
+        setIsLoading(true);
+        const res = await getUsers();
 
-    const values = Object.values(permissions);
-    const allChecked = values.every(Boolean);
-
-    return allChecked ? "Admin Access" : "Limited Access";
-  };
+        const list = res?.data || [];
+        
+        setUsers(list);
+      } catch (e) {
+        console.error("Failed to load users", e);
+        setUsers([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
 
   useEffect(() => {
     let mounted = true;
@@ -69,23 +78,7 @@ export default function AllUsers(): JSX.Element {
 
         const list = res?.data || [];
         if (!mounted) return;
-        const mapped = list.map((u: any) => ({
-          id: u._id || u.id,
-          name:
-            u.name ||
-            `${u.firstName || ""} ${u.lastName || ""}`.trim() ||
-            u.email ||
-            "-",
-          mobile:
-            u.phoneCode && u.mobile
-              ? `${u.phoneCode}-${u.mobile}`
-              : u.mobile || u.mobileNumber || "",
-          email: u.email || "",
-          role:
-            (u.roleId && (u.roleId.roleName || u.roleId.name)) || u.role || "",
-          status: u.isActive === false ? "Inactive" : "Active",
-        }));
-        setUsers(mapped);
+        setUsers(list);
       } catch (e) {
         console.error("Failed to load users", e);
         setUsers([]);
@@ -131,9 +124,17 @@ export default function AllUsers(): JSX.Element {
               }))
             : [];
 
-          const access = areAllPermissionsTrue(r.permissions) ? 'Admin Access' : 'Limited Access';
+          const access = areAllPermissionsTrue(r.permissions)
+            ? "Admin Access"
+            : "Limited Access";
 
-          return { id: roleId, role: roleName, users: usersArr, access };
+          return {
+            id: roleId,
+            role: roleName,
+            users: usersArr,
+            access,
+            permissions: r.permissions || r.permission || {},
+          };
         });
 
         if (!mounted) return;
@@ -196,7 +197,10 @@ export default function AllUsers(): JSX.Element {
                 label: "Edit Role",
                 icon: <MdOutlineEdit />,
                 color: "text-blue-600",
-                onClick: () => setIsCreateRoleOpen(true),
+                onClick: () => {
+                  setEditingRole(r);
+                  setIsEditRoleOpen(true);
+                },
               },
               {
                 label: "Delete",
@@ -222,37 +226,38 @@ export default function AllUsers(): JSX.Element {
       const row: JSX.Element[] = [];
 
       row.push(
-        <td key={`name-${u.id}`} className="px-6 py-4">
+        <td key={`name-${u._id}`} className="px-6 py-4">
           <div className="font-medium">{u.name}</div>
         </td>
       );
 
       row.push(
-        <td key={`mobile-${u.id}`} className="px-6 py-4 text-center">
+        <td key={`mobile-${u._id}`} className="px-6 py-4 text-center">
           {u.mobile}
         </td>
       );
 
       row.push(
-        <td key={`email-${u.id}`} className="px-6 py-4 text-center">
+        <td key={`email-${u._id}`} className="px-6 py-4 text-center">
           {u.email}
         </td>
       );
 
       row.push(
-        <td key={`role-${u.id}`} className="px-6 py-4 text-center">
+        <td key={`role-${u._id}`} className="px-6 py-4 text-center">
           <div className="inline-flex items-center gap-2 justify-center">
-            <span>{u.role}</span>
+            <span>{u.roleId?.roleName}</span>
             <DropDown
               options={roles.map((r: any) => ({
-                value: r.role,
+                value: r.id,
                 label: r.role,
               }))}
-              value={u.role}
-              onChange={(v) =>
-                setUsers((prev) =>
-                  prev.map((p) => (p.id === u.id ? { ...p, role: v } : p))
-                )
+              value={u.roleId?.roleName}
+              onChange={async (v) => {
+                const user = {...u, roleId: v};
+                await createOrUpdateUser(user, loadUsers);
+              }
+                
               }
               className=""
               customWidth="w-8"
@@ -266,16 +271,16 @@ export default function AllUsers(): JSX.Element {
       );
 
       row.push(
-        <td key={`status-${u.id}`} className="px-6 py-4 text-center">
+        <td key={`status-${u._id}`} className="px-6 py-4 text-center">
           <div className="inline-flex items-center gap-2 justify-center">
             <span
               className={`px-3 py-1 rounded-full text-[12px] font-semibold ${
-                u.status === "Active"
+                u.isActive
                   ? "bg-[#F0FDF4] text-[#15803D]"
                   : "bg-[#FEE2E2] text-[#991B1B]"
               }`}
             >
-              {u.status}
+              {u.isActive ? "Active" : "Inactive"}
             </span>
             <DropDown
               options={[
@@ -283,10 +288,13 @@ export default function AllUsers(): JSX.Element {
                 { value: "Inactive", label: "Inactive" },
               ]}
               value={u.status}
-              onChange={(v) =>
-                setUsers((prev) =>
-                  prev.map((p) => (p.id === u.id ? { ...p, status: v } : p))
-                )
+              onChange={async (v) => {
+                if (v === "Active") {
+                    await activateUsers([u._id], loadUsers);
+                  } else {
+                    await deactivateUsers([u._id], loadUsers);
+                  }
+                }
               }
               customWidth="w-8"
               menuWidth="w-[140px]"
@@ -401,7 +409,7 @@ export default function AllUsers(): JSX.Element {
                   onClick={() => setIsActivateModalOpen(true)}
                   className="px-[14px] py-[6px] text-[14px] font-[500] leading-5 border border-[#4CA640] text-[#4CA640] rounded-md bg-[#4CA6401A]"
                 >
-                  Activate (1 Left)
+                  Activate ({users.filter((u) => !u.isActive).length} Left)
                 </button>
                 <button
                   onClick={() => setIsDeactivateModalOpen(true)}
@@ -448,7 +456,7 @@ export default function AllUsers(): JSX.Element {
           onAddUser={(payload) => {
             const newUser = {
               id: String(Date.now()),
-              name: payload.fullName || payload.name || "New User",
+              name: payload.name || "New User",
               mobile: `${payload.countryCode || "+91"}-${payload.mobile || ""}`,
               email: payload.email || "",
               role: payload.role || payload.roleId || "",
@@ -465,7 +473,7 @@ export default function AllUsers(): JSX.Element {
                 p.id === id
                   ? {
                       id: id,
-                      name: payload.name || payload.fullName || p.name,
+                      name: payload.name || p.name,
                       mobile:
                         payload.phoneCode && payload.mobile
                           ? `${payload.phoneCode}-${payload.mobile}`
@@ -497,30 +505,33 @@ export default function AllUsers(): JSX.Element {
             setIsCreateRoleOpen(false);
           }}
         />
+
+        <AddRolesSidesheet
+          isOpen={isEditRoleOpen}
+          onClose={() => {
+            setIsEditRoleOpen(false);
+            setEditingRole(null);
+          }}
+          roleId={editingRole?.id}
+          roleName={editingRole?.role || ""}
+          initialPermissions={editingRole?.permissions || {}}
+        />
         <ActivateusersModal
           open={isActivateModalOpen}
           onClose={() => setIsActivateModalOpen(false)}
-          users={users.filter((u) => u.status === "Inactive")}
-          onActivate={(ids) => {
-            setUsers((prev) =>
-              prev.map((u) =>
-                ids.includes(u.id) ? { ...u, status: "Active" } : u
-              )
-            );
+          users={users.filter((u) => !u.isActive)}
+          onActivate={async (ids) => {
+            await activateUsers(ids, loadUsers);
           }}
         />
 
         <ActivateusersModal
           open={isDeactivateModalOpen}
           onClose={() => setIsDeactivateModalOpen(false)}
-          users={users.filter((u) => u.status === "Active")}
+          users={users.filter((u) => u.isActive)}
           deactivate={true}
-          onDeactivate={(ids) => {
-            setUsers((prev) =>
-              prev.map((u) =>
-                ids.includes(u.id) ? { ...u, status: "Inactive" } : u
-              )
-            );
+          onDeactivate={async(ids) => {
+            await deactivateUsers(ids, loadUsers);
           }}
         />
       </div>

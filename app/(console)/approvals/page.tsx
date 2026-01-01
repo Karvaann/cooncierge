@@ -9,40 +9,27 @@ import {
   useRef,
   useLayoutEffect,
 } from "react";
-import { BookingApiService, DraftManager } from "@/services/bookingApi";
+import { BookingApiService } from "@/services/bookingApi";
 import { CustomIdApi } from "@/services/customIdApi";
-import type { DraftBooking } from "@/services/bookingApi";
-import apiClient from "@/services/apiClient";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import ApproveDenyModal from "@/components/Modals/ApproveDenyModal";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
-// import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ModalSkeleton from "@/components/skeletons/ModalSkeleton";
 import SidesheetSkeleton from "@/components/skeletons/SidesheetSkeleton";
-// Action menu replaced by explicit approve/reject buttons in Pending tab
 import type { JSX } from "react";
 import { formatServiceType } from "@/utils/helper";
-import { FaRegTrashAlt } from "react-icons/fa";
-import { MdOutlineEdit } from "react-icons/md";
-import { TbArrowAutofitRight } from "react-icons/tb";
-import { FiCopy, FiCheck, FiX } from "react-icons/fi";
+import { FiCheck, FiX } from "react-icons/fi";
 import { CiFilter } from "react-icons/ci";
 import { TbArrowsUpDown } from "react-icons/tb";
 import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
-import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 import TaskButton from "@/components/TaskButton";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
   ssr: false,
 });
-
-// const SummaryCards = dynamic(() => import("@/components/SummaryCards"), {
-//   loading: () => <SummaryCardsSkeleton />,
-//   ssr: false,
-// });
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -125,24 +112,6 @@ interface QuotationData {
   createdAt: string;
   updatedAt: string;
 }
-
-// interface SummaryData {
-//   total: {
-//     amount: string;
-//     change: string;
-//     isPositive: boolean;
-//   };
-//   youGive: {
-//     amount: string;
-//     change: string;
-//     isPositive: boolean;
-//   };
-//   youGet: {
-//     amount: string;
-//     change: string;
-//     isPositive: boolean;
-//   };
-// }
 
 const columns: string[] = [
   "Booking ID",
@@ -872,8 +841,27 @@ const OSBookingsPage = () => {
               })}
             </div>
           </div>
+<<<<<<< HEAD
         </td>,
       ];
+=======
+        </td>
+      ];
+
+
+      if (activeTab === "Approved") {
+        baseCells.push(
+          <td
+          key={`tasks-${index}`}
+          className="px-4 py-3 text-center align-middle h-[3rem]"
+        >
+          <div className="flex justify-center">
+            <TaskButton count={0} bookingId={item._id} />
+          </div>
+        </td>
+        )
+      }
+>>>>>>> 633af4d01d9e220384f6bce5726cd2a3f3658112
 
       if (activeTab !== "Pending") {
         baseCells.push(
@@ -955,12 +943,16 @@ const OSBookingsPage = () => {
 
   // Columns to display: include Actions header only for Pending tab
   const displayedColumns = useMemo(() => {
+<<<<<<< HEAD
     if (activeTab === "Pending") {
       return [...columns, "Actions"];
     }
 
     // Approved tab → add Tasks header
     return [...columns, "Tasks"];
+=======
+    return activeTab === "Pending" ? [...columns, "Actions"] : [...columns, "Tasks"];
+>>>>>>> 633af4d01d9e220384f6bce5726cd2a3f3658112
   }, [activeTab]);
 
   return (

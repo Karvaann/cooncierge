@@ -19,6 +19,7 @@ import { getVendorById } from "@/services/vendorApi";
 import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
 import { getVendors } from "@/services/vendorApi";
 import { getTeams } from "@/services/teamsApi";
+import { getUsers } from "@/services/userApi";
 import { getTravellers } from "@/services/travellerApi";
 import DropDown from "@/components/DropDown";
 import { getTravellerById } from "@/services/travellerApi";
@@ -86,7 +87,6 @@ interface TeamDataType {
   id?: string;
   name: string;
   email?: string;
-  username?: string;
 }
 
 interface TravellerDataType {
@@ -660,12 +660,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           getCustomers(),
           getTravellers(),
           getVendors(),
-          getTeams(),
+          getUsers(),
         ]);
 
         setAllCustomers(cRes || []);
         setAllVendors(vRes || []);
-        setAllTeams(tRes || []);
+        setAllTeams(tRes.data || []);
         setAllTravellers(travellerRes || []);
       } catch (err) {
         // console.error("[GeneralInfoForm] Failed loading lists", err);
@@ -2030,7 +2030,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               const results = runFuzzySearch(allTeams, value, [
                 "name",
                 "email",
-                "username",
               ]);
               setTeamsResults(results);
               setShowTeamsDropdown(true);

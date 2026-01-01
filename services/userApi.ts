@@ -77,3 +77,37 @@ export const uploadProfileImage = async (userId: string, imageFile: File) => {
     throw error.response?.data || { message: "Something went wrong" };
   }
 };
+
+
+export const activateUsers = async (ids: string[], callback?: () => void) => {
+  try {
+    const response = await apiClient.patch("/auth/business/users/activate", { ids });
+    callback?.();
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to activate users:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+
+export const deactivateUsers = async (ids: string[], callback?: () => void) => {
+  try {
+    const response = await apiClient.patch("/auth/business/users/deactivate", { ids });
+    callback?.();
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to deactivate users:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+
+export const createOrUpdateUser = async (userData: any, callback?: () => void) => {
+  try {
+    const response = await apiClient.post("/auth/create-or-update-user", userData);
+    callback?.();
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to create/update user:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
