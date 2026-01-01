@@ -152,7 +152,6 @@ const columns: string[] = [
   "Service Status",
   "Amount",
   "Owners",
-  "Tasks",
 ];
 
 interface Owner {
@@ -874,15 +873,20 @@ const OSBookingsPage = () => {
             </div>
           </div>
         </td>,
-        <td
-          key={`tasks-${index}`}
-          className="px-4 py-3 text-center align-middle h-[3rem]"
-        >
-          <div className="flex justify-center">
-            <TaskButton count={0} bookingId={item._id} />
-          </div>
-        </td>,
       ];
+
+      if (activeTab !== "Pending") {
+        baseCells.push(
+          <td
+            key={`tasks-${index}`}
+            className="px-4 py-3 text-center align-middle h-[3rem]"
+          >
+            <div className="flex justify-center">
+              <TaskButton count={0} bookingId={item._id} />
+            </div>
+          </td>
+        );
+      }
 
       // Conditionally include Actions column only for Pending tab
       if (activeTab === "Pending") {
@@ -908,11 +912,7 @@ const OSBookingsPage = () => {
               <button
                 type="button"
                 aria-label="Reject"
-                onClick={() => {
-                  setApproveDenyAction("deny");
-                  setApproveDenyId(id);
-                  setIsApproveDenyOpen(true);
-                }}
+                onClick={() => handleRejectClick(id)}
                 className="flex items-center justify-center w-9 h-9 rounded-md border border-red-200 text-red-600 hover:bg-red-50"
               >
                 <FiX className="w-4 h-4" />
@@ -955,7 +955,12 @@ const OSBookingsPage = () => {
 
   // Columns to display: include Actions header only for Pending tab
   const displayedColumns = useMemo(() => {
-    return activeTab === "Pending" ? [...columns, "Actions"] : columns;
+    if (activeTab === "Pending") {
+      return [...columns, "Actions"];
+    }
+
+    // Approved tab → add Tasks header
+    return [...columns, "Tasks"];
   }, [activeTab]);
 
   return (
@@ -967,12 +972,14 @@ const OSBookingsPage = () => {
           {drafts.length > 0 && (
             <div className="text-sm text-gray-600">
               <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
-                {drafts.length} Draft{drafts.length !== 1 ? "s" : ""}
-              </span>
-            </div>
-          )}
-          <button
-            onClick={syncDrafts}
+                {drafts.length} Draft{dconst displayedColumns = useMemo(() => {
+    if (activeTab === "Pending") {
+      return [...columns, "Actions"];
+    }
+
+    // Approved tab → include Tasks
+    return [...columns, "Tasks"];
+  }, [activeTab]);Drafts}
             className="text-sm text-gray-600 hover:text-gray-800 transition"
             type="button"
             title="Sync drafts with backend"
@@ -1073,30 +1080,6 @@ const OSBookingsPage = () => {
           cancelText="Cancel"
           confirmButtonColor="bg-red-600"
           onConfirm={confirmDelete}
-        />
-
-        <ApproveDenyModal
-          isOpen={isApproveDenyOpen}
-          onClose={() => {
-            setIsApproveDenyOpen(false);
-            setApproveDenyId(null);
-          }}
-          action={approveDenyAction}
-          confirmColor={
-            approveDenyAction === "deny"
-              ? "bg-[#EB382B] hover:bg-red-700"
-              : "bg-[#4CA640] hover:bg-green-600"
-          }
-          onConfirm={async (reason: string) => {
-            if (!approveDenyId) return;
-            if (approveDenyAction === "approve") {
-              await handleApproveClick(approveDenyId, reason);
-            } else {
-              await handleRejectClick(approveDenyId, reason);
-            }
-            setIsApproveDenyOpen(false);
-            setApproveDenyId(null);
-          }}
         />
 
         {isCreateOpen && (

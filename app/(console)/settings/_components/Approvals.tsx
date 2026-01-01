@@ -6,7 +6,11 @@ import DropDown from "../../../../components/DropDown";
 import AvatarToolTip from "../../../../components/AvatarToolTip";
 import ActionMenu from "../../../../components/Menus/ActionMenu";
 import CreateTeamSidesheet from "../../../../components/Sidesheets/CreateTeamSidesheet";
-import { getMakerCheckerGroups } from "@/services/makerCheckerApi";
+import {
+  getMakerCheckerGroups,
+  updateMakerCheckerGroup,
+  deleteMakerCheckerGroup,
+} from "@/services/makerCheckerApi";
 import { FiEdit, FiTrash2, FiEye } from "react-icons/fi";
 
 const getShortName = (name?: string | null): string => {
@@ -21,12 +25,38 @@ const getShortName = (name?: string | null): string => {
   return (first + last).toUpperCase();
 };
 
+// deterministic border + text color picker for avatars (applies to short form only)
+const BORDER_COLOR_PAIRS = [
+  "border-blue-400 text-blue-700",
+  "border-green-400 text-green-700",
+  "border-yellow-400 text-yellow-700",
+  "border-purple-400 text-purple-700",
+  "border-red-400 text-red-700",
+  "border-pink-400 text-pink-700",
+  "border-cyan-400 text-cyan-700",
+  "border-orange-400 text-orange-700",
+  "border-lime-400 text-lime-700",
+] as const;
+
+const getColorForId = (id: string | number | undefined, idx: number) => {
+  if (!id) return BORDER_COLOR_PAIRS[idx % BORDER_COLOR_PAIRS.length] as string;
+  const s = String(id);
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) {
+    hash = (hash << 5) - hash + s.charCodeAt(i);
+    hash |= 0;
+  }
+  const index = Math.abs(hash) % BORDER_COLOR_PAIRS.length;
+  return BORDER_COLOR_PAIRS[index] as string;
+};
+
 interface Team {
   id: string;
   name: string;
   checkers: { id: string; name: string }[];
   makers: { id: string; name: string }[];
   status: "Active" | "Inactive";
+  raw?: any; // original backend group object for full payload
 }
 
 const columns = ["Team Name", "Checkers", "Makers", "Team Status", "Actions"];
@@ -34,6 +64,7 @@ const columns = ["Team Name", "Checkers", "Makers", "Team Status", "Actions"];
 export default function Approvals(): React.ReactElement {
   const [activeTab, setActiveTab] = useState("Bookings");
   const [teams, setTeams] = useState<Team[]>([]);
+  const [allTeams, setAllTeams] = useState<Team[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
 
@@ -55,7 +86,7 @@ export default function Approvals(): React.ReactElement {
                 key={u.id}
                 short={getShortName(u.name)}
                 full={u.name}
-                color={idx % 2 === 0 ? "border-[#FCA5A5]" : "border-[#BFDBFE]"}
+                color={getColorForId(u.id, idx)}
               />
             ))}
           </div>
@@ -70,7 +101,7 @@ export default function Approvals(): React.ReactElement {
                 key={u.id}
                 short={getShortName(u.name)}
                 full={u.name}
-                color={idx % 2 === 0 ? "border-[#FCA5A5]" : "border-[#BFDBFE]"}
+                color={getColorForId(u.id, idx)}
               />
             ))}
           </div>
@@ -96,12 +127,45 @@ export default function Approvals(): React.ReactElement {
                 { value: "Inactive", label: "Inactive" },
               ]}
               value={t.status}
-              onChange={(v) => {
-                setTeams((prev) =>
-                  prev.map((p) =>
-                    p.id === t.id ? { ...p, status: v as Team["status"] } : p
-                  )
-                );
+              onChange={async (v) => {
+                const newStatus = v as Team["status"];
+                // build payload using original/raw data when available
+                const payload: any = {
+                  name: t.name,
+                  type: t.raw?.type || undefined,
+                  makers: Array.isArray(t.makers)
+                    ? t.makers.map((m) => m.id)
+                    : (t.raw?.makers || []).map((x: any) => x._id || x),
+                  checkers: Array.isArray(t.checkers)
+                    ? t.checkers.map((c) => c.id)
+                    : (t.raw?.checkers || []).map((x: any) => x._id || x),
+                  status: newStatus === "Active",
+                  businessId: t.raw?.businessId || undefined,
+                };
+
+                try {
+                  const res = await updateMakerCheckerGroup(t.id, payload);
+                  const updatedGroup = res?.group || res;
+                  setTeams((prev) =>
+                    prev.map((p) =>
+                      p.id === t.id
+                        ? {
+                            ...p,
+                            status: newStatus,
+                            raw: updatedGroup || {
+                              ...p.raw,
+                              status: newStatus,
+                            },
+                          }
+                        : p
+                    )
+                  );
+                } catch (err) {
+                  console.error(
+                    "Failed to update maker-checker group status:",
+                    err
+                  );
+                }
               }}
               customWidth="w-8"
               menuWidth="w-[140px]"
@@ -123,8 +187,13 @@ export default function Approvals(): React.ReactElement {
                 label: "Delete",
                 icon: <FiTrash2 />,
                 color: "text-red-600",
-                onClick: () => {
-                  console.log("Delete team:", t.id);
+                onClick: async () => {
+                  try {
+                    await deleteMakerCheckerGroup(t.id);
+                    setTeams((prev) => prev.filter((p) => p.id !== t.id));
+                  } catch (err) {
+                    console.error("Failed to delete maker-checker group:", err);
+                  }
                 },
               },
             ]}
@@ -158,13 +227,16 @@ export default function Approvals(): React.ReactElement {
               name: m.name || m.fullName || String(m),
             }))
           : [];
-        const status =
-          (g.status || g.teamStatus || "Active") === "Active"
-            ? "Active"
-            : "Inactive";
-        return { id, name, makers, checkers, status } as Team;
+        // status as boolean
+        const status = (g.status === undefined ? true : Boolean(g.status))
+          ? "Active"
+          : "Inactive";
+        return { id, name, makers, checkers, status, raw: g } as Team;
       });
-      setTeams(mapped);
+      setAllTeams(mapped);
+      // apply initial filter based on activeTab
+      const typeFilter = activeTab === "Finance" ? "finance" : "booking";
+      setTeams(mapped.filter((m) => (m.raw?.type || "booking") === typeFilter));
     } catch (err) {
       console.error("Failed to load maker-checker groups", err);
     } finally {
@@ -175,6 +247,12 @@ export default function Approvals(): React.ReactElement {
   React.useEffect(() => {
     void fetchGroups();
   }, []);
+
+  // Re-filter when activeTab changes
+  React.useEffect(() => {
+    const typeFilter = activeTab === "Finance" ? "finance" : "booking";
+    setTeams(allTeams.filter((m) => (m.raw?.type || "booking") === typeFilter));
+  }, [activeTab, allTeams]);
 
   return (
     <div>

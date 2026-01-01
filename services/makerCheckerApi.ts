@@ -2,10 +2,10 @@ import apiClient from "@/services/apiClient";
 
 export interface MakerCheckerGroupCreateRequest {
   name: string;
-  description?: string;
   type: "booking" | "finance";
   makers: string[]; // user ids
   checkers: string[]; // user ids
+  status?: boolean;
   businessId?: string; // super admin only
 }
 
@@ -39,10 +39,32 @@ export const getMakerCheckerGroupById = async (id: string) => {
   }
 };
 
+export const updateMakerCheckerGroup = async (id: string, payload: Partial<MakerCheckerGroupCreateRequest>) => {
+  try {
+    const response = await apiClient.put(`/maker-checker-group/update-group/${id}`, payload);
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to update maker-checker group:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+
+export const deleteMakerCheckerGroup = async (id: string) => {
+  try {
+    const response = await apiClient.delete(`/maker-checker-group/delete-group/${id}`);
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to delete maker-checker group:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+
 export const MakerCheckerApi = {
   create: createMakerCheckerGroup,
   list: getMakerCheckerGroups,
   getById: getMakerCheckerGroupById,
+  update: updateMakerCheckerGroup,
+  delete: deleteMakerCheckerGroup,
 };
 
 export default MakerCheckerApi;
