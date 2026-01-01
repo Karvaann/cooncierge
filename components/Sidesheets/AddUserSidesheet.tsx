@@ -58,7 +58,7 @@ export default function AddUserSidesheet({
       email,
       phoneCode: countryCode,
       mobile,
-      userStatus,
+      isActive: userStatus === "active",
       roleId: role,
       autoCreate,
       password: autoCreate ? undefined : password,
@@ -82,17 +82,21 @@ export default function AddUserSidesheet({
       const roleIdFinal =
         role || roleIdFromStorage || "000000000000000000000000";
 
+        console.log('initialData', initialData);
+
       // Build request payload matching backend required fields and model
       const reqPayload = {
+        _id: initialData?.id,
         mobile: mobile || "",
         email: email || "",
         roleId: roleIdFinal,
-        gender: "other",
         phoneCode: isNaN(phoneCodeNum) ? 91 : phoneCodeNum,
-
+        isActive: userStatus === "active",
         name: fullName || "",
-        designation: "Staff",
-        businessId: businessIdFromStorage,
+        businessId: businessIdFromStorage._id,
+        password: autoCreate ? undefined : password,
+        resetPasswordRequired: requireChange,
+        autoCreate,
       } as any;
 
       // Basic client-side validation for backend-required fields
@@ -100,7 +104,6 @@ export default function AddUserSidesheet({
         !reqPayload.mobile ||
         !reqPayload.email ||
         !reqPayload.roleId ||
-        !reqPayload.gender ||
         !reqPayload.phoneCode
       ) {
         console.error("Missing required fields", reqPayload);
@@ -202,7 +205,7 @@ export default function AddUserSidesheet({
       setCountryCode(code);
 
       setMobile(String(initialData.mobile || initialData.phone || ""));
-      setUserStatus(String(initialData.status || "").toLowerCase());
+      setUserStatus(String(initialData.isActive ? "Active" : "Inactive").toLowerCase());
       setRole(String(initialData.role || ""));
       // reset password UI state
       setShowResetPassword(false);

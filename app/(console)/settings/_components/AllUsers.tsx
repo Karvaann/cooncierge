@@ -316,12 +316,12 @@ export default function AllUsers(): JSX.Element {
                 color: "text-blue-600",
                 onClick: () => {
                   setEditingUser({
-                    id: u.id,
+                    id: u._id,
                     name: u.name,
                     email: u.email,
                     mobile: u.mobile,
                     role: u.role,
-                    status: u.status,
+                    isActive: u.isActive,
                   });
                   setIsAddOpen(true);
                 },
