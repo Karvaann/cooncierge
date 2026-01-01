@@ -50,10 +50,22 @@ export const updateMakerCheckerGroup = async (id: string, payload: any, callback
   }
 };
 
+export const deleteMakerCheckerGroup = async (id: string) => {
+  try {
+    const response = await apiClient.delete(`/maker-checker-group/delete-group/${id}`);
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to delete maker-checker group:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+
 export const MakerCheckerApi = {
   create: createMakerCheckerGroup,
   list: getMakerCheckerGroups,
   getById: getMakerCheckerGroupById,
+  update: updateMakerCheckerGroup,
+  delete: deleteMakerCheckerGroup,
 };
 
 export default MakerCheckerApi;

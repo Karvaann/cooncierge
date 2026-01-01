@@ -458,7 +458,6 @@ export default function CreateTeamSidesheet({
                     value={teamStatus}
                     onChange={(v) => setTeamStatus(v)}
                     customWidth="w-full"
-                    menuWidth="w-full"
                     className="text-[13px]"
                   />
                 </div>

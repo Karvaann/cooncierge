@@ -9,6 +9,7 @@ import CreateTeamSidesheet from "../../../../components/Sidesheets/CreateTeamSid
 import {
   getMakerCheckerGroups,
   updateMakerCheckerGroup,
+  deleteMakerCheckerGroup,
 } from "@/services/makerCheckerApi";
 import { FiEdit, FiTrash2, FiEye } from "react-icons/fi";
 
@@ -25,6 +26,7 @@ const getShortName = (name?: string | null): string => {
 };
 
 interface Team {
+  _id?: string;
   id: string;
   name: string;
   checkers: { id: string; name: string }[];
@@ -107,7 +109,7 @@ export default function Approvals(): React.ReactElement {
       );
 
       row.push(
-        <td key={`status-${t.id}`} className="px-6 py-4 text-center">
+        <td key={`status-${t._id ?? t.id}`} className="px-6 py-4 text-center">
           <div className="inline-flex items-center justify-center gap-2">
             <span
               className={`px-3 py-1 rounded-full text-[12px] font-semibold ${
@@ -127,7 +129,7 @@ export default function Approvals(): React.ReactElement {
               value={t.active ? "Active" : "Inactive"}
               onChange={(v) => {
                 void updateMakerCheckerGroup(
-                  t.id,
+                  t._id ?? t.id,
                   { active: v === "Active" },
                   fetchGroups
                 );
@@ -144,7 +146,7 @@ export default function Approvals(): React.ReactElement {
       );
 
       row.push(
-        <td key={`actions-${t.id}`} className="px-6 py-4 text-center">
+        <td key={`actions-${t._id ?? t.id}`} className="px-6 py-4 text-center">
           <ActionMenu
             right="right-23"
             width="w-23"
@@ -153,8 +155,15 @@ export default function Approvals(): React.ReactElement {
                 label: "Delete",
                 icon: <FiTrash2 />,
                 color: "text-red-600",
-                onClick: () => {
-                  console.log("Delete team:", t.id);
+                onClick: async () => {
+                  if (!confirm("Delete team? This action cannot be undone."))
+                    return;
+                  try {
+                    await deleteMakerCheckerGroup(t._id ?? t.id);
+                    await fetchGroups();
+                  } catch (err) {
+                    console.error("Failed to delete team:", err);
+                  }
                 },
               },
             ]}
