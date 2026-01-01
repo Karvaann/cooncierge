@@ -6,7 +6,7 @@ import DropDown from "../../../../components/DropDown";
 import AvatarToolTip from "../../../../components/AvatarToolTip";
 import ActionMenu from "../../../../components/Menus/ActionMenu";
 import CreateTeamSidesheet from "../../../../components/Sidesheets/CreateTeamSidesheet";
-import { getMakerCheckerGroups } from "@/services/makerCheckerApi";
+import { getMakerCheckerGroups, updateMakerCheckerGroup } from "@/services/makerCheckerApi";
 import { FiEdit, FiTrash2, FiEye } from "react-icons/fi";
 
 const getShortName = (name?: string | null): string => {
@@ -26,7 +26,7 @@ interface Team {
   name: string;
   checkers: { id: string; name: string }[];
   makers: { id: string; name: string }[];
-  status: "Active" | "Inactive";
+  active: boolean;
 }
 
 const columns = ["Team Name", "Checkers", "Makers", "Team Status", "Actions"];
@@ -82,12 +82,12 @@ export default function Approvals(): React.ReactElement {
           <div className="inline-flex items-center justify-center gap-2">
             <span
               className={`px-3 py-1 rounded-full text-[12px] font-semibold ${
-                t.status === "Active"
+                t.active
                   ? "bg-[#F0FDF4] text-[#15803D]"
                   : "bg-[#FEE2E2] text-[#991B1B]"
               }`}
             >
-              {t.status}
+              {t.active ? "Active" : "Inactive"}
             </span>
 
             <DropDown
@@ -95,13 +95,9 @@ export default function Approvals(): React.ReactElement {
                 { value: "Active", label: "Active" },
                 { value: "Inactive", label: "Inactive" },
               ]}
-              value={t.status}
+              value={t.active ? "Active" : "Inactive"}
               onChange={(v) => {
-                setTeams((prev) =>
-                  prev.map((p) =>
-                    p.id === t.id ? { ...p, status: v as Team["status"] } : p
-                  )
-                );
+                void updateMakerCheckerGroup(t._id, { active: v === "Active" }, fetchGroups);
               }}
               customWidth="w-8"
               menuWidth="w-[140px]"
@@ -139,32 +135,9 @@ export default function Approvals(): React.ReactElement {
   const fetchGroups = async () => {
     setLoadingGroups(true);
     try {
-      const res = await getMakerCheckerGroups();
+      const res = await getMakerCheckerGroups(activeTab === "Bookings" ? "booking" : "finance");
       const list = res?.groups || res?.data || res || [];
-      const mapped: Team[] = (Array.isArray(list) ? list : []).map((g: any) => {
-        const id = g._id || g.id || String(g._id || g.id || Math.random());
-        const name = g.name || g.title || g.groupName || "Unnamed Team";
-        const makersRaw = g.makers || g.makerIds || g.makersList || [];
-        const checkersRaw = g.checkers || g.checkerIds || g.checkersList || [];
-        const makers = Array.isArray(makersRaw)
-          ? makersRaw.map((m: any) => ({
-              id: m._id || m.id || m,
-              name: m.name || m.fullName || String(m),
-            }))
-          : [];
-        const checkers = Array.isArray(checkersRaw)
-          ? checkersRaw.map((m: any) => ({
-              id: m._1 || m._id || m.id || m,
-              name: m.name || m.fullName || String(m),
-            }))
-          : [];
-        const status =
-          (g.status || g.teamStatus || "Active") === "Active"
-            ? "Active"
-            : "Inactive";
-        return { id, name, makers, checkers, status } as Team;
-      });
-      setTeams(mapped);
+      setTeams(list);
     } catch (err) {
       console.error("Failed to load maker-checker groups", err);
     } finally {
@@ -174,7 +147,7 @@ export default function Approvals(): React.ReactElement {
 
   React.useEffect(() => {
     void fetchGroups();
-  }, []);
+  }, [activeTab]);
 
   return (
     <div>

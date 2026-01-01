@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Modal from "../Modal";
 import DropDown from "../DropDown";
 import AddRolesSidesheet from "../Sidesheets/AddRolesSidesheet";
+import { AuthApi } from "@/services/authApi";
 
 interface CreateRoleModalProps {
   isOpen: boolean;
@@ -15,12 +16,11 @@ interface CreateRoleModalProps {
   }) => void;
 }
 
-const roleOptions = [
-  { value: "admin", label: "Admin" },
-  { value: "operations", label: "Operations" },
-  { value: "sales", label: "Sales" },
-  { value: "finance", label: "Finance" },
-];
+type RoleOption = {
+  value: string;
+  label: string;
+  permissions: Record<string, unknown>;
+};
 
 const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
   isOpen,
@@ -31,6 +31,39 @@ const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
   const [mode, setMode] = useState<"existing" | "scratch">("existing");
   const [selectedRole, setSelectedRole] = useState<string>("");
   const [roleName, setRoleName] = useState<string>("");
+  const [roleOptions, setRoleOptions] = useState<RoleOption[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadRoles = async () => {
+      try {
+        const res = await AuthApi.getBusinessRoles();
+        const list = res?.output || (res as any)?.data || [];
+        const mapped = (Array.isArray(list) ? list : []).map((r: any) => ({
+          value: String(r._id || r.id || r.roleId || ""),
+          label: String(r.roleName || r.name || r.role || ""),
+          permissions: (r.permissions || r.permission || {}) as Record<
+            string,
+            unknown
+          >,
+        }));
+        if (!mounted) return;
+        setRoleOptions(mapped);
+      } catch (e) {
+        console.error("Failed to load roles", e);
+      }
+    };
+
+    if (isOpen) loadRoles();
+    return () => {
+      mounted = false;
+    };
+  }, [isOpen]);
+
+  const selectedRolePermissions = useMemo(() => {
+    if (!selectedRole) return undefined;
+    return roleOptions.find((r) => r.value === selectedRole)?.permissions;
+  }, [roleOptions, selectedRole]);
 
   const handleContinue = () => {
     if (onContinue) {
@@ -170,6 +203,9 @@ const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
           roleName ||
           roleOptions.find((o) => o.value === selectedRole)?.label ||
           ""
+        }
+        initialPermissions={
+          mode === "existing" ? selectedRolePermissions : undefined
         }
       />
     </>

@@ -19,9 +19,9 @@ export const createMakerCheckerGroup = async (payload: MakerCheckerGroupCreateRe
   }
 };
 
-export const getMakerCheckerGroups = async (params?: { businessId?: string; type?: string }) => {
+export const getMakerCheckerGroups = async (type: string) => {
   try {
-    const response = await apiClient.get("/maker-checker-group/get-all-groups", { params });
+    const response = await apiClient.get(`/maker-checker-group/get-all-groups?type=${type}`);
     return response.data;
   } catch (error: any) {
     console.error("Failed to fetch maker-checker groups:", error);
@@ -35,6 +35,17 @@ export const getMakerCheckerGroupById = async (id: string) => {
     return response.data;
   } catch (error: any) {
     console.error("Failed to fetch maker-checker group:", error);
+    throw error.response?.data || { message: "Something went wrong" };
+  }
+};
+
+export const updateMakerCheckerGroup = async (id: string, payload: any, callback?: () => void) => {
+  try {
+    const response = await apiClient.put(`/maker-checker-group/update-group/${id}`, payload);
+    callback?.();
+    return response.data;
+  } catch (error: any) {
+    console.error("Failed to update maker-checker group:", error);
     throw error.response?.data || { message: "Something went wrong" };
   }
 };
