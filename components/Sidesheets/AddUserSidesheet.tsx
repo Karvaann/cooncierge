@@ -281,7 +281,7 @@ export default function AddUserSidesheet({
                     ]}
                     value={countryCode}
                     onChange={(v) => setCountryCode(v)}
-                    customWidth="w-[6rem]"
+                    customWidth="w-[91%]"
                     customHeight="h-[2.2rem]"
                     className="mt-1.5"
                     menuWidth="w-[6rem]"
@@ -309,7 +309,6 @@ export default function AddUserSidesheet({
                   value={userStatus}
                   onChange={(v) => setUserStatus(v)}
                   customWidth="w-full"
-                  menuWidth="w-162"
                 />
               </div>
 
@@ -322,7 +321,6 @@ export default function AddUserSidesheet({
                   value={role}
                   onChange={(v) => setRole(v)}
                   customWidth="w-full"
-                  menuWidth="w-162"
                 />
               </div>
 

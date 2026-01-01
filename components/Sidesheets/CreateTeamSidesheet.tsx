@@ -8,6 +8,7 @@ import SideSheet from "../SideSheet";
 import DropDown from "../DropDown";
 import Toggle from "../Toggle";
 import Button from "../Button";
+import SuccessPopupModal from "../popups/BookingPopups/SuccessPopupModal";
 import { createMakerCheckerGroup } from "@/services/makerCheckerApi";
 import { pushToast } from "@/utils/toastService";
 import { getUsers } from "@/services/userApi";
@@ -170,6 +171,7 @@ export default function CreateTeamSidesheet({
   };
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleCreateSubmit = async () => {
     if (isSubmitting) return;
@@ -190,7 +192,7 @@ export default function CreateTeamSidesheet({
       const res = await createMakerCheckerGroup(payload);
       pushToast({ message: "Team created successfully", type: "success" });
       if (onCreate) onCreate(res);
-      onClose();
+      setShowSuccess(true);
     } catch (e: any) {
       const msg = e?.message || e?.error || "Failed to create team";
       pushToast({ message: String(msg), type: "error" });
@@ -456,7 +458,6 @@ export default function CreateTeamSidesheet({
                     value={teamStatus}
                     onChange={(v) => setTeamStatus(v)}
                     customWidth="w-full"
-                    menuWidth="w-full"
                     className="text-[13px]"
                   />
                 </div>
@@ -497,6 +498,16 @@ export default function CreateTeamSidesheet({
           </div>
         </form>
       </div>
+      <SuccessPopupModal
+        isOpen={showSuccess}
+        onClose={() => {
+          setShowSuccess(false);
+          onClose();
+        }}
+        title={
+          "Approval Tea under bookings/finance has been successfully created!"
+        }
+      />
     </SideSheet>
   );
 }

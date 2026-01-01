@@ -1,7 +1,12 @@
 "use client";
 
 import React, { useMemo, useState, useEffect } from "react";
-import { getUsers, activateUsers, deactivateUsers, createOrUpdateUser } from "@/services/userApi";
+import {
+  getUsers,
+  activateUsers,
+  deactivateUsers,
+  createOrUpdateUser,
+} from "@/services/userApi";
 import Table from "../../../../components/Table";
 import DropDown from "../../../../components/DropDown";
 import AvatarToolTip from "../../../../components/AvatarToolTip";
@@ -24,7 +29,7 @@ function areAllPermissionsTrue(obj: unknown): boolean {
     return true; // nothing to validate
   }
 
-  return Object.values(obj).every(value => {
+  return Object.values(obj).every((value) => {
     if (typeof value === "boolean") {
       return value === true;
     }
@@ -52,22 +57,47 @@ export default function AllUsers(): JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
   const [roles, setRoles] = useState<any[]>([]);
 
-   const loadUsers = async () => {
-      try {
-        setIsLoading(true);
-        const res = await getUsers();
+  // deterministic border + text color picker for avatars (applies to short form only)
+  const BORDER_COLOR_PAIRS = [
+    "border-blue-400 text-blue-700",
+    "border-green-400 text-green-700",
+    "border-yellow-400 text-yellow-700",
+    "border-purple-400 text-purple-700",
+    "border-red-400 text-red-700",
+    "border-pink-400 text-pink-700",
+    "border-cyan-400 text-cyan-700",
+    "border-orange-400 text-orange-700",
+    "border-lime-400 text-lime-700",
+  ] as const;
 
-        const list = res?.data || [];
-        
-        setUsers(list);
-      } catch (e) {
-        console.error("Failed to load users", e);
-        setUsers([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-  
+  const getColorForId = (id: string | number | undefined, idx: number) => {
+    if (!id)
+      return BORDER_COLOR_PAIRS[idx % BORDER_COLOR_PAIRS.length] as string;
+    const s = String(id);
+    let hash = 0;
+    for (let i = 0; i < s.length; i++) {
+      hash = (hash << 5) - hash + s.charCodeAt(i);
+      hash |= 0;
+    }
+    const index = Math.abs(hash) % BORDER_COLOR_PAIRS.length;
+    return BORDER_COLOR_PAIRS[index] as string;
+  };
+
+  const loadUsers = async () => {
+    try {
+      setIsLoading(true);
+      const res = await getUsers();
+
+      const list = res?.data || [];
+
+      setUsers(list);
+    } catch (e) {
+      console.error("Failed to load users", e);
+      setUsers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -168,7 +198,7 @@ export default function AllUsers(): JSX.Element {
                 key={u.id}
                 short={u.name}
                 full={u.fullName}
-                color={idx % 2 === 0 ? "border-[#FCA5A5]" : "border-[#BFDBFE]"}
+                color={getColorForId(u.id, idx)}
               />
             ))}
           </div>
@@ -194,7 +224,7 @@ export default function AllUsers(): JSX.Element {
           <ActionMenu
             actions={[
               {
-                label: "Edit Role",
+                label: "Edit",
                 icon: <MdOutlineEdit />,
                 color: "text-blue-600",
                 onClick: () => {
@@ -254,17 +284,16 @@ export default function AllUsers(): JSX.Element {
               }))}
               value={u.roleId?.roleName}
               onChange={async (v) => {
-                const user = {...u, roleId: v};
+                const user = { ...u, roleId: v };
                 await createOrUpdateUser(user, loadUsers);
-              }
-                
-              }
+              }}
               className=""
               customWidth="w-8"
-              menuWidth="w-[310px]"
+              menuWidth="w-[216px]"
               noBorder={true}
               iconOnly={true}
               placeholder="Change role"
+              menuCentered={true}
             />
           </div>
         </td>
@@ -290,17 +319,17 @@ export default function AllUsers(): JSX.Element {
               value={u.status}
               onChange={async (v) => {
                 if (v === "Active") {
-                    await activateUsers([u._id], loadUsers);
-                  } else {
-                    await deactivateUsers([u._id], loadUsers);
-                  }
+                  await activateUsers([u._id], loadUsers);
+                } else {
+                  await deactivateUsers([u._id], loadUsers);
                 }
-              }
+              }}
               customWidth="w-8"
-              menuWidth="w-[140px]"
+              menuWidth="w-[216px]"
               noBorder={true}
               iconOnly={true}
               placeholder="Change status"
+              menuCentered={true}
             />
           </div>
         </td>
@@ -351,39 +380,51 @@ export default function AllUsers(): JSX.Element {
 
       <div className="mb-[14px]">
         <nav className="flex gap-2 relative" role="tablist">
+          <span
+            className="absolute bottom-[2px] h-[2px] bg-[#0D4B37] transition-all duration-300 ease-out"
+            style={{
+              width: activeTab === "All Users" ? "72px" : "140px",
+              transform:
+                activeTab === "All Users"
+                  ? "translateX(0px)"
+                  : "translateX(91px)",
+            }}
+          />
           <button
             onClick={() => setActiveTab("All Users")}
-            className={`px-1 py-1.5 text-[14px] font-[400] transition-colors relative ${
+            className={`px-1 py-1.5 text-[14px] font-[400] transition-colors duration-300 relative ${
               activeTab === "All Users"
                 ? "text-[#0D4B37]"
-                : "text-gray-500 hover:text-gray-700"
+                : "text-gray-500 hover:text-gray-700 font-[500]"
             }`}
             role="tab"
             aria-selected={activeTab === "All Users"}
           >
             All Users
-            {activeTab === "All Users" && (
+            {/* {activeTab === "All Users" && (
               <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-[100%] h-[2px] bg-[#0D4B37] z-20"></span>
-            )}
+            )} */}
           </button>
 
           <button
             onClick={() => setActiveTab("Roles & Permissions")}
-            className={`px-4 py-1.5 text-[14px] font-[400] transition-colors relative ${
+            className={`px-4 py-1.5 text-[14px] font-[400] transition-colors duration-300 relative ${
               activeTab === "Roles & Permissions"
                 ? "text-[#0D4B37]"
-                : "text-gray-500 hover:text-gray-700"
+                : "text-gray-500 hover:text-gray-700 font-[500]"
             }`}
             role="tab"
             aria-selected={activeTab === "Roles & Permissions"}
           >
             Roles & Permissions
-            {activeTab === "Roles & Permissions" && (
+            {/* {activeTab === "Roles & Permissions" && (
               <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-[100%] h-[2px] bg-[#0D4B37] z-20"></span>
-            )}
+            )} */}
           </button>
         </nav>
       </div>
+      {/* Divider line below tabs */}
+      <div className="absolute top-28 left-59 right-10 z-10 border-b border-gray-200"></div>
 
       <div className="rounded-lg bg-white p-0 -mt-3">
         <div className="px-0 py-3 flex items-center justify-between">
@@ -530,7 +571,7 @@ export default function AllUsers(): JSX.Element {
           onClose={() => setIsDeactivateModalOpen(false)}
           users={users.filter((u) => u.isActive)}
           deactivate={true}
-          onDeactivate={async(ids) => {
+          onDeactivate={async (ids) => {
             await deactivateUsers(ids, loadUsers);
           }}
         />

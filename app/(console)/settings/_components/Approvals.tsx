@@ -6,7 +6,11 @@ import DropDown from "../../../../components/DropDown";
 import AvatarToolTip from "../../../../components/AvatarToolTip";
 import ActionMenu from "../../../../components/Menus/ActionMenu";
 import CreateTeamSidesheet from "../../../../components/Sidesheets/CreateTeamSidesheet";
-import { getMakerCheckerGroups, updateMakerCheckerGroup } from "@/services/makerCheckerApi";
+import {
+  getMakerCheckerGroups,
+  updateMakerCheckerGroup,
+  deleteMakerCheckerGroup,
+} from "@/services/makerCheckerApi";
 import { FiEdit, FiTrash2, FiEye } from "react-icons/fi";
 
 const getShortName = (name?: string | null): string => {
@@ -22,6 +26,7 @@ const getShortName = (name?: string | null): string => {
 };
 
 interface Team {
+  _id?: string;
   id: string;
   name: string;
   checkers: { id: string; name: string }[];
@@ -36,6 +41,32 @@ export default function Approvals(): React.ReactElement {
   const [teams, setTeams] = useState<Team[]>([]);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [loadingGroups, setLoadingGroups] = useState(false);
+
+  // deterministic border + text color picker for avatars (applies to short form only)
+  const BORDER_COLOR_PAIRS = [
+    "border-blue-400 text-blue-700",
+    "border-green-400 text-green-700",
+    "border-yellow-400 text-yellow-700",
+    "border-purple-400 text-purple-700",
+    "border-red-400 text-red-700",
+    "border-pink-400 text-pink-700",
+    "border-cyan-400 text-cyan-700",
+    "border-orange-400 text-orange-700",
+    "border-lime-400 text-lime-700",
+  ] as const;
+
+  const getColorForId = (id: string | number | undefined, idx: number) => {
+    if (!id)
+      return BORDER_COLOR_PAIRS[idx % BORDER_COLOR_PAIRS.length] as string;
+    const s = String(id);
+    let hash = 0;
+    for (let i = 0; i < s.length; i++) {
+      hash = (hash << 5) - hash + s.charCodeAt(i);
+      hash |= 0;
+    }
+    const index = Math.abs(hash) % BORDER_COLOR_PAIRS.length;
+    return BORDER_COLOR_PAIRS[index] as string;
+  };
 
   const tableData = useMemo<React.ReactNode[][]>(() => {
     return teams.map((t) => {
@@ -55,7 +86,7 @@ export default function Approvals(): React.ReactElement {
                 key={u.id}
                 short={getShortName(u.name)}
                 full={u.name}
-                color={idx % 2 === 0 ? "border-[#FCA5A5]" : "border-[#BFDBFE]"}
+                color={getColorForId(u.id, idx)}
               />
             ))}
           </div>
@@ -70,7 +101,7 @@ export default function Approvals(): React.ReactElement {
                 key={u.id}
                 short={getShortName(u.name)}
                 full={u.name}
-                color={idx % 2 === 0 ? "border-[#FCA5A5]" : "border-[#BFDBFE]"}
+                color={getColorForId(u.id, idx)}
               />
             ))}
           </div>
@@ -78,7 +109,7 @@ export default function Approvals(): React.ReactElement {
       );
 
       row.push(
-        <td key={`status-${t.id}`} className="px-6 py-4 text-center">
+        <td key={`status-${t._id ?? t.id}`} className="px-6 py-4 text-center">
           <div className="inline-flex items-center justify-center gap-2">
             <span
               className={`px-3 py-1 rounded-full text-[12px] font-semibold ${
@@ -97,20 +128,25 @@ export default function Approvals(): React.ReactElement {
               ]}
               value={t.active ? "Active" : "Inactive"}
               onChange={(v) => {
-                void updateMakerCheckerGroup(t._id, { active: v === "Active" }, fetchGroups);
+                void updateMakerCheckerGroup(
+                  t._id ?? t.id,
+                  { active: v === "Active" },
+                  fetchGroups
+                );
               }}
               customWidth="w-8"
-              menuWidth="w-[140px]"
+              menuWidth="w-[216px]"
               noBorder={true}
               iconOnly={true}
               placeholder="Change status"
+              menuCentered={true}
             />
           </div>
         </td>
       );
 
       row.push(
-        <td key={`actions-${t.id}`} className="px-6 py-4 text-center">
+        <td key={`actions-${t._id ?? t.id}`} className="px-6 py-4 text-center">
           <ActionMenu
             right="right-23"
             width="w-23"
@@ -119,8 +155,15 @@ export default function Approvals(): React.ReactElement {
                 label: "Delete",
                 icon: <FiTrash2 />,
                 color: "text-red-600",
-                onClick: () => {
-                  console.log("Delete team:", t.id);
+                onClick: async () => {
+                  if (!confirm("Delete team? This action cannot be undone."))
+                    return;
+                  try {
+                    await deleteMakerCheckerGroup(t._id ?? t.id);
+                    await fetchGroups();
+                  } catch (err) {
+                    console.error("Failed to delete team:", err);
+                  }
                 },
               },
             ]}
@@ -135,7 +178,9 @@ export default function Approvals(): React.ReactElement {
   const fetchGroups = async () => {
     setLoadingGroups(true);
     try {
-      const res = await getMakerCheckerGroups(activeTab === "Bookings" ? "booking" : "finance");
+      const res = await getMakerCheckerGroups(
+        activeTab === "Bookings" ? "booking" : "finance"
+      );
       const list = res?.groups || res?.data || res || [];
       setTeams(list);
     } catch (err) {
@@ -155,39 +200,46 @@ export default function Approvals(): React.ReactElement {
 
       <div className="mb-[14px]">
         <nav className="flex gap-2 relative" role="tablist">
+          <span
+            className="absolute bottom-[2px] h-[2px] bg-[#0D4B37] transition-all duration-300 ease-out"
+            style={{
+              width: activeTab === "Bookings" ? "72px" : "56px",
+              transform:
+                activeTab === "Bookings"
+                  ? "translateX(0px)"
+                  : "translateX(94px)",
+            }}
+          />
           <button
             onClick={() => setActiveTab("Bookings")}
-            className={`px-1 py-1.5 text-[14px] font-[400] transition-colors relative ${
+            className={`px-1 py-1.5 text-[14px] font-[400] transition-colors duration-300 relative ${
               activeTab === "Bookings"
                 ? "text-[#0D4B37]"
-                : "text-gray-500 hover:text-gray-700"
+                : "text-gray-500 hover:text-gray-700 font-[500]"
             }`}
             role="tab"
             aria-selected={activeTab === "Bookings"}
           >
             Bookings
-            {activeTab === "Bookings" && (
-              <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-[100%] h-[2px] bg-[#0D4B37] z-20"></span>
-            )}
           </button>
 
           <button
             onClick={() => setActiveTab("Finance")}
-            className={`px-4 py-1.5 text-[14px] font-[400] transition-colors relative ${
+            className={`px-4 py-1.5 text-[14px] font-[400] transition-colors duration-300 relative ${
               activeTab === "Finance"
                 ? "text-[#0D4B37]"
-                : "text-gray-500 hover:text-gray-700"
+                : "text-gray-500 hover:text-gray-700 font-[500]"
             }`}
             role="tab"
             aria-selected={activeTab === "Finance"}
           >
             Finance
-            {activeTab === "Finance" && (
-              <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-4/5 h-[2px] bg-[#0D4B37] z-20"></span>
-            )}
           </button>
         </nav>
       </div>
+
+      {/* Divider line below tabs */}
+      <div className="absolute top-28 left-59 right-10 z-10 border-b border-gray-200"></div>
 
       <div className="rounded-lg bg-white p-0 -mt-3">
         <div className="px-0 py-3 flex items-center justify-between">
