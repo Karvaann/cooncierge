@@ -6,6 +6,7 @@ import { LuEye } from "react-icons/lu";
 import { FiTrash2 } from "react-icons/fi";
 import DropDown from "../../../../components/DropDown";
 import { AuthApi } from "../../../../services/authApi";
+import SuccessPopupModal from "../../../../components/popups/BookingPopups/SuccessPopupModal";
 
 export default function CompanyDetails() {
   const [businessId, setBusinessId] = useState<string | null>(null);
@@ -20,6 +21,7 @@ export default function CompanyDetails() {
   const [website, setWebsite] = useState("");
   const [currency, setCurrency] = useState("INR");
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
     // Prefill from localStorage first, then refresh from API if possible
@@ -195,6 +197,7 @@ export default function CompanyDetails() {
             }
           }
         }
+        setShowSuccessModal(true);
       } else {
         console.error("Failed to update business", res);
       }
@@ -422,6 +425,11 @@ export default function CompanyDetails() {
           Save & Update
         </button>
       </div>
+      <SuccessPopupModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title={"Company Details have been successfully saved & updated!"}
+      />
     </>
   );
 }

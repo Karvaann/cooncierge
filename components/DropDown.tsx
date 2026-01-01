@@ -22,6 +22,7 @@ interface DropdownProps {
   buttonClassName?: string;
   iconOnly?: boolean;
   disabled?: boolean;
+  menuCentered?: boolean;
 }
 
 const DropDown: React.FC<DropdownProps> = ({
@@ -38,6 +39,7 @@ const DropDown: React.FC<DropdownProps> = ({
   buttonClassName = "",
   iconOnly = false,
   disabled = false,
+  menuCentered = false,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(value || "");
@@ -50,6 +52,7 @@ const DropDown: React.FC<DropdownProps> = ({
     bottom?: number;
     width: number;
     openUpwards: boolean;
+    centered?: boolean;
   } | null>(null);
 
   // Sync selected value when parent changes `value` prop
@@ -92,18 +95,41 @@ const DropDown: React.FC<DropdownProps> = ({
       const menuHeight = Math.min(options.length * optionHeight, 400);
       const availableBelow = window.innerHeight - rect.bottom;
       const availableAbove = rect.top;
-
       const shouldOpenUp =
         availableBelow < menuHeight && availableAbove > availableBelow;
-      const left = Math.max(8, rect.left);
       const width = rect.width || 200;
 
-      if (shouldOpenUp) {
-        const bottom = window.innerHeight - rect.top;
-        setMenuPos({ left, bottom, width, openUpwards: true });
+      if (menuCentered) {
+        // place center point at trigger horizontal center
+        const centerX = rect.left + rect.width / 2;
+        if (shouldOpenUp) {
+          const bottom = window.innerHeight - rect.top;
+          setMenuPos({
+            left: centerX,
+            bottom,
+            width,
+            openUpwards: true,
+            centered: true,
+          });
+        } else {
+          const top = rect.bottom;
+          setMenuPos({
+            left: centerX,
+            top,
+            width,
+            openUpwards: false,
+            centered: true,
+          });
+        }
       } else {
-        const top = rect.bottom;
-        setMenuPos({ left, top, width, openUpwards: false });
+        const left = Math.max(8, rect.left);
+        if (shouldOpenUp) {
+          const bottom = window.innerHeight - rect.top;
+          setMenuPos({ left, bottom, width, openUpwards: true });
+        } else {
+          const top = rect.bottom;
+          setMenuPos({ left, top, width, openUpwards: false });
+        }
       }
       setOpenUpwards(shouldOpenUp);
     };
@@ -117,7 +143,7 @@ const DropDown: React.FC<DropdownProps> = ({
       window.removeEventListener("scroll", computePlacement, true);
       setMenuPos(null);
     };
-  }, [isOpen, options.length]);
+  }, [isOpen, options.length, menuCentered]);
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -187,12 +213,15 @@ const DropDown: React.FC<DropdownProps> = ({
                 }}
                 style={(() => {
                   const base: React.CSSProperties = {
-                    left: Math.max(8, menuPos.left),
+                    left: menuPos.centered
+                      ? menuPos.left
+                      : Math.max(8, menuPos.left),
                     ...(menuPos.openUpwards
                       ? { bottom: menuPos.bottom }
                       : { top: menuPos.top }),
                     position: "fixed",
-                  };
+                  } as React.CSSProperties;
+                  if (menuPos.centered) base.transform = "translateX(-50%)";
                   // Only set an explicit pixel width when menuWidth is NOT provided
                   if (!menuWidth) {
                     return { ...base, width: menuPos.width };
