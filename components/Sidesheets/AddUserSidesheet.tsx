@@ -82,7 +82,7 @@ export default function AddUserSidesheet({
       const roleIdFinal =
         role || roleIdFromStorage || "000000000000000000000000";
 
-        console.log('initialData', initialData);
+      console.log("initialData", initialData);
 
       // Build request payload matching backend required fields and model
       const reqPayload = {
@@ -205,7 +205,9 @@ export default function AddUserSidesheet({
       setCountryCode(code);
 
       setMobile(String(initialData.mobile || initialData.phone || ""));
-      setUserStatus(String(initialData.isActive ? "Active" : "Inactive").toLowerCase());
+      setUserStatus(
+        String(initialData.isActive ? "Active" : "Inactive").toLowerCase()
+      );
       setRole(String(initialData.role || ""));
       // reset password UI state
       setShowResetPassword(false);
