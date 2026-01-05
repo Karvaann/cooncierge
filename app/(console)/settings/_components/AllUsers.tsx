@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   getUsers,
   activateUsers,
   deactivateUsers,
   createOrUpdateUser,
+  deleteUser,
 } from "@/services/userApi";
 import Table from "../../../../components/Table";
 import DropDown from "../../../../components/DropDown";
@@ -336,7 +337,7 @@ export default function AllUsers(): JSX.Element {
       );
 
       row.push(
-        <td key={`actions-${u.id}`} className="px-6 py-4 text-center">
+        <td key={`actions-${u._id}`} className="px-6 py-4 text-center">
           <ActionMenu
             actions={[
               {
@@ -359,8 +360,21 @@ export default function AllUsers(): JSX.Element {
                 label: "Delete",
                 icon: <FaRegTrashAlt />,
                 color: "text-red-600",
-                onClick: () => {
-                  setUsers((prev) => prev.filter((p) => p.id !== u.id));
+                onClick: async () => {
+                  if (!u._id) {
+                    console.error("User _id missing", u);
+                    return;
+                  }
+
+                  if (!confirm("Delete user? This action cannot be undone."))
+                    return;
+
+                  try {
+                    await deleteUser(u._id);
+                    await loadUsers();
+                  } catch (err) {
+                    console.error("Failed to delete user:", err);
+                  }
                 },
               },
             ]}
@@ -494,48 +508,8 @@ export default function AllUsers(): JSX.Element {
           }}
           initialData={editingUser || undefined}
           isEdit={!!editingUser}
-          onAddUser={(payload) => {
-            const newUser = {
-              id: String(Date.now()),
-              name: payload.name || "New User",
-              mobile: `${payload.countryCode || "+91"}-${payload.mobile || ""}`,
-              email: payload.email || "",
-              role: payload.role || payload.roleId || "",
-              status: payload.userStatus || "Active",
-            };
-            setUsers((prev) => [newUser, ...prev]);
-            setIsAddOpen(false);
-            setEditingUser(null);
-          }}
-          onUpdateUser={(payload) => {
-            const id = payload._id || payload.id || editingUser?.id;
-            setUsers((prev) =>
-              prev.map((p) =>
-                p.id === id
-                  ? {
-                      id: id,
-                      name: payload.name || p.name,
-                      mobile:
-                        payload.phoneCode && payload.mobile
-                          ? `${payload.phoneCode}-${payload.mobile}`
-                          : payload.mobile || p.mobile,
-                      email: payload.email || p.email,
-                      role:
-                        (payload.roleId &&
-                          (payload.roleId.roleName || payload.roleId.name)) ||
-                        payload.role ||
-                        p.role,
-                      status:
-                        payload.isActive === false
-                          ? "Inactive"
-                          : payload.status || p.status,
-                    }
-                  : p
-              )
-            );
-            setIsAddOpen(false);
-            setEditingUser(null);
-          }}
+          onAddUser={loadUsers}
+          onUpdateUser={loadUsers}
         />
 
         <CreateRoleModal
