@@ -24,6 +24,7 @@ import { getTravellers } from "@/services/travellerApi";
 import DropDown from "@/components/DropDown";
 import { getTravellerById } from "@/services/travellerApi";
 import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerForm";
+import { allowTextAndNumbers } from "@/utils/inputValidators";
 
 // Type definitions
 interface GeneralInfoFormData {
@@ -221,11 +222,13 @@ interface InputFieldProps {
   value: string | number;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onBlur: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  readOnly?: boolean;
   disabled?: boolean;
   hasError?: boolean;
   errorMessage?: string | undefined;
   isValidating?: boolean;
   isValid?: boolean;
+  selectedDisplay?: React.ReactNode;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
@@ -238,11 +241,13 @@ const InputField: React.FC<InputFieldProps> = ({
   value,
   onChange,
   onBlur,
+  readOnly = false,
   disabled = false,
   hasError = false,
   errorMessage,
   isValidating = false,
   isValid = false,
+  selectedDisplay,
 }) => {
   return (
     <div className="relative">
@@ -255,6 +260,7 @@ const InputField: React.FC<InputFieldProps> = ({
         placeholder={placeholder}
         required={required}
         min={min}
+        readOnly={readOnly}
         disabled={disabled || isValidating}
         className={`
           w-full border rounded-md px-3 py-2 pr-10 text-[0.75rem]  transition-colors hover:border-green-400 
@@ -265,9 +271,16 @@ const InputField: React.FC<InputFieldProps> = ({
           }
 
           ${disabled || isValidating ? "opacity-50 cursor-not-allowed" : ""}
+          ${selectedDisplay ? "text-transparent caret-transparent" : ""}
           ${className}
         `}
       />
+
+      {selectedDisplay && (
+        <div className="absolute inset-0 flex items-center px-3 pr-10 pointer-events-none">
+          {selectedDisplay}
+        </div>
+      )}
 
       {/* Validation indicator */}
       <div className="absolute inset-y-0 right-0 flex items-center pr-3 gap-1 translate-y-[1px]">
@@ -509,17 +522,30 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const teamsRef = useRef<HTMLDivElement | null>(null);
   const travellerRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
   useEffect(() => {
-    const handleGlobalClick = (e: MouseEvent) => {
-      const target = e.target as Node;
+    const isEventInside = (e: Event, el: HTMLElement | null): boolean => {
+      if (!el) return false;
+      const target = e.target as Node | null;
 
-      const isInCustomer = customerRef.current?.contains(target);
-      const isInVendor = vendorRef.current?.contains(target);
-      const isInTeams = teamsRef.current?.contains(target);
+      // Prefer composedPath() when available (more accurate with nested targets)
+      const anyEvent = e as Event & { composedPath?: () => EventTarget[] };
+      if (typeof anyEvent.composedPath === "function") {
+        const path = anyEvent.composedPath();
+        if (path.includes(el)) return true;
+      }
 
-      // Check if click is inside any traveller dropdown
+      return !!(target && el.contains(target));
+    };
+
+    const handleGlobalPointerDown = (e: PointerEvent) => {
+      if (e.isPrimary === false) return;
+
+      const isInCustomer = isEventInside(e, customerRef.current);
+      const isInVendor = isEventInside(e, vendorRef.current);
+      const isInTeams = isEventInside(e, teamsRef.current);
+
       let isInTraveller = false;
       travellerRefs.current.forEach((ref) => {
-        if (ref?.contains(target)) {
+        if (isEventInside(e, ref)) {
           isInTraveller = true;
         }
       });
@@ -549,10 +575,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       }
     };
 
-    document.addEventListener("mousedown", handleGlobalClick);
+    document.addEventListener("pointerdown", handleGlobalPointerDown, {
+      capture: true,
+    });
     document.addEventListener("keydown", handleKey);
     return () => {
-      document.removeEventListener("mousedown", handleGlobalClick);
+      document.removeEventListener("pointerdown", handleGlobalPointerDown, {
+        capture: true,
+      });
       document.removeEventListener("keydown", handleKey);
     };
   }, []);
@@ -775,7 +805,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     term: string,
     keys: (keyof T)[]
   ): T[] => {
-    if (!term.trim()) return list;
+    if (!term.trim()) return [];
 
     const fuse = new Fuse(list, {
       threshold: 0.3,
@@ -783,8 +813,47 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     });
 
     const results = fuse.search(term).map((r) => r.item);
-    return results.length ? results : list;
+    return results;
   };
+
+  const getTierRating = (tier: unknown): number | null => {
+    try {
+      if (!tier) return null;
+      if (typeof tier === "number")
+        return Math.min(Math.max(Math.round(tier), 1), 5);
+      if (typeof tier === "string") {
+        const m = tier.match(/\d+/);
+        if (!m) return null;
+        return Math.min(Math.max(Number(m[0]), 1), 5);
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const getAlias = (obj: unknown): string => {
+    const anyObj = obj as any;
+    return (anyObj?.alias || anyObj?.nickname || "") as string;
+  };
+
+  const customersById = useMemo(() => {
+    const map = new Map<string, CustomerDataType>();
+    allCustomers.forEach((c) => map.set(c._id, c));
+    return map;
+  }, [allCustomers]);
+
+  const vendorsById = useMemo(() => {
+    const map = new Map<string, VendorDataType>();
+    allVendors.forEach((v) => map.set(v._id, v));
+    return map;
+  }, [allVendors]);
+
+  const travellersById = useMemo(() => {
+    const map = new Map<string, TravellerDataType>();
+    allTravellers.forEach((t) => map.set(t._id, t));
+    return map;
+  }, [allTravellers]);
 
   const getTravellerDisplayName = (t: TravellerDataType) =>
     t.name ||
@@ -811,7 +880,16 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       const adults = [...prev.adultTravellers];
       const adultIds = [...prev.adultTravellerIds];
 
-      // always at least 1 adult input
+      // If adults = 0 → clear inputs
+      if (prev.adults === 0) {
+        return {
+          ...prev,
+          adultTravellers: [],
+          adultTravellerIds: [],
+        };
+      }
+
+      // otherwise at least 1 adult
       if (adults.length === 0) adults.push("");
       if (adultIds.length === 0) adultIds.push("");
 
@@ -1000,6 +1078,24 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     setLastAddedTraveller,
     setTravellerTarget,
   ]);
+
+  useEffect(() => {
+    setFormData((prev) => {
+      // Allow 0 adults only when at least 1 child input exists.
+      const hasAnyChildInput =
+        (prev.infants ?? 0) > 0 ||
+        (prev.infantTravellers?.length ?? 0) > 0 ||
+        (prev.children ?? 0) > 0;
+
+      // If there are no child inputs, always keep at least 1 adult.
+      if (!hasAnyChildInput && prev.adults === 0) {
+        return { ...prev, adults: 1 };
+      }
+
+      return prev;
+    });
+  }, [`${formData.adults}|${formData.children}|${formData.infants}`]);
+
   const getFieldValue = (fieldName: string, overrideValue?: string) => {
     if (overrideValue !== undefined) return overrideValue;
     return formData[fieldName as keyof GeneralInfoFormData] ?? "";
@@ -1350,7 +1446,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   {...getInputProps("customer", {
                     value: customer?.name ?? "", // SHOW NAME
                     onChange: (e) => {
-                      const value = e.target.value;
+                      const value = allowTextAndNumbers(e.target.value);
+
+                      // typing resets selection
+                      if ((customer?.id ?? "").trim() !== "") {
+                        updateCustomerField(index, { id: "", name: value });
+                      }
 
                       // Update name only, ID stays same until selected from dropdown
                       updateCustomerField(index, {
@@ -1377,88 +1478,140 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                       const results = runFuzzySearch(allCustomers, value, [
                         "name",
-                        "email",
+                        "id",
+                        "tier",
                         "phone",
                       ]);
+                      if (value.trim() === "") {
+                        setCustomerResults([]);
+                        setShowCustomerDropdown(false);
+
+                        return;
+                      }
                       setCustomerResults(results);
-                      setShowCustomerDropdown(true);
-                      setActiveCustomerIndex(index);
+                      if (results.length > 0) {
+                        setShowCustomerDropdown(true);
+                        setActiveCustomerIndex(index);
+                      } else {
+                        setShowCustomerDropdown(false);
+                        setActiveCustomerIndex(null);
+                      }
                     },
                   })}
+                  readOnly={!!customer?.id}
+                  selectedDisplay={(() => {
+                    const selected = customer?.id
+                      ? customersById.get(customer.id)
+                      : null;
+                    if (!selected) return null;
+                    const rating = getTierRating(selected.tier) ?? 4;
+                    const alias = getAlias(selected) || "-";
+                    return (
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <p className="font-medium text-[13px] text-gray-900 truncate">
+                            {selected.name}
+                          </p>
+                          <span className="text-gray-300">|</span>
+                          <p className="text-[13px] text-gray-600 truncate">
+                            {alias}
+                          </p>
+                          <span className="text-gray-300">|</span>
+                          <p className="text-[13px] text-gray-600 truncate">
+                            {selected._id}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <img
+                            src={`/icons/tier-${rating}.png`}
+                            alt={`Tier ${rating}`}
+                            className="w-4 h-4 object-contain"
+                          />
+                          <span className="text-[13px] font-semibold text-gray-700">
+                            {rating}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 />
 
-                {activeCustomerIndex === index && showCustomerDropdown && (
-                  <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] max-h-60 mt-1 overflow-y-auto shadow-md z-50">
-                    {customerResults.map((cust) => {
-                      // derive numeric rating (1-5) from cust.tier if available
-                      let rating = 4;
-                      try {
-                        if (cust?.tier) {
-                          if (typeof cust.tier === "string") {
-                            const match = cust.tier.match(/\d+/);
-                            if (match) rating = Number(match[0]);
-                          } else if (typeof cust.tier === "number") {
-                            rating = Math.round(cust.tier);
+                {activeCustomerIndex === index &&
+                  showCustomerDropdown &&
+                  customerResults.length > 0 && (
+                    <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] max-h-60 mt-1 overflow-y-auto shadow-md z-50">
+                      {customerResults.map((cust) => {
+                        // derive numeric rating (1-5) from cust.tier if available
+                        let rating = 4;
+                        try {
+                          if (cust?.tier) {
+                            if (typeof cust.tier === "string") {
+                              const match = cust.tier.match(/\d+/);
+                              if (match) rating = Number(match[0]);
+                            } else if (typeof cust.tier === "number") {
+                              rating = Math.round(cust.tier);
+                            }
                           }
+                        } catch (e) {
+                          rating = 4;
                         }
-                      } catch (e) {
-                        rating = 4;
-                      }
-                      rating = Math.min(Math.max(rating || 4, 1), 5);
-                      const alias =
-                        (cust as any)?.alias || (cust as any)?.nickname || "";
+                        rating = Math.min(Math.max(rating || 4, 1), 5);
+                        const alias =
+                          (cust as any)?.alias || (cust as any)?.nickname || "";
 
-                      return (
-                        <div
-                          key={cust._id}
-                          className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
-                          onClick={() => {
-                            updateCustomerField(index, {
-                              id: cust._id,
-                              name: cust.name,
-                            });
-                            setActiveCustomerIndex(null);
-                            // Sync main form and notify parent with both ID and name
-                            const newFormData = {
-                              ...formData,
-                              customer: cust._id,
-                              customerName: cust.name,
-                            };
-                            setFormData(newFormData);
-                            setShowCustomerDropdown(false);
-                          }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1">
-                              <p className="font-medium text-[13px] text-gray-900">
-                                {cust.name}
-                              </p>
-                              <span className="text-gray-300">|</span>
-                              <p className="text-[13px] text-gray-600 truncate">
-                                {alias || "-"}
-                              </p>
-                              <span className="text-gray-300">|</span>
-                              <p className="text-[13px] text-gray-600 truncate">
-                                {cust._id}
-                              </p>
-                            </div>
+                        return (
+                          <div
+                            key={cust._id}
+                            className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
+                            onClick={() => {
+                              updateCustomerField(index, {
+                                id: cust._id,
+                                name: cust.name,
+                              });
+                              setActiveCustomerIndex(null);
+                              // Sync main form and notify parent with both ID and name
+                              const newFormData = {
+                                ...formData,
+                                customer: cust._id,
+                                customerName: cust.name,
+                              };
+                              setFormData(newFormData);
+                              setCustomerResults([]);
+                              setShowCustomerDropdown(false);
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1">
+                                <p className="font-medium text-[13px] text-gray-900">
+                                  {cust.name}
+                                </p>
+                                <span className="text-gray-300">|</span>
+                                <p className="text-[13px] text-gray-600 truncate">
+                                  {alias || "-"}
+                                </p>
+                                <span className="text-gray-300">|</span>
+                                <p className="text-[13px] text-gray-600 truncate">
+                                  {cust._id}
+                                </p>
+                              </div>
 
-                            <div className="flex items-center gap-1">
-                              <img
-                                src={`/icons/tier-${rating}.png`}
-                                alt={`Tier ${rating}`}
-                                className="w-4 h-4 object-contain"
-                              />
-                              <span className="text-[13px] font-semibold text-gray-700">
-                                {rating}
-                              </span>
+                              <div className="flex items-center gap-1">
+                                <img
+                                  src={`/icons/tier-${rating}.png`}
+                                  alt={`Tier ${rating}`}
+                                  className="w-4 h-4 object-contain"
+                                />
+                                <span className="text-[13px] font-semibold text-gray-700">
+                                  {rating}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                    {/* Staple option */}
-                    {/* <div
+                        );
+                      })}
+                      {/* Staple option */}
+                      {/* <div
                       className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
                       onClick={() => {
                         updateCustomerField(index, { id: "", name: "TBA" });
@@ -1471,19 +1624,31 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         Don't have the name? Enter TBA
                       </p>
                     </div> */}
-                  </div>
-                )}
+                    </div>
+                  )}
               </div>
 
               <RightSideIcons
                 fieldName="customer"
                 value={customerList[index]?.name ?? ""}
-                overrideSetter={(val: string) =>
+                overrideSetter={(val: string) => {
+                  if (val.trim() === "") {
+                    updateCustomerField(index, { id: "", name: "" });
+                    setFormData((prev) => ({
+                      ...prev,
+                      customer: "",
+                      customerName: "",
+                    }));
+                    setCustomerResults([]);
+                    setShowCustomerDropdown(false);
+                    setActiveCustomerIndex(null);
+                    return;
+                  }
                   updateCustomerField(index, {
                     id: customerList[index]?.id ?? "",
                     name: val,
-                  })
-                }
+                  });
+                }}
                 onClickPlus={openAddCustomer}
                 onClickView={() => handleViewCustomer(index)}
               />
@@ -1509,7 +1674,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               className="w-full text-[13px] py-2"
               value={vendorList[0]?.name ?? ""}
               onChange={(e) => {
-                const value = e.target.value;
+                const value = allowTextAndNumbers(e.target.value);
 
                 // Update vendor name only
                 setVendorList([{ id: "", name: value }]);
@@ -1523,18 +1688,66 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 setFormData(newFormData);
 
                 const results = runFuzzySearch(allVendors, value, [
-                  "name",
-                  "contactPerson",
-                  "email",
+                  "companyName",
+                  "alias",
+                  "tier",
+                  "id",
                 ]);
+                if (value.trim() === "") {
+                  setVendorResults([]);
+                  setShowVendorDropdown(false);
+
+                  return;
+                }
                 setVendorResults(results);
 
-                setShowVendorDropdown(true);
+                setShowVendorDropdown(results.length > 0);
               }}
               onBlur={handleBlur}
+              readOnly={!!vendorList?.[0]?.id}
+              selectedDisplay={(() => {
+                const selectedId = vendorList?.[0]?.id ?? "";
+                if (!selectedId) return null;
+                const selected = vendorsById.get(selectedId);
+                if (!selected) return null;
+                const rating = getTierRating(selected.tier);
+                const alias = getAlias(selected) || "-";
+                const primary =
+                  selected.companyName || selected.contactPerson || "";
+                return (
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-1 min-w-0">
+                      <p className="font-normal text-[13px] text-gray-900 truncate">
+                        {primary}
+                      </p>
+                      <span className="text-gray-300">|</span>
+                      <p className="text-[13px] text-gray-600 truncate">
+                        {alias}
+                      </p>
+                      <span className="text-gray-300">|</span>
+                      <p className="text-[13px] text-gray-600 truncate">
+                        {selected._id || "-"}
+                      </p>
+                    </div>
+
+                    {rating !== null ? (
+                      <div className="flex items-center gap-1 shrink-0">
+                        <img
+                          src={`/icons/tier-${rating}.png`}
+                          alt={`Tier ${rating}`}
+                          className="w-4 h-4 object-contain"
+                        />
+                        <span className="text-[0.75rem] font-semibold text-gray-700">
+                          {rating}
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })()}
             />
 
-            {showVendorDropdown && (
+            {showVendorDropdown && vendorResults.length > 0 && (
               <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
                 {vendorResults.map((v) => {
                   // derive rating only if tier present
@@ -1562,7 +1775,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       onClick={() => {
                         setShowVendorDropdown(false);
                         setVendorList([
-                          { id: v._id, name: v.name ?? v.contactPerson ?? "" },
+                          {
+                            id: v._id,
+                            name: v.companyName ?? v.contactPerson ?? "",
+                          },
                         ]);
                         const newFormData = {
                           ...formData,
@@ -1570,12 +1786,13 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           vendorName: v.name ?? v.contactPerson ?? "",
                         };
                         setFormData(newFormData);
+                        setVendorResults([]);
                       }}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1">
                           <p className="font-normal text-[13px] text-gray-900">
-                            {v.name || v.contactPerson}
+                            {v.companyName || v.contactPerson}
                           </p>
                           <span className="text-gray-300">|</span>
                           <p className="text-[13px] text-gray-600 truncate">
@@ -1583,7 +1800,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           </p>
                           <span className="text-gray-300">|</span>
                           <p className="text-[13px] text-gray-600 truncate">
-                            {v._id}
+                            {v._id || "-"}
                           </p>
                         </div>
 
@@ -1623,7 +1840,20 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           <RightSideIcons
             fieldName="vendor"
             value={vendorList[0]?.name ?? ""}
-            overrideSetter={(val) => setVendorList([{ id: "", name: val }])}
+            overrideSetter={(val) => {
+              if (val.trim() === "") {
+                setVendorList([{ id: "", name: "" }]);
+                setFormData((prev) => ({
+                  ...prev,
+                  vendor: "",
+                  vendorName: "",
+                }));
+                setVendorResults([]);
+                setShowVendorDropdown(false);
+                return;
+              }
+              setVendorList([{ id: "", name: val }]);
+            }}
             onClickPlus={openAddVendor}
             onClickView={() => handleViewVendor()}
           />
@@ -1642,10 +1872,13 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               <button
                 type="button"
                 onClick={() =>
-                  setFormData({
-                    ...formData,
-                    adults: Math.max(1, formData.adults - 1),
-                  })
+                  setFormData((prev) => ({
+                    ...prev,
+                    adults:
+                      (prev.infants ?? 0) > 0 || (prev.children ?? 0) > 0
+                        ? Math.max(0, prev.adults - 1) // children exist → allow 0
+                        : Math.max(1, prev.adults - 1), // otherwise → min 1
+                  }))
                 }
                 className="px-1 text-lg font-semibold"
               >
@@ -1714,23 +1947,67 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   {...getInputProps("adultTravellers", {
                     value: formData.adultTravellers[index] ?? "",
                     onChange: (e) => {
-                      const value = e.target.value;
+                      const value = allowTextAndNumbers(e.target.value);
 
                       updateTraveller("adultTravellers", index, value);
 
                       const results = runFuzzySearch(allTravellers, value, [
                         "name",
-                        "email",
-                        "phone",
+                        "id",
                       ]);
+                      if (value.trim() === "") {
+                        setTravellerResults([]);
+                        setActiveTravellerDropdown(null);
+                        return;
+                      }
                       setTravellerResults(results);
-                      setActiveTravellerDropdown({
-                        type: "adultTravellers",
-                        index,
-                      });
+                      if (results.length > 0) {
+                        setActiveTravellerDropdown({
+                          type: "adultTravellers",
+                          index,
+                        });
+                      } else {
+                        setActiveTravellerDropdown(null);
+                        setTravellerResults([]);
+                      }
                     },
                     skipValidation: true,
                   })}
+                  readOnly={!!formData.adultTravellerIds?.[index]}
+                  selectedDisplay={(() => {
+                    const selectedId =
+                      formData.adultTravellerIds?.[index] ?? "";
+                    if (!selectedId) return null;
+                    const selected = travellersById.get(selectedId);
+                    if (!selected) return null;
+                    const rating = getTierRating(selected.tier);
+                    return (
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <p className="font-normal text-[13px] text-gray-900 truncate">
+                            {selected.name}
+                          </p>
+                          <span className="text-gray-300">|</span>
+                          <p className="text-[13px] text-gray-600 truncate">
+                            {selected._id}
+                          </p>
+                        </div>
+
+                        {rating !== null ? (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <img
+                              src={`/icons/tier-${rating}.png`}
+                              alt={`Tier ${rating}`}
+                              className="w-4 h-4 object-contain"
+                            />
+                            <span className="text-[13px] font-semibold text-gray-700">
+                              {rating}
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
+                    );
+                  })()}
                 />
 
                 {/* Traveller Dropdown */}
@@ -1846,9 +2123,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                 {/* Select age dropdown */}
                 <DropDown
-                  options={Array.from({ length: 10 }, (_, i) => ({
-                    value: String(i + 1),
-                    label: String(i + 1),
+                  options={Array.from({ length: 18 }, (_, i) => ({
+                    value: String(i),
+                    label: String(i),
                   }))}
                   placeholder="Select Age"
                   value={formData.childAges?.[index]?.toString() ?? ""}
@@ -1880,7 +2157,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     {...getInputProps("infantTravellers", {
                       value: trav,
                       onChange: (e) => {
-                        const value = e.target.value;
+                        const value = allowTextAndNumbers(e.target.value);
                         updateTraveller("infantTravellers", index, value);
 
                         // Run fuzzy search
@@ -1889,14 +2166,59 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           "email",
                           "phone",
                         ]);
+                        if (value.trim() === "") {
+                          setTravellerResults([]);
+                          setActiveTravellerDropdown(null);
+                          return;
+                        }
                         setTravellerResults(results);
-                        setActiveTravellerDropdown({
-                          type: "infantTravellers",
-                          index,
-                        });
+                        if (results.length > 0) {
+                          setActiveTravellerDropdown({
+                            type: "infantTravellers",
+                            index,
+                          });
+                        } else {
+                          setActiveTravellerDropdown(null);
+                          setTravellerResults([]);
+                        }
                       },
                       skipValidation: true,
                     })}
+                    readOnly={!!formData.infantTravellerIds?.[index]}
+                    selectedDisplay={(() => {
+                      const selectedId =
+                        formData.infantTravellerIds?.[index] ?? "";
+                      if (!selectedId) return null;
+                      const selected = travellersById.get(selectedId);
+                      if (!selected) return null;
+                      const rating = getTierRating(selected.tier);
+                      return (
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <p className="font-normal text-[13px] text-gray-900 truncate">
+                              {selected.name}
+                            </p>
+                            <span className="text-gray-300">|</span>
+                            <p className="text-[13px] text-gray-600 truncate">
+                              {selected._id}
+                            </p>
+                          </div>
+
+                          {rating !== null ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <img
+                                src={`/icons/tier-${rating}.png`}
+                                alt={`Tier ${rating}`}
+                                className="w-4 h-4 object-contain"
+                              />
+                              <span className="text-[13px] font-semibold text-gray-700">
+                                {rating}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
                   />
 
                   {/* Traveller Dropdown for Children */}
@@ -2013,10 +2335,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             placeholder="Search by Name/Username/ID"
             required
             className="mt-1 text-[13px] py-2"
-            // show the NAME from ownerList, never formData.bookingOwner
+            // show the NAME from ownerList
             value={ownerList[0]?.name || ""}
             onChange={(e) => {
-              const value = e.target.value;
+              const value = allowTextAndNumbers(e.target.value);
               // show typed text, clear ID until selection
               setOwnerList([{ id: "", name: value }]);
               // don't send name as ID, but keep the name for draft display
@@ -2031,12 +2353,17 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 "name",
                 "email",
               ]);
+              if (value.trim() === "") {
+                setTeamsResults([]);
+                setShowTeamsDropdown(false);
+                return;
+              }
               setTeamsResults(results);
-              setShowTeamsDropdown(true);
+              setShowTeamsDropdown(results.length > 0);
             }}
             onBlur={handleBlur}
           />
-          {showTeamsDropdown && (
+          {showTeamsDropdown && TeamsResults.length > 0 && (
             <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
               {TeamsResults.map((t: TeamDataType) => (
                 <div
@@ -2050,6 +2377,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       ownerName: t.name,
                     };
                     setFormData(newFormData);
+                    setTeamsResults([]);
                     setShowTeamsDropdown(false);
                   }}
                 >
@@ -2092,7 +2420,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             setViewCustomerData(null);
           }}
           mode="view"
-          data={viewCustomerData}
+          data={viewCustomerData as any}
         />
       )}
 
@@ -2104,7 +2432,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             setViewVendorData(null);
           }}
           mode="view"
-          data={viewVendorData}
+          data={viewVendorData as any}
         />
       )}
       {isViewTravellerOpen && (

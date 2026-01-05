@@ -8,13 +8,21 @@ type ErrorToastProps = {
   visible: boolean;
   onClose: () => void;
   autoHideMs?: number;
+  bgColorClass?: string;
+  boldText?: string | undefined;
+  messageColorClass?: string | undefined;
+  showLabel?: boolean | undefined;
 };
 
 const ErrorToast: React.FC<ErrorToastProps> = ({
   message,
   visible,
   onClose,
-  autoHideMs = 4000,
+  autoHideMs = 5000,
+  bgColorClass = "bg-red-50",
+  boldText,
+  messageColorClass = "text-red-600",
+  showLabel = true,
 }) => {
   useEffect(() => {
     if (!visible) return;
@@ -27,14 +35,12 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
 
   return createPortal(
     <div
-      className="fixed top-8 left-1/2 -translate-x-1/2 z-[1100]
-      flex items-center gap-2
-      bg-red-50 border border-red-200 text-red-600
-      px-3 py-1.5 rounded-full shadow-md
-      max-w-[90vw] text-[0.65rem]"
+      className={`fixed top-8 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-2 ${bgColorClass} border border-red-200 px-3 py-1.5 rounded-full shadow-md max-w-[90vw] text-[13px]`}
     >
       <svg
-        className="w-4 h-4 text-red-500"
+        className={`w-4 h-4 ${
+          messageColorClass.replace("text-", "text-") || messageColorClass
+        }`}
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -48,8 +54,18 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
         />
       </svg>
 
-      <span className="font-semibold">Error :</span>
-      <span className="truncate">{message}</span>
+      <span className={`truncate ${messageColorClass}`}>
+        {showLabel && <span className="font-semibold">Error :</span>}
+        {boldText && message.includes(boldText) ? (
+          <>
+            {message.split(boldText)[0]}
+            <b>{boldText}</b>
+            {message.split(boldText)[1]}
+          </>
+        ) : (
+          message
+        )}
+      </span>
 
       <button
         type="button"

@@ -65,6 +65,9 @@ const Filter: React.FC<FilterProps> = ({
   showBookingType = false,
   searchWidth,
 }) => {
+  const initialSearch = initialFilters.search || "";
+  const initialEffectiveSearch = initialSearch.length >= 3 ? initialSearch : "";
+
   const [filters, setFilters] = useState<FilterState>({
     serviceType: initialFilters.serviceType || "",
     status: initialFilters.status || "",
@@ -76,6 +79,11 @@ const Filter: React.FC<FilterProps> = ({
     tripStartDate: initialFilters.tripStartDate || "",
     tripEndDate: initialFilters.tripEndDate || "",
   });
+
+  // Only propagate search to parent when empty or >= 3 chars
+  const [effectiveSearch, setEffectiveSearch] = useState<string>(
+    initialEffectiveSearch
+  );
 
   {
     /* Booking Time Period (with placeholder working) */
@@ -267,6 +275,7 @@ const Filter: React.FC<FilterProps> = ({
     };
     setFilters(resetFilters);
     setSelectedOwners([]); // Reset owner pills
+    setEffectiveSearch("");
     onSearchChange?.("");
   }, [onSearchChange]);
 
@@ -274,10 +283,15 @@ const Filter: React.FC<FilterProps> = ({
     onFilterChange?.(filters);
   }, [filters, onFilterChange]);
 
+  const callbackFilters = useMemo(
+    () => ({ ...filters, search: effectiveSearch }),
+    [filters, effectiveSearch]
+  );
+
   // Forward filter changes to parent AFTER render commit to avoid nested render updates
   useEffect(() => {
-    onFilterChange?.(filters);
-  }, [filters, onFilterChange]);
+    onFilterChange?.(callbackFilters);
+  }, [callbackFilters, onFilterChange]);
 
   const renderOptions = useCallback(
     (options: FilterOption[]) =>
@@ -583,8 +597,16 @@ const Filter: React.FC<FilterProps> = ({
                 placeholder="Search by Booking ID / Lead Pax"
                 value={filters.search}
                 onChange={(e) => {
-                  updateFilter("search", e.target.value);
-                  onSearchChange?.(e.target.value);
+                  const value = e.target.value;
+                  updateFilter("search", value);
+
+                  if (value.length === 0) {
+                    setEffectiveSearch("");
+                    onSearchChange?.("");
+                  } else if (value.length >= 3) {
+                    setEffectiveSearch(value);
+                    onSearchChange?.(value);
+                  }
                 }}
                 className={`${searchInputWidth} border border-gray-300 hover:border-green-300 text-[14px] font-normal rounded-md pl-3 pr-9 py-2.5`}
               />

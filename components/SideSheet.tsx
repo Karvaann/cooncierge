@@ -80,10 +80,11 @@ const SideSheet: React.FC<SideSheetProps> = ({
   const handleOverlayClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       if (event.target === event.currentTarget && closeOnOverlayClick) {
-        onClose();
+        if (onCloseButtonClick) onCloseButtonClick();
+        else onClose();
       }
     },
-    [onClose, closeOnOverlayClick]
+    [onClose, closeOnOverlayClick, onCloseButtonClick]
   );
 
   // Prevent body scroll when sidesheet is open

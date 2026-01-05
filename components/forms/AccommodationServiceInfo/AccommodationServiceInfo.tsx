@@ -16,6 +16,7 @@ import DropDown from "@/components/DropDown";
 import SingleCalendar from "@/components/SingleCalendar";
 import StyledDescription from "@/components/StyledDescription";
 import { FaRegFolder } from "react-icons/fa";
+import { allowTextAndNumbers } from "@/utils/inputValidators";
 // Type definitions
 interface AccommodationInfoFormData {
   bookingdate: string;
@@ -324,24 +325,6 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   const handleBookingStatusChange = (value: string) => {
     setFormData((prev) => ({ ...prev, bookingstatus: value }));
   };
-
-  // const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const file = e.target.files?.[0];
-  //   if (!file) return;
-
-  //   setAttachedFile(file);
-
-  //   setFilesAdded((prev) => ({
-  //     ...prev,
-  //     document: true,
-  //   }));
-  // };
-
-  // Handle file removal
-  // const handleDeleteFile = () => {
-  //   setAttachedFile(null);
-  //   if (fileInputRef.current) fileInputRef.current.value = "";
-  // };
 
   type FieldRule = {
     required: boolean;
@@ -890,6 +873,14 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
               </label>
               <input
                 type="text"
+                name="confirmationNumber"
+                value={formData.confirmationNumber}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    confirmationNumber: allowTextAndNumbers(e.target.value),
+                  }))
+                }
                 placeholder="Enter Confirmation Number"
                 className="w-[18rem] px-3 py-1.5 border border-gray-300 rounded-md text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
               />
@@ -1226,7 +1217,9 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                         onChange={(e) =>
                           setFormData((prev) => ({
                             ...prev,
-                            propertyAddress: e.target.value,
+                            propertyAddress: allowTextAndNumbers(
+                              e.target.value
+                            ),
                           }))
                         }
                         placeholder={`Enter ${formData.accommodationType} Address`}

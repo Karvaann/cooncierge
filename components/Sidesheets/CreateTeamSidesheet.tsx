@@ -9,6 +9,7 @@ import DropDown from "../DropDown";
 import Toggle from "../Toggle";
 import Button from "../Button";
 import SuccessPopupModal from "../popups/BookingPopups/SuccessPopupModal";
+import ErrorToast from "../ErrorToast";
 import { createMakerCheckerGroup } from "@/services/makerCheckerApi";
 import { pushToast } from "@/utils/toastService";
 import { getUsers } from "@/services/userApi";
@@ -172,9 +173,16 @@ export default function CreateTeamSidesheet({
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleCreateSubmit = async () => {
     if (isSubmitting) return;
+
+    if (!teamName || teamName.trim() === "") {
+      setError("Team Name is Required");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       // selected arrays already contain user IDs
@@ -273,7 +281,7 @@ export default function CreateTeamSidesheet({
                         );
                       })
                     ) : (
-                      <span className="text-gray-400 text-[15px] flex items-center w-full">
+                      <span className="text-gray-400 text-[13px] flex items-center w-full">
                         Select Checkers
                         <MdOutlineKeyboardArrowDown className="ml-auto text-gray-400 pointer-events-none" />
                       </span>
@@ -380,7 +388,7 @@ export default function CreateTeamSidesheet({
                         );
                       })
                     ) : (
-                      <span className="text-gray-400 text-[15px] flex items-center w-full">
+                      <span className="text-gray-400 text-[13px] flex items-center w-full">
                         Select Makers
                         <MdOutlineKeyboardArrowDown className="ml-auto text-gray-400 pointer-events-none" />
                       </span>
@@ -497,6 +505,11 @@ export default function CreateTeamSidesheet({
             />
           </div>
         </form>
+        <ErrorToast
+          message={error || ""}
+          visible={!!error}
+          onClose={() => setError(null)}
+        />
       </div>
       <SuccessPopupModal
         isOpen={showSuccess}

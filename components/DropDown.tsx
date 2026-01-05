@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 
 interface DropdownOption {
   value: string;
-  label: string;
+  label: React.ReactNode;
 }
 
 interface DropdownProps {
@@ -61,7 +61,9 @@ const DropDown: React.FC<DropdownProps> = ({
   }, [value]);
 
   const selectedOption = options.find((opt) => opt.value === selectedValue);
-  const displayText = selectedOption ? selectedOption.label : placeholder;
+  const displayText: React.ReactNode = selectedOption
+    ? selectedOption.label
+    : placeholder;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -228,7 +230,7 @@ const DropDown: React.FC<DropdownProps> = ({
                   }
                   return base;
                 })()}
-                className={`${menuWidthClass} bg-white rounded-md border border-gray-300 shadow-lg overflow-hidden z-[1100]`}
+                className={`${menuWidthClass} bg-white rounded-md border border-gray-300 shadow-lg overflow-auto max-h-[240px] z-[1100]`}
               >
                 {options.map((option) => (
                   <button

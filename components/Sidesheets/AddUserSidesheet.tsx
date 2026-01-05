@@ -6,6 +6,7 @@ import { getAuthUser } from "../../services/storage/authStorage";
 import SideSheet from "../SideSheet";
 import DropDown from "../DropDown";
 import Button from "../Button";
+import ErrorToast from "../ErrorToast";
 import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
 import { JSX } from "react";
 
@@ -51,8 +52,39 @@ export default function AddUserSidesheet({
   const hasSpecial = useMemo(() => /[^A-Za-z0-9]/.test(password), [password]);
 
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const [toastBold, setToastBold] = useState<string>();
+  const [toastBgClass, setToastBgClass] = useState<string>();
+  const [messageColorClass, setMessageColorClass] = useState<
+    string | undefined
+  >();
 
   const handleAdd = useCallback(async (): Promise<void> => {
+    // prevent double submit early
+    if (isSubmitting) return;
+
+    // client-side required fields validation
+    if (!fullName || String(fullName).trim() === "") {
+      setToastMsg("Full name is required");
+      setToastBold(undefined);
+      setToastBgClass(undefined);
+      setMessageColorClass(undefined);
+      setShowToast(true);
+
+      return;
+    }
+    if (!email || String(email).trim() === "") {
+      setToastMsg("Email is required");
+      setToastBold(undefined);
+      setToastBgClass(undefined);
+      setMessageColorClass(undefined);
+      setShowToast(true);
+
+      return;
+    }
+
     const payload = {
       name: fullName,
       email,
@@ -65,7 +97,6 @@ export default function AddUserSidesheet({
       requireChange,
     } as any;
 
-    if (isSubmitting) return;
     setIsSubmitting(true);
     try {
       const authUser = getAuthUser<any>();
@@ -125,6 +156,14 @@ export default function AddUserSidesheet({
         } else {
           if (onAddUser) onAddUser(returned);
         }
+        // Show informational toast with email bolded
+        const emailToShow = returned?.email || email;
+        setToastMsg(`The password you set has been sent to ${emailToShow}`);
+        setToastBold(emailToShow);
+        setToastBgClass("bg-white");
+        setShowToast(true);
+        setMessageColorClass("text-[#414141]");
+
         onClose();
       } else {
         console.error("Create/update user failed", res);
@@ -253,7 +292,9 @@ export default function AddUserSidesheet({
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Enter Full Name"
-                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md hover:border-green-300 focus:outline-none
+    focus:ring-2 focus:ring-green-400
+    focus:ring-offset-0"
                 />
               </div>
 
@@ -504,6 +545,14 @@ export default function AddUserSidesheet({
           </div>
         </form>
       </div>
+      <ErrorToast
+        message={toastMsg}
+        visible={showToast}
+        onClose={() => setShowToast(false)}
+        bgColorClass={toastBgClass}
+        boldText={toastBold}
+        messageColorClass={messageColorClass}
+      />
     </SideSheet>
   );
 }
