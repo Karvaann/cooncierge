@@ -4,6 +4,17 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { DateRange, type RangeKeyDict } from "react-date-range";
 import { FaRegCalendar } from "react-icons/fa6";
 
+import { enUS } from "date-fns/locale";
+import { format } from "date-fns";
+
+const customLocale = {
+  ...enUS,
+  localize: {
+    ...enUS.localize,
+    day: (n: number) => ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"][n],
+  },
+};
+
 type Props = {
   label: string;
   startDate: string;
@@ -313,6 +324,12 @@ export default function DateRangeInput({
               </div>
               <DateRange
                 className="date-range-picker"
+                locale={customLocale}
+                dayContentRenderer={(date) => (
+                  <span className="rdrDayNumber">
+                    {format(date, "dd")}
+                  </span>
+                )}
                 ranges={ranges}
                 onChange={handleRangeChange}
                 showDateDisplay={false}

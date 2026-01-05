@@ -242,13 +242,42 @@ body {
   background: transparent;
 }
 
+.rdrEndEdge {
+  right: 0px;
+  color: #333 !important;
+}
+
+.rdrInRange {
+  inset: 10px -10px !important;
+  color: #e1e1e1 !important;
+}
+
+.rdrDayNumber {
+  inset: 5px -3px;
+}
+
+.rdrEndEdge {
+  inset: 10px -5px !important;
+
+  color: #333 !important;
+}
+
+.rdrSelected, .rdrStartEdge {
+  inset: 10px -5px !important;
+  color: #333 !important;
+}
+
+.rdrDayToday .rdrDayNumber span:after {
+  width: 0px !important;
+}
+
 /* selected start/end and today cells use dark gray */
 .date-range-popover .rdrStartEdge,
 .date-range-popover .rdrEndEdge,
 .date-range-popover .rdrSelected {
-  background: #0d4b37;
+  background: #333;
   color: #0d4b37;
-  padding: 2px;
+  padding: 8px;
 }
 
 
