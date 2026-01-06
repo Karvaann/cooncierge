@@ -22,6 +22,7 @@ import {
   allowOnlyNumbers,
   allowOnly10Digits,
 } from "@/utils/inputValidators";
+import { isValidEmail } from "@/utils/inputValidators";
 
 type CustomerData = {
   customId?: string;
@@ -304,6 +305,11 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     const businessId = user?.businessId;
 
     try {
+      // Validate email format if provided
+      if (formData.email && !isValidEmail(String(formData.email))) {
+        showErrorToast("Email format is invalid");
+        return;
+      }
       // Build FormData
       const formDataToSend = new FormData();
 
@@ -370,6 +376,12 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
       if (!customerId) {
         console.error("No customer ID found");
+        return;
+      }
+
+      // Validate email format if provided
+      if (formData.email && !isValidEmail(String(formData.email))) {
+        showErrorToast("Email format is invalid");
         return;
       }
 
@@ -561,6 +573,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   customWidth="w-full mt-1.5 py-2"
                   showCalendarIcon={true}
                   readOnly={readOnly}
+                  maxDate={new Date().toISOString()}
                 />
               </div>
             </div>

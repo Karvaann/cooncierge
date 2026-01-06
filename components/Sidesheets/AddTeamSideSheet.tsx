@@ -521,6 +521,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   placeholder="DD-MM-YYYY"
                   customWidth="w-full mt-1.5 py-2"
                   readOnly={readOnly}
+                  maxDate={new Date().toISOString()}
                 />
               </div>
 

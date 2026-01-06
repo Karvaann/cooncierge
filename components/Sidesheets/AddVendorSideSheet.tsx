@@ -26,6 +26,7 @@ import {
   allowOnly10Digits,
   allowTextAndNumbers,
   allowOnlyNumbers,
+  isValidEmail,
 } from "@/utils/inputValidators";
 import { all } from "axios";
 
@@ -314,6 +315,11 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       }, 100);
       return;
     }
+    // Validate email format if provided
+    if (formData.email && !isValidEmail(String(formData.email))) {
+      showErrorToast("Email format is invalid");
+      return;
+    }
     const user = getAuthUser() as any;
     const businessId = user?.businessId;
 
@@ -406,6 +412,12 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
       if (!vendorId) {
         console.error("No vendor ID found");
+        return;
+      }
+
+      // Validate email format if provided
+      if (formData.email && !isValidEmail(String(formData.email))) {
+        showErrorToast("Email format is invalid");
         return;
       }
 
@@ -715,6 +727,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   customWidth="w-full mt-1.5 py-2"
                   showCalendarIcon={true}
                   readOnly={readOnly}
+                  maxDate={new Date().toISOString()}
                 />
               </div>
             </div>

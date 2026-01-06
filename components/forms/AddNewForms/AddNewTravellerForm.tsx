@@ -604,6 +604,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   customWidth="w-full py-2 text-[13px]"
                   showCalendarIcon={false}
                   readOnly={readOnly}
+                  maxDate={new Date().toISOString()}
                 />
                 {errors.dateofbirth && (
                   <p className="text-red-500 text-xs mt-1">

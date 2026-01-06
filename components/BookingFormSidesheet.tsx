@@ -356,10 +356,15 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       vendor,
       adults,
       children,
+      infants,
+      childAges,
       remarks,
       traveldate,
       adultTravellerIds,
       infantTravellerIds,
+      bookingOwner,
+      secondaryBookingOwner,
+      secondaryBookingOwners,
       ...rest
     } = input;
 
@@ -382,11 +387,51 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     // Merge flattened infoform into formFields
     Object.assign(formFields, flatInfoForm);
 
-    // Combine adult and infant traveller IDs, filter out empty strings
-    const travelers = [
-      ...(adultTravellerIds || []),
-      ...(infantTravellerIds || []),
-    ].filter((id: string) => id && id.trim() !== "");
+    const sanitizeIds = (ids: unknown): string[] => {
+      if (!Array.isArray(ids)) return [];
+      return (ids as unknown[])
+        .filter((id) => typeof id === "string")
+        .map((id) => (id as string).trim())
+        .filter(Boolean);
+    };
+
+    // New schema, split adults vs children travellers.
+    // current UI stores "child" travellers under infantTravellerIds/infants/childAges.
+    const adultTravelers = sanitizeIds(adultTravellerIds);
+    const childTravelerIds = sanitizeIds(
+      (input as any)?.childTravellerIds ?? infantTravellerIds
+    );
+    const childAgesList: Array<number | null> = Array.isArray(childAges)
+      ? (childAges as Array<number | null>)
+      : [];
+    const childTravelers = childTravelerIds.map((id, index) => {
+      const ageCandidate = childAgesList[index];
+      const age = typeof ageCandidate === "number" ? ageCandidate : undefined;
+      return age !== undefined ? { id, age } : { id };
+    });
+
+    const authUserId =
+      (user as any)?._id || (user as any)?.id || (user as any)?.userId;
+    const primaryOwnerId = bookingOwner || authUserId || "";
+    const secondaryOwnerIds: string[] = Array.isArray(secondaryBookingOwners)
+      ? (secondaryBookingOwners as unknown[])
+          .map((v) => String(v).trim())
+          .filter(Boolean)
+      : secondaryBookingOwner
+      ? [String(secondaryBookingOwner).trim()].filter(Boolean)
+      : [];
+
+    const filteredSecondaryOwnerIds = secondaryOwnerIds
+      .filter((id) => id !== String(primaryOwnerId || "").trim())
+      .filter((v, i, a) => a.indexOf(v) === i);
+
+    const legacyOwnerIds: string[] = [
+      String(primaryOwnerId || ""),
+      ...filteredSecondaryOwnerIds,
+    ]
+      .map((v) => v.trim())
+      .filter(Boolean)
+      .filter((v, i, a) => a.indexOf(v) === i);
 
     // Build final object
 
@@ -407,15 +452,20 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     bookingDataTemp.append("serviceStatus", serviceStatus);
     bookingDataTemp.append("createdAt", new Date().toISOString());
     bookingDataTemp.append("updatedAt", new Date().toISOString());
-    [input.bookingOwner].map((o: string) => {
-      bookingDataTemp.append("owner[]", o);
-    });
+    bookingDataTemp.append("primaryOwner", String(primaryOwnerId));
+    bookingDataTemp.append(
+      "secondaryOwner",
+      JSON.stringify(filteredSecondaryOwnerIds)
+    );
+    bookingDataTemp.append("owner", JSON.stringify(legacyOwnerIds));
     bookingDataTemp.append("travelDate", traveldate || flatInfoForm.traveldate);
     bookingDataTemp.append("customerId", input.customer);
     bookingDataTemp.append("vendorId", input.vendor);
-    bookingDataTemp.append("travelers", JSON.stringify(travelers));
-    bookingDataTemp.append("adultTravlers", String(adults ?? 0));
-    bookingDataTemp.append("childTravlers", String(children ?? 0));
+    bookingDataTemp.append("adultTravelers", JSON.stringify(adultTravelers));
+    bookingDataTemp.append("childTravelers", JSON.stringify(childTravelers));
+    bookingDataTemp.append("adultNumber", String(adults ?? 0));
+    // Always send from infants only
+    bookingDataTemp.append("childNumber", String(infants ?? 0));
     bookingDataTemp.append("remarks", remarks ?? "");
     bookingDocuments.map((file) => {
       bookingDataTemp.append("documents", file);

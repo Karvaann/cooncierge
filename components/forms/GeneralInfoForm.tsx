@@ -7,10 +7,13 @@ import React, {
   useEffect,
   useRef,
 } from "react";
+import { createPortal } from "react-dom";
 import { LuEye } from "react-icons/lu";
 import { CiSearch } from "react-icons/ci";
 import { FiMinus } from "react-icons/fi";
 import { GoPlus } from "react-icons/go";
+import { IoClose } from "react-icons/io5";
+import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { useBooking } from "@/context/BookingContext";
 import Fuse from "fuse.js";
 import { getCustomers, getCustomerById } from "@/services/customerApi";
@@ -40,6 +43,8 @@ interface GeneralInfoFormData {
   adultTravellerIds: string[]; // IDs for backend
   infantTravellerIds: string[]; // IDs for backend
   bookingOwner: string;
+  secondaryBookingOwner: string;
+  secondaryBookingOwners: string[];
   remarks: string;
 }
 
@@ -368,6 +373,52 @@ const buildInitialState = (
   infantTravellerIds: externalFormData?.formFields?.infantTravellerIds || [], // IDs for backend (start empty)
   bookingOwner:
     externalFormData?.owner?.[0]?._id || externalFormData?.bookingOwner || "",
+  secondaryBookingOwner: (() => {
+    const primaryOwnerId: string =
+      externalFormData?.owner?.[0]?._id || externalFormData?.bookingOwner || "";
+
+    const candidates: string[] = [];
+    if (
+      Array.isArray(externalFormData?.owner) &&
+      externalFormData.owner[1]?._id
+    ) {
+      candidates.push(String(externalFormData.owner[1]._id));
+    }
+    if (Array.isArray(externalFormData?.__owners)) {
+      candidates.push(
+        ...externalFormData.__owners
+          .filter((v: unknown) => typeof v === "string")
+          .map((v: string) => v.trim())
+      );
+    }
+
+    return candidates.find((id) => id && id !== primaryOwnerId) || "";
+  })(),
+  secondaryBookingOwners: (() => {
+    const primaryOwnerId: string =
+      externalFormData?.owner?.[0]?._id || externalFormData?.bookingOwner || "";
+
+    const candidates: string[] = [];
+    if (Array.isArray(externalFormData?.owner)) {
+      externalFormData.owner.forEach((o: any, idx: number) => {
+        const id = o?._id ? String(o._id).trim() : "";
+        if (idx >= 1 && id) candidates.push(id);
+      });
+    }
+    if (Array.isArray(externalFormData?.__owners)) {
+      candidates.push(
+        ...externalFormData.__owners
+          .filter((v: unknown) => typeof v === "string")
+          .map((v: string) => v.trim())
+      );
+    }
+
+    return candidates
+      .map((v) => String(v).trim())
+      .filter(Boolean)
+      .filter((id) => id !== String(primaryOwnerId || ""))
+      .filter((id, i, a) => a.indexOf(id) === i);
+  })(),
   remarks:
     externalFormData?.remarks || externalFormData?.formFields?.remarks || "",
 });
@@ -383,6 +434,13 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const [formData, setFormData] = useState<GeneralInfoFormData>(
     buildInitialState(externalFormData)
   );
+
+  const [showSecondaryOwnerField, setShowSecondaryOwnerField] =
+    useState<boolean>(
+      () =>
+        (buildInitialState(externalFormData).secondaryBookingOwners || [])
+          .length > 0
+    );
 
   const isSameState = (next: GeneralInfoFormData, prev: GeneralInfoFormData) =>
     JSON.stringify(next) === JSON.stringify(prev);
@@ -400,6 +458,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
     const nextState = buildInitialState(externalFormData);
     setFormData((prev) => (isSameState(nextState, prev) ? prev : nextState));
+
+    setShowSecondaryOwnerField(
+      Array.isArray(nextState.secondaryBookingOwners) &&
+        nextState.secondaryBookingOwners.length > 0
+    );
 
     lastExternalSignature.current = externalSignature;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -457,14 +520,30 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     []
   );
   const [vendorResults, setVendorResults] = useState<VendorDataType[]>([]);
-  const [TeamsResults, setTeamsResults] = useState<TeamDataType[]>([]);
+  const [primaryOwnerResults, setPrimaryOwnerResults] = useState<
+    TeamDataType[]
+  >([]);
   const [travellerResults, setTravellerResults] = useState<TravellerDataType[]>(
     []
   );
 
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [showVendorDropdown, setShowVendorDropdown] = useState(false);
-  const [showTeamsDropdown, setShowTeamsDropdown] = useState(false);
+  const [showPrimaryOwnerDropdown, setShowPrimaryOwnerDropdown] =
+    useState(false);
+
+  const [secondaryOwnerDropdownOpen, setSecondaryOwnerDropdownOpen] =
+    useState(false);
+  const [selectedSecondaryOwners, setSelectedSecondaryOwners] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const secondaryOwnerPortalRef = useRef<HTMLDivElement | null>(null);
+  const [secondaryOwnerPos, setSecondaryOwnerPos] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
@@ -519,7 +598,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Add refs for click-outside detection
   const customerRef = useRef<HTMLDivElement | null>(null);
   const vendorRef = useRef<HTMLDivElement | null>(null);
-  const teamsRef = useRef<HTMLDivElement | null>(null);
+  const teamsPrimaryRef = useRef<HTMLDivElement | null>(null);
+  const teamsSecondaryRef = useRef<HTMLDivElement | null>(null);
   const travellerRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
   useEffect(() => {
     const isEventInside = (e: Event, el: HTMLElement | null): boolean => {
@@ -541,7 +621,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
       const isInCustomer = isEventInside(e, customerRef.current);
       const isInVendor = isEventInside(e, vendorRef.current);
-      const isInTeams = isEventInside(e, teamsRef.current);
+      const isInPrimaryOwner = isEventInside(e, teamsPrimaryRef.current);
+      const isInSecondaryOwner = isEventInside(e, teamsSecondaryRef.current);
+      const isInSecondaryOwnerPortal = isEventInside(
+        e,
+        secondaryOwnerPortalRef.current
+      );
 
       let isInTraveller = false;
       travellerRefs.current.forEach((ref) => {
@@ -557,9 +642,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       if (!isInVendor) {
         setShowVendorDropdown(false);
       }
-      if (!isInTeams) {
-        setShowTeamsDropdown(false);
-      }
+      if (!isInPrimaryOwner) setShowPrimaryOwnerDropdown(false);
+      if (!isInSecondaryOwner && !isInSecondaryOwnerPortal)
+        setSecondaryOwnerDropdownOpen(false);
       if (!isInTraveller) {
         setActiveTravellerDropdown(null);
       }
@@ -570,7 +655,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         setShowCustomerDropdown(false);
         setActiveCustomerIndex(null);
         setShowVendorDropdown(false);
-        setShowTeamsDropdown(false);
+        setShowPrimaryOwnerDropdown(false);
+        setSecondaryOwnerDropdownOpen(false);
         setActiveTravellerDropdown(null);
       }
     };
@@ -723,6 +809,82 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       }
     }
   }, [externalFormData?.bookingOwner, externalFormData?.owner, allTeams]);
+
+  // Keep selected secondary owner pills aligned with ids in formData
+  useEffect(() => {
+    const idsFromArray: string[] = Array.isArray(
+      formData.secondaryBookingOwners
+    )
+      ? formData.secondaryBookingOwners
+      : [];
+    const fallbackIds: string[] = formData.secondaryBookingOwner
+      ? [String(formData.secondaryBookingOwner)]
+      : [];
+
+    const primaryId = String(formData.bookingOwner || "");
+    const uniqueIds = [...idsFromArray, ...fallbackIds]
+      .map((v) => String(v).trim())
+      .filter(Boolean)
+      .filter((id) => id !== primaryId)
+      .filter((id, i, a) => a.indexOf(id) === i);
+
+    setSelectedSecondaryOwners(
+      uniqueIds.map((id) => {
+        const match = allTeams.find((t) => t._id === id);
+        return { id, name: match?.name || id };
+      })
+    );
+  }, [
+    allTeams,
+    formData.secondaryBookingOwners,
+    formData.secondaryBookingOwner,
+    formData.bookingOwner,
+  ]);
+
+  // Ensure primary owner is never present in secondary owners
+  useEffect(() => {
+    setFormData((prev) => {
+      const primaryId = String(prev.bookingOwner || "");
+      const current = Array.isArray(prev.secondaryBookingOwners)
+        ? prev.secondaryBookingOwners
+        : [];
+      const next = current
+        .map((v) => String(v).trim())
+        .filter(Boolean)
+        .filter((id) => id !== primaryId);
+      if (next.length === current.length) return prev;
+      return {
+        ...prev,
+        secondaryBookingOwners: next,
+        secondaryBookingOwner: next[0] || "",
+      };
+    });
+  }, [formData.bookingOwner]);
+
+  // Recalculate secondary owner dropdown position when open or on resize/scroll
+  useEffect(() => {
+    if (!secondaryOwnerDropdownOpen) return;
+
+    const recalc = () => {
+      const rect = teamsSecondaryRef.current?.getBoundingClientRect();
+      if (rect) {
+        setSecondaryOwnerPos({
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+        });
+      }
+    };
+
+    recalc();
+    window.addEventListener("resize", recalc);
+    window.addEventListener("scroll", recalc, true);
+    return () => {
+      window.removeEventListener("resize", recalc);
+      window.removeEventListener("scroll", recalc, true);
+    };
+  }, [secondaryOwnerDropdownOpen]);
 
   // Hydrate vendor from externalFormData
   useEffect(() => {
@@ -2327,9 +2489,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         <h2 className="text-[13px] font-medium mb-2">Booking Owner</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
         <label className="block text-[13px] font-medium text-gray-700 mb-1">
-          <span className="text-red-500">*</span> User
+          <span className="text-red-500">*</span> Primary
         </label>
-        <div className="w-[59%] relative" ref={teamsRef}>
+        <div className="w-[59%] relative" ref={teamsPrimaryRef}>
           <InputField
             name="bookingOwner"
             placeholder="Search by Name/Username/ID"
@@ -2354,18 +2516,18 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 "email",
               ]);
               if (value.trim() === "") {
-                setTeamsResults([]);
-                setShowTeamsDropdown(false);
+                setPrimaryOwnerResults([]);
+                setShowPrimaryOwnerDropdown(false);
                 return;
               }
-              setTeamsResults(results);
-              setShowTeamsDropdown(results.length > 0);
+              setPrimaryOwnerResults(results);
+              setShowPrimaryOwnerDropdown(results.length > 0);
             }}
             onBlur={handleBlur}
           />
-          {showTeamsDropdown && TeamsResults.length > 0 && (
+          {showPrimaryOwnerDropdown && primaryOwnerResults.length > 0 && (
             <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-              {TeamsResults.map((t: TeamDataType) => (
+              {primaryOwnerResults.map((t: TeamDataType) => (
                 <div
                   key={t._id}
                   className="p-2 cursor-pointer hover:bg-gray-100"
@@ -2377,14 +2539,215 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       ownerName: t.name,
                     };
                     setFormData(newFormData);
-                    setTeamsResults([]);
-                    setShowTeamsDropdown(false);
+                    setPrimaryOwnerResults([]);
+                    setShowPrimaryOwnerDropdown(false);
                   }}
                 >
                   <p className="font-medium text-[13px]">{t.name}</p>
                 </div>
               ))}
             </div>
+          )}
+        </div>
+
+        <div className="mt-3">
+          {!showSecondaryOwnerField ? (
+            <button
+              type="button"
+              onClick={() => setShowSecondaryOwnerField(true)}
+              className="w-[59%] flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[13px] py-2 rounded-md border border-gray-200"
+            >
+              <GoPlus size={14} />
+              Add Secondary Owner
+            </button>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <label className="block text-[13px] font-medium text-gray-700">
+                  <span className="text-red-500">*</span> Secondary
+                </label>
+                <button
+                  type="button"
+                  aria-label="Remove secondary owner"
+                  onClick={() => {
+                    setShowSecondaryOwnerField(false);
+                    setSelectedSecondaryOwners([]);
+                    setSecondaryOwnerDropdownOpen(false);
+                    setSecondaryOwnerPos(null);
+                    setFormData((prev) => ({
+                      ...prev,
+                      secondaryBookingOwner: "",
+                      secondaryBookingOwners: [],
+                    }));
+                  }}
+                  className="w-6 h-6 flex items-center justify-center rounded-full border border-gray-200 bg-white hover:bg-gray-50"
+                >
+                  <FiMinus size={12} />
+                </button>
+              </div>
+
+              <div className="w-[59%]" ref={teamsSecondaryRef}>
+                {/* Filter-style multi-select pills input */}
+                <div
+                  className="w-full min-h-[2.4rem] -mt-0.5 border border-gray-300 hover:border-green-200 rounded-sm px-2.5 py-3 flex items-center flex-wrap gap-1 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const rect =
+                      teamsSecondaryRef.current?.getBoundingClientRect();
+                    if (rect) {
+                      setSecondaryOwnerPos({
+                        left: rect.left,
+                        top: rect.top,
+                        width: rect.width,
+                        height: rect.height,
+                      });
+                    }
+                    setSecondaryOwnerDropdownOpen((prev) => !prev);
+                  }}
+                >
+                  {selectedSecondaryOwners.length > 0 ? (
+                    selectedSecondaryOwners.map((o) => (
+                      <span
+                        key={o.id}
+                        className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[12px]"
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+
+                            setSelectedSecondaryOwners((prev) =>
+                              prev.filter((p) => p.id !== o.id)
+                            );
+
+                            setFormData((prev) => {
+                              const nextIds = (
+                                prev.secondaryBookingOwners || []
+                              )
+                                .map((v) => String(v).trim())
+                                .filter(Boolean)
+                                .filter((id) => id !== o.id);
+                              return {
+                                ...prev,
+                                secondaryBookingOwners: nextIds,
+                                secondaryBookingOwner: nextIds[0] || "",
+                              };
+                            });
+                          }}
+                          className="py-1"
+                        >
+                          <IoClose size={16} className="text-[#818181]" />
+                        </button>
+                        {o.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-[#9CA3AF] text-[14px] flex items-center flex-1">
+                      Select Owner
+                    </span>
+                  )}
+
+                  <MdOutlineKeyboardArrowDown className="ml-auto text-gray-400 pointer-events-none" />
+                </div>
+
+                {secondaryOwnerDropdownOpen &&
+                  secondaryOwnerPos &&
+                  createPortal(
+                    <div
+                      ref={secondaryOwnerPortalRef}
+                      style={{
+                        position: "fixed",
+                        left: secondaryOwnerPos.left,
+                        top:
+                          secondaryOwnerPos.top + secondaryOwnerPos.height + 6,
+                        width: secondaryOwnerPos.width,
+                        zIndex: 9999,
+                        minHeight: 32,
+                      }}
+                      className="bg-white border border-gray-200 rounded-md shadow-xl max-h-48 overflow-y-auto"
+                    >
+                      {Array.isArray(allTeams) && allTeams.length > 0 ? (
+                        allTeams.map((t: TeamDataType) => {
+                          const checked = selectedSecondaryOwners.some(
+                            (o) => o.id === t._id
+                          );
+
+                          return (
+                            <label
+                              key={t._id}
+                              className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+
+                                // Don't allow primary as secondary
+                                if (
+                                  String(formData.bookingOwner || "") === t._id
+                                )
+                                  return;
+
+                                setSelectedSecondaryOwners((prev) => {
+                                  const exists = prev.some(
+                                    (o) => o.id === t._id
+                                  );
+                                  const next = exists
+                                    ? prev.filter((o) => o.id !== t._id)
+                                    : [...prev, { id: t._id, name: t.name }];
+
+                                  setFormData((statePrev) => {
+                                    const nextIds = next
+                                      .map((o) => String(o.id).trim())
+                                      .filter(Boolean)
+                                      .filter(
+                                        (id, i, a) => a.indexOf(id) === i
+                                      );
+                                    return {
+                                      ...statePrev,
+                                      secondaryBookingOwners: nextIds,
+                                      secondaryBookingOwner: nextIds[0] || "",
+                                    };
+                                  });
+
+                                  return next;
+                                });
+                              }}
+                            >
+                              <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
+                                {checked && (
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="12"
+                                    height="11"
+                                    viewBox="0 0 12 11"
+                                    fill="none"
+                                  >
+                                    <path
+                                      d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                                      stroke="#0D4B37"
+                                      strokeWidth="1.5"
+                                      strokeLinecap="round"
+                                    />
+                                  </svg>
+                                )}
+                              </div>
+
+                              <span className="text-black text-[14px]">
+                                {t.name}
+                              </span>
+                            </label>
+                          );
+                        })
+                      ) : (
+                        <div className="px-3 py-2 text-gray-500 text-[0.75rem]">
+                          No owners found
+                        </div>
+                      )}
+                    </div>,
+                    typeof document !== "undefined"
+                      ? document.body
+                      : (null as any)
+                  )}
+              </div>
+            </>
           )}
         </div>
       </div>
