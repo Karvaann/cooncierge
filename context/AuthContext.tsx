@@ -5,11 +5,16 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from "react";
 import type { AxiosError } from "axios";
 import { AuthApi, VerifyTwoFaRequest } from "@/services/authApi";
-import { getAuthUser, setAuthUser } from "@/services/storage/authStorage";
+import {
+  getAuthToken,
+  getAuthUser,
+  setAuthUser,
+} from "@/services/storage/authStorage";
 import { useToast } from "./ToastContext";
 
 interface User {
@@ -33,6 +38,8 @@ interface AuthContextType {
   verifyOtp: (otpData: VerifyTwoFaRequest) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  isLoading: boolean;
+  refreshUser: () => Promise<User | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,25 +51,56 @@ export const useAuth = () => {
   }
   return context;
 };
-
+ 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const { showToast } = useToast();
 
-  // Load user from localStorage only on client
-  useEffect(() => {
-    try {
-      const storedUser = getAuthUser<User>();
-      if (storedUser) {
-        setUser(storedUser);
-      }
-    } catch (err) {
-      console.error("Failed to load user from localStorage:", err);
-    } finally {
-      setLoading(false);
+  const refreshUser = useCallback(async (): Promise<User | null> => {
+    const storedUser = getAuthUser<User>();
+    if (storedUser) {
+      setUser(storedUser);
     }
+
+    const token = getAuthToken();
+    if (!token) {
+      return storedUser ?? null;
+    }
+
+    const currentUser = await AuthApi.getCurrentUser();
+    if (currentUser) {
+      setAuthUser(currentUser);
+      setUser(currentUser as User);
+      return currentUser as User;
+    }
+
+    return storedUser ?? null;
   }, []);
+
+  // Load user on client, refresh from API when token exists
+  useEffect(() => {
+    let isActive = true;
+
+    const loadUser = async () => {
+      try {
+        if (isActive) {
+          await refreshUser();
+        }
+      } catch (err) {
+        console.error("Failed to load current user:", err);
+      } finally {
+        if (isActive) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadUser();
+    return () => {
+      isActive = false;
+    };
+  }, [refreshUser]);
 
   // Helper to send OTP requests
   const sendOtp = async (
@@ -129,11 +167,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     verifyOtp,
     logout,
     isAuthenticated: !!user,
+    isLoading: loading,
+    refreshUser,
   };
 
   return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
   );
 };

@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { MdKeyboardArrowUp } from "react-icons/md";
 import { menuItems } from "@/components/navigation/menuItems";
 import { getAuthUser } from "@/services/storage/authStorage";
+import { useAuth } from "@/context/AuthContext";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -16,6 +17,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [openSubMenuIndex, setOpenSubMenuIndex] = useState<number | null>(null);
   const sidebarRef = useRef<HTMLDivElement | null>(null);
+  const {user} = useAuth();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -82,7 +84,16 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
             //   if (it.href === "/approvals") return showApprovals;
             //   return true;
             // });
-            const itemsToRender = menuItems;
+
+            let itemsToRender = menuItems;
+
+            console.log('BOoking Checker', user?.isBookingChecker);
+
+            if (!user?.isBookingChecker) {
+              itemsToRender = itemsToRender.filter((it) => it.label !== "Approvals");
+            }
+
+
 
             return itemsToRender.map((item, index) => {
               const isActive = openSubMenuIndex === index;

@@ -9,11 +9,15 @@ import { createTraveller, updateTraveller } from "@/services/travellerApi";
 import { getAuthUser } from "@/services/storage/authStorage";
 import Button from "@/components/Button";
 import generateCustomId from "@/utils/helper";
+import DropDown from "@/components/DropDown";
+import { allowOnly10Digits, allowOnlyText } from "@/utils/inputValidators";
+import { LuSave } from "react-icons/lu";
 // Type definitions
 interface TravellerFormData {
   firstname: string;
   lastname: string;
   nickname: string;
+  countryCode?: string;
   contactnumber: number | string;
   emailId: string;
   dateofbirth: number | string;
@@ -58,6 +62,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
+  const [phoneCode, setPhoneCode] = useState<string>("+91");
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -212,10 +217,17 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
-    const processedValue =
-      type === "number" && value !== "" ? Number(value) : value;
+    const newValue =
+      name === "firstname" || name === "lastname" || name === "nickname"
+        ? allowOnlyText(value)
+        : name === "contactnumber"
+        ? allowOnly10Digits(value)
+        : value;
 
-    setFormData((prev) => ({ ...prev, [name]: processedValue }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: newValue,
+    }));
 
     // Clear error when user types
     if (errors[name as keyof TravellerFormData]) {
@@ -297,10 +309,16 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
         const storedUser = getAuthUser<any>();
         const ownerId = storedUser?.id || storedUser?._id;
 
+        const phonePayload = phoneCode
+          ? String(formData.contactnumber || "").startsWith(phoneCode)
+            ? String(formData.contactnumber || "")
+            : phoneCode + String(formData.contactnumber || "")
+          : String(formData.contactnumber || "");
+
         const payload: any = {
           name,
           email: String(formData.emailId || "").trim() || undefined,
-          phone: String(formData.contactnumber || "").trim() || undefined,
+          phone: phonePayload || undefined,
           dateOfBirth: formData.dateofbirth || undefined,
           ownerId,
           customId: travellerCode,
@@ -488,7 +506,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 placeholder="Enter First Name"
                 required
                 disabled={readOnly}
-                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
 
@@ -504,7 +522,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 placeholder="Enter Last Name"
                 required
                 disabled={readOnly}
-                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
 
@@ -520,7 +538,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 placeholder="Enter Nickname/Alias"
                 required
                 disabled={readOnly}
-                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
           </div>
@@ -531,16 +549,31 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
               <label className="block text-[13px] font-medium text-gray-700">
                 Contact Number
               </label>
-              <input
-                type="text"
-                name="contactnumber"
-                value={formData.contactnumber}
-                onChange={handleChange}
-                placeholder="Enter Contact Number"
-                required
-                disabled={readOnly}
-                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
-              />
+              <div className="flex items-center">
+                <DropDown
+                  options={[
+                    { value: "+91", label: "+91" },
+                    { value: "+1", label: "+1" },
+                    { value: "+44", label: "+44" },
+                  ]}
+                  value={phoneCode}
+                  onChange={(v) => setPhoneCode(v)}
+                  disabled={readOnly}
+                  customWidth="w-[58px]"
+                  menuWidth="w-[58px]"
+                  className="flex-shrink-0 rounded-l-md"
+                  customHeight="h-9"
+                />
+                <input
+                  name="contactnumber"
+                  type="text"
+                  value={formData.contactnumber}
+                  onChange={handleChange}
+                  placeholder="Enter Contact Number"
+                  disabled={readOnly}
+                  className="flex-1  border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                />
+              </div>
             </div>
 
             <div className="flex flex-col gap-1">
@@ -555,7 +588,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 placeholder="Enter Email ID"
                 required
                 disabled={readOnly}
-                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-700"
+                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
 
@@ -569,8 +602,9 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   onChange={(iso) => handleDOBChange(iso)}
                   placeholder="DD-MM-YYYY"
                   customWidth="w-full py-2 text-[13px]"
-                  showCalendarIcon={true}
+                  showCalendarIcon={false}
                   readOnly={readOnly}
+                  maxDate={new Date().toISOString()}
                 />
                 {errors.dateofbirth && (
                   <p className="text-red-500 text-xs mt-1">
@@ -596,7 +630,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
             onBlur={handleBlur}
             placeholder="Enter Your Remarks Here"
             disabled={isSubmitting || readOnly}
-            className={`w-full border border-gray-200 rounded-md px-3 py-2 text-[13px] mt-2 transition-colors focus:ring focus:ring-blue-200 ${
+            className={`w-full border border-gray-200 rounded-md px-3 py-2 text-[13px] mt-2 transition-colors focus:ring focus:ring-green-400 hover:border-green-300 ${
               isSubmitting || readOnly ? "opacity-50 cursor-not-allowed" : ""
             }`}
           />
@@ -625,8 +659,14 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   const payload: any = {
                     name,
                     email: String(formData.emailId || "").trim() || undefined,
-                    phone:
-                      String(formData.contactnumber || "").trim() || undefined,
+                    phone: ((): string | undefined => {
+                      const num = String(formData.contactnumber || "");
+                      const combined =
+                        (phoneCode && !num.startsWith(phoneCode)
+                          ? phoneCode
+                          : "") + num;
+                      return combined || undefined;
+                    })(),
                     dateOfBirth: formData.dateofbirth || undefined,
                   };
                   const id = data?._id || data?.id;
@@ -655,8 +695,9 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
             <Button
               text={isSubmitting || submitting ? "Saving..." : "Save"}
               onClick={() => handleSubmit()}
+              icon={<LuSave className="mr-1" />}
               disabled={isSubmitting || submitting}
-              bgColor="bg-[#114958]"
+              bgColor="bg-[#0D4B37]"
               textColor="text-white"
               className="hover:bg-[#0d3a45]"
             />

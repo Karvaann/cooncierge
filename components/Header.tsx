@@ -16,6 +16,7 @@ import { HiOutlineHandRaised } from "react-icons/hi2";
 import { SlSettings } from "react-icons/sl";
 import RaiseRequestModal from "./Modals/RaiseRequestModal";
 import { MdKeyboardArrowDown } from "react-icons/md";
+import { useAuth } from "@/context/AuthContext";
 
 // Type definitions
 interface HeaderProps {
@@ -112,12 +113,13 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
   const router = useRouter();
   const pathname = usePathname();
   const menuRef = useRef<HTMLDivElement>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const { user, logout } = useAuth();
 
   // Memoized handlers for better performance
   const handleLogOut = useCallback(() => {
+    logout();
     router.push("/login");
-  }, [router]);
+  }, [logout, router]);
 
   const handleSettingsClick = useCallback(() => {
     router.push("/ProfileSettings/UserProfile");
@@ -181,13 +183,6 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
     // Close dropdown when pathname changes
     setIsDropDownOpen(false);
   }, [pathname]);
-
-  useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      setCurrentUser(JSON.parse(userData));
-    }
-  }, []);
 
   return (
     <>
@@ -256,10 +251,10 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
                     </div>
                     <div>
                       <div className="text-gray-900 text-[14px] font-medium">
-                        {currentUser?.name || "User Name"}
+                        {user?.name || "User Name"}
                       </div>
                       <div className="text-[12px] text-gray-500">
-                        {currentUser?.email || "user@email.com"}
+                        {user?.email || "user@email.com"}
                       </div>
                     </div>
                   </div>

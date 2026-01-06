@@ -35,6 +35,7 @@ const Table = dynamic(() => import("@/components/Table"), {
 
 type VendorRow = {
   vendorID: string;
+  vendorCode?: string;
   vendorName: string;
   rating: string;
   poc: string;
@@ -151,6 +152,7 @@ const VendorDirectory = () => {
       return (
         v.vendorName?.toLowerCase().includes(search) ||
         v.vendorID?.toLowerCase().includes(search) ||
+        v.vendorCode?.toLowerCase().includes(search) ||
         v.poc?.toLowerCase().includes(search)
       );
     });
@@ -274,7 +276,6 @@ const VendorDirectory = () => {
     try {
       await deleteVendor(vendorId);
       // Refresh your vendor list or remove from state
-      // Example: setVendors(vendors.filter(v => v.id !== vendorId));
     } catch (error: any) {
       console.error("Error deleting vendor:", error);
       throw error;
@@ -286,7 +287,11 @@ const VendorDirectory = () => {
       const data = await getVendors({ isDeleted: activeTab === "Deleted" });
       const mappedRows: VendorRow[] = data.map((v: any, index: number) => ({
         ...v,
-        vendorID: v.customId || v._id || `#V00${index + 1}`,
+
+        // - Use Mongo _id for all API calls.
+        // - Keep customId only for display.
+        vendorID: v._id || "",
+        vendorCode: v.customId || "",
         vendorName: v.companyName || v.name || "—",
         poc: v.contactPerson || "—",
         rating: v.tier ? Number(v.tier.replace("tier", "")) : 4,
@@ -389,7 +394,7 @@ const VendorDirectory = () => {
             key={`vendorID-${index}`}
             className="px-4 py-3 font-[500] text-left"
           >
-            {row.vendorID}
+            {row.vendorCode || row.vendorID || "—"}
           </td>,
           <td key={`vendorName-${index}`} className="px-4 py-3  text-center">
             {row.vendorName}
@@ -654,7 +659,7 @@ const VendorDirectory = () => {
           onConfirm={() => {
             if (!selectedVendor) return;
 
-            handleDeleteVendor(selectedVendor.vendorID);
+            handleDeleteVendor(selectedVendor.vendorID || selectedVendor._id);
             setIsConfirmModalOpen(false);
           }}
         />
@@ -707,9 +712,10 @@ const VendorDirectory = () => {
             "—"
           }
           recordId={
-            selectedVendor?._id ||
+            selectedVendor?.customId ||
+            selectedVendor?.vendorCode ||
             selectedVendor?.vendorID ||
-            selectedVendor?.id ||
+            selectedVendor?._id ||
             "—"
           }
           categoryName="vendors"

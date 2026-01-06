@@ -11,6 +11,7 @@ type Props = {
   placeholder?: string;
   disablePastDates?: boolean;
   minDate?: string; // ISO string - disables all dates before this date
+  maxDate?: string; // ISO string - disables all dates after this date
   customWidth?: string; // Custom width class for the input container
   labelClassName?: string; // Custom class for the label
   inputClassName?: string; // Custom class for the input text
@@ -32,6 +33,8 @@ export default function SingleCalendar({
   showCalendarIcon = true,
   readOnly = false,
   popupMaxHeight,
+  maxDate,
+  ...props
 }: Props) {
   const [open, setOpen] = useState(false);
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -41,6 +44,31 @@ export default function SingleCalendar({
   const ref = useRef<HTMLDivElement>(null);
 
   const selectedDate = value ? new Date(value) : null;
+
+  const isDateAllowed = (date: Date) => {
+    const dayOnly = new Date(date);
+    dayOnly.setHours(0, 0, 0, 0);
+
+    if (disablePastDates) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (dayOnly < today) return false;
+    }
+
+    if (minDate) {
+      const minDateObj = new Date(minDate);
+      minDateObj.setHours(0, 0, 0, 0);
+      if (dayOnly < minDateObj) return false;
+    }
+
+    if (maxDate) {
+      const maxDateObj = new Date(maxDate);
+      maxDateObj.setHours(0, 0, 0, 0);
+      if (dayOnly > maxDateObj) return false;
+    }
+
+    return true;
+  };
 
   // Sync inputValue with value prop
   useEffect(() => {
@@ -86,6 +114,8 @@ export default function SingleCalendar({
       date.getMonth(),
       date.getDate()
     );
+    // Only allow dates within allowed range
+    if (!isDateAllowed(dateOnly)) return;
     onChange(dateOnly.toISOString());
     setOpen(false);
     setShowMonthPicker(false);
@@ -241,6 +271,12 @@ export default function SingleCalendar({
     if (val.length === 10) {
       const parsedDate = parseInputDate(val);
       if (parsedDate) {
+        // ensure parsed date is allowed (not after maxDate / not before minDate / not disabled past)
+        if (!isDateAllowed(parsedDate)) {
+          // do not accept invalid range; leave input for blur to reset
+          return;
+        }
+
         onChange(parsedDate.toISOString());
         setCurrentMonth(
           new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1)
@@ -254,8 +290,18 @@ export default function SingleCalendar({
   };
 
   const handleInputBlur = () => {
-    // If input is incomplete or invalid, reset to selected date value
-    if (inputValue.length !== 10 || !parseInputDate(inputValue)) {
+    // If input is incomplete, invalid, or outside allowed range, reset to selected date value
+    if (inputValue.length !== 10) {
+      if (value) {
+        setInputValue(formatDateForInput(new Date(value)));
+      } else {
+        setInputValue("");
+      }
+      return;
+    }
+
+    const parsed = parseInputDate(inputValue);
+    if (!parsed || !isDateAllowed(parsed)) {
       if (value) {
         setInputValue(formatDateForInput(new Date(value)));
       } else {
@@ -327,20 +373,11 @@ export default function SingleCalendar({
             const selected = isSelected(day);
             const isToday = day.toDateString() === new Date().toDateString();
 
-            // Check if date is in the past (before today)
             const dayOnly = new Date(day);
             dayOnly.setHours(0, 0, 0, 0);
-            const isPastDate = disablePastDates && dayOnly < today;
 
-            // Check if date is before minDate
-            let isBeforeMinDate = false;
-            if (minDate) {
-              const minDateObj = new Date(minDate);
-              minDateObj.setHours(0, 0, 0, 0);
-              isBeforeMinDate = dayOnly < minDateObj;
-            }
-
-            const isDisabled = !isCurrentMonth || isPastDate || isBeforeMinDate;
+            const allowed = isDateAllowed(dayOnly);
+            const isDisabled = !isCurrentMonth || !allowed;
 
             return (
               <div key={index} className="relative w-9 h-8">
@@ -357,23 +394,17 @@ export default function SingleCalendar({
                   className={`relative w-full h-full flex items-center justify-center text-[13px] font-medium transition-colors select-none
                     ${!isCurrentMonth ? "text-gray-300 cursor-default" : ""}
                     ${
-                      (isPastDate || isBeforeMinDate) && isCurrentMonth
+                      !allowed && isCurrentMonth
                         ? "text-gray-300 cursor-not-allowed"
                         : ""
                     }
                     ${
-                      isCurrentMonth &&
-                      selected &&
-                      !isPastDate &&
-                      !isBeforeMinDate
+                      isCurrentMonth && selected && allowed
                         ? "text-white rounded-sm"
                         : ""
                     }
                     ${
-                      isCurrentMonth &&
-                      !selected &&
-                      !isPastDate &&
-                      !isBeforeMinDate
+                      isCurrentMonth && !selected && allowed
                         ? "text-gray-700 hover:bg-gray-100"
                         : ""
                     }
@@ -384,10 +415,7 @@ export default function SingleCalendar({
                     }
                   `}
                   style={
-                    isCurrentMonth &&
-                    selected &&
-                    !isPastDate &&
-                    !isBeforeMinDate
+                    isCurrentMonth && selected && allowed
                       ? { backgroundColor: "#0D4B37" }
                       : undefined
                   }

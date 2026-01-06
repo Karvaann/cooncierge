@@ -16,6 +16,10 @@ apiClient.interceptors.request.use((config) => {
   if (token) {
     config.headers = config.headers ?? {};
     config.headers["x-access-token"] = token;
+    // also set Authorization Bearer for endpoints that expect it
+    // if (!config.headers["authorization"]) {
+    //   config.headers["authorization"] = `Bearer ${token}`;
+    // }
   }
 
   return config;

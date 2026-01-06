@@ -28,6 +28,7 @@ const Table = dynamic(() => import("@/components/Table"), {
 
 type TeamRow = {
   ID: string;
+  teamCode?: string;
   memberName: string;
   alias: string;
   userStatus: string;
@@ -149,6 +150,7 @@ const TeamDirectory = () => {
     return statusFilteredTeams.filter(
       (t) =>
         (t.ID || "").toLowerCase().includes(search) ||
+        (t.teamCode || "").toLowerCase().includes(search) ||
         (t.memberName || "").toLowerCase().includes(search) ||
         (t.alias || "").toLowerCase().includes(search)
     );
@@ -249,7 +251,11 @@ const TeamDirectory = () => {
             : u.userStatus || u.status || "Current";
         return {
           ...u,
-          ID: u.customId || u._id || `#T00${index + 1}`,
+          // IMPORTANT:
+          // - Use Mongo _id for all API calls.
+          // - Keep customId only for display.
+          ID: u._id || "",
+          teamCode: u.customId || "",
           memberName: fullName,
           alias: alias,
           userStatus: normalizedStatus,
@@ -350,7 +356,7 @@ const TeamDirectory = () => {
         // Normal Table Fields
         cells.push(
           <td key={`ID-${index}`} className="px-4 py-3 text-left font-[500]">
-            {row.ID}
+            {row.teamCode || row.ID || "—"}
           </td>,
           <td key={`memberName-${index}`} className="px-4 py-3  text-center">
             {row.memberName}
@@ -632,7 +638,11 @@ const TeamDirectory = () => {
         bookings={historyData}
         recordName={selectedTeam?.memberName || selectedTeam?.name || "—"}
         recordId={
-          selectedTeam?._id || selectedTeam?.ID || selectedTeam?.id || "—"
+          selectedTeam?.customId ||
+          selectedTeam?.teamCode ||
+          selectedTeam?.ID ||
+          selectedTeam?._id ||
+          "—"
         }
         categoryName="team members"
       />

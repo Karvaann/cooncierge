@@ -32,6 +32,7 @@ import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
 import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 import TaskButton from "@/components/TaskButton";
+import { useAuth } from "@/context/AuthContext";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -200,7 +201,18 @@ const OSBookingsPage = () => {
   const [generatedVendorCode, setGeneratedVendorCode] = useState<string | null>(
     null
   );
-  const tabOptions = ["Bookings", "Drafts", "Deleted"];
+
+  const {user} = useAuth();
+
+  let tabOptions;
+
+  if (user.isBookingMaker) {
+    tabOptions = ["Approved", "Pending", "Deleted", "Drafts", "Deleted"];
+  } else {
+    tabOptions = ["Bookings", "Drafts", "Deleted"];
+  }
+
+
   const [activeTab, setActiveTab] = useState("Bookings");
 
   const tabContainerRef = useRef<HTMLDivElement | null>(null);
@@ -274,7 +286,7 @@ const OSBookingsPage = () => {
 
     const uniqueOwnerNames = new Set<string>();
     quotations.forEach((q: any) => {
-      const ownerArray = q.owner || [];
+      const ownerArray = [...q.secondaryOwner, q.primaryOwner] || [];
       if (Array.isArray(ownerArray)) {
         ownerArray.forEach((o: any) => {
           if (o?.name) uniqueOwnerNames.add(o.name);
@@ -964,8 +976,8 @@ const OSBookingsPage = () => {
       >
         <div className="flex items-center justify-center">
           <div className="flex items-center">
-            {(Array.isArray((item as any).owner)
-              ? (item as any).owner.map((o: any) => o?.name || "--")
+            {(Array.isArray([...(item as any).secondaryOwner, (item as any).primaryOwner])
+              ? [...(item as any).secondaryOwner, (item as any).primaryOwner].map((o: any) => o?.name || "--")
               : []
             ).map((ownerName: string, i: number) => {
               // Try to find owner in ownersList (fetched from API)

@@ -21,19 +21,27 @@ import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import { MdHistory } from "react-icons/md";
 import { FaRegFolder } from "react-icons/fa";
 import ErrorToast from "../ErrorToast";
-import { set } from "date-fns";
+import {
+  allowOnlyText,
+  allowOnly10Digits,
+  allowTextAndNumbers,
+  allowOnlyNumbers,
+  isValidEmail,
+} from "@/utils/inputValidators";
+import { all } from "axios";
 
 type VendorData = {
   _id?: string;
+  customId?: string;
   contactPerson?: string;
-  firstname: string;
-  lastname: string;
   alias: string;
+  firstname?: string;
+  lastname?: string;
   email: string;
   phone: string;
   countryCode: string;
   dateOfBirth: string;
-  GSTIN: string;
+
   companyName: string;
   address: string;
   openingBalance: string;
@@ -65,18 +73,17 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   const readOnly = mode === "view";
   const [name, setName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
-  const [phoneCode, setPhoneCode] = useState<string>("+91");
   const [phone, setPhone] = useState<string>("");
   const [company, setcompany] = useState<string>("");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
-  // Validation helpers / UI state for required fields (company + firstname)
+  // Validation helpers / UI state for required fields (company + contact person)
   const companyRef = useRef<HTMLInputElement | null>(null);
-  const pocFirstNameRef = useRef<HTMLInputElement | null>(null);
+  const contactNameRef = useRef<HTMLInputElement | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [invalidField, setInvalidField] = useState<
-    "company" | "firstname" | null
+    "company" | "contactPerson" | null
   >(null);
   const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -86,7 +93,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
     if (mode === "create") {
       if (vendorCodeProp) setVendorCode(vendorCodeProp);
     } else {
-      setVendorCode(data?._id || "");
+      setVendorCode(data?.customId || data?._id || "");
     }
   }, [mode, data, vendorCodeProp]);
 
@@ -189,13 +196,12 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   };
 
   const [formData, setFormData] = useState<VendorData>({
-    firstname: "",
-    lastname: "",
+    contactPerson: "",
     alias: "",
     email: "",
     phone: "",
     dateOfBirth: "",
-    GSTIN: "",
+
     companyName: "",
     address: "",
     openingBalance: "",
@@ -207,34 +213,64 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
   useEffect(() => {
     if (data) {
-      const [firstname = "", lastname = ""] =
-        data.contactPerson?.split(" ") || [];
+      const contactPersonFromData = data.contactPerson
+        ? String(data.contactPerson).trim()
+        : `${data.firstname || ""} ${data.lastname || ""}`.trim();
+
+      // Split into country code dropdown + 10-digit number input.
+      const rawPhone = String(data.phone || "");
+      const sanitized = rawPhone.replace(/[\s\-()]/g, "");
+      let parsedCode = data.countryCode || "+91";
+      let parsedNumber = "";
+
+      if (sanitized.startsWith("+")) {
+        const known = ["+91", "+1", "+44"];
+        const matchKnown = known
+          .slice()
+          .sort((a, b) => b.length - a.length)
+          .find((c) => sanitized.startsWith(c));
+        if (matchKnown) {
+          parsedCode = matchKnown;
+          parsedNumber = sanitized.slice(matchKnown.length);
+        } else {
+          const m = sanitized.match(/^(\+\d{1,4})(\d+)$/);
+          if (m) {
+            parsedCode = m[1] || parsedCode;
+            parsedNumber = m[2] || "";
+          }
+        }
+      } else {
+        parsedNumber = sanitized;
+      }
+
+      const digitsOnly = parsedNumber.replace(/\D/g, "");
+      const last10 =
+        digitsOnly.length > 10 ? digitsOnly.slice(-10) : digitsOnly;
+
       setFormData({
-        firstname,
-        lastname,
+        contactPerson: contactPersonFromData,
         alias: data.alias || "",
         email: data.email || "",
-        phone: data.phone || "",
+        phone: last10 || "",
         dateOfBirth: data.dateOfBirth || "",
-        GSTIN: data.GSTIN || "",
+
         companyName: data.companyName || "",
         address: data.address || "",
         openingBalance: data.openingBalance?.toString() || "",
         balanceType: data.balanceType || "debit",
         remarks: data.remarks || "",
         tier: data.tier || "",
-        countryCode: data.countryCode || "+91",
+        countryCode: parsedCode || "+91",
       });
       setTier(data.tier || "");
     } else {
       setFormData({
-        firstname: "",
-        lastname: "",
+        contactPerson: "",
         alias: "",
         email: "",
         phone: "",
         dateOfBirth: "",
-        GSTIN: "",
+
         companyName: "",
         address: "",
         openingBalance: "",
@@ -263,17 +299,25 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       }, 100);
       return;
     }
-    if (!formData.firstname || String(formData.firstname).trim() === "") {
-      showErrorToast("Please enter first name to proceed");
-      setInvalidField("firstname");
+    if (
+      !formData.contactPerson ||
+      String(formData.contactPerson).trim() === ""
+    ) {
+      showErrorToast("Please enter contact person name to proceed");
+      setInvalidField("contactPerson");
 
       setTimeout(() => {
-        pocFirstNameRef.current?.scrollIntoView({
+        contactNameRef.current?.scrollIntoView({
           behavior: "smooth",
           block: "center",
         });
-        pocFirstNameRef.current?.focus();
+        contactNameRef.current?.focus();
       }, 100);
+      return;
+    }
+    // Validate email format if provided
+    if (formData.email && !isValidEmail(String(formData.email))) {
+      showErrorToast("Email format is invalid");
       return;
     }
     const user = getAuthUser() as any;
@@ -287,7 +331,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       formDataToSend.append("companyName", formData.companyName);
       formDataToSend.append(
         "contactPerson",
-        `${formData.firstname} ${formData.lastname}`.trim()
+        String(formData.contactPerson || "")
       );
       formDataToSend.append("alias", formData.alias || "");
       formDataToSend.append("dateOfBirth", formData.dateOfBirth || "");
@@ -295,7 +339,6 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       formDataToSend.append("balanceType", formData.balanceType);
       formDataToSend.append("email", formData.email || "");
       formDataToSend.append("phone", formData.phone);
-      formDataToSend.append("GSTIN", formData.GSTIN || "");
       formDataToSend.append("address", formData.address || "");
       formDataToSend.append("tier", tier || "");
       formDataToSend.append("remarks", formData.remarks || "");
@@ -310,8 +353,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         formDataToSend.append("documents", file);
       });
 
-      // Ensure phone includes country code (use form value or fallback state)
-      const phoneValue = `${formData.countryCode || phoneCode}${
+      // Ensure phone includes country code
+      const phoneValue = `${formData.countryCode || "+91"}${
         formData.phone || ""
       }`;
       formDataToSend.set("phone", phoneValue);
@@ -348,16 +391,19 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       }, 100);
       return;
     }
-    if (!formData.firstname || String(formData.firstname).trim() === "") {
-      showErrorToast("Please enter first name to proceed");
-      setInvalidField("firstname");
+    if (
+      !formData.contactPerson ||
+      String(formData.contactPerson).trim() === ""
+    ) {
+      showErrorToast("Please enter contact person name to proceed");
+      setInvalidField("contactPerson");
 
       setTimeout(() => {
-        pocFirstNameRef.current?.scrollIntoView({
+        contactNameRef.current?.scrollIntoView({
           behavior: "smooth",
           block: "center",
         });
-        pocFirstNameRef.current?.focus();
+        contactNameRef.current?.focus();
       }, 100);
       return;
     }
@@ -369,9 +415,15 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         return;
       }
 
+      // Validate email format if provided
+      if (formData.email && !isValidEmail(String(formData.email))) {
+        showErrorToast("Email format is invalid");
+        return;
+      }
+
       const vendorData = {
         companyName: formData.companyName,
-        contactPerson: `${formData.firstname} ${formData.lastname}`.trim(),
+        contactPerson: String(formData.contactPerson || ""),
         alias: formData.alias || undefined,
         dateOfBirth: formData.dateOfBirth || undefined,
         openingBalance: formData.openingBalance
@@ -379,8 +431,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
           : undefined,
         balanceType: formData.balanceType,
         email: formData.email,
-        phone: `${phoneCode}${formData.phone}`,
-        GSTIN: formData.GSTIN,
+        phone: `${formData.countryCode || "+91"}${formData.phone}`,
+
         address: formData.address,
         tier: tier || undefined,
         remarks: formData.remarks || undefined,
@@ -466,49 +518,34 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
             {/* Row 1 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-              <div className="flex flex-col gap-1">
-                <label className="block text-[13px] font-medium text-gray-700">
-                  Company Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  ref={companyRef}
-                  name="companyName"
-                  value={formData.companyName}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setFormData({ ...formData, companyName: v });
-                    if (invalidField === "company" && String(v).trim()) {
-                      setInvalidField(null);
-                    }
-                  }}
-                  placeholder="Enter Company Name"
-                  disabled={readOnly}
-                  className={`w-full rounded-md px-3 py-2 text-[13px] hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
-                    invalidField === "company"
-                      ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
-                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
-                  }`}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="block text-[13px] font-medium text-gray-700">
-                  Company Email ID
-                </label>
-                <input
-                  name="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
+            {/* Company Name - FULL WIDTH */}
+            <div className="flex flex-col gap-1 mb-3">
+              <label className="block text-[13px] font-medium text-gray-700">
+                Company Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={companyRef}
+                name="companyName"
+                value={formData.companyName}
+                onChange={(e) => {
+                  const v = allowOnlyText(e.target.value);
+                  setFormData({ ...formData, companyName: v });
+                  if (invalidField === "company" && String(v).trim()) {
+                    setInvalidField(null);
                   }
-                  placeholder="Enter Email ID"
-                  disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
-                />
-              </div>
+                }}
+                placeholder="Enter Company Name"
+                disabled={readOnly}
+                className={`w-full rounded-md px-3 py-2 text-[13px] hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
+                  invalidField === "company"
+                    ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
+                    : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
+                }`}
+              />
             </div>
 
             {/* Row 2 */}
+            {/* Contact Number + Company Email */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
               <div className="flex flex-col gap-1">
                 <label className="block text-[13px] font-medium text-gray-700">
@@ -535,7 +572,10 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     name="phone"
                     value={formData.phone}
                     onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
+                      setFormData({
+                        ...formData,
+                        phone: allowOnly10Digits(e.target.value),
+                      })
                     }
                     placeholder="Enter Contact Number"
                     disabled={readOnly}
@@ -543,17 +583,18 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   />
                 </div>
               </div>
+
               <div className="flex flex-col gap-1">
                 <label className="block text-[13px] font-medium text-gray-700">
-                  GSTIN
+                  Company Email ID
                 </label>
                 <input
-                  name="GSTIN"
-                  value={formData.GSTIN}
+                  name="email"
+                  value={formData.email}
                   onChange={(e) =>
-                    setFormData({ ...formData, GSTIN: e.target.value })
+                    setFormData({ ...formData, email: e.target.value })
                   }
-                  placeholder="Please Provide Your GST No."
+                  placeholder="Enter Email ID"
                   disabled={readOnly}
                   className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                 />
@@ -573,45 +614,29 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
             {/* Row 1 */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 md:col-span-2">
                 <label className="block text-[13px] font-medium text-gray-700">
-                  First Name <span className="text-red-500">*</span>
+                  Contact Person <span className="text-red-500">*</span>
                 </label>
                 <input
-                  ref={pocFirstNameRef}
-                  name="firstname"
+                  ref={contactNameRef}
+                  name="contactPerson"
                   type="text"
-                  value={formData.firstname}
+                  value={formData.contactPerson}
                   onChange={(e) => {
-                    const v = e.target.value;
-                    setFormData({ ...formData, firstname: v });
-                    if (invalidField === "firstname" && String(v).trim()) {
+                    const v = allowOnlyText(e.target.value);
+                    setFormData({ ...formData, contactPerson: v });
+                    if (invalidField === "contactPerson" && String(v).trim()) {
                       setInvalidField(null);
                     }
                   }}
-                  placeholder="Enter First Name"
+                  placeholder="Enter Contact Person Name"
                   disabled={readOnly}
                   className={`w-full rounded-md px-3 py-2 text-[13px] hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
-                    invalidField === "firstname"
+                    invalidField === "contactPerson"
                       ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
                       : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
                   }`}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="block text-[13px] font-medium text-gray-700">
-                  Last Name
-                </label>
-                <input
-                  name="lastname"
-                  type="text"
-                  value={formData.lastname}
-                  onChange={(e) =>
-                    setFormData({ ...formData, lastname: e.target.value })
-                  }
-                  placeholder="Enter Last Name"
-                  disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
             </div>
@@ -627,7 +652,10 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   type="text"
                   value={formData.alias}
                   onChange={(e) =>
-                    setFormData({ ...formData, alias: e.target.value })
+                    setFormData({
+                      ...formData,
+                      alias: allowOnlyText(e.target.value),
+                    })
                   }
                   placeholder="Enter Nickname/Alias"
                   disabled={readOnly}
@@ -659,7 +687,10 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     type="text"
                     value={formData.phone}
                     onChange={(e) =>
-                      setFormData({ ...formData, phone: e.target.value })
+                      setFormData({
+                        ...formData,
+                        phone: allowOnly10Digits(e.target.value),
+                      })
                     }
                     disabled={readOnly}
                     className="w-full h-[2rem] border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700"
@@ -696,6 +727,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   customWidth="w-full mt-1.5 py-2"
                   showCalendarIcon={true}
                   readOnly={readOnly}
+                  maxDate={new Date().toISOString()}
                 />
               </div>
             </div>
@@ -714,7 +746,10 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               name="address"
               value={formData.address}
               onChange={(e) =>
-                setFormData({ ...formData, address: e.target.value })
+                setFormData({
+                  ...formData,
+                  address: allowTextAndNumbers(e.target.value),
+                })
               }
               placeholder="Enter Billing Address"
               disabled={readOnly}
@@ -843,11 +878,11 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               </div>
               <div className="absolute right-3 top-2 text-sm font-medium">
                 {balanceType === "debit" ? (
-                  <span className="text-red-500 text-[13px]">
+                  <span className=" text-green-500 text-[13px]">
                     Customer pays you ₹{balanceAmount || ""}
                   </span>
                 ) : (
-                  <span className="text-green-500 text-[13px]">
+                  <span className=" text-red-500 text-[13px]">
                     You pay the customer ₹{balanceAmount || ""}
                   </span>
                 )}
@@ -862,11 +897,71 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
             <div className="flex flex-col">
               <DropDown
                 options={[
-                  { value: "tier1", label: "Rating 1" },
-                  { value: "tier2", label: "Rating 2" },
-                  { value: "tier3", label: "Rating 3" },
-                  { value: "tier4", label: "Rating 4" },
-                  { value: "tier5", label: "Rating 5" },
+                  {
+                    value: "tier1",
+                    label: (
+                      <div className="flex items-center gap-2">
+                        <img
+                          src="/icons/tier-1.png"
+                          alt="Tier 1"
+                          className="w-5 h-5"
+                        />
+                        <span className="text-[13px] font-medium">1</span>
+                      </div>
+                    ),
+                  },
+                  {
+                    value: "tier2",
+                    label: (
+                      <div className="flex items-center gap-2">
+                        <img
+                          src="/icons/tier-2.png"
+                          alt="Tier 2"
+                          className="w-5 h-5"
+                        />
+                        <span className="text-[13px] font-medium">2</span>
+                      </div>
+                    ),
+                  },
+                  {
+                    value: "tier3",
+                    label: (
+                      <div className="flex items-center gap-2">
+                        <img
+                          src="/icons/tier-3.png"
+                          alt="Tier 3"
+                          className="w-5 h-5"
+                        />
+                        <span className="text-[13px] font-medium">3</span>
+                      </div>
+                    ),
+                  },
+                  {
+                    value: "tier4",
+                    label: (
+                      <div className="flex items-center gap-2">
+                        <img
+                          src="/icons/tier-4.png"
+                          alt="Tier 4"
+                          className="w-5 h-5"
+                        />
+                        <span className="text-[13px] font-medium">4</span>
+                      </div>
+                    ),
+                  },
+                  {
+                    value: "tier5",
+                    label: (
+                      <div className="flex items-center gap-2">
+                        <img
+                          src="/icons/tier-5.png"
+                          alt="Tier 5"
+                          className="w-5 h-5"
+                        />
+                        <span className="text-[13px] font-medium">5</span>
+                      </div>
+                    ),
+                  },
                 ]}
                 value={tier}
                 onChange={(v) => setTier(v)}

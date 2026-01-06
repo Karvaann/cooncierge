@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import SideSheet from "../SideSheet";
 import SingleCalendar from "../SingleCalendar";
@@ -17,13 +17,29 @@ import Button from "../Button";
 import DropDown from "../DropDown";
 import generateCustomId from "@/utils/helper";
 import ErrorToast from "../ErrorToast";
+import {
+  allowOnlyText,
+  allowOnlyNumbers,
+  allowOnly10Digits,
+} from "@/utils/inputValidators";
+import { isValidEmail } from "@/utils/inputValidators";
 
 type CustomerData = {
+  customId?: string;
   _id?: string;
   name?: string;
-  firstname: string;
-  lastname: string;
+  documents?: Array<{
+    originalName: string;
+    fileName: string;
+    url: string;
+    key: string;
+    size: number;
+    mimeType: string;
+    uploadedAt: string | Date;
+  }>;
   alias: string;
+  firstname?: string;
+  lastname?: string;
   phone: string | "";
   email: string;
   dateOfBirth: "" | string;
@@ -60,6 +76,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   const [phoneCode, setPhoneCode] = useState<string>("+91");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [existingDocuments, setExistingDocuments] = useState<
+    NonNullable<CustomerData["documents"]>
+  >([]);
 
   const [balanceType, setBalanceType] = useState<"debit" | "credit">("debit");
   const [balanceAmount, setBalanceAmount] = useState<string>("");
@@ -67,8 +86,6 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
   const [formData, setFormData] = useState<CustomerData>({
     name: "",
-    firstname: "",
-    lastname: "",
     alias: "",
     phone: "",
     email: "",
@@ -81,25 +98,39 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   });
 
   // Validation helpers / UI state for required fields
-  const firstNameRef = useRef<HTMLInputElement | null>(null);
-  const lastNameRef = useRef<HTMLInputElement | null>(null);
+  const nameRef = useRef<HTMLInputElement | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [invalidField, setInvalidField] = useState<
-    "firstname" | "lastname" | null
-  >(null);
+  const [invalidField, setInvalidField] = useState<"name" | null>(null);
   const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [customerCode, setCustomerCode] = useState("");
 
   useEffect(() => {
-    if (mode === "create") {
-      if (customerCodeProp) setCustomerCode(customerCodeProp);
-      // else setCustomerCode(generateCustomId("customer"));
+    if (customerCodeProp) {
+      setCustomerCode(customerCodeProp);
+    } else if (data?.customId) {
+      setCustomerCode(String(data.customId));
+    } else if (data?._id) {
+      setCustomerCode(String(data._id));
+    } else if (mode === "create") {
+      setCustomerCode(generateCustomId("customer"));
     } else {
-      setCustomerCode(data?._id || "");
+      setCustomerCode("");
     }
-    console.log("customerCodeProp received:", customerCodeProp);
   }, [mode, data, customerCodeProp]);
+
+  const phoneCodeOptions = useMemo(() => {
+    const base = [
+      { value: "+91", label: "+91" },
+      { value: "+1", label: "+1" },
+      { value: "+44", label: "+44" },
+    ];
+
+    if (phoneCode && !base.some((o) => o.value === phoneCode)) {
+      return [{ value: phoneCode, label: phoneCode }, ...base];
+    }
+    return base;
+  }, [phoneCode]);
 
   // Mounted flag to ensure portal renders client-side only
   const [mounted, setMounted] = useState(false);
@@ -116,15 +147,21 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
+    const newValue =
+      name === "name" || name === "alias" || name === "companyName"
+        ? allowOnlyText(value)
+        : name === "gstin"
+        ? allowOnlyNumbers(value)
+        : name === "phone"
+        ? allowOnly10Digits(value)
+        : value;
+
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: newValue,
     }));
     // Clear invalid state when user types into required fields
-    if (name === "firstname" && value.trim() && invalidField === "firstname") {
-      setInvalidField(null);
-    }
-    if (name === "lastname" && value.trim() && invalidField === "lastname") {
+    if (name === "name" && value.trim() && invalidField === "name") {
       setInvalidField(null);
     }
   };
@@ -158,31 +195,74 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleDeleteExistingDocument = (index: number) => {
+    setExistingDocuments((prev) => prev.filter((_, i) => i !== index));
+  };
+
   useEffect(() => {
     if (data) {
-      // Split full name safely
-      const [firstname = "", lastname = ""] = data.name?.split(" ") || [];
+      // Prefer explicit full name if provided; otherwise combine firstname/lastname
+      let nameVal = "";
+      if (data.name && String(data.name).trim()) {
+        nameVal = String(data.name).trim();
+      } else if (data.firstname || data.lastname) {
+        nameVal = `${data.firstname || ""} ${data.lastname || ""}`.trim();
+      }
+
+      // Split country code from phone
+      const rawPhone = String(data.phone || "");
+      const sanitized = rawPhone.replace(/[\s\-()]/g, "");
+      let parsedCode = "+91";
+      let parsedNumber = "";
+      if (sanitized.startsWith("+")) {
+        // Prefer known codes first
+        const known = ["+91", "+1", "+44"];
+        const matchKnown = known
+          .slice()
+          .sort((a, b) => b.length - a.length)
+          .find((c) => sanitized.startsWith(c));
+        if (matchKnown) {
+          parsedCode = matchKnown;
+          parsedNumber = sanitized.slice(matchKnown.length);
+        } else {
+          const m = sanitized.match(/^(\+\d{1,4})(\d+)$/);
+          if (m) {
+            parsedCode = m[1] || parsedCode;
+            parsedNumber = m[2] || "";
+          }
+        }
+      } else {
+        parsedNumber = sanitized;
+      }
+
+      const digitsOnly = parsedNumber.replace(/\D/g, "");
+      const last10 =
+        digitsOnly.length > 10 ? digitsOnly.slice(-10) : digitsOnly;
+      setPhoneCode(parsedCode);
 
       setFormData({
-        firstname,
-        lastname,
+        name: nameVal,
         alias: data.alias || "",
-        phone: data.phone || "",
+        phone: last10 || "",
         email: data.email || "",
-        dateOfBirth: data.dateOfBirth ? data.dateOfBirth.slice(0, 10) : "",
+        dateOfBirth: data.dateOfBirth
+          ? String(data.dateOfBirth).slice(0, 10)
+          : "",
         gstin: data.gstin || "",
         companyName: data.companyName || "",
         address: data.address || "",
         remarks: data.remarks || "",
         tier: data.tier || "",
       });
+
+      setExistingDocuments(Array.isArray(data.documents) ? data.documents : []);
+      setAttachedFiles([]);
       setTier(data.tier || "");
       setBalanceAmount(data.openingBalance ? String(data.openingBalance) : "");
       setBalanceType(data.balanceType || "debit");
     } else {
       setFormData({
-        firstname: "",
-        lastname: "",
+        name: "",
         alias: "",
         phone: "",
         email: "",
@@ -193,6 +273,10 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         remarks: "",
         tier: "",
       });
+
+      setExistingDocuments([]);
+      setAttachedFiles([]);
+      setPhoneCode("+91");
       setTier("");
       setBalanceAmount("");
       setBalanceType("debit");
@@ -202,30 +286,17 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Validate required fields: if missing, show toast and focus the field
-    if (!formData.firstname || String(formData.firstname).trim() === "") {
-      showErrorToast("Please enter first name to proceed");
+    if (!formData.name || String(formData.name).trim() === "") {
+      showErrorToast("Please enter full name to proceed");
 
-      setInvalidField("firstname");
+      setInvalidField("name");
 
       setTimeout(() => {
-        firstNameRef.current?.scrollIntoView({
+        nameRef.current?.scrollIntoView({
           behavior: "smooth",
           block: "center",
         });
-        firstNameRef.current?.focus();
-      }, 100);
-      return;
-    }
-    if (!formData.lastname || String(formData.lastname).trim() === "") {
-      showErrorToast("Please enter last name to proceed");
-      setInvalidField("lastname");
-
-      setTimeout(() => {
-        lastNameRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-        lastNameRef.current?.focus();
+        nameRef.current?.focus();
       }, 100);
       return;
     }
@@ -234,14 +305,16 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     const businessId = user?.businessId;
 
     try {
+      // Validate email format if provided
+      if (formData.email && !isValidEmail(String(formData.email))) {
+        showErrorToast("Email format is invalid");
+        return;
+      }
       // Build FormData
       const formDataToSend = new FormData();
 
       // APPEND every customer field
-      formDataToSend.append(
-        "name",
-        `${formData.firstname} ${formData.lastname}`.trim()
-      );
+      formDataToSend.append("name", String(formData.name || ""));
       formDataToSend.append("email", formData.email || "");
       formDataToSend.append("phone", `${phoneCode}${formData.phone}`);
       formDataToSend.append("alias", formData.alias || "");
@@ -253,7 +326,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       formDataToSend.append("tier", tier || "");
       formDataToSend.append("ownerId", ownerId || "");
       formDataToSend.append("businessId", businessId || "");
-      // Include generated custom customer code so backend stores it in `customId`
+
       formDataToSend.append("customId", customerCode || "");
 
       if (balanceAmount) {
@@ -285,33 +358,20 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
   const handleUpdateCustomer = async () => {
     // Validate required fields before update
-    if (!formData.firstname || String(formData.firstname).trim() === "") {
-      showErrorToast("Please enter first name to proceed");
-      setInvalidField("firstname");
-      setTimeout(() => {
-        firstNameRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-        firstNameRef.current?.focus();
-      }, 100);
-      return;
-    }
-    if (!formData.lastname || String(formData.lastname).trim() === "") {
-      showErrorToast("Please enter last name to proceed");
-      setInvalidField("lastname");
+    if (!formData.name || String(formData.name).trim() === "") {
+      showErrorToast("Please enter full name to proceed");
+      setInvalidField("name");
 
       setTimeout(() => {
-        lastNameRef.current?.scrollIntoView({
+        nameRef.current?.scrollIntoView({
           behavior: "smooth",
           block: "center",
         });
-        lastNameRef.current?.focus();
+        nameRef.current?.focus();
       }, 100);
       return;
     }
     try {
-      // data.customerID is actually the _id from your backend
       const customerId = data?._id;
 
       if (!customerId) {
@@ -319,8 +379,14 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         return;
       }
 
+      // Validate email format if provided
+      if (formData.email && !isValidEmail(String(formData.email))) {
+        showErrorToast("Email format is invalid");
+        return;
+      }
+
       const updatePayload = {
-        name: `${formData.firstname} ${formData.lastname}`.trim(),
+        name: String(formData.name || ""),
         email: formData.email,
         phone: `${phoneCode}${formData.phone}`,
         alias: formData.alias || undefined,
@@ -334,6 +400,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         balanceType: balanceType,
         tier: tier || undefined,
         remarks: formData.remarks || undefined,
+
+        documents: existingDocuments,
       };
 
       const updated = await updateCustomer(customerId, updatePayload);
@@ -411,43 +479,24 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             <h2 className="text-[13px] font-medium mb-2">Basic Details</h2>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-            {/* Row 1: First + Last */}
+            {/* Row 1: Full Name */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-              <div className="flex flex-col gap-1">
+              <div className="flex flex-col gap-1 md:col-span-2">
                 <label className="block text-[13px] font-medium text-gray-700">
-                  First Name <span className="text-red-500">*</span>
+                  Full Name <span className="text-red-500">*</span>
                 </label>
                 <input
-                  ref={firstNameRef}
-                  name="firstname"
+                  ref={nameRef}
+                  name="name"
                   type="text"
-                  value={formData.firstname}
+                  value={formData.name}
                   onChange={handleChange}
-                  placeholder="Enter First Name"
+                  placeholder="Enter Full Name"
                   disabled={readOnly}
                   className={`w-full rounded-md px-3 py-2 text-[13px] focus:outline-none hover:border-green-400 focus:ring-green-400 focus:ring-1 disabled:bg-gray-100 disabled:text-gray-700 ${
-                    invalidField === "firstname"
+                    invalidField === "name"
                       ? "border border-red-300 focus:ring-red-200"
-                      : "border border-gray-300 "
-                  }`}
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="block text-[13px] font-medium text-gray-700">
-                  Last Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  ref={lastNameRef}
-                  name="lastname"
-                  type="text"
-                  value={formData.lastname}
-                  onChange={handleChange}
-                  placeholder="Enter Last Name"
-                  disabled={readOnly}
-                  className={`w-full rounded-md px-3 py-2 text-[13px] focus:outline-none hover:border-green-400 focus:ring-green-400 focus:ring-1 disabled:bg-gray-100 disabled:text-gray-700 ${
-                    invalidField === "lastname"
-                      ? "border border-red-300 focus:ring-red-200"
-                      : "border border-gray-300 focus:ring-green-400"
+                      : "border border-gray-300"
                   }`}
                 />
               </div>
@@ -475,11 +524,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 </label>
                 <div className="flex items-center">
                   <DropDown
-                    options={[
-                      { value: "+91", label: "+91" },
-                      { value: "+1", label: "+1" },
-                      { value: "+44", label: "+44" },
-                    ]}
+                    options={phoneCodeOptions}
                     value={phoneCode}
                     onChange={(v) => setPhoneCode(v)}
                     disabled={readOnly}
@@ -495,7 +540,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={handleChange}
                     placeholder="Enter Contact Number"
                     disabled={readOnly}
-                    className="flex-1  border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
               </div>
@@ -528,6 +573,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   customWidth="w-full mt-1.5 py-2"
                   showCalendarIcon={true}
                   readOnly={readOnly}
+                  maxDate={new Date().toISOString()}
                 />
               </div>
             </div>
@@ -606,6 +652,30 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
             {/* PREVIEW FILES */}
             <div className="mt-2 flex flex-col gap-2">
+              {existingDocuments.map((doc, i) => (
+                <div
+                  key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
+                  className="flex items-center justify-between w-full 
+                 bg-white rounded-md 
+                 px-3 py-2 hover:bg-gray-50 transition"
+                >
+                  <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
+                    <FaRegFolder className="text-blue-500 w-3 h-3" />
+                    {doc.originalName || doc.fileName}
+                  </span>
+
+                  {!readOnly && mode === "edit" ? (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteExistingDocument(i)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+
               {attachedFiles.map((file, i) => (
                 <div
                   key={i}
@@ -620,13 +690,15 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   </span>
 
                   {/* Delete Icon */}
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteFile(i)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    <FiTrash2 size={16} />
-                  </button>
+                  {!readOnly ? (
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteFile(i)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
+                  ) : null}
                 </div>
               ))}
             </div>
@@ -698,9 +770,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     if (value === "" || /^\d*\.?\d*$/.test(value)) {
                       setBalanceAmount(value);
                     } else {
-                      alert(
-                        "Please enter only numbers. Letters and special characters are not allowed."
-                      );
+                      // Invalid input, ignore
                     }
                   }}
                   placeholder={
@@ -714,11 +784,11 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               </div>
               <div className="absolute right-3 top-2 text-sm font-medium">
                 {balanceType === "debit" ? (
-                  <span className="text-red-500 text-[13px]">
+                  <span className=" text-green-500 text-[13px]">
                     Customer pays you ₹{balanceAmount || ""}
                   </span>
                 ) : (
-                  <span className="text-green-500 text-[13px]">
+                  <span className="text-red-500 text-[13px]">
                     You pay the customer ₹{balanceAmount || ""}
                   </span>
                 )}
@@ -733,11 +803,71 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             <div className="flex flex-col">
               <DropDown
                 options={[
-                  { value: "tier1", label: "Rating 1" },
-                  { value: "tier2", label: "Rating 2" },
-                  { value: "tier3", label: "Rating 3" },
-                  { value: "tier4", label: "Rating 4" },
-                  { value: "tier5", label: "Rating 5" },
+                  {
+                    value: "tier1",
+                    label: (
+                      <div className="flex items-center gap-2">
+                        <img
+                          src="/icons/tier-1.png"
+                          alt="Tier 1"
+                          className="w-5 h-5"
+                        />
+                        <span className="text-[13px] font-medium">1</span>
+                      </div>
+                    ),
+                  },
+                  {
+                    value: "tier2",
+                    label: (
+                      <div className="flex items-center gap-2">
+                        <img
+                          src="/icons/tier-2.png"
+                          alt="Tier 2"
+                          className="w-5 h-5"
+                        />
+                        <span className="text-[13px] font-medium">2</span>
+                      </div>
+                    ),
+                  },
+                  {
+                    value: "tier3",
+                    label: (
+                      <div className="flex items-center gap-2">
+                        <img
+                          src="/icons/tier-3.png"
+                          alt="Tier 3"
+                          className="w-5 h-5"
+                        />
+                        <span className="text-[13px] font-medium">3</span>
+                      </div>
+                    ),
+                  },
+                  {
+                    value: "tier4",
+                    label: (
+                      <div className="flex items-center gap-2">
+                        <img
+                          src="/icons/tier-4.png"
+                          alt="Tier 4"
+                          className="w-5 h-5"
+                        />
+                        <span className="text-[13px] font-medium">4</span>
+                      </div>
+                    ),
+                  },
+                  {
+                    value: "tier5",
+                    label: (
+                      <div className="flex items-center gap-2">
+                        <img
+                          src="/icons/tier-5.png"
+                          alt="Tier 5"
+                          className="w-5 h-5"
+                        />
+                        <span className="text-[13px] font-medium">5</span>
+                      </div>
+                    ),
+                  },
                 ]}
                 value={tier}
                 onChange={(v) => setTier(v)}
