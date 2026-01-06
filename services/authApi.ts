@@ -62,6 +62,13 @@ export interface CreateRoleResponse {
   data?: any;
 }
 
+export interface GetCurrentUserResponse {
+  success?: boolean;
+  message?: string;
+  user?: unknown;
+  data?: unknown;
+}
+
 const AUTH_ROUTES = {
   login: "/auth/login",
   verifyTwoFa: "/auth/verify-2fa",
@@ -76,6 +83,7 @@ const AUTH_ROUTES = {
   uploadCompanyLogo: "/auth/upload-company-logo",
   deleteCompanyLogo: "/auth/delete-company-logo",
   updateRole: "/auth/business/roles/update",
+  getCurrentUser: "/auth/get-current-user",
 } as const;
 
 export const AuthApi = {
@@ -86,13 +94,17 @@ export const AuthApi = {
       setAuthToken(data.token);
       if (data.user) {
         setAuthUser(data.user);
+        window.localStorage.setItem("user", JSON.stringify(data.user));
       }
     }
 
     return data;
   },
 
-  async verifyTwoFa(payload: VerifyTwoFaRequest, setMode: React.Dispatch<React.SetStateAction<string>>): Promise<VerifyTwoFaResponse> {
+  async verifyTwoFa(
+    payload: VerifyTwoFaRequest,
+    setMode?: React.Dispatch<React.SetStateAction<string>>
+  ): Promise<VerifyTwoFaResponse> {
     const { data } = await apiClient.post<VerifyTwoFaResponse>(
       AUTH_ROUTES.verifyTwoFa,
       payload
@@ -101,7 +113,7 @@ export const AuthApi = {
     if (data.token) {
       setAuthToken(data.token);
       if (data.user?.resetPasswordRequired) {
-        setMode("reset");
+        setMode?.("reset");
       } else {
         if (data.user) {
           setAuthUser(data.user);
@@ -180,6 +192,11 @@ export const AuthApi = {
   async updateRole(payload: any): Promise<CreateRoleResponse> {
     const { data } = await apiClient.patch<CreateRoleResponse>(AUTH_ROUTES.updateRole, payload);
     return data;
+  },
+
+  async getCurrentUser(): Promise<unknown> {
+    const { data } = await apiClient.get<GetCurrentUserResponse>(AUTH_ROUTES.getCurrentUser);
+    return data?.user ?? data?.data ?? data;
   },
 };
 
