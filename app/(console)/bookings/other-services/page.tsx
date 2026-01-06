@@ -286,7 +286,7 @@ const OSBookingsPage = () => {
 
     const uniqueOwnerNames = new Set<string>();
     quotations.forEach((q: any) => {
-      const ownerArray = q.owner || [];
+      const ownerArray = [...q.secondaryOwner, q.primaryOwner] || [];
       if (Array.isArray(ownerArray)) {
         ownerArray.forEach((o: any) => {
           if (o?.name) uniqueOwnerNames.add(o.name);
@@ -976,8 +976,8 @@ const OSBookingsPage = () => {
       >
         <div className="flex items-center justify-center">
           <div className="flex items-center">
-            {(Array.isArray((item as any).owner)
-              ? (item as any).owner.map((o: any) => o?.name || "--")
+            {(Array.isArray([...(item as any).secondaryOwner, (item as any).primaryOwner])
+              ? [...(item as any).secondaryOwner, (item as any).primaryOwner].map((o: any) => o?.name || "--")
               : []
             ).map((ownerName: string, i: number) => {
               // Try to find owner in ownersList (fetched from API)
