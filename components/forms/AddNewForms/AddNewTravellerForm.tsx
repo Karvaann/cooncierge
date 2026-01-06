@@ -483,10 +483,10 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
       }${travellerCode ? " | " + travellerCode : ""}`}
       width="xl"
     >
-      <div
+      <form
         className="space-y-6 p-4 flex flex-col min-h-full"
         ref={formRef as any}
-        onSubmit={(e) => e.preventDefault()}
+        onSubmit={handleSubmit}
       >
         {/* ================= BASIC DETAILS ================ */}
         <div className="border border-gray-200 rounded-[12px] p-3">
@@ -644,66 +644,85 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
               textColor="text-gray-700"
             />
           ) : mode === "edit" ? (
-            <Button
-              text={isSubmitting || submitting ? "Updating..." : "Update"}
-              onClick={async () => {
-                try {
-                  setSubmitting(true);
-                  const name = [
-                    String(formData.firstname || "").trim(),
-                    String(formData.lastname || "").trim(),
-                  ]
-                    .filter(Boolean)
-                    .join(" ")
-                    .trim();
-                  const payload: any = {
-                    name,
-                    email: String(formData.emailId || "").trim() || undefined,
-                    phone: ((): string | undefined => {
-                      const num = String(formData.contactnumber || "");
-                      const combined =
-                        (phoneCode && !num.startsWith(phoneCode)
-                          ? phoneCode
-                          : "") + num;
-                      return combined || undefined;
-                    })(),
-                    dateOfBirth: formData.dateofbirth || undefined,
-                  };
-                  const id = data?._id || data?.id;
-                  if (!id) throw new Error("Missing traveller id");
-                  const updated = await updateTraveller(String(id), payload);
-                  const displayName = updated?.name || name;
-                  setLastAddedTraveller({
-                    id: updated?._id || id,
-                    name: displayName,
-                  });
-                  handleClose();
-                } catch (err: any) {
-                  console.error(
-                    "[AddNewTravellerForm] Error updating traveller:",
-                    err?.response?.data?.message || err?.message
-                  );
-                } finally {
-                  setSubmitting(false);
-                }
-              }}
-              disabled={isSubmitting || submitting}
-              bgColor="bg-[#0D4B37]"
-              textColor="text-white"
-            />
+            <div className="flex gap-2">
+              <Button
+                text="Cancel"
+                onClick={handleClose}
+                bgColor="bg-gray-200"
+                textColor="text-gray-700"
+              />
+              <Button
+                text={isSubmitting || submitting ? "Updating..." : "Update"}
+                onClick={async () => {
+                  try {
+                    setSubmitting(true);
+                    const name = [
+                      String(formData.firstname || "").trim(),
+                      String(formData.lastname || "").trim(),
+                    ]
+                      .filter(Boolean)
+                      .join(" ")
+                      .trim();
+                    const payload: any = {
+                      name,
+                      email: String(formData.emailId || "").trim() || undefined,
+                      phone: ((): string | undefined => {
+                        const num = String(formData.contactnumber || "");
+                        const combined =
+                          (phoneCode && !num.startsWith(phoneCode)
+                            ? phoneCode
+                            : "") + num;
+                        return combined || undefined;
+                      })(),
+                      dateOfBirth: formData.dateofbirth || undefined,
+                    };
+                    const id = data?._id || data?.id;
+                    if (!id) throw new Error("Missing traveller id");
+                    const updated = await updateTraveller(String(id), payload);
+                    const displayName = updated?.name || name;
+                    setLastAddedTraveller({
+                      id: updated?._id || id,
+                      name: displayName,
+                    });
+                    handleClose();
+                  } catch (err: any) {
+                    console.error(
+                      "[AddNewTravellerForm] Error updating traveller:",
+                      err?.response?.data?.message || err?.message
+                    );
+                  } finally {
+                    setSubmitting(false);
+                  }
+                }}
+                disabled={isSubmitting || submitting}
+                bgColor="bg-[#0D4B37]"
+                textColor="text-white"
+              />
+            </div>
           ) : (
-            <Button
-              text={isSubmitting || submitting ? "Saving..." : "Save"}
-              onClick={() => handleSubmit()}
-              icon={<LuSave className="mr-1" />}
-              disabled={isSubmitting || submitting}
-              bgColor="bg-[#0D4B37]"
-              textColor="text-white"
-              className="hover:bg-[#0d3a45]"
-            />
+            <>
+              <div className="flex-1" />
+              <div className="flex gap-2">
+                <Button
+                  text="Cancel"
+                  onClick={handleClose}
+                  bgColor="bg-gray-200"
+                  textColor="text-gray-700"
+                />
+                <Button
+                  type="submit"
+                  text={isSubmitting || submitting ? "Saving..." : "Save"}
+                  icon={<LuSave className="mr-1" />}
+                  disabled={isSubmitting || submitting}
+                  bgColor="bg-[#0D4B37]"
+                  textColor="text-white"
+                  className="hover:bg-[#0d3a45]"
+                />
+              </div>
+            </>
           )}
         </div>
-      </div>
+      </form>
     </SideSheet>
   );
 };

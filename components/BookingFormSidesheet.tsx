@@ -240,6 +240,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [successTitle, setSuccessTitle] = useState<string>("");
   const [apiErrorMessage, setApiErrorMessage] = useState<string>("");
   const [showApiErrorToast, setShowApiErrorToast] = useState<boolean>(false);
   const { isAddCustomerOpen, isAddVendorOpen, isAddTravellerOpen } =
@@ -524,6 +525,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       const response = await BookingApiService.createQuotation(bookingData);
 
       if (response.success) {
+        // custom id if available and build success title
+        const respData: any = response.data as any;
+        const createdCustomId = respData?.quotation?.customId;
+        setSuccessTitle(
+          createdCustomId
+            ? `Yaay! ${createdCustomId} has been successfully saved to drafts.`
+            : "Yaay! The Data has been successfully saved to drafts!"
+        );
         setIsSuccessModalOpen(true);
 
         // Reset all forms
@@ -606,6 +615,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       const response = await BookingApiService.createQuotation(bookingData);
 
       if (response.success) {
+        // custom id if available and build success title
+        const respData: any = response.data as any;
+        const createdCustomId = respData?.quotation?.customId;
+        setSuccessTitle(
+          createdCustomId
+            ? `Yaay! ${createdCustomId} has been successfully saved.`
+            : "Yaay! The Data has been successfully saved."
+        );
         setIsSuccessModalOpen(true);
 
         // Reset all forms
@@ -764,8 +781,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
             {/* Divider line below tabs */}
             <div className="absolute top-6.5 left-6 right-8 z-10 border-b border-gray-200"></div>
 
-            {/* Tab Content - Scrollable with padding for fixed header */}
-            <div className="flex-1 overflow-y-auto pt-7" role="tabpanel">
+            {/* Tab Content - Scrollable with padding for fixed header and footer */}
+            <div className="flex-1 overflow-y-auto pt-7 pb-24" role="tabpanel">
               {/* dont unmount General Info */}
               <div
                 style={{ display: activeTab === "general" ? "block" : "none" }}
@@ -795,93 +812,92 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   onAddDocuments={addBookingDocuments}
                 />
               </div>
+            </div>
 
-              {/* Footer Actions */}
+            {/* Footer Actions - kept outside the scrollable area so it remains fixed at the bottom */}
+            {!isReadOnly && (
+              <div className="border-t border-gray-200 p-4 bg-white">
+                <div className="flex justify-between">
+                  {/* LEFT SIDE BUTTONS */}
+                  <div>
+                    {activeTab === "service" && (
+                      <Button
+                        text="Previous"
+                        onClick={() => {
+                          const currentIndex = tabs.findIndex(
+                            (tab) => tab.id === activeTab
+                          );
+                          const prevTab = tabs[currentIndex - 1];
+                          if (prevTab?.isEnabled) setActiveTab(prevTab.id);
+                        }}
+                        bgColor="bg-white"
+                        textColor="text-[#114958]"
+                        className="border border-[#114958] hover:bg-[#114958] "
+                        disabled={isSubmitting}
+                      />
+                    )}
 
-              {!isReadOnly && (
-                <div className="border-t border-gray-200 p-4 mt-4">
-                  <div className="flex justify-between">
-                    {/* LEFT SIDE BUTTONS */}
-                    <div>
-                      {activeTab === "service" && (
+                    {/* General tab → Nothing shown */}
+                  </div>
+
+                  {/* RIGHT SIDE BUTTONS */}
+                  <div className="flex space-x-2">
+                    {activeTab === "general" && (
+                      <>
                         <Button
-                          text="Previous"
+                          text="Save As Draft"
+                          onClick={handleDraftSubmit}
+                          bgColor="bg-white"
+                          textColor="text-[#114958]"
+                          className="hover:bg-gray-200 border border-[#114958]"
+                          disabled={isSubmitting}
+                        />
+
+                        <Button
+                          text="Next"
                           onClick={() => {
                             const currentIndex = tabs.findIndex(
                               (tab) => tab.id === activeTab
                             );
-                            const prevTab = tabs[currentIndex - 1];
-                            if (prevTab?.isEnabled) setActiveTab(prevTab.id);
+                            const nextTab = tabs[currentIndex + 1];
+                            if (nextTab?.isEnabled) setActiveTab(nextTab.id);
                           }}
-                          bgColor="bg-white"
-                          textColor="text-[#114958]"
-                          className="border border-[#114958] hover:bg-[#114958] "
+                          bgColor="bg-[#114958]"
+                          textColor="text-white"
+                          className="hover:bg-[#0d3a45]"
                           disabled={isSubmitting}
                         />
-                      )}
+                      </>
+                    )}
 
-                      {/* General tab → Nothing shown */}
-                    </div>
+                    {activeTab === "service" && (
+                      <>
+                        <Button
+                          text="Save As Draft"
+                          onClick={handleDraftSubmit}
+                          bgColor="bg-white border border-[#114958]"
+                          textColor="text-[#114958]"
+                          disabled={isSubmitting}
+                        />
 
-                    {/* RIGHT SIDE BUTTONS */}
-                    <div className="flex space-x-2">
-                      {activeTab === "general" && (
-                        <>
-                          <Button
-                            text="Save As Draft"
-                            onClick={handleDraftSubmit}
-                            bgColor="bg-white"
-                            textColor="text-[#114958]"
-                            className="hover:bg-gray-200 border border-[#114958]"
-                            disabled={isSubmitting}
-                          />
-
-                          <Button
-                            text="Next"
-                            onClick={() => {
-                              const currentIndex = tabs.findIndex(
-                                (tab) => tab.id === activeTab
-                              );
-                              const nextTab = tabs[currentIndex + 1];
-                              if (nextTab?.isEnabled) setActiveTab(nextTab.id);
-                            }}
-                            bgColor="bg-[#114958]"
-                            textColor="text-white"
-                            className="hover:bg-[#0d3a45]"
-                            disabled={isSubmitting}
-                          />
-                        </>
-                      )}
-
-                      {activeTab === "service" && (
-                        <>
-                          <Button
-                            text="Save As Draft"
-                            onClick={handleDraftSubmit}
-                            bgColor="bg-white border border-[#114958]"
-                            textColor="text-[#114958]"
-                            disabled={isSubmitting}
-                          />
-
-                          <Button
-                            text="Save"
-                            onClick={() => handleSubmit()}
-                            icon={<LuSave size={16} />}
-                            bgColor="bg-[#0D4B37]"
-                            textColor="text-white"
-                            width="w-auto"
-                            type="button"
-                            disabled={
-                              isSubmitting || !(selectedService || initialData)
-                            }
-                          />
-                        </>
-                      )}
-                    </div>
+                        <Button
+                          text="Save"
+                          onClick={() => handleSubmit()}
+                          icon={<LuSave size={16} />}
+                          bgColor="bg-[#0D4B37]"
+                          textColor="text-white"
+                          width="w-auto"
+                          type="button"
+                          disabled={
+                            isSubmitting || !(selectedService || initialData)
+                          }
+                        />
+                      </>
+                    )}
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -903,8 +919,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         }}
         onSaveAsDrafts={async () => {
           try {
-            handleDraftSubmit();
-            setIsSuccessModalOpen(true);
+            await handleDraftSubmit();
           } catch (error) {
             console.error("Error saving draft:", error);
           }
@@ -919,7 +934,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           setIsConfirmModalOpen(false);
           onClose();
         }}
-        title="Yaay! The Data - #1234 has been successfully saved to drafts!"
+        title={
+          successTitle ||
+          "Yaay! The Data - #1234 has been successfully saved to drafts!"
+        }
       />
 
       {isAddCustomerOpen && (

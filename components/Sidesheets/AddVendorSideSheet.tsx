@@ -465,15 +465,16 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         showLinkButton={true}
       >
         <form
-          className="space-y-6 p-4"
+          className="flex flex-col h-full"
           onSubmit={
             mode === "create" ? handleSubmit : (e) => e.preventDefault()
           }
           ref={formRef as any}
           noValidate
         >
-          {/* Error Alert Popup (reuse customer toast style) */}
-          {/* {mounted &&
+          <div className="space-y-6 p-4 overflow-y-auto flex-1 pb-16">
+            {/* Error Alert Popup (reuse customer toast style) */}
+            {/* {mounted &&
             showError &&
             createPortal(
               <div className="fixed top-8 left-1/2 transform -translate-x-1/2 z-[1100] flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 px-2 py-1 rounded-full shadow-md max-w-[90vw] text-[0.65rem]">
@@ -512,516 +513,522 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               document.body
             )} */}
 
-          {/* ================= BASIC DETAILS ================ */}
-          <div className="border border-gray-200 rounded-[12px] p-3 -mt-2">
-            <h2 className="text-[13px] font-medium mb-2">Basic Details</h2>
-            <hr className="mt-1 mb-2 border-t border-gray-200" />
+            {/* ================= BASIC DETAILS ================ */}
+            <div className="border border-gray-200 rounded-[12px] p-3 -mt-2">
+              <h2 className="text-[13px] font-medium mb-2">Basic Details</h2>
+              <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-            {/* Row 1 */}
-            {/* Company Name - FULL WIDTH */}
-            <div className="flex flex-col gap-1 mb-3">
-              <label className="block text-[13px] font-medium text-gray-700">
-                Company Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                ref={companyRef}
-                name="companyName"
-                value={formData.companyName}
-                onChange={(e) => {
-                  const v = allowOnlyText(e.target.value);
-                  setFormData({ ...formData, companyName: v });
-                  if (invalidField === "company" && String(v).trim()) {
-                    setInvalidField(null);
-                  }
-                }}
-                placeholder="Enter Company Name"
-                disabled={readOnly}
-                className={`w-full rounded-md px-3 py-2 text-[13px] hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
-                  invalidField === "company"
-                    ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
-                    : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
-                }`}
-              />
-            </div>
-
-            {/* Row 2 */}
-            {/* Contact Number + Company Email */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-              <div className="flex flex-col gap-1">
+              {/* Row 1 */}
+              {/* Company Name - FULL WIDTH */}
+              <div className="flex flex-col gap-1 mb-3">
                 <label className="block text-[13px] font-medium text-gray-700">
-                  Contact Number
-                </label>
-                <div className="flex items-center">
-                  <DropDown
-                    options={[
-                      { value: "+91", label: "+91" },
-                      { value: "+1", label: "+1" },
-                      { value: "+44", label: "+44" },
-                    ]}
-                    value={formData.countryCode}
-                    onChange={(v) =>
-                      setFormData({ ...formData, countryCode: v })
-                    }
-                    disabled={readOnly}
-                    customWidth="w-[58px]"
-                    menuWidth="w-[58px]"
-                    className="flex-shrink-0"
-                    customHeight="h-9"
-                  />
-                  <input
-                    name="phone"
-                    value={formData.phone}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        phone: allowOnly10Digits(e.target.value),
-                      })
-                    }
-                    placeholder="Enter Contact Number"
-                    disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
-                  />
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="block text-[13px] font-medium text-gray-700">
-                  Company Email ID
+                  Company Name <span className="text-red-500">*</span>
                 </label>
                 <input
-                  name="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  placeholder="Enter Email ID"
-                  disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
-                />
-              </div>
-            </div>
-
-            {/* Row 3 (reserved for single-width field if needed) */}
-            <div className="flex flex-col gap-1 w-[22.3rem]"></div>
-          </div>
-
-          {/* ================= POC DETAILS (Optional) ================ */}
-          <div className="border border-gray-200 rounded-[12px] p-3">
-            <h2 className="text-[13px] font-medium mb-2">
-              POC Details (Optional)
-            </h2>
-            <hr className="mt-1 mb-2 border-t border-gray-200" />
-
-            {/* Row 1 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-              <div className="flex flex-col gap-1 md:col-span-2">
-                <label className="block text-[13px] font-medium text-gray-700">
-                  Contact Person <span className="text-red-500">*</span>
-                </label>
-                <input
-                  ref={contactNameRef}
-                  name="contactPerson"
-                  type="text"
-                  value={formData.contactPerson}
+                  ref={companyRef}
+                  name="companyName"
+                  value={formData.companyName}
                   onChange={(e) => {
                     const v = allowOnlyText(e.target.value);
-                    setFormData({ ...formData, contactPerson: v });
-                    if (invalidField === "contactPerson" && String(v).trim()) {
+                    setFormData({ ...formData, companyName: v });
+                    if (invalidField === "company" && String(v).trim()) {
                       setInvalidField(null);
                     }
                   }}
-                  placeholder="Enter Contact Person Name"
+                  placeholder="Enter Company Name"
                   disabled={readOnly}
                   className={`w-full rounded-md px-3 py-2 text-[13px] hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
-                    invalidField === "contactPerson"
+                    invalidField === "company"
                       ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
                       : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
                   }`}
                 />
               </div>
+
+              {/* Row 2 */}
+              {/* Contact Number + Company Email */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Contact Number
+                  </label>
+                  <div className="flex items-center">
+                    <DropDown
+                      options={[
+                        { value: "+91", label: "+91" },
+                        { value: "+1", label: "+1" },
+                        { value: "+44", label: "+44" },
+                      ]}
+                      value={formData.countryCode}
+                      onChange={(v) =>
+                        setFormData({ ...formData, countryCode: v })
+                      }
+                      disabled={readOnly}
+                      customWidth="w-[58px]"
+                      menuWidth="w-[58px]"
+                      className="flex-shrink-0"
+                      customHeight="h-9"
+                    />
+                    <input
+                      name="phone"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          phone: allowOnly10Digits(e.target.value),
+                        })
+                      }
+                      placeholder="Enter Contact Number"
+                      disabled={readOnly}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Company Email ID
+                  </label>
+                  <input
+                    name="email"
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
+                    placeholder="Enter Email ID"
+                    disabled={readOnly}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  />
+                </div>
+              </div>
+
+              {/* Row 3 (reserved for single-width field if needed) */}
+              <div className="flex flex-col gap-1 w-[22.3rem]"></div>
             </div>
 
-            {/* Row 2 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-              <div className="flex flex-col gap-1">
-                <label className="block text-[13px] font-medium text-gray-700">
-                  Nickname/Alias
-                </label>
-                <input
-                  name="alias"
-                  type="text"
-                  value={formData.alias}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      alias: allowOnlyText(e.target.value),
-                    })
-                  }
-                  placeholder="Enter Nickname/Alias"
-                  disabled={readOnly}
-                  className="w-full border border-gray-300 hover:border-green-400 focus:ring-green-400 rounded-md px-3 py-2 text-[13px] disabled:bg-gray-100 disabled:text-gray-700"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <label className="block text-[13px] font-medium text-gray-700">
-                  Contact Number
-                </label>
-                <div className="flex items-center">
-                  <DropDown
-                    options={[
-                      { value: "+91", label: "+91" },
-                      { value: "+1", label: "+1" },
-                      { value: "+44", label: "+44" },
-                    ]}
-                    value={formData.countryCode}
-                    onChange={(v) =>
-                      setFormData({ ...formData, countryCode: v })
-                    }
-                    disabled={readOnly}
-                    customWidth="w-[58px]"
-                    menuWidth="w-[58px]"
-                    className="flex-shrink-0"
-                  />
+            {/* ================= POC DETAILS (Optional) ================ */}
+            <div className="border border-gray-200 rounded-[12px] p-3">
+              <h2 className="text-[13px] font-medium mb-2">
+                POC Details (Optional)
+              </h2>
+              <hr className="mt-1 mb-2 border-t border-gray-200" />
+
+              {/* Row 1 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div className="flex flex-col gap-1 md:col-span-2">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Contact Person <span className="text-red-500">*</span>
+                  </label>
                   <input
-                    placeholder="Enter Contact Number"
+                    ref={contactNameRef}
+                    name="contactPerson"
                     type="text"
-                    value={formData.phone}
+                    value={formData.contactPerson}
+                    onChange={(e) => {
+                      const v = allowOnlyText(e.target.value);
+                      setFormData({ ...formData, contactPerson: v });
+                      if (
+                        invalidField === "contactPerson" &&
+                        String(v).trim()
+                      ) {
+                        setInvalidField(null);
+                      }
+                    }}
+                    placeholder="Enter Contact Person Name"
+                    disabled={readOnly}
+                    className={`w-full rounded-md px-3 py-2 text-[13px] hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
+                      invalidField === "contactPerson"
+                        ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
+                        : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
+                    }`}
+                  />
+                </div>
+              </div>
+
+              {/* Row 2 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Nickname/Alias
+                  </label>
+                  <input
+                    name="alias"
+                    type="text"
+                    value={formData.alias}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        phone: allowOnly10Digits(e.target.value),
+                        alias: allowTextAndNumbers(e.target.value),
                       })
                     }
+                    placeholder="Enter Nickname/Alias"
                     disabled={readOnly}
-                    className="w-full h-[2rem] border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 hover:border-green-400 focus:ring-green-400 rounded-md px-3 py-2 text-[13px] disabled:bg-gray-100 disabled:text-gray-700"
                   />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Contact Number
+                  </label>
+                  <div className="flex items-center">
+                    <DropDown
+                      options={[
+                        { value: "+91", label: "+91" },
+                        { value: "+1", label: "+1" },
+                        { value: "+44", label: "+44" },
+                      ]}
+                      value={formData.countryCode}
+                      onChange={(v) =>
+                        setFormData({ ...formData, countryCode: v })
+                      }
+                      disabled={readOnly}
+                      customWidth="w-[58px]"
+                      menuWidth="w-[58px]"
+                      className="flex-shrink-0"
+                    />
+                    <input
+                      placeholder="Enter Contact Number"
+                      type="text"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          phone: allowOnly10Digits(e.target.value),
+                        })
+                      }
+                      disabled={readOnly}
+                      className="w-full h-[2rem] border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Row 3 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Email ID
+                  </label>
+                  <input
+                    placeholder="Enter Email ID"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
+                    disabled={readOnly}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  />
+                </div>
+                <div className="flex flex-col gap-1 w-full">
+                  <SingleCalendar
+                    label="Date of Birth"
+                    value={formData.dateOfBirth || ""}
+                    onChange={(iso) =>
+                      setFormData((prev) => ({ ...prev, dateOfBirth: iso }))
+                    }
+                    placeholder="DD-MM-YYYY"
+                    customWidth="w-full mt-1.5 py-2"
+                    showCalendarIcon={true}
+                    readOnly={readOnly}
+                    maxDate={new Date().toISOString()}
+                  />
+                </div>
+              </div>
+
+              {/* Row 4 (optional single field placeholder) */}
+              <div className="flex flex-col gap-1 w-[22.3rem]"></div>
+            </div>
+
+            {/* ================= BILLING ADDRESS ================ */}
+            <div className="border border-gray-200 rounded-[12px] p-3">
+              <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                Billing Address
+              </label>
+              <hr className="mt-1 mb-3 border-t border-gray-200" />
+              <input
+                name="address"
+                value={formData.address}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    address: allowTextAndNumbers(e.target.value),
+                  })
+                }
+                placeholder="Enter Billing Address"
+                disabled={readOnly}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+              />
+            </div>
+
+            {/* ================= DOCUMENTS ================ */}
+            <div className="border border-gray-200 rounded-[12px] p-3">
+              <h2 className="text-[13px] font-medium mb-2">Documents</h2>
+              <hr className="mt-1 mb-2 border-t border-gray-200" />
+
+              <div className="flex flex-col gap-3 mt-2 items-start">
+                <input
+                  type="file"
+                  ref={fileRef}
+                  className="hidden"
+                  onChange={handleFileChange}
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  disabled={readOnly || attachedFiles.length >= 3}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={readOnly || attachedFiles.length >= 3}
+                  className={`px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200 ${
+                    readOnly || attachedFiles.length >= 3
+                      ? "opacity-50 cursor-not-allowed hover:bg-white"
+                      : ""
+                  }`}
+                >
+                  <MdOutlineFileUpload size={16} /> Attach Files
+                </button>
+
+                {/* PREVIEW FILES */}
+                <div className="-mt-2 flex flex-col gap-2 w-full">
+                  {attachedFiles.map((file, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center justify-between w-full 
+                               bg-white rounded-md 
+                               px-3 py-2 hover:bg-gray-50 transition"
+                    >
+                      {/* File Name */}
+                      <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
+                        <FaRegFolder className="text-blue-500 w-3 h-3" />
+                        {file.name}
+                      </span>
+
+                      {/* Delete Icon */}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteFile(i)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <FiTrash2 size={16} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="text-red-600 text-[0.65rem] -mt-3">
+                  Note: Maximum of 3 files can be uploaded
                 </div>
               </div>
             </div>
 
-            {/* Row 3 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-              <div className="flex flex-col gap-1">
-                <label className="block text-[13px] font-medium text-gray-700">
-                  Email ID
+            {/* ================= OPENING BALANCE ================ */}
+            <div className="border border-gray-200 rounded-[12px] p-3">
+              <h2 className="text-[13px] font-medium mb-2">Opening Balance</h2>
+              <hr className="mt-1 mb-3 border-t border-gray-200" />
+
+              <div className="flex items-center gap-6 mb-3">
+                <label className="flex items-center gap-2 cursor-pointer text-[13px]">
+                  <input
+                    type="radio"
+                    name="balanceType"
+                    value="debit"
+                    checked={balanceType === "debit"}
+                    onChange={() => setBalanceType("debit")}
+                    className="w-3 h-3 text-red-600"
+                    disabled={readOnly}
+                  />
+                  <span className="text-gray-700">Debit</span>
                 </label>
-                <input
-                  placeholder="Enter Email ID"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
-                />
-              </div>
-              <div className="flex flex-col gap-1 w-full">
-                <SingleCalendar
-                  label="Date of Birth"
-                  value={formData.dateOfBirth || ""}
-                  onChange={(iso) =>
-                    setFormData((prev) => ({ ...prev, dateOfBirth: iso }))
-                  }
-                  placeholder="DD-MM-YYYY"
-                  customWidth="w-full mt-1.5 py-2"
-                  showCalendarIcon={true}
-                  readOnly={readOnly}
-                  maxDate={new Date().toISOString()}
-                />
-              </div>
-            </div>
 
-            {/* Row 4 (optional single field placeholder) */}
-            <div className="flex flex-col gap-1 w-[22.3rem]"></div>
-          </div>
-
-          {/* ================= BILLING ADDRESS ================ */}
-          <div className="border border-gray-200 rounded-[12px] p-3">
-            <label className="block text-[13px] font-medium text-gray-700 mb-1">
-              Billing Address
-            </label>
-            <hr className="mt-1 mb-3 border-t border-gray-200" />
-            <input
-              name="address"
-              value={formData.address}
-              onChange={(e) =>
-                setFormData({
-                  ...formData,
-                  address: allowTextAndNumbers(e.target.value),
-                })
-              }
-              placeholder="Enter Billing Address"
-              disabled={readOnly}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
-            />
-          </div>
-
-          {/* ================= DOCUMENTS ================ */}
-          <div className="border border-gray-200 rounded-[12px] p-3">
-            <h2 className="text-[13px] font-medium mb-2">Documents</h2>
-            <hr className="mt-1 mb-2 border-t border-gray-200" />
-
-            <div className="flex flex-col gap-3 mt-2 items-start">
-              <input
-                type="file"
-                ref={fileRef}
-                className="hidden"
-                onChange={handleFileChange}
-                accept=".pdf,.jpg,.jpeg,.png"
-                disabled={readOnly || attachedFiles.length >= 3}
-              />
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                disabled={readOnly || attachedFiles.length >= 3}
-                className={`px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200 ${
-                  readOnly || attachedFiles.length >= 3
-                    ? "opacity-50 cursor-not-allowed hover:bg-white"
-                    : ""
-                }`}
-              >
-                <MdOutlineFileUpload size={16} /> Attach Files
-              </button>
-
-              {/* PREVIEW FILES */}
-              <div className="-mt-2 flex flex-col gap-2 w-full">
-                {attachedFiles.map((file, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between w-full 
-                               bg-white rounded-md 
-                               px-3 py-2 hover:bg-gray-50 transition"
-                  >
-                    {/* File Name */}
-                    <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
-                      <FaRegFolder className="text-blue-500 w-3 h-3" />
-                      {file.name}
-                    </span>
-
-                    {/* Delete Icon */}
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteFile(i)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <FiTrash2 size={16} />
-                    </button>
-                  </div>
-                ))}
+                <label className="flex items-center gap-2 cursor-pointer text-[13px]">
+                  <input
+                    type="radio"
+                    name="balanceType"
+                    value="credit"
+                    checked={balanceType === "credit"}
+                    onChange={() => setBalanceType("credit")}
+                    className="w-3 h-3 text-red-600"
+                    disabled={readOnly}
+                  />
+                  <span className="text-gray-700">Credit</span>
+                </label>
               </div>
 
-              <div className="text-red-600 text-[0.65rem] -mt-3">
-                Note: Maximum of 3 files can be uploaded
-              </div>
-            </div>
-          </div>
-
-          {/* ================= OPENING BALANCE ================ */}
-          <div className="border border-gray-200 rounded-[12px] p-3">
-            <h2 className="text-[13px] font-medium mb-2">Opening Balance</h2>
-            <hr className="mt-1 mb-3 border-t border-gray-200" />
-
-            <div className="flex items-center gap-6 mb-3">
-              <label className="flex items-center gap-2 cursor-pointer text-[13px]">
-                <input
-                  type="radio"
-                  name="balanceType"
-                  value="debit"
-                  checked={balanceType === "debit"}
-                  onChange={() => setBalanceType("debit")}
-                  className="w-3 h-3 text-red-600"
-                  disabled={readOnly}
-                />
-                <span className="text-gray-700">Debit</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer text-[13px]">
-                <input
-                  type="radio"
-                  name="balanceType"
-                  value="credit"
-                  checked={balanceType === "credit"}
-                  onChange={() => setBalanceType("credit")}
-                  className="w-3 h-3 text-red-600"
-                  disabled={readOnly}
-                />
-                <span className="text-gray-700">Credit</span>
-              </label>
-            </div>
-
-            <div className="relative">
-              <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-green-400">
-                <span className="text-gray-500 mr-2 text-[13px]">₹</span>
-                <input
-                  type="text"
-                  value={balanceAmount}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    // Only allow numbers and decimal point
-                    if (value === "" || /^\d*\.?\d*$/.test(value)) {
-                      setBalanceAmount(value);
-                    } else {
-                      alert(
-                        "Please enter only numbers. Letters and special characters are not allowed."
-                      );
+              <div className="relative">
+                <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-green-400">
+                  <span className="text-gray-500 mr-2 text-[13px]">₹</span>
+                  <input
+                    type="text"
+                    value={balanceAmount}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Only allow numbers and decimal point
+                      if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                        setBalanceAmount(value);
+                      } else {
+                        alert(
+                          "Please enter only numbers. Letters and special characters are not allowed."
+                        );
+                      }
+                    }}
+                    placeholder={
+                      balanceType === "debit"
+                        ? "Enter Debit Amount"
+                        : "Enter Credit Amount"
                     }
-                  }}
-                  placeholder={
-                    balanceType === "debit"
-                      ? "Enter Debit Amount"
-                      : "Enter Credit Amount"
-                  }
+                    disabled={readOnly}
+                    className="flex-1 outline-none text-gray-700 text-[13px] hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  />
+                </div>
+                <div className="absolute right-3 top-2 text-sm font-medium">
+                  {balanceType === "debit" ? (
+                    <span className=" text-green-500 text-[13px]">
+                      Customer pays you ₹{balanceAmount || ""}
+                    </span>
+                  ) : (
+                    <span className=" text-red-500 text-[13px]">
+                      You pay the customer ₹{balanceAmount || ""}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* ================= TIER ================ */}
+            <div className=" p-1 -mt-4">
+              <h2 className="text-[13px] font-medium mb-2">Rating</h2>
+
+              <div className="flex flex-col">
+                <DropDown
+                  options={[
+                    {
+                      value: "tier1",
+                      label: (
+                        <div className="flex items-center gap-2">
+                          <img
+                            src="/icons/tier-1.png"
+                            alt="Tier 1"
+                            className="w-5 h-5"
+                          />
+                          <span className="text-[13px] font-medium">1</span>
+                        </div>
+                      ),
+                    },
+                    {
+                      value: "tier2",
+                      label: (
+                        <div className="flex items-center gap-2">
+                          <img
+                            src="/icons/tier-2.png"
+                            alt="Tier 2"
+                            className="w-5 h-5"
+                          />
+                          <span className="text-[13px] font-medium">2</span>
+                        </div>
+                      ),
+                    },
+                    {
+                      value: "tier3",
+                      label: (
+                        <div className="flex items-center gap-2">
+                          <img
+                            src="/icons/tier-3.png"
+                            alt="Tier 3"
+                            className="w-5 h-5"
+                          />
+                          <span className="text-[13px] font-medium">3</span>
+                        </div>
+                      ),
+                    },
+                    {
+                      value: "tier4",
+                      label: (
+                        <div className="flex items-center gap-2">
+                          <img
+                            src="/icons/tier-4.png"
+                            alt="Tier 4"
+                            className="w-5 h-5"
+                          />
+                          <span className="text-[13px] font-medium">4</span>
+                        </div>
+                      ),
+                    },
+                    {
+                      value: "tier5",
+                      label: (
+                        <div className="flex items-center gap-2">
+                          <img
+                            src="/icons/tier-5.png"
+                            alt="Tier 5"
+                            className="w-5 h-5"
+                          />
+                          <span className="text-[13px] font-medium">5</span>
+                        </div>
+                      ),
+                    },
+                  ]}
+                  value={tier}
+                  onChange={(v) => setTier(v)}
                   disabled={readOnly}
-                  className="flex-1 outline-none text-gray-700 text-[13px] hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  customWidth="w-[10rem]"
+                  menuWidth="w-[10rem]"
+                  className=""
+                  // readOnly={readOnly}
                 />
               </div>
-              <div className="absolute right-3 top-2 text-sm font-medium">
-                {balanceType === "debit" ? (
-                  <span className=" text-green-500 text-[13px]">
-                    Customer pays you ₹{balanceAmount || ""}
-                  </span>
-                ) : (
-                  <span className=" text-red-500 text-[13px]">
-                    You pay the customer ₹{balanceAmount || ""}
-                  </span>
-                )}
-              </div>
             </div>
-          </div>
 
-          {/* ================= TIER ================ */}
-          <div className=" p-1 -mt-4">
-            <h2 className="text-[13px] font-medium mb-2">Rating</h2>
-
-            <div className="flex flex-col">
-              <DropDown
-                options={[
-                  {
-                    value: "tier1",
-                    label: (
-                      <div className="flex items-center gap-2">
-                        <img
-                          src="/icons/tier-1.png"
-                          alt="Tier 1"
-                          className="w-5 h-5"
-                        />
-                        <span className="text-[13px] font-medium">1</span>
-                      </div>
-                    ),
-                  },
-                  {
-                    value: "tier2",
-                    label: (
-                      <div className="flex items-center gap-2">
-                        <img
-                          src="/icons/tier-2.png"
-                          alt="Tier 2"
-                          className="w-5 h-5"
-                        />
-                        <span className="text-[13px] font-medium">2</span>
-                      </div>
-                    ),
-                  },
-                  {
-                    value: "tier3",
-                    label: (
-                      <div className="flex items-center gap-2">
-                        <img
-                          src="/icons/tier-3.png"
-                          alt="Tier 3"
-                          className="w-5 h-5"
-                        />
-                        <span className="text-[13px] font-medium">3</span>
-                      </div>
-                    ),
-                  },
-                  {
-                    value: "tier4",
-                    label: (
-                      <div className="flex items-center gap-2">
-                        <img
-                          src="/icons/tier-4.png"
-                          alt="Tier 4"
-                          className="w-5 h-5"
-                        />
-                        <span className="text-[13px] font-medium">4</span>
-                      </div>
-                    ),
-                  },
-                  {
-                    value: "tier5",
-                    label: (
-                      <div className="flex items-center gap-2">
-                        <img
-                          src="/icons/tier-5.png"
-                          alt="Tier 5"
-                          className="w-5 h-5"
-                        />
-                        <span className="text-[13px] font-medium">5</span>
-                      </div>
-                    ),
-                  },
-                ]}
-                value={tier}
-                onChange={(v) => setTier(v)}
-                disabled={readOnly}
-                customWidth="w-[10rem]"
-                menuWidth="w-[10rem]"
-                className=""
-                // readOnly={readOnly}
-              />
-            </div>
-          </div>
-
-          {/* Remarks */}
-          <div className="border border-gray-200 rounded-xl p-3 -mt-2">
-            <label className="block text-[13px]  font-medium text-gray-700">
-              Remarks
-            </label>
-            <hr className="mt-1 mb-2 border-t border-gray-200" />
-            <textarea
-              name="remarks"
-              rows={5}
-              value={formData.remarks}
-              onChange={(e) =>
-                setFormData({ ...formData, remarks: e.target.value })
-              }
-              placeholder="Enter Your Remarks Here"
-              className={`
+            {/* Remarks */}
+            <div className="border border-gray-200 rounded-xl p-3 -mt-2">
+              <label className="block text-[13px]  font-medium text-gray-700">
+                Remarks
+              </label>
+              <hr className="mt-1 mb-2 border-t border-gray-200" />
+              <textarea
+                name="remarks"
+                rows={5}
+                value={formData.remarks}
+                onChange={(e) =>
+                  setFormData({ ...formData, remarks: e.target.value })
+                }
+                placeholder="Enter Your Remarks Here"
+                className={`
             w-full border border-gray-200 rounded-md px-3 py-2 text-[13px]  mt-2 transition-colors
             focus:ring focus:ring-green-400 hover:border-green-400
           `}
-              disabled={readOnly}
-            />
-          </div>
+                disabled={readOnly}
+              />
+            </div>
 
-          {/* ================= ACTION BUTTONS ================ */}
-          <div className="flex justify-end gap-2 pt-2">
-            {mode === "view" ? (
-              <Button
-                text="Close"
-                onClick={onCancel}
-                bgColor="bg-gray-200"
-                textColor="text-gray-700"
-              />
-            ) : mode === "edit" ? (
-              <Button
-                text="Update Vendor"
-                type="submit"
-                onClick={handleUpdateVendor}
-                bgColor="bg-[#0D4B37]"
-                textColor="text-white"
-              />
-            ) : (
-              <Button
-                text="Save"
-                type="submit"
-                icon={<LuSave size={16} />}
-                bgColor="bg-[#114958]"
-                textColor="text-white"
-              />
-            )}
+            {/* ================= ACTION BUTTONS ================ */}
+          </div>
+          <div className="sticky bottom-0 bg-white border-t border-gray-200 py-2 px-3 z-30">
+            <div className="flex justify-end gap-2">
+              {mode === "view" ? (
+                <Button
+                  text="Close"
+                  onClick={onCancel}
+                  bgColor="bg-gray-200"
+                  textColor="text-gray-700"
+                />
+              ) : mode === "edit" ? (
+                <Button
+                  text="Update Vendor"
+                  type="submit"
+                  onClick={handleUpdateVendor}
+                  bgColor="bg-[#0D4B37]"
+                  textColor="text-white"
+                />
+              ) : (
+                <Button
+                  text="Save"
+                  type="submit"
+                  icon={<LuSave size={16} />}
+                  bgColor="bg-[#114958]"
+                  textColor="text-white"
+                />
+              )}
+            </div>
           </div>
         </form>
         <ErrorToast

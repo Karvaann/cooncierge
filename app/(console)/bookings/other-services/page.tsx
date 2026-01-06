@@ -201,8 +201,9 @@ const OSBookingsPage = () => {
   const [generatedVendorCode, setGeneratedVendorCode] = useState<string | null>(
     null
   );
+  const [sideSheetMode, setSideSheetMode] = useState<"view" | "edit">("edit");
 
-  const {user} = useAuth();
+  const { user } = useAuth();
 
   let tabOptions;
 
@@ -211,7 +212,6 @@ const OSBookingsPage = () => {
   } else {
     tabOptions = ["Bookings", "Drafts", "Deleted"];
   }
-
 
   const [activeTab, setActiveTab] = useState("Bookings");
 
@@ -328,6 +328,24 @@ const OSBookingsPage = () => {
       if (dt > e) return false;
     }
     return true;
+  };
+
+  const handleViewBooking = (item: any) => {
+    const quotationType = item.quotationType || "";
+    const category = mapQuotationTypeToCategory(quotationType);
+    const title = formatServiceType(quotationType);
+
+    setSelectedQuotation(item);
+    setSelectedService({
+      id: item._id,
+      title,
+      image: "",
+      category,
+      description: "",
+    });
+
+    setSideSheetMode("view");
+    setIsSideSheetOpen(true);
   };
 
   // Owner selection normalization
@@ -466,6 +484,7 @@ const OSBookingsPage = () => {
   const handleServiceSelect = (service: BookingService) => {
     setSelectedQuotation(null);
     setSelectedService(service);
+    setSideSheetMode("edit");
     setIsSideSheetOpen(true);
   };
 
@@ -757,6 +776,7 @@ const OSBookingsPage = () => {
         color: "text-blue-600",
         onClick: () => {
           setIsSideSheetOpen(true);
+          setSideSheetMode("edit");
           setSelectedQuotation(row);
         },
       },
@@ -919,7 +939,12 @@ const OSBookingsPage = () => {
         key={`id-${index}`}
         className="px-4 py-3 text-center text-[#020202]  font-medium align-middle h-[3rem]"
       >
-        {item.customId ? `${item.customId}` : `${item._id}`}
+        <button
+          onClick={() => handleViewBooking(item)}
+          className="text-[#114958] hover:underline font-semibold"
+        >
+          {item.customId || item._id}
+        </button>
       </td>,
       <td
         key={`lead-${index}`}
@@ -976,8 +1001,14 @@ const OSBookingsPage = () => {
       >
         <div className="flex items-center justify-center">
           <div className="flex items-center">
-            {(Array.isArray([...(item as any).secondaryOwner, (item as any).primaryOwner])
-              ? [...(item as any).secondaryOwner, (item as any).primaryOwner].map((o: any) => o?.name || "--")
+            {(Array.isArray([
+              ...(item as any).secondaryOwner,
+              (item as any).primaryOwner,
+            ])
+              ? [
+                  ...(item as any).secondaryOwner,
+                  (item as any).primaryOwner,
+                ].map((o: any) => o?.name || "--")
               : []
             ).map((ownerName: string, i: number) => {
               // Try to find owner in ownersList (fetched from API)
@@ -1189,6 +1220,7 @@ const OSBookingsPage = () => {
             bookingCode={generatedBookingCode ?? ""}
             customerCode={generatedCustomerCode ?? ""}
             vendorCode={generatedVendorCode ?? ""}
+            mode={sideSheetMode}
           />
         )}
       </div>

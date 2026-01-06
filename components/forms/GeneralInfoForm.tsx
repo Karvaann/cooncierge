@@ -50,6 +50,7 @@ interface GeneralInfoFormData {
 
 interface CustomerDataType {
   _id: string;
+  customId?: string;
   id?: string;
   name: string;
   email?: string;
@@ -70,6 +71,7 @@ interface CustomerDataType {
 interface VendorDataType {
   _id: string;
   id?: string;
+  customId?: string;
   name?: string;
   contactPerson?: string;
   companyName?: string;
@@ -97,6 +99,7 @@ interface TeamDataType {
 
 interface TravellerDataType {
   _id: string;
+  customId?: string;
   id?: string;
   name: string;
   email?: string;
@@ -155,6 +158,8 @@ interface ExternalFormData {
   totalAmount?: number;
   status?: string;
   owner?: OwnerData[];
+  primaryOwner?: string | OwnerData;
+  secondaryOwner?: Array<string | OwnerData> | string | OwnerData;
   serviceStatus?: string;
   travelDate?: string;
   customerId?: {
@@ -171,6 +176,13 @@ interface ExternalFormData {
     phone: string;
   };
   travelers?: TravellerDataType[];
+  adultTravelers?: Array<string | TravellerDataType>;
+  childTravelers?: Array<{
+    id: string | TravellerDataType;
+    age?: number | null;
+  }>;
+  adultNumber?: number;
+  childNumber?: number;
   adultTravlers?: number;
   childTravlers?: number;
   remarks?: string;
@@ -348,80 +360,98 @@ interface GeneralInfoFormProps {
   formRef?: React.RefObject<HTMLFormElement>;
 }
 
-const buildInitialState = (
-  externalFormData: any = {}
-): GeneralInfoFormData => ({
-  customer: externalFormData?.customerId?._id || "",
-  vendor: externalFormData?.vendorId?._id || "",
-  vendorName:
-    externalFormData?.vendorId?.contactPerson ||
-    externalFormData?.vendorId?.companyName ||
-    externalFormData?.formFields?.vendorName ||
-    "",
-  adults: externalFormData?.adults || externalFormData?.formFields?.adults || 1,
-  children:
-    externalFormData?.children || externalFormData?.formFields?.children || 0,
-  infants:
-    externalFormData?.infants || externalFormData?.formFields?.infants || 0,
-  childAges:
-    externalFormData?.childAges ||
-    externalFormData?.formFields?.childAges ||
-    [],
-  adultTravellers: externalFormData?.formFields?.adultTravellers || [""], // Adult 1 (Lead Pax) - Names for display
-  infantTravellers: externalFormData?.formFields?.infantTravellers || [], // Names for display (start empty)
-  adultTravellerIds: externalFormData?.formFields?.adultTravellerIds || [""], // IDs for backend
-  infantTravellerIds: externalFormData?.formFields?.infantTravellerIds || [], // IDs for backend (start empty)
-  bookingOwner:
-    externalFormData?.owner?.[0]?._id || externalFormData?.bookingOwner || "",
-  secondaryBookingOwner: (() => {
-    const primaryOwnerId: string =
-      externalFormData?.owner?.[0]?._id || externalFormData?.bookingOwner || "";
-
-    const candidates: string[] = [];
-    if (
-      Array.isArray(externalFormData?.owner) &&
-      externalFormData.owner[1]?._id
-    ) {
-      candidates.push(String(externalFormData.owner[1]._id));
+const buildInitialState = (externalFormData: any = {}): GeneralInfoFormData => {
+  const normalizeId = (value: unknown): string => {
+    if (!value) return "";
+    if (typeof value === "string") return value.trim();
+    if (typeof value === "object") {
+      const maybeId = (value as any)?._id ?? (value as any)?.id;
+      if (typeof maybeId === "string") return maybeId.trim();
     }
-    if (Array.isArray(externalFormData?.__owners)) {
-      candidates.push(
-        ...externalFormData.__owners
-          .filter((v: unknown) => typeof v === "string")
-          .map((v: string) => v.trim())
-      );
-    }
+    return "";
+  };
 
-    return candidates.find((id) => id && id !== primaryOwnerId) || "";
-  })(),
-  secondaryBookingOwners: (() => {
-    const primaryOwnerId: string =
-      externalFormData?.owner?.[0]?._id || externalFormData?.bookingOwner || "";
+  const normalizeIdList = (value: unknown): string[] => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.map(normalizeId).filter(Boolean);
+    const single = normalizeId(value);
+    return single ? [single] : [];
+  };
 
+  const primaryOwnerId: string =
+    normalizeId(externalFormData?.primaryOwner) ||
+    normalizeId(externalFormData?.owner?.[0]) ||
+    normalizeId(externalFormData?.bookingOwner) ||
+    normalizeId(externalFormData?.formFields?.bookingOwner) ||
+    "";
+
+  const secondaryOwnerIds: string[] = (() => {
     const candidates: string[] = [];
+
+    // backend schema
+    candidates.push(...normalizeIdList(externalFormData?.secondaryOwner));
+
+    // populated owner array (objects) or legacy owner array (ids)
     if (Array.isArray(externalFormData?.owner)) {
       externalFormData.owner.forEach((o: any, idx: number) => {
-        const id = o?._id ? String(o._id).trim() : "";
-        if (idx >= 1 && id) candidates.push(id);
+        if (idx === 0) return;
+        const id = normalizeId(o);
+        if (id) candidates.push(id);
       });
     }
+
+    // internal/legacy helper fields
     if (Array.isArray(externalFormData?.__owners)) {
       candidates.push(
         ...externalFormData.__owners
           .filter((v: unknown) => typeof v === "string")
           .map((v: string) => v.trim())
+          .filter(Boolean)
       );
     }
 
     return candidates
       .map((v) => String(v).trim())
       .filter(Boolean)
-      .filter((id) => id !== String(primaryOwnerId || ""))
+      .filter((id) => id !== String(primaryOwnerId || "").trim())
       .filter((id, i, a) => a.indexOf(id) === i);
-  })(),
-  remarks:
-    externalFormData?.remarks || externalFormData?.formFields?.remarks || "",
-});
+  })();
+
+  return {
+    customer: externalFormData?.customerId?._id || "",
+    vendor: externalFormData?.vendorId?._id || "",
+    vendorName:
+      externalFormData?.vendorId?.contactPerson ||
+      externalFormData?.vendorId?.companyName ||
+      externalFormData?.formFields?.vendorName ||
+      "",
+    adults:
+      externalFormData?.adultNumber ??
+      externalFormData?.adults ??
+      externalFormData?.formFields?.adults ??
+      1,
+    children:
+      externalFormData?.children || externalFormData?.formFields?.children || 0,
+    infants:
+      externalFormData?.childNumber ??
+      externalFormData?.infants ??
+      externalFormData?.formFields?.infants ??
+      0,
+    childAges:
+      externalFormData?.childAges ||
+      externalFormData?.formFields?.childAges ||
+      [],
+    adultTravellers: externalFormData?.formFields?.adultTravellers || [""], // Adult 1 (Lead Pax) - Names for display
+    infantTravellers: externalFormData?.formFields?.infantTravellers || [], // Names for display (start empty)
+    adultTravellerIds: externalFormData?.formFields?.adultTravellerIds || [""], // IDs for backend
+    infantTravellerIds: externalFormData?.formFields?.infantTravellerIds || [], // IDs for backend (start empty)
+    bookingOwner: primaryOwnerId,
+    secondaryBookingOwner: secondaryOwnerIds[0] || "",
+    secondaryBookingOwners: secondaryOwnerIds,
+    remarks:
+      externalFormData?.remarks || externalFormData?.formFields?.remarks || "",
+  };
+};
 
 const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   initialFormData: externalFormData = {},
@@ -793,22 +823,59 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   // Hydrate owner from externalFormData
   useEffect(() => {
-    if (!externalFormData?.bookingOwner && !externalFormData?.owner?.[0])
+    if (
+      !externalFormData?.primaryOwner &&
+      !externalFormData?.bookingOwner &&
+      !externalFormData?.owner?.[0]
+    )
       return;
     if (!Array.isArray(allTeams) || allTeams.length === 0) return;
 
-    const ownerId =
-      externalFormData.owner?.[0]?._id || externalFormData.bookingOwner || "";
-    if (ownerId && externalFormData.owner?.[0]) {
-      const match = allTeams.find((t) => t._id === ownerId);
-      if (match) {
-        setOwnerList([{ id: match._id, name: match.name }]);
-      } else if (externalFormData.owner[0].name) {
-        // If we can't find in teams, use the name from external data
-        setOwnerList([{ id: ownerId, name: externalFormData.owner[0].name }]);
+    const normalizeId = (value: unknown): string => {
+      if (!value) return "";
+      if (typeof value === "string") return value.trim();
+      if (typeof value === "object") {
+        const maybeId = (value as any)?._id ?? (value as any)?.id;
+        if (typeof maybeId === "string") return maybeId.trim();
       }
+      return "";
+    };
+
+    const primaryOwnerObj =
+      (externalFormData?.primaryOwner &&
+        typeof externalFormData.primaryOwner === "object" &&
+        externalFormData.primaryOwner) ||
+      (externalFormData?.owner?.[0] &&
+        typeof externalFormData.owner[0] === "object" &&
+        externalFormData.owner[0]) ||
+      null;
+
+    const ownerId =
+      normalizeId(externalFormData?.primaryOwner) ||
+      normalizeId(externalFormData?.owner?.[0]) ||
+      normalizeId(externalFormData?.bookingOwner) ||
+      "";
+
+    if (!ownerId) return;
+
+    const match = allTeams.find((t) => t._id === ownerId);
+    if (match) {
+      setOwnerList([{ id: match._id, name: match.name }]);
+      return;
     }
-  }, [externalFormData?.bookingOwner, externalFormData?.owner, allTeams]);
+
+    const fallbackName =
+      (primaryOwnerObj as any)?.name || (primaryOwnerObj as any)?.email || "";
+    if (fallbackName) {
+      // If we can't find in teams, use the name from external data
+      setOwnerList([{ id: ownerId, name: String(fallbackName) }]);
+    }
+  }, [
+    externalFormData?.primaryOwner,
+    externalFormData?.bookingOwner,
+    externalFormData?.owner,
+    allTeams,
+  ]);
 
   // Keep selected secondary owner pills aligned with ids in formData
   useEffect(() => {
@@ -938,28 +1005,153 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   // Hydrate travellers from externalFormData
   useEffect(() => {
-    if (
-      !externalFormData?.travelers ||
-      !Array.isArray(externalFormData.travelers)
-    )
-      return;
+    const normalizeId = (value: unknown): string => {
+      if (!value) return "";
+      if (typeof value === "string") return value.trim();
+      if (typeof value === "object") {
+        const maybeId = (value as any)?._id ?? (value as any)?.id;
+        if (typeof maybeId === "string") return maybeId.trim();
+      }
+      return "";
+    };
 
-    // Process adult travellers
-    if (externalFormData.travelers.length > 0) {
-      const adultNames = externalFormData.travelers.map(
-        (traveller: TravellerDataType) => traveller.name || ""
-      );
-      const adultIds = externalFormData.travelers.map(
-        (traveller: TravellerDataType) => traveller._id || ""
-      );
+    const normalizeTravellerName = (value: unknown): string => {
+      if (!value) return "TBA";
+      if (typeof value === "string") {
+        const v = value.trim();
+        return v === "" ? "TBA" : v;
+      }
+      return "TBA";
+    };
 
-      setFormData((prev) => ({
+    const normalizeName = (value: unknown): string => {
+      if (!value || typeof value !== "object") return "";
+      const maybeName = (value as any)?.name ?? (value as any)?.fullName;
+      return typeof maybeName === "string" ? maybeName : "";
+    };
+
+    const travellerNameById = (id: string): string => {
+      const match = allTravellers.find((t) => t._id === id || t.id === id);
+      return match?.name || "";
+    };
+
+    const adultFromBackend = Array.isArray(externalFormData?.adultTravelers)
+      ? (externalFormData.adultTravelers as Array<string | TravellerDataType>)
+      : null;
+    const childFromBackend = Array.isArray(externalFormData?.childTravelers)
+      ? (externalFormData.childTravelers as Array<{
+          id: string | TravellerDataType;
+          age?: number | null;
+        }>)
+      : null;
+
+    const legacyTravellers = Array.isArray(externalFormData?.travelers)
+      ? (externalFormData.travelers as TravellerDataType[])
+      : null;
+
+    const hasStructuredTravellers = !!(adultFromBackend || childFromBackend);
+    const hasLegacyTravellers = !!legacyTravellers;
+    if (!hasStructuredTravellers && !hasLegacyTravellers) return;
+
+    // Adults
+    const adultEntries: Array<string | TravellerDataType> = adultFromBackend
+      ? adultFromBackend
+      : legacyTravellers
+      ? legacyTravellers
+      : [];
+    const adultIds = adultEntries.map((t) => normalizeId(t)).filter(Boolean);
+    const adultNames = adultEntries.map((t) => {
+      const id = normalizeId(t);
+      const fromObj = normalizeName(t);
+
+      // Priority:
+      // 1. explicit name from backend
+      // 2. resolved name from traveller list
+      // 3. fallback TBA
+      return normalizeTravellerName(
+        fromObj || (id ? travellerNameById(id) : "")
+      );
+    });
+
+    // Children
+    const childEntries = childFromBackend ?? [];
+    const childIds = childEntries
+      .map((c) => normalizeId(c?.id))
+      .filter(Boolean);
+    const childNames = childEntries.map((c) => {
+      const id = normalizeId(c?.id);
+      const fromObj = normalizeName(c?.id);
+
+      return normalizeTravellerName(
+        fromObj || (id ? travellerNameById(id) : "")
+      );
+    });
+
+    const childAges = childEntries.map((c) => {
+      const age = c?.age;
+      return typeof age === "number" ? age : null;
+    });
+
+    const adultsCount =
+      typeof externalFormData?.adultNumber === "number"
+        ? externalFormData.adultNumber
+        : adultIds.length;
+    const childCount =
+      typeof externalFormData?.childNumber === "number"
+        ? externalFormData.childNumber
+        : childIds.length;
+
+    const safeAdultsCount = Number.isFinite(adultsCount)
+      ? Math.max(0, adultsCount)
+      : 0;
+    const safeChildCount = Number.isFinite(childCount)
+      ? Math.max(0, childCount)
+      : 0;
+
+    const padTo = (arr: string[], count: number) => {
+      const next = [...arr];
+      while (next.length < count) next.push("TBA");
+      while (next.length > count) next.pop();
+      return next;
+    };
+
+    setFormData((prev) => {
+      // Only hydrate when external data is present; keep user's edits intact otherwise.
+      const nextAdultIds = padTo(adultIds, safeAdultsCount);
+      const nextAdultNames = padTo(adultNames, safeAdultsCount);
+      const nextChildIds = padTo(childIds, safeChildCount);
+      const nextChildNames = padTo(childNames, safeChildCount);
+      const nextChildAges: Array<number | null> = (() => {
+        const next = [...childAges];
+        while (next.length < safeChildCount) next.push(null);
+        while (next.length > safeChildCount) next.pop();
+        return next;
+      })();
+
+      return {
         ...prev,
-        adultTravellers: adultNames,
-        adultTravellerIds: adultIds,
-      }));
-    }
-  }, [externalFormData?.travelers]);
+        adults: safeAdultsCount === 0 ? prev.adults : safeAdultsCount,
+        infants: safeChildCount,
+        adultTravellerIds: nextAdultIds.length
+          ? nextAdultIds
+          : prev.adultTravellerIds,
+        adultTravellers: nextAdultNames.length
+          ? nextAdultNames
+          : prev.adultTravellers,
+        infantTravellerIds: nextChildIds,
+        infantTravellers: nextChildNames,
+        childAges: nextChildAges,
+      };
+    });
+  }, [
+    externalSignature,
+    allTravellers,
+    externalFormData?.adultNumber,
+    externalFormData?.childNumber,
+    externalFormData?.adultTravelers,
+    externalFormData?.childTravelers,
+    externalFormData?.travelers,
+  ]);
 
   // Fuzzy search helper
   const runFuzzySearch = <T,>(

@@ -9,7 +9,11 @@ import { CiFilter } from "react-icons/ci";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import { IoEllipsisHorizontal } from "react-icons/io5";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
-import { getCustomers, deleteCustomer } from "@/services/customerApi";
+import {
+  getCustomers,
+  deleteCustomer,
+  getCustomerById,
+} from "@/services/customerApi";
 import type { JSX } from "react";
 import LinkProfilesModal from "@/components/Modals/LinkProfilesModal";
 import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
@@ -40,6 +44,7 @@ const Table = dynamic(() => import("@/components/Table"), {
 
 type CustomerRow = {
   customerID: string;
+  _id: string;
   name: string;
   rating: string;
   owner: string;
@@ -309,7 +314,7 @@ const CustomerDirectory = () => {
 
         const mappedRows: CustomerRow[] = customers.map(
           (c: any, index: number) => ({
-            ...c,
+            _id: c._id,
             customerID: c.customId || c._id || `#C00${index + 1}`,
             name: c.name,
             owner:
@@ -329,6 +334,7 @@ const CustomerDirectory = () => {
         const data = await getTravellers({ isDeleted: false });
 
         const mappedTravellers = data.map((t: any) => ({
+          _id: t._id,
           travellerID: t.customId || t._id || `#T00${t._id}`,
           name: t.name,
           owner:
@@ -478,9 +484,7 @@ const CustomerDirectory = () => {
                   setSelectedCustomer(row);
 
                   try {
-                    const history = await getBookingHistoryByCustomer(
-                      row.customerID
-                    );
+                    const history = await getBookingHistoryByCustomer(row._id);
                     setBookingHistory(history.quotations);
                   } catch (err) {
                     console.error("Failed to load booking history:", err);
@@ -500,10 +504,18 @@ const CustomerDirectory = () => {
                       label: "Edit",
                       icon: <FaRegEdit />,
                       color: "text-blue-600",
-                      onClick: () => {
-                        setSelectedCustomer(row); // full data
-                        setIsSideSheetOpen(true);
-                        setMode("edit");
+                      onClick: async () => {
+                        try {
+                          const customer = await getCustomerById(row._id);
+                          setSelectedCustomer(customer);
+                          setIsSideSheetOpen(true);
+                          setMode("edit");
+                        } catch (e) {
+                          console.error(
+                            "Failed to fetch customer for edit:",
+                            e
+                          );
+                        }
                       },
                     },
                     // {
@@ -606,15 +618,12 @@ const CustomerDirectory = () => {
               onClick={async () => {
                 try {
                   setSelectedTravellerRow(row);
-                  const resp = await getTravellerBookingHistory(
-                    row.travellerID,
-                    {
-                      sortBy: "createdAt",
-                      sortOrder: "desc",
-                      page: 1,
-                      limit: 10,
-                    }
-                  );
+                  const resp = await getTravellerBookingHistory(row._id, {
+                    sortBy: "createdAt",
+                    sortOrder: "desc",
+                    page: 1,
+                    limit: 10,
+                  });
                   setBookingHistory(resp?.quotations);
                 } catch (err) {
                   console.error(
@@ -637,9 +646,9 @@ const CustomerDirectory = () => {
                   color: "text-red-600",
                   onClick: async () => {
                     try {
-                      await deleteTraveller(row.travellerID);
+                      await deleteTraveller(row._id);
                       setTravellers((prev) =>
-                        prev.filter((t) => t.travellerID !== row.travellerID)
+                        prev.filter((t) => t._id !== row._id)
                       );
                     } catch (err) {
                       console.error(err);
@@ -928,7 +937,7 @@ const CustomerDirectory = () => {
           onConfirm={() => {
             if (!selectedCustomer) return;
 
-            handleDeleteCustomer(selectedCustomer.customerID);
+            handleDeleteCustomer(selectedCustomer._id);
             setIsConfirmModalOpen(false);
           }}
         />
@@ -946,16 +955,24 @@ const CustomerDirectory = () => {
           onClose={() => setIsHistoryOpen(false)}
           onViewCustomer={
             activeTab === "Customers" && selectedCustomer
-              ? () => {
-                  setMode("view");
-                  setIsSideSheetOpen(true);
-                  setIsHistoryOpen(false);
+              ? async () => {
+                  try {
+                    const customer = await getCustomerById(
+                      selectedCustomer._id
+                    );
+                    setSelectedCustomer(customer);
+                    setMode("view");
+                    setIsSideSheetOpen(true);
+                    setIsHistoryOpen(false);
+                  } catch (e) {
+                    console.error("Failed to fetch customer:", e);
+                  }
                 }
               : activeTab === "Travellers" && selectedTravellerRow
               ? async () => {
                   try {
                     const traveller = await getTravellerById(
-                      selectedTravellerRow.travellerID
+                      selectedTravellerRow._id
                     );
                     setSelectedTravellerFull(traveller);
                     setTravellerMode("view");
@@ -969,16 +986,24 @@ const CustomerDirectory = () => {
           }
           onEditCustomer={
             activeTab === "Customers" && selectedCustomer
-              ? () => {
-                  setMode("edit");
-                  setIsSideSheetOpen(true);
-                  setIsHistoryOpen(false);
+              ? async () => {
+                  try {
+                    const customer = await getCustomerById(
+                      selectedCustomer._id
+                    );
+                    setSelectedCustomer(customer);
+                    setMode("edit");
+                    setIsSideSheetOpen(true);
+                    setIsHistoryOpen(false);
+                  } catch (e) {
+                    console.error("Failed to fetch customer:", e);
+                  }
                 }
               : activeTab === "Travellers" && selectedTravellerRow
               ? async () => {
                   try {
                     const traveller = await getTravellerById(
-                      selectedTravellerRow.travellerID
+                      selectedTravellerRow._id
                     );
                     setSelectedTravellerFull(traveller);
                     setTravellerMode("edit");
