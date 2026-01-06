@@ -1518,7 +1518,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           </p>
                           <span className="text-gray-300">|</span>
                           <p className="text-[13px] text-gray-600 truncate">
-                            {selected._id}
+                            {selected.customId}
                           </p>
                         </div>
 
@@ -1592,7 +1592,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                 </p>
                                 <span className="text-gray-300">|</span>
                                 <p className="text-[13px] text-gray-600 truncate">
-                                  {cust._id}
+                                  {cust.customId}
                                 </p>
                               </div>
 
@@ -1726,7 +1726,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       </p>
                       <span className="text-gray-300">|</span>
                       <p className="text-[13px] text-gray-600 truncate">
-                        {selected._id || "-"}
+                        {selected.customId || "-"}
                       </p>
                     </div>
 
@@ -1800,7 +1800,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           </p>
                           <span className="text-gray-300">|</span>
                           <p className="text-[13px] text-gray-600 truncate">
-                            {v._id || "-"}
+                            {v.customId || "-"}
                           </p>
                         </div>
 
@@ -1989,7 +1989,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           </p>
                           <span className="text-gray-300">|</span>
                           <p className="text-[13px] text-gray-600 truncate">
-                            {selected._id}
+                            {selected.customId}
                           </p>
                         </div>
 
@@ -2037,7 +2037,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                               </p>
                               <span className="text-gray-300">|</span>
                               <p className="text-[13px] text-gray-600 truncate">
-                                {t._id}
+                                {t.customId}
                               </p>
                             </div>
 
@@ -2200,7 +2200,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             </p>
                             <span className="text-gray-300">|</span>
                             <p className="text-[13px] text-gray-600 truncate">
-                              {selected._id}
+                              {selected.customId}
                             </p>
                           </div>
 
@@ -2265,7 +2265,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                   </p>
                                   <span className="text-gray-300">|</span>
                                   <p className="text-[13px] text-gray-600 truncate">
-                                    {t._id}
+                                    {t.customId}
                                   </p>
                                 </div>
 

@@ -32,6 +32,7 @@ import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
 import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 import TaskButton from "@/components/TaskButton";
+import { useAuth } from "@/context/AuthContext";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -200,7 +201,18 @@ const OSBookingsPage = () => {
   const [generatedVendorCode, setGeneratedVendorCode] = useState<string | null>(
     null
   );
-  const tabOptions = ["Bookings", "Drafts", "Deleted"];
+
+  const {user} = useAuth();
+
+  let tabOptions;
+
+  if (user.isBookingMaker) {
+    tabOptions = ["Approved", "Pending", "Deleted", "Drafts", "Deleted"];
+  } else {
+    tabOptions = ["Bookings", "Drafts", "Deleted"];
+  }
+
+
   const [activeTab, setActiveTab] = useState("Bookings");
 
   const tabContainerRef = useRef<HTMLDivElement | null>(null);

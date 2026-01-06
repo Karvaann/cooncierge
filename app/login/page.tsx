@@ -9,9 +9,11 @@ import { FiEyeOff } from "react-icons/fi";
 import type { AxiosError } from "axios";
 import { AuthApi } from "@/services/authApi";
 import OTPInput from "react-otp-input";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SignIn() {
   const router = useRouter();
+  const { isAuthenticated, refreshUser } = useAuth();
   const [mode, setMode] = useState<"signin" | "otp" | "forgot" | "reset">(
     "signin"
   );
@@ -49,6 +51,12 @@ export default function SignIn() {
     }
     return undefined;
   }, [showError]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/bookings/other-services");
+    }
+  }, [isAuthenticated, router]);
 
   useEffect(() => {
     if (mode === "otp" && timer > 0) {
@@ -112,6 +120,7 @@ export default function SignIn() {
         email,
         twoFACode: otp,
       });
+      await refreshUser();
       await router.push("/bookings/other-services");
     } catch (error: unknown) {
       const err = error as AxiosError<{ message?: string }>;
@@ -122,7 +131,7 @@ export default function SignIn() {
     } finally {
       setIsOtpSubmitting(false);
     }
-  }, [otp, router]);
+  }, [email, otp, refreshUser, router]);
 
   const handlePasswordReset = useCallback(async (): Promise<void> => {
     if (!email) {

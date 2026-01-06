@@ -8,8 +8,8 @@ import "react-date-range/dist/styles.css";
 // @ts-ignore: CSS module has no type declarations in this project
 import "react-date-range/dist/theme/default.css";
 import FullScreenLoader from "@/components/FullScreenLoader";
-import { LoadingProvider } from "@/context/LoadingContext";
 import LoadingOverlay from "@/components/LoadingOverlay";
+import Providers from "@/app/providers";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -30,10 +30,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={poppins.className}>
         <Suspense fallback={<FullScreenLoader />}>
-          <LoadingProvider>
+          <Providers>
             <LoadingOverlay />
             {children}
-          </LoadingProvider>
+          </Providers>
         </Suspense>
       </body>
     </html>
