@@ -208,12 +208,12 @@ const OSBookingsPage = () => {
   let tabOptions;
 
   if (user.isBookingMaker) {
-    tabOptions = ["Approved", "Pending", "Deleted", "Drafts", "Deleted"];
+    tabOptions = ["Approved", "Pending", "Denied", "Drafts", "Deleted"];
   } else {
     tabOptions = ["Bookings", "Drafts", "Deleted"];
   }
 
-  const [activeTab, setActiveTab] = useState("Bookings");
+  const [activeTab, setActiveTab] = useState(user.isBookingMaker ? "Approved" : "Bookings");
 
   const tabContainerRef = useRef<HTMLDivElement | null>(null);
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
@@ -437,6 +437,7 @@ const OSBookingsPage = () => {
       if (filters.tripStartDate)
         apiParams.travelStartDate = filters.tripStartDate;
       if (filters.tripEndDate) apiParams.travelEndDate = filters.tripEndDate;
+      console.log("Active tab:", activeTab);
       apiParams.activeTab = activeTab;
       // Note: Owner filtering is done client-side since API returns owner objects with names
 
@@ -1140,6 +1141,7 @@ const OSBookingsPage = () => {
             <div className="flex w-full justify-between items-center mb-2">
               <div
                 ref={tabContainerRef}
+                style={{width: 'fit-content'}}
                 className="flex w-[20.5rem] ml-2 items-center bg-[#F3F3F3] rounded-xl relative py-1.5 gap-8.5"
               >
                 {/* Sliding background indicator sized to active button */}

@@ -429,7 +429,12 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 label="Booking Date"
                 value={formData.bookingdate}
                 onChange={(date) =>
-                  setFormData((prev) => ({ ...prev, bookingdate: date }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    bookingdate: date,
+                    traveldate:
+                      prev.bookingdate !== date ? "" : prev.traveldate,
+                  }))
                 }
                 placeholder="DD-MM-YYYY"
               />
@@ -443,6 +448,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 }
                 placeholder="DD-MM-YYYY"
                 minDate={formData.bookingdate}
+                readOnly={!formData.bookingdate}
               />
             </div>
 

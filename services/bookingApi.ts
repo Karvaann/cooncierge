@@ -1129,6 +1129,15 @@ export class BookingApiService {
       if (params?.activeTab === "Deleted") {
         endpoint = endpoint + '?isDeleted=true';
       }
+      if (params?.activeTab === "Pending") {
+        endpoint = endpoint + '?serviceStatus=pending';
+      }
+      if (params?.activeTab === "Denied") {
+        endpoint = endpoint + '?serviceStatus=denied';
+      }
+      if (params?.activeTab === "Approved") {
+        endpoint = endpoint + '?serviceStatus=approved';
+      }
       const response = await apiClient.get(endpoint, {
         params: {
           bookingStartDate: params?.bookingStartDate || undefined,

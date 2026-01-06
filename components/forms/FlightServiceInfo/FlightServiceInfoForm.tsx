@@ -572,7 +572,12 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                 label="Booking Date"
                 value={formData.bookingdate}
                 onChange={(date) =>
-                  setFormData((prev) => ({ ...prev, bookingdate: date }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    bookingdate: date,
+                    traveldate:
+                      prev.bookingdate !== date ? "" : prev.traveldate,
+                  }))
                 }
                 placeholder="DD-MM-YYYY"
                 showCalendarIcon={false}
@@ -588,6 +593,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                 placeholder="DD-MM-YYYY"
                 minDate={formData.bookingdate}
                 showCalendarIcon={false}
+                readOnly={!formData.bookingdate}
               />
             </div>
 
@@ -890,12 +896,16 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                 <input
                   type="text"
                   value={formData.PNR}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, PNR: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    const sanitizedValue = e.target.value
+                      .replace(/[^a-zA-Z0-9]/g, "") // allow only alphanumeric
+                      .toUpperCase(); // convert to uppercase
+
+                    setFormData((prev) => ({ ...prev, PNR: sanitizedValue }));
+                  }}
                   placeholder="Enter PNR"
                   className="w-[12rem] px-2 py-1.5 border border-gray-300 rounded-md text-[13px]
-        focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-400 focus:border-transparent"
+                    focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-400 focus:border-transparent"
                 />
               </div>
 

@@ -431,7 +431,12 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 label="Booking Date"
                 value={formData.bookingdate}
                 onChange={(date) =>
-                  setFormData((prev) => ({ ...prev, bookingdate: date }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    bookingdate: date,
+                    traveldate:
+                      prev.bookingdate !== date ? "" : prev.traveldate,
+                  }))
                 }
                 placeholder="DD-MM-YYYY"
                 showCalendarIcon={false}
@@ -447,6 +452,7 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 placeholder="DD-MM-YYYY"
                 minDate={formData.bookingdate}
                 showCalendarIcon={false}
+                readOnly={!formData.bookingdate}
               />
             </div>
 

@@ -87,8 +87,6 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
             let itemsToRender = menuItems;
 
-            console.log('BOoking Checker', user?.isBookingChecker);
-
             if (!user?.isBookingChecker) {
               itemsToRender = itemsToRender.filter((it) => it.label !== "Approvals");
             }

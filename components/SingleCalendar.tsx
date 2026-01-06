@@ -2,7 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 import { FaRegCalendar } from "react-icons/fa6";
-import { MdKeyboardArrowRight, MdKeyboardArrowLeft } from "react-icons/md";
+import {
+  MdKeyboardArrowRight,
+  MdKeyboardArrowLeft,
+  MdClose,
+} from "react-icons/md";
 
 type Props = {
   label?: string;
@@ -314,6 +318,16 @@ export default function SingleCalendar({
     return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
   };
 
+  const handleClearDate = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setInputValue("");
+    onChange("");
+    setOpen(false);
+    setShowMonthPicker(false);
+    setShowYearPicker(false);
+  };
+
   const months = [
     "January",
     "February",
@@ -523,6 +537,17 @@ export default function SingleCalendar({
               : "flex-1 text-[13px] text-gray-700 outline-none bg-transparent")
           }
         />
+
+        {!!value && !readOnly && (
+          <button
+            type="button"
+            onClick={handleClearDate}
+            className="text-gray-300 hover:text-gray-600 transition-colors"
+            aria-label="Clear date"
+          >
+            <MdClose size={14} />
+          </button>
+        )}
 
         {showCalendarIcon && !readOnly && (
           <button

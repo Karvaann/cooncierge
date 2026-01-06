@@ -34,7 +34,6 @@ apiClient.interceptors.response.use(
       error.message ||
       "Something went wrong. Please try again.";
     // Fire a global toast for API errors
-    pushToast({ message, type: "error" });
 
     if (error.response?.status === 401) {
       // clearAuthStorage();
