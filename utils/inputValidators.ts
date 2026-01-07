@@ -53,6 +53,17 @@ export const allowOnly10Digits = (value: string): string => {
   return value.replace(/[^0-9]/g, "").slice(0, 10);
 };
 
+/**
+ * Allows ONLY numbers and limits input to maxLength digits
+ */
+export const allowOnlyDigitsWithMax = (
+  value: string,
+  maxLength: number
+): string => {
+  const limit = Math.max(0, maxLength);
+  return value.replace(/[^0-9]/g, "").slice(0, limit);
+};
+
 
 
 /**

@@ -9,8 +9,9 @@ import { createTraveller, updateTraveller } from "@/services/travellerApi";
 import { getAuthUser } from "@/services/storage/authStorage";
 import Button from "@/components/Button";
 import generateCustomId from "@/utils/helper";
-import DropDown from "@/components/DropDown";
-import { allowOnly10Digits, allowOnlyText } from "@/utils/inputValidators";
+import PhoneCodeSelect from "@/components/PhoneCodeSelect";
+import { allowOnlyDigitsWithMax, allowOnlyText } from "@/utils/inputValidators";
+import { getPhoneNumberMaxLength, splitPhoneWithDialCode } from "@/utils/phoneUtils";
 import { LuSave } from "react-icons/lu";
 // Type definitions
 interface TravellerFormData {
@@ -63,6 +64,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [phoneCode, setPhoneCode] = useState<string>("+91");
+  const phoneMaxLength = getPhoneNumberMaxLength(phoneCode);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
@@ -87,16 +89,24 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
     if (!data) return;
     const fullName: string = data.name || "";
     const [firstname = "", lastname = ""] = fullName.split(" ");
+    const parsedPhone = splitPhoneWithDialCode(
+      String(data.phone || data.contactnumber || ""),
+      "+91"
+    );
     setFormData((prev) => ({
       ...prev,
       firstname,
       lastname,
       nickname: data.nickname || data.alias || "",
-      contactnumber: data.phone || data.contactnumber || "",
+      contactnumber: allowOnlyDigitsWithMax(
+        parsedPhone.number || "",
+        getPhoneNumberMaxLength(parsedPhone.dialCode)
+      ),
       emailId: data.email || data.emailId || "",
       dateofbirth: data.dateOfBirth || data.dateofbirth || "",
       remarks: data.remarks || "",
     }));
+    setPhoneCode(parsedPhone.dialCode || "+91");
   }, [data]);
 
   type FieldRule = {
@@ -107,6 +117,11 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
   };
 
   // Validation rules
+  const contactNumberPattern = useMemo(
+    () => new RegExp(`^\\\\d{${phoneMaxLength}}$`),
+    [phoneMaxLength]
+  );
+
   const validationRules: Record<string, FieldRule> = useMemo(
     () => ({
       firstname: {
@@ -121,16 +136,16 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
       },
       contactnumber: {
         required: true,
-        pattern: /^\d{10}$/,
-        message: "Contact number must be 10 digits",
+        pattern: contactNumberPattern,
+        message: `Contact number must be ${phoneMaxLength} digits`,
       },
       emailId: {
         required: true,
-        pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        pattern: /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/,
         message: "Invalid email format",
       },
     }),
-    []
+    [contactNumberPattern, phoneMaxLength]
   );
 
   // Enhanced validation function using API validation
@@ -221,7 +236,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
       name === "firstname" || name === "lastname" || name === "nickname"
         ? allowOnlyText(value)
         : name === "contactnumber"
-        ? allowOnly10Digits(value)
+        ? allowOnlyDigitsWithMax(value, phoneMaxLength)
         : value;
 
     setFormData((prev) => ({
@@ -237,6 +252,16 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
     // Mark field touched
     setTouched((prev) => ({ ...prev, [name]: true }));
   };
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      contactnumber: allowOnlyDigitsWithMax(
+        String(prev.contactnumber || ""),
+        phoneMaxLength
+      ),
+    }));
+  }, [phoneMaxLength]);
 
   // Enhanced blur handler with API validation
   const handleBlur = useCallback(
@@ -481,7 +506,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           ? "Edit Traveller"
           : "Add Traveller"
       }${travellerCode ? " | " + travellerCode : ""}`}
-      width="xl"
+      width="lg2"
     >
       <form
         className="space-y-6 p-4 flex flex-col min-h-full"
@@ -550,17 +575,12 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 Contact Number
               </label>
               <div className="flex items-center">
-                <DropDown
-                  options={[
-                    { value: "+91", label: "+91" },
-                    { value: "+1", label: "+1" },
-                    { value: "+44", label: "+44" },
-                  ]}
+                <PhoneCodeSelect
                   value={phoneCode}
                   onChange={(v) => setPhoneCode(v)}
                   disabled={readOnly}
-                  customWidth="w-[58px]"
-                  menuWidth="w-[58px]"
+                  customWidth="w-[88px]"
+                  menuWidth="w-[18rem]"
                   className="flex-shrink-0 rounded-l-md"
                   customHeight="h-9"
                 />
@@ -569,6 +589,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   type="text"
                   value={formData.contactnumber}
                   onChange={handleChange}
+                  maxLength={phoneMaxLength}
                   placeholder="Enter Contact Number"
                   disabled={readOnly}
                   className="flex-1  border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"

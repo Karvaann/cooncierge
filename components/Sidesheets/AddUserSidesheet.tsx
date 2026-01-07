@@ -5,10 +5,13 @@ import { AuthApi } from "../../services/authApi";
 import { getAuthUser } from "../../services/storage/authStorage";
 import SideSheet from "../SideSheet";
 import DropDown from "../DropDown";
+import PhoneCodeSelect from "../PhoneCodeSelect";
 import Button from "../Button";
 import ErrorToast from "../ErrorToast";
 import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
 import { JSX } from "react";
+import { allowOnlyDigitsWithMax } from "@/utils/inputValidators";
+import { getPhoneNumberMaxLength, isSupportedDialCode } from "@/utils/phoneUtils";
 
 interface AddUserSidesheetProps {
   isOpen: boolean;
@@ -43,6 +46,8 @@ export default function AddUserSidesheet({
   const [requireChange, setRequireChange] = useState(false);
 
   const [showResetPassword, setShowResetPassword] = useState(false);
+
+  const phoneMaxLength = getPhoneNumberMaxLength(countryCode);
 
   // Password rules (copied from login reset UI logic)
   const hasMinLength = useMemo(() => password.length >= 8, [password]);
@@ -237,9 +242,7 @@ export default function AddUserSidesheet({
         code = pc.startsWith("+") ? pc : `+${pc}`;
       }
 
-      // Only accept allowed codes, fallback to +91
-      const allowedCodes = ["+91", "+1", "+44"];
-      if (!allowedCodes.includes(code)) code = "+91";
+      if (!isSupportedDialCode(code)) code = "+91";
 
       setCountryCode(code);
 
@@ -267,6 +270,10 @@ export default function AddUserSidesheet({
       setShowResetPassword(false);
     }
   }, [isEdit, initialData]);
+
+  useEffect(() => {
+    setMobile((prev) => allowOnlyDigitsWithMax(prev, phoneMaxLength));
+  }, [phoneMaxLength]);
 
   return (
     <SideSheet
@@ -316,26 +323,26 @@ export default function AddUserSidesheet({
                   <label className="text-[13px] font-medium text-[#414141]">
                     Mobile
                   </label>
-                  <DropDown
-                    options={[
-                      { value: "+91", label: "+91" },
-                      { value: "+1", label: "+1" },
-                      { value: "+44", label: "+44" },
-                    ]}
+                  <PhoneCodeSelect
                     value={countryCode}
                     onChange={(v) => setCountryCode(v)}
-                    customWidth="w-[91%]"
+                    customWidth="w-[88px]"
                     customHeight="h-[2.2rem]"
                     className="mt-1.5"
-                    menuWidth="w-[6rem]"
+                    menuWidth="w-[18rem]"
                   />
                 </div>
                 <div className="col-span-5">
                   <input
                     value={mobile}
-                    onChange={(e) => setMobile(e.target.value)}
+                    onChange={(e) =>
+                      setMobile(
+                        allowOnlyDigitsWithMax(e.target.value, phoneMaxLength)
+                      )
+                    }
                     placeholder="Enter Contact Number"
                     className="mt-6 -ml-2.5 w-full px-3 py-2 border border-gray-300 rounded-md"
+                    maxLength={phoneMaxLength}
                   />
                 </div>
               </div>

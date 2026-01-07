@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 
 interface DropdownOption {
   value: string;
   label: React.ReactNode;
+  buttonLabel?: React.ReactNode;
+  searchLabel?: string;
 }
 
 interface DropdownProps {
@@ -23,6 +25,9 @@ interface DropdownProps {
   iconOnly?: boolean;
   disabled?: boolean;
   menuCentered?: boolean;
+  searchable?: boolean;
+  searchPlaceholder?: string;
+  getOptionSearchValue?: (option: DropdownOption) => string;
 }
 
 const DropDown: React.FC<DropdownProps> = ({
@@ -40,10 +45,14 @@ const DropDown: React.FC<DropdownProps> = ({
   iconOnly = false,
   disabled = false,
   menuCentered = false,
+  searchable = false,
+  searchPlaceholder = "Type to filter...",
+  getOptionSearchValue,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(value || "");
   const [openUpwards, setOpenUpwards] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [menuPos, setMenuPos] = useState<{
@@ -62,8 +71,26 @@ const DropDown: React.FC<DropdownProps> = ({
 
   const selectedOption = options.find((opt) => opt.value === selectedValue);
   const displayText: React.ReactNode = selectedOption
-    ? selectedOption.label
+    ? selectedOption.buttonLabel ?? selectedOption.label
     : placeholder;
+
+  const filteredOptions = useMemo(() => {
+    if (!searchable) return options;
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return options;
+    return options.filter((opt) => {
+      const custom =
+        typeof getOptionSearchValue === "function"
+          ? getOptionSearchValue(opt)
+          : "";
+      const labelText =
+        opt.searchLabel ||
+        custom ||
+        (typeof opt.label === "string" ? opt.label : "") ||
+        opt.value;
+      return String(labelText).toLowerCase().includes(query);
+    });
+  }, [getOptionSearchValue, options, searchQuery, searchable]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -94,7 +121,7 @@ const DropDown: React.FC<DropdownProps> = ({
       if (!dropdownRef.current) return;
       const rect = dropdownRef.current.getBoundingClientRect();
       const optionHeight = itemHeight || 36; // estimated option height in px (can be overridden by prop)
-      const menuHeight = Math.min(options.length * optionHeight, 400);
+      const menuHeight = Math.min(filteredOptions.length * optionHeight, 400);
       const availableBelow = window.innerHeight - rect.bottom;
       const availableAbove = rect.top;
       const shouldOpenUp =
@@ -145,7 +172,7 @@ const DropDown: React.FC<DropdownProps> = ({
       window.removeEventListener("scroll", computePlacement, true);
       setMenuPos(null);
     };
-  }, [isOpen, options.length, menuCentered]);
+  }, [isOpen, filteredOptions.length, menuCentered]);
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -160,6 +187,10 @@ const DropDown: React.FC<DropdownProps> = ({
       onChange(optionValue);
     }
   };
+
+  useEffect(() => {
+    if (!isOpen) setSearchQuery("");
+  }, [isOpen]);
 
   const inputWidthClass = customWidth ? customWidth : "w-[12rem]";
   const menuWidthClass = menuWidth ? menuWidth : inputWidthClass;
@@ -232,7 +263,19 @@ const DropDown: React.FC<DropdownProps> = ({
                 })()}
                 className={`${menuWidthClass} bg-white rounded-md border border-gray-300 shadow-lg overflow-auto max-h-[240px] z-[1100]`}
               >
-                {options.map((option) => (
+                {searchable && (
+                  <div className="sticky top-0 bg-white z-10 border-b border-gray-200 p-2">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={searchPlaceholder}
+                      className="w-full border border-gray-200 rounded-md px-2 py-1 text-[12px] focus:outline-none focus:ring-1 focus:ring-green-400"
+                      autoFocus
+                    />
+                  </div>
+                )}
+                {filteredOptions.map((option) => (
                   <button
                     key={option.value}
                     type="button"
@@ -242,6 +285,11 @@ const DropDown: React.FC<DropdownProps> = ({
                     {option.label}
                   </button>
                 ))}
+                {searchable && filteredOptions.length === 0 && (
+                  <div className="px-3 py-2 text-[12px] text-gray-500">
+                    No results
+                  </div>
+                )}
               </div>,
               document.body
             )

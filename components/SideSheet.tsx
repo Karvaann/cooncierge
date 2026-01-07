@@ -10,7 +10,7 @@ interface SideSheetProps {
   onCloseButtonClick?: () => void;
   title?: React.ReactNode;
   children: React.ReactNode;
-  width?: "sm" | "md" | "lg" | "xl" | "full";
+  width?: "sm" | "md" | "lg" | "lg2" | "xl" | "full";
   position?: "left" | "right";
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
@@ -43,6 +43,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
       sm: "w-80",
       md: "w-96",
       lg: "w-[41.664vw]",
+      lg2: "w-[50.43vw]",
       xl: "w-[52.08vw]",
       full: "w-full",
     }),
@@ -107,7 +108,12 @@ const SideSheet: React.FC<SideSheetProps> = ({
   // Memoized sidesheet content
   const sideSheetContent = useMemo(
     () => (
-      <div className="fixed inset-0 z-[950] transition-all duration-300">
+      <div
+        className={`fixed inset-0 z-[950] transition-all duration-300 ${
+          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+        aria-hidden={!isOpen}
+      >
         {/* Overlay */}
         <div
           className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${
@@ -199,9 +205,6 @@ const SideSheet: React.FC<SideSheetProps> = ({
       children,
     ]
   );
-
-  // Don't render if not open
-  if (!isOpen) return null;
 
   // Use portal for better accessibility and z-index management
   if (typeof window !== "undefined") {

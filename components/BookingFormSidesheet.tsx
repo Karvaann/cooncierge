@@ -940,7 +940,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         }
       />
 
-      {isAddCustomerOpen && (
         <AddCustomerSideSheet
           isOpen={isAddCustomerOpen}
           onCancel={closeAddCustomer}
@@ -949,8 +948,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           formRef={addCustomerFormRef}
           customerCode={customerCode}
         />
-      )}
-      {isAddVendorOpen && (
+
+
         <AddVendorSideSheet
           isOpen={isAddVendorOpen}
           onCancel={closeAddVendor}
@@ -959,10 +958,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           formRef={addVendorFormRef}
           vendorCode={vendorCode}
         />
-      )}
-      {isAddTravellerOpen && (
+
         <AddNewTravellerForm formRef={addTravellerFormRef} />
-      )}
+
     </>
   );
 };

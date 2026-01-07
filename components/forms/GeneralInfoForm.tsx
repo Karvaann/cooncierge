@@ -2966,8 +2966,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         />
       </div>
 
-      {/* View customer sidesheet (read-only) */}
-      {isViewCustomerOpen && (
         <AddCustomerSideSheet
           isOpen={isViewCustomerOpen}
           onCancel={() => {
@@ -2977,9 +2975,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           mode="view"
           data={viewCustomerData as any}
         />
-      )}
 
-      {isViewVendorOpen && (
+      
         <AddVendorSideSheet
           isOpen={isViewVendorOpen}
           onCancel={() => {
@@ -2989,8 +2986,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           mode="view"
           data={viewVendorData as any}
         />
-      )}
-      {isViewTravellerOpen && (
+
         <AddNewTravellerForm
           isOpen={isViewTravellerOpen}
           onClose={() => {
@@ -3000,7 +2996,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           mode="view"
           data={viewTravellerData}
         />
-      )}
 
       {/* Submit Button (if standalone) */}
       {/* {onSubmit && (
