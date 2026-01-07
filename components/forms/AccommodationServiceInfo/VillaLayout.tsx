@@ -214,7 +214,24 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                           id={`villa-copy-checkbox`}
                           className="hidden peer"
                           checked={copyToOthers}
-                          onChange={(e) => setCopyToOthers(e.target.checked)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setCopyToOthers(checked);
+
+                            // If turning on, copy first room's category/bed to others
+                            if (checked && segments && segments.length > 0) {
+                              const first = segments[0];
+                              const newSegments = segments.map((seg, idx) => {
+                                if (idx === 0) return seg;
+                                return {
+                                  ...seg,
+                                  roomCategory: (first as any).roomCategory,
+                                  bedType: (first as any).bedType,
+                                };
+                              });
+                              onSegmentsChange(newSegments);
+                            }
+                          }}
                         />
 
                         <label

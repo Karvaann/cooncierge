@@ -2772,7 +2772,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       secondaryBookingOwners: [],
                     }));
                   }}
-                  className="w-6 h-6 flex items-center justify-center rounded-full border border-gray-200 bg-white hover:bg-gray-50"
+                  className="w-5 h-5 flex items-center justify-center mb-1 rounded-full border border-gray-200 bg-white hover:bg-gray-50"
                 >
                   <FiMinus size={12} />
                 </button>
@@ -2781,7 +2781,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               <div className="w-[59%]" ref={teamsSecondaryRef}>
                 {/* Filter-style multi-select pills input */}
                 <div
-                  className="w-full min-h-[2.4rem] -mt-0.5 border border-gray-300 hover:border-green-200 rounded-sm px-2.5 py-3 flex items-center flex-wrap gap-1 cursor-pointer"
+                  className="w-full min-h-[1.5rem] text-[12px] -mt-0.5 border border-gray-200 hover:border-green-200 rounded-md px-2.5 py-2 flex items-center flex-wrap gap-1 cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
                     const rect =
@@ -2834,7 +2834,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       </span>
                     ))
                   ) : (
-                    <span className="text-[#9CA3AF] text-[14px] flex items-center flex-1">
+                    <span className="text-[#9CA3AF] text-[12px] flex items-center flex-1">
                       Select Owner
                     </span>
                   )}

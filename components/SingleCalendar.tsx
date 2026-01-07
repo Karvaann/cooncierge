@@ -294,22 +294,16 @@ export default function SingleCalendar({
   };
 
   const handleInputBlur = () => {
-    // If input is incomplete, invalid, or outside allowed range, reset to selected date value
-    if (inputValue.length !== 10) {
-      if (value) {
-        setInputValue(formatDateForInput(new Date(value)));
-      } else {
-        setInputValue("");
-      }
-      return;
-    }
-
-    const parsed = parseInputDate(inputValue);
-    if (!parsed || !isDateAllowed(parsed)) {
-      if (value) {
-        setInputValue(formatDateForInput(new Date(value)));
-      } else {
-        setInputValue("");
+    // Preserve whatever the user typed. If it's a complete valid date (DD-MM-YYYY)
+    // and within allowed range, apply it. Otherwise keep the typed value.
+    if (inputValue.length === 10) {
+      const parsed = parseInputDate(inputValue);
+      if (parsed && isDateAllowed(parsed)) {
+        onChange(parsed.toISOString());
+        setCurrentMonth(new Date(parsed.getFullYear(), parsed.getMonth(), 1));
+        setOpen(false);
+        setShowMonthPicker(false);
+        setShowYearPicker(false);
       }
     }
   };
@@ -507,9 +501,9 @@ export default function SingleCalendar({
       )}
 
       <div
-        className={`relative flex items-center ${
+        className={`relative ${
           customWidth || "w-[12rem]"
-        } gap-2 border border-gray-300 rounded-md px-2 py-1.5 ${
+        } border border-gray-300 rounded-md px-2 py-1 ${
           readOnly
             ? "bg-gray-100 cursor-default border-gray-200"
             : "bg-white hover:border-green-400"
@@ -522,7 +516,15 @@ export default function SingleCalendar({
           onChange={handleInputChange}
           onBlur={handleInputBlur}
           onFocus={() => {
-            if (!readOnly) setOpen(true);
+            if (readOnly) return;
+
+            // If a date already exists, clear it for fresh selection
+            if (value) {
+              setInputValue("");
+              onChange("");
+            }
+
+            setOpen(true);
           }}
           disabled={readOnly}
           placeholder={placeholder}
@@ -533,33 +535,36 @@ export default function SingleCalendar({
           className={
             inputClassName ||
             (readOnly
-              ? "flex-1 text-[13px] text-gray-700 bg-gray-100 cursor-default"
-              : "flex-1 text-[13px] text-gray-700 outline-none bg-transparent")
+              ? "w-full pr-7 text-[13px] text-gray-700 bg-gray-100 cursor-default"
+              : "w-full pr-7 text-[13px] text-gray-700 outline-none bg-transparent")
           }
         />
 
-        {!!value && !readOnly && (
-          <button
-            type="button"
-            onClick={handleClearDate}
-            className="text-gray-300 hover:text-gray-600 transition-colors"
-            aria-label="Clear date"
-          >
-            <MdClose size={14} />
-          </button>
-        )}
-
-        {showCalendarIcon && !readOnly && (
+        {!readOnly && showCalendarIcon && (
           <button
             type="button"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              setOpen(!open);
+
+              if (open) {
+                setInputValue("");
+                onChange("");
+                setOpen(false);
+                setShowMonthPicker(false);
+                setShowYearPicker(false);
+              } else {
+                if (value) {
+                  setInputValue("");
+                  onChange("");
+                }
+                setOpen(true);
+              }
             }}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            aria-label={open ? "Clear date" : "Open calendar"}
           >
-            <FaRegCalendar size={14} />
+            {open ? <MdClose size={14} /> : <FaRegCalendar size={14} />}
           </button>
         )}
       </div>

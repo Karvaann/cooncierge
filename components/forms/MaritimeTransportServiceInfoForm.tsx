@@ -42,6 +42,16 @@ interface OtherInfoFormProps {
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
   externalFormData?: ExternalFormData | Record<string, unknown>;
+  existingDocuments?: Array<{
+    originalName: string;
+    fileName: string;
+    url: string;
+    key: string;
+    size: number;
+    mimeType: string;
+    uploadedAt: string | Date;
+    _id?: string;
+  }>;
 }
 
 const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
@@ -52,6 +62,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   onFormDataUpdate,
   onAddDocuments,
   externalFormData,
+  existingDocuments = [],
 }) => {
   const normalizedExternalData = useMemo(() => {
     const source = externalFormData ?? {};
@@ -755,7 +766,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   name="confirmationNumber"
                   value={formData.confirmationNumber}
                   onChange={handleChange}
-                  placeholder="Abc12345"
+                  placeholder="Enter Confirmation Number"
                   className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[13px] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -807,6 +818,24 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
           {/* PREVIEW FILES */}
           <div className="mt-2 flex flex-col gap-2">
+            {Array.isArray(existingDocuments) &&
+              existingDocuments.length > 0 &&
+              existingDocuments.map((doc, i) => (
+                <div
+                  key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
+                  className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
+                >
+                  <button
+                    type="button"
+                    onClick={() => doc.url && window.open(doc.url, "_blank")}
+                    className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+                    title="Click to view document"
+                  >
+                    <FaRegFolder className="text-blue-500 w-3 h-3" />
+                    {doc.originalName || doc.fileName}
+                  </button>
+                </div>
+              ))}
             {attachedFiles.map((file, i) => (
               <div
                 key={i}

@@ -8,6 +8,7 @@ interface FilterInputShellProps {
   placeholder: string;
   onClick: (e: React.MouseEvent) => void;
   children?: React.ReactNode;
+  className?: string;
 }
 
 const FilterInputShell: React.FC<FilterInputShellProps> = ({
@@ -15,13 +16,14 @@ const FilterInputShell: React.FC<FilterInputShellProps> = ({
   placeholder,
   onClick,
   children,
+  className = "",
 }) => {
   return (
     <div
-      className="w-[14.75rem] min-h-[2.4rem] -mt-0.5
+      className={`w-[14.75rem] min-h-[2.4rem] -mt-0.5
                  border border-gray-300 hover:border-green-200
                  rounded-sm px-2.5 py-3
-                 flex items-center flex-wrap gap-1 cursor-pointer"
+                 flex items-center flex-wrap gap-1 cursor-pointer ${className}`}
       onClick={onClick}
     >
       {children ? (

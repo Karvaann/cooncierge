@@ -663,10 +663,15 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                  bg-white rounded-md 
                  px-3 py-2 hover:bg-gray-50 transition"
                   >
-                    <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => doc.url && window.open(doc.url, "_blank")}
+                      className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+                      title="Click to view document"
+                    >
                       <FaRegFolder className="text-blue-500 w-3 h-3" />
                       {doc.originalName || doc.fileName}
-                    </span>
+                    </button>
 
                     {!readOnly && mode === "edit" ? (
                       <button

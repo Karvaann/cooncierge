@@ -120,6 +120,8 @@ interface QuotationData {
   travelDate?: string;
   serviceStatus?: string;
   owner?: Array<{ name?: string }>;
+  primaryOwner?: { name?: string };
+  secondaryOwner?: Array<{ name?: string }>;
   totalAmount: number;
   status: string;
   createdAt: string;
@@ -213,7 +215,9 @@ const OSBookingsPage = () => {
     tabOptions = ["Bookings", "Drafts", "Deleted"];
   }
 
-  const [activeTab, setActiveTab] = useState(user.isBookingMaker ? "Approved" : "Bookings");
+  const [activeTab, setActiveTab] = useState(
+    user.isBookingMaker ? "Approved" : "Bookings"
+  );
 
   const tabContainerRef = useRef<HTMLDivElement | null>(null);
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
@@ -396,8 +400,11 @@ const OSBookingsPage = () => {
           return false;
       }
 
-      // Extract owner names from the API response (owner is an array of objects with name property)
-      const ownerArray = (q as any).owner || [];
+      // Extract owner names from the API response
+      const ownerArray = ([] as any[]).concat(
+        q.secondaryOwner || [],
+        q.primaryOwner ? [q.primaryOwner] : []
+      );
       const rowOwners: string[] = Array.isArray(ownerArray)
         ? ownerArray.map((o: any) => o?.name || "").filter(Boolean)
         : [];
@@ -1141,7 +1148,7 @@ const OSBookingsPage = () => {
             <div className="flex w-full justify-between items-center mb-2">
               <div
                 ref={tabContainerRef}
-                style={{width: 'fit-content'}}
+                style={{ width: "fit-content" }}
                 className="flex w-[20.5rem] ml-2 items-center bg-[#F3F3F3] rounded-xl relative py-1.5 gap-8.5"
               >
                 {/* Sliding background indicator sized to active button */}

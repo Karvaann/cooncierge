@@ -25,6 +25,228 @@ export default function StyledDescription({
     ol: false,
   });
 
+  const LIST_BASE_CLASS = "text-black pl-4";
+  const getListClassName = (type: "ul" | "ol") =>
+    LIST_BASE_CLASS + (type === "ul" ? " list-disc" : " list-decimal");
+
+  const createStyledList = (
+    type: "ul" | "ol",
+    sourceList?: HTMLUListElement | HTMLOListElement
+  ) => {
+    const list = document.createElement(type);
+    list.className = getListClassName(type);
+    (list as HTMLElement).style.listStylePosition = "outside";
+    if (sourceList?.dataset?.split) {
+      list.dataset.split = sourceList.dataset.split;
+    }
+    return list;
+  };
+
+  const rangeIntersectsNode = (range: Range, node: Node): boolean => {
+    try {
+      return range.intersectsNode(node);
+    } catch {
+      // Fallback for older browsers / edge cases.
+      const nodeRange = document.createRange();
+      nodeRange.selectNodeContents(node);
+      return (
+        range.compareBoundaryPoints(Range.END_TO_START, nodeRange) < 0 &&
+        range.compareBoundaryPoints(Range.START_TO_END, nodeRange) > 0
+      );
+    }
+  };
+
+  const getClosestLiAtSelection = (
+    editor: HTMLDivElement,
+    sel: Selection
+  ): HTMLLIElement | null => {
+    const node = sel.anchorNode || sel.focusNode;
+    if (!node) return null;
+
+    let el: Node | null =
+      node.nodeType === Node.TEXT_NODE ? node.parentNode : node;
+    while (el && el !== editor) {
+      if (el instanceof HTMLLIElement) return el;
+      el = el.parentNode;
+    }
+    return null;
+  };
+
+  const getSelectedListItems = (
+    editor: HTMLDivElement,
+    sel: Selection,
+    range: Range
+  ): HTMLLIElement[] => {
+    if (range.collapsed) {
+      const li = getClosestLiAtSelection(editor, sel);
+      return li ? [li] : [];
+    }
+
+    const allLis = Array.from(editor.querySelectorAll("li"));
+    const selected = allLis.filter((li) => rangeIntersectsNode(range, li));
+    return selected;
+  };
+
+  const findTopLevelBlockAtSelection = (
+    editor: HTMLDivElement,
+    sel: Selection
+  ): HTMLElement | null => {
+    const node = sel.anchorNode || sel.focusNode;
+    if (!node) return null;
+
+    let el: Node | null =
+      node.nodeType === Node.TEXT_NODE ? node.parentNode : node;
+    while (el && el !== editor) {
+      if (el instanceof HTMLElement && el.parentElement === editor) return el;
+      el = el.parentNode;
+    }
+    return null;
+  };
+
+  const setCaretToEnd = (el: HTMLElement) => {
+    const sel = window.getSelection();
+    if (!sel) return;
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
+
+  const convertSelectedListItemsToType = (
+    targetType: "ul" | "ol",
+    selectedLis: HTMLLIElement[]
+  ) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    // Group selected <li> nodes by their parent list (<ul>/<ol>).
+    const byList = new Map<
+      HTMLUListElement | HTMLOListElement,
+      HTMLLIElement[]
+    >();
+    for (const li of selectedLis) {
+      const list = li.closest("ul,ol") as
+        | HTMLUListElement
+        | HTMLOListElement
+        | null;
+      if (!list || !editor.contains(list)) continue;
+      const existing = byList.get(list) || [];
+      existing.push(li);
+      byList.set(list, existing);
+    }
+
+    let caretTarget: HTMLLIElement | null = null;
+
+    const processGroup = (
+      list: HTMLUListElement | HTMLOListElement,
+      firstLi: HTMLLIElement,
+      lastLi: HTMLLIElement
+    ) => {
+      const parent = list.parentNode;
+      if (!parent) return;
+
+      const sourceType = list.tagName.toLowerCase() as "ul" | "ol";
+      if (sourceType === targetType) return;
+
+      const hasBefore = !!firstLi.previousSibling;
+      const hasAfter = !!lastLi.nextSibling;
+
+      const afterList = hasAfter
+        ? (document.createElement(sourceType) as
+            | HTMLUListElement
+            | HTMLOListElement)
+        : null;
+      if (afterList) {
+        afterList.className = list.className;
+        (afterList as HTMLElement).style.listStylePosition = "outside";
+        if (list.dataset?.split) afterList.dataset.split = list.dataset.split;
+        while (lastLi.nextSibling) {
+          afterList.appendChild(lastLi.nextSibling);
+        }
+      }
+
+      const newList = createStyledList(targetType, list);
+
+      // Move the selected range [firstLi..lastLi] into the new list.
+      let current: ChildNode | null = firstLi;
+      while (current) {
+        const next: ChildNode | null = current.nextSibling;
+        newList.appendChild(current);
+        if (current === lastLi) break;
+        current = next;
+      }
+
+      if (!caretTarget) {
+        caretTarget = firstLi;
+      }
+
+      if (!hasBefore) {
+        // New list takes the old list's position.
+        parent.insertBefore(newList, list);
+        if (afterList && afterList.childNodes.length > 0) {
+          parent.insertBefore(afterList, list);
+        }
+        parent.removeChild(list);
+      } else {
+        // Keep the original list as the "before" list, then insert new/after lists after it.
+        parent.insertBefore(newList, list.nextSibling);
+        if (afterList && afterList.childNodes.length > 0) {
+          parent.insertBefore(afterList, newList.nextSibling);
+        }
+        if (list.childNodes.length === 0) {
+          parent.removeChild(list);
+        }
+      }
+    };
+
+    for (const [list, items] of byList.entries()) {
+      const listItems = Array.from(list.children).filter(
+        (n): n is HTMLLIElement => n instanceof HTMLLIElement
+      );
+
+      const indices = items
+        .map((li) => listItems.indexOf(li))
+        .filter((idx) => idx >= 0)
+        .sort((a, b) => a - b);
+      if (indices.length === 0) continue;
+
+      // Create consecutive index groups, then process from the end to avoid disrupting earlier indices.
+      const groups: Array<{ first: HTMLLIElement; last: HTMLLIElement }> = [];
+      let startIndex = indices[0]!;
+      let prevIndex = indices[0]!;
+      for (let i = 1; i < indices.length; i++) {
+        const idx = indices[i]!;
+        if (idx === prevIndex + 1) {
+          prevIndex = idx;
+          continue;
+        }
+        groups.push({
+          first: listItems[startIndex]!,
+          last: listItems[prevIndex]!,
+        });
+        startIndex = idx;
+        prevIndex = idx;
+      }
+      groups.push({
+        first: listItems[startIndex]!,
+        last: listItems[prevIndex]!,
+      });
+
+      for (let g = groups.length - 1; g >= 0; g--) {
+        const group = groups[g];
+        if (!group) continue;
+        processGroup(list, group.first, group.last);
+      }
+    }
+
+    editor.focus();
+    if (caretTarget) {
+      setCaretToEnd(caretTarget);
+    }
+    updateActiveFormats();
+  };
+
   useEffect(() => {
     // Remove placeholder on focus if empty
     const editor = editorRef.current;
@@ -77,6 +299,12 @@ export default function StyledDescription({
     const editor = editorRef.current;
     if (!editor) return;
 
+    // Clear placeholder if present
+    if (editor.textContent === "Type here...") {
+      editor.textContent = "";
+      editor.style.color = "#374151";
+    }
+
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
 
@@ -89,21 +317,36 @@ export default function StyledDescription({
       return;
     }
 
+    // If the selection intersects any list items, ONLY convert those list items.
+    const selectedLis = getSelectedListItems(editor, selection, range);
+    if (selectedLis.length > 0) {
+      convertSelectedListItemsToType(type, selectedLis);
+      return;
+    }
+
+    // If there's no selected text, apply list formatting to the current cursor line only.
     const selectedText = selection.toString();
-    if (!selectedText || selectedText.trim() === "") return;
-    // If the selection is already inside a list of the same type, toggle (unwrap) it
-    if (isSelectionInside(type)) {
-      // find the closest ancestor list
-      let node = range.commonAncestorContainer;
-      let el: Node | null =
-        node.nodeType === Node.TEXT_NODE ? node.parentNode : node;
-      while (el && el !== editor) {
-        if (el instanceof Element && el.tagName.toLowerCase() === type) {
-          unwrapList(el as HTMLUListElement | HTMLOListElement);
-          return;
-        }
-        el = el.parentNode;
+    if (!selectedText || selectedText.trim() === "") {
+      const block = findTopLevelBlockAtSelection(editor, selection);
+
+      const list = createStyledList(type);
+      const li = document.createElement("li");
+
+      if (block) {
+        const html = block.innerHTML;
+        li.innerHTML = html === "<br>" ? "" : html;
+        list.appendChild(li);
+        block.replaceWith(list);
+      } else {
+        // If we can't find a top-level block (e.g., caret directly in editor), insert an empty list item.
+        li.innerHTML = "";
+        list.appendChild(li);
+        range.insertNode(list);
       }
+
+      editor.focus();
+      setCaretToEnd(li);
+      updateActiveFormats();
       return;
     }
 
@@ -132,13 +375,9 @@ export default function StyledDescription({
 
     if (items.length === 0) return;
 
-    const list = document.createElement(type);
+    const list = createStyledList(type);
     // record how we split so toggling can revert correctly
     list.dataset.split = splitMode;
-    // Prefer Tailwind classes for consistent styling
-    list.className =
-      "text-black pl-4" + (type === "ul" ? " list-disc" : " list-decimal");
-    (list as HTMLElement).style.listStylePosition = "outside";
 
     for (const it of items) {
       const li = document.createElement("li");

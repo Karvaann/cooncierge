@@ -8,15 +8,13 @@ import React, {
   useRef,
 } from "react";
 import { createPortal } from "react-dom";
-import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { RiRefreshLine } from "react-icons/ri";
-import { FaRegCalendar } from "react-icons/fa6";
 import { IoClose } from "react-icons/io5";
 import DateRangeInput from "./DateRangeInput";
 import Button from "./Button";
-import DropDown from "./DropDown";
 import { CiSearch } from "react-icons/ci";
 import FilterInputShell from "./FilterInputShell";
+import SelectBookingOwnerModal from "./Modals/SelectBookingOwnerModal";
 
 interface FilterOption {
   id?: string;
@@ -97,18 +95,8 @@ const Filter: React.FC<FilterProps> = ({
   const [showTripStartAsDate, setShowTripStartAsDate] = useState(false);
   const [showTripEndAsDate, setShowTripEndAsDate] = useState(false);
 
-  const [ownerDropdownOpen, setOwnerDropdownOpen] = useState(false);
   const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
-  const [ownerSearch, setOwnerSearch] = useState("");
-
-  const ownerDropdownRef = useRef<HTMLDivElement>(null);
-  const dropdownPortalRef = useRef<HTMLDivElement | null>(null);
-  const [dropdownPos, setDropdownPos] = useState<{
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  } | null>(null);
+  const [ownerModalOpen, setOwnerModalOpen] = useState(false);
 
   // Booking Type dropdown (owner-style)
   const bookingTypeRef = useRef<HTMLDivElement>(null);
@@ -120,49 +108,6 @@ const Filter: React.FC<FilterProps> = ({
     width: number;
     height: number;
   } | null>(null);
-
-  const toggleOwner = (name: string) => {
-    setSelectedOwners((prev) => {
-      const newSelected = prev.includes(name)
-        ? prev.filter((p) => p !== name)
-        : [...prev, name];
-      updateFilter("owner", newSelected); // SEND TO FILTERS
-      return newSelected;
-    });
-  };
-
-  // Convert owners prop into a plain array:
-  const ownersList = owners.map(
-    (o: any) => o.label || o.name || o.value || String(o)
-  );
-
-  // Filtered by search:
-  const filteredOwnersList = ownersList.filter((o: string) =>
-    o.toLowerCase().includes(ownerSearch.toLowerCase())
-  );
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    if (!ownerDropdownOpen) return;
-
-    const handler = (e: MouseEvent) => {
-      const target = e.target as Node;
-      // If click inside the original container, keep open
-      if (ownerDropdownRef.current && ownerDropdownRef.current.contains(target))
-        return;
-      // If click inside the portal dropdown, keep open
-      if (
-        dropdownPortalRef.current &&
-        dropdownPortalRef.current.contains(target)
-      )
-        return;
-      setOwnerDropdownOpen(false);
-    };
-
-    // Use capture phase to catch events before they bubble
-    document.addEventListener("click", handler, true);
-    return () => document.removeEventListener("click", handler, true);
-  }, [ownerDropdownOpen]);
 
   // Outside click for booking type
   useEffect(() => {
@@ -209,52 +154,34 @@ const Filter: React.FC<FilterProps> = ({
     };
   }, [bookingTypeOpen]);
 
-  // Recalculate dropdown position when selectedOwners change, container resizes, or window scroll/resize
+  // Keep UI pills in sync with initial owner filter (when provided)
   useEffect(() => {
-    if (!ownerDropdownOpen) return;
-
-    const recalc = () => {
-      const rect = ownerDropdownRef.current?.getBoundingClientRect();
-      if (rect) {
-        setDropdownPos({
-          left: rect.left,
-          top: rect.top,
-          width: rect.width,
-          height: rect.height,
-        });
-      }
-    };
-
-    // Recalc immediately in case content changed
-    recalc();
-
-    // ResizeObserver to detect size changes (pills added/removed)
-    let ro: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== "undefined" && ownerDropdownRef.current) {
-      ro = new ResizeObserver(() => recalc());
-      try {
-        ro.observe(ownerDropdownRef.current);
-      } catch (e) {
-        // ignore
-      }
-    }
-
-    // Recalc on scroll/resize to keep fixed-position correct
-    window.addEventListener("resize", recalc);
-    window.addEventListener("scroll", recalc, true);
-
-    return () => {
-      if (ro) ro.disconnect();
-      window.removeEventListener("resize", recalc);
-      window.removeEventListener("scroll", recalc, true);
-    };
-  }, [ownerDropdownOpen, selectedOwners]);
+    const initialOwner = (initialFilters as any)?.owner;
+    const next = Array.isArray(initialOwner)
+      ? initialOwner
+      : typeof initialOwner === "string" && initialOwner
+      ? [initialOwner]
+      : [];
+    setSelectedOwners(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const updateFilter = useCallback(
     (key: keyof FilterState, value: string | string[]) => {
       setFilters((prev) => ({ ...prev, [key]: value }));
     },
     []
+  );
+
+  const removeOwner = useCallback(
+    (name: string) => {
+      setSelectedOwners((prev) => {
+        const next = prev.filter((p) => p !== name);
+        updateFilter("owner", next);
+        return next;
+      });
+    },
+    [updateFilter]
   );
 
   // Decide search input width: explicit prop > compact when booking type shown > default
@@ -384,44 +311,47 @@ const Filter: React.FC<FilterProps> = ({
               Booking Owner
             </label>
 
-            <div className="relative" ref={ownerDropdownRef}>
-              {/* Input area with pills */}
+            <div className="relative">
               <FilterInputShell
                 placeholder="Select Owner"
                 onClick={(e) => {
                   e.stopPropagation();
-                  const rect =
-                    ownerDropdownRef.current?.getBoundingClientRect();
-                  if (rect) {
-                    setDropdownPos({
-                      left: rect.left,
-                      top: rect.top,
-                      width: rect.width,
-                      height: rect.height,
-                    });
-                  }
-                  setOwnerDropdownOpen((prev) => !prev);
+                  setOwnerModalOpen(true);
                 }}
               >
                 {selectedOwners.length > 0 ? (
-                  selectedOwners.map((o) => (
+                  <>
                     <span
-                      key={o}
+                      key={selectedOwners[0]}
                       className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[12px]"
                     >
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleOwner(o);
+                          if (selectedOwners[0]) removeOwner(selectedOwners[0]);
                         }}
                         className="py-1"
                       >
                         <IoClose size={16} className="text-[#818181]" />
                       </button>
-                      {o}
+                      {selectedOwners[0]}
                     </span>
-                  ))
+
+                    {selectedOwners.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOwnerModalOpen(true);
+                        }}
+                        className="text-[#114958] underline text-[14px] ml-2"
+                        aria-label="Show more owners"
+                      >
+                        + {selectedOwners.length - 1}
+                      </button>
+                    )}
+                  </>
                 ) : (
                   <span className="text-[#9CA3AF] text-[14px] flex items-center flex-1">
                     Select Owner
@@ -429,70 +359,16 @@ const Filter: React.FC<FilterProps> = ({
                 )}
               </FilterInputShell>
 
-              {/* Dropdown: render into portal to avoid clipping by parent containers */}
-              {ownerDropdownOpen &&
-                dropdownPos &&
-                createPortal(
-                  <div
-                    ref={dropdownPortalRef}
-                    style={{
-                      position: "fixed",
-                      left: dropdownPos.left,
-                      top: dropdownPos.top + dropdownPos.height + 6,
-                      width: dropdownPos.width,
-                      zIndex: 9999,
-                      minHeight: 32,
-                    }}
-                    className="bg-white border border-gray-200 rounded-md shadow-xl max-h-48 overflow-y-auto"
-                  >
-                    {filteredOwnersList.length === 0 ? (
-                      <div className="px-3 py-2 text-gray-500 text-[0.75rem]">
-                        No owners found
-                      </div>
-                    ) : (
-                      filteredOwnersList.map((owner) => {
-                        const checked = selectedOwners.includes(owner);
-
-                        return (
-                          <label
-                            key={owner}
-                            className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              toggleOwner(owner);
-                            }}
-                          >
-                            <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
-                              {checked && (
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="12"
-                                  height="11"
-                                  viewBox="0 0 12 11"
-                                  fill="none"
-                                >
-                                  <path
-                                    d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                                    stroke="#0D4B37"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                  />
-                                </svg>
-                              )}
-                            </div>
-
-                            <span className="text-black text-[14px]">
-                              {owner}
-                            </span>
-                          </label>
-                        );
-                      })
-                    )}
-                  </div>,
-                  typeof document !== "undefined"
-                    ? document.body
-                    : (null as any)
-                )}
+              <SelectBookingOwnerModal
+                isOpen={ownerModalOpen}
+                onClose={() => setOwnerModalOpen(false)}
+                owners={owners}
+                initialSelectedOwners={selectedOwners}
+                onApply={(next) => {
+                  setSelectedOwners(next);
+                  updateFilter("owner", next);
+                }}
+              />
             </div>
           </div>
 

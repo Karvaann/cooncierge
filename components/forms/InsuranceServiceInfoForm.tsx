@@ -10,6 +10,7 @@ import StyledDescription from "../StyledDescription";
 import DropDown from "@/components/DropDown";
 import SingleCalendar from "@/components/SingleCalendar";
 import { FaRegFolder } from "react-icons/fa";
+import { allowUppercaseAlphanumeric6 } from "@/utils/inputValidators";
 
 // Type definitions
 interface OtherServiceInfoFormData {
@@ -42,6 +43,16 @@ interface OtherInfoFormProps {
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
   externalFormData?: ExternalFormData | Record<string, unknown>;
+  existingDocuments?: Array<{
+    originalName?: string;
+    fileName?: string;
+    url?: string;
+    key?: string;
+    size?: number;
+    mimeType?: string;
+    uploadedAt?: string | Date;
+    _id?: string;
+  }>;
 }
 
 const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
@@ -52,6 +63,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   onFormDataUpdate,
   onAddDocuments,
   externalFormData,
+  existingDocuments = [],
 }) => {
   const normalizedExternalData = useMemo(() => {
     const source = externalFormData ?? {};
@@ -270,10 +282,15 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
-    const processedValue =
-      type === "number" && value !== "" ? Number(value) : value;
+    const newValue =
+      name === "confirmationNumber"
+        ? allowUppercaseAlphanumeric6(value)
+        : value;
 
-    setFormData((prev) => ({ ...prev, [name]: processedValue }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: newValue,
+    }));
 
     // Clear error when user types
     if (errors[name as keyof OtherServiceInfoFormData]) {
@@ -733,7 +750,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   name="confirmationNumber"
                   value={formData.confirmationNumber}
                   onChange={handleChange}
-                  placeholder="Abc12345"
+                  placeholder="Enter Confirmation Number"
                   className="w-[30%] px-3 py-1.5 border border-gray-300 rounded-md text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                 />
               </div>
@@ -785,6 +802,25 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
           {/* PREVIEW FILES */}
           <div className="mt-2 flex flex-col gap-2">
+            {Array.isArray(existingDocuments) &&
+              existingDocuments.length > 0 &&
+              existingDocuments.map((doc, i) => (
+                <div
+                  key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
+                  className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
+                >
+                  <button
+                    type="button"
+                    onClick={() => doc.url && window.open(doc.url, "_blank")}
+                    className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+                    title="Click to view document"
+                  >
+                    <FaRegFolder className="text-blue-500 w-3 h-3" />
+                    {doc.originalName || doc.fileName}
+                  </button>
+                </div>
+              ))}
+
             {attachedFiles.map((file, i) => (
               <div
                 key={i}

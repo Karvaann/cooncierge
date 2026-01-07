@@ -72,7 +72,8 @@ interface TabConfig {
 }
 
 function ServiceInfoFormSwitcher(props: any) {
-  const { selectedService, onAddDocuments, initialData } = props;
+  const { selectedService, onAddDocuments, initialData, existingDocuments } =
+    props;
   const rawServiceValue =
     (selectedService &&
       typeof selectedService === "object" &&
@@ -140,6 +141,7 @@ function ServiceInfoFormSwitcher(props: any) {
           {...props}
           externalFormData={initialData}
           onAddDocuments={onAddDocuments}
+          existingDocuments={existingDocuments}
         />
       );
 
@@ -149,6 +151,7 @@ function ServiceInfoFormSwitcher(props: any) {
           {...props}
           externalFormData={initialData}
           onAddDocuments={onAddDocuments}
+          existingDocuments={existingDocuments}
         />
       );
 
@@ -158,6 +161,7 @@ function ServiceInfoFormSwitcher(props: any) {
           {...props}
           externalFormData={initialData}
           onAddDocuments={onAddDocuments}
+          existingDocuments={existingDocuments}
         />
       );
 
@@ -167,6 +171,7 @@ function ServiceInfoFormSwitcher(props: any) {
           {...props}
           externalFormData={initialData}
           onAddDocuments={onAddDocuments}
+          existingDocuments={existingDocuments}
         />
       );
     case "tickets":
@@ -175,6 +180,7 @@ function ServiceInfoFormSwitcher(props: any) {
           {...props}
           externalFormData={initialData}
           onAddDocuments={onAddDocuments}
+          existingDocuments={existingDocuments}
         />
       );
 
@@ -184,6 +190,7 @@ function ServiceInfoFormSwitcher(props: any) {
           {...props}
           externalFormData={initialData}
           onAddDocuments={onAddDocuments}
+          existingDocuments={existingDocuments}
         />
       );
 
@@ -193,6 +200,7 @@ function ServiceInfoFormSwitcher(props: any) {
           {...props}
           externalFormData={initialData}
           onAddDocuments={onAddDocuments}
+          existingDocuments={existingDocuments}
         />
       );
 
@@ -202,6 +210,7 @@ function ServiceInfoFormSwitcher(props: any) {
           {...props}
           externalFormData={initialData}
           onAddDocuments={onAddDocuments}
+          existingDocuments={existingDocuments}
         />
       );
 
@@ -211,6 +220,7 @@ function ServiceInfoFormSwitcher(props: any) {
           {...props}
           externalFormData={initialData}
           onAddDocuments={onAddDocuments}
+          existingDocuments={existingDocuments}
         />
       );
 
@@ -257,6 +267,18 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
   // Collect all documents from all forms
   const [bookingDocuments, setBookingDocuments] = useState<File[]>([]);
+  const [existingBookingDocuments, setExistingBookingDocuments] = useState<
+    Array<{
+      originalName: string;
+      fileName: string;
+      url: string;
+      key: string;
+      size: number;
+      mimeType: string;
+      uploadedAt: string | Date;
+      _id?: string;
+    }>
+  >([]);
 
   const addBookingDocuments = (files: File[]) => {
     setBookingDocuments((prev) => [...prev, ...files]);
@@ -290,8 +312,15 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     if (!isOpen) return;
     if (initialData && Object.keys(initialData).length > 0) {
       setFormData(initialData);
+      // Load existing documents from initialData
+      if (Array.isArray(initialData.documents)) {
+        setExistingBookingDocuments(initialData.documents);
+      } else {
+        setExistingBookingDocuments([]);
+      }
     } else {
       setFormData({});
+      setExistingBookingDocuments([]);
     }
     setActiveTab("general");
   }, [initialData, isOpen]);
@@ -810,6 +839,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                     selectedService || initialData?.quotationType
                   }
                   onAddDocuments={addBookingDocuments}
+                  existingDocuments={existingBookingDocuments}
                 />
               </div>
             </div>

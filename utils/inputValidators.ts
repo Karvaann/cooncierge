@@ -53,6 +53,18 @@ export const allowOnly10Digits = (value: string): string => {
   return value.replace(/[^0-9]/g, "").slice(0, 10);
 };
 
+/**
+ * Allows ONLY uppercase letters and numbers
+ * Max length: 6
+ * No spaces
+ * Example: "AB12CD"
+ */
+export const allowUppercaseAlphanumeric6 = (value: string): string => {
+  return value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 6);
+};
 
 
 /**

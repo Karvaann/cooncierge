@@ -48,6 +48,15 @@ type VendorData = {
   balanceType: "credit" | "debit";
   remarks: string;
   tier?: string;
+  documents?: Array<{
+    originalName: string;
+    fileName: string;
+    url: string;
+    key: string;
+    size: number;
+    mimeType: string;
+    uploadedAt: string | Date;
+  }>;
 };
 
 type AddVendorSideSheetProps = {
@@ -77,6 +86,9 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   const [company, setcompany] = useState<string>("");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [existingDocuments, setExistingDocuments] = useState<
+    NonNullable<VendorData["documents"]>
+  >([]);
 
   // Validation helpers / UI state for required fields (company + contact person)
   const companyRef = useRef<HTMLInputElement | null>(null);
@@ -195,6 +207,10 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
     setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleDeleteExistingDocument = (index: number) => {
+    setExistingDocuments((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const [formData, setFormData] = useState<VendorData>({
     contactPerson: "",
     alias: "",
@@ -263,6 +279,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         countryCode: parsedCode || "+91",
       });
       setTier(data.tier || "");
+      setExistingDocuments(Array.isArray(data.documents) ? data.documents : []);
+      setAttachedFiles([]);
     } else {
       setFormData({
         contactPerson: "",
@@ -280,6 +298,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         countryCode: "+91",
       });
       setTier("");
+      setExistingDocuments([]);
+      setAttachedFiles([]);
     }
   }, [data]);
 
@@ -436,6 +456,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         address: formData.address,
         tier: tier || undefined,
         remarks: formData.remarks || undefined,
+        documents: existingDocuments,
       };
 
       const response = await updateVendor(vendorId, vendorData);
@@ -790,6 +811,39 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
                 {/* PREVIEW FILES */}
                 <div className="-mt-2 flex flex-col gap-2 w-full">
+                  {existingDocuments.map((doc, i) => (
+                    <div
+                      key={`${
+                        doc.key || doc.fileName || doc.originalName
+                      }-${i}`}
+                      className="flex items-center justify-between w-full 
+                               bg-white rounded-md 
+                               px-3 py-2 hover:bg-gray-50 transition"
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          doc.url && window.open(doc.url, "_blank")
+                        }
+                        className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+                        title="Click to view document"
+                      >
+                        <FaRegFolder className="text-blue-500 w-3 h-3" />
+                        {doc.originalName || doc.fileName}
+                      </button>
+
+                      {!readOnly && mode === "edit" ? (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteExistingDocument(i)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <FiTrash2 size={16} />
+                        </button>
+                      ) : null}
+                    </div>
+                  ))}
+
                   {attachedFiles.map((file, i) => (
                     <div
                       key={i}
@@ -804,13 +858,15 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       </span>
 
                       {/* Delete Icon */}
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteFile(i)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <FiTrash2 size={16} />
-                      </button>
+                      {!readOnly ? (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteFile(i)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <FiTrash2 size={16} />
+                        </button>
+                      ) : null}
                     </div>
                   ))}
                 </div>

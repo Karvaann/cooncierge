@@ -3,6 +3,7 @@ import { FiMinus } from "react-icons/fi";
 import { GoPlus } from "react-icons/go";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineKeyboardArrowUp } from "react-icons/md";
+import { allowOnlyText } from "@/utils/inputValidators";
 
 interface RoomSegment {
   id?: string | null;
@@ -207,7 +208,24 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                       id={`copy-rooms-checkbox`}
                       className="hidden peer"
                       checked={copyToOthers}
-                      onChange={(e) => setCopyToOthers(e.target.checked)}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setCopyToOthers(checked);
+
+                        // If turning on, copy first room's category/bed to others
+                        if (checked && segments && segments.length > 0) {
+                          const first = segments[0];
+                          const newSegments = segments.map((seg, idx) => {
+                            if (idx === 0) return seg;
+                            return {
+                              ...seg,
+                              roomCategory: (first as any).roomCategory,
+                              bedType: (first as any).bedType,
+                            };
+                          });
+                          onSegmentsChange(newSegments);
+                        }
+                      }}
                     />
 
                     {/* Custom styled checkbox */}
@@ -251,7 +269,11 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                   type="text"
                   value={segment.roomCategory}
                   onChange={(e) =>
-                    updateSegment(index, "roomCategory", e.target.value)
+                    updateSegment(
+                      index,
+                      "roomCategory",
+                      allowOnlyText(e.target.value)
+                    )
                   }
                   placeholder="Enter Room Category"
                   className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
@@ -267,7 +289,11 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                   type="text"
                   value={segment.bedType}
                   onChange={(e) =>
-                    updateSegment(index, "bedType", e.target.value)
+                    updateSegment(
+                      index,
+                      "bedType",
+                      allowOnlyText(e.target.value)
+                    )
                   }
                   placeholder="Enter Bed Type"
                   className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
@@ -296,7 +322,12 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                               children: 0,
                               infant: 0,
                             };
-                            const nextAdults = Math.max(1, cur.adults - 1);
+                            const minAdults =
+                              cur.children && cur.children >= 1 ? 0 : 1;
+                            const nextAdults = Math.max(
+                              minAdults,
+                              cur.adults - 1
+                            );
                             return {
                               ...prev,
                               [roomId]: { ...cur, adults: nextAdults },

@@ -17,6 +17,7 @@ import SingleCalendar from "@/components/SingleCalendar";
 import StyledDescription from "@/components/StyledDescription";
 import { FaRegFolder } from "react-icons/fa";
 import { allowTextAndNumbers } from "@/utils/inputValidators";
+import { FaRegCopy } from "react-icons/fa6";
 // Type definitions
 interface AccommodationInfoFormData {
   bookingdate: string;
@@ -175,6 +176,16 @@ interface AccommodationInfoFormProps {
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
   externalFormData?: ExternalFormData | Record<string, unknown>;
+  existingDocuments?: Array<{
+    originalName?: string;
+    fileName?: string;
+    url?: string;
+    key?: string;
+    size?: number;
+    mimeType?: string;
+    uploadedAt?: string | Date;
+    _id?: string;
+  }>;
 }
 
 const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
@@ -185,6 +196,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   onFormDataUpdate,
   onAddDocuments,
   externalFormData,
+  existingDocuments = [],
 }) => {
   const normalizedExternalData = useMemo(() => {
     const source = externalFormData ?? {};
@@ -569,7 +581,6 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   }))
                 }
                 placeholder="DD-MM-YYYY"
-                showCalendarIcon={false}
               />
 
               {/* Travel Date */}
@@ -581,7 +592,6 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 }
                 placeholder="DD-MM-YYYY"
                 minDate={formData.bookingdate}
-                showCalendarIcon={false}
                 readOnly={!formData.bookingdate}
               />
             </div>
@@ -910,6 +920,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   labelClassName="block text-gray-700 mb-1 text-[0.65rem] font-medium"
                   inputClassName="flex-1 text-[0.65rem] text-gray-700 outline-none bg-transparent"
                   showCalendarIcon={false}
+                  minDate={formData.traveldate}
                 />
 
                 {/* Check-In Time */}
@@ -1114,7 +1125,6 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     { value: "CPAI", label: "CPAI" },
                     { value: "MAPAI", label: "MAPAI" },
                     { value: "APAI", label: "APAI" },
-                    { value: "Room Only", label: "Room Only" },
                   ]}
                   placeholder="Select Plan"
                   value={formData.mealPlan}
@@ -1258,7 +1268,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                         onClick={handleCopyGoogleLink}
                         className="px-4 py-1.5 flex items-center gap-1 bg-[#126ACB] text-white rounded-r-md text-[13px] hover:bg-blue-700 border border-[#126ACB]"
                       >
-                        <MdOutlineFileUpload size={16} /> Copy Link
+                        <FaRegCopy size={16} /> Copy Link
                       </button>
                     </div>
 
@@ -1382,12 +1392,29 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
           {/* PREVIEW FILES */}
           <div className="mt-2 flex flex-col gap-2">
+            {Array.isArray(existingDocuments) &&
+              existingDocuments.length > 0 &&
+              existingDocuments.map((doc, i) => (
+                <div
+                  key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
+                  className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
+                >
+                  <button
+                    type="button"
+                    onClick={() => doc.url && window.open(doc.url, "_blank")}
+                    className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+                    title="Click to view document"
+                  >
+                    <FaRegFolder className="text-blue-500 w-3 h-3" />
+                    {doc.originalName || doc.fileName}
+                  </button>
+                </div>
+              ))}
+
             {attachedFiles.map((file, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between w-full 
-                                     bg-white rounded-md 
-                                     px-3 py-2 hover:bg-gray-50 transition"
+                className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
               >
                 {/* File Name */}
                 <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
