@@ -11,6 +11,7 @@ import {
 import { getAuthUser } from "@/services/storage/authStorage";
 import { useBooking } from "@/context/BookingContext";
 import DropDown from "../DropDown";
+import PhoneCodeSelect from "../PhoneCodeSelect";
 import SingleCalendar from "../SingleCalendar";
 import { CiCirclePlus } from "react-icons/ci";
 import { MdOutlineFileUpload } from "react-icons/md";
@@ -23,12 +24,13 @@ import { FaRegFolder } from "react-icons/fa";
 import ErrorToast from "../ErrorToast";
 import {
   allowOnlyText,
-  allowOnly10Digits,
+  allowOnlyDigitsWithMax,
   allowTextAndNumbers,
   allowOnlyNumbers,
   isValidEmail,
 } from "@/utils/inputValidators";
 import { all } from "axios";
+import { getPhoneNumberMaxLength, splitPhoneWithDialCode } from "@/utils/phoneUtils";
 
 type VendorData = {
   _id?: string;
@@ -227,47 +229,29 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
     countryCode: "+91",
   });
 
+  const phoneMaxLength = getPhoneNumberMaxLength(formData.countryCode);
+
   useEffect(() => {
     if (data) {
       const contactPersonFromData = data.contactPerson
         ? String(data.contactPerson).trim()
         : `${data.firstname || ""} ${data.lastname || ""}`.trim();
 
-      // Split into country code dropdown + 10-digit number input.
+      // Split into country code dropdown + national number input.
       const rawPhone = String(data.phone || "");
-      const sanitized = rawPhone.replace(/[\s\-()]/g, "");
-      let parsedCode = data.countryCode || "+91";
-      let parsedNumber = "";
-
-      if (sanitized.startsWith("+")) {
-        const known = ["+91", "+1", "+44"];
-        const matchKnown = known
-          .slice()
-          .sort((a, b) => b.length - a.length)
-          .find((c) => sanitized.startsWith(c));
-        if (matchKnown) {
-          parsedCode = matchKnown;
-          parsedNumber = sanitized.slice(matchKnown.length);
-        } else {
-          const m = sanitized.match(/^(\+\d{1,4})(\d+)$/);
-          if (m) {
-            parsedCode = m[1] || parsedCode;
-            parsedNumber = m[2] || "";
-          }
-        }
-      } else {
-        parsedNumber = sanitized;
-      }
-
-      const digitsOnly = parsedNumber.replace(/\D/g, "");
-      const last10 =
-        digitsOnly.length > 10 ? digitsOnly.slice(-10) : digitsOnly;
+      const parsed = splitPhoneWithDialCode(
+        rawPhone,
+        data.countryCode || "+91"
+      );
+      const digitsOnly = parsed.number.replace(/\D/g, "");
+      const maxLen = getPhoneNumberMaxLength(parsed.dialCode);
+      const trimmed = allowOnlyDigitsWithMax(digitsOnly, maxLen);
 
       setFormData({
         contactPerson: contactPersonFromData,
         alias: data.alias || "",
         email: data.email || "",
-        phone: last10 || "",
+        phone: trimmed || "",
         dateOfBirth: data.dateOfBirth || "",
 
         companyName: data.companyName || "",
@@ -276,7 +260,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         balanceType: data.balanceType || "debit",
         remarks: data.remarks || "",
         tier: data.tier || "",
-        countryCode: parsedCode || "+91",
+        countryCode: parsed.dialCode || "+91",
       });
       setTier(data.tier || "");
       setExistingDocuments(Array.isArray(data.documents) ? data.documents : []);
@@ -302,6 +286,17 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       setAttachedFiles([]);
     }
   }, [data]);
+
+  useEffect(() => {
+    setFormData((prev) => {
+      const trimmed = allowOnlyDigitsWithMax(
+        String(prev.phone || ""),
+        phoneMaxLength
+      );
+      if (trimmed === prev.phone) return prev;
+      return { ...prev, phone: trimmed };
+    });
+  }, [phoneMaxLength]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -481,7 +476,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
             ? "Edit Vendor"
             : "Add Vendor"
         }${vendorCode ? " | " + vendorCode : ""}`}
-        width="xl"
+        width="lg2"
         position="right"
         showLinkButton={true}
       >
@@ -574,19 +569,14 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     Contact Number
                   </label>
                   <div className="flex items-center">
-                    <DropDown
-                      options={[
-                        { value: "+91", label: "+91" },
-                        { value: "+1", label: "+1" },
-                        { value: "+44", label: "+44" },
-                      ]}
+                    <PhoneCodeSelect
                       value={formData.countryCode}
                       onChange={(v) =>
                         setFormData({ ...formData, countryCode: v })
                       }
                       disabled={readOnly}
-                      customWidth="w-[58px]"
-                      menuWidth="w-[58px]"
+                      customWidth="w-[88px]"
+                      menuWidth="w-[18rem]"
                       className="flex-shrink-0"
                       customHeight="h-9"
                     />
@@ -596,9 +586,13 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          phone: allowOnly10Digits(e.target.value),
+                          phone: allowOnlyDigitsWithMax(
+                            e.target.value,
+                            phoneMaxLength
+                          ),
                         })
                       }
+                      maxLength={phoneMaxLength}
                       placeholder="Enter Contact Number"
                       disabled={readOnly}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
@@ -692,19 +686,14 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     Contact Number
                   </label>
                   <div className="flex items-center">
-                    <DropDown
-                      options={[
-                        { value: "+91", label: "+91" },
-                        { value: "+1", label: "+1" },
-                        { value: "+44", label: "+44" },
-                      ]}
+                    <PhoneCodeSelect
                       value={formData.countryCode}
                       onChange={(v) =>
                         setFormData({ ...formData, countryCode: v })
                       }
                       disabled={readOnly}
-                      customWidth="w-[58px]"
-                      menuWidth="w-[58px]"
+                      customWidth="w-[88px]"
+                      menuWidth="w-[18rem]"
                       className="flex-shrink-0"
                     />
                     <input
@@ -714,9 +703,13 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          phone: allowOnly10Digits(e.target.value),
+                          phone: allowOnlyDigitsWithMax(
+                            e.target.value,
+                            phoneMaxLength
+                          ),
                         })
                       }
+                      maxLength={phoneMaxLength}
                       disabled={readOnly}
                       className="w-full h-[2rem] border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                     />

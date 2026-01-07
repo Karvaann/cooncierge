@@ -1219,7 +1219,7 @@ const OSBookingsPage = () => {
           />
         )}
 
-        {isSideSheetOpen && (
+         
           <BookingFormSidesheet
             key={selectedQuotation?._id || "create"}
             isOpen={isSideSheetOpen}
@@ -1231,7 +1231,6 @@ const OSBookingsPage = () => {
             vendorCode={generatedVendorCode ?? ""}
             mode={sideSheetMode}
           />
-        )}
       </div>
     </div>
   );

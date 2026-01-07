@@ -12,9 +12,12 @@ import { FiTrash2 } from "react-icons/fi";
 import Button from "../Button";
 import SingleCalendar from "../SingleCalendar";
 import DropDown from "../DropDown";
+import PhoneCodeSelect from "../PhoneCodeSelect";
 import { FaRegFolder } from "react-icons/fa";
 import ErrorToast from "../ErrorToast";
 import { MdOutlineFileUpload } from "react-icons/md";
+import { allowOnlyDigitsWithMax } from "@/utils/inputValidators";
+import { getPhoneNumberMaxLength } from "@/utils/phoneUtils";
 
 type TeamData = {
   _id?: string;
@@ -110,6 +113,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
     status: "Current",
   });
 
+  const phoneMaxLength = getPhoneNumberMaxLength(formData.countryCode);
+
   const handleConfirmModalOpen = () => {
     setIsConfirmationModalOpen(true);
   };
@@ -182,6 +187,20 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
       });
     }
   }, [data]);
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      emergencyContactNumber: allowOnlyDigitsWithMax(
+        String(prev.emergencyContactNumber || ""),
+        phoneMaxLength
+      ),
+      workContactNumber: allowOnlyDigitsWithMax(
+        String(prev.workContactNumber || ""),
+        phoneMaxLength
+      ),
+    }));
+  }, [phoneMaxLength]);
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -372,7 +391,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
             ? "Edit Team Member"
             : "Add Team Member"
         }${teamCode ? " | " + teamCode : ""}`}
-        width="xl"
+        width="lg2"
         position="right"
         showLinkButton={true}
       >
@@ -562,19 +581,14 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   Emergency Contact Number
                 </label>
                 <div className="flex items-center">
-                  <DropDown
-                    options={[
-                      { value: "+91", label: "+91" },
-                      { value: "+1", label: "+1" },
-                      { value: "+44", label: "+44" },
-                    ]}
+                  <PhoneCodeSelect
                     value={formData.countryCode}
                     onChange={(v) =>
                       setFormData({ ...formData, countryCode: v })
                     }
                     disabled={readOnly}
-                    customWidth="w-[58px]"
-                    menuWidth="w-[58px]"
+                    customWidth="w-[88px]"
+                    menuWidth="w-[18rem]"
                     className="flex-shrink-0"
                     customHeight="h-9"
                   />
@@ -585,12 +599,16 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        emergencyContactNumber: e.target.value,
+                        emergencyContactNumber: allowOnlyDigitsWithMax(
+                          e.target.value,
+                          phoneMaxLength
+                        ),
                       })
                     }
                     placeholder="Enter Contact Number"
                     required
                     disabled={readOnly}
+                    maxLength={phoneMaxLength}
                     className="w-[41%] border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>
@@ -626,19 +644,14 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   Work Contact Number
                 </label>
                 <div className="flex items-center">
-                  <DropDown
-                    options={[
-                      { value: "+91", label: "+91" },
-                      { value: "+1", label: "+1" },
-                      { value: "+44", label: "+44" },
-                    ]}
+                  <PhoneCodeSelect
                     value={formData.countryCode}
                     onChange={(v) =>
                       setFormData({ ...formData, countryCode: v })
                     }
                     disabled={readOnly}
-                    customWidth="w-[58px]"
-                    menuWidth="w-[58px]"
+                    customWidth="w-[88px]"
+                    menuWidth="w-[18rem]"
                     className="flex-shrink-0"
                     customHeight="h-9"
                   />
@@ -649,12 +662,16 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        workContactNumber: e.target.value,
+                        workContactNumber: allowOnlyDigitsWithMax(
+                          e.target.value,
+                          phoneMaxLength
+                        ),
                       })
                     }
                     placeholder="Enter Contact Number"
                     required
                     disabled={readOnly}
+                    maxLength={phoneMaxLength}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                   />
                 </div>

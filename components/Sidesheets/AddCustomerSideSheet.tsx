@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import SideSheet from "../SideSheet";
 import SingleCalendar from "../SingleCalendar";
@@ -15,15 +15,17 @@ import { FiTrash2 } from "react-icons/fi";
 import { LuSave } from "react-icons/lu";
 import Button from "../Button";
 import DropDown from "../DropDown";
+import PhoneCodeSelect from "../PhoneCodeSelect";
 import generateCustomId from "@/utils/helper";
 import ErrorToast from "../ErrorToast";
 import {
   allowOnlyText,
   allowOnlyNumbers,
-  allowOnly10Digits,
+  allowOnlyDigitsWithMax,
   allowTextAndNumbers,
 } from "@/utils/inputValidators";
 import { isValidEmail } from "@/utils/inputValidators";
+import { getPhoneNumberMaxLength, splitPhoneWithDialCode } from "@/utils/phoneUtils";
 
 type CustomerData = {
   customId?: string;
@@ -120,18 +122,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     }
   }, [mode, data, customerCodeProp]);
 
-  const phoneCodeOptions = useMemo(() => {
-    const base = [
-      { value: "+91", label: "+91" },
-      { value: "+1", label: "+1" },
-      { value: "+44", label: "+44" },
-    ];
-
-    if (phoneCode && !base.some((o) => o.value === phoneCode)) {
-      return [{ value: phoneCode, label: phoneCode }, ...base];
-    }
-    return base;
-  }, [phoneCode]);
+  const phoneMaxLength = getPhoneNumberMaxLength(phoneCode);
 
   // Mounted flag to ensure portal renders client-side only
   const [mounted, setMounted] = useState(false);
@@ -154,7 +145,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         : name === "gstin"
         ? allowOnlyNumbers(value)
         : name === "phone"
-        ? allowOnly10Digits(value)
+        ? allowOnlyDigitsWithMax(value, phoneMaxLength)
         : name === "alias"
         ? allowTextAndNumbers(value)
         : value;
@@ -214,39 +205,16 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
       // Split country code from phone
       const rawPhone = String(data.phone || "");
-      const sanitized = rawPhone.replace(/[\s\-()]/g, "");
-      let parsedCode = "+91";
-      let parsedNumber = "";
-      if (sanitized.startsWith("+")) {
-        // Prefer known codes first
-        const known = ["+91", "+1", "+44"];
-        const matchKnown = known
-          .slice()
-          .sort((a, b) => b.length - a.length)
-          .find((c) => sanitized.startsWith(c));
-        if (matchKnown) {
-          parsedCode = matchKnown;
-          parsedNumber = sanitized.slice(matchKnown.length);
-        } else {
-          const m = sanitized.match(/^(\+\d{1,4})(\d+)$/);
-          if (m) {
-            parsedCode = m[1] || parsedCode;
-            parsedNumber = m[2] || "";
-          }
-        }
-      } else {
-        parsedNumber = sanitized;
-      }
-
-      const digitsOnly = parsedNumber.replace(/\D/g, "");
-      const last10 =
-        digitsOnly.length > 10 ? digitsOnly.slice(-10) : digitsOnly;
-      setPhoneCode(parsedCode);
+      const parsed = splitPhoneWithDialCode(rawPhone, "+91");
+      const digitsOnly = parsed.number.replace(/\D/g, "");
+      const maxLen = getPhoneNumberMaxLength(parsed.dialCode);
+      const trimmed = allowOnlyDigitsWithMax(digitsOnly, maxLen);
+      setPhoneCode(parsed.dialCode);
 
       setFormData({
         name: nameVal,
         alias: data.alias || "",
-        phone: last10 || "",
+        phone: trimmed || "",
         email: data.email || "",
         dateOfBirth: data.dateOfBirth
           ? String(data.dateOfBirth).slice(0, 10)
@@ -285,6 +253,17 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       setBalanceType("debit");
     }
   }, [data]);
+
+  useEffect(() => {
+    setFormData((prev) => {
+      const trimmed = allowOnlyDigitsWithMax(
+        String(prev.phone || ""),
+        phoneMaxLength
+      );
+      if (trimmed === prev.phone) return prev;
+      return { ...prev, phone: trimmed };
+    });
+  }, [phoneMaxLength]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -428,7 +407,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             ? "Edit Customer"
             : "Add Customer"
         }${customerCode ? " | " + customerCode : ""}`}
-        width="xl"
+        width="lg2"
         position="right"
         showLinkButton={true}
       >
@@ -527,13 +506,12 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     Contact Number
                   </label>
                   <div className="flex items-center">
-                    <DropDown
-                      options={phoneCodeOptions}
+                    <PhoneCodeSelect
                       value={phoneCode}
                       onChange={(v) => setPhoneCode(v)}
                       disabled={readOnly}
-                      customWidth="w-[58px]"
-                      menuWidth="w-[58px]"
+                      customWidth="w-[88px]"
+                      menuWidth="w-[18rem]"
                       className="flex-shrink-0 rounded-l-md"
                       customHeight="h-9"
                     />
@@ -542,6 +520,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       type="text"
                       value={formData.phone}
                       onChange={handleChange}
+                      maxLength={phoneMaxLength}
                       placeholder="Enter Contact Number"
                       disabled={readOnly}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
