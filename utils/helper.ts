@@ -261,4 +261,13 @@ export const generateCustomId = (type: "customer" | "vendor" | "traveller" | "te
 
 export default generateCustomId;
 
+const isAfterDate = (a: string, b: string) => {
+  const d1 = new Date(a);
+  const d2 = new Date(b);
+  d1.setHours(0, 0, 0, 0);
+  d2.setHours(0, 0, 0, 0);
+  return d1 > d2;
+};
+export { isAfterDate };
+
 

@@ -11,10 +11,14 @@ interface ActiveFormats {
 
 interface StyledDescriptionProps {
   label?: string;
+  value?: string;
+  onChange?: (value: string) => void;
 }
 
 export default function StyledDescription({
   label = "Description",
+  value,
+  onChange,
 }: StyledDescriptionProps): JSX.Element {
   const editorRef = useRef<HTMLDivElement>(null);
   const [activeFormats, setActiveFormats] = useState<ActiveFormats>({
@@ -40,6 +44,32 @@ export default function StyledDescription({
       list.dataset.split = sourceList.dataset.split;
     }
     return list;
+  };
+
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    // Avoid cursor jump if content is already same
+    if (editor.innerHTML !== value) {
+      editor.innerHTML = value || "Type here...";
+      editor.style.color = value ? "#374151" : "#9ca3af";
+    }
+  }, [value]);
+
+  const handleEditorInput = () => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    const html = editor.innerHTML;
+
+    // Ignore placeholder
+    if (editor.textContent === "Type here...") {
+      onChange?.("");
+      return;
+    }
+
+    onChange?.(html);
   };
 
   const rangeIntersectsNode = (range: Range, node: Node): boolean => {
@@ -561,13 +591,12 @@ export default function StyledDescription({
           contentEditable
           className="px-3 py-2 min-h-[80px] text-[0.75rem] outline-none focus:ring-0"
           style={{ color: "#9ca3af" }}
+          onInput={handleEditorInput}
           onMouseUp={updateActiveFormats}
           onKeyUp={updateActiveFormats}
           onSelect={updateActiveFormats}
           suppressContentEditableWarning
-        >
-          Type here...
-        </div>
+        ></div>
       </div>
     </>
   );

@@ -11,7 +11,10 @@ import Button from "@/components/Button";
 import generateCustomId from "@/utils/helper";
 import PhoneCodeSelect from "@/components/PhoneCodeSelect";
 import { allowOnlyDigitsWithMax, allowOnlyText } from "@/utils/inputValidators";
-import { getPhoneNumberMaxLength, splitPhoneWithDialCode } from "@/utils/phoneUtils";
+import {
+  getPhoneNumberMaxLength,
+  splitPhoneWithDialCode,
+} from "@/utils/phoneUtils";
 import { LuSave } from "react-icons/lu";
 // Type definitions
 interface TravellerFormData {
@@ -507,6 +510,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           : "Add Traveller"
       }${travellerCode ? " | " + travellerCode : ""}`}
       width="lg2"
+      zIndex={1000}
     >
       <form
         className="space-y-6 p-4 flex flex-col min-h-full"

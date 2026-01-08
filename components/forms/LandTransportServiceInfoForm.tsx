@@ -38,6 +38,7 @@ interface ExternalFormData {
 interface OtherInfoFormProps {
   onSubmit?: (data: OtherServiceInfoFormData) => void;
   isSubmitting?: boolean;
+  isReadOnly?: boolean;
   showValidation?: boolean;
   formRef?: React.RefObject<HTMLDivElement | null>;
   onFormDataUpdate: (data: any) => void;
@@ -73,6 +74,7 @@ interface ExternalFormData {
 const LandTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   onSubmit,
   isSubmitting = false,
+  isReadOnly = false,
   showValidation = true,
   formRef,
   onFormDataUpdate,
@@ -440,7 +442,14 @@ const LandTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   const today = new Date().toISOString().split("T")[0];
   return (
     <>
-      <div className="space-y-4 p-4 -mt-1" ref={formRef as any}>
+      <div
+        className={`space-y-4 p-4 -mt-1 ${
+          isReadOnly
+            ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-200 [&_select]:!bg-gray-200"
+            : ""
+        }`}
+        ref={formRef as any}
+      >
         <div className="px-2 py-1">
           {/* Booking and Travel Date */}
           <div className="flex flex-wrap items-end justify-between mb-3 px-5 -mx-5">

@@ -17,6 +17,7 @@ interface SideSheetProps {
   showCloseButton?: boolean;
   className?: string;
   showLinkButton?: boolean;
+  zIndex?: number;
 }
 
 type SideSheetWidth = {
@@ -36,6 +37,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
   showCloseButton = true,
   className = "",
   showLinkButton = false,
+  zIndex = 950,
 }) => {
   // Memoized width classes
   const widthClasses: SideSheetWidth = useMemo(
@@ -109,9 +111,12 @@ const SideSheet: React.FC<SideSheetProps> = ({
   const sideSheetContent = useMemo(
     () => (
       <div
-        className={`fixed inset-0 z-[950] transition-all duration-300 ${
-          isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        className={`fixed inset-0 transition-all duration-300 ${
+          isOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
         }`}
+        style={{ zIndex }}
         aria-hidden={!isOpen}
       >
         {/* Overlay */}
@@ -193,6 +198,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
     ),
     [
       isOpen,
+      zIndex,
       handleOverlayClick,
       positionClasses,
       position,

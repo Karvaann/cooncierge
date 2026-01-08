@@ -28,6 +28,7 @@ import DropDown from "@/components/DropDown";
 import { getTravellerById } from "@/services/travellerApi";
 import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerForm";
 import { allowTextAndNumbers } from "@/utils/inputValidators";
+import { read } from "fs";
 
 // Type definitions
 interface GeneralInfoFormData {
@@ -356,11 +357,20 @@ interface GeneralInfoFormProps {
   onFormDataUpdate?: (data: Partial<GeneralInfoFormData>) => void;
   onSubmit?: (data: GeneralInfoFormData) => void;
   isSubmitting?: boolean;
+  isReadOnly?: boolean;
   showValidation?: boolean;
   formRef?: React.RefObject<HTMLFormElement>;
 }
 
 const buildInitialState = (externalFormData: any = {}): GeneralInfoFormData => {
+  const isValidMongoObjectId = (value: unknown): boolean => {
+    if (typeof value !== "string") return false;
+    const v = value.trim();
+    if (!v) return false;
+    if (v.toLowerCase() === "tba") return false;
+    return /^[a-f\d]{24}$/i.test(v);
+  };
+
   const normalizeId = (value: unknown): string => {
     if (!value) return "";
     if (typeof value === "string") return value.trim();
@@ -378,12 +388,16 @@ const buildInitialState = (externalFormData: any = {}): GeneralInfoFormData => {
     return single ? [single] : [];
   };
 
-  const primaryOwnerId: string =
+  const primaryOwnerIdCandidate: string =
     normalizeId(externalFormData?.primaryOwner) ||
     normalizeId(externalFormData?.owner?.[0]) ||
     normalizeId(externalFormData?.bookingOwner) ||
     normalizeId(externalFormData?.formFields?.bookingOwner) ||
     "";
+
+  const primaryOwnerId: string = isValidMongoObjectId(primaryOwnerIdCandidate)
+    ? primaryOwnerIdCandidate.trim()
+    : "";
 
   const secondaryOwnerIds: string[] = (() => {
     const candidates: string[] = [];
@@ -413,6 +427,7 @@ const buildInitialState = (externalFormData: any = {}): GeneralInfoFormData => {
     return candidates
       .map((v) => String(v).trim())
       .filter(Boolean)
+      .filter((id) => isValidMongoObjectId(id))
       .filter((id) => id !== String(primaryOwnerId || "").trim())
       .filter((id, i, a) => a.indexOf(id) === i);
   })();
@@ -458,6 +473,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   onFormDataUpdate,
   onSubmit,
   isSubmitting = false,
+  isReadOnly = false,
   showValidation = true,
   formRef,
 }) => {
@@ -1108,19 +1124,19 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       ? Math.max(0, childCount)
       : 0;
 
-    const padTo = (arr: string[], count: number) => {
+    const padTo = (arr: string[], count: number, filler: string) => {
       const next = [...arr];
-      while (next.length < count) next.push("TBA");
+      while (next.length < count) next.push(filler);
       while (next.length > count) next.pop();
       return next;
     };
 
     setFormData((prev) => {
       // Only hydrate when external data is present; keep user's edits intact otherwise.
-      const nextAdultIds = padTo(adultIds, safeAdultsCount);
-      const nextAdultNames = padTo(adultNames, safeAdultsCount);
-      const nextChildIds = padTo(childIds, safeChildCount);
-      const nextChildNames = padTo(childNames, safeChildCount);
+      const nextAdultIds = padTo(adultIds, safeAdultsCount, "");
+      const nextAdultNames = padTo(adultNames, safeAdultsCount, "TBA");
+      const nextChildIds = padTo(childIds, safeChildCount, "");
+      const nextChildNames = padTo(childNames, safeChildCount, "TBA");
       const nextChildAges: Array<number | null> = (() => {
         const next = [...childAges];
         while (next.length < safeChildCount) next.push(null);
@@ -1485,6 +1501,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             type="button"
             onClick={onClickPlus}
             className="w-6.5 h-6.5 flex items-center bg-[#414141] justify-center rounded-md transition-colors"
+            disabled={isSubmitting}
           >
             <GoPlus size={16} className="text-white" />
           </button>
@@ -1504,6 +1521,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             <button
               type="button"
               onClick={() => clearInput(fieldName, overrideSetter)}
+              disabled={isSubmitting}
               className="w-6.5 h-6.5 flex items-center justify-center bg-[#414141] rounded-md cursor-pointer transition-colors"
             >
               <FiMinus size={16} className="text-white" />
@@ -1763,7 +1781,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   return (
     <form
       ref={formRef}
-      className="space-y-4 p-4"
+      className={`space-y-4 p-4 ${
+        isReadOnly
+          ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-200 [&_select]:!bg-gray-200"
+          : ""
+      }`}
       onSubmit={(e) => e.preventDefault()}
     >
       {/* Customer Section */}
@@ -2281,9 +2303,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
         {/* Traveller Details */}
         <div className="mt-4 space-y-4">
-          <label className="block text-[13px] mt-3 font-medium text-gray-700 mb-1">
-            <span className="text-red-500">*</span> Adult
-          </label>
+          {formData.adults > 0 && (
+            <label className="block text-[13px] mt-3 font-medium text-gray-700 mb-1">
+              <span className="text-red-500">*</span> Adult
+            </label>
+          )}
 
           {adultTravellerList.map((trav, index) => (
             <div key={index} className="flex items-center gap-2 my-2">
@@ -2966,36 +2990,35 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         />
       </div>
 
-        <AddCustomerSideSheet
-          isOpen={isViewCustomerOpen}
-          onCancel={() => {
-            setIsViewCustomerOpen(false);
-            setViewCustomerData(null);
-          }}
-          mode="view"
-          data={viewCustomerData as any}
-        />
+      <AddCustomerSideSheet
+        isOpen={isViewCustomerOpen}
+        onCancel={() => {
+          setIsViewCustomerOpen(false);
+          setViewCustomerData(null);
+        }}
+        mode="view"
+        data={viewCustomerData as any}
+      />
 
-      
-        <AddVendorSideSheet
-          isOpen={isViewVendorOpen}
-          onCancel={() => {
-            setIsViewVendorOpen(false);
-            setViewVendorData(null);
-          }}
-          mode="view"
-          data={viewVendorData as any}
-        />
+      <AddVendorSideSheet
+        isOpen={isViewVendorOpen}
+        onCancel={() => {
+          setIsViewVendorOpen(false);
+          setViewVendorData(null);
+        }}
+        mode="view"
+        data={viewVendorData as any}
+      />
 
-        <AddNewTravellerForm
-          isOpen={isViewTravellerOpen}
-          onClose={() => {
-            setIsViewTravellerOpen(false);
-            setViewTravellerData(null);
-          }}
-          mode="view"
-          data={viewTravellerData}
-        />
+      <AddNewTravellerForm
+        isOpen={isViewTravellerOpen}
+        onClose={() => {
+          setIsViewTravellerOpen(false);
+          setViewTravellerData(null);
+        }}
+        mode="view"
+        data={viewTravellerData}
+      />
 
       {/* Submit Button (if standalone) */}
       {/* {onSubmit && (

@@ -417,18 +417,26 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     // Merge flattened infoform into formFields
     Object.assign(formFields, flatInfoForm);
 
-    const sanitizeIds = (ids: unknown): string[] => {
+    const isValidMongoObjectId = (value: unknown): boolean => {
+      if (typeof value !== "string") return false;
+      const v = value.trim();
+      if (!v) return false;
+      if (v.toLowerCase() === "tba") return false;
+      return /^[a-f\d]{24}$/i.test(v);
+    };
+
+    const sanitizeObjectIdList = (ids: unknown): string[] => {
       if (!Array.isArray(ids)) return [];
       return (ids as unknown[])
         .filter((id) => typeof id === "string")
         .map((id) => (id as string).trim())
-        .filter(Boolean);
+        .filter((id) => isValidMongoObjectId(id));
     };
 
     // New schema, split adults vs children travellers.
     // current UI stores "child" travellers under infantTravellerIds/infants/childAges.
-    const adultTravelers = sanitizeIds(adultTravellerIds);
-    const childTravelerIds = sanitizeIds(
+    const adultTravelers = sanitizeObjectIdList(adultTravellerIds);
+    const childTravelerIds = sanitizeObjectIdList(
       (input as any)?.childTravellerIds ?? infantTravellerIds
     );
     const childAgesList: Array<number | null> = Array.isArray(childAges)
@@ -442,8 +450,16 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
     const authUserId =
       (user as any)?._id || (user as any)?.id || (user as any)?.userId;
-    const primaryOwnerId = bookingOwner || authUserId || "";
-    const secondaryOwnerIds: string[] = Array.isArray(secondaryBookingOwners)
+
+    const primaryOwnerCandidate = String(bookingOwner || "").trim();
+    const authUserCandidate = String(authUserId || "").trim();
+    const primaryOwnerId = isValidMongoObjectId(primaryOwnerCandidate)
+      ? primaryOwnerCandidate
+      : isValidMongoObjectId(authUserCandidate)
+      ? authUserCandidate
+      : "";
+
+    const rawSecondaryOwnerIds: string[] = Array.isArray(secondaryBookingOwners)
       ? (secondaryBookingOwners as unknown[])
           .map((v) => String(v).trim())
           .filter(Boolean)
@@ -451,16 +467,20 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       ? [String(secondaryBookingOwner).trim()].filter(Boolean)
       : [];
 
+    const secondaryOwnerIds: string[] = rawSecondaryOwnerIds.filter((id) =>
+      isValidMongoObjectId(id)
+    );
+
     const filteredSecondaryOwnerIds = secondaryOwnerIds
       .filter((id) => id !== String(primaryOwnerId || "").trim())
       .filter((v, i, a) => a.indexOf(v) === i);
 
     const legacyOwnerIds: string[] = [
-      String(primaryOwnerId || ""),
+      primaryOwnerId,
       ...filteredSecondaryOwnerIds,
     ]
-      .map((v) => v.trim())
-      .filter(Boolean)
+      .map((v) => String(v || "").trim())
+      .filter((v) => isValidMongoObjectId(v))
       .filter((v, i, a) => a.indexOf(v) === i);
 
     // Build final object
@@ -796,6 +816,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         onCloseButtonClick={() => setIsConfirmModalOpen(true)}
         title={title}
         width="xl"
+        zIndex={900}
       >
         <div className="relative h-full">
           <div className="flex flex-col h-full">
@@ -821,6 +842,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   initialFormData={initialData || {}}
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting || isReadOnly}
+                  isReadOnly={isReadOnly}
                   formRef={generalFormRef as React.RefObject<HTMLFormElement>}
                 />
               </div>
@@ -834,6 +856,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   initialData={initialData}
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting || isReadOnly}
+                  isReadOnly={isReadOnly}
                   formRef={serviceFormRef}
                   selectedService={
                     selectedService || initialData?.quotationType
@@ -970,27 +993,25 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         }
       />
 
-        <AddCustomerSideSheet
-          isOpen={isAddCustomerOpen}
-          onCancel={closeAddCustomer}
-          mode="create"
-          data={null}
-          formRef={addCustomerFormRef}
-          customerCode={customerCode}
-        />
+      <AddCustomerSideSheet
+        isOpen={isAddCustomerOpen}
+        onCancel={closeAddCustomer}
+        mode="create"
+        data={null}
+        formRef={addCustomerFormRef}
+        customerCode={customerCode}
+      />
 
+      <AddVendorSideSheet
+        isOpen={isAddVendorOpen}
+        onCancel={closeAddVendor}
+        mode="create"
+        data={null}
+        formRef={addVendorFormRef}
+        vendorCode={vendorCode}
+      />
 
-        <AddVendorSideSheet
-          isOpen={isAddVendorOpen}
-          onCancel={closeAddVendor}
-          mode="create"
-          data={null}
-          formRef={addVendorFormRef}
-          vendorCode={vendorCode}
-        />
-
-        <AddNewTravellerForm formRef={addTravellerFormRef} />
-
+      <AddNewTravellerForm formRef={addTravellerFormRef} />
     </>
   );
 };

@@ -30,7 +30,10 @@ import {
   isValidEmail,
 } from "@/utils/inputValidators";
 import { all } from "axios";
-import { getPhoneNumberMaxLength, splitPhoneWithDialCode } from "@/utils/phoneUtils";
+import {
+  getPhoneNumberMaxLength,
+  splitPhoneWithDialCode,
+} from "@/utils/phoneUtils";
 
 type VendorData = {
   _id?: string;
@@ -479,6 +482,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         width="lg2"
         position="right"
         showLinkButton={true}
+        zIndex={1000}
       >
         <form
           className="flex flex-col h-full"

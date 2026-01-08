@@ -15,6 +15,7 @@ import { FaRegFolder } from "react-icons/fa";
 import SingleCalendar from "@/components/SingleCalendar";
 import StyledDescription from "@/components/StyledDescription";
 import { allowUppercaseAlphanumeric6 } from "@/utils/inputValidators";
+import { isAfterDate } from "@/utils/helper";
 // Type definitions
 interface FlightInfoFormData {
   bookingdate: string;
@@ -77,6 +78,7 @@ interface ExternalFormData {
 interface FlightInfoFormProps {
   onSubmit?: (data: FlightInfoFormData) => void;
   isSubmitting?: boolean;
+  isReadOnly?: boolean;
   showValidation?: boolean;
   formRef?: React.RefObject<HTMLFormElement | null>;
   onFormDataUpdate: (data: any) => void;
@@ -97,6 +99,7 @@ interface FlightInfoFormProps {
 const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   onSubmit,
   isSubmitting = false,
+  isReadOnly = false,
   showValidation = true,
   formRef,
   onFormDataUpdate,
@@ -571,7 +574,11 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   return (
     <>
       <form
-        className="space-y-4 p-4 -mt-1"
+        className={`space-y-4 p-4 -mt-1 ${
+          isReadOnly
+            ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-200 [&_select]:!bg-gray-200"
+            : ""
+        }`}
         ref={formRef}
         onSubmit={(e) => e.preventDefault()}
       >
@@ -589,7 +596,9 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                     ...prev,
                     bookingdate: date,
                     traveldate:
-                      prev.bookingdate !== date ? "" : prev.traveldate,
+                      prev.traveldate && isAfterDate(date, prev.traveldate)
+                        ? ""
+                        : prev.traveldate,
                   }))
                 }
                 placeholder="DD-MM-YYYY"

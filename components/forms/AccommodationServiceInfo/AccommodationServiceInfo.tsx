@@ -47,6 +47,10 @@ interface AccommodationInfoFormData {
   costprice: number | string;
   sellingprice: number | string;
   remarks: string;
+  addOns: string;
+  specialRequests: string;
+  importantInformation: string;
+  cancellationPolicy: string;
 }
 
 interface InputFieldProps {
@@ -171,6 +175,7 @@ interface ExternalFormData {
 interface AccommodationInfoFormProps {
   onSubmit?: (data: AccommodationInfoFormData) => void;
   isSubmitting?: boolean;
+  isReadOnly?: boolean;
   showValidation?: boolean;
   formRef?: React.RefObject<HTMLDivElement | null>;
   onFormDataUpdate: (data: any) => void;
@@ -191,6 +196,7 @@ interface AccommodationInfoFormProps {
 const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   onSubmit,
   isSubmitting = false,
+  isReadOnly = false,
   showValidation = true,
   formRef,
   onFormDataUpdate,
@@ -235,6 +241,10 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     accommodationType: "",
 
     remarks: normalizedExternalData?.remarks || "",
+    addOns: normalizedExternalData?.addOns || "",
+    specialRequests: normalizedExternalData?.specialRequests || "",
+    importantInformation: normalizedExternalData?.importantInformation || "",
+    cancellationPolicy: normalizedExternalData?.cancellationPolicy || "",
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -562,7 +572,14 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
   return (
     <>
-      <div className="space-y-4 p-4 -mt-1" ref={formRef as any}>
+      <div
+        className={`space-y-4 p-4 -mt-1 ${
+          isReadOnly
+            ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-200 [&_select]:!bg-gray-200"
+            : ""
+        }`}
+        ref={formRef as any}
+      >
         <div className="px-2 py-1">
           {/* Booking and Travel Date */}
           <div className="flex flex-wrap items-end justify-between gap-y-2 mb-3 px-5 -mx-5">
@@ -1358,10 +1375,40 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   />
                 )}
               <div className="-mt-1 space-y-3">
-                <StyledDescription label="Add Ons" />
-                <StyledDescription label="Special Requests" />
-                <StyledDescription label="Important Information" />
-                <StyledDescription label="Cancellation Policy" />
+                <StyledDescription
+                  label="Add Ons"
+                  value={formData.addOns}
+                  onChange={(val) =>
+                    setFormData((prev) => ({ ...prev, addOns: val }))
+                  }
+                />
+                <StyledDescription
+                  label="Special Requests"
+                  value={formData.specialRequests}
+                  onChange={(val) =>
+                    setFormData((prev) => ({ ...prev, specialRequests: val }))
+                  }
+                />
+                <StyledDescription
+                  label="Important Information"
+                  value={formData.importantInformation}
+                  onChange={(val) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      importantInformation: val,
+                    }))
+                  }
+                />
+                <StyledDescription
+                  label="Cancellation Policy"
+                  value={formData.cancellationPolicy}
+                  onChange={(val) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      cancellationPolicy: val,
+                    }))
+                  }
+                />
               </div>
             </div>
           </div>

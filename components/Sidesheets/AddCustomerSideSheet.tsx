@@ -25,7 +25,10 @@ import {
   allowTextAndNumbers,
 } from "@/utils/inputValidators";
 import { isValidEmail } from "@/utils/inputValidators";
-import { getPhoneNumberMaxLength, splitPhoneWithDialCode } from "@/utils/phoneUtils";
+import {
+  getPhoneNumberMaxLength,
+  splitPhoneWithDialCode,
+} from "@/utils/phoneUtils";
 
 type CustomerData = {
   customId?: string;
@@ -410,6 +413,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         width="lg2"
         position="right"
         showLinkButton={true}
+        zIndex={1000}
       >
         <form
           className="flex flex-col h-full"
