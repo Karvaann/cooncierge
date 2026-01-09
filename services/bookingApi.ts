@@ -1201,9 +1201,22 @@ export class BookingApiService {
   }
 
   // Update quotation
-  static async updateQuotation(id: string, updateData: Partial<QuotationPayload>): Promise<ApiResponse<unknown>> {
+  static async updateQuotation(
+    id: string,
+    updateData: Partial<QuotationPayload> | FormData
+  ): Promise<ApiResponse<unknown>> {
     try {
-      const response = await apiClient.put(`/quotation/update-quotation/${id}`, updateData);
+      const response = await apiClient.put(
+        `/quotation/update-quotation/${id}`,
+        updateData,
+        updateData instanceof FormData
+          ? {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            }
+          : undefined
+      );
       return {
         success: true,
         data: response.data,

@@ -51,6 +51,10 @@ interface AccommodationInfoFormData {
   specialRequests: string;
   importantInformation: string;
   cancellationPolicy: string;
+  showAdvancedPricing?: boolean;
+  vendorBasePrice?: number | string;
+  vendorIncentiveReceived?: number | string;
+  commissionPaid?: number | string;
 }
 
 interface InputFieldProps {
@@ -245,6 +249,12 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     specialRequests: normalizedExternalData?.specialRequests || "",
     importantInformation: normalizedExternalData?.importantInformation || "",
     cancellationPolicy: normalizedExternalData?.cancellationPolicy || "",
+    showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
+    vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
+    vendorIncentiveReceived: String(
+      normalizedExternalData?.vendorIncentiveReceived ?? ""
+    ),
+    commissionPaid: String(normalizedExternalData?.commissionPaid ?? ""),
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -252,7 +262,9 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   const [isValidating, setIsValidating] = useState<boolean>(false);
 
   // Advanced Pricing State
-  const [showAdvancedPricing, setShowAdvancedPricing] = useState(false);
+  const [showAdvancedPricing, setShowAdvancedPricing] = useState(
+    Boolean(normalizedExternalData?.showAdvancedPricing)
+  );
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
@@ -260,10 +272,16 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   // Villa type controlled by parent: 'entire' or 'shared'
   const [villaType, setVillaType] = useState<"entire" | "shared">("entire");
 
-  const [vendorBasePrice, setVendorBasePrice] = useState<string>("");
+  const [vendorBasePrice, setVendorBasePrice] = useState<string>(
+    String(normalizedExternalData?.vendorBasePrice ?? "")
+  );
   const [vendorIncentiveReceived, setVendorIncentiveReceived] =
-    useState<string>("");
-  const [commissionPaid, setCommissionPaid] = useState<string>("");
+    useState<string>(
+      String(normalizedExternalData?.vendorIncentiveReceived ?? "")
+    );
+  const [commissionPaid, setCommissionPaid] = useState<string>(
+    String(normalizedExternalData?.commissionPaid ?? "")
+  );
 
   const derivedCostPrice = useMemo(() => {
     const a = Number(vendorBasePrice) || 0;
@@ -327,12 +345,40 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
   // Sync with external form data when it changes
   useEffect(() => {
-    if (!normalizedExternalData) return;
+    if (!externalFormData || Object.keys(externalFormData).length === 0) return;
+    const nextPricing = {
+      showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
+      vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
+      vendorIncentiveReceived: String(
+        normalizedExternalData?.vendorIncentiveReceived ?? ""
+      ),
+      commissionPaid: String(normalizedExternalData?.commissionPaid ?? ""),
+    };
+    setShowAdvancedPricing(nextPricing.showAdvancedPricing);
+    setVendorBasePrice(nextPricing.vendorBasePrice);
+    setVendorIncentiveReceived(nextPricing.vendorIncentiveReceived);
+    setCommissionPaid(nextPricing.commissionPaid);
     setFormData((prev) => ({
       ...prev,
       ...normalizedExternalData,
+      ...nextPricing,
     }));
-  }, [normalizedExternalData]);
+  }, [externalFormData, normalizedExternalData]);
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      showAdvancedPricing,
+      vendorBasePrice,
+      vendorIncentiveReceived,
+      commissionPaid,
+    }));
+  }, [
+    commissionPaid,
+    showAdvancedPricing,
+    vendorBasePrice,
+    vendorIncentiveReceived,
+  ]);
 
   useEffect(() => {
     onFormDataUpdate({ accommodationinfoform: formData });

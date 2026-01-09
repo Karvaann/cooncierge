@@ -4,17 +4,21 @@ import Modal from "../../Modal";
 interface ConfirmPopupModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onDontSave?: () => void;
-  onSaveAsDrafts?: () => void;
+  onCancel?: () => void;
+  onConfirm?: () => void;
   title: string;
+  confirmText?: string;
+  cancelText?: string;
 }
 
 const ConfirmPopupModal: React.FC<ConfirmPopupModalProps> = ({
   isOpen,
   onClose,
-  onDontSave,
-  onSaveAsDrafts,
+  onCancel,
+  onConfirm,
   title,
+  confirmText = "Yes",
+  cancelText = "No",
 }) => {
   return (
     <Modal
@@ -71,18 +75,24 @@ const ConfirmPopupModal: React.FC<ConfirmPopupModalProps> = ({
             className="border border-[#D32F2F] bg-[#D32F2F] text-white
               rounded-md px-4 py-1 text-[13px] font-medium
               hover:bg-[#b71c1c] transition-colors"
-            onClick={onDontSave}
+            onClick={() => {
+              onCancel?.();
+              onClose();
+            }}
           >
-            Don't Save
+            {cancelText}
           </button>
 
           <button
             className="border border-[#1A7F64] bg-[#3B8132] text-white
               rounded-md px-4 py-1.5 text-[13px] font-medium
               hover:bg-[#145c47] transition-colors"
-            onClick={onSaveAsDrafts}
+            onClick={() => {
+              onConfirm?.();
+              onClose();
+            }}
           >
-            Save as Drafts
+            {confirmText}
           </button>
         </div>
       </div>

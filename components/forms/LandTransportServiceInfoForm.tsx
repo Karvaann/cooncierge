@@ -24,6 +24,10 @@ interface OtherServiceInfoFormData {
   description: string;
   documents?: string | File;
   remarks: string;
+  showAdvancedPricing?: boolean;
+  vendorBasePrice?: number | string;
+  vendorIncentiveReceived?: number | string;
+  commissionPaid?: number | string;
 }
 
 interface ValidationErrors {
@@ -67,6 +71,10 @@ interface ExternalFormData {
     title?: string;
     description?: string;
     remarks?: string;
+    showAdvancedPricing?: boolean;
+    vendorBasePrice?: number | string;
+    vendorIncentiveReceived?: number | string;
+    commissionPaid?: number | string;
     // Add other fields as needed
   };
 }
@@ -103,6 +111,12 @@ const LandTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     description: normalizedExternalData?.description || "",
     documents: "",
     remarks: normalizedExternalData?.remarks || "",
+    showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
+    vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
+    vendorIncentiveReceived: String(
+      normalizedExternalData?.vendorIncentiveReceived ?? ""
+    ),
+    commissionPaid: String(normalizedExternalData?.commissionPaid ?? ""),
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -110,13 +124,21 @@ const LandTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   const [isValidating, setIsValidating] = useState<boolean>(false);
 
   // Advanced Pricing State
-  const [showAdvancedPricing, setShowAdvancedPricing] = useState(false);
+  const [showAdvancedPricing, setShowAdvancedPricing] = useState(
+    Boolean(normalizedExternalData?.showAdvancedPricing)
+  );
 
   // Vendor payment summary fields
-  const [vendorBasePrice, setVendorBasePrice] = useState<string>("");
+  const [vendorBasePrice, setVendorBasePrice] = useState<string>(
+    String(normalizedExternalData?.vendorBasePrice ?? "")
+  );
   const [vendorIncentiveReceived, setVendorIncentiveReceived] =
-    useState<string>("");
-  const [commissionPaid, setCommissionPaid] = useState<string>("");
+    useState<string>(
+      String(normalizedExternalData?.vendorIncentiveReceived ?? "")
+    );
+  const [commissionPaid, setCommissionPaid] = useState<string>(
+    String(normalizedExternalData?.commissionPaid ?? "")
+  );
 
   const derivedCostPrice = useMemo(() => {
     const a = Number(vendorBasePrice) || 0;
@@ -178,6 +200,42 @@ const LandTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
       }
       setTouched((prev) => ({ ...prev, [field]: true }));
     };
+
+  useEffect(() => {
+    if (!externalFormData || Object.keys(externalFormData).length === 0) return;
+    const nextPricing = {
+      showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
+      vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
+      vendorIncentiveReceived: String(
+        normalizedExternalData?.vendorIncentiveReceived ?? ""
+      ),
+      commissionPaid: String(normalizedExternalData?.commissionPaid ?? ""),
+    };
+    setShowAdvancedPricing(nextPricing.showAdvancedPricing);
+    setVendorBasePrice(nextPricing.vendorBasePrice);
+    setVendorIncentiveReceived(nextPricing.vendorIncentiveReceived);
+    setCommissionPaid(nextPricing.commissionPaid);
+    setFormData((prev) => ({
+      ...prev,
+      ...normalizedExternalData,
+      ...nextPricing,
+    }));
+  }, [externalFormData, normalizedExternalData]);
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      showAdvancedPricing,
+      vendorBasePrice,
+      vendorIncentiveReceived,
+      commissionPaid,
+    }));
+  }, [
+    commissionPaid,
+    showAdvancedPricing,
+    vendorBasePrice,
+    vendorIncentiveReceived,
+  ]);
 
   useEffect(() => {
     onFormDataUpdate({ landtransportinfoform: formData });

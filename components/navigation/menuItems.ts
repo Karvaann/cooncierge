@@ -22,21 +22,16 @@ export interface MenuItem {
 
 export const menuItems: MenuItem[] = [
   {
-    label: "Dashboard",
+    label: "Tasks",
     icon: LuLayoutDashboard,
     href: "/dashboard",
-  },
-  {
-    label: "Leads",
-    icon: GoPeople,
-    href: "/leads",
   },
   {
     label: "Sales",
     icon: TbGraph,
     subMenu: [
-      { label: "Limitless", href: "/sales/limitless" },
-      { label: "Other Services", href: "/sales/other-services" },
+      { label: "Leads", href: "/sales/leads" },
+      { label: "Quotations", href: "/sales/quotations" },
     ],
   },
   {
@@ -58,19 +53,20 @@ export const menuItems: MenuItem[] = [
   {
     label: "Approvals",
     icon: IoMdCheckboxOutline,
-    href: "/approvals",
-  },
-  {
-    label: "Content",
-    icon: LuClipboardList,
-    href: undefined,
+    subMenu: [
+      { label: "Limitless", href: "/approvals/limitless" },
+      { label: "Other Services", href: "/approvals/other-services" },
+    ],
   },
   {
     label: "Finance",
     icon: PiCurrencyCircleDollar,
     subMenu: [
-      { label: "Limitless", href: "/finance/limitless" },
-      { label: "Other Services", href: "/finance/other-services" },
+      { label: "Bookings", href: "/finance/bookings" },
+      { label: "Payments", href: "/finance/payments" },
+      { label: "Customers", href: "/finance/customers" },
+      { label: "Vendors", href: "/finance/vendors" },
+      { label: "Reports", href: "/finance/reports" },
     ],
   },
   {

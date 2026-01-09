@@ -71,6 +71,19 @@ interface TabConfig {
   isEnabled: boolean;
 }
 
+const stableStringify = (value: any): string =>
+  JSON.stringify(value, (_key, val) => {
+    if (val && typeof val === "object" && !Array.isArray(val)) {
+      return Object.keys(val)
+        .sort()
+        .reduce<Record<string, any>>((acc, key) => {
+          acc[key] = (val as Record<string, any>)[key];
+          return acc;
+        }, {});
+    }
+    return val;
+  });
+
 function ServiceInfoFormSwitcher(props: any) {
   const { selectedService, onAddDocuments, initialData, existingDocuments } =
     props;
@@ -253,6 +266,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const [successTitle, setSuccessTitle] = useState<string>("");
   const [apiErrorMessage, setApiErrorMessage] = useState<string>("");
   const [showApiErrorToast, setShowApiErrorToast] = useState<boolean>(false);
+  const [isDirty, setIsDirty] = useState(false);
   const { isAddCustomerOpen, isAddVendorOpen, isAddTravellerOpen } =
     useBooking();
   const { closeAddCustomer, closeAddVendor } = useBooking();
@@ -287,6 +301,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const [customerCode, setCustomerCode] = useState("");
   const [bookingCode, setBookingCode] = useState("");
   const [vendorCode, setVendorCode] = useState("");
+  const initialSnapshotRef = useRef<string>("");
+  const quotationId = initialData?._id || initialData?.id;
+  const isEditingExisting = mode === "edit" && Boolean(quotationId);
 
   // Accept bookingCode from parent
   useEffect(() => {
@@ -322,9 +339,15 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       setFormData({});
       setExistingBookingDocuments([]);
     }
+    setIsDirty(false);
     setActiveTab("general");
   }, [initialData, isOpen]);
   const isReadOnly = mode === "view";
+
+  useEffect(() => {
+    if (!isOpen || isDirty) return;
+    initialSnapshotRef.current = stableStringify(formData ?? {});
+  }, [formData, isDirty, isOpen]);
 
   // Ref to always have access to latest formData in callbacks
   const formDataRef = useRef(formData);
@@ -654,14 +677,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         serviceStatus
       );
 
-      // const formDataToSend = new FormData();
-      // formDataToSend.append("data", JSON.stringify(bookingData));
-
-      // bookingDocuments.forEach((file) => {
-      //   formDataToSend.append("documents", file);
-      // });
-
-      const response = await BookingApiService.createQuotation(bookingData);
+      const response = isEditingExisting
+        ? await BookingApiService.updateQuotation(quotationId, bookingData)
+        : await BookingApiService.createQuotation(bookingData);
 
       if (response.success) {
         // custom id if available and build success title
@@ -670,6 +688,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         setSuccessTitle(
           createdCustomId
             ? `Yaay! ${createdCustomId} has been successfully saved.`
+            : isEditingExisting
+            ? "Yaay! The Data has been successfully updated."
             : "Yaay! The Data has been successfully saved."
         );
         setIsSuccessModalOpen(true);
@@ -701,7 +721,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedService, collectAllFormData, onClose, convertToBookingData]);
+  }, [
+    selectedService,
+    collectAllFormData,
+    onClose,
+    convertToBookingData,
+    isEditingExisting,
+    quotationId,
+  ]);
 
   // Optimized tab click handler
   const handleTabClick = useCallback(
@@ -718,9 +745,18 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const handleFormDataUpdate = useCallback((newData: any) => {
     setFormData((prev: any) => {
       const merged = { ...prev, ...newData };
+      const snapshot = stableStringify(merged ?? {});
+      setIsDirty(snapshot !== initialSnapshotRef.current);
       return merged;
     });
   }, []);
+  const handleRequestClose = useCallback(() => {
+    if (isReadOnly || !isDirty) {
+      onClose();
+      return;
+    }
+    setIsConfirmModalOpen(true);
+  }, [isDirty, isReadOnly, onClose]);
 
   // Memoized tab buttons
   const tabButtons = useMemo(
@@ -812,8 +848,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     <>
       <SideSheet
         isOpen={isOpen}
-        onClose={onClose}
-        onCloseButtonClick={() => setIsConfirmModalOpen(true)}
+        onClose={handleRequestClose}
+        onCloseButtonClick={handleRequestClose}
         title={title}
         width="xl"
         zIndex={900}
@@ -850,7 +886,11 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
               {/* Always mount Service Info */}
               <div
                 style={{ display: activeTab === "service" ? "block" : "none" }}
-                className={isReadOnly ? "opacity-90" : ""}
+                className={
+                  isReadOnly
+                    ? "opacity-90 [&_input]:pointer-events-none [&_textarea]:pointer-events-none [&_select]:pointer-events-none [&_button]:pointer-events-none"
+                    : ""
+                }
               >
                 <ServiceInfoFormSwitcher
                   initialData={initialData}
@@ -895,18 +935,17 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
                   {/* RIGHT SIDE BUTTONS */}
                   <div className="flex space-x-2">
-                    {activeTab === "general" && (
                       <>
-                        <Button
+                        {activeTab === "general" && !isEditingExisting &&<Button
                           text="Save As Draft"
                           onClick={handleDraftSubmit}
                           bgColor="bg-white"
                           textColor="text-[#114958]"
                           className="hover:bg-gray-200 border border-[#114958]"
                           disabled={isSubmitting}
-                        />
+                        />}
 
-                        <Button
+                        {activeTab === "general" && <Button
                           text="Next"
                           onClick={() => {
                             const currentIndex = tabs.findIndex(
@@ -919,19 +958,20 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           textColor="text-white"
                           className="hover:bg-[#0d3a45]"
                           disabled={isSubmitting}
-                        />
+                        />}
                       </>
-                    )}
 
                     {activeTab === "service" && (
                       <>
-                        <Button
-                          text="Save As Draft"
-                          onClick={handleDraftSubmit}
-                          bgColor="bg-white border border-[#114958]"
-                          textColor="text-[#114958]"
-                          disabled={isSubmitting}
-                        />
+                        {!isEditingExisting && (
+                          <Button
+                            text="Save As Draft"
+                            onClick={handleDraftSubmit}
+                            bgColor="bg-white border border-[#114958]"
+                            textColor="text-[#114958]"
+                            disabled={isSubmitting}
+                          />
+                        )}
 
                         <Button
                           text="Save"
@@ -964,19 +1004,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       {/* Confirm Popup Modal */}
       <ConfirmPopupModal
         isOpen={isConfirmModalOpen}
-        title="Do you want to save the data to drafts before closing?"
+        title="Do you confirm to save the changes?"
         onClose={() => setIsConfirmModalOpen(false)}
-        onDontSave={() => {
-          setIsConfirmModalOpen(false);
-          onClose();
+        onCancel={onClose}
+        onConfirm={() => {
+          handleSubmit();
         }}
-        onSaveAsDrafts={async () => {
-          try {
-            await handleDraftSubmit();
-          } catch (error) {
-            console.error("Error saving draft:", error);
-          }
-        }}
+        confirmText="Yes"
+        cancelText="No"
       />
 
       {/* Success Popup Modal */}
