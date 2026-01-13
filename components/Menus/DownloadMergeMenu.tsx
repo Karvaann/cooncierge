@@ -10,6 +10,7 @@ type DownloadMergeMenuProps = {
   onClose: () => void;
   entity?: "customer" | "vendor" | "team" | "traveller";
   items?: DeletableItem[];
+  callback: () => void;
 };
 
 const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
@@ -17,6 +18,7 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
   onClose,
   entity = "customer",
   items = [],
+  callback,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = React.useState(false);
@@ -38,10 +40,13 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
   const handleEscape = useCallback(
     (event: KeyboardEvent) => {
       if (event.key === "Escape") {
+        if (isMergeModalOpen || isDownloadModalOpen || isDeleteModalOpen) {
+          return;
+        }
         onClose();
       }
     },
-    [onClose]
+    [isDeleteModalOpen, isDownloadModalOpen, isMergeModalOpen, onClose]
   );
 
   const handleClickOutside = useCallback(
@@ -50,6 +55,10 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
 
       // if menu ref doesn't exist or click is inside it, do nothing
       if (!menuEl || menuEl.contains(event.target as Node)) return;
+
+      if (isMergeModalOpen || isDownloadModalOpen || isDeleteModalOpen) {
+        return;
+      }
 
       // check if a modal overlay is active (blocking clicks)
       const activeModal = document.querySelector(
@@ -62,7 +71,7 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
 
       onClose();
     },
-    [onClose]
+    [isDeleteModalOpen, isDownloadModalOpen, isMergeModalOpen, onClose]
   );
 
   useEffect(() => {
@@ -76,7 +85,7 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
       };
     }
     return;
-  }, [isOpen, handleEscape]);
+  }, [isOpen, handleEscape, handleClickOutside]);
   if (!isOpen) return null;
 
   return (
@@ -153,7 +162,10 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
       {isDeleteModalOpen && (
         <DeleteModal
           isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
+          onClose={() => {
+            callback();
+            setIsDeleteModalOpen(false);
+          }}
           items={items}
           entity={entity}
         />

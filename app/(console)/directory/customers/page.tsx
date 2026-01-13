@@ -5,7 +5,6 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import { FiSearch } from "react-icons/fi";
-import { CiFilter } from "react-icons/ci";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import { IoEllipsisHorizontal } from "react-icons/io5";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
@@ -55,7 +54,6 @@ type CustomerRow = {
 const columns: string[] = [
   "Customer ID",
   "Name",
-  "Owner",
   "Rating",
   "Date Modified",
   "Actions",
@@ -70,12 +68,6 @@ const travellerColumnIconMap: Record<string, JSX.Element> = {
 };
 
 const columnIconMap: Record<string, JSX.Element> = {
-  Name: (
-    <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
-  ),
-  Owner: (
-    <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
-  ),
   Rating: (
     <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
   ),
@@ -83,49 +75,6 @@ const columnIconMap: Record<string, JSX.Element> = {
     <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
   ),
 };
-
-// const customerTableSeed: CustomerRow[] = [
-//   {
-//     customerID: "#C001",
-//     name: "Amit Verma",
-//     owner: "Riya Kapoor",
-//     rating: "⭐️⭐️⭐️⭐️",
-//     dateCreated: "05-09-2025",
-//     actions: "⋮",
-//   },
-//   {
-//     customerID: "#C002",
-//     name: "Neha Gupta",
-//     owner: "Arjun Mehta",
-//     rating: "⭐️⭐️⭐️⭐️⭐️",
-//     dateCreated: "10-09-2025",
-//     actions: "⋮",
-//   },
-//   {
-//     customerID: "#C003",
-//     name: "Suresh Raina",
-//     owner: "Priya Nair",
-//     rating: "⭐️⭐️⭐️",
-//     dateCreated: "15-09-2025",
-//     actions: "⋮",
-//   },
-//   {
-//     customerID: "#C004",
-//     name: "Anjali Sharma",
-//     owner: "Karan Malhotra",
-//     rating: "⭐️⭐️⭐️⭐️",
-//     dateCreated: "20-09-2025",
-//     actions: "⋮",
-//   },
-//   {
-//     customerID: "#C005",
-//     name: "Rohit Yadav",
-//     owner: "Sneha Joshi",
-//     rating: "⭐️⭐️⭐️⭐️⭐️",
-//     dateCreated: "25-09-2025",
-//     actions: "⋮",
-//   },
-// ];
 
 const CustomerDirectory = () => {
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
@@ -206,10 +155,21 @@ const CustomerDirectory = () => {
     return customers.filter(
       (c) =>
         (c.customerID || "").toLowerCase().includes(search) ||
-        (c.name || "").toLowerCase().includes(search) ||
-        (c.owner || "").toLowerCase().includes(search)
+        (c.name || "").toLowerCase().includes(search)
     );
   }, [customers, searchValue]);
+
+  const filteredTravellers = useMemo(() => {
+    if (!searchValue.trim()) return travellers;
+
+    const search = searchValue.toLowerCase();
+
+    return travellers.filter(
+      (c) =>
+        (c.customID || "").toLowerCase().includes(search) ||
+        (c.name || "").toLowerCase().includes(search)
+    );
+  }, [travellers, searchValue]);
 
   const handleSort = (column: string) => {
     const sorted = [...customers];
@@ -291,6 +251,19 @@ const CustomerDirectory = () => {
     setSelectedCustomers([]);
     setSelectedTravellers([]);
     setMenuMode("main"); // Revert menu to SelectUploadMenu
+  };
+
+  const handleCustomerRowClick = async (row: CustomerRow) => {
+    if (selectMode) return;
+
+    try {
+      const customer = await getCustomerById(row._id);
+      setSelectedCustomer(customer);
+      setMode("view");
+      setIsSideSheetOpen(true);
+    } catch (e) {
+      console.error("Failed to fetch customer:", e);
+    }
   };
 
   const handleDeleteCustomer = async (customerID: string) => {
@@ -400,6 +373,47 @@ const CustomerDirectory = () => {
     };
   }, [activeTab, tabOptions]);
 
+  const activeCustomersAction = row => [
+                    {
+                      label: "Edit",
+                      icon: <FaRegEdit />,
+                      color: "text-blue-600",
+                      onClick: async () => {
+                        try {
+                          const customer = await getCustomerById(row._id);
+                          setSelectedCustomer(customer);
+                          setIsSideSheetOpen(true);
+                          setMode("edit");
+                        } catch (e) {
+                          console.error(
+                            "Failed to fetch customer for edit:",
+                            e
+                          );
+                        }
+                      },
+                    },
+                    {
+                      label: "Delete",
+                      icon: <FaRegTrashAlt />,
+                      color: "text-red-600",
+                      onClick: () => {
+                        setSelectedCustomer(row); // store customer to delete
+                        setIsConfirmModalOpen(true);
+                      },
+                    },
+                  ]
+  
+  const deletedCustomersAction = row => [
+                    {
+                      label: "Resolve",
+                      icon: <FaRegEdit />,
+                      color: "text-blue-600",
+                      onClick: async () => {
+                        console.log(row)
+                      },
+                    },
+                  ]
+
   const tableData = useMemo<JSX.Element[][]>(
     () =>
       filteredCustomers.map((row, index) => {
@@ -418,6 +432,7 @@ const CustomerDirectory = () => {
                   id={`customer-select-${row.customerID}`}
                   className="hidden peer"
                   checked={isSelected}
+                  onClick={(e) => e.stopPropagation()}
                   onChange={() => {
                     setSelectedCustomers(
                       (prev) =>
@@ -431,6 +446,7 @@ const CustomerDirectory = () => {
                 {/* Styled checkbox UI */}
                 <label
                   htmlFor={`customer-select-${row.customerID}`}
+                  onClick={(e) => e.stopPropagation()}
                   className={`w-5 h-5 border border-gray-400 rounded-md flex items-center justify-center cursor-pointer transition 
         `}
                 >
@@ -465,9 +481,6 @@ const CustomerDirectory = () => {
           <td key={`name-${index}`} className="px-4 py-3  text-center">
             {row.name}
           </td>,
-          <td key={`owner-${index}`} className="px-4 py-3  text-center">
-            {row.owner}
-          </td>,
 
           <td key={`rating-${index}`} className="px-4 py-3  text-center">
             {getRatingBadge(row.rating)}
@@ -480,7 +493,8 @@ const CustomerDirectory = () => {
               <button
                 type="button"
                 className="bg-[#E9ECF0] text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.stopPropagation();
                   setSelectedCustomer(row);
 
                   try {
@@ -497,45 +511,14 @@ const CustomerDirectory = () => {
                 <MdHistory className="inline mr-1" size={14} />
                 Booking History
               </button>
-              <div className="">
+              <div className="" onClick={(e) => e.stopPropagation()}>
                 <ActionMenu
-                  actions={[
-                    {
-                      label: "Edit",
-                      icon: <FaRegEdit />,
-                      color: "text-blue-600",
-                      onClick: async () => {
-                        try {
-                          const customer = await getCustomerById(row._id);
-                          setSelectedCustomer(customer);
-                          setIsSideSheetOpen(true);
-                          setMode("edit");
-                        } catch (e) {
-                          console.error(
-                            "Failed to fetch customer for edit:",
-                            e
-                          );
-                        }
-                      },
-                    },
-                    // {
-                    //   label: "Link",
-                    //   icon: <CiLink />,
-                    //   color: "text-green-600",
-                    //   onClick: () => {
-                    //     handleOpenLinkModal();
-                    //   },
-                    // },
-                    {
-                      label: "Delete",
-                      icon: <FaRegTrashAlt />,
-                      color: "text-red-600",
-                      onClick: () => {
-                        setSelectedCustomer(row); // store customer to delete
-                        setIsConfirmModalOpen(true);
-                      },
-                    },
-                  ]}
+                  actions={activeTab === "Customers"
+                      ? activeCustomersAction(row)
+                      : activeTab === "Deleted"
+                      ? deletedCustomersAction(row)
+                      : []
+                  }
                   width="w-22"
                 />
               </div>
@@ -549,7 +532,7 @@ const CustomerDirectory = () => {
   );
 
   const travellerTableData = useMemo<JSX.Element[][]>(() => {
-    return travellers.map((row, index) => {
+    return filteredTravellers.map((row, index) => {
       const cells: JSX.Element[] = [];
 
       if (selectMode && activeTab === "Travellers") {
@@ -677,6 +660,7 @@ const CustomerDirectory = () => {
       .filter((c) => selectedCustomers.includes(c.customerID))
       .map((c) => ({
         id: c.customerID,
+        mongoId: c._id,
         name: c.name,
         owner: c.owner,
         rating: Number(c.rating),
@@ -689,6 +673,7 @@ const CustomerDirectory = () => {
       .filter((t) => selectedTravellers.includes(t.travellerID))
       .map((t) => ({
         id: t.travellerID,
+        mongoId: t._id,
         name: t.name,
         owner: t.owner,
         dateCreated: t.dateCreated,
@@ -816,6 +801,7 @@ const CustomerDirectory = () => {
                     }
                   }
                 }}
+                style={{width: 'fit-content'}}
                 className="px-2 py-1.5 w-[5rem] mr-3 text-[0.75rem] font-semibold rounded-md border border-gray-300 bg-white hover:bg-gray-100"
               >
                 {activeTab === "Customers"
@@ -859,6 +845,9 @@ const CustomerDirectory = () => {
                 <DownloadMergeMenu
                   isOpen={isMenuOpen}
                   onClose={handleCloseMenu}
+                  callback={() => {
+                    fetchData();
+                  }}
                   entity={
                     activeTab === "Travellers"
                       ? ("traveller" as any)
@@ -885,6 +874,15 @@ const CustomerDirectory = () => {
             showCheckboxColumn={selectMode}
             onSort={handleSort}
             categoryName="Customers"
+            onRowClick={
+              selectMode
+                ? undefined
+                : (index) => {
+                    const row = filteredCustomers[index];
+                    if (!row) return;
+                    handleCustomerRowClick(row);
+                  }
+            }
           />
         )}
 
@@ -939,6 +937,7 @@ const CustomerDirectory = () => {
 
             handleDeleteCustomer(selectedCustomer._id);
             setIsConfirmModalOpen(false);
+            fetchData();
           }}
         />
       )}

@@ -32,7 +32,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       closeOnOverlayClick={true}
       closeOnEscape={true}
       className="p-0"
-      zIndexClass="z-[200]"
+      zIndexClass="z-[1200]"
       disableOverlayClick={false}
     >
       <div className="relative px-2 -mt-3 pb-2 -ml-2 flex flex-col items-center">
