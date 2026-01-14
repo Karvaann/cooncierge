@@ -126,6 +126,10 @@ const MergeModal: React.FC<MergeModalProps> = ({
   );
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
   const [sideSheetMode, setSideSheetMode] = useState<"view" | "edit">("view");
+  const [mergeIntoPage, setMergeIntoPage] = useState(1);
+  const [mergeIntoRowsPerPage, setMergeIntoRowsPerPage] = useState(2);
+  const [mergeFromPage, setMergeFromPage] = useState(1);
+  const [mergeFromRowsPerPage, setMergeFromRowsPerPage] = useState(2);
 
   const mapStatusForModal = (status?: string) => {
     switch ((status || "").toLowerCase()) {
@@ -350,35 +354,67 @@ const MergeModal: React.FC<MergeModalProps> = ({
     const { source, destination } = result;
     if (!destination) return;
 
-    // Helper to guard indices
-    const isIndexValid = (list: any[], idx: number) =>
-      Number.isInteger(idx) && idx >= 0 && idx < list.length;
+    const getPaginationForDroppable = (droppableId: string) =>
+      droppableId === "into"
+        ? { page: mergeIntoPage, rowsPerPage: mergeIntoRowsPerPage }
+        : { page: mergeFromPage, rowsPerPage: mergeFromRowsPerPage };
+
+    const getSourceIndex = (droppableId: string, index: number, len: number) => {
+      const { page, rowsPerPage } = getPaginationForDroppable(droppableId);
+      const globalIndex = (page - 1) * rowsPerPage + index;
+      if (!Number.isInteger(globalIndex) || globalIndex < 0 || globalIndex >= len)
+        return null;
+      return globalIndex;
+    };
+
+    const getDestinationIndex = (
+      droppableId: string,
+      index: number,
+      len: number
+    ) => {
+      const { page, rowsPerPage } = getPaginationForDroppable(droppableId);
+      const globalIndex = (page - 1) * rowsPerPage + index;
+      if (!Number.isInteger(globalIndex) || globalIndex < 0) return null;
+      return Math.min(globalIndex, len);
+    };
 
     // same-table reorder
     if (source.droppableId === destination.droppableId) {
       if (source.droppableId === "into") {
         const updated = [...mergeIntoItems];
-        if (
-          !isIndexValid(updated, source.index) ||
-          !isIndexValid(updated, destination.index)
-        )
-          return;
+        const sourceIndex = getSourceIndex(
+          source.droppableId,
+          source.index,
+          updated.length
+        );
+        const destinationIndex = getDestinationIndex(
+          destination.droppableId,
+          destination.index,
+          updated.length
+        );
+        if (sourceIndex == null || destinationIndex == null) return;
 
-        const [moved] = updated.splice(source.index, 1);
+        const [moved] = updated.splice(sourceIndex, 1);
         if (!moved) return;
-        updated.splice(destination.index, 0, moved);
+        updated.splice(destinationIndex, 0, moved);
         setMergeIntoItems(updated);
       } else {
         const updated = [...mergeFromItems];
-        if (
-          !isIndexValid(updated, source.index) ||
-          !isIndexValid(updated, destination.index)
-        )
-          return;
+        const sourceIndex = getSourceIndex(
+          source.droppableId,
+          source.index,
+          updated.length
+        );
+        const destinationIndex = getDestinationIndex(
+          destination.droppableId,
+          destination.index,
+          updated.length
+        );
+        if (sourceIndex == null || destinationIndex == null) return;
 
-        const [moved] = updated.splice(source.index, 1);
+        const [moved] = updated.splice(sourceIndex, 1);
         if (!moved) return;
-        updated.splice(destination.index, 0, moved);
+        updated.splice(destinationIndex, 0, moved);
         setMergeFromItems(updated);
       }
       return;
@@ -391,25 +427,26 @@ const MergeModal: React.FC<MergeModalProps> = ({
     const sourceList = sourceIsInto ? [...mergeIntoItems] : [...mergeFromItems];
     const destList = destIsInto ? [...mergeIntoItems] : [...mergeFromItems];
 
-    // validate indices on source and destination (destination can be equal to destList.length for append)
-    if (!isIndexValid(sourceList, source.index)) return;
-    if (
-      !(
-        Number.isInteger(destination.index) &&
-        destination.index >= 0 &&
-        destination.index <= destList.length
-      )
-    )
-      return;
+    const sourceIndex = getSourceIndex(
+      source.droppableId,
+      source.index,
+      sourceList.length
+    );
+    const destinationIndex = getDestinationIndex(
+      destination.droppableId,
+      destination.index,
+      destList.length
+    );
+    if (sourceIndex == null || destinationIndex == null) return;
 
-    const [moved] = sourceList.splice(source.index, 1);
+    const [moved] = sourceList.splice(sourceIndex, 1);
     if (!moved) return;
 
     // If destination is the 'into' table, enforce only one item there.
     if (destIsInto) {
       // If 'into' is empty, simply place moved there.
       if (destList.length === 0) {
-        destList.splice(destination.index, 0, moved);
+        destList.splice(destinationIndex, 0, moved);
 
         // batch state updates to avoid intermediate re-renders
         unstable_batchedUpdates(() => {
@@ -426,11 +463,11 @@ const MergeModal: React.FC<MergeModalProps> = ({
       destList.splice(0, 1);
 
       // insert moved into dest
-      const insertIndexInto = Math.min(destination.index, destList.length);
+      const insertIndexInto = Math.min(destinationIndex, destList.length);
       destList.splice(insertIndexInto, 0, moved);
 
       // insert previousInto into sourceList at the original source.index position
-      const insertIndexSource = Math.min(source.index, sourceList.length);
+      const insertIndexSource = Math.min(sourceIndex, sourceList.length);
       sourceList.splice(insertIndexSource, 0, previousInto);
 
       // batch state updates to avoid flicker during swap
@@ -445,7 +482,7 @@ const MergeModal: React.FC<MergeModalProps> = ({
     }
 
     // Normal move into `from` table (dest is not into)
-    destList.splice(destination.index, 0, moved);
+    destList.splice(destinationIndex, 0, moved);
 
     // batch final writes to state to avoid visual jank
     unstable_batchedUpdates(() => {
@@ -493,6 +530,10 @@ const MergeModal: React.FC<MergeModalProps> = ({
               droppableId="into"
               categoryName={mode === "customer" ? "Customers" : "Vendors"}
               hideEntriesText={true}
+              onPaginationChange={(page, rowsPerPage) => {
+                setMergeIntoPage(page);
+                setMergeIntoRowsPerPage(rowsPerPage);
+              }}
             />
           </div>
 
@@ -515,6 +556,10 @@ const MergeModal: React.FC<MergeModalProps> = ({
               headerClassName="bg-blue-900"
               categoryName={mode === "customer" ? "Customers" : "Vendors"}
               sortableHeaderHoverClass="bg-blue-800"
+              onPaginationChange={(page, rowsPerPage) => {
+                setMergeFromPage(page);
+                setMergeFromRowsPerPage(rowsPerPage);
+              }}
             />
           </div>
 

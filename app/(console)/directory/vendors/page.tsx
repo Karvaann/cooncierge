@@ -613,6 +613,9 @@ const VendorDirectory = () => {
                   onClose={handleCloseMenu}
                   entity="vendor"
                   items={selectedDeletables}
+                  callback={() => {
+                    fetchVendors();
+                  }}
                 />
               )}
             </div>

@@ -200,13 +200,13 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
       const promises = deletableItems.map((item) => {
         switch (entity) {
           case "customer":
-            return deleteCustomer(item.id);
+            return deleteCustomer(item.mongoId);
           case "vendor":
             return deleteVendor(item.id);
           case "team":
             return deleteTeam(item.id);
           case "traveller":
-            return deleteTraveller(item.id);
+            return deleteTraveller(item.mongoId);
           default:
             return Promise.resolve();
         }

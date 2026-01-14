@@ -18,6 +18,7 @@ import DropDown from "../DropDown";
 import PhoneCodeSelect from "../PhoneCodeSelect";
 import generateCustomId from "@/utils/helper";
 import ErrorToast from "../ErrorToast";
+import ConfirmationModal from "../popups/ConfirmationModal";
 import {
   allowOnlyText,
   allowOnlyNumbers,
@@ -110,6 +111,46 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [customerCode, setCustomerCode] = useState("");
+  const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
+  const initialSnapshotRef = useRef<string>("");
+
+  const buildSnapshot = (snapshot: {
+    formData: CustomerData;
+    phoneCodeValue: string;
+    tierValue: string;
+    balanceAmountValue: string;
+    balanceTypeValue: "debit" | "credit";
+    existingDocs: NonNullable<CustomerData["documents"]>;
+    attached: File[];
+  }) =>
+    JSON.stringify({
+      formData: {
+        name: snapshot.formData.name || "",
+        alias: snapshot.formData.alias || "",
+        phone: snapshot.formData.phone || "",
+        email: snapshot.formData.email || "",
+        dateOfBirth: snapshot.formData.dateOfBirth || "",
+        gstin: snapshot.formData.gstin || "",
+        companyName: snapshot.formData.companyName || "",
+        address: snapshot.formData.address || "",
+        remarks: snapshot.formData.remarks || "",
+      },
+      phoneCode: snapshot.phoneCodeValue || "",
+      tier: snapshot.tierValue || "",
+      balanceAmount: snapshot.balanceAmountValue || "",
+      balanceType: snapshot.balanceTypeValue || "debit",
+      existingDocuments: snapshot.existingDocs.map(
+        (doc) =>
+          doc.key ||
+          doc.url ||
+          doc.fileName ||
+          doc.originalName ||
+          ""
+      ),
+      attachedFiles: snapshot.attached.map(
+        (file) => `${file.name}:${file.size}:${file.type}`
+      ),
+    });
 
   useEffect(() => {
     if (customerCodeProp) {
@@ -143,7 +184,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   ) => {
     const { name, value } = e.target;
     const newValue =
-      name === "name" || name === "companyName"
+      name === "name"
         ? allowOnlyText(value)
         : name === "gstin"
         ? allowOnlyNumbers(value)
@@ -214,7 +255,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       const trimmed = allowOnlyDigitsWithMax(digitsOnly, maxLen);
       setPhoneCode(parsed.dialCode);
 
-      setFormData({
+      const nextFormData: CustomerData = {
         name: nameVal,
         alias: data.alias || "",
         phone: trimmed || "",
@@ -227,15 +268,32 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         address: data.address || "",
         remarks: data.remarks || "",
         tier: data.tier || "",
-      });
+      };
+      setFormData(nextFormData);
 
-      setExistingDocuments(Array.isArray(data.documents) ? data.documents : []);
+      const nextDocuments = Array.isArray(data.documents) ? data.documents : [];
+      setExistingDocuments(nextDocuments);
       setAttachedFiles([]);
-      setTier(data.tier || "");
-      setBalanceAmount(data.openingBalance ? String(data.openingBalance) : "");
-      setBalanceType(data.balanceType || "debit");
+      const nextTier = data.tier || "";
+      const nextBalanceAmount = data.openingBalance
+        ? String(data.openingBalance)
+        : "";
+      const nextBalanceType = data.balanceType || "debit";
+      setTier(nextTier);
+      setBalanceAmount(nextBalanceAmount);
+      setBalanceType(nextBalanceType);
+
+      initialSnapshotRef.current = buildSnapshot({
+        formData: nextFormData,
+        phoneCodeValue: parsed.dialCode,
+        tierValue: nextTier,
+        balanceAmountValue: nextBalanceAmount,
+        balanceTypeValue: nextBalanceType,
+        existingDocs: nextDocuments,
+        attached: [],
+      });
     } else {
-      setFormData({
+      const nextFormData: CustomerData = {
         name: "",
         alias: "",
         phone: "",
@@ -246,14 +304,29 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         address: "",
         remarks: "",
         tier: "",
-      });
+      };
+      setFormData(nextFormData);
 
       setExistingDocuments([]);
       setAttachedFiles([]);
-      setPhoneCode("+91");
-      setTier("");
-      setBalanceAmount("");
-      setBalanceType("debit");
+      const nextPhoneCode = "+91";
+      const nextTier = "";
+      const nextBalanceAmount = "";
+      const nextBalanceType: "debit" | "credit" = "debit";
+      setPhoneCode(nextPhoneCode);
+      setTier(nextTier);
+      setBalanceAmount(nextBalanceAmount);
+      setBalanceType(nextBalanceType);
+
+      initialSnapshotRef.current = buildSnapshot({
+        formData: nextFormData,
+        phoneCodeValue: nextPhoneCode,
+        tierValue: nextTier,
+        balanceAmountValue: nextBalanceAmount,
+        balanceTypeValue: nextBalanceType,
+        existingDocs: [],
+        attached: [],
+      });
     }
   }, [data]);
 
@@ -267,6 +340,45 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       return { ...prev, phone: trimmed };
     });
   }, [phoneMaxLength]);
+
+  const isDirty = React.useMemo(() => {
+    if (mode !== "edit") return false;
+    const currentSnapshot = buildSnapshot({
+      formData,
+      phoneCodeValue: phoneCode,
+      tierValue: tier,
+      balanceAmountValue: balanceAmount,
+      balanceTypeValue: balanceType,
+      existingDocs: existingDocuments,
+      attached: attachedFiles,
+    });
+    return currentSnapshot !== initialSnapshotRef.current;
+  }, [
+    mode,
+    formData,
+    phoneCode,
+    tier,
+    balanceAmount,
+    balanceType,
+    existingDocuments,
+    attachedFiles,
+  ]);
+
+  const handleRequestClose = () => {
+    if (readOnly) {
+      onCancel();
+      return;
+    }
+    if (mode === "create") {
+      setIsCloseConfirmOpen(true);
+      return;
+    }
+    if (mode === "edit" && isDirty) {
+      setIsCloseConfirmOpen(true);
+      return;
+    }
+    onCancel();
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -402,7 +514,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     <>
       <SideSheet
         isOpen={isOpen}
-        onClose={onCancel}
+        onClose={handleRequestClose}
+        onCloseButtonClick={handleRequestClose}
         title={`${
           mode === "view"
             ? "Customer Details"
@@ -944,6 +1057,20 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
           onClose={() => setError(null)}
         />
       </SideSheet>
+      {isCloseConfirmOpen && (
+        <ConfirmationModal
+          isOpen={isCloseConfirmOpen}
+          onClose={() => setIsCloseConfirmOpen(false)}
+          title="You have unsaved changes. Are you sure you want to close?"
+          confirmText="Yes, Close"
+          cancelText="Cancel"
+          confirmButtonColor="bg-red-600"
+          onConfirm={() => {
+            setIsCloseConfirmOpen(false);
+            onCancel();
+          }}
+        />
+      )}
     </>
   );
 };

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import DropDown from "./DropDown";
 // Type definitions
@@ -23,6 +23,8 @@ interface TableProps {
   categoryName?: string;
   sortableHeaderHoverClass?: string;
   hideEntriesText?: boolean;
+  onRowClick?: (rowIndex: number) => void;
+  onPaginationChange?: (page: number, rowsPerPage: number) => void;
 }
 
 const Table: React.FC<TableProps> = ({
@@ -43,6 +45,8 @@ const Table: React.FC<TableProps> = ({
   sortableHeaderHoverClass = "",
   hideEntriesText = false,
   headerAlign = {},
+  onRowClick,
+  onPaginationChange,
 }) => {
   const [page, setPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
@@ -117,6 +121,12 @@ const Table: React.FC<TableProps> = ({
       ? String(rowIds[globalIndex])
       : `row-${globalIndex}`;
   };
+
+  useEffect(() => {
+    if (onPaginationChange) {
+      onPaginationChange(page, rowsPerPage);
+    }
+  }, [page, rowsPerPage, onPaginationChange]);
 
   return (
     <>
@@ -210,9 +220,16 @@ const Table: React.FC<TableProps> = ({
                           // If you want handle-only dragging later, we can change this to pass handle props
                           // to a specific cell by cloning the row's first child.
                           {...drag.dragHandleProps}
+                          onClick={() => {
+                            if (!onRowClick) return;
+                            const globalIndex = (page - 1) * rowsPerPage + idx;
+                            onRowClick(globalIndex);
+                          }}
                           className={`${
                             idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                          } hover:bg-gray-100 transition-colors h-[3rem] text-[12px]`}
+                          } hover:bg-gray-100 transition-colors h-[3rem] text-[12px] ${
+                            onRowClick ? "cursor-pointer" : ""
+                          }`}
                         >
                           {row}
                         </tr>
@@ -248,9 +265,16 @@ const Table: React.FC<TableProps> = ({
                 return (
                   <tr
                     key={`row-${page}-${idx}`}
+                    onClick={() => {
+                      if (!onRowClick) return;
+                      const globalIndex = (page - 1) * rowsPerPage + idx;
+                      onRowClick(globalIndex);
+                    }}
                     className={`${
                       idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                    } hover:bg-gray-100 transition-colors  text-[14px]`}
+                    } hover:bg-gray-100 transition-colors text-[14px] ${
+                      onRowClick ? "cursor-pointer" : ""
+                    }`}
                   >
                     {row}
                   </tr>

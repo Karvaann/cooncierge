@@ -581,6 +581,9 @@ const TeamDirectory = () => {
                   onClose={handleCloseMenu}
                   entity="team"
                   items={selectedDeletables}
+                  callback={() => {
+                    fetchTeamsData()
+;                  }}
                 />
               )}
             </div>
