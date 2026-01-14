@@ -226,9 +226,9 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     sellingprice: normalizedExternalData?.sellingprice || "",
     confirmationNumber: normalizedExternalData?.confirmationNumber || "",
     checkindate: normalizedExternalData?.checkindate || "",
-    checkintime: normalizedExternalData?.checkintime || "",
+    checkintime: normalizedExternalData?.checkintime || "14:00",
     checkoutdate: normalizedExternalData?.checkoutdate || "",
-    checkouttime: normalizedExternalData?.checkouttime || "",
+    checkouttime: normalizedExternalData?.checkouttime || "12:00",
     checkOutPeriod: "AM",
     pax: normalizedExternalData?.pax || "",
     mealPlan: normalizedExternalData?.mealPlan || "",
@@ -735,6 +735,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                       value={formData.costprice}
                       onChange={handlePriceChange("costprice")}
                       placeholder="Enter Cost Price"
+                      disabled={isReadOnly || isSubmitting}
                       className="w-[10rem] px-2 py-1.5 text-[13px] border border-l-0 border-gray-300 rounded-r-md hover:border-green-300 focus:outline-none focus:ring-1 focus:ring-green-400"
                     />
                   </div>
@@ -760,6 +761,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                       value={formData.sellingprice}
                       onChange={handlePriceChange("sellingprice")}
                       placeholder="Enter Selling Price"
+                      disabled={isReadOnly || isSubmitting}
                       className="w-[10rem] px-2 py-1.5 text-[13px] border border-l-0 border-gray-300 rounded-r-md hover:border-green-300 focus:outline-none focus:ring-1 focus:ring-green-400"
                     />
                   </div>
@@ -848,6 +850,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                                 setVendorIncentiveReceived(String(sanitized));
                               else setCommissionPaid(String(sanitized));
                             }}
+                            disabled={isReadOnly || isSubmitting}
                             className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[13px] focus:ring-1 focus:ring-blue-500 focus:outline-none"
                           />
                         ) : (
@@ -900,6 +903,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                             ),
                           }))
                         }
+                        disabled={isReadOnly || isSubmitting}
                         className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[13px] hover:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none"
                       />
                     </div>

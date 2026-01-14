@@ -607,6 +607,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                       type="text"
                       name="costprice"
                       value={formData.costprice}
+                      disabled={isReadOnly || isSubmitting}
                       onChange={handlePriceChange("costprice")}
                       placeholder="Enter Cost Price"
                       className="w-[10rem] px-2 py-1.5 text-[13px] border border-l-0 border-gray-300 rounded-r-md focus:outline-none hover:border-green-300"
@@ -632,6 +633,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                       type="text"
                       name="sellingprice"
                       value={formData.sellingprice}
+                      disabled={isReadOnly || isSubmitting}
                       onChange={handlePriceChange("sellingprice")}
                       placeholder="Enter Selling Price"
                       className="w-[10rem] px-2 py-1.5 text-[13px] border border-l-0 border-gray-300 rounded-r-md focus:outline-none hover:border-green-300"
@@ -699,6 +701,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                           <input
                             type="text"
                             inputMode="decimal"
+                            disabled={isReadOnly || isSubmitting}
                             pattern="^\\d*(?:\\.\\d*)?$"
                             placeholder="Enter Amount"
                             value={
@@ -727,6 +730,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                         {item.key !== "cost" && (
                           <input
                             type="text"
+                            disabled={isReadOnly || isSubmitting}
                             placeholder="Enter notes here..."
                             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[13px] focus:ring-1 hover:border-green-300 focus:outline-none"
                           />
@@ -751,6 +755,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                         type="text"
                         inputMode="decimal"
                         pattern="^\\d*(?:\\.\\d*)?$"
+                        disabled={isReadOnly || isSubmitting}
                         placeholder="Enter Amount"
                         value={String(formData.sellingprice ?? "")}
                         onChange={(e) =>
@@ -835,7 +840,12 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
             {/* Description */}
 
-            <StyledDescription />
+            <StyledDescription
+              value={formData.description}
+              onChange={(val) =>
+                setFormData((prev) => ({ ...prev, description: val }))
+              }
+            />
           </div>
         </div>
 

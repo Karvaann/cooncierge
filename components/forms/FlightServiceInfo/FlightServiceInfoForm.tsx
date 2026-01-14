@@ -16,6 +16,9 @@ import SingleCalendar from "@/components/SingleCalendar";
 import StyledDescription from "@/components/StyledDescription";
 import { allowUppercaseAlphanumeric6 } from "@/utils/inputValidators";
 import { isAfterDate } from "@/utils/helper";
+import CancellationModal, {
+  CancellationModalFormState,
+} from "@/components/Modals/CancellationModal";
 // Type definitions
 interface FlightInfoFormData {
   bookingdate: string;
@@ -34,6 +37,10 @@ interface FlightInfoFormData {
   vendorBasePrice?: number | string;
   vendorIncentiveReceived?: number | string;
   commissionPaid?: number | string;
+  importantinfo?: string;
+
+  // Persist cancellation modal form data with the booking
+  cancellationForm?: CancellationModalFormState;
 }
 
 interface FlightSegment {
@@ -75,6 +82,7 @@ interface ExternalFormData {
     sellingprice?: string;
     PNR?: string;
     remarks?: string;
+    importantinfo?: string;
     // Add other fields as needed
   };
 }
@@ -88,6 +96,7 @@ interface FlightInfoFormProps {
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
   externalFormData?: ExternalFormData | Record<string, unknown>;
+  bookingCode?: string;
   existingDocuments?: Array<{
     originalName?: string;
     fileName?: string;
@@ -109,6 +118,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   onFormDataUpdate,
   onAddDocuments,
   externalFormData,
+  bookingCode,
   existingDocuments = [],
 }) => {
   // Normalize incoming data so we can hydrate the form from either
@@ -176,7 +186,15 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
       normalizedExternalData?.vendorIncentiveReceived ?? ""
     ),
     commissionPaid: String(normalizedExternalData?.commissionPaid ?? ""),
+    importantinfo: normalizedExternalData?.importantinfo || "",
+
+    cancellationForm: (normalizedExternalData as any)?.cancellationForm,
   }));
+
+  const [isCancellationModalOpen, setIsCancellationModalOpen] =
+    useState<boolean>(false);
+  const [pendingPrevBookingStatus, setPendingPrevBookingStatus] =
+    useState<string>("");
 
   const [errors, setErrors] = useState<ValidationErrors>({});
 
@@ -343,7 +361,17 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   ];
 
   const handleBookingStatusChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, bookingstatus: value }));
+    const next = String(value || "");
+    const nextLower = next.toLowerCase();
+    const shouldOpenCancellation =
+      nextLower === "cancelled" || nextLower === "canceled";
+
+    if (shouldOpenCancellation) {
+      setPendingPrevBookingStatus(String(formData.bookingstatus || ""));
+      setIsCancellationModalOpen(true);
+    }
+
+    setFormData((prev) => ({ ...prev, bookingstatus: next }));
   };
 
   type FieldRule = {
@@ -619,6 +647,37 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 
   return (
     <>
+      <CancellationModal
+        isOpen={isCancellationModalOpen}
+        onClose={() => {
+          setIsCancellationModalOpen(false);
+          setFormData((prev) => ({
+            ...prev,
+            bookingstatus:
+              pendingPrevBookingStatus !== ""
+                ? pendingPrevBookingStatus
+                : prev.bookingstatus,
+          }));
+          setPendingPrevBookingStatus("");
+        }}
+        onSave={(data) => {
+          setFormData((prev) => ({
+            ...prev,
+            bookingstatus: "cancelled",
+            cancellationForm: data,
+          }));
+          setIsCancellationModalOpen(false);
+          setPendingPrevBookingStatus("");
+        }}
+        recordLabel={bookingCode || ""}
+        statusLabel="Cancelled"
+        linkedShowAdvancedPricing={showAdvancedPricing}
+        onLinkedShowAdvancedPricingChange={setShowAdvancedPricing}
+        {...(formData.cancellationForm
+          ? { initialValues: formData.cancellationForm }
+          : {})}
+      />
+
       <form
         className={`space-y-4 p-4 -mt-1 ${
           isReadOnly
@@ -741,6 +800,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                       value={formData.costprice}
                       onChange={handlePriceChange("costprice")}
                       placeholder="Enter Cost Price"
+                      disabled={isReadOnly || isSubmitting}
                       className="w-[10rem] px-2 py-1.5 text-[13px] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                     />
                   </div>
@@ -766,6 +826,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                       value={formData.sellingprice}
                       onChange={handlePriceChange("sellingprice")}
                       placeholder="Enter Selling Price"
+                      disabled={isReadOnly || isSubmitting}
                       className="w-[10rem] px-2 py-1.5 text-[13px] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                     />
                   </div>
@@ -856,6 +917,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                                 setVendorIncentiveReceived(String(sanitized));
                               else setCommissionPaid(String(sanitized));
                             }}
+                            disabled={isReadOnly || isSubmitting}
                             className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[13px] focus:ring-1 focus:ring-blue-500 focus:outline-none"
                           />
                         ) : (
@@ -908,6 +970,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                             ),
                           }))
                         }
+                        disabled={isReadOnly || isSubmitting}
                         className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[13px] hover:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none"
                       />
                     </div>
@@ -1120,7 +1183,14 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         </div>
 
         <div className="-mt-1 space-y-3 w-[48vw] ml-2.5">
-          <StyledDescription label="Important Info" />
+          <StyledDescription
+            label="Important Info"
+            value={String(formData.importantinfo ?? "")}
+            onChange={(val) =>
+              setFormData((prev) => ({ ...prev, importantinfo: val }))
+            }
+            readOnly={isReadOnly}
+          />
         </div>
 
         {/* Remarks Section */}

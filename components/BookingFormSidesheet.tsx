@@ -303,7 +303,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const [vendorCode, setVendorCode] = useState("");
   const initialSnapshotRef = useRef<string>("");
   const quotationId = initialData?._id || initialData?.id;
-  const isEditingExisting = mode === "edit" && Boolean(quotationId);
+  const isEditingExisting = Boolean(quotationId);
+
+  // In "view" modestart read-only, but allow the user to toggle into edit.
+  const [readOnlyOverride, setReadOnlyOverride] = useState<boolean | null>(
+    null
+  );
+  const isReadOnly = readOnlyOverride ?? mode === "view";
 
   // Accept bookingCode from parent
   useEffect(() => {
@@ -327,6 +333,24 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   // Reset form state when opening or when initialData changes
   useEffect(() => {
     if (!isOpen) return;
+
+    // Reset DOM form values (if forms use native <form> refs)
+    try {
+      generalFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      serviceFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      addCustomerFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      addVendorFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      addTravellerFormRef.current?.reset?.();
+    } catch (_) {}
+
     if (initialData && Object.keys(initialData).length > 0) {
       setFormData(initialData);
       // Load existing documents from initialData
@@ -335,14 +359,49 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       } else {
         setExistingBookingDocuments([]);
       }
+      // clear any pending new uploads from previous interactions
+      setBookingDocuments([]);
     } else {
       setFormData({});
       setExistingBookingDocuments([]);
+      setBookingDocuments([]);
     }
+
     setIsDirty(false);
     setActiveTab("general");
+    setReadOnlyOverride(null);
+
+    // snapshot initial state for dirty-checking
+    initialSnapshotRef.current = stableStringify(initialData ?? {});
   }, [initialData, isOpen]);
-  const isReadOnly = mode === "view";
+
+  // Cleanup when sidesheet is closed to ensure no stale data persists
+  useEffect(() => {
+    if (isOpen) return;
+    setFormData({});
+    setExistingBookingDocuments([]);
+    setBookingDocuments([]);
+    setIsDirty(false);
+    initialSnapshotRef.current = "";
+    setCustomerCode("");
+    setBookingCode("");
+    setVendorCode("");
+    try {
+      generalFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      serviceFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      addCustomerFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      addVendorFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      addTravellerFormRef.current?.reset?.();
+    } catch (_) {}
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || isDirty) return;
@@ -439,6 +498,15 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
     // Merge flattened infoform into formFields
     Object.assign(formFields, flatInfoForm);
+
+    // Ensure cancellation modal payload is stored inside formFields.cancellationForm
+    const cancellationFormCandidate =
+      (flatInfoForm as any)?.cancellationForm ??
+      (input as any)?.cancellationForm ??
+      (formFields as any)?.cancellationForm;
+    if (cancellationFormCandidate) {
+      (formFields as any).cancellationForm = cancellationFormCandidate;
+    }
 
     const isValidMongoObjectId = (value: unknown): boolean => {
       if (typeof value !== "string") return false;
@@ -875,6 +943,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                 className={isReadOnly ? "opacity-90" : ""}
               >
                 <GeneralInfoForm
+                  key={`general-${quotationId || "new"}`}
                   initialFormData={initialData || {}}
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting || isReadOnly}
@@ -893,11 +962,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                 }
               >
                 <ServiceInfoFormSwitcher
+                  key={`service-${quotationId || "new"}`}
                   initialData={initialData}
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting || isReadOnly}
                   isReadOnly={isReadOnly}
                   formRef={serviceFormRef}
+                  bookingCode={bookingCode}
                   selectedService={
                     selectedService || initialData?.quotationType
                   }
@@ -908,44 +979,48 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
             </div>
 
             {/* Footer Actions - kept outside the scrollable area so it remains fixed at the bottom */}
-            {!isReadOnly && (
-              <div className="border-t border-gray-200 p-4 bg-white">
-                <div className="flex justify-between">
-                  {/* LEFT SIDE BUTTONS */}
-                  <div>
-                    {activeTab === "service" && (
-                      <Button
-                        text="Previous"
-                        onClick={() => {
-                          const currentIndex = tabs.findIndex(
-                            (tab) => tab.id === activeTab
-                          );
-                          const prevTab = tabs[currentIndex - 1];
-                          if (prevTab?.isEnabled) setActiveTab(prevTab.id);
-                        }}
-                        bgColor="bg-white"
-                        textColor="text-[#114958]"
-                        className="border border-[#114958] hover:bg-[#114958] "
-                        disabled={isSubmitting}
-                      />
-                    )}
+            <div className="border-t border-gray-200 p-4 bg-white">
+              <div className="flex justify-between">
+                {/* LEFT SIDE BUTTONS */}
+                <div>
+                  {activeTab === "service" && (
+                    <Button
+                      text="Previous"
+                      onClick={() => {
+                        const currentIndex = tabs.findIndex(
+                          (tab) => tab.id === activeTab
+                        );
+                        const prevTab = tabs[currentIndex - 1];
+                        if (prevTab?.isEnabled) setActiveTab(prevTab.id);
+                      }}
+                      bgColor="bg-white"
+                      textColor="text-[#114958]"
+                      className="border border-[#114958] hover:bg-[#114958] "
+                      disabled={isSubmitting}
+                    />
+                  )}
 
-                    {/* General tab → Nothing shown */}
-                  </div>
+                  {/* General tab → Nothing shown */}
+                </div>
 
-                  {/* RIGHT SIDE BUTTONS */}
-                  <div className="flex space-x-2">
-                      <>
-                        {activeTab === "general" && !isEditingExisting &&<Button
+                {/* RIGHT SIDE BUTTONS */}
+                <div className="flex space-x-2">
+                  {/* EDIT MODE (existing behavior) */}
+                  {mode !== "view" && (
+                    <>
+                      {activeTab === "general" && !isEditingExisting && (
+                        <Button
                           text="Save As Draft"
                           onClick={handleDraftSubmit}
                           bgColor="bg-white"
                           textColor="text-[#114958]"
                           className="hover:bg-gray-200 border border-[#114958]"
                           disabled={isSubmitting}
-                        />}
+                        />
+                      )}
 
-                        {activeTab === "general" && <Button
+                      {activeTab === "general" && (
+                        <Button
                           text="Next"
                           onClick={() => {
                             const currentIndex = tabs.findIndex(
@@ -958,21 +1033,68 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           textColor="text-white"
                           className="hover:bg-[#0d3a45]"
                           disabled={isSubmitting}
-                        />}
-                      </>
+                        />
+                      )}
 
-                    {activeTab === "service" && (
-                      <>
-                        {!isEditingExisting && (
+                      {activeTab === "service" && (
+                        <>
+                          {!isEditingExisting && (
+                            <Button
+                              text="Save As Draft"
+                              onClick={handleDraftSubmit}
+                              bgColor="bg-white border border-[#114958]"
+                              textColor="text-[#114958]"
+                              disabled={isSubmitting}
+                            />
+                          )}
+
                           <Button
-                            text="Save As Draft"
-                            onClick={handleDraftSubmit}
-                            bgColor="bg-white border border-[#114958]"
-                            textColor="text-[#114958]"
-                            disabled={isSubmitting}
+                            text="Save"
+                            onClick={() => handleSubmit()}
+                            icon={<LuSave size={16} />}
+                            bgColor="bg-[#0D4B37]"
+                            textColor="text-white"
+                            width="w-auto"
+                            type="button"
+                            disabled={
+                              isSubmitting || !(selectedService || initialData)
+                            }
                           />
-                        )}
+                        </>
+                      )}
+                    </>
+                  )}
 
+                  {/* VIEW MODE: keep footer + allow Edit -> Save */}
+                  {mode === "view" && (
+                    <>
+                      {activeTab === "general" && (
+                        <Button
+                          text="Next"
+                          onClick={() => {
+                            const currentIndex = tabs.findIndex(
+                              (tab) => tab.id === activeTab
+                            );
+                            const nextTab = tabs[currentIndex + 1];
+                            if (nextTab?.isEnabled) setActiveTab(nextTab.id);
+                          }}
+                          bgColor="bg-[#114958]"
+                          textColor="text-white"
+                          className="hover:bg-[#0d3a45]"
+                          disabled={isSubmitting}
+                        />
+                      )}
+
+                      {isReadOnly ? (
+                        <Button
+                          text="Edit"
+                          onClick={() => setReadOnlyOverride(false)}
+                          bgColor="bg-white"
+                          textColor="text-[#114958]"
+                          className="hover:bg-gray-200 border border-[#114958]"
+                          disabled={isSubmitting || !quotationId}
+                        />
+                      ) : (
                         <Button
                           text="Save"
                           onClick={() => handleSubmit()}
@@ -981,16 +1103,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           textColor="text-white"
                           width="w-auto"
                           type="button"
-                          disabled={
-                            isSubmitting || !(selectedService || initialData)
-                          }
+                          disabled={isSubmitting || !quotationId}
                         />
-                      </>
-                    )}
-                  </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
 

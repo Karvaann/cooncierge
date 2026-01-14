@@ -7,6 +7,14 @@ import { FiTrash2 } from "react-icons/fi";
 import DropDown from "../../../../components/DropDown";
 import { AuthApi } from "../../../../services/authApi";
 import SuccessPopupModal from "../../../../components/popups/BookingPopups/SuccessPopupModal";
+import {
+  allowOnlyNumbers,
+  allowOnlyText,
+  allowOnly10Digits,
+  isValidWebsite,
+  isValidEmail,
+} from "@/utils/inputValidators";
+import ErrorToast from "@/components/ErrorToast";
 
 export default function CompanyDetails() {
   const [businessId, setBusinessId] = useState<string | null>(null);
@@ -22,6 +30,16 @@ export default function CompanyDetails() {
   const [currency, setCurrency] = useState("INR");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showError, setShowError] = useState<{
+    show: boolean;
+    message: string;
+  }>({
+    show: false,
+    message: "",
+  });
+  const showErrorToast = (message: string) => {
+    setShowError({ show: true, message });
+  };
 
   useEffect(() => {
     // Prefill from localStorage first, then refresh from API if possible
@@ -137,6 +155,15 @@ export default function CompanyDetails() {
 
   const handleSave = async () => {
     if (!businessId) return;
+    // Validate email format
+    if (companyEmail && !isValidEmail(String(companyEmail))) {
+      showErrorToast("Email format is invalid");
+      return;
+    }
+    if (website && !isValidWebsite(website)) {
+      showErrorToast("Website URL format is invalid");
+      return;
+    }
     try {
       // If a new file was selected, upload it first
       if (selectedFile) {
@@ -294,7 +321,7 @@ export default function CompanyDetails() {
               type="text"
               placeholder="Enter Company Name"
               value={companyName}
-              onChange={(e) => setCompanyName(e.target.value)}
+              onChange={(e) => setCompanyName(allowOnlyText(e.target.value))}
               className="w-full px-5 py-3 text-[14px] h-10 border border-gray-300 hover:border-green-300 focus:border-green-300 rounded-md"
             />
           </div>
@@ -323,7 +350,9 @@ export default function CompanyDetails() {
               value={companyPhone}
               placeholder="Enter Company Phone"
               type="text"
-              onChange={(e) => setCompanyPhone(e.target.value)}
+              onChange={(e) =>
+                setCompanyPhone(allowOnly10Digits(e.target.value))
+              }
               className="flex-1 px-5 py-3 h-10 text-[14px] border border-gray-300 rounded-md hover:border-green-300 focus:border-green-300"
             />
           </div>
@@ -370,7 +399,7 @@ export default function CompanyDetails() {
               placeholder="Enter Alternative Contact Number"
               type="text"
               value={altContact}
-              onChange={(e) => setAltContact(e.target.value)}
+              onChange={(e) => setAltContact(allowOnly10Digits(e.target.value))}
               className="flex-1 px-5 py-3 text-[14px] h-10 border border-gray-300 rounded-md hover:border-green-300 focus:border-green-300"
             />
           </div>
@@ -429,6 +458,11 @@ export default function CompanyDetails() {
         isOpen={showSuccessModal}
         onClose={() => setShowSuccessModal(false)}
         title={"Company Details have been successfully saved & updated!"}
+      />
+      <ErrorToast
+        visible={showError.show}
+        message={showError.message}
+        onClose={() => setShowError({ show: false, message: "" })}
       />
     </>
   );

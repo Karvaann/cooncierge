@@ -596,6 +596,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                       value={formData.costprice}
                       onChange={handlePriceChange("costprice")}
                       placeholder="Enter Cost Price"
+                      disabled={isReadOnly || isSubmitting}
                       className="w-[10rem] px-2 py-1.5 text-[13px] border border-l-0 border-gray-300 rounded-r-md focus:outline-none"
                     />
                   </div>
@@ -621,6 +622,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                       value={formData.sellingprice}
                       onChange={handlePriceChange("sellingprice")}
                       placeholder="Enter Selling Price"
+                      disabled={isReadOnly || isSubmitting}
                       className="w-[10rem] px-2 py-1.5 text-[13px] border border-l-0 border-gray-300 rounded-r-md focus:outline-none"
                     />
                   </div>
@@ -709,6 +711,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                                 setVendorIncentiveReceived(String(sanitized));
                               else setCommissionPaid(String(sanitized));
                             }}
+                            disabled={isReadOnly || isSubmitting}
                             className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[13px] focus:ring-1 focus:ring-blue-500 focus:outline-none"
                           />
                         ) : (
@@ -721,6 +724,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                           <input
                             type="text"
                             placeholder="Enter notes here..."
+                            disabled={isReadOnly || isSubmitting}
                             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[13px] hover:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none"
                           />
                         )}
@@ -761,6 +765,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                             ),
                           }))
                         }
+                        disabled={isReadOnly || isSubmitting}
                         className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[13px] hover:border-green-400 focus:ring-1 focus:ring-green-400 focus:outline-none"
                       />
                     </div>
@@ -843,7 +848,12 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
             {/* Description */}
 
-            <StyledDescription />
+            <StyledDescription
+              value={formData.description}
+              onChange={(val) =>
+                setFormData((prev) => ({ ...prev, description: val }))
+              }
+            />
           </div>
         </div>
 

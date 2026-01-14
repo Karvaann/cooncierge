@@ -10,8 +10,15 @@ import Button from "../Button";
 import ErrorToast from "../ErrorToast";
 import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
 import { JSX } from "react";
-import { allowOnlyDigitsWithMax } from "@/utils/inputValidators";
-import { getPhoneNumberMaxLength, isSupportedDialCode } from "@/utils/phoneUtils";
+import {
+  allowOnlyDigitsWithMax,
+  allowOnlyText,
+  isValidEmail,
+} from "@/utils/inputValidators";
+import {
+  getPhoneNumberMaxLength,
+  isSupportedDialCode,
+} from "@/utils/phoneUtils";
 
 interface AddUserSidesheetProps {
   isOpen: boolean;
@@ -69,6 +76,15 @@ export default function AddUserSidesheet({
   const handleAdd = useCallback(async (): Promise<void> => {
     // prevent double submit early
     if (isSubmitting) return;
+
+    if (email && !isValidEmail(email)) {
+      setToastMsg("Email format is invalid");
+      setToastBold(undefined);
+      setToastBgClass(undefined);
+      setMessageColorClass(undefined);
+      setShowToast(true);
+      return;
+    }
 
     // client-side required fields validation
     if (!fullName || String(fullName).trim() === "") {
@@ -284,6 +300,15 @@ export default function AddUserSidesheet({
     >
       <div className="p-4 text-[13px]">
         <form
+          noValidate
+          onInvalid={(e) => {
+            e.preventDefault();
+            setToastMsg("Please fill all required fields correctly");
+            setToastBgClass(undefined);
+            setToastBold(undefined);
+            setMessageColorClass(undefined);
+            setShowToast(true);
+          }}
           onSubmit={(e) => {
             e.preventDefault();
             handleAdd();
@@ -297,7 +322,7 @@ export default function AddUserSidesheet({
                 </label>
                 <input
                   value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                  onChange={(e) => setFullName(allowOnlyText(e.target.value))}
                   placeholder="Enter Full Name"
                   className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md hover:border-green-300 focus:outline-none
     focus:ring-2 focus:ring-green-400

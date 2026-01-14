@@ -10,6 +10,7 @@ interface TableProps {
   initialRowsPerPage?: number;
   maxRowsPerPageOptions?: number[];
   columnIconMap?: Record<string, React.ReactNode>;
+  headerAlign?: Record<string, "left" | "center" | "right">;
   onSort?: (column: string) => void;
   hideRowsPerPage?: boolean;
   showCheckboxColumn?: boolean;
@@ -41,6 +42,7 @@ const Table: React.FC<TableProps> = ({
   categoryName = "",
   sortableHeaderHoverClass = "",
   hideEntriesText = false,
+  headerAlign = {},
 }) => {
   const [page, setPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
@@ -164,12 +166,20 @@ const Table: React.FC<TableProps> = ({
                 >
                   <div
                     className={`flex items-center gap-2 ${
-                      index === 0 ? "justify-start" : "justify-center"
+                      headerAlign?.[col] === "left"
+                        ? "justify-start"
+                        : headerAlign?.[col] === "right"
+                        ? "justify-end"
+                        : "justify-center"
                     }`}
                   >
                     <span
                       className={`truncate ${
-                        index === 0 ? "text-left" : "text-center"
+                        headerAlign?.[col] === "left"
+                          ? "text-left"
+                          : headerAlign?.[col] === "right"
+                          ? "text-right"
+                          : "text-center"
                       }`}
                     >
                       {col}

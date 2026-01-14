@@ -33,6 +33,11 @@ import AvatarTooltip from "@/components/AvatarToolTip";
 import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 import TaskButton from "@/components/TaskButton";
 import { useAuth } from "@/context/AuthContext";
+import {
+  getNextTriSortState,
+  type TriSortState,
+  getItemTimestamp,
+} from "@/utils/sorting";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -207,17 +212,24 @@ const OSBookingsPage = () => {
 
   const { user } = useAuth();
 
+  const isBookingMaker = Boolean(user?.isBookingMaker);
+
   let tabOptions;
 
-  if (user.isBookingMaker) {
-    tabOptions = ["Approved", "Pending", "Denied", "Drafts", "Deleted"];
+  if (isBookingMaker) {
+    tabOptions = ["Approved", "Pending", "Drafts", "Denied", "Deleted"];
   } else {
     tabOptions = ["Bookings", "Drafts", "Deleted"];
   }
 
-  const [activeTab, setActiveTab] = useState(
-    user.isBookingMaker ? "Approved" : "Bookings"
-  );
+  const [activeTab, setActiveTab] = useState("Bookings");
+
+  useEffect(() => {
+    // If auth resolves later and user is a booking maker, default to Approved.
+    if (isBookingMaker && activeTab === "Bookings") {
+      setActiveTab("Approved");
+    }
+  }, [isBookingMaker, activeTab]);
 
   const tabContainerRef = useRef<HTMLDivElement | null>(null);
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
@@ -264,7 +276,10 @@ const OSBookingsPage = () => {
   const [error, setError] = useState<string | null>(null);
   // const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
 
-  const [reverse, setReverse] = useState(false);
+  const [sortState, setSortState] = useState<TriSortState<string>>({
+    key: null,
+    direction: "none",
+  });
   // Owners list built dynamically from quotations data
   const [ownersList, setOwnersList] = useState<Owner[]>([]);
 
@@ -290,12 +305,12 @@ const OSBookingsPage = () => {
 
     const uniqueOwnerNames = new Set<string>();
     quotations.forEach((q: any) => {
-      const ownerArray = [...q.secondaryOwner, q.primaryOwner] || [];
-      if (Array.isArray(ownerArray)) {
-        ownerArray.forEach((o: any) => {
-          if (o?.name) uniqueOwnerNames.add(o.name);
-        });
-      }
+      const ownerArray = ([] as any[])
+        .concat(q?.secondaryOwner || [], [q?.primaryOwner])
+        .filter(Boolean);
+      ownerArray.forEach((o: any) => {
+        if (o?.name) uniqueOwnerNames.add(o.name);
+      });
     });
 
     const list: Owner[] = Array.from(uniqueOwnerNames).map((name, idx) => ({
@@ -308,9 +323,9 @@ const OSBookingsPage = () => {
   }, [quotations]);
 
   const handleSort = (column: string) => {
-    if (column === "Travel Date") {
-      setReverse((prev) => !prev);
-    }
+    // Only "Travel Date" is sortable on this table right now.
+    if (column !== "Travel Date") return;
+    setSortState((prev) => getNextTriSortState(prev, column));
   };
 
   // Helper for date range checks
@@ -435,7 +450,7 @@ const OSBookingsPage = () => {
         travelEndDate?: string;
         owner?: string | string[];
         activeTab: string;
-      } = {};
+      } = { activeTab };
 
       if (filters.bookingStartDate)
         apiParams.bookingStartDate = filters.bookingStartDate;
@@ -445,7 +460,6 @@ const OSBookingsPage = () => {
         apiParams.travelStartDate = filters.tripStartDate;
       if (filters.tripEndDate) apiParams.travelEndDate = filters.tripEndDate;
       console.log("Active tab:", activeTab);
-      apiParams.activeTab = activeTab;
       // Note: Owner filtering is done client-side since API returns owner objects with names
 
       const response = await BookingApiService.getAllQuotations(
@@ -940,12 +954,44 @@ const OSBookingsPage = () => {
     });
   }, [activeTab, filteredQuotations]) as any[];
 
+  // Use shared timestamp extractor from utils/sorting.ts
+  // (keeps logic consistent across pages)
+
+  const sortedQuotationsForTable = useMemo(() => {
+    if (sortState.key !== "Travel Date" || sortState.direction === "none") {
+      return filteredQuotations;
+    }
+
+    // Stable sort: keep original order for ties.
+    const withIndex = filteredQuotations.map((item, originalIndex) => ({
+      item,
+      originalIndex,
+    }));
+
+    withIndex.sort((a, b) => {
+      const at = getItemTimestamp(a.item);
+      const bt = getItemTimestamp(b.item);
+
+      // Always keep missing/invalid dates at the bottom.
+      if (at === null && bt === null) return a.originalIndex - b.originalIndex;
+      if (at === null) return 1;
+      if (bt === null) return -1;
+
+      const diff = at - bt;
+      if (diff !== 0) return sortState.direction === "asc" ? diff : -diff;
+      return a.originalIndex - b.originalIndex;
+    });
+
+    return withIndex.map((x) => x.item);
+  }, [filteredQuotations, sortState.direction, sortState.key]);
+
   // Convert quotations to table data
   const tableData = useMemo<JSX.Element[][]>(() => {
-    const rows = filteredQuotations.map((item, index) => [
+    const rows = sortedQuotationsForTable.map((item, index) => [
       <td
         key={`id-${index}`}
-        className="px-4 py-3 text-center text-[#020202]  font-medium align-middle h-[3rem]"
+        onClick={() => handleViewBooking(item)}
+        className="px-4 py-3 text-center text-[#020202]  font-medium align-middle h-[3rem] cursor-pointer"
       >
         <button
           onClick={() => handleViewBooking(item)}
@@ -956,13 +1002,15 @@ const OSBookingsPage = () => {
       </td>,
       <td
         key={`lead-${index}`}
-        className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem]"
+        onClick={() => handleViewBooking(item)}
+        className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
       >
         {item.customerId?.name || item.formFields?.customer || "--"}
       </td>,
       <td
         key={`date-${index}`}
-        className="px-4 py-3 text-center align-middle h-[3rem]"
+        onClick={() => handleViewBooking(item)}
+        className="px-4 py-3 text-center align-middle h-[3rem] cursor-pointer"
       >
         {item.travelDate
           ? formatDMY(item.travelDate)
@@ -974,7 +1022,8 @@ const OSBookingsPage = () => {
       </td>,
       <td
         key={`service-${index}`}
-        className="px-4 py-3 text-center text-[14px] text-[#020202] font-normal align-middle h-[3rem]"
+        onClick={() => handleViewBooking(item)}
+        className="px-4 py-3 text-center text-[14px] text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
       >
         <div className="flex items-center justify-center gap-2">
           <div className="w-4 h-4 flex items-center justify-center">
@@ -987,7 +1036,8 @@ const OSBookingsPage = () => {
       </td>,
       <td
         key={`status-${index}`}
-        className="px-4 py-3 text-center align-middle text-[14px] h-[3rem]"
+        onClick={() => handleViewBooking(item)}
+        className="px-4 py-3 text-center align-middle text-[14px] h-[3rem] cursor-pointer"
       >
         <span className={getStatusBadgeClass(mapStatus(item.status))}>
           {mapStatus(item.status)}
@@ -995,7 +1045,8 @@ const OSBookingsPage = () => {
       </td>,
       <td
         key={`amount-${index}`}
-        className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem]"
+        onClick={() => handleViewBooking(item)}
+        className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
       >
         {item.totalAmount
           ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
@@ -1005,7 +1056,8 @@ const OSBookingsPage = () => {
       </td>,
       <td
         key={`owners-${index}`}
-        className="px-4 py-3 text-center align-middle h-[3rem]"
+        onClick={() => handleViewBooking(item)}
+        className="px-4 py-3 text-center align-middle h-[3rem] cursor-pointer"
       >
         <div className="flex items-center justify-center">
           <div className="flex items-center">
@@ -1050,7 +1102,10 @@ const OSBookingsPage = () => {
         key={`tasks-${index}`}
         className="px-4 py-3 text-center align-middle h-[3rem]"
       >
-        <div className="flex justify-center">
+        <div
+          className="flex justify-center"
+          onClick={(e) => e.stopPropagation()}
+        >
           <TaskButton count={0} bookingId={item._id} />
         </div>
       </td>,
@@ -1060,14 +1115,16 @@ const OSBookingsPage = () => {
         key={`actions-${index}`}
         className="px-4 py-3 text-center align-middle h-[3rem]"
       >
-        <ActionMenu
-          actions={getActionsForTab(activeTab, item)}
-          right="right-15"
-        />
+        <div onClick={(e) => e.stopPropagation()}>
+          <ActionMenu
+            actions={getActionsForTab(activeTab, item)}
+            right="right-15"
+          />
+        </div>
       </td>,
     ]);
-    return reverse ? rows.reverse() : rows;
-  }, [finalQuotations, drafts, activeTab, reverse]);
+    return rows;
+  }, [sortedQuotationsForTable, ownersList, activeTab]);
 
   // Helper functions
 
@@ -1195,6 +1252,7 @@ const OSBookingsPage = () => {
                   columnIconMap={columnIconMap}
                   onSort={handleSort}
                   categoryName="Bookings"
+                  headerAlign={{ "Booking ID": "center" }}
                 />
               )}
             </div>
@@ -1219,18 +1277,17 @@ const OSBookingsPage = () => {
           />
         )}
 
-         
-          <BookingFormSidesheet
-            key={selectedQuotation?._id || "create"}
-            isOpen={isSideSheetOpen}
-            onClose={handleBookingComplete}
-            selectedService={selectedService}
-            initialData={selectedQuotation}
-            bookingCode={generatedBookingCode ?? ""}
-            customerCode={generatedCustomerCode ?? ""}
-            vendorCode={generatedVendorCode ?? ""}
-            mode={sideSheetMode}
-          />
+        <BookingFormSidesheet
+          key={selectedQuotation?._id || "create"}
+          isOpen={isSideSheetOpen}
+          onClose={handleBookingComplete}
+          selectedService={selectedService}
+          initialData={selectedQuotation}
+          bookingCode={generatedBookingCode ?? ""}
+          customerCode={generatedCustomerCode ?? ""}
+          vendorCode={generatedVendorCode ?? ""}
+          mode={sideSheetMode}
+        />
       </div>
     </div>
   );
