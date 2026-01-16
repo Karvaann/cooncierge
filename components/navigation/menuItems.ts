@@ -66,7 +66,6 @@ export const menuItems: MenuItem[] = [
       { label: "Payments", href: "/finance/payments" },
       { label: "Customers", href: "/finance/customers" },
       { label: "Vendors", href: "/finance/vendors" },
-      { label: "Reports", href: "/finance/reports" },
     ],
   },
   {

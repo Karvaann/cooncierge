@@ -11,6 +11,10 @@ import DropDown from "@/components/DropDown";
 import SingleCalendar from "@/components/SingleCalendar";
 import { FaRegFolder } from "react-icons/fa";
 import { allowUppercaseAlphanumeric6 } from "@/utils/inputValidators";
+import AmountSection from "@/components/AmountSection";
+import CancellationModal, {
+  CancellationModalFormState,
+} from "@/components/Modals/CancellationModal";
 
 // Type definitions
 interface OtherServiceInfoFormData {
@@ -28,6 +32,34 @@ interface OtherServiceInfoFormData {
   vendorBasePrice?: number | string;
   vendorIncentiveReceived?: number | string;
   commissionPaid?: number | string;
+
+  // Currency fields for multi-currency support
+  vendorBaseCurrency?: "USD" | "INR";
+  vendorBaseRoe?: string;
+  vendorBaseInr?: string;
+  vendorBaseNotes?: string;
+
+  vendorIncentiveCurrency?: "USD" | "INR";
+  vendorIncentiveRoe?: string;
+  vendorIncentiveInr?: string;
+  vendorIncentiveNotes?: string;
+
+  commissionCurrency?: "USD" | "INR";
+  commissionRoe?: string;
+  commissionInr?: string;
+  commissionNotes?: string;
+
+  costCurrency?: "USD" | "INR";
+  costRoe?: string;
+  costInr?: string;
+  costNotes?: string;
+
+  sellingCurrency?: "USD" | "INR";
+  sellingRoe?: string;
+  sellingInr?: string;
+  sellingNotes?: string;
+
+  cancellationForm?: CancellationModalFormState;
 }
 
 interface ValidationErrors {
@@ -87,6 +119,16 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     bookingstatus: normalizedExternalData?.bookingstatus || "",
     costprice: normalizedExternalData?.costprice || "",
     sellingprice: normalizedExternalData?.sellingprice || "",
+    costCurrency:
+      (normalizedExternalData?.costCurrency as "USD" | "INR") || "INR",
+    costRoe: String(normalizedExternalData?.costRoe ?? ""),
+    costInr: String(normalizedExternalData?.costInr ?? ""),
+    costNotes: normalizedExternalData?.costNotes || "",
+    sellingCurrency:
+      (normalizedExternalData?.sellingCurrency as "USD" | "INR") || "INR",
+    sellingRoe: String(normalizedExternalData?.sellingRoe ?? ""),
+    sellingInr: String(normalizedExternalData?.sellingInr ?? ""),
+    sellingNotes: normalizedExternalData?.sellingNotes || "",
     confirmationNumber: normalizedExternalData?.confirmationNumber || "",
     title: normalizedExternalData?.title || "",
     description: normalizedExternalData?.description || "",
@@ -94,10 +136,31 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     remarks: normalizedExternalData?.remarks || "",
     showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
     vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
+    vendorBaseCurrency:
+      (normalizedExternalData?.vendorBaseCurrency as "USD" | "INR") || "INR",
+    vendorBaseRoe: String(normalizedExternalData?.vendorBaseRoe ?? ""),
+    vendorBaseInr: String(normalizedExternalData?.vendorBaseInr ?? ""),
+    vendorBaseNotes: normalizedExternalData?.vendorBaseNotes || "",
     vendorIncentiveReceived: String(
       normalizedExternalData?.vendorIncentiveReceived ?? ""
     ),
+    vendorIncentiveCurrency:
+      (normalizedExternalData?.vendorIncentiveCurrency as "USD" | "INR") ||
+      "INR",
+    vendorIncentiveRoe: String(
+      normalizedExternalData?.vendorIncentiveRoe ?? ""
+    ),
+    vendorIncentiveInr: String(
+      normalizedExternalData?.vendorIncentiveInr ?? ""
+    ),
+    vendorIncentiveNotes: normalizedExternalData?.vendorIncentiveNotes || "",
     commissionPaid: String(normalizedExternalData?.commissionPaid ?? ""),
+    commissionCurrency:
+      (normalizedExternalData?.commissionCurrency as "USD" | "INR") || "INR",
+    commissionRoe: String(normalizedExternalData?.commissionRoe ?? ""),
+    commissionInr: String(normalizedExternalData?.commissionInr ?? ""),
+    commissionNotes: normalizedExternalData?.commissionNotes || "",
+    cancellationForm: (normalizedExternalData as any)?.cancellationForm,
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -108,27 +171,14 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   const [showAdvancedPricing, setShowAdvancedPricing] = useState(
     Boolean(normalizedExternalData?.showAdvancedPricing)
   );
-  // Advanced pricing vendor payment summary states
-  const [vendorBasePrice, setVendorBasePrice] = useState<string>(
-    String(normalizedExternalData?.vendorBasePrice ?? "")
-  );
-  const [vendorIncentiveReceived, setVendorIncentiveReceived] =
-    useState<string>(
-      String(normalizedExternalData?.vendorIncentiveReceived ?? "")
-    );
-  const [commissionPaid, setCommissionPaid] = useState<string>(
-    String(normalizedExternalData?.commissionPaid ?? "")
-  );
-
-  const derivedCostPrice = useMemo(() => {
-    const a = Number(vendorBasePrice) || 0;
-    const b = Number(vendorIncentiveReceived) || 0;
-    const c = Number(commissionPaid) || 0;
-    return a - b + c;
-  }, [commissionPaid, vendorBasePrice, vendorIncentiveReceived]);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+
+  const [isCancellationModalOpen, setIsCancellationModalOpen] =
+    useState<boolean>(false);
+  const [pendingPrevBookingStatus, setPendingPrevBookingStatus] =
+    useState<string>("");
 
   // Handle selecting multiple files
   const handleFileChange = () => {
@@ -150,27 +200,6 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Allow only digits and a single decimal point for price fields
-  const sanitizeNumeric = (val: string) => {
-    const v = String(val || "").replace(/[^0-9.]/g, "");
-    const parts = v.split(".");
-    if (parts.length <= 1) return parts[0];
-    // join remaining parts (remove extra dots) and keep first dot only
-    return parts[0] + "." + parts.slice(1).join("");
-  };
-
-  const handlePriceChange =
-    (field: "costprice" | "sellingprice") =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const raw = e.target.value;
-      const sanitized = sanitizeNumeric(raw);
-      setFormData((prev) => ({ ...prev, [field]: sanitized }));
-      if ((errors as any)[field]) {
-        setErrors((prev) => ({ ...prev, [field]: "" }));
-      }
-      setTouched((prev) => ({ ...prev, [field]: true }));
-    };
-
   const options = [
     { value: "confirmed", label: "Confirmed" },
     { value: "cancelled", label: "Cancelled" },
@@ -178,45 +207,22 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   ];
 
   const handleBookingStatusChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, bookingstatus: value }));
+    if (value.toLowerCase() === "cancelled") {
+      setPendingPrevBookingStatus(formData.bookingstatus);
+      setIsCancellationModalOpen(true);
+    } else {
+      setFormData((prev) => ({ ...prev, bookingstatus: value }));
+    }
   };
 
   // Sync with external form data when it changes
   useEffect(() => {
     if (!externalFormData || Object.keys(externalFormData).length === 0) return;
-    const nextPricing = {
-      showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
-      vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
-      vendorIncentiveReceived: String(
-        normalizedExternalData?.vendorIncentiveReceived ?? ""
-      ),
-      commissionPaid: String(normalizedExternalData?.commissionPaid ?? ""),
-    };
-    setShowAdvancedPricing(nextPricing.showAdvancedPricing);
-    setVendorBasePrice(nextPricing.vendorBasePrice);
-    setVendorIncentiveReceived(nextPricing.vendorIncentiveReceived);
-    setCommissionPaid(nextPricing.commissionPaid);
     setFormData((prev) => ({
       ...prev,
       ...normalizedExternalData,
-      ...nextPricing,
     }));
   }, [externalFormData, normalizedExternalData]);
-
-  useEffect(() => {
-    setFormData((prev) => ({
-      ...prev,
-      showAdvancedPricing,
-      vendorBasePrice,
-      vendorIncentiveReceived,
-      commissionPaid,
-    }));
-  }, [
-    commissionPaid,
-    showAdvancedPricing,
-    vendorBasePrice,
-    vendorIncentiveReceived,
-  ]);
 
   useEffect(() => {
     onFormDataUpdate({ activityinfoform: formData });
@@ -480,6 +486,43 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   const today = new Date().toISOString().split("T")[0];
 
+  const cancellationModalInitialValues: Partial<CancellationModalFormState> = {
+    vendorBasePrice: String(formData.vendorBasePrice ?? ""),
+    vendorBaseCurrency: (formData.vendorBaseCurrency as "INR" | "USD") || "INR",
+    vendorBaseRoe: String(formData.vendorBaseRoe ?? ""),
+    vendorBaseInr: String(formData.vendorBaseInr ?? ""),
+    vendorBaseNotes: String(formData.vendorBaseNotes ?? ""),
+
+    vendorIncentiveReceived: String(formData.vendorIncentiveReceived ?? ""),
+    vendorIncentiveCurrency:
+      (formData.vendorIncentiveCurrency as "INR" | "USD") || "INR",
+    vendorIncentiveRoe: String(formData.vendorIncentiveRoe ?? ""),
+    vendorIncentiveInr: String(formData.vendorIncentiveInr ?? ""),
+    vendorIncentiveNotes: String(formData.vendorIncentiveNotes ?? ""),
+
+    commissionPaid: String(formData.commissionPaid ?? ""),
+    commissionCurrency: (formData.commissionCurrency as "INR" | "USD") || "INR",
+    commissionRoe: String(formData.commissionRoe ?? ""),
+    commissionInr: String(formData.commissionInr ?? ""),
+    commissionNotes: String(formData.commissionNotes ?? ""),
+
+    costprice: String(formData.costprice ?? ""),
+    costCurrency: (formData.costCurrency as "INR" | "USD") || "INR",
+    costRoe: String(formData.costRoe ?? ""),
+    costInr: String(formData.costInr ?? ""),
+    costNotes: String(formData.costNotes ?? ""),
+
+    sellingprice: String(formData.sellingprice ?? ""),
+    sellingCurrency: (formData.sellingCurrency as "INR" | "USD") || "INR",
+    sellingRoe: String(formData.sellingRoe ?? ""),
+    sellingInr: String(formData.sellingInr ?? ""),
+    sellingNotes: String(formData.sellingNotes ?? ""),
+
+    ...(formData.bookingstatus === "cancelled"
+      ? formData.cancellationForm ?? {}
+      : {}),
+  };
+
   return (
     <>
       <div
@@ -536,256 +579,18 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
           </div>
 
           {/* Amount Section */}
-
-          <div className="mb-4 w-[48vw] border border-gray-200 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[0.75rem] font-medium text-gray-700">
-                Amount
-              </h3>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  id="remember"
-                  className="hidden"
-                  checked={showAdvancedPricing}
-                  onChange={() => setShowAdvancedPricing(!showAdvancedPricing)}
-                />
-                <label
-                  htmlFor="remember"
-                  className="w-4 h-4 border border-gray-400 rounded-md flex items-center justify-center cursor-pointer peer-checked:bg-green-600"
-                >
-                  {showAdvancedPricing && (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="12"
-                      height="11"
-                      viewBox="0 0 12 11"
-                      fill="none"
-                    >
-                      <path
-                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                        stroke="#0D4B37"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  )}
-                </label>
-                <span className="text-[0.75rem] text-gray-700">
-                  Show Advanced Pricing
-                </span>
-              </label>
-            </div>
-
-            <hr className="mb-3 -mt-1 border-t border-gray-200" />
-
-            {!showAdvancedPricing ? (
-              <>
-                {/* Cost Price */}
-                <div className="mb-3">
-                  <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                    Cost Price
-                  </label>
-                  <div className="flex">
-                    <div className="relative">
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[0.75rem] font-medium text-gray-700 hover:bg-gray-100"
-                      >
-                        ₹
-                      </button>
-                    </div>
-                    <input
-                      type="text"
-                      name="costprice"
-                      value={formData.costprice}
-                      onChange={handlePriceChange("costprice")}
-                      placeholder="Enter Cost Price"
-                      disabled={isReadOnly || isSubmitting}
-                      className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
-                    />
-                  </div>
-                </div>
-
-                {/* Selling Price */}
-                <div>
-                  <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
-                    Selling Price
-                  </label>
-                  <div className="flex">
-                    <div className="relative">
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[0.75rem] font-medium text-gray-700 hover:bg-gray-100"
-                      >
-                        ₹
-                      </button>
-                    </div>
-                    <input
-                      type="text"
-                      name="sellingprice"
-                      value={formData.sellingprice}
-                      onChange={handlePriceChange("sellingprice")}
-                      placeholder="Enter Selling Price"
-                      disabled={isReadOnly || isSubmitting}
-                      className="w-[10rem] px-2 py-1.5 text-[0.75rem] border border-l-0 border-gray-300 rounded-r-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
-                    />
-                  </div>
-                </div>
-
-                <div className="w-fit rounded-lg p-1 mt-1 bg-white">
-                  {/* Label on top */}
-                  <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
-                    Net
-                  </span>
-
-                  {/* Amount + percentage row */}
-                  <div className="flex items-center gap-3">
-                    {/* Blue pill amount */}
-                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">
-                      {`INR ${
-                        Number(formData.sellingprice) -
-                        Number(formData.costprice)
-                      }`}
-                    </span>
-
-                    {/* Percentage */}
-                    <span className="text-[0.75rem] text-gray-700 font-medium">
-                      {formData.costprice && formData.sellingprice
-                        ? `${(
-                            ((Number(formData.sellingprice) -
-                              Number(formData.costprice)) /
-                              Number(formData.costprice)) *
-                            100
-                          ).toFixed(2)}%`
-                        : "0%"}
-                    </span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              /* Advanced Pricing Component */
-              <div className="space-y-3">
-                <h4 className="text-[0.75rem] font-medium text-gray-700 mb-3">
-                  Vendor Payment Summary
-                </h4>
-                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                  {[
-                    { label: "Vendor Base Price", key: "price" },
-                    { label: "Vendor Incentive Received", key: "received" },
-                    { label: "Commission Paid", key: "payout" },
-                    { label: "Cost Price", key: "cost" },
-                  ].map((item, index) => (
-                    <div
-                      key={index}
-                      className="grid grid-cols-12 border-b last:border-b-0 border-gray-200"
-                    >
-                      <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
-                        {item.label}
-                      </div>
-                      <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
-                        {item.key !== "cost" && (
-                          <div className="text-gray-600 text-[0.85rem] font-medium">
-                            ₹
-                          </div>
-                        )}
-                        {item.key !== "cost" ? (
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            pattern="^\\d*(?:\\.\\d*)?$"
-                            placeholder="Enter Amount"
-                            value={
-                              item.key === "price"
-                                ? vendorBasePrice
-                                : item.key === "received"
-                                ? vendorIncentiveReceived
-                                : commissionPaid
-                            }
-                            onChange={(e) => {
-                              const raw = e.target.value;
-                              const sanitized = sanitizeNumeric(raw);
-                              if (item.key === "price")
-                                setVendorBasePrice(String(sanitized));
-                              else if (item.key === "received")
-                                setVendorIncentiveReceived(String(sanitized));
-                              else setCommissionPaid(String(sanitized));
-                            }}
-                            disabled={isReadOnly || isSubmitting}
-                            className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-300 focus:outline-none"
-                          />
-                        ) : (
-                          <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">{`₹ ${derivedCostPrice.toFixed(
-                            2
-                          )}`}</div>
-                        )}
-                        {item.key !== "cost" && (
-                          <input
-                            type="text"
-                            placeholder="Enter notes here..."
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-300 focus:outline-none"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <h4 className="text-[0.8rem] font-semibold text-gray-700">
-                  Customer Revenue Summary
-                </h4>
-                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                  <div className="grid grid-cols-12">
-                    <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
-                      Selling Price
-                    </div>
-                    <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
-                      <div className="text-gray-600 text-[0.85rem] font-medium">
-                        ₹
-                      </div>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        pattern="^\\d*(?:\\.\\d*)?$"
-                        placeholder="Enter Amount"
-                        value={String(formData.sellingprice ?? "")}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            sellingprice: String(
-                              sanitizeNumeric(e.target.value)
-                            ),
-                          }))
-                        }
-                        disabled={isReadOnly || isSubmitting}
-                        className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[0.75rem] hover:border-green-400 focus:ring-1 focus:ring-green-300 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="w-fit rounded-lg p-1 mt-1 bg-white">
-                  <span className="text-[0.75rem] font-medium text-gray-700 block mb-2">
-                    Net
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[0.75rem] font-medium rounded-md">{`INR ${(
-                      (Number(formData.sellingprice) || 0) - derivedCostPrice
-                    ).toFixed(2)}`}</span>
-                    <span className="text-[0.75rem] text-gray-700 font-medium">
-                      {derivedCostPrice > 0 && formData.sellingprice
-                        ? `${(
-                            (((Number(formData.sellingprice) || 0) -
-                              derivedCostPrice) /
-                              derivedCostPrice) *
-                            100
-                          ).toFixed(2)}%`
-                        : "0%"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <AmountSection
+            value={formData as any}
+            onChange={(updated) =>
+              setFormData((prev) => ({ ...prev, ...updated }))
+            }
+            bookingStatus={formData.bookingstatus}
+            cancellationForm={formData.cancellationForm}
+            showAdvancedPricing={showAdvancedPricing}
+            onToggleAdvancedPricing={setShowAdvancedPricing}
+            isReadOnly={isReadOnly}
+            isSubmitting={isSubmitting}
+          />
 
           {/* ================= Activity INFO ================ */}
           <div className="w-[48vw] border border-gray-200 rounded-[12px] p-3 mt-4">
@@ -943,6 +748,55 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
           </button>
         </div> */}
       </div>
+
+      <CancellationModal
+        isOpen={isCancellationModalOpen}
+        onClose={() => {
+          setIsCancellationModalOpen(false);
+          setFormData((prev) => ({
+            ...prev,
+            bookingstatus: "confirmed",
+          }));
+        }}
+        onSave={(data) => {
+          setFormData((prev) => ({
+            ...prev,
+            bookingstatus: "cancelled",
+            cancellationForm: data,
+            vendorBasePrice: data.vendorBasePrice,
+            vendorBaseCurrency: data.vendorBaseCurrency,
+            vendorBaseRoe: data.vendorBaseRoe,
+            vendorBaseInr: data.vendorBaseInr,
+            vendorBaseNotes: data.vendorBaseNotes,
+            vendorIncentiveReceived: data.vendorIncentiveReceived,
+            vendorIncentiveCurrency: data.vendorIncentiveCurrency,
+            vendorIncentiveRoe: data.vendorIncentiveRoe,
+            vendorIncentiveInr: data.vendorIncentiveInr,
+            vendorIncentiveNotes: data.vendorIncentiveNotes,
+            commissionPaid: data.commissionPaid,
+            commissionCurrency: data.commissionCurrency,
+            commissionRoe: data.commissionRoe,
+            commissionInr: data.commissionInr,
+            commissionNotes: data.commissionNotes,
+            costprice: data.costprice,
+            costCurrency: data.costCurrency,
+            costRoe: data.costRoe,
+            costInr: data.costInr,
+            costNotes: data.costNotes,
+            sellingprice: data.sellingprice,
+            sellingCurrency: data.sellingCurrency,
+            sellingRoe: data.sellingRoe,
+            sellingInr: data.sellingInr,
+            sellingNotes: data.sellingNotes,
+          }));
+          setIsCancellationModalOpen(false);
+        }}
+        recordLabel="Activity"
+        statusLabel="Cancelled"
+        initialValues={cancellationModalInitialValues}
+        linkedShowAdvancedPricing={showAdvancedPricing}
+        onLinkedShowAdvancedPricingChange={setShowAdvancedPricing}
+      />
     </>
   );
 };

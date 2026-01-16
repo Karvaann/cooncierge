@@ -83,7 +83,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
     if (mode === "create") {
       setTravellerCode(generateCustomId("traveller"));
     } else {
-      setTravellerCode(data?._id || "");
+      // Prefer backend customId
+      setTravellerCode(data?.customId || data?._id || "");
     }
   }, [mode, data]);
 

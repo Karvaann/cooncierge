@@ -35,6 +35,11 @@ import { MdHistory } from "react-icons/md";
 import { getBookingHistoryByCustomer } from "@/services/customerApi";
 import Image from "next/image";
 import CustomIdApi from "@/services/customIdApi";
+import {
+  getNextTriSortState,
+  type TriSortState,
+  getItemTimestamp,
+} from "@/utils/sorting";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -48,6 +53,7 @@ type CustomerRow = {
   rating: string;
   owner: string;
   dateCreated: string;
+  createdAt?: string;
   actions: React.ComponentType<any> | string;
 };
 
@@ -81,6 +87,10 @@ const CustomerDirectory = () => {
   const [activeTab, setActiveTab] = useState("Customers");
   const [searchValue, setSearchValue] = useState("");
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
+  const [sortState, setSortState] = useState<TriSortState<string>>({
+    key: null,
+    direction: "none",
+  });
   const tabOptions = useMemo(() => ["Customers", "Travellers", "Deleted"], []);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [menuMode, setMenuMode] = useState<"main" | "action">("main");
@@ -148,16 +158,45 @@ const CustomerDirectory = () => {
   };
 
   const filteredCustomers = useMemo(() => {
-    if (!searchValue.trim()) return customers;
+    const list = customers;
+    // Apply tri-state sorting if active
+    const sorted = (() => {
+      if (!sortState.key || sortState.direction === "none") return list;
+
+      const withIndex = list.map((item, originalIndex) => ({
+        item,
+        originalIndex,
+      }));
+
+      withIndex.sort((a, b) => {
+        let cmp = 0;
+        if (sortState.key === "Rating") {
+          const ra = Number(a.item.rating) || 0;
+          const rb = Number(b.item.rating) || 0;
+          cmp = ra - rb;
+        } else if (sortState.key === "Date Modified") {
+          const ta = getItemTimestamp({ createdAt: a.item.createdAt }) ?? 0;
+          const tb = getItemTimestamp({ createdAt: b.item.createdAt }) ?? 0;
+          cmp = ta - tb;
+        }
+
+        if (cmp === 0) return a.originalIndex - b.originalIndex;
+        return sortState.direction === "asc" ? cmp : -cmp;
+      });
+
+      return withIndex.map((x) => x.item);
+    })();
+
+    if (!searchValue.trim()) return sorted;
 
     const search = searchValue.toLowerCase();
 
-    return customers.filter(
+    return sorted.filter(
       (c) =>
         (c.customerID || "").toLowerCase().includes(search) ||
         (c.name || "").toLowerCase().includes(search)
     );
-  }, [customers, searchValue]);
+  }, [customers, searchValue, sortState]);
 
   const filteredTravellers = useMemo(() => {
     if (!searchValue.trim()) return travellers;
@@ -172,20 +211,17 @@ const CustomerDirectory = () => {
   }, [travellers, searchValue]);
 
   const handleSort = (column: string) => {
-    const sorted = [...customers];
+    // tri-state sorting
+    if (column === "Rating" || column === "Date Modified") {
+      setSortState((prev) => getNextTriSortState(prev, column));
+      return;
+    }
 
+    // Fallback simple toggle for other columns
+    const sorted = [...customers];
     if (column === "Customer ID") {
       sorted.reverse();
     }
-
-    if (column === "Rating") {
-      sorted.reverse();
-    }
-
-    if (column === "Date Modified") {
-      sorted.reverse();
-    }
-
     setCustomers(sorted);
   };
 
@@ -296,6 +332,7 @@ const CustomerDirectory = () => {
                 : c.ownerId || "—",
             rating: c.tier ? Number(c.tier.replace("tier", "")) : 4,
             dateCreated: formatDMY(c.createdAt),
+            createdAt: c.createdAt,
             actions: "⋮",
           })
         );
@@ -333,6 +370,7 @@ const CustomerDirectory = () => {
                 : c.ownerId || "—",
             rating: c.tier ? Number(c.tier.replace("tier", "")) : 4,
             dateCreated: formatDMY(c.createdAt),
+            createdAt: c.createdAt,
             actions: "⋮",
           })
         );
@@ -373,46 +411,43 @@ const CustomerDirectory = () => {
     };
   }, [activeTab, tabOptions]);
 
-  const activeCustomersAction = row => [
-                    {
-                      label: "Edit",
-                      icon: <FaRegEdit />,
-                      color: "text-blue-600",
-                      onClick: async () => {
-                        try {
-                          const customer = await getCustomerById(row._id);
-                          setSelectedCustomer(customer);
-                          setIsSideSheetOpen(true);
-                          setMode("edit");
-                        } catch (e) {
-                          console.error(
-                            "Failed to fetch customer for edit:",
-                            e
-                          );
-                        }
-                      },
-                    },
-                    {
-                      label: "Delete",
-                      icon: <FaRegTrashAlt />,
-                      color: "text-red-600",
-                      onClick: () => {
-                        setSelectedCustomer(row); // store customer to delete
-                        setIsConfirmModalOpen(true);
-                      },
-                    },
-                  ]
-  
-  const deletedCustomersAction = row => [
-                    {
-                      label: "Resolve",
-                      icon: <FaRegEdit />,
-                      color: "text-blue-600",
-                      onClick: async () => {
-                        console.log(row)
-                      },
-                    },
-                  ]
+  const activeCustomersAction = (row) => [
+    {
+      label: "Edit",
+      icon: <FaRegEdit />,
+      color: "text-blue-600",
+      onClick: async () => {
+        try {
+          const customer = await getCustomerById(row._id);
+          setSelectedCustomer(customer);
+          setIsSideSheetOpen(true);
+          setMode("edit");
+        } catch (e) {
+          console.error("Failed to fetch customer for edit:", e);
+        }
+      },
+    },
+    {
+      label: "Delete",
+      icon: <FaRegTrashAlt />,
+      color: "text-red-600",
+      onClick: () => {
+        setSelectedCustomer(row); // store customer to delete
+        setIsConfirmModalOpen(true);
+      },
+    },
+  ];
+
+  const deletedCustomersAction = (row) => [
+    {
+      label: "Resolve",
+      icon: <FaRegEdit />,
+      color: "text-blue-600",
+      onClick: async () => {
+        console.log(row);
+      },
+    },
+  ];
 
   const tableData = useMemo<JSX.Element[][]>(
     () =>
@@ -513,7 +548,8 @@ const CustomerDirectory = () => {
               </button>
               <div className="" onClick={(e) => e.stopPropagation()}>
                 <ActionMenu
-                  actions={activeTab === "Customers"
+                  actions={
+                    activeTab === "Customers"
                       ? activeCustomersAction(row)
                       : activeTab === "Deleted"
                       ? deletedCustomersAction(row)
@@ -801,7 +837,7 @@ const CustomerDirectory = () => {
                     }
                   }
                 }}
-                style={{width: 'fit-content'}}
+                style={{ width: "fit-content" }}
                 className="px-2 py-1.5 w-[5rem] mr-3 text-[0.75rem] font-semibold rounded-md border border-gray-300 bg-white hover:bg-gray-100"
               >
                 {activeTab === "Customers"

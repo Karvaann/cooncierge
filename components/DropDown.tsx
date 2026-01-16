@@ -22,6 +22,8 @@ interface DropdownProps {
   itemHeight?: number;
   noBorder?: boolean;
   buttonClassName?: string;
+  focusRingClass?: string;
+  noButtonRadius?: boolean;
   iconOnly?: boolean;
   disabled?: boolean;
   menuCentered?: boolean;
@@ -42,6 +44,8 @@ const DropDown: React.FC<DropdownProps> = ({
   itemHeight,
   noBorder = false,
   buttonClassName = "",
+  focusRingClass = "focus:ring-1 focus:ring-green-400",
+  noButtonRadius = false,
   iconOnly = false,
   disabled = false,
   menuCentered = false,
@@ -207,9 +211,9 @@ const DropDown: React.FC<DropdownProps> = ({
           customHeight ? customHeight : "py-1.5"
         } flex items-center justify-between px-2 ${
           disabled ? "bg-gray-100 cursor-not-allowed text-gray-600" : "bg-white"
-        } rounded-md ${
+        } ${noButtonRadius ? "" : "rounded-md"} ${
           noBorder ? "" : "border border-gray-300"
-        } hover:border-green-300 transition-colors text-left text-[13px] focus:outline-none focus:ring-1 focus:ring-green-400 ${buttonClassName}`}
+        } hover:border-green-300 transition-colors text-left text-[13px] focus:outline-none ${focusRingClass} ${buttonClassName}`}
       >
         {!iconOnly && (
           <span className={`${selectedValue ? "text-black" : "text-gray-400"}`}>

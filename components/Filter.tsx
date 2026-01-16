@@ -34,6 +34,8 @@ interface FilterState {
   bookingEndDate: string;
   tripStartDate: string;
   tripEndDate: string;
+  primaryOwner?: string;
+  secondaryOwners?: string[];
 }
 
 interface FilterProps {
@@ -46,6 +48,8 @@ interface FilterProps {
   createOpen?: boolean;
   setCreateOpen?: (open: boolean) => void;
   onCreateClick?: () => void;
+  showCreateButton?: boolean;
+  totalCount?: number;
   showBookingType?: boolean;
   searchWidth?: string;
 }
@@ -60,6 +64,8 @@ const Filter: React.FC<FilterProps> = ({
   setCreateOpen,
   onSearchChange,
   onCreateClick,
+  showCreateButton = true,
+  totalCount,
   showBookingType = false,
   searchWidth,
 }) => {
@@ -76,6 +82,8 @@ const Filter: React.FC<FilterProps> = ({
     bookingEndDate: initialFilters.bookingEndDate || "",
     tripStartDate: initialFilters.tripStartDate || "",
     tripEndDate: initialFilters.tripEndDate || "",
+    primaryOwner: (initialFilters as any).primaryOwner || "",
+    secondaryOwners: (initialFilters as any).secondaryOwners || [],
   });
 
   // Only propagate search to parent when empty or >= 3 chars
@@ -199,6 +207,8 @@ const Filter: React.FC<FilterProps> = ({
       bookingEndDate: "",
       tripStartDate: "",
       tripEndDate: "",
+      primaryOwner: "",
+      secondaryOwners: [],
     };
     setFilters(resetFilters);
     setSelectedOwners([]); // Reset owner pills
@@ -250,16 +260,25 @@ const Filter: React.FC<FilterProps> = ({
     <div className="bg-white rounded-xl shadow pt-4.5 pb-4.5 px-4 w-full relative">
       <div className="flex justify-between items-center mb-1">
         <h2 className="text-[1rem] font-semibold text-[#1F2937]">Filters</h2>
-        <Button
-          text="+ Create"
-          onClick={() => {
-            if (onCreateClick) onCreateClick();
-            else setCreateOpen?.(true);
-          }}
-          bgColor="bg-[#0D4B37]"
-          textColor="text-white"
-          className="border border-[#0D4B37] hover:bg-[#125E45] px-3.5 cursor-pointer"
-        />
+        {showCreateButton ? (
+          <Button
+            text="+ Create"
+            onClick={() => {
+              if (onCreateClick) onCreateClick();
+              else setCreateOpen?.(true);
+            }}
+            bgColor="bg-[#0D4B37]"
+            textColor="text-white"
+            className="border border-[#0D4B37] hover:bg-[#125E45] px-3.5 cursor-pointer"
+          />
+        ) : typeof totalCount === "number" ? (
+          <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
+            <span className="text-gray-600 text-[14px] font-medium">Total</span>
+            <span className="bg-gray-100 text-black font-semibold text-[14px] px-2 mr-1 rounded-lg shadow-sm">
+              {totalCount}
+            </span>
+          </div>
+        ) : null}
       </div>
 
       <hr className="mb-2 mt-2 border-t-1 border-[#e4dfdb]" />
@@ -364,10 +383,24 @@ const Filter: React.FC<FilterProps> = ({
                 onClose={() => setOwnerModalOpen(false)}
                 owners={owners}
                 initialSelectedOwners={selectedOwners}
+                initialPrimaryOwner={filters.primaryOwner ?? ""}
+                initialSecondaryOwners={filters.secondaryOwners || []}
                 onApply={(next) => {
                   setSelectedOwners(next);
                   updateFilter("owner", next);
+                  updateFilter("primaryOwner", "");
+                  updateFilter("secondaryOwners", []);
                 }}
+                onApplyAdvanced={(primary, secondary) => {
+                  // Combine for display in pills
+                  const combined = [primary, ...secondary].filter(Boolean);
+                  setSelectedOwners(combined);
+                  // Store separately for filtering logic
+                  updateFilter("primaryOwner", primary);
+                  updateFilter("secondaryOwners", secondary);
+                  updateFilter("owner", ""); // Clear regular owner when using advanced
+                }}
+                showAdvanceSearch={true}
               />
             </div>
           </div>

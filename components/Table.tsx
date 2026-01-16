@@ -25,6 +25,7 @@ interface TableProps {
   hideEntriesText?: boolean;
   onRowClick?: (rowIndex: number) => void;
   onPaginationChange?: (page: number, rowsPerPage: number) => void;
+  enableRowHoverActions?: boolean;
 }
 
 const Table: React.FC<TableProps> = ({
@@ -47,6 +48,7 @@ const Table: React.FC<TableProps> = ({
   headerAlign = {},
   onRowClick,
   onPaginationChange,
+  enableRowHoverActions = false,
 }) => {
   const [page, setPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
@@ -225,11 +227,12 @@ const Table: React.FC<TableProps> = ({
                             const globalIndex = (page - 1) * rowsPerPage + idx;
                             onRowClick(globalIndex);
                           }}
-                          className={`${
-                            idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                          } hover:bg-gray-100 transition-colors h-[3rem] text-[12px] ${
-                            onRowClick ? "cursor-pointer" : ""
-                          }`}
+                          className={`
+    ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+    hover:bg-gray-100 transition-colors h-[3rem] text-[12px]
+    ${onRowClick ? "cursor-pointer" : ""}
+    ${enableRowHoverActions ? "group" : ""}
+  `}
                         >
                           {row}
                         </tr>
@@ -270,11 +273,12 @@ const Table: React.FC<TableProps> = ({
                       const globalIndex = (page - 1) * rowsPerPage + idx;
                       onRowClick(globalIndex);
                     }}
-                    className={`${
-                      idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                    } hover:bg-gray-100 transition-colors text-[14px] ${
-                      onRowClick ? "cursor-pointer" : ""
-                    }`}
+                    className={`
+    ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+    hover:bg-gray-100 transition-colors text-[14px]
+    ${onRowClick ? "cursor-pointer" : ""}
+    ${enableRowHoverActions ? "group" : ""}
+  `}
                   >
                     {row}
                   </tr>

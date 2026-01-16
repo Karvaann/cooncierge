@@ -258,6 +258,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   customerCode: customerCodeProp,
   vendorCode: vendorCodeProp,
 }) => {
+  // Bump this whenever the sidesheet is (re)opened so child forms remount
+  const [formInstanceId, setFormInstanceId] = useState(0);
+
   const [activeTab, setActiveTab] = useState<TabType>("general");
   const [formData, setFormData] = useState<any>(initialData || {});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -310,6 +313,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     null
   );
   const isReadOnly = readOnlyOverride ?? mode === "view";
+
+  // Each time the sidesheet opens, increment the instance id so
+  // GeneralInfoForm / ServiceInfoForm (and nested modals) get a fresh mount.
+  useEffect(() => {
+    if (isOpen) {
+      setFormInstanceId((prev) => prev + 1);
+    }
+  }, [isOpen]);
 
   // Accept bookingCode from parent
   useEffect(() => {
@@ -585,7 +596,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     bookingDataTemp.append("channel", "B2C");
     bookingDataTemp.append("businessId", businessId._id);
     bookingDataTemp.append("formFields", JSON.stringify(formFields));
-    bookingDataTemp.append("totalAmount", String(flatInfoForm.sellingprice));
+
+    // Ensure totalAmount is a valid number (selling price from form)
+    const totalAmountValue = Number(flatInfoForm.sellingprice) || 0;
+    bookingDataTemp.append("totalAmount", String(totalAmountValue));
 
     if (flatInfoForm.bookingstatus && flatInfoForm.bookingstatus !== "") {
       bookingDataTemp.append("status", flatInfoForm.bookingstatus);
@@ -943,7 +957,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                 className={isReadOnly ? "opacity-90" : ""}
               >
                 <GeneralInfoForm
-                  key={`general-${quotationId || "new"}`}
+                  key={`general-${quotationId || "new"}-${formInstanceId}`}
                   initialFormData={initialData || {}}
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting || isReadOnly}
@@ -962,7 +976,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                 }
               >
                 <ServiceInfoFormSwitcher
-                  key={`service-${quotationId || "new"}`}
+                  key={`service-${quotationId || "new"}-${formInstanceId}`}
                   initialData={initialData}
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting || isReadOnly}
