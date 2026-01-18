@@ -9,6 +9,7 @@ interface SideSheetProps {
   onClose: () => void;
   onCloseButtonClick?: () => void;
   title?: React.ReactNode;
+  headerRight?: React.ReactNode;
   children: React.ReactNode;
   width?: "sm" | "md" | "lg" | "lg2" | "xl" | "full";
   position?: "left" | "right";
@@ -29,6 +30,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
   onClose,
   onCloseButtonClick,
   title = "",
+  headerRight,
   children,
   width = "lg",
   position = "right",
@@ -49,7 +51,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
       xl: "w-[52.08vw]",
       full: "w-full",
     }),
-    []
+    [],
   );
 
   // Memoized position classes
@@ -66,7 +68,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
         rounded: "rounded-bl-xl rounded-tl-xl",
       },
     }),
-    [isOpen]
+    [isOpen],
   );
 
   // Handle escape key
@@ -76,7 +78,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
         onClose();
       }
     },
-    [onClose, closeOnEscape]
+    [onClose, closeOnEscape],
   );
 
   // Handle overlay click
@@ -87,7 +89,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
         else onClose();
       }
     },
-    [onClose, closeOnOverlayClick, onCloseButtonClick]
+    [onClose, closeOnOverlayClick, onCloseButtonClick],
   );
 
   // Prevent body scroll when sidesheet is open
@@ -177,14 +179,17 @@ const SideSheet: React.FC<SideSheetProps> = ({
                 {title}
               </h2>
             </div>
-            {showLinkButton && (
-              <div className="ml-auto mr-1">
-                <button
-                  type="button"
-                  className="text-[#126ACB] text-[0.8rem] font-medium hover:underline"
-                >
-                  Link to a User
-                </button>
+            {(headerRight || showLinkButton) && (
+              <div className="ml-auto mr-1 flex items-center gap-2">
+                {headerRight}
+                {showLinkButton && (
+                  <button
+                    type="button"
+                    className="text-[#126ACB] text-[0.8rem] font-medium hover:underline"
+                  >
+                    Link to a User
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -209,7 +214,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
       showCloseButton,
       onClose,
       children,
-    ]
+    ],
   );
 
   // Use portal for better accessibility and z-index management

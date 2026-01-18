@@ -6,6 +6,7 @@ import { FaRegCalendar } from "react-icons/fa6";
 
 import { enUS } from "date-fns/locale";
 import { format } from "date-fns";
+import type { Locale } from "date-fns";
 
 const customLocale = {
   ...enUS,
@@ -13,10 +14,10 @@ const customLocale = {
     ...enUS.localize,
     day: (n: number) => ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"][n],
   },
-};
+} as Locale;
 
 type Props = {
-  label: string;
+  label?: string;
   startDate: string;
   endDate: string;
   onChange: (start: string, end: string) => void;
@@ -326,9 +327,7 @@ export default function DateRangeInput({
                 className="date-range-picker"
                 locale={customLocale}
                 dayContentRenderer={(date) => (
-                  <span className="rdrDayNumber">
-                    {format(date, "dd")}
-                  </span>
+                  <span className="rdrDayNumber">{format(date, "dd")}</span>
                 )}
                 ranges={ranges}
                 onChange={handleRangeChange}

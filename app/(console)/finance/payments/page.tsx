@@ -14,11 +14,18 @@ import {
   type TriSortState,
   getItemTimestamp,
 } from "@/utils/sorting";
+import { PiArrowCircleUpRight } from "react-icons/pi";
+import { PiArrowCircleDownLeft } from "react-icons/pi";
+import { CiFilter } from "react-icons/ci";
+import type { FilterCardOption } from "@/components/FilterCard";
+import FilterTrigger from "@/components/FilterTrigger";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
   ssr: false,
 });
+
+import AddPaymentSidesheet from "@/components/Sidesheets/AddPaymentSidesheet";
 
 // Column definitions
 const columns: string[] = [
@@ -31,10 +38,45 @@ const columns: string[] = [
   "Actions",
 ];
 
+// Service type options for linked-booking filter
+const serviceOptions: FilterCardOption[] = [
+  { value: "flights", label: "Flights" },
+  { value: "accommodation", label: "Accommodation" },
+  { value: "insurance", label: "Travel Insurance" },
+  { value: "activity", label: "Activity" },
+  { value: "visas", label: "Visas" },
+  { value: "tickets", label: "Ticket (attraction)" },
+  { value: "others", label: "Others" },
+  { value: "transportation_land", label: "Transportation (Land)" },
+  { value: "transportation_maritime", label: "Transportation (Maritime)" },
+];
+
+// Using shared `FilterTrigger` component from components/FilterTrigger.
+
 const columnIconMap: Record<string, JSX.Element> = {
   Date: (
-    <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+    <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[2]" />
   ),
+  "Linked Booking": (
+    <FilterTrigger
+      ariaLabel="Filter Linked Booking"
+      options={serviceOptions}
+      onApply={(sel) => console.log("Linked booking filter applied:", sel)}
+      children={<CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />}
+    />
+  ),
+  Amount: (
+    <FilterTrigger
+      ariaLabel="Filter Amount"
+      options={[
+        { value: "in", label: "Payment In" },
+        { value: "out", label: "Payment Out" },
+      ]}
+      onApply={(sel) => console.log("Amount filter applied:", sel)}
+      children={<CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />}
+    />
+  ),
+  Account: <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />,
 };
 
 // Dummy payment data
@@ -57,8 +99,8 @@ const dummyPayments: PaymentRow[] = [
     amount: 24580,
     amountType: "gave",
     account: "Bank 1",
-    date: "10-09-2025, 10:00 AM",
-    createdAt: "2025-09-10T10:00:00Z",
+    date: "10-09-2026, 05:00 AM",
+    createdAt: "2026-09-10T10:00:00Z",
   },
   {
     paymentId: "PI-ABC02",
@@ -67,8 +109,8 @@ const dummyPayments: PaymentRow[] = [
     amount: 24580,
     amountType: "got",
     account: "Bank 1",
-    date: "10-09-2025, 10:00 AM",
-    createdAt: "2025-09-10T10:00:00Z",
+    date: "10-21-2026, 09:00 AM",
+    createdAt: "2026-09-10T10:00:00Z",
   },
   {
     paymentId: "PO-ABC03",
@@ -77,58 +119,58 @@ const dummyPayments: PaymentRow[] = [
     amount: 24580,
     amountType: "gave",
     account: "Cash",
-    date: "10-09-2025, 10:00 AM",
-    createdAt: "2025-09-10T10:00:00Z",
+    date: "10-24-2026, 07:00 AM",
+    createdAt: "2026-09-10T10:00:00Z",
   },
   {
-    paymentId: "PI-ABC04",
+    paymentId: "PI-XBC04",
     partyName: "Anand Mishra",
     linkedBooking: "OS42J6K",
     amount: 24580,
     amountType: "got",
     account: "Bank 2",
-    date: "10-09-2025, 10:00 AM",
-    createdAt: "2025-09-10T10:00:00Z",
+    date: "10-14-2026, 08:00 AM",
+    createdAt: "2026-09-10T10:00:00Z",
   },
   {
-    paymentId: "PI-ABC05",
+    paymentId: "PI-TBC05",
     partyName: "Deepanshu",
     linkedBooking: "OS42J4J",
     amount: 24580,
     amountType: "got",
     account: "Bank 2",
-    date: "10-09-2025, 10:00 AM",
-    createdAt: "2025-09-10T10:00:00Z",
+    date: "10-11-2026, 10:00 AM",
+    createdAt: "2026-09-10T10:00:00Z",
   },
   {
-    paymentId: "PI-ABC06",
+    paymentId: "PI-OBC06",
     partyName: "Deepanshu",
     linkedBooking: "OS42J4D",
     amount: 24580,
     amountType: "got",
     account: "Bank 1",
-    date: "10-09-2025, 10:00 AM",
-    createdAt: "2025-09-10T10:00:00Z",
+    date: "10-16-2026, 10:00 AM",
+    createdAt: "2026-09-10T10:00:00Z",
   },
   {
-    paymentId: "PI-ABC07",
+    paymentId: "PI-IBC07",
     partyName: "Anand Mishra",
     linkedBooking: "OS42J4J",
     amount: 24580,
     amountType: "got",
     account: "Bank 2",
-    date: "10-09-2025, 10:00 AM",
-    createdAt: "2025-09-10T10:00:00Z",
+    date: "10-09-2026, 10:00 AM",
+    createdAt: "2026-09-10T10:00:00Z",
   },
   {
-    paymentId: "PO-ABC08",
+    paymentId: "PO-CBC08",
     partyName: "Anand Mishra",
     linkedBooking: "OS42J4D",
     amount: 24580,
     amountType: "gave",
     account: "Cash",
-    date: "10-09-2025, 10:00 AM",
-    createdAt: "2025-09-10T10:00:00Z",
+    date: "10-09-2026, 10:00 AM",
+    createdAt: "2026-09-10T10:00:00Z",
   },
   {
     paymentId: "PI-ABC09",
@@ -137,15 +179,15 @@ const dummyPayments: PaymentRow[] = [
     amount: 24580,
     amountType: "got",
     account: "Bank 1",
-    date: "10-09-2025, 10:00 AM",
-    createdAt: "2025-09-10T10:00:00Z",
+    date: "10-09-2026, 10:00 AM",
+    createdAt: "2026-09-10T10:00:00Z",
   },
 ];
 
 const PaymentsPage = () => {
   const tabOptions = useMemo(
     () => ["Approved", "Pending", "Deleted", "Denied"],
-    []
+    [],
   );
   const [activeTab, setActiveTab] = useState<string>(() => tabOptions[0] ?? "");
 
@@ -170,12 +212,16 @@ const PaymentsPage = () => {
     return () => window.removeEventListener("resize", updateIndicator);
   }, [activeTab, tabOptions]);
 
-  const totalCount = useMemo(() => 78, []);
+  const totalCount = useMemo(() => dummyPayments.length, []);
 
   // Date range + search state
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchValue, setSearchValue] = useState("");
+  // effectiveSearch mirrors the Filter component behavior: only propagate when empty or >= 3 chars
+  const [effectiveSearch, setEffectiveSearch] = useState("");
+  const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
+  const [addPaymentMode, setAddPaymentMode] = useState<"out" | "in">("out");
 
   // Sorting state
   const [sortState, setSortState] = useState<TriSortState<string>>({
@@ -217,14 +263,53 @@ const PaymentsPage = () => {
   }, [sortState]);
 
   // Convert payments to table data
+  // apply date & search filtering
+  const visiblePayments = useMemo(() => {
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+
+    // expand end to end-of-day for inclusive filtering
+    const endOfDay = end
+      ? new Date(
+          end.getFullYear(),
+          end.getMonth(),
+          end.getDate(),
+          23,
+          59,
+          59,
+          999,
+        )
+      : null;
+
+    const byDate = (p: PaymentRow) => {
+      if (!start || !endOfDay) return true;
+      const t = new Date(p.createdAt).getTime();
+      return t >= start.getTime() && t <= endOfDay.getTime();
+    };
+
+    const q =
+      effectiveSearch && effectiveSearch.length >= 3
+        ? effectiveSearch.toLowerCase()
+        : "";
+
+    return sortedPayments.filter((p) => {
+      if (!byDate(p)) return false;
+      if (!q) return true;
+      return (
+        p.paymentId.toLowerCase().includes(q) ||
+        p.partyName.toLowerCase().includes(q)
+      );
+    });
+  }, [sortedPayments, startDate, endDate, effectiveSearch]);
+
   const tableData = useMemo<JSX.Element[][]>(() => {
-    return sortedPayments.map((payment, index) => {
+    return visiblePayments.map((payment, index) => {
       const cells: JSX.Element[] = [];
 
       cells.push(
         <td
           key={`paymentId-${index}`}
-          className="px-4 py-3 font-[500] text-left"
+          className="px-4 py-3 font-[500] text-center"
         >
           {payment.paymentId}
         </td>,
@@ -280,12 +365,12 @@ const PaymentsPage = () => {
               width="w-22"
             />
           </div>
-        </td>
+        </td>,
       );
 
       return cells;
     });
-  }, [sortedPayments]);
+  }, [visiblePayments]);
 
   return (
     <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
@@ -310,11 +395,13 @@ const PaymentsPage = () => {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              ref={(el) => { tabRefs.current[idx] = el; }}
-              className={`relative z-10 px-[12px] py-[6px] rounded-[8px] text-[14px] font-medium transition-colors duration-300 flex-1 ${
+              ref={(el) => {
+                tabRefs.current[idx] = el;
+              }}
+              className={`relative z-10 px-[14px] py-[6px] rounded-[8px] text-[14px] font-medium transition-colors duration-300 flex-1 ${
                 activeTab === tab
                   ? "text-white"
-                  : "text-[#818181] hover:text-gray-900"
+                  : "text-[#818181] hover:text-gray-900 font-semibold"
               }`}
             >
               {tab}
@@ -333,12 +420,36 @@ const PaymentsPage = () => {
             </span>
           </div>
 
-          <button className="flex items-center gap-2 px-4 py-2 rounded-md bg-red-600 text-white font-medium">
-            <span className="text-sm">You Gave</span>
+          <button
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-red-600 text-white font-medium"
+            onClick={() => {
+              setAddPaymentMode("out");
+              setIsAddPaymentOpen(true);
+            }}
+          >
+            <span className="text-sm flex items-center gap-1">
+              {" "}
+              <PiArrowCircleUpRight
+                size={18}
+                height="bold"
+                strokeWidth={2}
+              />{" "}
+              You Gave
+            </span>
           </button>
 
-          <button className="flex items-center gap-2 px-4 py-2 rounded-md bg-emerald-600 text-white font-medium">
-            <span className="text-sm">You Got</span>
+          <button
+            className="flex items-center gap-2 px-4 py-2 rounded-md bg-[#4CA640] text-white font-medium"
+            onClick={() => {
+              setAddPaymentMode("in");
+              setIsAddPaymentOpen(true);
+            }}
+          >
+            <span className="text-sm flex items-center gap-1">
+              {" "}
+              <PiArrowCircleDownLeft size={18} height="bold" strokeWidth={2} />
+              You Got
+            </span>
           </button>
         </div>
       </div>
@@ -349,7 +460,6 @@ const PaymentsPage = () => {
       <div className="flex items-center justify-between mb-4 px-2 gap-4">
         <div className="flex items-center gap-4">
           <DateRangeInput
-            label="Booking Date"
             startDate={startDate}
             endDate={endDate}
             onChange={(s, e) => {
@@ -359,14 +469,22 @@ const PaymentsPage = () => {
           />
         </div>
 
-        <div className="flex-1 max-w-xl ml-auto">
+        <div className="flex-1 max-w-sm ml-auto">
           <div className="relative">
             <input
               type="text"
               value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSearchValue(value);
+                if (value.length === 0) {
+                  setEffectiveSearch("");
+                } else if (value.length >= 3) {
+                  setEffectiveSearch(value);
+                }
+              }}
               placeholder="Search by Payment ID/Party Name"
-              className="w-full text-[0.95rem] py-3 pl-4 pr-10 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] text-gray-700 bg-white"
+              className="w-full text-[14px] py-3 pl-4  rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] text-gray-700 bg-white"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
               <FiSearch />
@@ -384,6 +502,15 @@ const PaymentsPage = () => {
           categoryName="Payments"
         />
       </div>
+      <AddPaymentSidesheet
+        isOpen={isAddPaymentOpen}
+        title={addPaymentMode === "in" ? "Payment In" : "Payment Out"}
+        onClose={() => setIsAddPaymentOpen(false)}
+        onSubmit={(data) => {
+          console.log("AddPaymentSidesheet submitted:", data);
+          setIsAddPaymentOpen(false);
+        }}
+      />
     </div>
   );
 };

@@ -1,16 +1,28 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { FiSearch } from "react-icons/fi";
 import type { JSX } from "react";
 import dynamic from "next/dynamic";
+import { MdOutlineRemoveRedEye } from "react-icons/md";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
-import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
+import {
+  FaRegEdit,
+  FaRegTrashAlt,
+  FaArrowCircleLeft,
+  FaRegArrowAltCircleRight,
+} from "react-icons/fa";
 import DropDown from "@/components/DropDown";
 import AvatarTooltip from "@/components/AvatarToolTip";
 import { TbArrowsUpDown } from "react-icons/tb";
 import { CiFilter } from "react-icons/ci";
+import type { FilterCardOption } from "@/components/FilterCard";
+import FilterTrigger from "@/components/FilterTrigger";
+import { getUsers } from "@/services/userApi";
+import LedgerModal from "@/components/Modals/LedgerModal";
+import { PiArrowCircleUpRight } from "react-icons/pi";
+import { PiArrowCircleDownLeft } from "react-icons/pi";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -65,35 +77,35 @@ const dummyCustomers: CustomerRow[] = [
     balanceType: "debit",
   },
   {
-    customerId: "CU-AB005",
+    customerId: "CU-XB005",
     name: "Anand Mishra",
     ownerNames: ["Anand Singh", "Aman Kumar", "Suresh Raina", "Virat Goel"],
     closingBalance: 24580,
     balanceType: "credit",
   },
   {
-    customerId: "CU-AB006",
+    customerId: "CU-PB006",
     name: "Deepanshu",
     ownerNames: ["Anand Singh", "Aman Kumar", "Suresh Raina", "Virat Goel"],
     closingBalance: 24580,
     balanceType: "debit",
   },
   {
-    customerId: "CU-AB007",
+    customerId: "CU-TB007",
     name: "Anand Mishra",
     ownerNames: ["Anand Singh", "Aman Kumar", "Suresh Raina", "Virat Goel"],
     closingBalance: 24580,
     balanceType: "debit",
   },
   {
-    customerId: "CU-AB008",
+    customerId: "CU-RB008",
     name: "Anand Mishra",
     ownerNames: ["Anand Singh", "Aman Kumar", "Suresh Raina", "Virat Goel"],
     closingBalance: 24580,
     balanceType: "debit",
   },
   {
-    customerId: "CU-AB009",
+    customerId: "CU-SB009",
     name: "Anand Mishra",
     ownerNames: ["Anand Singh", "Aman Kumar", "Suresh Raina", "Virat Goel"],
     closingBalance: 24580,
@@ -133,16 +145,66 @@ const getOwnerColor = (index: number): string => {
   return colorPalette[idx] ?? "";
 };
 
-// Column icons (re-using helper pattern from finance bookings page)
-const columnIconMap: Record<string, JSX.Element> = {
-  Name: <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />,
-  Owner: <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />,
-  "Closing Balance": (
-    <TbArrowsUpDown className="inline w-3 h-3 text-white stroke-[1]" />
-  ),
-};
-
 const FinanceCustomersPage = () => {
+  const [userOptions, setUserOptions] = useState<FilterCardOption[]>([]);
+  const [ledgerOpen, setLedgerOpen] = useState(false);
+  const [ledgerCustomerName, setLedgerCustomerName] = useState<string | null>(
+    null,
+  );
+  const [ledgerCustomerId, setLedgerCustomerId] = useState<string | null>(null);
+
+  // Fetch users on mount to populate Owner filter options
+  useEffect(() => {
+    let mounted = true;
+    const fetch = async () => {
+      try {
+        const res = await getUsers();
+
+        let list: any[] = [];
+        if (Array.isArray(res)) list = res;
+        else if (Array.isArray(res?.users)) list = res.users;
+        else if (Array.isArray(res?.data)) list = res.data;
+
+        const opts: FilterCardOption[] = list.map((u) => ({
+          value: u._id ?? u.id ?? u.userId ?? String(u?.email ?? u?.name ?? u),
+          label: u.name ?? u.fullName ?? u.email ?? String(u),
+        }));
+
+        if (mounted) setUserOptions(opts);
+      } catch (e) {
+        console.error("Failed to load users for Owner filter", e);
+      }
+    };
+
+    fetch();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Map column names to header icons/components
+  const columnIconMap: Record<string, JSX.Element | null> = useMemo(() => {
+    return {
+      Owner: (
+        <FilterTrigger options={userOptions}>
+          <CiFilter className="text-white stroke-[1.5]" />
+        </FilterTrigger>
+      ),
+      "Closing Balance": (
+        <FilterTrigger
+          ariaLabel="Filter Amount"
+          options={[
+            { value: "in", label: "Payment In" },
+            { value: "out", label: "Payment Out" },
+          ]}
+          onApply={(sel) => console.log("Amount filter applied:", sel)}
+        >
+          <CiFilter className="text-white stroke-[1.5]" />
+        </FilterTrigger>
+      ),
+    };
+  }, [userOptions]);
+
   // Calculate totals
   const { youGet, youGive } = useMemo(() => {
     const get = dummyCustomers
@@ -159,6 +221,8 @@ const FinanceCustomersPage = () => {
   const [searchFilter, setSearchFilter] = useState<
     "owner" | "customerId" | "customerName"
   >("owner");
+  // effectiveSearch matches bookings Filter behavior: only apply when empty or >=3 chars
+  const [effectiveSearch, setEffectiveSearch] = useState("");
 
   // Filter options for dropdown
   const filterOptions = useMemo(
@@ -167,7 +231,7 @@ const FinanceCustomersPage = () => {
       { value: "customerId", label: "Customer ID" },
       { value: "customerName", label: "Customer Name" },
     ],
-    []
+    [],
   );
 
   // Dynamic placeholder based on selected filter
@@ -185,8 +249,24 @@ const FinanceCustomersPage = () => {
   }, [searchFilter]);
 
   // Convert customers to table data
+  // Apply search filtering (only when effectiveSearch empty or >=3 chars)
+  const visibleCustomers = useMemo(() => {
+    if (!effectiveSearch || effectiveSearch.length < 3) return dummyCustomers;
+    const q = effectiveSearch.toLowerCase();
+    return dummyCustomers.filter((c) => {
+      if (searchFilter === "owner") {
+        return c.ownerNames.some((n) => n.toLowerCase().includes(q));
+      }
+      if (searchFilter === "customerId")
+        return c.customerId.toLowerCase().includes(q);
+      if (searchFilter === "customerName")
+        return c.name.toLowerCase().includes(q);
+      return false;
+    });
+  }, [effectiveSearch, searchFilter]);
+
   const tableData = useMemo<JSX.Element[][]>(() => {
-    return dummyCustomers.map((customer, index) => {
+    return visibleCustomers.map((customer, index) => {
       const cells: JSX.Element[] = [];
 
       cells.push(
@@ -201,14 +281,28 @@ const FinanceCustomersPage = () => {
         </td>,
         <td key={`owner-${index}`} className="px-4 py-3 text-center">
           <div className="flex items-center justify-center">
-            {customer.ownerNames.map((ownerName, idx) => (
-              <AvatarTooltip
-                key={idx}
-                short={computeInitials(ownerName)}
-                full={ownerName}
-                color={getOwnerColor(idx)}
-              />
-            ))}
+            {customer.ownerNames && customer.ownerNames.length > 0 && (
+              <>
+                <div className="mr-2">
+                  <AvatarTooltip
+                    short={computeInitials(customer.ownerNames[0])}
+                    full={customer.ownerNames[0]}
+                    color={getOwnerColor(0)}
+                  />
+                </div>
+
+                <div className="flex items-center">
+                  {customer.ownerNames.slice(1).map((ownerName, idx) => (
+                    <AvatarTooltip
+                      key={idx + 1}
+                      short={computeInitials(ownerName)}
+                      full={ownerName}
+                      color={getOwnerColor(idx + 1)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </td>,
         <td
@@ -216,14 +310,18 @@ const FinanceCustomersPage = () => {
           className="px-4 py-3 text-center text-[14px]"
         >
           <span
-            className={`font-semibold ${
+            className={`inline-flex items-center justify-center gap-2 font-semibold ${
               customer.balanceType === "debit"
                 ? "text-red-600"
                 : "text-green-600"
             }`}
           >
-            {customer.balanceType === "debit" ? "⊖" : "⊕"} ₹{" "}
-            {customer.closingBalance.toLocaleString()}
+            {customer.balanceType === "debit" ? (
+              <PiArrowCircleUpRight className="text-red-600" size={16} />
+            ) : (
+              <PiArrowCircleDownLeft className="text-green-600" size={16} />
+            )}
+            <span>₹ {customer.closingBalance.toLocaleString()}</span>
           </span>
         </td>,
         <td
@@ -233,9 +331,17 @@ const FinanceCustomersPage = () => {
           <div className="flex items-center justify-center gap-2">
             <button
               type="button"
-              className="bg-[#FEF7E7] text-[#8B6914] px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-[#F5E6C3] hover:bg-[#FDF1D5]"
+              onClick={() => {
+                setLedgerCustomerName(customer.name);
+                setLedgerCustomerId(customer.customerId);
+                setLedgerOpen(true);
+              }}
+              className="bg-[#FFF1C2] text-[#414141] px-3 py-1.5 rounded-md text-[0.75rem] font-semibold border border-[#F5E6C3] hover:bg-[#FDF1D5]"
             >
-              👁 View ledger
+              <span className="flex items-center gap-1">
+                <MdOutlineRemoveRedEye size={12} className="text-[#414141]" />{" "}
+                View ledger{" "}
+              </span>
             </button>
             <ActionMenu
               actions={[
@@ -259,43 +365,52 @@ const FinanceCustomersPage = () => {
               width="w-22"
             />
           </div>
-        </td>
+        </td>,
       );
 
       return cells;
     });
-  }, []);
+  }, [visibleCustomers]);
+
+  // Ledger modal handlers
+  const closeLedger = () => {
+    setLedgerOpen(false);
+    setLedgerCustomerName(null);
+    setLedgerCustomerId(null);
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
       <div className="flex items-center justify-between rounded-2xl px-4 py-3">
-        {/* Summary Cards */}
+        {/* Summary Pills (You Get / You Give) */}
         <div className="flex items-center gap-4">
-          <div className="bg-[#E0F2E9] rounded-xl px-5 py-3 border border-[#B8DFC8]">
-            <div className="flex items-center gap-2">
-              <span className="text-[#0D4B37] text-sm font-medium">
-                You Get
-              </span>
-              <span className="text-[#0D4B37] text-lg font-bold">
-                ₹ {youGet.toLocaleString()}
-              </span>
+          <div className="flex items-center gap-4">
+            <div className="bg-[#E0F2E9] rounded-full px-4 py-2">
+              <div className="flex items-center gap-3">
+                <span className="text-[#818181] text-[13px] font-medium">
+                  You Get
+                </span>
+                <span className="text-[#4CA640] text-[14px] font-semibold">
+                  ₹ {youGet.toLocaleString()}
+                </span>
+              </div>
             </div>
-          </div>
 
-          <div className="bg-[#FCE8E8] rounded-xl px-5 py-3 border border-[#F5C6C6]">
-            <div className="flex items-center gap-2">
-              <span className="text-[#B91C1C] text-sm font-medium">
-                You Give
-              </span>
-              <span className="text-[#B91C1C] text-lg font-bold">
-                ₹ {youGive.toLocaleString()}
-              </span>
+            <div className="bg-[#FCE8E8] rounded-full px-4 py-2 ">
+              <div className="flex items-center gap-3">
+                <span className="text-[#818181] text-[13px] font-medium">
+                  You Give
+                </span>
+                <span className="text-[#C30010] text-[14px] font-semibold">
+                  ₹ {youGive.toLocaleString()}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Search with Filter Dropdown */}
-        <div className="flex items-center gap-0 max-w-md">
+        <div className="flex items-center gap-0 max-w-xl">
           <div className="relative z-10">
             <DropDown
               options={filterOptions}
@@ -303,19 +418,24 @@ const FinanceCustomersPage = () => {
               onChange={(val) =>
                 setSearchFilter(val as "owner" | "customerId" | "customerName")
               }
-              buttonClassName="!rounded-r-none border-r-0 bg-gray-50 hover:bg-gray-100 !py-3 !px-4 text-sm font-medium text-gray-700"
+              buttonClassName="!rounded-l-md !rounded-r-none border bg-gray-50 text-[13px] font-normal text-gray-500"
               customWidth="w-40"
+              customHeight="py-2.5"
               noBorder={false}
-              noButtonRadius={true}
             />
           </div>
           <div className="relative flex-1">
             <input
               type="text"
               value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSearchValue(value);
+                if (value.length === 0) setEffectiveSearch("");
+                else if (value.length >= 3) setEffectiveSearch(value);
+              }}
               placeholder={searchPlaceholder}
-              className="w-full text-[0.95rem] py-3 pl-4 pr-10 rounded-r-md border border-gray-200 border-l-0 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] text-gray-700 bg-white"
+              className="w-[260px] text-[14px] py-2.5 pl-4 pr-10 rounded-r-md border border-gray-200 border-l-0 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] hover:border-green-300 text-gray-700 bg-white"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
               <FiSearch />
@@ -323,8 +443,6 @@ const FinanceCustomersPage = () => {
           </div>
         </div>
       </div>
-
-      <div className="border-t border-gray-200 mb-4 mt-3"></div>
 
       <div className="min-h-[200px] mt-2 px-2">
         <Table
@@ -334,6 +452,14 @@ const FinanceCustomersPage = () => {
           categoryName="Customers"
         />
       </div>
+
+      {/* Ledger Modal */}
+      <LedgerModal
+        isOpen={ledgerOpen}
+        onClose={closeLedger}
+        customerName={ledgerCustomerName ?? null}
+        customerId={ledgerCustomerId ?? null}
+      />
     </div>
   );
 };

@@ -20,6 +20,8 @@ interface TableProps {
   rowIds?: string[];
   droppableId?: string;
   headerClassName?: string;
+  headerRowTextClassName?: string;
+  headerCellTextClassName?: string;
   categoryName?: string;
   sortableHeaderHoverClass?: string;
   hideEntriesText?: boolean;
@@ -42,6 +44,8 @@ const Table: React.FC<TableProps> = ({
   rowIds = [],
   droppableId = "table-droppable",
   headerClassName = "",
+  headerRowTextClassName = "text-white",
+  headerCellTextClassName = "text-gray-200",
   categoryName = "",
   sortableHeaderHoverClass = "",
   hideEntriesText = false,
@@ -139,7 +143,7 @@ const Table: React.FC<TableProps> = ({
         >
           <thead>
             <tr
-              className={`rounded-t-xl text-white ${
+              className={`rounded-t-xl ${headerRowTextClassName} ${
                 headerClassName || "bg-[#0D4B37]"
               }`}
             >
@@ -162,7 +166,7 @@ const Table: React.FC<TableProps> = ({
                       onSort(col);
                     }
                   }}
-                  className={`px-[18px] py-[12px] text-gray-200 font-[500] leading-4 tracking-[0.6px] text-[12px]
+                  className={`px-[18px] py-[12px] ${headerCellTextClassName} font-[500] leading-4 tracking-[0.6px] text-[12px]
           ${
             col === "Rating" ||
             col === "Date Modified" ||

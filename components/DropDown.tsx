@@ -10,6 +10,13 @@ interface DropdownOption {
   searchLabel?: string;
 }
 
+interface DropdownFooterAction {
+  label: React.ReactNode;
+  icon?: React.ReactNode;
+  onClick: () => void;
+  className?: string;
+}
+
 interface DropdownProps {
   options: DropdownOption[];
   placeholder?: string;
@@ -30,6 +37,7 @@ interface DropdownProps {
   searchable?: boolean;
   searchPlaceholder?: string;
   getOptionSearchValue?: (option: DropdownOption) => string;
+  footerAction?: DropdownFooterAction;
 }
 
 const DropDown: React.FC<DropdownProps> = ({
@@ -52,6 +60,7 @@ const DropDown: React.FC<DropdownProps> = ({
   searchable = false,
   searchPlaceholder = "Type to filter...",
   getOptionSearchValue,
+  footerAction,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(value || "");
@@ -75,7 +84,7 @@ const DropDown: React.FC<DropdownProps> = ({
 
   const selectedOption = options.find((opt) => opt.value === selectedValue);
   const displayText: React.ReactNode = selectedOption
-    ? selectedOption.buttonLabel ?? selectedOption.label
+    ? (selectedOption.buttonLabel ?? selectedOption.label)
     : placeholder;
 
   const filteredOptions = useMemo(() => {
@@ -192,6 +201,11 @@ const DropDown: React.FC<DropdownProps> = ({
     }
   };
 
+  const handleFooterClick = () => {
+    setIsOpen(false);
+    footerAction?.onClick();
+  };
+
   useEffect(() => {
     if (!isOpen) setSearchQuery("");
   }, [isOpen]);
@@ -289,13 +303,31 @@ const DropDown: React.FC<DropdownProps> = ({
                     {option.label}
                   </button>
                 ))}
+
+                {footerAction && (
+                  <button
+                    type="button"
+                    onClick={handleFooterClick}
+                    className={`w-full px-3 py-2 text-[13px] text-[#126ACB] font-semibold flex items-center justify-center gap-2 hover:bg-gray-50 border-t border-gray-200 ${
+                      footerAction.className || ""
+                    }`}
+                  >
+                    {footerAction.icon && (
+                      <span className="flex items-center">
+                        {footerAction.icon}
+                      </span>
+                    )}
+                    {footerAction.label}
+                  </button>
+                )}
+
                 {searchable && filteredOptions.length === 0 && (
                   <div className="px-3 py-2 text-[12px] text-gray-500">
                     No results
                   </div>
                 )}
               </div>,
-              document.body
+              document.body,
             )
           : null)}
     </div>
