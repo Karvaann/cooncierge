@@ -6,7 +6,9 @@ import Button from "@/components/Button";
 
 export type BankPayload = {
   name: string;
-  alias: string;
+  accountNumber: string;
+  ifscCode: string;
+  accountType: "savings" | "current";
 };
 
 interface AddBankSidesheetProps {
@@ -21,23 +23,37 @@ const AddBankSidesheet: React.FC<AddBankSidesheetProps> = ({
   onSubmit,
 }) => {
   const [bankName, setBankName] = useState<string>("");
-  const [bankAlias, setBankAlias] = useState<string>("");
+  const [accountNumber, setAccountNumber] = useState<string>("");
+  const [ifscCode, setIfscCode] = useState<string>("");
+  const [accountType, setAccountType] = useState<"savings" | "current">(
+    "savings",
+  );
 
   const canSubmit = useMemo(
-    () => bankName.trim().length > 0 && bankAlias.trim().length > 0,
-    [bankAlias, bankName],
+    () =>
+      bankName.trim().length > 0 &&
+      accountNumber.trim().length > 0 &&
+      ifscCode.trim().length > 0,
+    [bankName, accountNumber, ifscCode],
   );
 
   useEffect(() => {
     if (!isOpen) {
       setBankName("");
-      setBankAlias("");
+      setAccountNumber("");
+      setIfscCode("");
+      setAccountType("savings");
     }
   }, [isOpen]);
 
   const handleSubmit = () => {
     if (!canSubmit) return;
-    onSubmit({ name: bankName.trim(), alias: bankAlias.trim() });
+    onSubmit({
+      name: bankName.trim(),
+      accountNumber: accountNumber.trim(),
+      ifscCode: ifscCode.trim(),
+      accountType,
+    });
   };
 
   return (
@@ -67,14 +83,42 @@ const AddBankSidesheet: React.FC<AddBankSidesheetProps> = ({
 
               <div>
                 <label className="block text-[13px] font-medium text-gray-700 mb-2">
-                  Bank Alias
+                  Account Number
                 </label>
                 <input
-                  value={bankAlias}
-                  onChange={(e) => setBankAlias(e.target.value)}
-                  placeholder="Enter bank alias"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                  placeholder="Enter account number"
                   className="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
                 />
+              </div>
+
+              <div>
+                <label className="block text-[13px] font-medium text-gray-700 mb-2">
+                  IFSC Code
+                </label>
+                <input
+                  value={ifscCode}
+                  onChange={(e) => setIfscCode(e.target.value)}
+                  placeholder="Enter IFSC code"
+                  className="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[13px] font-medium text-gray-700 mb-2">
+                  Account Type
+                </label>
+                <select
+                  value={accountType}
+                  onChange={(e) =>
+                    setAccountType(e.target.value as "savings" | "current")
+                  }
+                  className="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                >
+                  <option value="savings">Savings</option>
+                  <option value="current">Current</option>
+                </select>
               </div>
             </div>
           </div>

@@ -6,6 +6,7 @@ import type { JSX } from "react";
 import dynamic from "next/dynamic";
 import { MdOutlineRemoveRedEye } from "react-icons/md";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
+import FullScreenLoader from "@/components/FullScreenLoader";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import {
   FaRegEdit,
@@ -20,7 +21,10 @@ import { CiFilter } from "react-icons/ci";
 import type { FilterCardOption } from "@/components/FilterCard";
 import FilterTrigger from "@/components/FilterTrigger";
 import { getUsers } from "@/services/userApi";
+import PaymentsApi from "@/services/paymentsApi";
 import LedgerModal from "@/components/Modals/LedgerModal";
+import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
+import { BookingProvider } from "@/context/BookingContext";
 import { PiArrowCircleUpRight } from "react-icons/pi";
 import { PiArrowCircleDownLeft } from "react-icons/pi";
 
@@ -41,84 +45,14 @@ const columns: string[] = [
 // Dummy customer data
 type CustomerRow = {
   customerId: string;
+  customId?: string;
   name: string;
   ownerNames: string[]; // Array of owner full names
   closingBalance: number;
   balanceType: "debit" | "credit"; // debit = you give (red), credit = you get (green)
+  raw?: any;
 };
-
-const dummyCustomers: CustomerRow[] = [
-  {
-    customerId: "CU-AB001",
-    name: "Jatin Sharma",
-    ownerNames: ["Anand Singh", "Aman Kumar", "Suresh Raina", "Virat Goel"],
-    closingBalance: 24580,
-    balanceType: "debit",
-  },
-  {
-    customerId: "CU-AB002",
-    name: "Deepanshu",
-    ownerNames: ["Anand Singh", "Aman Kumar", "Suresh Raina", "Virat Goel"],
-    closingBalance: 24580,
-    balanceType: "credit",
-  },
-  {
-    customerId: "CU-AB003",
-    name: "Anand Mishra",
-    ownerNames: ["Anand Singh", "Aman Kumar", "Suresh Raina", "Virat Goel"],
-    closingBalance: 24580,
-    balanceType: "credit",
-  },
-  {
-    customerId: "CU-AB004",
-    name: "Anand Mishra",
-    ownerNames: ["Anand Singh", "Aman Kumar", "Suresh Raina", "Virat Goel"],
-    closingBalance: 24580,
-    balanceType: "debit",
-  },
-  {
-    customerId: "CU-XB005",
-    name: "Anand Mishra",
-    ownerNames: ["Anand Singh", "Aman Kumar", "Suresh Raina", "Virat Goel"],
-    closingBalance: 24580,
-    balanceType: "credit",
-  },
-  {
-    customerId: "CU-PB006",
-    name: "Deepanshu",
-    ownerNames: ["Anand Singh", "Aman Kumar", "Suresh Raina", "Virat Goel"],
-    closingBalance: 24580,
-    balanceType: "debit",
-  },
-  {
-    customerId: "CU-TB007",
-    name: "Anand Mishra",
-    ownerNames: ["Anand Singh", "Aman Kumar", "Suresh Raina", "Virat Goel"],
-    closingBalance: 24580,
-    balanceType: "debit",
-  },
-  {
-    customerId: "CU-RB008",
-    name: "Anand Mishra",
-    ownerNames: ["Anand Singh", "Aman Kumar", "Suresh Raina", "Virat Goel"],
-    closingBalance: 24580,
-    balanceType: "debit",
-  },
-  {
-    customerId: "CU-SB009",
-    name: "Anand Mishra",
-    ownerNames: ["Anand Singh", "Aman Kumar", "Suresh Raina", "Virat Goel"],
-    closingBalance: 24580,
-    balanceType: "credit",
-  },
-  {
-    customerId: "CU-AB010",
-    name: "Deepanshu",
-    ownerNames: ["Anand Singh", "Aman Kumar", "Suresh Raina", "Virat Goel"],
-    closingBalance: 24580,
-    balanceType: "debit",
-  },
-];
+// No initial dummy customers — will load from API
 
 // Color palette for owner avatars
 const colorPalette = [
@@ -147,11 +81,19 @@ const getOwnerColor = (index: number): string => {
 
 const FinanceCustomersPage = () => {
   const [userOptions, setUserOptions] = useState<FilterCardOption[]>([]);
+  const [customers, setCustomers] = useState<CustomerRow[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [ledgerCustomerName, setLedgerCustomerName] = useState<string | null>(
     null,
   );
   const [ledgerCustomerId, setLedgerCustomerId] = useState<string | null>(null);
+
+  const [amountFilter, setAmountFilter] = useState<("in" | "out")[]>([]);
+  const [customerViewOpen, setCustomerViewOpen] = useState(false);
+  const [selectedCustomerData, setSelectedCustomerData] = useState<any | null>(
+    null,
+  );
 
   // Fetch users on mount to populate Owner filter options
   useEffect(() => {
@@ -182,6 +124,80 @@ const FinanceCustomersPage = () => {
     };
   }, []);
 
+  // Fetch customer closing balances on mount and map to CustomerRow
+  useEffect(() => {
+    let mounted = true;
+    const fetchBalances = async () => {
+      setIsLoading(true);
+      try {
+        const res = await PaymentsApi.listCustomerClosingBalances();
+
+        let list: any[] = [];
+        if (Array.isArray(res)) list = res;
+        else if (Array.isArray(res?.customers)) list = res.customers;
+        else if (Array.isArray(res?.data)) list = res.data;
+        else if (Array.isArray(res?.closingBalances))
+          list = res.closingBalances;
+
+        const mapped: CustomerRow[] = (list || []).map((it: any) => {
+          const rawCustomer = it.customer ?? it;
+          const customerId =
+            it?.customer?.customId ??
+            it.customId ??
+            it._id ??
+            it.id ??
+            it.customer?.id ??
+            String(it?.customerId ?? "");
+          const name =
+            it.name ??
+            it.fullName ??
+            it.customerName ??
+            it.customer?.name ??
+            "";
+          const ownerNames = Array.isArray(it.ownerNames)
+            ? it.ownerNames
+            : Array.isArray(it.owners)
+              ? it.owners.map((o: any) => o.name ?? String(o))
+              : [];
+          const rawBalance =
+            it.closingBalance?.amount ??
+            it.closing_balance?.amount ??
+            it.balance ??
+            it.amount ??
+            it.closingBalance ??
+            0;
+          const closingBalance = Number(rawBalance);
+          const balanceType = (it.closingBalance?.balanceType ??
+            it.balanceType ??
+            it.type ??
+            (Number(rawBalance) < 0 ? "debit" : "credit")) as
+            | "debit"
+            | "credit";
+
+          return {
+            customerId,
+            name,
+            ownerNames,
+            closingBalance: Math.abs(closingBalance),
+            balanceType,
+            raw: rawCustomer,
+          };
+        });
+
+        if (mounted) setCustomers(mapped);
+      } catch (e) {
+        console.error("Failed to load customer closing balances", e);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+
+    fetchBalances();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   // Map column names to header icons/components
   const columnIconMap: Record<string, JSX.Element | null> = useMemo(() => {
     return {
@@ -197,7 +213,9 @@ const FinanceCustomersPage = () => {
             { value: "in", label: "Payment In" },
             { value: "out", label: "Payment Out" },
           ]}
-          onApply={(sel) => console.log("Amount filter applied:", sel)}
+          onApply={(selected) => {
+            setAmountFilter(selected as ("in" | "out")[]);
+          }}
         >
           <CiFilter className="text-white stroke-[1.5]" />
         </FilterTrigger>
@@ -207,14 +225,14 @@ const FinanceCustomersPage = () => {
 
   // Calculate totals
   const { youGet, youGive } = useMemo(() => {
-    const get = dummyCustomers
+    const get = customers
       .filter((c) => c.balanceType === "credit")
       .reduce((sum, c) => sum + c.closingBalance, 0);
-    const give = dummyCustomers
+    const give = customers
       .filter((c) => c.balanceType === "debit")
       .reduce((sum, c) => sum + c.closingBalance, 0);
     return { youGet: get, youGive: give };
-  }, []);
+  }, [customers]);
 
   // Search state
   const [searchValue, setSearchValue] = useState("");
@@ -249,21 +267,42 @@ const FinanceCustomersPage = () => {
   }, [searchFilter]);
 
   // Convert customers to table data
-  // Apply search filtering (only when effectiveSearch empty or >=3 chars)
   const visibleCustomers = useMemo(() => {
-    if (!effectiveSearch || effectiveSearch.length < 3) return dummyCustomers;
-    const q = effectiveSearch.toLowerCase();
-    return dummyCustomers.filter((c) => {
-      if (searchFilter === "owner") {
-        return c.ownerNames.some((n) => n.toLowerCase().includes(q));
+    const q =
+      effectiveSearch && effectiveSearch.length >= 3
+        ? effectiveSearch.toLowerCase()
+        : "";
+
+    return customers.filter((c) => {
+      /* Search filter */
+      if (q) {
+        if (searchFilter === "owner") {
+          if (!c.ownerNames.some((n) => n.toLowerCase().includes(q))) {
+            return false;
+          }
+        }
+
+        if (searchFilter === "customerId") {
+          if (!c.customerId.toLowerCase().includes(q)) return false;
+        }
+
+        if (searchFilter === "customerName") {
+          if (!c.name.toLowerCase().includes(q)) return false;
+        }
       }
-      if (searchFilter === "customerId")
-        return c.customerId.toLowerCase().includes(q);
-      if (searchFilter === "customerName")
-        return c.name.toLowerCase().includes(q);
-      return false;
+
+      /* Closing Balance filter */
+      if (amountFilter.length > 0) {
+        const balanceDirection = c.balanceType === "credit" ? "in" : "out";
+
+        if (!amountFilter.includes(balanceDirection)) {
+          return false;
+        }
+      }
+
+      return true;
     });
-  }, [effectiveSearch, searchFilter]);
+  }, [customers, effectiveSearch, searchFilter, amountFilter]);
 
   const tableData = useMemo<JSX.Element[][]>(() => {
     return visibleCustomers.map((customer, index) => {
@@ -277,7 +316,22 @@ const FinanceCustomersPage = () => {
           {customer.customerId}
         </td>,
         <td key={`name-${index}`} className="px-4 py-3 text-[14px] text-center">
-          {customer.name}
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedCustomerData(
+                customer.raw ?? {
+                  name: customer.name,
+                  customId: customer.customerId,
+                },
+              );
+              setCustomerViewOpen(true);
+            }}
+            className="p-0 m-0 bg-transparent border-0 hover:underline font-medium"
+            aria-label={`View ${customer.name}`}
+          >
+            {customer.name}
+          </button>
         </td>,
         <td key={`owner-${index}`} className="px-4 py-3 text-center">
           <div className="flex items-center justify-center">
@@ -285,8 +339,8 @@ const FinanceCustomersPage = () => {
               <>
                 <div className="mr-2">
                   <AvatarTooltip
-                    short={computeInitials(customer.ownerNames[0])}
-                    full={customer.ownerNames[0]}
+                    short={computeInitials(customer.ownerNames[0] ?? "")}
+                    full={customer.ownerNames[0] ?? ""}
                     color={getOwnerColor(0)}
                   />
                 </div>
@@ -295,8 +349,8 @@ const FinanceCustomersPage = () => {
                   {customer.ownerNames.slice(1).map((ownerName, idx) => (
                     <AvatarTooltip
                       key={idx + 1}
-                      short={computeInitials(ownerName)}
-                      full={ownerName}
+                      short={computeInitials(ownerName ?? "")}
+                      full={ownerName ?? ""}
                       color={getOwnerColor(idx + 1)}
                     />
                   ))}
@@ -380,78 +434,86 @@ const FinanceCustomersPage = () => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
-      <div className="flex items-center justify-between rounded-2xl px-4 py-3">
-        {/* Summary Pills (You Get / You Give) */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div className="bg-[#E0F2E9] rounded-full px-4 py-2">
-              <div className="flex items-center gap-3">
-                <span className="text-[#818181] text-[13px] font-medium">
-                  You Get
-                </span>
-                <span className="text-[#4CA640] text-[14px] font-semibold">
-                  ₹ {youGet.toLocaleString()}
-                </span>
+    <>
+      {isLoading ? (
+        <FullScreenLoader />
+      ) : (
+        <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
+          <div className="flex items-center justify-between rounded-2xl px-4 py-3">
+            {/* Summary Pills (You Get / You Give) */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4">
+                <div className="bg-[#E0F2E9] rounded-full px-4 py-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[#414141] text-[13px] font-medium">
+                      You Get
+                    </span>
+                    <span className="text-[#4CA640] text-[14px] font-semibold">
+                      ₹ {youGet.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-[#FCE8E8] rounded-full px-4 py-2 ">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[#414141] text-[13px] font-medium">
+                      You Give
+                    </span>
+                    <span className="text-[#C30010] text-[14px] font-semibold">
+                      ₹ {youGive.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="bg-[#FCE8E8] rounded-full px-4 py-2 ">
-              <div className="flex items-center gap-3">
-                <span className="text-[#818181] text-[13px] font-medium">
-                  You Give
-                </span>
-                <span className="text-[#C30010] text-[14px] font-semibold">
-                  ₹ {youGive.toLocaleString()}
+            {/* Search with Filter Dropdown */}
+            <div className="flex items-center gap-0 max-w-xl">
+              <div className="relative z-10">
+                <DropDown
+                  options={filterOptions}
+                  value={searchFilter}
+                  onChange={(val) =>
+                    setSearchFilter(
+                      val as "owner" | "customerId" | "customerName",
+                    )
+                  }
+                  buttonClassName="!rounded-l-md !rounded-r-none border bg-gray-50 text-[13px] font-normal text-gray-500"
+                  customWidth="w-40"
+                  customHeight="py-2.5"
+                  noBorder={false}
+                />
+              </div>
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={searchValue}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSearchValue(value);
+                    if (value.length === 0) setEffectiveSearch("");
+                    else if (value.length >= 3) setEffectiveSearch(value);
+                  }}
+                  placeholder={searchPlaceholder}
+                  className="w-[260px] text-[14px] py-2.5 pl-4 pr-10 rounded-r-md border border-gray-200 border-l-0 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] hover:border-green-300 text-gray-700 bg-white"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                  <FiSearch />
                 </span>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Search with Filter Dropdown */}
-        <div className="flex items-center gap-0 max-w-xl">
-          <div className="relative z-10">
-            <DropDown
-              options={filterOptions}
-              value={searchFilter}
-              onChange={(val) =>
-                setSearchFilter(val as "owner" | "customerId" | "customerName")
-              }
-              buttonClassName="!rounded-l-md !rounded-r-none border bg-gray-50 text-[13px] font-normal text-gray-500"
-              customWidth="w-40"
-              customHeight="py-2.5"
-              noBorder={false}
+          <div className="min-h-[200px] mt-2 px-2">
+            <Table
+              data={tableData}
+              columns={columns}
+              columnIconMap={columnIconMap}
+              categoryName="Customers"
             />
           </div>
-          <div className="relative flex-1">
-            <input
-              type="text"
-              value={searchValue}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSearchValue(value);
-                if (value.length === 0) setEffectiveSearch("");
-                else if (value.length >= 3) setEffectiveSearch(value);
-              }}
-              placeholder={searchPlaceholder}
-              className="w-[260px] text-[14px] py-2.5 pl-4 pr-10 rounded-r-md border border-gray-200 border-l-0 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] hover:border-green-300 text-gray-700 bg-white"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-              <FiSearch />
-            </span>
-          </div>
         </div>
-      </div>
-
-      <div className="min-h-[200px] mt-2 px-2">
-        <Table
-          data={tableData}
-          columns={columns}
-          columnIconMap={columnIconMap}
-          categoryName="Customers"
-        />
-      </div>
+      )}
 
       {/* Ledger Modal */}
       <LedgerModal
@@ -460,7 +522,23 @@ const FinanceCustomersPage = () => {
         customerName={ledgerCustomerName ?? null}
         customerId={ledgerCustomerId ?? null}
       />
-    </div>
+
+      {/* Customer View SideSheet (read-only) */}
+      <BookingProvider>
+        <AddCustomerSideSheet
+          data={selectedCustomerData}
+          isOpen={customerViewOpen}
+          onCancel={() => {
+            setCustomerViewOpen(false);
+            setSelectedCustomerData(null);
+          }}
+          mode="view"
+          customerCode={
+            selectedCustomerData?.customId ?? selectedCustomerData?._id
+          }
+        />
+      </BookingProvider>
+    </>
   );
 };
 

@@ -21,12 +21,13 @@ import { PiArrowCircleDownLeft } from "react-icons/pi";
 type LedgerStatus = "Paid" | "Pending" | "Partially Paid";
 
 export type LedgerRow = {
-  service: string;
-  dateCreated: string; // dd-mm-yyyy
+  id: string; // booking ID or payment ID
+  bookingDate: string; // dd-mm-yyyy
   status: LedgerStatus;
   account: string | null;
   amount: number;
   closingBalance: number;
+  type: "booking" | "payment"; // to determine row color
 };
 
 interface LedgerModalProps {
@@ -38,6 +39,7 @@ interface LedgerModalProps {
   rows?: LedgerRow[];
   onRefresh?: () => void;
   onViewPdf?: () => void;
+  isVendorLedger?: boolean; // If true, inverts the color scheme
 }
 
 const statusPillClasses: Record<LedgerStatus, string> = {
@@ -59,36 +61,80 @@ const formatMoney = (value: number) => {
 
 const defaultRows: LedgerRow[] = [
   {
-    service: "Flights",
-    dateCreated: "25-09-2025",
+    id: "OS-ABC12",
+    bookingDate: "25-09-2025",
     status: "Paid",
-    account: "Bank 1",
+    account: null,
     amount: 5000,
-    closingBalance: 10000,
+    closingBalance: 12000,
+    type: "booking",
   },
   {
-    service: "Accommodation",
-    dateCreated: "23-09-2025",
+    id: "OS-ABC15",
+    bookingDate: "23-08-2025",
+    status: "Partially Paid",
+    account: null,
+    amount: 15000,
+    closingBalance: 7000,
+    type: "booking",
+  },
+  {
+    id: "PI-ABC02",
+    bookingDate: "14-08-2025",
+    status: "Paid",
+    account: "Bank 2",
+    amount: 10000,
+    closingBalance: 8000,
+    type: "payment",
+  },
+  {
+    id: "OS-ABC14",
+    bookingDate: "03-08-2025",
+    status: "Paid",
+    account: null,
+    amount: 2000,
+    closingBalance: 2000,
+    type: "booking",
+  },
+];
+
+// Vendor-specific dummy rows for testing vendor ledger view
+const vendorDefaultRows: LedgerRow[] = [
+  {
+    id: "OS-VND01",
+    bookingDate: "10-01-2026",
+    status: "Paid",
+    account: null,
+    amount: 8000,
+    closingBalance: 24000,
+    type: "booking",
+  },
+  {
+    id: "OS-VND02",
+    bookingDate: "08-01-2026",
     status: "Pending",
     account: null,
-    amount: 200,
-    closingBalance: 200,
+    amount: 4500,
+    closingBalance: 19500,
+    type: "booking",
   },
   {
-    service: "Transportation (Land)",
-    dateCreated: "14-08-2025",
-    status: "Partially Paid",
-    account: "Bank 2",
-    amount: 1100,
-    closingBalance: 1200,
-  },
-  {
-    service: "Activity",
-    dateCreated: "03-08-2025",
+    id: "PO-001",
+    bookingDate: "05-01-2026",
     status: "Paid",
-    account: "Cash",
-    amount: 2000,
-    closingBalance: 4500,
+    account: "Bank A",
+    amount: 10000,
+    closingBalance: 9500,
+    type: "payment",
+  },
+  {
+    id: "OS-VND03",
+    bookingDate: "02-01-2026",
+    status: "Paid",
+    account: null,
+    amount: 2500,
+    closingBalance: 12000,
+    type: "booking",
   },
 ];
 
@@ -101,6 +147,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   rows = defaultRows,
   onRefresh,
   onViewPdf,
+  isVendorLedger = false,
 }) => {
   const [paymentSidesheetOpen, setPaymentSidesheetOpen] = useState(false);
   const [paymentSidesheetTitle, setPaymentSidesheetTitle] =
@@ -128,9 +175,13 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   const [pendingOnly, setPendingOnly] = useState(false);
 
   const visibleRows = useMemo(() => {
-    if (!pendingOnly) return rows;
-    return rows.filter((r) => r.status !== "Paid");
-  }, [rows, pendingOnly]);
+    // If this is a vendor ledger and the caller did not pass custom rows,
+    // use the vendor dummy rows.
+    const effectiveRows =
+      isVendorLedger && rows === defaultRows ? vendorDefaultRows : rows;
+    if (!pendingOnly) return effectiveRows;
+    return effectiveRows.filter((r) => r.status !== "Paid");
+  }, [rows, pendingOnly, isVendorLedger]);
 
   const accountOptions: FilterCardOption[] = useMemo(
     () => ["Bank 1", "Bank 2", "Cash"].map((v) => ({ value: v, label: v })),
@@ -146,10 +197,10 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     [],
   );
 
-  // Map column names to header icons/components (same pattern as Finance pages)
+  // Map column names to header icons/components
   const columnIconMap: Record<string, React.ReactNode | null> = useMemo(() => {
     return {
-      "Date Created": (
+      "Booking Date": (
         <HiArrowsUpDown className="inline w-3 h-3 text-gray-600 font-semibold stroke-[2]" />
       ),
       Account: (
@@ -175,8 +226,8 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
 
   const columns = useMemo(
     () => [
-      "Service",
-      "Date Created",
+      "ID",
+      "Booking Date",
       "Status",
       "Account",
       "Amount",
@@ -188,15 +239,33 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
 
   const tableData = useMemo<JSX.Element[][]>(() => {
     return visibleRows.map((r, index) => {
+      // Determine background color based on row type and ledger type
+      // Customer ledger: payment=green, booking=red
+      // Vendor ledger: payment=red, booking=green (inverted)
+      const amountBgClass = isVendorLedger
+        ? r.type === "payment"
+          ? "bg-red-50"
+          : "bg-green-50"
+        : r.type === "payment"
+          ? "bg-green-50"
+          : "bg-red-50";
+      const amountTextClass = isVendorLedger
+        ? r.type === "payment"
+          ? "text-red-500"
+          : "text-green-600"
+        : r.type === "payment"
+          ? "text-green-600"
+          : "text-red-500";
+
       return [
         <td
-          key={`service-${index}`}
+          key={`id-${index}`}
           className="px-4 py-3 text-center font-[600] text-[14px]"
         >
-          {r.service}
+          {r.id}
         </td>,
         <td key={`date-${index}`} className="px-4 py-3 text-center text-[14px]">
-          {r.dateCreated}
+          {r.bookingDate}
         </td>,
         <td
           key={`status-${index}`}
@@ -214,19 +283,19 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           key={`account-${index}`}
           className="px-4 py-3 text-center text-[14px]"
         >
-          {r.account ?? "--"}
+          {r.account ?? ""}
         </td>,
         <td
           key={`amount-${index}`}
-          className="px-4 py-3 text-center text-[14px]"
+          className={`px-4 py-3 text-center text-[14px] ${amountBgClass}`}
         >
-          ₹ {formatMoney(r.amount)}
+          <span className="font-semibold">₹ {formatMoney(r.amount)}</span>
         </td>,
         <td
           key={`closing-${index}`}
-          className="px-4 py-3 text-center text-[14px] bg-red-50"
+          className={`px-4 py-3 text-center text-[14px] ${amountBgClass}`}
         >
-          <span className="text-red-500 font-semibold">
+          <span className={`${amountTextClass} font-semibold`}>
             ₹ {formatMoney(r.closingBalance)}
           </span>
         </td>,
@@ -244,8 +313,8 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
               aria-label="View"
               onClick={(e) => {
                 e.stopPropagation();
-                setSelectedLedgerRow(r);
-                setIsViewPaymentOpen(true);
+                // View handled by row click for payment rows only.
+                // Intentionally do not open the ViewPaymentSidesheet here.
               }}
             >
               <FiEye className="text-[#8B6914]" size={16} />
@@ -257,8 +326,28 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                 {
                   label: "Edit",
                   onClick: () => {
+                    // Open AddPaymentSidesheet in edit mode with prefilled values
                     setSelectedLedgerRow(r);
-                    setIsViewPaymentOpen(true);
+                    setPaymentSidesheetMode("edit");
+                    // Title depends on ledger context and row type
+                    setPaymentSidesheetTitle(
+                      r.type === "payment"
+                        ? isVendorLedger
+                          ? "Payment Out"
+                          : "Payment In"
+                        : "Payment Out",
+                    );
+                    setPaymentInitial({
+                      amount: String(r.amount),
+                      paymentDate: r.bookingDate,
+                      bank: r.account ?? "",
+                      internalNotes: "",
+                      bankCharges: "",
+                      bankChargesNotes: "",
+                      cashbackReceived: "",
+                      cashbackNotes: "",
+                    });
+                    setPaymentSidesheetOpen(true);
                   },
                 },
                 {
@@ -277,12 +366,14 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   const handleOpenViewPaymentByRowIndex = (rowIndex: number) => {
     const row = visibleRows[rowIndex];
     if (!row) return;
-    setSelectedLedgerRow(row);
-    setIsViewPaymentOpen(true);
+    // Only open view payment sidesheet for payment records
+    if (row.type === "payment") {
+      setSelectedLedgerRow(row);
+      setIsViewPaymentOpen(true);
+    }
   };
 
   const handleEditFromViewPayment = () => {
-    // Dummy prefill: match your ViewPayment screenshot
     setPaymentSidesheetMode("edit");
     setPaymentSidesheetTitle("Payment In");
     setPaymentInitial({
@@ -337,13 +428,17 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
             {/* Top actions row */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
-                <div className=" rounded-lg px-4 py-3 bg-[#F9F9F9]">
+                <div className="rounded-lg px-4 py-3 bg-[#F9F9F9]">
                   <div className="flex items-center gap-3">
                     <span className="text-gray-600 text-[14px] font-medium">
-                      Remaining Amount
+                      {remainingAmount >= 0 ? "You Collect" : "You Pay"}
                     </span>
-                    <span className="text-red-500 text-[14px] font-semibold">
-                      ₹ {formatMoney(remainingAmount)}
+                    <span
+                      className={`text-[14px] font-semibold ${
+                        remainingAmount >= 0 ? "text-red-500" : "text-green-600"
+                      }`}
+                    >
+                      ₹ {formatMoney(Math.abs(remainingAmount))}
                     </span>
                   </div>
                 </div>

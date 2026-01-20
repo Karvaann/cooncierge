@@ -5,6 +5,7 @@ import { FiSearch } from "react-icons/fi";
 import type { JSX } from "react";
 import dynamic from "next/dynamic";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
+import FullScreenLoader from "@/components/FullScreenLoader";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import DropDown from "@/components/DropDown";
@@ -16,8 +17,11 @@ import { CiFilter } from "react-icons/ci";
 import type { FilterCardOption } from "@/components/FilterCard";
 import FilterTrigger from "@/components/FilterTrigger";
 import { getUsers } from "@/services/userApi";
+import PaymentsApi from "@/services/paymentsApi";
 import { vi } from "date-fns/locale";
 import LedgerModal from "@/components/Modals/LedgerModal";
+import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
+import { BookingProvider } from "@/context/BookingContext";
 import { MdOutlineRemoveRedEye } from "react-icons/md";
 
 const Table = dynamic(() => import("@/components/Table"), {
@@ -41,80 +45,10 @@ type VendorRow = {
   pocName: string; // point of contact
   closingBalance: number;
   balanceType: "debit" | "credit"; // debit = you give (red), credit = you get (green)
+  raw?: any;
 };
 
-const dummyVendors: VendorRow[] = [
-  {
-    vendorId: "VE-AB001",
-    name: "Company ABC",
-    pocName: "Sumit Jain",
-    closingBalance: 24580,
-    balanceType: "debit",
-  },
-  {
-    vendorId: "VE-AB002",
-    name: "Company XYZ",
-    pocName: "Apurav Mishra",
-    closingBalance: 24580,
-    balanceType: "credit",
-  },
-  {
-    vendorId: "VE-AB003",
-    name: "Company LMN",
-    pocName: "Harish Chaudhary",
-    closingBalance: 24580,
-    balanceType: "credit",
-  },
-  {
-    vendorId: "VE-AB004",
-    name: "Company QRS",
-    pocName: "Dhruv Pandey",
-    closingBalance: 24580,
-    balanceType: "debit",
-  },
-  {
-    vendorId: "VE-AB005",
-    name: "Company TUV",
-    pocName: "Suman Rao",
-    closingBalance: 24580,
-    balanceType: "credit",
-  },
-  {
-    vendorId: "VE-AB006",
-    name: "Company OPQ",
-    pocName: "Nitin Verma",
-    closingBalance: 24580,
-    balanceType: "debit",
-  },
-  {
-    vendorId: "VE-AB007",
-    name: "Company RST",
-    pocName: "Karan Singh",
-    closingBalance: 24580,
-    balanceType: "debit",
-  },
-  {
-    vendorId: "VE-AB008",
-    name: "Company UVW",
-    pocName: "Ankit Sharma",
-    closingBalance: 24580,
-    balanceType: "credit",
-  },
-  {
-    vendorId: "VE-AB009",
-    name: "Company DEF",
-    pocName: "Rohit Kumar",
-    closingBalance: 24580,
-    balanceType: "credit",
-  },
-  {
-    vendorId: "VE-AB010",
-    name: "Company GHI",
-    pocName: "Manish Gupta",
-    closingBalance: 24580,
-    balanceType: "debit",
-  },
-];
+// No initial dummy vendors — will load from API
 
 // Color palette for owner avatars
 const colorPalette = [
@@ -143,9 +77,17 @@ const getOwnerColor = (index: number): string => {
 
 const FinanceVendorsPage = () => {
   const [userOptions, setUserOptions] = useState<FilterCardOption[]>([]);
+  const [vendors, setVendors] = useState<VendorRow[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [ledgerVendorName, setLedgerVendorName] = useState<string | null>(null);
   const [ledgerVendorId, setLedgerVendorId] = useState<string | null>(null);
+
+  const [amountFilter, setAmountFilter] = useState<("in" | "out")[]>([]);
+  const [vendorViewOpen, setVendorViewOpen] = useState(false);
+  const [selectedVendorData, setSelectedVendorData] = useState<any | null>(
+    null,
+  );
 
   // Fetch users on mount to populate Owner filter options
   useEffect(() => {
@@ -176,6 +118,83 @@ const FinanceVendorsPage = () => {
     };
   }, []);
 
+  // Fetch vendor closing balances on mount and map to VendorRow
+  useEffect(() => {
+    let mounted = true;
+    const fetchBalances = async () => {
+      try {
+        const res = await PaymentsApi.listVendorClosingBalances();
+
+        let list: any[] = [];
+        if (Array.isArray(res)) list = res;
+        else if (Array.isArray(res?.vendors)) list = res.vendors;
+        else if (Array.isArray(res?.data)) list = res.data;
+        else if (Array.isArray(res?.closingBalances))
+          list = res.closingBalances;
+
+        const mapped: VendorRow[] = (list || []).map((it: any) => {
+          const rawVendor = it.vendor ?? it;
+          const vendorId =
+            it?.vendor?.customId ??
+            it.customId ??
+            it.vendorId ??
+            it._id ??
+            it.id ??
+            it.vendor?.id ??
+            String(it?.vendorId ?? "");
+          const name =
+            it.name ??
+            it.companyName ??
+            it.vendorName ??
+            it.vendor?.companyName ??
+            it.vendor?.name ??
+            "";
+          const pocName =
+            it.pocName ??
+            it.poc ??
+            it.contactName ??
+            it.contactPerson ??
+            it.vendor?.contactPerson ??
+            "";
+          const rawBalance =
+            it.closingBalance?.amount ??
+            it.closing_balance?.amount ??
+            it.balance ??
+            it.amount ??
+            it.closingBalance ??
+            0;
+          const closingBalance = Number(rawBalance);
+          const balanceType = (it.closingBalance?.balanceType ??
+            it.balanceType ??
+            it.type ??
+            (Number(rawBalance) < 0 ? "debit" : "credit")) as
+            | "debit"
+            | "credit";
+
+          return {
+            vendorId,
+            name,
+            pocName,
+            closingBalance: Math.abs(closingBalance),
+            balanceType,
+            raw: rawVendor,
+          };
+        });
+
+        if (mounted) setVendors(mapped);
+      } catch (e) {
+        console.error("Failed to load vendor closing balances", e);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+
+    fetchBalances();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   // Map column names to header icons/components
   const columnIconMap: Record<string, JSX.Element | null> = useMemo(() => {
     return {
@@ -191,7 +210,9 @@ const FinanceVendorsPage = () => {
             { value: "in", label: "Payment In" },
             { value: "out", label: "Payment Out" },
           ]}
-          onApply={(sel) => console.log("Amount filter applied:", sel)}
+          onApply={(sel) => {
+            setAmountFilter(sel as ("in" | "out")[]);
+          }}
         >
           <CiFilter className="text-white stroke-[1.5]" />
         </FilterTrigger>
@@ -201,21 +222,21 @@ const FinanceVendorsPage = () => {
 
   // Calculate totals
   const { youGet, youGive } = useMemo(() => {
-    const get = dummyVendors
+    const get = vendors
       .filter((c) => c.balanceType === "credit")
       .reduce((sum, c) => sum + c.closingBalance, 0);
-    const give = dummyVendors
+    const give = vendors
       .filter((c) => c.balanceType === "debit")
       .reduce((sum, c) => sum + c.closingBalance, 0);
     return { youGet: get, youGive: give };
-  }, []);
+  }, [vendors]);
 
   // Search state
   const [searchValue, setSearchValue] = useState("");
   const [searchFilter, setSearchFilter] = useState<
     "poc" | "vendorId" | "vendorName"
   >("poc");
-  // effectiveSearch matches bookings Filter behavior: only apply when empty or >=3 chars
+
   const [effectiveSearch, setEffectiveSearch] = useState("");
 
   // Filter options for dropdown
@@ -243,21 +264,41 @@ const FinanceVendorsPage = () => {
   }, [searchFilter]);
 
   // Convert customers to table data
-  // Apply search filtering (only when effectiveSearch empty or >=3 chars)
+
   const visibleVendors = useMemo(() => {
-    if (!effectiveSearch || effectiveSearch.length < 3) return dummyVendors;
-    const q = effectiveSearch.toLowerCase();
-    return dummyVendors.filter((c) => {
-      if (searchFilter === "poc") {
-        return c.pocName.toLowerCase().includes(q);
+    const q =
+      effectiveSearch && effectiveSearch.length >= 3
+        ? effectiveSearch.toLowerCase()
+        : "";
+
+    return vendors.filter((v) => {
+      /* Search filter */
+      if (q) {
+        if (searchFilter === "poc") {
+          if (!v.pocName.toLowerCase().includes(q)) return false;
+        }
+
+        if (searchFilter === "vendorId") {
+          if (!v.vendorId.toLowerCase().includes(q)) return false;
+        }
+
+        if (searchFilter === "vendorName") {
+          if (!v.name.toLowerCase().includes(q)) return false;
+        }
       }
-      if (searchFilter === "vendorId")
-        return c.vendorId.toLowerCase().includes(q);
-      if (searchFilter === "vendorName")
-        return c.name.toLowerCase().includes(q);
-      return false;
+
+      /* Closing Balance filter */
+      if (amountFilter.length > 0) {
+        const balanceDirection = v.balanceType === "credit" ? "in" : "out";
+
+        if (!amountFilter.includes(balanceDirection)) {
+          return false;
+        }
+      }
+
+      return true;
     });
-  }, [effectiveSearch, searchFilter]);
+  }, [vendors, effectiveSearch, searchFilter, amountFilter]);
 
   const tableData = useMemo<JSX.Element[][]>(() => {
     return visibleVendors.map((vendor, index) => {
@@ -271,7 +312,19 @@ const FinanceVendorsPage = () => {
           {vendor.vendorId}
         </td>,
         <td key={`name-${index}`} className="px-4 py-3 text-[14px] text-center">
-          {vendor.name}
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedVendorData(
+                vendor.raw ?? { name: vendor.name, customId: vendor.vendorId },
+              );
+              setVendorViewOpen(true);
+            }}
+            className="p-0 m-0 bg-transparent border-0 hover:underline font-medium"
+            aria-label={`View ${vendor.name}`}
+          >
+            {vendor.name}
+          </button>
         </td>,
         <td key={`poc-${index}`} className="px-4 py-3 text-[14px] text-center">
           {vendor.pocName}
@@ -305,7 +358,7 @@ const FinanceVendorsPage = () => {
                 setLedgerVendorId(vendor.vendorId);
                 setLedgerOpen(true);
               }}
-              className="bg-[#FEF7E7] text-[#8B6914] px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-[#F5E6C3] hover:bg-[#FDF1D5]"
+              className="bg-[#FFF1C2] text-[#8B6914] px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-[#F5E6C3] hover:bg-[#FDF1D5]"
             >
               <span className="flex items-center gap-1">
                 <MdOutlineRemoveRedEye size={12} className="text-[#414141]" />{" "}
@@ -342,80 +395,87 @@ const FinanceVendorsPage = () => {
   }, [visibleVendors]);
 
   return (
-    <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
-      <div className="flex items-center justify-between rounded-2xl px-4 py-3">
-        {/* Summary Pills (You Get / You Give) */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-4">
-            <div className="bg-[#E0F2E9] rounded-full px-4 py-2 border border-[#B8DFC8]">
-              <div className="flex items-center gap-3">
-                <span className="text-[#818181] text-[13px] font-medium">
-                  You Get
-                </span>
-                <span className="text-[#4CA640] text-[14px] font-semibold">
-                  ₹ {youGet.toLocaleString()}
-                </span>
+    <>
+      {isLoading ? (
+        <FullScreenLoader />
+      ) : (
+        <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
+          <div className="flex items-center justify-between rounded-2xl px-4 py-3">
+            {/* Summary Pills (You Get / You Give) */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4">
+                <div className="bg-[#E0F2E9] rounded-full px-4 py-2 border border-[#B8DFC8]">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[#414141] text-[13px] font-medium">
+                      You Get
+                    </span>
+                    <span className="text-[#4CA640] text-[14px] font-semibold">
+                      ₹ {youGet.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-[#FCE8E8] rounded-full px-4 py-2 border border-[#F5C6C6]">
+                  <div className="flex items-center gap-3">
+                    <span className="text-[#414141] text-[13px] font-medium">
+                      You Give
+                    </span>
+                    <span className="text-[#C30010] text-[14px] font-semibold">
+                      ₹ {youGive.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="bg-[#FCE8E8] rounded-full px-4 py-2 border border-[#F5C6C6]">
-              <div className="flex items-center gap-3">
-                <span className="text-[#818181] text-[13px] font-medium">
-                  You Give
-                </span>
-                <span className="text-[#C30010] text-[14px] font-semibold">
-                  ₹ {youGive.toLocaleString()}
+            {/* Search with Filter Dropdown */}
+            <div className="flex items-center gap-0 max-w-xl">
+              <div className="relative z-10">
+                <DropDown
+                  options={filterOptions}
+                  value={searchFilter}
+                  onChange={(val) =>
+                    setSearchFilter(val as "poc" | "vendorId" | "vendorName")
+                  }
+                  buttonClassName="!rounded-l-md !rounded-r-none border bg-gray-50 text-[13px] font-normal text-gray-500"
+                  customWidth="w-40"
+                  customHeight="py-2.5"
+                  noBorder={false}
+                />
+              </div>
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={searchValue}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setSearchValue(value);
+                    if (value.length === 0) setEffectiveSearch("");
+                    else if (value.length >= 3) setEffectiveSearch(value);
+                  }}
+                  placeholder={searchPlaceholder}
+                  className="w-[260px] text-[14px] py-2.5 pl-4 pr-10 rounded-r-md border border-gray-200 border-l-0 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] hover:border-green-300 text-gray-700 bg-white"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                  <FiSearch />
                 </span>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Search with Filter Dropdown */}
-        <div className="flex items-center gap-0 max-w-xl">
-          <div className="relative z-10">
-            <DropDown
-              options={filterOptions}
-              value={searchFilter}
-              onChange={(val) =>
-                setSearchFilter(val as "poc" | "vendorId" | "vendorName")
-              }
-              buttonClassName="!rounded-l-md !rounded-r-none border bg-gray-50 text-[13px] font-normal text-gray-500"
-              customWidth="w-40"
-              customHeight="py-2.5"
-              noBorder={false}
+          <div className="border-t border-gray-200 mb-4 mt-3"></div>
+
+          <div className="min-h-[200px] mt-2 px-2">
+            <Table
+              data={tableData}
+              columns={columns}
+              columnIconMap={columnIconMap}
+              categoryName="Vendors"
             />
           </div>
-          <div className="relative flex-1">
-            <input
-              type="text"
-              value={searchValue}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSearchValue(value);
-                if (value.length === 0) setEffectiveSearch("");
-                else if (value.length >= 3) setEffectiveSearch(value);
-              }}
-              placeholder={searchPlaceholder}
-              className="w-[260px] text-[14px] py-2.5 pl-4 pr-10 rounded-r-md border border-gray-200 border-l-0 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] hover:border-green-300 text-gray-700 bg-white"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-              <FiSearch />
-            </span>
-          </div>
         </div>
-      </div>
+      )}
 
-      <div className="border-t border-gray-200 mb-4 mt-3"></div>
-
-      <div className="min-h-[200px] mt-2 px-2">
-        <Table
-          data={tableData}
-          columns={columns}
-          columnIconMap={columnIconMap}
-          categoryName="Vendors"
-        />
-      </div>
       <LedgerModal
         isOpen={ledgerOpen}
         onClose={() => {
@@ -426,7 +486,20 @@ const FinanceVendorsPage = () => {
         customerName={ledgerVendorName ?? null}
         customerId={ledgerVendorId ?? null}
       />
-    </div>
+
+      <BookingProvider>
+        <AddVendorSideSheet
+          data={selectedVendorData}
+          isOpen={vendorViewOpen}
+          onCancel={() => {
+            setVendorViewOpen(false);
+            setSelectedVendorData(null);
+          }}
+          mode="view"
+          vendorCode={selectedVendorData?.customId ?? selectedVendorData?._id}
+        />
+      </BookingProvider>
+    </>
   );
 };
 

@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useAuth } from "@/context/AuthContext";
 import { FiEye, FiTrash2 } from "react-icons/fi";
+import { TbNotes } from "react-icons/tb";
 import SideSheet from "@/components/SideSheet";
 import SingleCalendar from "@/components/SingleCalendar";
 import Fuse from "fuse.js";
@@ -16,6 +18,7 @@ import DropDown from "@/components/DropDown";
 import AddBankSidesheet, {
   type BankPayload,
 } from "@/components/Sidesheets/AddBankSidesheet";
+import PaymentsApi from "@/services/paymentsApi";
 import { FiPlusCircle } from "react-icons/fi";
 
 type PendingDocRow = {
@@ -25,6 +28,7 @@ type PendingDocRow = {
   paidAmount: number;
   pendingAmount: number;
   amountPaying: string;
+  quotationId?: string;
 };
 
 interface CustomerDataType {
@@ -71,10 +75,12 @@ interface AddPaymentSidesheetProps {
   onView?: () => void;
   /** Optional delete handler shown in header when in edit mode */
   onDelete?: () => void;
-  /** When provided, this will pre-select the customer and hide party type selection */
+  /** this will pre-select the customer and hide party type selection */
   initialCustomer?: { _id: string; name: string; customId?: string } | null;
   /** If true, party type radios are hidden and customer is fixed to `initialCustomer` */
   disablePartyType?: boolean;
+  /** Default entry type sent to backend when creating payment ('credit'|'debit') */
+  entryTypeDefault?: "credit" | "debit";
 }
 
 interface DocumentPreview {
@@ -95,9 +101,14 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
   onDelete,
   initialCustomer = null,
   disablePartyType = false,
+  entryTypeDefault = "debit",
 }) => {
   // Party Type State
   const [partyType, setPartyType] = useState<"customer" | "vendor">("customer");
+  // Payment Type State
+  type PaymentType = "CARD" | "UPI" | "IMPS" | "NEFT" | "RTGS" | "CHEQUE";
+
+  const [paymentType, setPaymentType] = useState<PaymentType | "">("");
 
   // Customer/Vendor Selection State
   const [selectedCustomer, setSelectedCustomer] =
@@ -126,12 +137,20 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
   const [cashbackReceived, setCashbackReceived] = useState<string>("");
   const [cashbackNotes, setCashbackNotes] = useState<string>("");
   const [paymentDate, setPaymentDate] = useState<string>("");
-  const [selectedBank, setSelectedBank] = useState<string>("Cash");
+  const [selectedBank, setSelectedBank] = useState<string>("");
   const [internalNotes, setInternalNotes] = useState<string>("");
   const [showPaymentBreakdown, setShowPaymentBreakdown] =
     useState<boolean>(false);
 
   const [isAddBankOpen, setIsAddBankOpen] = useState<boolean>(false);
+
+  // Notes visibility toggles
+  const [showAmountNotes, setShowAmountNotes] = useState<boolean>(false);
+  const [showBankChargesNotes, setShowBankChargesNotes] =
+    useState<boolean>(false);
+  const [showCashbackNotes, setShowCashbackNotes] = useState<boolean>(false);
+
+  const { user } = useAuth();
 
   // Settle Pending Docs (Auto UI)
   const [settlePendingDocsEnabled, setSettlePendingDocsEnabled] =
@@ -140,13 +159,65 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     "auto",
   );
   const [pendingDocRows, setPendingDocRows] = useState<PendingDocRow[]>([]);
+  const [selectedManualRows, setSelectedManualRows] = useState<Set<string>>(
+    new Set(),
+  );
 
   // Document State
   const [documents, setDocuments] = useState<DocumentPreview[]>([]);
 
+  // Currency and ROE State
+  const [amountCurrency, setAmountCurrency] = useState<Currency>("INR");
+  const [amountRoe, setAmountRoe] = useState<string>("");
+  const [amountInr, setAmountInr] = useState<string>("");
+
+  const [bankChargesCurrency, setBankChargesCurrency] =
+    useState<Currency>("INR");
+  const [bankChargesRoe, setBankChargesRoe] = useState<string>("");
+  const [bankChargesInr, setBankChargesInr] = useState<string>("");
+
+  const [cashbackReceivedCurrency, setCashbackReceivedCurrency] =
+    useState<Currency>("INR");
+  const [cashbackReceivedRoe, setCashbackReceivedRoe] = useState<string>("");
+  const [cashbackReceivedInr, setCashbackReceivedInr] = useState<string>("");
+
+  type Currency = "INR" | "USD";
+
+  const groupBase =
+    "flex items-center border border-gray-200 rounded-md overflow-hidden bg-white";
+
+  const groupSelect =
+    "h-[34px] px-2 text-[0.78rem] bg-gray-50 text-gray-700 border-r border-gray-200 flex items-center justify-center";
+
+  const groupSelectWhite =
+    "h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center";
+
+  const groupInput =
+    "h-[34px] px-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 outline-none flex-1";
+
+  const addonLabel =
+    "h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center";
+
+  const noteBtn =
+    "w-9 h-9 rounded-md bg-[#FFF2D6] hover:bg-[#FFE8B7] transition flex items-center justify-center";
+
+  const inputBase =
+    "w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-green-600";
+
+  const computeInr = (amount: string, roe: string) => {
+    const a = Number(String(amount).replace(/,/g, ""));
+    const r = Number(String(roe).replace(/,/g, ""));
+    if (!isFinite(a) || !isFinite(r) || a === 0 || r === 0) return "";
+    const product = a * r;
+    const hasFraction = Math.abs(product - Math.round(product)) > 1e-9;
+    return product.toLocaleString("en-US", {
+      minimumFractionDigits: hasFraction ? 2 : 0,
+      maximumFractionDigits: 2,
+    });
+  };
+
   // Bank options (you can customize this list)
   const bankOptions = [
-    "Cash",
     "Bank 1",
     "Bank 2",
     "HDFC Bank",
@@ -170,17 +241,23 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     [banks],
   );
 
+  // revoke object URLs on unmount
+  useEffect(() => {
+    return () => {
+      documents.forEach((d) => d.preview && URL.revokeObjectURL(d.preview));
+    };
+  }, []);
+
   const handleAddBank = (bank: BankPayload) => {
     const normalizedName = bank.name.trim();
-    const normalizedAlias = bank.alias.trim();
-    if (!normalizedName || !normalizedAlias) return;
+    if (!normalizedName) return;
 
     setBanks((prev) => {
       const exists = prev.some(
         (x) => x.name.toLowerCase() === normalizedName.toLowerCase(),
       );
       if (exists) return prev;
-      return [...prev, { name: normalizedName, alias: normalizedAlias }];
+      return [...prev, { name: normalizedName }];
     });
 
     setSelectedBank(normalizedName);
@@ -270,47 +347,108 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       setInternalNotes(initialPayment.internalNotes);
   }, [isOpen, initialPayment, mode]);
 
-  // Mock pending docs when a party is selected AND user has entered an amount
+  // Clear pending doc rows when party or amount changes (will re-fetch on toggle)
   useEffect(() => {
-    const hasPartySelected = !!selectedCustomer || !!selectedVendor;
-    const hasAmount = amount?.toString().trim() !== "";
+    setPendingDocRows([]);
+    setSettlePendingDocsEnabled(false);
+    setSelectedManualRows(new Set());
+  }, [selectedCustomer, selectedVendor, amount]);
 
-    if (!hasPartySelected || !hasAmount) {
-      setSettlePendingDocsEnabled(false);
-      setSettlePendingMode("auto");
+  const fetchUnsettledQuotations = async () => {
+    try {
+      if (partyType === "customer" && selectedCustomer) {
+        const resp = await PaymentsApi.getCustomerUnsettledQuotations(
+          selectedCustomer._id,
+        );
+        const list = resp?.quotations || resp || [];
+        const rows: PendingDocRow[] = list.map((item: any) => ({
+          bookingId:
+            item.quotation?.customId || String(item.quotation?._id || ""),
+          quotationId: String(item.quotation?._id || ""),
+          bookingDate: item.quotation?.createdAt
+            ? new Date(item.quotation.createdAt).toLocaleDateString()
+            : "",
+          totalAmount: Number(item.totalAmount || 0),
+          paidAmount: Number(item.allocatedAmount || 0),
+          pendingAmount: Number(item.outstandingAmount || 0),
+          amountPaying: "0",
+        }));
+        setPendingDocRows(rows);
+      } else if (partyType === "vendor" && selectedVendor) {
+        const resp = await PaymentsApi.getVendorUnsettledQuotations(
+          selectedVendor._id,
+        );
+        const list = resp?.quotations || resp || [];
+        const rows: PendingDocRow[] = list.map((item: any) => ({
+          bookingId:
+            item.quotation?.customId || String(item.quotation?._id || ""),
+          quotationId: String(item.quotation?._id || ""),
+          bookingDate: item.quotation?.createdAt
+            ? new Date(item.quotation.createdAt).toLocaleDateString()
+            : "",
+          totalAmount: Number(item.totalAmount || 0),
+          paidAmount: Number(item.allocatedAmount || 0),
+          pendingAmount: Number(item.outstandingAmount || 0),
+          amountPaying: "0",
+        }));
+        setPendingDocRows(rows);
+      }
+    } catch (err) {
+      console.error("Failed to fetch unsettled quotations", err);
       setPendingDocRows([]);
+    }
+  };
+
+  const toggleSettlePendingDocsEnabled = async () => {
+    const willEnable = !settlePendingDocsEnabled;
+    if (!willEnable) {
+      setSettlePendingDocsEnabled(false);
+      setPendingDocRows([]);
+      setSelectedManualRows(new Set());
       return;
     }
 
-    setPendingDocRows([
-      {
-        bookingId: "OS-ABC12",
-        bookingDate: "25-09-2025",
-        totalAmount: 10000,
-        paidAmount: 3000,
-        pendingAmount: 10000,
-        amountPaying: "5000",
-      },
-      {
-        bookingId: "OS-ABC13",
-        bookingDate: "24-09-2025",
-        totalAmount: 5000,
-        paidAmount: 0,
-        pendingAmount: 5000,
-        amountPaying: "0",
-      },
-      {
-        bookingId: "OS-ABC14",
-        bookingDate: "23-09-2025",
-        totalAmount: 2000,
-        paidAmount: 0,
-        pendingAmount: 2000,
-        amountPaying: "0",
-      },
-    ]);
-  }, [selectedCustomer, selectedVendor, amount]);
+    // ensure party and amount are present
+    if (partyType === "customer" && !selectedCustomer) {
+      alert("Select a customer first");
+      return;
+    }
+    if (partyType === "vendor" && !selectedVendor) {
+      alert("Select a vendor first");
+      return;
+    }
+    if (!amount || String(amount).trim() === "") {
+      alert("Enter an amount first");
+      return;
+    }
+
+    setSettlePendingDocsEnabled(true);
+    await fetchUnsettledQuotations();
+  };
 
   const sanitizeAmountInput = (value: string) => value.replace(/[^0-9]/g, "");
+
+  // Auto-distribute payment amount in auto mode
+  useEffect(() => {
+    if (settlePendingMode === "auto" && pendingDocRows.length > 0 && amount) {
+      const paymentAmount = Number(amount);
+      let remaining = paymentAmount;
+
+      const updatedRows = pendingDocRows.map((row) => {
+        if (remaining <= 0) {
+          return { ...row, amountPaying: "0" };
+        }
+
+        const pendingAmt = Number(row.pendingAmount || 0);
+        const allocate = Math.min(remaining, pendingAmt);
+        remaining -= allocate;
+
+        return { ...row, amountPaying: String(allocate) };
+      });
+
+      setPendingDocRows(updatedRows);
+    }
+  }, [amount, settlePendingMode]);
 
   const totalPendingAmount = useMemo(() => {
     return pendingDocRows.reduce(
@@ -467,49 +605,207 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i];
   };
 
-  // Handle Submit
-  const handleSubmit = () => {
-    // TODO: Implement payment submission logic
-    const paymentData = {
-      partyType,
-      partyId:
-        partyType === "customer" ? selectedCustomer?._id : selectedVendor?._id,
-      amount,
-      bankCharges,
-      bankChargesNotes,
-      cashbackReceived,
-      cashbackNotes,
-      paymentDate,
-      bank: selectedBank || "Cash",
-      internalNotes,
-      documents: documents.map((doc) => doc.file),
-    };
+  // Handle Submit - calls backend Payments API for customer/vendor
+  const handleSubmit = async () => {
+    if (partyType === "customer" && !selectedCustomer) {
+      alert("Please select a customer");
+      return;
+    }
+    if (partyType === "vendor" && !selectedVendor) {
+      alert("Please select a vendor");
+      return;
+    }
 
-    console.log("Payment Data:", paymentData);
-    onSubmit?.(paymentData);
+    // bankId must be a valid Mongo ObjectId (24 hex chars)
+    const bankId = selectedBank;
+    const isValidObjectId =
+      typeof bankId === "string" && /^[a-fA-F0-9]{24}$/.test(bankId);
+    if (!isValidObjectId) {
+      alert("Please select a valid bank");
+      return;
+    }
+
+    // if there are files, send as FormData multipart
+    const hasFiles = documents.length > 0;
+    // determine status based on user finance maker flag
+    const isFinanceMaker = !!(
+      (user && (user as any).isFinanceMaker === true) ||
+      (user as any).isFinanceMaker === "true"
+    );
+    const defaultStatus = isFinanceMaker ? "pending" : "approved";
+
+    if (hasFiles) {
+      const form = new FormData();
+      form.append("bankId", bankId);
+      form.append("amount", String(Number(amount)));
+      form.append("entryType", "debit");
+      form.append("paymentDate", paymentDate || new Date().toISOString());
+      form.append("status", defaultStatus);
+      if (internalNotes) form.append("internalNotes", internalNotes);
+      // include bank charges and cashback fields
+      form.append("bankCharges", String(Number(bankCharges || 0)));
+      form.append("bankChargesNotes", bankChargesNotes || "");
+      form.append("cashbackReceived", String(Number(cashbackReceived || 0)));
+      form.append("cashbackNotes", cashbackNotes || "");
+      // include allocations if any
+      if (settlePendingDocsEnabled) {
+        let allocations = [];
+        if (settlePendingMode === "manual") {
+          allocations = pendingDocRows
+            .filter((r) => selectedManualRows.has(r.quotationId || r.bookingId))
+            .map((r) => ({
+              quotationId: r.quotationId,
+              amount: Number(r.amountPaying || 0),
+            }))
+            .filter((a) => a.quotationId && a.amount > 0);
+        } else {
+          allocations = pendingDocRows
+            .map((r) => ({
+              quotationId: r.quotationId,
+              amount: Number(r.amountPaying || 0),
+            }))
+            .filter((a) => a.quotationId && a.amount > 0);
+        }
+        const allocationTotal = allocations.reduce((s, a) => s + a.amount, 0);
+        if (allocationTotal > Number(amount)) {
+          alert("Allocation total exceeds payment amount");
+          return;
+        }
+        if (allocations.length > 0) {
+          form.append("allocations", JSON.stringify(allocations));
+        }
+      }
+      // append files
+      documents.forEach((d, i) => {
+        form.append("documents", d.file, d.name);
+      });
+
+      try {
+        let resp: any = null;
+        if (partyType === "customer") {
+          resp = await PaymentsApi.createCustomerPayment(
+            selectedCustomer!._id,
+            form,
+          );
+        } else {
+          resp = await PaymentsApi.createVendorPayment(
+            selectedVendor!._id,
+            form,
+          );
+        }
+        onSubmit?.(resp);
+        onClose();
+      } catch (err: any) {
+        console.error("Failed to create payment", err);
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to create payment";
+        alert(msg);
+      }
+      return;
+    }
+
+    const payload: any = {
+      bankId,
+      amount: Number(amount),
+      entryType: "debit",
+      paymentDate: paymentDate || new Date().toISOString(),
+      status: defaultStatus,
+      internalNotes,
+      bankCharges: Number(bankCharges || 0),
+      bankChargesNotes: bankChargesNotes,
+      cashbackReceived: Number(cashbackReceived || 0),
+      cashbackNotes: cashbackNotes,
+    };
+    // include allocations when settling pending docs
+    if (settlePendingDocsEnabled) {
+      let allocations = [];
+      if (settlePendingMode === "manual") {
+        allocations = pendingDocRows
+          .filter((r) => selectedManualRows.has(r.quotationId || r.bookingId))
+          .map((r) => ({
+            quotationId: r.quotationId,
+            amount: Number(r.amountPaying || 0),
+          }))
+          .filter((a) => a.quotationId && a.amount > 0);
+      } else {
+        allocations = pendingDocRows
+          .map((r) => ({
+            quotationId: r.quotationId,
+            amount: Number(r.amountPaying || 0),
+          }))
+          .filter((a) => a.quotationId && a.amount > 0);
+      }
+      if (allocations.length > 0) payload.allocations = allocations;
+      const allocationTotal = allocations.reduce((s, a) => s + a.amount, 0);
+      if (allocationTotal > Number(amount)) {
+        alert("Allocation total exceeds payment amount");
+        return;
+      }
+    }
+
+    try {
+      let resp: any = null;
+      if (partyType === "customer") {
+        resp = await PaymentsApi.createCustomerPayment(
+          selectedCustomer!._id,
+          payload,
+        );
+      } else {
+        resp = await PaymentsApi.createVendorPayment(
+          selectedVendor!._id,
+          payload,
+        );
+      }
+
+      onSubmit?.(resp);
+      onClose();
+    } catch (err: any) {
+      console.error("Failed to create payment", err);
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to create payment";
+      alert(msg);
+    }
   };
 
   // Reset form when closed
+  const resetAllFields = React.useCallback(() => {
+    setPartyType("customer");
+    setSelectedCustomer(null);
+    setSelectedVendor(null);
+    setCustomerSearchTerm("");
+    setVendorSearchTerm("");
+    setAmount("");
+    setBankCharges("");
+    setBankChargesNotes("");
+    setCashbackReceived("");
+    setCashbackNotes("");
+    setPaymentDate("");
+    setSelectedBank("");
+    setInternalNotes("");
+    setShowPaymentBreakdown(false);
+    setDocuments([]);
+    setIsAddBankOpen(false);
+    setShowAmountNotes(false);
+    setShowBankChargesNotes(false);
+    setShowCashbackNotes(false);
+  }, []);
+
   useEffect(() => {
     if (!isOpen) {
-      setPartyType("customer");
-      setSelectedCustomer(null);
-      setSelectedVendor(null);
-      setCustomerSearchTerm("");
-      setVendorSearchTerm("");
-      setAmount("");
-      setBankCharges("");
-      setBankChargesNotes("");
-      setCashbackReceived("");
-      setCashbackNotes("");
-      setPaymentDate("");
-      setSelectedBank("Cash");
-      setInternalNotes("");
-      setShowPaymentBreakdown(false);
-      setDocuments([]);
-      setIsAddBankOpen(false);
+      resetAllFields();
     }
-  }, [isOpen]);
+  }, [isOpen, resetAllFields]);
+
+  // Ensure full reset on component unmount
+  useEffect(() => {
+    return () => {
+      resetAllFields();
+    };
+  }, [resetAllFields]);
 
   return (
     <SideSheet
@@ -568,12 +864,24 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                         onChange={(e) =>
                           setPartyType(e.target.value as "customer")
                         }
-                        className="w-4 h-4 text-blue-600 border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                        className="sr-only"
                       />
+                      <span
+                        className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
+                          partyType === "customer"
+                            ? "border-blue-600"
+                            : "border-gray-300"
+                        } bg-white`}
+                      >
+                        {partyType === "customer" && (
+                          <span className="w-2 h-2 rounded-full bg-blue-600" />
+                        )}
+                      </span>
                       <span className="ml-2 text-[13px] text-gray-700">
                         Customer
                       </span>
                     </label>
+
                     <label className="flex items-center cursor-pointer">
                       <input
                         type="radio"
@@ -583,8 +891,19 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                         onChange={(e) =>
                           setPartyType(e.target.value as "vendor")
                         }
-                        className="w-4 h-4 text-blue-600 border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                        className="sr-only"
                       />
+                      <span
+                        className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
+                          partyType === "vendor"
+                            ? "border-blue-600"
+                            : "border-gray-300"
+                        } bg-white`}
+                      >
+                        {partyType === "vendor" && (
+                          <span className="w-2 h-2 rounded-full bg-blue-600" />
+                        )}
+                      </span>
                       <span className="ml-2 text-[13px] text-gray-700">
                         Vendor
                       </span>
@@ -932,7 +1251,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                 <div className="flex items-start justify-between gap-4">
                   <label
                     className="flex items-start gap-3 cursor-pointer select-none"
-                    onClick={() => setSettlePendingDocsEnabled((prev) => !prev)}
+                    onClick={() => toggleSettlePendingDocsEnabled()}
                   >
                     <div className="mt-0.5 w-5 h-5 border border-gray-300 rounded-md flex items-center justify-center bg-white">
                       {settlePendingDocsEnabled && (
@@ -1039,10 +1358,8 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                             initialRowsPerPage={3}
                             categoryName="Bookings"
                             data={pendingDocRows.map((row, idx) => {
-                              const payingRaw = Number(row.amountPaying || 0);
-                              const payingClamped = Math.min(
-                                Math.max(payingRaw, 0),
-                                row.pendingAmount,
+                              const payingAmount = Number(
+                                row.amountPaying || 0,
                               );
 
                               return [
@@ -1079,47 +1396,11 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                                   key={`paying-${idx}`}
                                   className="px-4 py-3 text-center"
                                 >
-                                  <div className="inline-flex items-center border border-gray-200 rounded-md overflow-hidden bg-white">
-                                    <span className="px-3 py-1.5 text-[13px] text-gray-500 bg-gray-50 border-r border-gray-200">
-                                      ₹
-                                    </span>
-                                    <input
-                                      type="text"
-                                      value={row.amountPaying}
-                                      onChange={(e) => {
-                                        const next = sanitizeAmountInput(
-                                          e.target.value,
-                                        );
-                                        setPendingDocRows((prev) =>
-                                          prev.map((r, i) =>
-                                            i === idx
-                                              ? { ...r, amountPaying: next }
-                                              : r,
-                                          ),
-                                        );
-                                      }}
-                                      onBlur={() => {
-                                        setPendingDocRows((prev) =>
-                                          prev.map((r, i) => {
-                                            if (i !== idx) return r;
-                                            const n = Number(
-                                              r.amountPaying || 0,
-                                            );
-                                            const clamped = Math.min(
-                                              Math.max(n, 0),
-                                              r.pendingAmount,
-                                            );
-                                            return {
-                                              ...r,
-                                              amountPaying: String(clamped),
-                                            };
-                                          }),
-                                        );
-                                      }}
-                                      className="w-[5rem] px-3 py-1.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
-                                    />
+                                  <div className="w-32 mx-auto px-2 py-1 text-[13px] text-center border border-gray-300 rounded bg-gray-50 text-gray-700">
+                                    {payingAmount > 0
+                                      ? `₹ ${payingAmount.toLocaleString()}`
+                                      : "-"}
                                   </div>
-                                  {payingClamped !== payingRaw ? null : null}
                                 </td>,
                               ];
                             })}
@@ -1129,9 +1410,121 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                     )}
 
                     {settlePendingMode === "manual" && (
-                      <div className="mt-4 text-[12px] text-gray-500">
-                        Manual mode UI will be added later.
-                      </div>
+                      <>
+                        <div className="mt-4 border-t border-gray-200" />
+
+                        <div className="mt-4 text-[12px] text-red-600 font-medium bg-red-50 px-3 py-2 rounded">
+                          Note: Only selected invoices will be settled with this
+                          payment. You can select multiple invoices
+                        </div>
+
+                        <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-visible">
+                          <Table
+                            columns={[
+                              "Select",
+                              "Booking ID",
+                              "Booking Date",
+                              "Total Amount (Paid)",
+                              "Pending Amount",
+                              "Amount Paying (₹)",
+                            ]}
+                            headerAlign={{
+                              Select: "center",
+                              "Booking ID": "center",
+                              "Booking Date": "center",
+                              "Total Amount (Paid)": "center",
+                              "Pending Amount": "center",
+                              "Amount Paying (₹)": "center",
+                            }}
+                            hideRowsPerPage
+                            hideEntriesText
+                            initialRowsPerPage={3}
+                            categoryName="Bookings"
+                            data={pendingDocRows.map((row, idx) => {
+                              const isSelected = selectedManualRows.has(
+                                row.quotationId || row.bookingId,
+                              );
+
+                              return [
+                                <td
+                                  key={`select-${idx}`}
+                                  className="px-4 py-3 text-center"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      const key =
+                                        row.quotationId || row.bookingId;
+                                      const newSet = new Set(
+                                        selectedManualRows,
+                                      );
+                                      if (e.target.checked) {
+                                        newSet.add(key);
+                                      } else {
+                                        newSet.delete(key);
+                                      }
+                                      setSelectedManualRows(newSet);
+                                    }}
+                                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                  />
+                                </td>,
+                                <td
+                                  key={`bid-${idx}`}
+                                  className="px-4 py-3 text-center text-[13px]"
+                                >
+                                  {row.bookingId}
+                                </td>,
+                                <td
+                                  key={`bdate-${idx}`}
+                                  className="px-4 py-3 text-center text-[13px]"
+                                >
+                                  {row.bookingDate}
+                                </td>,
+                                <td
+                                  key={`total-${idx}`}
+                                  className="px-4 py-3 text-center text-[13px]"
+                                >
+                                  <span className="text-gray-900">
+                                    ₹ {row.totalAmount.toLocaleString()}
+                                  </span>{" "}
+                                  <span className="text-green-600">
+                                    (₹ {row.paidAmount.toLocaleString()})
+                                  </span>
+                                </td>,
+                                <td
+                                  key={`pending-${idx}`}
+                                  className="px-4 py-3 text-center text-[13px]"
+                                >
+                                  ₹ {row.pendingAmount.toLocaleString()}
+                                </td>,
+                                <td
+                                  key={`paying-${idx}`}
+                                  className="px-4 py-3 text-center"
+                                >
+                                  <input
+                                    type="text"
+                                    value={row.amountPaying}
+                                    onChange={(e) => {
+                                      const val = sanitizeAmountInput(
+                                        e.target.value,
+                                      );
+                                      setPendingDocRows((prev) =>
+                                        prev.map((r, i) =>
+                                          i === idx
+                                            ? { ...r, amountPaying: val }
+                                            : r,
+                                        ),
+                                      );
+                                    }}
+                                    className="w-32 mx-auto px-2 py-1 text-[13px] text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-600"
+                                  />
+                                </td>,
+                              ];
+                            })}
+                          />
+                        </div>
+                      </>
                     )}
                   </div>
                 )}
@@ -1175,84 +1568,347 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
             {/* Enter Amount */}
             <div className="mb-4">
               <label className="block text-[13px] font-medium text-gray-700 mb-2">
-                <span className="text-red-500">*</span>Enter Amount
+                <span className="text-red-500">*</span> Enter Amount
               </label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[13px] text-gray-500">
-                  ₹
-                </span>
-                <input
-                  type="text"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="Enter Amount"
-                  className="w-full pl-8 pr-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
-                />
+
+              <div
+                className={`grid ${
+                  amountCurrency === "USD"
+                    ? "grid-cols-[220px_160px_170px_44px]"
+                    : "grid-cols-[380px_44px]"
+                } gap-3 items-center`}
+              >
+                {/* Amount Input */}
+                <div className={groupBase}>
+                  <DropDown
+                    options={[
+                      { value: "INR", label: "INR" },
+                      { value: "USD", label: "USD" },
+                    ]}
+                    value={amountCurrency}
+                    onChange={(val) => {
+                      setAmountCurrency(val as Currency);
+                      if (val === "USD") {
+                        setAmountInr(
+                          computeInr(
+                            String(amount || ""),
+                            String(amountRoe || ""),
+                          ),
+                        );
+                      } else {
+                        setAmountRoe("");
+                        setAmountInr("");
+                      }
+                    }}
+                    customWidth="w-[64px]"
+                    noBorder={true}
+                    noButtonRadius={true}
+                    focusRingClass=""
+                    buttonClassName="bg-white text-[0.78rem] text-gray-700 px-2 h-[34px]"
+                    className={groupSelectWhite}
+                  />
+                  <input
+                    type="text"
+                    value={amount}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, "");
+                      setAmount(val);
+                      if (amountCurrency === "USD" && amountRoe) {
+                        setAmountInr(computeInr(val, amountRoe));
+                      }
+                    }}
+                    placeholder="Enter Amount"
+                    className={groupInput}
+                  />
+                </div>
+
+                {/* ROE Field (only for USD) */}
+                {amountCurrency === "USD" && (
+                  <>
+                    <div className={groupBase}>
+                      <span className={addonLabel}>ROE</span>
+                      <input
+                        type="text"
+                        value={amountRoe}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9.]/g, "");
+                          setAmountRoe(val);
+                          if (amount) {
+                            setAmountInr(computeInr(amount, val));
+                          }
+                        }}
+                        placeholder="Rate"
+                        className={groupInput}
+                      />
+                    </div>
+
+                    <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
+                      <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
+                        INR
+                      </span>
+                      <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
+                        {amountInr || ""}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {/* Notes Button */}
+                <button
+                  type="button"
+                  onClick={() => setShowAmountNotes(!showAmountNotes)}
+                  className={noteBtn}
+                >
+                  <TbNotes size={16} />
+                </button>
               </div>
+
+              {showAmountNotes && (
+                <div className="mt-3">
+                  <textarea
+                    value={bankChargesNotes}
+                    onChange={(e) => setBankChargesNotes(e.target.value)}
+                    placeholder="Enter Notes"
+                    rows={3}
+                    className={inputBase}
+                  />
+                </div>
+              )}
             </div>
 
             {showPaymentBreakdown && (
-              <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="mb-4 space-y-4">
+                {/* Bank Charges */}
                 <div>
                   <label className="block text-[13px] font-medium text-gray-700 mb-2">
                     Bank Charges
                   </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[13px] text-gray-500">
-                      ₹
-                    </span>
-                    <input
-                      type="text"
-                      value={bankCharges}
-                      onChange={(e) => setBankCharges(e.target.value)}
-                      placeholder="Enter Amount"
-                      className="w-full pl-8 pr-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
-                    />
+                  <div
+                    className={`grid ${
+                      bankChargesCurrency === "USD"
+                        ? "grid-cols-[220px_160px_170px_44px]"
+                        : "grid-cols-[380px_44px]"
+                    } gap-3 items-center`}
+                  >
+                    {/* Amount Input */}
+                    <div className={groupBase}>
+                      <DropDown
+                        options={[
+                          { value: "INR", label: "INR" },
+                          { value: "USD", label: "USD" },
+                        ]}
+                        value={bankChargesCurrency}
+                        onChange={(val) => {
+                          setBankChargesCurrency(val as Currency);
+                          if (val === "USD") {
+                            setBankChargesInr(
+                              computeInr(
+                                String(bankCharges || ""),
+                                String(bankChargesRoe || ""),
+                              ),
+                            );
+                          } else {
+                            setBankChargesRoe("");
+                            setBankChargesInr("");
+                          }
+                        }}
+                        customWidth="w-[64px]"
+                        noBorder={true}
+                        noButtonRadius={true}
+                        focusRingClass=""
+                        buttonClassName="bg-white text-[0.78rem] text-gray-700 px-2 h-[34px]"
+                        className={groupSelectWhite}
+                      />
+                      <input
+                        type="text"
+                        value={bankCharges}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9]/g, "");
+                          setBankCharges(val);
+                          if (bankChargesCurrency === "USD" && bankChargesRoe) {
+                            setBankChargesInr(computeInr(val, bankChargesRoe));
+                          }
+                        }}
+                        placeholder="Enter Amount"
+                        className={groupInput}
+                      />
+                    </div>
+
+                    {bankChargesCurrency === "USD" && (
+                      <>
+                        <div className={groupBase}>
+                          <span className={addonLabel}>ROE</span>
+                          <input
+                            type="text"
+                            value={bankChargesRoe}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(
+                                /[^0-9.]/g,
+                                "",
+                              );
+                              setBankChargesRoe(val);
+                              if (bankCharges) {
+                                setBankChargesInr(computeInr(bankCharges, val));
+                              }
+                            }}
+                            placeholder="Rate"
+                            className={groupInput}
+                          />
+                        </div>
+
+                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
+                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
+                            INR
+                          </span>
+                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
+                            {bankChargesInr || ""}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Notes Button */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowBankChargesNotes(!showBankChargesNotes)
+                      }
+                      className={noteBtn}
+                    >
+                      <TbNotes size={16} />
+                    </button>
                   </div>
+
+                  {showBankChargesNotes && (
+                    <div className="mt-3">
+                      <textarea
+                        value={bankChargesNotes}
+                        onChange={(e) => setBankChargesNotes(e.target.value)}
+                        placeholder="Enter Notes"
+                        rows={3}
+                        className={inputBase}
+                      />
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-[13px] font-medium text-gray-700 mb-2">
-                    Notes
-                  </label>
-                  <input
-                    type="text"
-                    value={bankChargesNotes}
-                    onChange={(e) => setBankChargesNotes(e.target.value)}
-                    placeholder="Enter Notes here..."
-                    className="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
-                  />
-                </div>
-
+                {/* Cashback Received */}
                 <div>
                   <label className="block text-[13px] font-medium text-gray-700 mb-2">
                     Cashback Received
                   </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[13px] text-gray-500">
-                      ₹
-                    </span>
-                    <input
-                      type="text"
-                      value={cashbackReceived}
-                      onChange={(e) => setCashbackReceived(e.target.value)}
-                      placeholder="Enter Amount"
-                      className="w-full pl-8 pr-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
-                    />
-                  </div>
-                </div>
+                  <div
+                    className={`grid ${
+                      cashbackReceivedCurrency === "USD"
+                        ? "grid-cols-[220px_160px_170px_44px]"
+                        : "grid-cols-[380px_44px]"
+                    } gap-3 items-center`}
+                  >
+                    {/* Amount Input */}
+                    <div className={groupBase}>
+                      <DropDown
+                        options={[
+                          { value: "INR", label: "INR" },
+                          { value: "USD", label: "USD" },
+                        ]}
+                        value={cashbackReceivedCurrency}
+                        onChange={(val) => {
+                          setCashbackReceivedCurrency(val as Currency);
+                          if (val === "USD") {
+                            setCashbackReceivedInr(
+                              computeInr(
+                                String(cashbackReceived || ""),
+                                String(cashbackReceivedRoe || ""),
+                              ),
+                            );
+                          } else {
+                            setCashbackReceivedRoe("");
+                            setCashbackReceivedInr("");
+                          }
+                        }}
+                        customWidth="w-[64px]"
+                        noBorder={true}
+                        noButtonRadius={true}
+                        focusRingClass=""
+                        buttonClassName="bg-white text-[0.78rem] text-gray-700 px-2 h-[34px]"
+                        className={groupSelectWhite}
+                      />
+                      <input
+                        type="text"
+                        value={cashbackReceived}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/[^0-9]/g, "");
+                          setCashbackReceived(val);
+                          if (
+                            cashbackReceivedCurrency === "USD" &&
+                            cashbackReceivedRoe
+                          ) {
+                            setCashbackReceivedInr(
+                              computeInr(val, cashbackReceivedRoe),
+                            );
+                          }
+                        }}
+                        placeholder="Enter Amount"
+                        className={groupInput}
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-[13px] font-medium text-gray-700 mb-2">
-                    Notes
-                  </label>
-                  <input
-                    type="text"
-                    value={cashbackNotes}
-                    onChange={(e) => setCashbackNotes(e.target.value)}
-                    placeholder="Enter Notes here..."
-                    className="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
-                  />
+                    {cashbackReceivedCurrency === "USD" && (
+                      <>
+                        <div className={groupBase}>
+                          <span className={addonLabel}>ROE</span>
+                          <input
+                            type="text"
+                            value={cashbackReceivedRoe}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(
+                                /[^0-9.]/g,
+                                "",
+                              );
+                              setCashbackReceivedRoe(val);
+                              if (cashbackReceived) {
+                                setCashbackReceivedInr(
+                                  computeInr(cashbackReceived, val),
+                                );
+                              }
+                            }}
+                            placeholder="Rate"
+                            className={groupInput}
+                          />
+                        </div>
+
+                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
+                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
+                            INR
+                          </span>
+                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
+                            {cashbackReceivedInr || ""}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Notes Button */}
+                    <button
+                      type="button"
+                      onClick={() => setShowCashbackNotes(!showCashbackNotes)}
+                      className={noteBtn}
+                    >
+                      <TbNotes size={16} />
+                    </button>
+                  </div>
+
+                  {showCashbackNotes && (
+                    <div className="mt-3">
+                      <textarea
+                        value={cashbackNotes}
+                        onChange={(e) => setCashbackNotes(e.target.value)}
+                        placeholder="Enter Notes"
+                        rows={3}
+                        className={inputBase}
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1267,6 +1923,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                   value={paymentDate}
                   onChange={setPaymentDate}
                   placeholder="Select Date"
+                  customWidth="w-full"
                 />
               </div>
             </div>
@@ -1293,6 +1950,54 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                 Note : By default the payment method is cash
               </p>
             </div>
+
+            {selectedBank && (
+              <div className="mt-4">
+                <label className="block text-[13px] font-medium text-gray-700 mb-2">
+                  Payment Type
+                </label>
+
+                <div className="flex flex-wrap gap-2">
+                  {["CARD", "UPI", "IMPS", "NEFT", "RTGS", "CHEQUE"].map(
+                    (type) => {
+                      const selected = paymentType === type;
+                      return (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => setPaymentType(type as PaymentType)}
+                          className={`px-4 py-2 text-[13px] rounded-full border transition inline-flex items-center gap-3 ${
+                            selected
+                              ? "bg-[#F9F3FF] border-gray-300 text-gray-800 font-semibold"
+                              : "bg-[#F9F9F9] border-gray-200 text-gray-700"
+                          }`}
+                        >
+                          <div className="w-4 h-4 border border-gray-300 rounded-sm flex items-center justify-center bg-white">
+                            {selected && (
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="12"
+                                height="11"
+                                viewBox="0 0 12 11"
+                                fill="none"
+                              >
+                                <path
+                                  d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                                  stroke="#0D4B37"
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                />
+                              </svg>
+                            )}
+                          </div>
+                          <span className="leading-none">{type}</span>
+                        </button>
+                      );
+                    },
+                  )}
+                </div>
+              </div>
+            )}
 
             <AddBankSidesheet
               isOpen={isAddBankOpen}
@@ -1358,7 +2063,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
           {/* Internal Notes */}
           <div className="mb-4 p-3 border border-gray-200 rounded-lg bg-white">
             <label className="block text-[13px] font-medium text-gray-700 mb-2">
-              Internal Notes
+              Remarks
             </label>
             <textarea
               value={internalNotes}
@@ -1367,9 +2072,6 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
               rows={3}
               className="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300 resize-none"
             />
-            <p className="mt-2 text-[12px] text-red-500">
-              Note : For internal reference only
-            </p>
           </div>
         </div>
 
@@ -1380,7 +2082,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
             onClick={handleSubmit}
             bgColor="bg-[#0D4B37]"
             textColor="text-white"
-            className="py-3 text-[13px] font-semibold"
+            className="py-2.5 text-[13px] font-semibold"
           />
         </div>
       </div>

@@ -23,6 +23,7 @@ import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
 import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 import TaskButton from "@/components/TaskButton";
+import RecordPaymentSidesheet from "@/components/Sidesheets/RecordPaymentSidesheet";
 import { useAuth } from "@/context/AuthContext";
 import {
   getNextTriSortState,
@@ -55,7 +56,7 @@ const BookingFormSidesheet = dynamic(
   {
     loading: () => <SidesheetSkeleton />,
     ssr: false,
-  }
+  },
 );
 
 type BookingStatus = "Confirmed" | "draft" | "Cancelled";
@@ -189,15 +190,19 @@ const FinanceBookingsPage = () => {
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [selectedService, setSelectedService] = useState<BookingService | null>(
-    null
+    null,
   );
   const [generatedCustomerCode, setGeneratedCustomerCode] = useState<
     string | null
   >(null);
   const [generatedVendorCode, setGeneratedVendorCode] = useState<string | null>(
-    null
+    null,
   );
   const [sideSheetMode, setSideSheetMode] = useState<"view" | "edit">("edit");
+
+  const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
+  const [selectedPaymentBooking, setSelectedPaymentBooking] =
+    useState<any>(null);
 
   const { user } = useAuth();
 
@@ -281,7 +286,7 @@ const FinanceBookingsPage = () => {
   const isWithinRange = (
     rawDate: string | undefined,
     start: string,
-    end: string
+    end: string,
   ) => {
     if (!rawDate) return false;
     const dt = new Date(rawDate);
@@ -322,7 +327,7 @@ const FinanceBookingsPage = () => {
       if (filters.search.trim()) {
         const s = filters.search.toLowerCase();
         const formattedServiceType = formatServiceType(
-          q.quotationType || ""
+          q.quotationType || "",
         ).toLowerCase();
         const matchesSearch =
           (q.customId || "").toLowerCase().includes(s) ||
@@ -339,7 +344,7 @@ const FinanceBookingsPage = () => {
           !isWithinRange(
             q.createdAt,
             filters.bookingStartDate,
-            filters.bookingEndDate
+            filters.bookingEndDate,
           )
         )
           return false;
@@ -351,7 +356,7 @@ const FinanceBookingsPage = () => {
           !isWithinRange(
             q.formFields?.departureDate as string,
             filters.tripStartDate,
-            filters.tripEndDate
+            filters.tripEndDate,
           )
         )
           return false;
@@ -378,7 +383,7 @@ const FinanceBookingsPage = () => {
             : [];
           // Check if all selected secondary owners are in the quotation's secondary owners
           secondaryMatch = filters.secondaryOwners.every((selectedSecondary) =>
-            quotationSecondaryOwners.includes(selectedSecondary)
+            quotationSecondaryOwners.includes(selectedSecondary),
           );
         }
 
@@ -390,7 +395,7 @@ const FinanceBookingsPage = () => {
         // Store owners for display
         const ownerArray = ([] as any[]).concat(
           q.secondaryOwner || [],
-          q.primaryOwner ? [q.primaryOwner] : []
+          q.primaryOwner ? [q.primaryOwner] : [],
         );
         const rowOwners: string[] = Array.isArray(ownerArray)
           ? ownerArray.map((o: any) => o?.name || "").filter(Boolean)
@@ -401,13 +406,13 @@ const FinanceBookingsPage = () => {
         const selectedOwners: string[] = Array.isArray(filters.owner)
           ? filters.owner
           : filters.owner
-          ? [filters.owner]
-          : [];
+            ? [filters.owner]
+            : [];
 
         // Extract owner names from the API response
         const ownerArray = ([] as any[]).concat(
           q.secondaryOwner || [],
-          q.primaryOwner ? [q.primaryOwner] : []
+          q.primaryOwner ? [q.primaryOwner] : [],
         );
         const rowOwners: string[] = Array.isArray(ownerArray)
           ? ownerArray.map((o: any) => o?.name || "").filter(Boolean)
@@ -418,7 +423,7 @@ const FinanceBookingsPage = () => {
         // Filter by selected owners if any are selected
         if (selectedOwners.length) {
           const intersects = rowOwners.some((ownerName) =>
-            selectedOwners.includes(ownerName)
+            selectedOwners.includes(ownerName),
           );
           if (!intersects) return false;
         }
@@ -506,7 +511,7 @@ const FinanceBookingsPage = () => {
   }, [loadQuotations]);
 
   const getServiceIcon = (
-    quotationType: string
+    quotationType: string,
   ): React.ReactElement | string => {
     if (!quotationType) return "Visa";
 
@@ -648,9 +653,8 @@ const FinanceBookingsPage = () => {
     if (!selectedDeleteId) return;
 
     try {
-      const response = await BookingApiService.deleteQuotation(
-        selectedDeleteId
-      );
+      const response =
+        await BookingApiService.deleteQuotation(selectedDeleteId);
 
       if (response.success) {
         // Remove from UI
@@ -903,10 +907,10 @@ const FinanceBookingsPage = () => {
         {item.travelDate
           ? formatDMY(item.travelDate)
           : item.formFields?.departureDate
-          ? formatDMY(item.formFields.departureDate)
-          : item.createdAt
-          ? formatDMY(item.createdAt)
-          : "--"}
+            ? formatDMY(item.formFields.departureDate)
+            : item.createdAt
+              ? formatDMY(item.createdAt)
+              : "--"}
       </td>,
       <td
         key={`service-${index}`}
@@ -939,8 +943,8 @@ const FinanceBookingsPage = () => {
         {item.totalAmount
           ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
           : item.formFields?.budget
-          ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
-          : "--"}
+            ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
+            : "--"}
       </td>,
       <td
         key={`owners-${index}`}
@@ -1021,6 +1025,10 @@ const FinanceBookingsPage = () => {
           <button
             className="w-8 h-8 rounded-md bg-blue-100 text-blue-700
                  flex items-center justify-center hover:bg-blue-200"
+            onClick={() => {
+              setSelectedPaymentBooking(item);
+              setIsRecordPaymentOpen(true);
+            }}
           >
             ₹
           </button>
@@ -1052,7 +1060,7 @@ const FinanceBookingsPage = () => {
       ],
       owners: ownersList.map((o) => ({ value: o.full, label: o.full })),
     }),
-    [ownersList]
+    [ownersList],
   );
 
   const handleFilterChange = (next: FilterPayload) => {
@@ -1151,6 +1159,15 @@ const FinanceBookingsPage = () => {
           customerCode={generatedCustomerCode ?? ""}
           vendorCode={generatedVendorCode ?? ""}
           mode={sideSheetMode}
+        />
+
+        <RecordPaymentSidesheet
+          isOpen={isRecordPaymentOpen}
+          booking={selectedPaymentBooking}
+          onClose={() => {
+            setIsRecordPaymentOpen(false);
+            setSelectedPaymentBooking(null);
+          }}
         />
       </div>
     </div>
