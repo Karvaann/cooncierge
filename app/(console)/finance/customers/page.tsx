@@ -45,9 +45,14 @@ const columns: string[] = [
 // Dummy customer data
 type CustomerRow = {
   customerId: string;
+  rawId: string;
   customId?: string;
   name: string;
-  ownerNames: string[]; // Array of owner full names
+  owner: {
+    name: string;
+    email: string;
+    _id: string;
+  }; // Array of owner full names
   closingBalance: number;
   balanceType: "debit" | "credit"; // debit = you give (red), credit = you get (green)
   raw?: any;
@@ -88,6 +93,7 @@ const FinanceCustomersPage = () => {
     null,
   );
   const [ledgerCustomerId, setLedgerCustomerId] = useState<string | null>(null);
+  const [ledgerRawId, setLedgerRawId] = useState<string | null>(null);
 
   const [amountFilter, setAmountFilter] = useState<("in" | "out")[]>([]);
   const [customerViewOpen, setCustomerViewOpen] = useState(false);
@@ -141,6 +147,7 @@ const FinanceCustomersPage = () => {
 
         const mapped: CustomerRow[] = (list || []).map((it: any) => {
           const rawCustomer = it.customer ?? it;
+          const rawId = it.customer._id;
           const customerId =
             it?.customer?.customId ??
             it.customId ??
@@ -154,11 +161,7 @@ const FinanceCustomersPage = () => {
             it.customerName ??
             it.customer?.name ??
             "";
-          const ownerNames = Array.isArray(it.ownerNames)
-            ? it.ownerNames
-            : Array.isArray(it.owners)
-              ? it.owners.map((o: any) => o.name ?? String(o))
-              : [];
+          const owner = it.customer.ownerId;
           const rawBalance =
             it.closingBalance?.amount ??
             it.closing_balance?.amount ??
@@ -176,8 +179,9 @@ const FinanceCustomersPage = () => {
 
           return {
             customerId,
+            rawId,
             name,
-            ownerNames,
+            owner,
             closingBalance: Math.abs(closingBalance),
             balanceType,
             raw: rawCustomer,
@@ -277,7 +281,7 @@ const FinanceCustomersPage = () => {
       /* Search filter */
       if (q) {
         if (searchFilter === "owner") {
-          if (!c.ownerNames.some((n) => n.toLowerCase().includes(q))) {
+          if (!c.owner.name.toLowerCase().includes(q)) {
             return false;
           }
         }
@@ -335,25 +339,14 @@ const FinanceCustomersPage = () => {
         </td>,
         <td key={`owner-${index}`} className="px-4 py-3 text-center">
           <div className="flex items-center justify-center">
-            {customer.ownerNames && customer.ownerNames.length > 0 && (
+            {customer.owner && (
               <>
                 <div className="mr-2">
                   <AvatarTooltip
-                    short={computeInitials(customer.ownerNames[0] ?? "")}
-                    full={customer.ownerNames[0] ?? ""}
+                    short={computeInitials(customer.owner.name ?? "")}
+                    full={customer.owner.name ?? ""}
                     color={getOwnerColor(0)}
                   />
-                </div>
-
-                <div className="flex items-center">
-                  {customer.ownerNames.slice(1).map((ownerName, idx) => (
-                    <AvatarTooltip
-                      key={idx + 1}
-                      short={computeInitials(ownerName ?? "")}
-                      full={ownerName ?? ""}
-                      color={getOwnerColor(idx + 1)}
-                    />
-                  ))}
                 </div>
               </>
             )}
@@ -386,8 +379,10 @@ const FinanceCustomersPage = () => {
             <button
               type="button"
               onClick={() => {
+                console.log(customer);
                 setLedgerCustomerName(customer.name);
                 setLedgerCustomerId(customer.customerId);
+                setLedgerRawId(customer.rawId);
                 setLedgerOpen(true);
               }}
               className="bg-[#FFF1C2] text-[#414141] px-3 py-1.5 rounded-md text-[0.75rem] font-semibold border border-[#F5E6C3] hover:bg-[#FDF1D5]"
@@ -521,6 +516,7 @@ const FinanceCustomersPage = () => {
         onClose={closeLedger}
         customerName={ledgerCustomerName ?? null}
         customerId={ledgerCustomerId ?? null}
+        rawId={ledgerRawId ?? null}
       />
 
       {/* Customer View SideSheet (read-only) */}

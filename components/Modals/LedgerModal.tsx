@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { CiFilter } from "react-icons/ci";
 import { FiEye } from "react-icons/fi";
 import { HiArrowsUpDown } from "react-icons/hi2";
@@ -17,8 +17,9 @@ import AddPaymentSidesheet from "../Sidesheets/AddPaymentSidesheet";
 import ViewPaymentSidesheet from "../Sidesheets/ViewPaymentSidesheet";
 import { PiArrowCircleUpRight } from "react-icons/pi";
 import { PiArrowCircleDownLeft } from "react-icons/pi";
+import PaymentsApi from "@/services/paymentsApi";
 
-type LedgerStatus = "Paid" | "Pending" | "Partially Paid";
+type LedgerStatus = "paid" | "none" | "partial";
 
 export type LedgerRow = {
   id: string; // booking ID or payment ID
@@ -35,17 +36,16 @@ interface LedgerModalProps {
   onClose: () => void;
   customerName?: string | null;
   customerId?: string | null;
-  remainingAmount?: number;
-  rows?: LedgerRow[];
+  rawId?: string | null;
   onRefresh?: () => void;
   onViewPdf?: () => void;
   isVendorLedger?: boolean; // If true, inverts the color scheme
 }
 
 const statusPillClasses: Record<LedgerStatus, string> = {
-  Paid: "bg-green-100 text-green-700 border border-green-200",
-  Pending: "bg-yellow-100 text-yellow-800 border border-yellow-200",
-  "Partially Paid": "bg-orange-100 text-orange-700 border border-orange-200",
+  paid: "bg-green-100 text-green-700 border border-green-200",
+  none: "bg-yellow-100 text-yellow-800 border border-yellow-200",
+  partial: "bg-orange-100 text-orange-700 border border-orange-200",
 };
 
 const formatMoney = (value: number) => {
@@ -59,92 +59,12 @@ const formatMoney = (value: number) => {
   }
 };
 
-const defaultRows: LedgerRow[] = [
-  {
-    id: "OS-ABC12",
-    bookingDate: "25-09-2025",
-    status: "Paid",
-    account: null,
-    amount: 5000,
-    closingBalance: 12000,
-    type: "booking",
-  },
-  {
-    id: "OS-ABC15",
-    bookingDate: "23-08-2025",
-    status: "Partially Paid",
-    account: null,
-    amount: 15000,
-    closingBalance: 7000,
-    type: "booking",
-  },
-  {
-    id: "PI-ABC02",
-    bookingDate: "14-08-2025",
-    status: "Paid",
-    account: "Bank 2",
-    amount: 10000,
-    closingBalance: 8000,
-    type: "payment",
-  },
-  {
-    id: "OS-ABC14",
-    bookingDate: "03-08-2025",
-    status: "Paid",
-    account: null,
-    amount: 2000,
-    closingBalance: 2000,
-    type: "booking",
-  },
-];
-
-// Vendor-specific dummy rows for testing vendor ledger view
-const vendorDefaultRows: LedgerRow[] = [
-  {
-    id: "OS-VND01",
-    bookingDate: "10-01-2026",
-    status: "Paid",
-    account: null,
-    amount: 8000,
-    closingBalance: 24000,
-    type: "booking",
-  },
-  {
-    id: "OS-VND02",
-    bookingDate: "08-01-2026",
-    status: "Pending",
-    account: null,
-    amount: 4500,
-    closingBalance: 19500,
-    type: "booking",
-  },
-  {
-    id: "PO-001",
-    bookingDate: "05-01-2026",
-    status: "Paid",
-    account: "Bank A",
-    amount: 10000,
-    closingBalance: 9500,
-    type: "payment",
-  },
-  {
-    id: "OS-VND03",
-    bookingDate: "02-01-2026",
-    status: "Paid",
-    account: null,
-    amount: 2500,
-    closingBalance: 12000,
-    type: "booking",
-  },
-];
-
 const LedgerModal: React.FC<LedgerModalProps> = ({
   isOpen,
   onClose,
   customerName = "Anand Mishra",
+  rawId = null,
   customerId = "CU-AB001",
-  remainingAmount = 5000,
-  rows = defaultRows,
   onRefresh,
   onViewPdf,
   isVendorLedger = false,
@@ -166,6 +86,8 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     internalNotes?: string;
   } | null>(null);
 
+  const [ledgerData, setLedgerData] = useState<any>(null);
+
   const [isViewPaymentOpen, setIsViewPaymentOpen] = useState(false);
   const [selectedLedgerRow, setSelectedLedgerRow] = useState<LedgerRow | null>(
     null,
@@ -174,19 +96,25 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   const [endDate, setEndDate] = useState<string>("");
   const [pendingOnly, setPendingOnly] = useState(false);
 
-  const visibleRows = useMemo(() => {
-    // If this is a vendor ledger and the caller did not pass custom rows,
-    // use the vendor dummy rows.
-    const effectiveRows =
-      isVendorLedger && rows === defaultRows ? vendorDefaultRows : rows;
-    if (!pendingOnly) return effectiveRows;
-    return effectiveRows.filter((r) => r.status !== "Paid");
-  }, [rows, pendingOnly, isVendorLedger]);
-
   const accountOptions: FilterCardOption[] = useMemo(
     () => ["Bank 1", "Bank 2", "Cash"].map((v) => ({ value: v, label: v })),
     [],
   );
+
+  useEffect(() => {
+
+    const fetchLedger = async () => {
+      try {
+        const data = await PaymentsApi.getCustomerLedger(rawId!);
+        setLedgerData(data);
+      } catch (err) {
+        console.error("Failed to fetch ledger:", err);
+      }
+    };
+    if (isOpen) {
+     fetchLedger();
+    }
+  }, [isOpen, customerName, rawId]);
 
   const statusOptions: FilterCardOption[] = useMemo(
     () =>
@@ -237,8 +165,18 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     [],
   );
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString).toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+      });
+    return date;
+  };
+
   const tableData = useMemo<JSX.Element[][]>(() => {
-    return visibleRows.map((r, index) => {
+    return ledgerData?.entries?.map((r, index) => {
+      console.log(r)
       // Determine background color based on row type and ledger type
       // Customer ledger: payment=green, booking=red
       // Vendor ledger: payment=red, booking=green (inverted)
@@ -262,10 +200,10 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           key={`id-${index}`}
           className="px-4 py-3 text-center font-[600] text-[14px]"
         >
-          {r.id}
+          {r.customId}
         </td>,
         <td key={`date-${index}`} className="px-4 py-3 text-center text-[14px]">
-          {r.bookingDate}
+          {formatDate(r?.data?.formFields?.bookingdate || r.date)}
         </td>,
         <td
           key={`status-${index}`}
@@ -273,10 +211,12 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         >
           <span
             className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-[12px] font-semibold ${
-              statusPillClasses[r.status]
+              statusPillClasses[r.paymentStatus as LedgerStatus]
             }`}
           >
-            {r.status}
+            {r.paymentStatus === 'none' ? 'Pending' : r.paymentStatus === 'partial'
+                ? 'Partially Paid'
+                : 'Paid'}
           </span>
         </td>,
         <td
@@ -296,7 +236,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           className={`px-4 py-3 text-center text-[14px] ${amountBgClass}`}
         >
           <span className={`${amountTextClass} font-semibold`}>
-            ₹ {formatMoney(r.closingBalance)}
+            ₹ {formatMoney(r.outstandingAmount)}
           </span>
         </td>,
         <td
@@ -361,10 +301,10 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         </td>,
       ];
     });
-  }, [visibleRows]);
+  }, [ledgerData]);
 
   const handleOpenViewPaymentByRowIndex = (rowIndex: number) => {
-    const row = visibleRows[rowIndex];
+    const row = ledgerData?.entries[rowIndex];
     if (!row) return;
     // Only open view payment sidesheet for payment records
     if (row.type === "payment") {
@@ -431,14 +371,14 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                 <div className="rounded-lg px-4 py-3 bg-[#F9F9F9]">
                   <div className="flex items-center gap-3">
                     <span className="text-gray-600 text-[14px] font-medium">
-                      {remainingAmount >= 0 ? "You Collect" : "You Pay"}
+                      {ledgerData?.closingBalance?.balanceType === "credit" ? "You Collect" : "You Pay"}
                     </span>
                     <span
                       className={`text-[14px] font-semibold ${
-                        remainingAmount >= 0 ? "text-red-500" : "text-green-600"
+                        ledgerData?.closingBalance?.balanceType === "credit" ? "text-red-500" : "text-green-600"
                       }`}
                     >
-                      ₹ {formatMoney(Math.abs(remainingAmount))}
+                      ₹ {formatMoney(Math.abs(ledgerData?.closingBalance?.amount))}
                     </span>
                   </div>
                 </div>
@@ -527,20 +467,23 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
 
             {/* Table */}
             <div className="mt-4">
-              <Table
-                data={tableData}
-                columns={columns}
-                columnIconMap={columnIconMap}
-                initialRowsPerPage={2}
-                hideRowsPerPage={false}
-                categoryName="entries"
-                hideEntriesText={false}
-                headerClassName="bg-gray-100"
-                headerRowTextClassName="text-[#414141]"
-                headerCellTextClassName="text-[#414141]"
-                sortableHeaderHoverClass="bg-gray-50"
-                onRowClick={handleOpenViewPaymentByRowIndex}
-              />
+              {
+                ledgerData?.entries && <Table
+                  data={tableData}
+                  columns={columns}
+                  columnIconMap={columnIconMap}
+                  initialRowsPerPage={2}
+                  hideRowsPerPage={false}
+                  categoryName="entries"
+                  hideEntriesText={false}
+                  headerClassName="bg-gray-100"
+                  headerRowTextClassName="text-[#414141]"
+                  headerCellTextClassName="text-[#414141]"
+                  sortableHeaderHoverClass="bg-gray-50"
+                  onRowClick={handleOpenViewPaymentByRowIndex}
+                />
+              }
+              
             </div>
           </div>
 
