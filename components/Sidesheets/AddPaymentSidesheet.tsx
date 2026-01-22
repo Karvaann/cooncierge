@@ -216,6 +216,20 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     });
   };
 
+  const resetCustomerSelection = () => {
+    setSelectedCustomer(null);
+    setCustomerSearchTerm("");
+    setCustomerResults(customerList); // show full list initially
+    setShowCustomerDropdown(true);
+  };
+
+  const resetVendorSelection = () => {
+    setSelectedVendor(null);
+    setVendorSearchTerm("");
+    setVendorResults(vendorList);
+    setShowVendorDropdown(true);
+  };
+
   // Bank options (you can customize this list)
   const bankOptions = [
     "Bank 1",
@@ -924,6 +938,11 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                       <input
                         type="text"
                         value={customerSearchTerm}
+                        onClick={() => {
+                          if (selectedCustomer) {
+                            resetCustomerSelection();
+                          }
+                        }}
                         onChange={(e) => {
                           const value = allowTextAndNumbers(e.target.value);
                           // typing resets previously selected customer
@@ -954,7 +973,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                             setShowCustomerDropdown(true);
                         }}
                         placeholder="Search by Customer Name/ID"
-                        readOnly={!!selectedCustomer}
+                        readOnly={false}
                         className={`w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300 ${
                           selectedCustomer
                             ? "text-transparent caret-transparent"
@@ -1077,6 +1096,11 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                       <input
                         type="text"
                         value={vendorSearchTerm}
+                        onClick={() => {
+                          if (selectedVendor) {
+                            resetVendorSelection();
+                          }
+                        }}
                         onChange={(e) => {
                           const value = allowTextAndNumbers(e.target.value);
                           if (selectedVendor) setSelectedVendor(null);
@@ -1106,7 +1130,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                             setShowVendorDropdown(true);
                         }}
                         placeholder="Search by Vendor Name/ID"
-                        readOnly={!!selectedVendor}
+                        readOnly={false}
                         className={`w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300 ${
                           selectedVendor
                             ? "text-transparent caret-transparent"

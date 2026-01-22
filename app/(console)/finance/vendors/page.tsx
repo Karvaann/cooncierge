@@ -18,9 +18,15 @@ import type { FilterCardOption } from "@/components/FilterCard";
 import FilterTrigger from "@/components/FilterTrigger";
 import { getUsers } from "@/services/userApi";
 import PaymentsApi from "@/services/paymentsApi";
+import {
+  allowNoSpecialCharacters,
+  allowOnlyText,
+} from "@/utils/inputValidators";
 import { vi } from "date-fns/locale";
 import LedgerModal from "@/components/Modals/LedgerModal";
 import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
+import ConfirmationModal from "@/components/popups/ConfirmationModal";
+import { deleteVendor } from "@/services/vendorApi";
 import { BookingProvider } from "@/context/BookingContext";
 import { MdOutlineRemoveRedEye } from "react-icons/md";
 
@@ -88,6 +94,12 @@ const FinanceVendorsPage = () => {
   const [selectedVendorData, setSelectedVendorData] = useState<any | null>(
     null,
   );
+  const [editVendorOpen, setEditVendorOpen] = useState(false);
+  const [editVendorData, setEditVendorData] = useState<any | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [targetVendorId, setTargetVendorId] = useState<string | null>(null);
+  const [targetVendorName, setTargetVendorName] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch users on mount to populate Owner filter options
   useEffect(() => {
@@ -350,7 +362,14 @@ const FinanceVendorsPage = () => {
           key={`actions-${index}`}
           className="px-4 py-3 text-center text-[14px]"
         >
-          <div className="flex items-center justify-center gap-2">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={`flex items-center justify-center gap-2 transition-all duration-200 ${
+              index === 0
+                ? "opacity-100 pointer-events-auto"
+                : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+            }`}
+          >
             <button
               type="button"
               onClick={() => {
@@ -362,7 +381,7 @@ const FinanceVendorsPage = () => {
             >
               <span className="flex items-center gap-1">
                 <MdOutlineRemoveRedEye size={12} className="text-[#414141]" />{" "}
-                View ledger{" "}
+                View ledger
               </span>
             </button>
             <ActionMenu
@@ -372,7 +391,13 @@ const FinanceVendorsPage = () => {
                   icon: <FaRegEdit />,
                   color: "text-blue-600",
                   onClick: () => {
-                    console.log("Edit vendor:", vendor.vendorId);
+                    setEditVendorData(
+                      vendor.raw ?? {
+                        name: vendor.name,
+                        customId: vendor.vendorId,
+                      },
+                    );
+                    setEditVendorOpen(true);
                   },
                 },
                 {
@@ -380,7 +405,9 @@ const FinanceVendorsPage = () => {
                   icon: <FaRegTrashAlt />,
                   color: "text-red-600",
                   onClick: () => {
-                    console.log("Delete vendor:", vendor.vendorId);
+                    setTargetVendorId(vendor.vendorId || null);
+                    setTargetVendorName(vendor.name || null);
+                    setConfirmOpen(true);
                   },
                 },
               ]}
@@ -438,7 +465,7 @@ const FinanceVendorsPage = () => {
                     setSearchFilter(val as "poc" | "vendorId" | "vendorName")
                   }
                   buttonClassName="!rounded-l-md !rounded-r-none border bg-gray-50 text-[13px] font-normal text-gray-500"
-                  customWidth="w-40"
+                  customWidth="w-37"
                   customHeight="py-2.5"
                   noBorder={false}
                 />
@@ -448,13 +475,17 @@ const FinanceVendorsPage = () => {
                   type="text"
                   value={searchValue}
                   onChange={(e) => {
-                    const value = e.target.value;
+                    const raw = e.target.value;
+                    const value =
+                      searchFilter === "vendorId"
+                        ? allowNoSpecialCharacters(raw)
+                        : allowOnlyText(raw);
                     setSearchValue(value);
                     if (value.length === 0) setEffectiveSearch("");
                     else if (value.length >= 3) setEffectiveSearch(value);
                   }}
                   placeholder={searchPlaceholder}
-                  className="w-[260px] text-[14px] py-2.5 pl-4 pr-10 rounded-r-md border border-gray-200 border-l-0 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] hover:border-green-300 text-gray-700 bg-white"
+                  className="w-[350px] text-[14px] py-2.5 pl-4 pr-10 rounded-r-md border border-gray-200 border-l-0 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] hover:border-green-300 text-gray-700 bg-white"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                   <FiSearch />
@@ -471,6 +502,8 @@ const FinanceVendorsPage = () => {
               columns={columns}
               columnIconMap={columnIconMap}
               categoryName="Vendors"
+              enableRowHoverActions={true}
+              rowIds={visibleVendors.map((v) => v.vendorId)}
             />
           </div>
         </div>
@@ -487,6 +520,41 @@ const FinanceVendorsPage = () => {
         customerId={ledgerVendorId ?? null}
       />
 
+      <ConfirmationModal
+        isOpen={confirmOpen}
+        onClose={() => {
+          setConfirmOpen(false);
+          setTargetVendorId(null);
+          setTargetVendorName(null);
+          setIsDeleting(false);
+        }}
+        onConfirm={async () => {
+          if (!targetVendorId) return;
+          try {
+            setIsDeleting(true);
+            await deleteVendor(targetVendorId);
+            setVendors((prev) =>
+              prev.filter((v) => v.vendorId !== targetVendorId),
+            );
+          } catch (e) {
+            console.error("Failed to delete vendor", e);
+          } finally {
+            setConfirmOpen(false);
+            setTargetVendorId(null);
+            setTargetVendorName(null);
+            setIsDeleting(false);
+          }
+        }}
+        title={
+          targetVendorName
+            ? `Delete ${targetVendorName}?`
+            : `Delete vendor ${targetVendorId}?`
+        }
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        confirmButtonColor="bg-red-600"
+      />
+
       <BookingProvider>
         <AddVendorSideSheet
           data={selectedVendorData}
@@ -497,6 +565,20 @@ const FinanceVendorsPage = () => {
           }}
           mode="view"
           vendorCode={selectedVendorData?.customId ?? selectedVendorData?._id}
+        />
+        <AddVendorSideSheet
+          data={editVendorData}
+          isOpen={editVendorOpen}
+          onCancel={() => {
+            setEditVendorOpen(false);
+            setEditVendorData(null);
+          }}
+          mode="edit"
+          vendorCode={editVendorData?.customId ?? editVendorData?._id}
+          onSuccess={() => {
+            setEditVendorOpen(false);
+            setEditVendorData(null);
+          }}
         />
       </BookingProvider>
     </>
