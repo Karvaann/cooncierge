@@ -43,10 +43,14 @@ const columns: string[] = [
 // Dummy customer data
 type CustomerRow = {
   customerId: string;
+  rawId: string;
   customId?: string;
   name: string;
-  ownerIds: string[];
-  ownerNames: string[]; // Array of owner full names
+  owner: {
+    _id?: string;
+    name?: string;
+    email?: string;
+  } | null;
   closingBalance: number;
   balanceType: "debit" | "credit"; // debit = you give (red), credit = you get (green)
   raw?: any;
@@ -88,6 +92,8 @@ const FinanceCustomersPage = () => {
     null,
   );
   const [ledgerCustomerId, setLedgerCustomerId] = useState<string | null>(null);
+  const [ledgerRawId, setLedgerRawId] = useState<string | null>(null);
+
   const [amountFilter, setAmountFilter] = useState<("in" | "out")[]>([]);
   const [customerViewOpen, setCustomerViewOpen] = useState(false);
   const [selectedCustomerData, setSelectedCustomerData] = useState<any | null>(
@@ -142,7 +148,7 @@ const FinanceCustomersPage = () => {
 
         const mapped: CustomerRow[] = (list || []).map((it: any) => {
           const rawCustomer = it.customer ?? it;
-
+          const rawId = rawCustomer?._id ?? rawCustomer?.id ?? "";
           const customerId =
             it?.customer?.customId ??
             it.customId ??
@@ -156,29 +162,28 @@ const FinanceCustomersPage = () => {
             it.customerName ??
             it.customer?.name ??
             "";
-          // Resolve owner names
-          let ownerNames: string[] = [];
-          const ownerIds: string[] = [];
-          if (Array.isArray(it.ownerNames) && it.ownerNames.length > 0) {
-            ownerNames = it.ownerNames;
-          } else if (Array.isArray(it.owners) && it.owners.length > 0) {
-            ownerNames = it.owners.map((o: any) => o.name ?? String(o));
-          } else {
-            const ownerVal = rawCustomer?.ownerId ?? it.ownerId ?? null;
-            if (ownerVal) {
-              if (typeof ownerVal === "string") {
-                ownerNames = [ownerVal];
-                ownerIds.push(ownerVal);
-              } else if (typeof ownerVal === "object") {
-                ownerNames = [
-                  ownerVal.name ||
-                    ownerVal.email ||
-                    String(ownerVal._id || ownerVal.id || ""),
-                ];
-                const oid = String(ownerVal._id || ownerVal.id || "");
-                if (oid) ownerIds.push(oid);
-              }
+
+          // Resolve single owner object (prefer object, fallback to id/string)
+          const ownerVal =
+            rawCustomer?.ownerId ?? it.ownerId ?? it.customer?.ownerId ?? null;
+          let owner: { _id?: string; name?: string; email?: string } | null =
+            null;
+          if (ownerVal) {
+            if (typeof ownerVal === "string") {
+              owner = { _id: ownerVal, name: ownerVal, email: "" };
+            } else if (typeof ownerVal === "object") {
+              owner = {
+                _id: String(ownerVal._id ?? ownerVal.id ?? ""),
+                name:
+                  ownerVal.name ??
+                  ownerVal.fullName ??
+                  ownerVal.email ??
+                  String(ownerVal._id ?? ownerVal.id ?? ""),
+                email: ownerVal.email ?? "",
+              };
             }
+          } else {
+            owner = null;
           }
           const rawBalance =
             it.closingBalance?.amount ??
@@ -197,9 +202,9 @@ const FinanceCustomersPage = () => {
 
           return {
             customerId,
+            rawId,
             name,
-            ownerIds,
-            ownerNames,
+            owner,
             closingBalance: Math.abs(closingBalance),
             balanceType,
             raw: rawCustomer,
@@ -304,7 +309,11 @@ const FinanceCustomersPage = () => {
       /* Search filter */
       if (q) {
         if (searchFilter === "owner") {
-          if (!c.ownerNames.some((n) => n.toLowerCase().includes(q))) {
+          if (
+            !c.owner ||
+            !c.owner.name ||
+            !c.owner.name.toLowerCase().includes(q)
+          ) {
             return false;
           }
         }
@@ -329,9 +338,8 @@ const FinanceCustomersPage = () => {
 
       /* Owner filter (by selected owner ids) */
       if (ownerFilterIds.length > 0) {
-        if (!Array.isArray(c.ownerIds) || c.ownerIds.length === 0) return false;
-        const match = c.ownerIds.some((id) => ownerFilterIds.includes(id));
-        if (!match) return false;
+        if (!c.owner || !c.owner._id) return false;
+        if (!ownerFilterIds.includes(String(c.owner._id))) return false;
       }
 
       return true;
@@ -369,25 +377,14 @@ const FinanceCustomersPage = () => {
         </td>,
         <td key={`owner-${index}`} className="px-4 py-3 text-center">
           <div className="flex items-center justify-center">
-            {customer.ownerNames && customer.ownerNames.length > 0 && (
+            {customer.owner && (
               <>
                 <div className="mr-2">
                   <AvatarTooltip
-                    short={computeInitials(customer.ownerNames[0] ?? "")}
-                    full={customer.ownerNames[0] ?? ""}
+                    short={computeInitials(customer.owner.name ?? "")}
+                    full={customer.owner.name ?? ""}
                     color={getOwnerColor(0)}
                   />
-                </div>
-
-                <div className="flex items-center">
-                  {customer.ownerNames.slice(1).map((ownerName, idx) => (
-                    <AvatarTooltip
-                      key={idx + 1}
-                      short={computeInitials(ownerName ?? "")}
-                      full={ownerName ?? ""}
-                      color={getOwnerColor(idx + 1)}
-                    />
-                  ))}
                 </div>
               </>
             )}
@@ -427,8 +424,10 @@ const FinanceCustomersPage = () => {
             <button
               type="button"
               onClick={() => {
+                console.log(customer);
                 setLedgerCustomerName(customer.name);
                 setLedgerCustomerId(customer.customerId);
+                setLedgerRawId(customer.rawId);
                 setLedgerOpen(true);
               }}
               className="bg-[#FFF1C2] text-[#414141] px-3 py-1.5 rounded-md text-[0.75rem] font-semibold border border-[#F5E6C3] hover:bg-[#FDF1D5]"
@@ -575,6 +574,7 @@ const FinanceCustomersPage = () => {
         onClose={closeLedger}
         customerName={ledgerCustomerName ?? null}
         customerId={ledgerCustomerId ?? null}
+        rawId={ledgerRawId ?? null}
       />
 
       {/* Customer View SideSheet (read-only) */}
