@@ -105,8 +105,13 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
 
     const fetchLedger = async () => {
       try {
-        const data = await PaymentsApi.getCustomerLedger(rawId!);
-        setLedgerData(data);
+        if (isVendorLedger) {
+          const data = await PaymentsApi.getVendorLedger(rawId!);
+          setLedgerData(data);
+        } else {
+          const data = await PaymentsApi.getCustomerLedger(rawId!);
+          setLedgerData(data);
+        }
       } catch (err) {
         console.error("Failed to fetch ledger:", err);
       }
@@ -200,7 +205,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           key={`id-${index}`}
           className="px-4 py-3 text-center font-[600] text-[14px]"
         >
-          {r.customId}
+          {r.type === "opening" ? "Opening Balance" : r.customId || "NA"}
         </td>,
         <td key={`date-${index}`} className="px-4 py-3 text-center text-[14px]">
           {formatDate(r?.data?.formFields?.bookingdate || r.date)}
@@ -214,7 +219,9 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
               statusPillClasses[r.paymentStatus as LedgerStatus]
             }`}
           >
-            {r.paymentStatus === 'none' ? 'Pending' : r.paymentStatus === 'partial'
+            {(r.type === "opening" || r.type === "payment")
+              ? ""
+              : r.paymentStatus === 'none' ? 'Pending' : r.paymentStatus === 'partial'
                 ? 'Partially Paid'
                 : 'Paid'}
           </span>
@@ -236,7 +243,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           className={`px-4 py-3 text-center text-[14px] ${amountBgClass}`}
         >
           <span className={`${amountTextClass} font-semibold`}>
-            ₹ {formatMoney(r.outstandingAmount)}
+            ₹ {formatMoney(r.closingBalance.amount)}
           </span>
         </td>,
         <td
