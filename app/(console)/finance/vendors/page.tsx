@@ -52,6 +52,7 @@ type VendorRow = {
   closingBalance: number;
   balanceType: "debit" | "credit"; // debit = you give (red), credit = you get (green)
   raw?: any;
+  rawId: string;
 };
 
 // No initial dummy vendors — will load from API
@@ -88,6 +89,7 @@ const FinanceVendorsPage = () => {
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [ledgerVendorName, setLedgerVendorName] = useState<string | null>(null);
   const [ledgerVendorId, setLedgerVendorId] = useState<string | null>(null);
+  const [ledgerRawId, setLedgerRawId] = useState<string | null>(null);
 
   const [amountFilter, setAmountFilter] = useState<("in" | "out")[]>([]);
   const [vendorViewOpen, setVendorViewOpen] = useState(false);
@@ -146,6 +148,7 @@ const FinanceVendorsPage = () => {
 
         const mapped: VendorRow[] = (list || []).map((it: any) => {
           const rawVendor = it.vendor ?? it;
+          const rawId = it.vendor._id;
           const vendorId =
             it?.vendor?.customId ??
             it.customId ??
@@ -185,6 +188,7 @@ const FinanceVendorsPage = () => {
 
           return {
             vendorId,
+            rawId,
             name,
             pocName,
             closingBalance: Math.abs(closingBalance),
@@ -375,6 +379,7 @@ const FinanceVendorsPage = () => {
               onClick={() => {
                 setLedgerVendorName(vendor.name);
                 setLedgerVendorId(vendor.vendorId);
+                setLedgerRawId(vendor.rawId);
                 setLedgerOpen(true);
               }}
               className="bg-[#FFF1C2] text-[#8B6914] px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-[#F5E6C3] hover:bg-[#FDF1D5]"
@@ -516,8 +521,10 @@ const FinanceVendorsPage = () => {
           setLedgerVendorName(null);
           setLedgerVendorId(null);
         }}
+        isVendorLedger={true}
         customerName={ledgerVendorName ?? null}
         customerId={ledgerVendorId ?? null}
+        rawId={ledgerRawId ?? null}
       />
 
       <ConfirmationModal
