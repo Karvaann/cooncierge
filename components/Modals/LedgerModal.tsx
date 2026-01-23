@@ -145,26 +145,33 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   // Keep mapping minimal and avoid deep fallback chains.
   const normalizeEntryToPayment = (entry: any) => {
     if (!entry) return null;
+    const data = entry.data || {};
     const payment = {
-      customId: entry.customId,
-      _id: entry._id || entry.referenceId,
-      amount: Number(entry.amount || 0),
-      entryType: entry.entryType,
-      paymentDate: entry.paymentDate || entry.date,
-      paymentType: entry.paymentType,
-      bank: entry.bank || entry.bankId || null,
+      customId: entry.customId || data.customId,
+      _id: data._id || entry._id || entry.referenceId,
+      amount: Number(data.amount || entry.amount || 0),
+      entryType: data.entryType || entry.entryType,
+      paymentDate: data.paymentDate || entry.paymentDate || entry.date,
+      paymentType: data.paymentType || entry.paymentType,
+      bank: data.bankId || entry.bank || entry.bankId || null,
       account: entry.account,
-      documents: entry.documents || [],
-      internalNotes: entry.internalNotes || "",
-      allocations: entry.allocations || [],
-      outstandingAmount: entry.unallocatedAmount,
-      party: entry.data?.party,
-      partyId: entry.data?.partyId,
-      partyName: entry.partyName,
-      bankCharges: entry.bankCharges,
-      bankChargesNotes: entry.bankChargesNotes,
-      cashbackReceived: entry.cashbackReceived,
-      cashbackNotes: entry.cashbackNotes,
+      documents: data.documents || entry.documents || [],
+      internalNotes:
+        data.internalNotes ||
+        data.notes ||
+        entry.internalNotes ||
+        entry.notes ||
+        "",
+      allocations: entry.allocations || data.allocations || [],
+      outstandingAmount: data.unallocatedAmount || entry.unallocatedAmount,
+      party: data.party || entry.party,
+      partyId: data.partyId || entry.partyId,
+      partyName: data.partyId?.name || entry.partyName,
+      bankCharges: data.bankCharges || entry.bankCharges,
+      bankChargesNotes: data.bankChargesNotes || entry.bankChargesNotes,
+      cashbackReceived: data.cashbackReceived || entry.cashbackReceived,
+      cashbackNotes: data.cashbackNotes || entry.cashbackNotes,
+      data: data,
       // keep original entry for reference
       _entry: entry,
     } as any;
@@ -435,7 +442,10 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                       amount: String(payment.amount || ""),
                       paymentDate: payment.paymentDate || "",
                       bank:
-                        (payment.bank && (payment.bank._id || payment.bank)) ||
+                        payment.data?.bankId?._id ||
+                        payment.bank?._id ||
+                        payment.bank ||
+                        r.data?.bankId?._id ||
                         r.bank?._id ||
                         r.bankId ||
                         "",
@@ -492,7 +502,8 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     setPaymentInitial({
       amount: String(payment.amount || ""),
       paymentDate: payment.paymentDate || "",
-      bank: (payment.bank && (payment.bank._id || payment.bank)) || "",
+      bank:
+        payment.data?.bankId?._id || payment.bank?._id || payment.bank || "",
       paymentType: payment.paymentType || "",
       internalNotes: payment.internalNotes || "",
       bankCharges: String(payment.bankCharges || ""),

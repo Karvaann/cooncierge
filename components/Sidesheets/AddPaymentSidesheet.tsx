@@ -21,6 +21,7 @@ import AddBankSidesheet, {
 } from "@/components/Sidesheets/AddBankSidesheet";
 import PaymentsApi from "@/services/paymentsApi";
 import { FiPlusCircle } from "react-icons/fi";
+import DeletePaymentModal from "@/components/Modals/DeletePaymentModal";
 
 type PendingDocRow = {
   bookingId: string;
@@ -173,6 +174,9 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
   // Document State
   const [documents, setDocuments] = useState<DocumentPreview[]>([]);
+
+  // Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   // Currency and ROE State
   const [amountCurrency, setAmountCurrency] = useState<Currency>("INR");
@@ -949,7 +953,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
             </button>
             <button
               type="button"
-              onClick={onDelete}
+              onClick={() => setIsDeleteModalOpen(true)}
               className="flex items-center gap-2 rounded-md bg-red-50 px-3 py-1.5 text-[13px] font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
             >
               <FiTrash2 size={14} />
@@ -2200,6 +2204,31 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
           />
         </div>
       </div>
+
+      <DeletePaymentModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={() => {
+          onDelete?.();
+        }}
+        payment={{
+          customId: customId || "—",
+          data: {
+            partyId: {
+              name:
+                selectedCustomer?.name ||
+                selectedVendor?.name ||
+                selectedVendor?.companyName ||
+                initialCustomer?.name ||
+                initialVendor?.name ||
+                "—",
+            },
+            paymentDate: paymentDate,
+            paymentType: paymentType,
+            amount: Number(amount || 0),
+          },
+        }}
+      />
     </SideSheet>
   );
 };

@@ -4,6 +4,7 @@ import React, { useMemo, useState } from "react";
 import SideSheet from "@/components/SideSheet";
 import { FaRegFolder } from "react-icons/fa";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
+import DeletePaymentModal from "@/components/Modals/DeletePaymentModal";
 
 type ViewPaymentTab = "settled" | "history";
 
@@ -23,6 +24,7 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
   payment,
 }) => {
   const [activeTab, setActiveTab] = useState<ViewPaymentTab>("settled");
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   const formatMoney = (value: number) => {
     try {
@@ -43,15 +45,41 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
 
   // Extract data from payment object
   const paymentId = payment?.customId || "—";
-  const partyLabel = payment?.customer?.name || payment?.vendor?.name || "—";
-  const amount = payment?.amount || 0;
-  const paymentDate = formatDate(payment?.paymentDate || payment?.date);
-  const paymentType = payment?.paymentType || "—";
-  const bankName = payment?.bank?.name || payment?.account || "—";
-  const files = payment?.documents || [];
-  const internalNotes = payment?.internalNotes || payment?.remarks || "—";
-  const settledDocs = payment?.allocations || [];
-  const outstandingAmount = payment?.outstandingAmount || 0;
+  const partyLabel =
+    payment?.data?.partyId?.name ||
+    payment?.customer?.name ||
+    payment?.vendor?.name ||
+    payment?.partyName ||
+    "—";
+  const amount = payment?.amount || payment?.data?.amount || 0;
+  const paymentDate = formatDate(
+    payment?.data?.paymentDate || payment?.paymentDate || payment?.date,
+  );
+  const paymentType = payment?.data?.paymentType || payment?.paymentType || "—";
+  const bankName =
+    payment?.data?.bankId?.name ||
+    payment?.bank?.name ||
+    payment?.account ||
+    "—";
+  const files = payment?.data?.documents || payment?.documents || [];
+  const internalNotes =
+    payment?.data?.internalNotes ||
+    payment?.data?.notes ||
+    payment?.internalNotes ||
+    payment?.remarks ||
+    "—";
+  const settledDocs = payment?.allocations || payment?.data?.allocations || [];
+  const outstandingAmount =
+    payment?.data?.unallocatedAmount || payment?.outstandingAmount || 0;
+
+  const viewTitle =
+    paymentId && typeof paymentId === "string"
+      ? paymentId.startsWith("PO-")
+        ? "View Payment Out"
+        : paymentId.startsWith("PI-")
+          ? "View Payment In"
+          : "View Payment"
+      : "View Payment";
 
   return (
     <SideSheet
@@ -61,21 +89,28 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
       position="right"
       title={
         <div className="flex items-center gap-2">
-          <span>View Payment In</span>
+          <span>{viewTitle}</span>
+          <div className="w-px h-7 bg-gray-300"></div>
           <span className="font-semibold">{paymentId}</span>
-          {partyLabel !== "—" && (
-            <>
-              <span className="text-gray-400">|</span>
-              <span className="font-semibold text-gray-700">{partyLabel}</span>
-            </>
-          )}
         </div>
       }
       headerRight={
         <div className="flex items-center gap-2 mt-2">
           <button
             type="button"
-            onClick={() => onEdit?.(payment)}
+            onClick={() => {
+              if (!onEdit) return;
+              const payload: any = {
+                ...payment,
+                // prefer bank id from nested data, fall back to any _id fields
+                bank:
+                  payment?.data?.bankId?._id ||
+                  payment?.bank?._id ||
+                  payment?.data?.bankId ||
+                  "",
+              };
+              onEdit(payload);
+            }}
             className="flex items-center gap-2 rounded-md border border-[#126ACB] bg-white px-3 py-1.5 text-[13px] font-medium text-[#126ACB] hover:bg-blue-50 disabled:opacity-50"
             disabled={!onEdit}
           >
@@ -84,9 +119,8 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
           </button>
           <button
             type="button"
-            onClick={onDelete}
+            onClick={() => setIsDeleteModalOpen(true)}
             className="flex items-center gap-2 rounded-md bg-red-50 px-3 py-1.5 text-[13px] font-medium text-red-600 hover:bg-red-100 disabled:opacity-50"
-            disabled={!onDelete}
           >
             <FiTrash2 size={14} />
             Delete
@@ -95,10 +129,7 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
       }
     >
       <div className="px-6 pb-8">
-        <div className="mt-2 flex items-center justify-between">
-          <div className="text-[13px] font-semibold text-gray-900">
-            {partyLabel}
-          </div>
+        <div className="mt-2 flex items-center justify-end">
           <div className="text-[12px] font-medium text-red-500">
             Outstanding: ₹ {formatMoney(outstandingAmount)}
           </div>
@@ -231,18 +262,20 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
                 {settledDocs.length > 0 ? (
                   settledDocs.map((row: any, idx: number) => (
                     <tr
-                      key={`${row.quotationId || row.bookingId}-${idx}`}
+                      key={`${row.quotationId?._id || row.quotationId || row.bookingId}-${idx}`}
                       className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
                     >
                       <td className="px-4 py-3 text-center text-[13px] font-semibold text-gray-800">
-                        {row.quotation?.customId ||
+                        {row.quotationId?.customId ||
+                          row.quotation?.customId ||
                           row.booking?.customId ||
-                          row.quotationId ||
                           row.bookingId ||
                           "—"}
                       </td>
                       <td className="px-4 py-3 text-center text-[13px] text-gray-700">
-                        {formatDate(row.date || row.bookingDate)}
+                        {formatDate(
+                          row.appliedAt || row.date || row.bookingDate,
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right text-[13px] text-gray-700">
                         ₹ {formatMoney(row.amount || 0)}
@@ -270,6 +303,15 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
           </div>
         )}
       </div>
+
+      <DeletePaymentModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={() => {
+          onDelete?.();
+        }}
+        payment={payment}
+      />
     </SideSheet>
   );
 };
