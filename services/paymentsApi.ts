@@ -62,31 +62,39 @@ export const PaymentsApi = {
     return data;
   },
 
+  async getCustomerUnallocatedPayments(customerId: string) {
+    const { data } = await apiClient.get(`${base}/customers/${customerId}/unallocated-payments`);
+    return data;
+  },
+
+  async getVendorUnallocatedPayments(vendorId: string) {
+    const { data } = await apiClient.get(`${base}/vendors/${vendorId}/unallocated-payments`);
+    return data;
+  },
+
   // Create payments
   async createCustomerPayment(customerId: string, payload: CreatePaymentDto | FormData) {
-    if (payload instanceof FormData) {
-      const { data } = await apiClient.post(`${base}/customers/${customerId}/payments`, payload);
-      return data;
-    }
     const { data } = await apiClient.post(`${base}/customers/${customerId}/payments`, payload);
     return data;
   },
 
   async createVendorPayment(vendorId: string, payload: CreatePaymentDto | FormData) {
-    if (payload instanceof FormData) {
-      const { data } = await apiClient.post(`${base}/vendors/${vendorId}/payments`, payload);
-      return data;
-    }
     const { data } = await apiClient.post(`${base}/vendors/${vendorId}/payments`, payload);
     return data;
   },
 
   async createPaymentForQuotation(quotationId: string, payload: CreatePaymentDto | FormData) {
-    if (payload instanceof FormData) {
-      const { data } = await apiClient.post(`${base}/quotations/${quotationId}/payments`, payload);
-      return data;
-    }
     const { data } = await apiClient.post(`${base}/quotations/${quotationId}/payments`, payload);
+    return data;
+  },
+
+  async allocateCustomerPaymentToQuotation(paymentId: string, payload: { quotationId: string; amount: number }) {
+    const { data } = await apiClient.post(`${base}/customers/payments/${paymentId}/allocate`, payload);
+    return data;
+  },
+
+  async allocateVendorPaymentToQuotation(paymentId: string, payload: { quotationId: string; amount: number }) {
+    const { data } = await apiClient.post(`${base}/vendors/payments/${paymentId}/allocate`, payload);
     return data;
   },
   // List payments with optional filters

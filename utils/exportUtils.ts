@@ -27,7 +27,9 @@ export const exportPDF = (data: any[], fileName: string) => {
     startY: 20,
   });
 
-  doc.save(`${fileName}.pdf`);
+  // doc.save(`${fileName}.pdf`);
+  const url = doc.output("bloburl");
+  window.open(url, "_blank");
 };
 
 // DOCX

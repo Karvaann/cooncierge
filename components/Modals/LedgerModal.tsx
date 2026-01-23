@@ -17,7 +17,11 @@ import AddPaymentSidesheet from "../Sidesheets/AddPaymentSidesheet";
 import ViewPaymentSidesheet from "../Sidesheets/ViewPaymentSidesheet";
 import { PiArrowCircleUpRight } from "react-icons/pi";
 import { PiArrowCircleDownLeft } from "react-icons/pi";
+import { MdOutlineFileDownload } from "react-icons/md";
 import PaymentsApi from "@/services/paymentsApi";
+import DropDown from "../DropDown";
+import { exportPDF, exportXLSX } from "@/utils/exportUtils";
+import { isWithinDateRange } from "@/utils/helper";
 
 type LedgerStatus = "paid" | "none" | "partial";
 
@@ -27,6 +31,9 @@ export type LedgerRow = {
   status: LedgerStatus;
   account: string | null;
   amount: number;
+  party: "Customer" | "Vendor";
+  partyId: string;
+  partyName?: string;
   closingBalance: number;
   type: "booking" | "payment"; // to determine row color
 };
@@ -96,9 +103,21 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [pendingOnly, setPendingOnly] = useState(false);
+  const [downloadType, setDownloadType] = useState<"pdf" | "excel">("pdf");
 
   const accountOptions: FilterCardOption[] = useMemo(
     () => ["Bank 1", "Bank 2", "Cash"].map((v) => ({ value: v, label: v })),
+    [],
+  );
+
+  // Date column label and filter options (Booking Date <-> Travel Date)
+  const [dateColumnLabel, setDateColumnLabel] =
+    useState<string>("Booking Date");
+  const dateFilterOptions: FilterCardOption[] = useMemo(
+    () => [
+      { value: "travel", label: "Travel Date" },
+      { value: "booking", label: "Booking Date" },
+    ],
     [],
   );
 
@@ -121,6 +140,38 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     }
   }, [isOpen, customerName, rawId]);
 
+  // Normalize an entry (ledgerData.entries item) into a payment-like object
+  // Expect the API to send the payment object with the known shape.
+  // Keep mapping minimal and avoid deep fallback chains.
+  const normalizeEntryToPayment = (entry: any) => {
+    if (!entry) return null;
+    const payment = {
+      customId: entry.customId,
+      _id: entry._id || entry.referenceId,
+      amount: Number(entry.amount || 0),
+      entryType: entry.entryType,
+      paymentDate: entry.paymentDate || entry.date,
+      paymentType: entry.paymentType,
+      bank: entry.bank || entry.bankId || null,
+      account: entry.account,
+      documents: entry.documents || [],
+      internalNotes: entry.internalNotes || "",
+      allocations: entry.allocations || [],
+      outstandingAmount: entry.unallocatedAmount,
+      party: entry.data?.party,
+      partyId: entry.data?.partyId,
+      partyName: entry.partyName,
+      bankCharges: entry.bankCharges,
+      bankChargesNotes: entry.bankChargesNotes,
+      cashbackReceived: entry.cashbackReceived,
+      cashbackNotes: entry.cashbackNotes,
+      // keep original entry for reference
+      _entry: entry,
+    } as any;
+
+    return payment;
+  };
+
   const statusOptions: FilterCardOption[] = useMemo(
     () =>
       ["Paid", "Pending", "Partially Paid"].map((v) => ({
@@ -133,8 +184,23 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   // Map column names to header icons/components
   const columnIconMap: Record<string, React.ReactNode | null> = useMemo(() => {
     return {
-      "Booking Date": (
-        <HiArrowsUpDown className="inline w-3 h-3 text-gray-600 font-semibold stroke-[2]" />
+      [dateColumnLabel]: (
+        <>
+          <HiArrowsUpDown className="inline w-3 h-3 text-gray-600 font-semibold stroke-[2]" />
+          <FilterTrigger
+            ariaLabel="Filter Date Type"
+            options={dateFilterOptions}
+            onApply={(sel) => {
+              const val =
+                Array.isArray(sel) && sel.length > 0 ? sel[0] : "booking";
+              setDateColumnLabel(
+                val === "travel" ? "Travel Date" : "Booking Date",
+              );
+            }}
+          >
+            <CiFilter className="inline w-3 h-3 text-gray-600 stroke-[1.5] ml-2" />
+          </FilterTrigger>
+        </>
       ),
       Account: (
         <FilterTrigger
@@ -155,20 +221,19 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         </FilterTrigger>
       ),
     };
-  }, [accountOptions, statusOptions]);
+  }, [accountOptions, statusOptions, dateColumnLabel, dateFilterOptions]);
 
-  const columns = useMemo(
-    () => [
+  const columns = useMemo(() => {
+    return [
       "ID",
-      "Booking Date",
+      dateColumnLabel,
       "Status",
       "Account",
       "Amount",
       "Closing Balance",
       "Actions",
-    ],
-    [],
-  );
+    ];
+  }, [dateColumnLabel]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString).toLocaleDateString("en-IN", {
@@ -179,9 +244,91 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     return date;
   };
 
+  // Format ledger data for export
+  const formatLedgerDataForExport = () => {
+    if (!ledgerData?.entries) return [];
+
+    return ledgerData.entries.map((entry: any) => ({
+      ID: entry.type === "opening" ? "Opening Balance" : entry.customId || "NA",
+      Date: formatDate(entry?.data?.formFields?.bookingdate || entry.date),
+      Type:
+        entry.type === "payment"
+          ? "Payment"
+          : entry.type === "opening"
+            ? "Opening"
+            : "Booking",
+      Status:
+        entry.type === "opening" || entry.type === "payment"
+          ? "-"
+          : entry.paymentStatus === "none"
+            ? "Pending"
+            : entry.paymentStatus === "partial"
+              ? "Partially Paid"
+              : "Paid",
+      Account: entry.account || "-",
+      Amount: `₹ ${formatMoney(entry.amount)}`,
+      "Closing Balance": `₹ ${formatMoney(entry.closingBalance.amount)}`,
+    }));
+  };
+
+  // Handle download based on selected type
+  const handleDownload = () => {
+    const formattedData = formatLedgerDataForExport();
+    const fileName = `${customerName || "Ledger"}_${customerId || ""}_${new Date().toISOString().split("T")[0]}`;
+
+    if (downloadType === "pdf") {
+      exportPDF(formattedData, fileName);
+    } else if (downloadType === "excel") {
+      exportXLSX(formattedData, fileName);
+    }
+  };
+
+  const filteredEntries = useMemo(() => {
+    if (!ledgerData?.entries) return [];
+
+    return ledgerData.entries.filter((entry: any) => {
+      // Pending filter
+      if (pendingOnly && entry.paymentStatus !== "none") return false;
+
+      // Choose the date field according to selected date column
+      let entryDate: string = "";
+      if (entry.type === "payment") {
+        entryDate = entry.paymentDate || "";
+      } else if (dateColumnLabel === "Travel Date") {
+        entryDate =
+          entry.travelDate ||
+          entry.data?.travelDate ||
+          entry.data?.formFields?.traveldate ||
+          "";
+      } else {
+        entryDate = entry.data?.formFields?.bookingdate || "";
+      }
+
+      if (!isWithinDateRange(entryDate, startDate, endDate)) return false;
+
+      return true;
+    });
+  }, [ledgerData, pendingOnly, startDate, endDate, dateColumnLabel]);
+
   const tableData = useMemo<JSX.Element[][]>(() => {
-    return ledgerData?.entries?.map((r: any, index: any) => {
+    return filteredEntries.map((r: any, index: any) => {
       console.log(r);
+
+      // show travel date when selected, otherwise booking date
+      const displayedDate = (() => {
+        if (r.type === "payment") {
+          return r.paymentDate || r.date;
+        }
+
+        if (dateColumnLabel === "Travel Date") {
+          return (
+            r.travelDate || r.data?.travelDate || r.data?.formFields?.traveldate
+          );
+        }
+
+        // Default: Booking Date
+        return r.data?.formFields?.bookingdate || r.date;
+      })();
       // Determine background color based on row type and ledger type
       // Customer ledger: payment=green, booking=red
       // Vendor ledger: payment=red, booking=green (inverted)
@@ -208,7 +355,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           {r.type === "opening" ? "Opening Balance" : r.customId || "NA"}
         </td>,
         <td key={`date-${index}`} className="px-4 py-3 text-center text-[14px]">
-          {formatDate(r?.data?.formFields?.bookingdate || r.date)}
+          {formatDate(displayedDate)}
         </td>,
         <td
           key={`status-${index}`}
@@ -275,27 +422,29 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                 {
                   label: "Edit",
                   onClick: () => {
-                    // Open AddPaymentSidesheet in edit mode with prefilled values
-                    setSelectedLedgerRow(r);
+                    // Normalize entry and open AddPaymentSidesheet in edit mode
+                    const payment = normalizeEntryToPayment(r);
+                    setSelectedLedgerRow(payment);
                     setPaymentSidesheetMode("edit");
-                    // Title depends on ledger context and row type
+                    // Title based on customId prefix: PI- = Payment In, PO- = Payment Out
+                    const customId = payment.customId || "";
                     setPaymentSidesheetTitle(
-                      r.type === "payment"
-                        ? isVendorLedger
-                          ? "Payment Out"
-                          : "Payment In"
-                        : "Payment Out",
+                      customId.startsWith("PI-") ? "Payment In" : "Payment Out",
                     );
                     setPaymentInitial({
-                      amount: String(r.amount || ""),
-                      paymentDate: r.paymentDate || r.date || "",
-                      bank: r.bank?._id || "",
-                      paymentType: r.paymentType || "",
-                      internalNotes: r.internalNotes || r.remarks || "",
-                      bankCharges: String(r.bankCharges || ""),
-                      bankChargesNotes: r.bankChargesNotes || "",
-                      cashbackReceived: String(r.cashbackReceived || ""),
-                      cashbackNotes: r.cashbackNotes || "",
+                      amount: String(payment.amount || ""),
+                      paymentDate: payment.paymentDate || "",
+                      bank:
+                        (payment.bank && (payment.bank._id || payment.bank)) ||
+                        r.bank?._id ||
+                        r.bankId ||
+                        "",
+                      paymentType: payment.paymentType || "",
+                      internalNotes: payment.internalNotes || "",
+                      bankCharges: String(payment.bankCharges || ""),
+                      bankChargesNotes: payment.bankChargesNotes || "",
+                      cashbackReceived: String(payment.cashbackReceived || ""),
+                      cashbackNotes: payment.cashbackNotes || "",
                     });
                     setPaymentSidesheetOpen(true);
                   },
@@ -311,14 +460,15 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         </td>,
       ];
     });
-  }, [ledgerData]);
+  }, [filteredEntries, isVendorLedger, dateColumnLabel]);
 
   const handleOpenViewPaymentByRowIndex = (rowIndex: number) => {
     const row = ledgerData?.entries[rowIndex];
     if (!row) return;
     // Only open view payment sidesheet for payment records
     if (row.type === "payment") {
-      setSelectedLedgerRow(row);
+      const payment = normalizeEntryToPayment(row);
+      setSelectedLedgerRow(payment);
       setIsViewPaymentOpen(true);
     }
   };
@@ -326,25 +476,29 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   const handleEditFromViewPayment = (paymentData: any) => {
     if (!paymentData) return;
 
-    setSelectedLedgerRow(paymentData);
+    // Accept either a raw entry or a normalized payment object
+    const payment =
+      paymentData && paymentData._entry
+        ? paymentData
+        : normalizeEntryToPayment(paymentData);
+
+    setSelectedLedgerRow(payment);
     setPaymentSidesheetMode("edit");
+    // Title based on customId prefix: PI- = Payment In, PO- = Payment Out
+    const customId = payment.customId || "";
     setPaymentSidesheetTitle(
-      paymentData.type === "payment"
-        ? isVendorLedger
-          ? "Payment Out"
-          : "Payment In"
-        : "Payment Out",
+      customId.startsWith("PI-") ? "Payment In" : "Payment Out",
     );
     setPaymentInitial({
-      amount: String(paymentData.amount || ""),
-      paymentDate: paymentData.paymentDate || paymentData.date || "",
-      bank: paymentData.bank?._id || paymentData.account || "",
-      paymentType: paymentData.paymentType || "",
-      internalNotes: paymentData.internalNotes || paymentData.remarks || "",
-      bankCharges: String(paymentData.bankCharges || ""),
-      bankChargesNotes: paymentData.bankChargesNotes || "",
-      cashbackReceived: String(paymentData.cashbackReceived || ""),
-      cashbackNotes: paymentData.cashbackNotes || "",
+      amount: String(payment.amount || ""),
+      paymentDate: payment.paymentDate || "",
+      bank: (payment.bank && (payment.bank._id || payment.bank)) || "",
+      paymentType: payment.paymentType || "",
+      internalNotes: payment.internalNotes || "",
+      bankCharges: String(payment.bankCharges || ""),
+      bankChargesNotes: payment.bankChargesNotes || "",
+      cashbackReceived: String(payment.cashbackReceived || ""),
+      cashbackNotes: payment.cashbackNotes || "",
     });
     setIsViewPaymentOpen(false);
     setPaymentSidesheetOpen(true);
@@ -365,6 +519,63 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
       </span>
     </div>
   );
+
+  // Compute initial customer/vendor safely for create/edit flows
+  const { computedInitialCustomer, computedInitialVendor } =
+    React.useMemo(() => {
+      try {
+        let initialCustomer: any = null;
+        let initialVendor: any = null;
+
+        if (paymentSidesheetMode === "edit" && selectedLedgerRow) {
+          if (selectedLedgerRow.party === "Customer") {
+            initialCustomer = {
+              _id: selectedLedgerRow.partyId || "",
+              name: selectedLedgerRow.partyName || "",
+            };
+          } else if (selectedLedgerRow.party === "Vendor") {
+            initialVendor = {
+              _id: selectedLedgerRow.partyId || "",
+              name: selectedLedgerRow.partyName || "",
+            };
+          }
+        } else {
+          // create mode: prefer ledger owner; if ledger is vendor type, pass vendor
+          if (isVendorLedger) {
+            if (rawId || customerName) {
+              initialVendor = {
+                _id: rawId ?? "",
+                name: customerName ?? "",
+                ...(customerId ? { customId: customerId } : {}),
+              };
+            }
+          } else {
+            if (rawId || customerName) {
+              initialCustomer = {
+                _id: rawId ?? "",
+                name: customerName ?? "",
+                ...(customerId ? { customId: customerId } : {}),
+              };
+            }
+          }
+        }
+
+        return {
+          computedInitialCustomer: initialCustomer,
+          computedInitialVendor: initialVendor,
+        };
+      } catch (err) {
+        console.error("Failed to compute initial party:", err);
+        return { computedInitialCustomer: null, computedInitialVendor: null };
+      }
+    }, [
+      paymentSidesheetMode,
+      selectedLedgerRow,
+      rawId,
+      customerName,
+      customerId,
+      isVendorLedger,
+    ]);
 
   return (
     <>
@@ -397,8 +608,8 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                     <span
                       className={`text-[14px] font-semibold ${
                         ledgerData?.closingBalance?.balanceType === "credit"
-                          ? "text-red-500"
-                          : "text-green-600"
+                          ? "text-green-600"
+                          : "text-red-500"
                       }`}
                     >
                       ₹{" "}
@@ -422,33 +633,45 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
               <div className="flex items-center">
                 <button
                   type="button"
-                  onClick={() => onViewPdf?.()}
+                  onClick={handleDownload}
                   className="flex items-center gap-2 border border-gray-200 rounded-l-md px-4 py-2 bg-[#F8FAFC] hover:bg-gray-50 text-gray-700 text-[13px] font-medium"
                 >
-                  <span className="inline-flex items-center justify-center w-4 h-4">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                      <path d="M14 2v6h6" />
-                    </svg>
-                  </span>
-                  View PDF
+                  <MdOutlineFileDownload size={16} />
+                  {downloadType === "pdf" ? "View PDF" : "Download Excel"}
                 </button>
-                <button
-                  type="button"
-                  className="border border-l-0 border-gray-200 rounded-r-md px-3 py-2.5 bg-[#F8FAFC] hover:bg-gray-50 text-gray-700"
-                  aria-label="PDF options"
-                >
-                  <IoChevronDownOutline size={16} />
-                </button>
+                <div className="border border-l-0 border-gray-200 rounded-r-md bg-[#F8FAFC] hover:bg-gray-50">
+                  <DropDown
+                    options={[
+                      {
+                        value: "pdf",
+                        label: (
+                          <span className="flex items-center gap-2">
+                            <MdOutlineFileDownload size={16} />
+                            View PDF
+                          </span>
+                        ),
+                      },
+                      {
+                        value: "excel",
+                        label: (
+                          <span className="flex items-center gap-2">
+                            <MdOutlineFileDownload size={16} />
+                            Download Excel
+                          </span>
+                        ),
+                      },
+                    ]}
+                    value={downloadType}
+                    onChange={(val) => setDownloadType(val as "pdf" | "excel")}
+                    iconOnly
+                    noBorder
+                    noButtonRadius
+                    buttonClassName="px-3 py-2.5 bg-[#F8FAFC] hover:bg-gray-50 text-gray-700"
+                    customWidth="w-auto"
+                    customHeight="h-auto"
+                    menuWidth="w-[150px]"
+                  />
+                </div>
               </div>
             </div>
 
@@ -571,15 +794,8 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         title={paymentSidesheetTitle}
         mode={paymentSidesheetMode}
         initialPayment={paymentInitial}
-        initialCustomer={
-          rawId || customerName
-            ? {
-                _id: rawId ?? "",
-                name: customerName ?? "",
-                ...(customerId ? { customId: customerId } : {}),
-              }
-            : null
-        }
+        initialCustomer={computedInitialCustomer}
+        initialVendor={computedInitialVendor}
         disablePartyType={true}
         onView={() => {
           setPaymentSidesheetOpen(false);

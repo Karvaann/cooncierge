@@ -13,6 +13,7 @@ import { MdOutlineFileUpload } from "react-icons/md";
 import { FaRegFolder } from "react-icons/fa";
 import { FiPlusCircle, FiTrash2 } from "react-icons/fi";
 import PaymentsApi from "@/services/paymentsApi";
+import CustomIdApi from "@/services/customIdApi";
 import Button from "@/components/Button";
 
 type BookingLike = {
@@ -92,6 +93,10 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
 
   const [paymentType, setPaymentType] = useState<PaymentType | "">("");
 
+  type PartyType = "Customer" | "Vendor";
+
+  const [partyType, setPartyType] = useState<PartyType>("Customer");
+
   // Form State
   const [amountToRecord, setAmountToRecord] = useState<string>("");
   const [paymentDate, setPaymentDate] = useState<string>("");
@@ -104,6 +109,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   const [paymentDetailsOpen, setPaymentDetailsOpen] = useState<boolean>(true);
   const [settleAmount, setSettleAmount] = useState<string>("");
   const [settleAmountDirty, setSettleAmountDirty] = useState<boolean>(false);
+  const [unallocatedPayments, setUnallocatedPayments] = useState<any[]>([]);
 
   const amountToRecordNumber = useMemo(() => {
     const n = Number(amountToRecord);
@@ -121,16 +127,23 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   }, [outstandingAmount, amountToRecordNumber]);
 
   // Dummy advance payment amount to match UI while backend support is wired
-  const advancePaymentAmount = useMemo(() => {
-    // Use real pending amount (remove dummy fallback)
-    return pendingAmount;
-  }, [pendingAmount]);
+  const totalUnallocatedAmount = useMemo(() => {
+    return unallocatedPayments.reduce(
+      (sum, p) => sum + Number(p.unallocatedAmount || 0),
+      0,
+    );
+  }, [unallocatedPayments]);
+
+  const totalSettleAmount = useMemo(() => {
+    return unallocatedPayments.reduce(
+      (sum, p) => sum + Number(p.settleAmount || 0),
+      0,
+    );
+  }, [unallocatedPayments]);
 
   const remainingAfterSettle = useMemo(() => {
-    const n = Number(settleAmount || 0);
-    if (!Number.isFinite(n)) return pendingAmount;
-    return Math.max(0, pendingAmount - n);
-  }, [pendingAmount, settleAmount]);
+    return Math.max(0, totalUnallocatedAmount - totalSettleAmount);
+  }, [totalUnallocatedAmount, totalSettleAmount]);
 
   const [banks, setBanks] = useState<Array<{ _id?: string; name: string }>>([]);
   const [isAddBankOpen, setIsAddBankOpen] = useState<boolean>(false);
@@ -227,6 +240,49 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       return;
     }
 
+    // When settling from advance payments → allocate each payment to quotation
+    if (settleFromAdvance) {
+      const quotationId = booking._id;
+      const paymentsToAllocate = unallocatedPayments.filter(
+        (p) => Number(p.settleAmount || 0) > 0,
+      );
+
+      if (paymentsToAllocate.length === 0) {
+        alert("Please enter settle amounts for at least one payment");
+        return;
+      }
+
+      try {
+        if (partyType === "Customer") {
+          // Allocate each customer payment to quotation
+          for (const payment of paymentsToAllocate) {
+            await PaymentsApi.allocateCustomerPaymentToQuotation(payment._id, {
+              quotationId,
+              amount: Number(payment.settleAmount),
+            });
+          }
+        } else if (partyType === "Vendor") {
+          // Allocate each vendor payment to quotation
+          for (const payment of paymentsToAllocate) {
+            await PaymentsApi.allocateVendorPaymentToQuotation(payment._id, {
+              quotationId,
+              amount: Number(payment.settleAmount),
+            });
+          }
+        }
+        onClose();
+        alert("Payment(s) allocated successfully");
+      } catch (err: any) {
+        console.error("Failed to allocate payment(s)", err);
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to allocate payment(s)";
+        alert(msg);
+      }
+      return;
+    }
+
     if (!amountToRecord || Number(amountToRecord) <= 0) {
       alert("Enter a valid amount to record");
       return;
@@ -238,34 +294,69 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       return;
     }
 
-    const hasFiles = documents.length > 0;
-    const allocationAmount = settleFromAdvance
-      ? Number(settleAmount || 0)
-      : undefined;
-
-    // normalize payment type to backend expected values (lowercase)
     const selectedPaymentType =
       paymentType && paymentType !== "" ? paymentType.toLowerCase() : "cash";
 
-    if (hasFiles) {
-      const form = new FormData();
-      form.append("bankId", bankId);
-      form.append("amount", String(Number(amountToRecord)));
-      form.append("entryType", "credit");
-      form.append("paymentType", selectedPaymentType);
-      form.append("party", "Customer");
-      form.append("paymentDate", paymentDate || new Date().toISOString());
-      form.append("status", "approved");
-      if (remarks) form.append("internalNotes", remarks);
-      if (allocationAmount !== undefined)
-        form.append("allocationAmount", String(allocationAmount));
-      documents.forEach((d) => form.append("documents", d.file, d.name));
+    // When Customer party + NOT settling from advance → use createCustomerPayment
+    if (partyType === "Customer" && !settleFromAdvance) {
+      const customerId = booking.customerId?._id;
+      if (!customerId) {
+        alert("Customer ID not found");
+        return;
+      }
+
+      // Generate custom ID for payment in
+      let generatedCustomId = "";
+      try {
+        const customIdResp = await CustomIdApi.generate("paymentIn");
+        generatedCustomId = customIdResp?.customId || "";
+      } catch (err) {
+        console.error("Failed to generate custom ID", err);
+        alert("Failed to generate payment ID");
+        return;
+      }
+
+      if (documents.length > 0) {
+        const form = new FormData();
+        form.append("bankId", bankId);
+        form.append("amount", String(Number(amountToRecord)));
+        form.append("entryType", "credit");
+        form.append("paymentType", selectedPaymentType);
+        form.append("paymentDate", paymentDate || new Date().toISOString());
+        form.append("status", "approved");
+        if (generatedCustomId) form.append("customId", generatedCustomId);
+        if (remarks) form.append("internalNotes", remarks);
+        documents.forEach((d) => form.append("documents", d.file, d.name));
+
+        try {
+          await PaymentsApi.createCustomerPayment(customerId, form);
+          onClose();
+          alert("Payment recorded successfully");
+        } catch (err: any) {
+          console.error("Failed to record payment", err);
+          const msg =
+            err?.response?.data?.message ||
+            err?.message ||
+            "Failed to record payment";
+          alert(msg);
+        }
+        return;
+      }
+
+      const payload: any = {
+        bankId,
+        amount: Number(amountToRecord),
+        entryType: "credit",
+        paymentType: selectedPaymentType,
+        paymentDate: paymentDate || new Date().toISOString(),
+        status: "approved",
+        internalNotes: remarks,
+      };
+
+      if (generatedCustomId) payload.customId = generatedCustomId;
 
       try {
-        const resp = await PaymentsApi.createPaymentForQuotation(
-          booking._id,
-          form,
-        );
+        await PaymentsApi.createCustomerPayment(customerId, payload);
         onClose();
         alert("Payment recorded successfully");
       } catch (err: any) {
@@ -276,7 +367,114 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
           "Failed to record payment";
         alert(msg);
       }
+      return;
+    }
 
+    // When Vendor party + NOT settling from advance → use createVendorPayment
+    if (partyType === "Vendor" && !settleFromAdvance) {
+      const vendorId = (booking as any).vendorId?._id;
+      if (!vendorId) {
+        alert("Vendor ID not found");
+        return;
+      }
+
+      // Generate custom ID for payment out
+      let generatedCustomId = "";
+      try {
+        const customIdResp = await CustomIdApi.generate("paymentOut");
+        generatedCustomId = customIdResp?.customId || "";
+      } catch (err) {
+        console.error("Failed to generate custom ID", err);
+        alert("Failed to generate payment ID");
+        return;
+      }
+
+      if (documents.length > 0) {
+        const form = new FormData();
+        form.append("bankId", bankId);
+        form.append("amount", String(Number(amountToRecord)));
+        form.append("entryType", "credit");
+        form.append("paymentType", selectedPaymentType);
+        form.append("paymentDate", paymentDate || new Date().toISOString());
+        form.append("status", "approved");
+        if (generatedCustomId) form.append("customId", generatedCustomId);
+        if (remarks) form.append("internalNotes", remarks);
+        documents.forEach((d) => form.append("documents", d.file, d.name));
+
+        try {
+          await PaymentsApi.createVendorPayment(vendorId, form);
+          onClose();
+          alert("Payment recorded successfully");
+        } catch (err: any) {
+          console.error("Failed to record payment", err);
+          const msg =
+            err?.response?.data?.message ||
+            err?.message ||
+            "Failed to record payment";
+          alert(msg);
+        }
+        return;
+      }
+
+      const payload: any = {
+        bankId,
+        amount: Number(amountToRecord),
+        entryType: "credit",
+        paymentType: selectedPaymentType,
+        paymentDate: paymentDate || new Date().toISOString(),
+        status: "approved",
+        internalNotes: remarks,
+      };
+
+      if (generatedCustomId) payload.customId = generatedCustomId;
+
+      try {
+        await PaymentsApi.createVendorPayment(vendorId, payload);
+        onClose();
+        alert("Payment recorded successfully");
+      } catch (err: any) {
+        console.error("Failed to record payment", err);
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to record payment";
+        alert(msg);
+      }
+      return;
+    }
+
+    // Otherwise use createPaymentForQuotation (with allocationAmount if settling)
+    const hasFiles = documents.length > 0;
+    const allocationAmount = settleFromAdvance
+      ? Number(settleAmount || 0)
+      : undefined;
+
+    if (hasFiles) {
+      const form = new FormData();
+      form.append("bankId", bankId);
+      form.append("amount", String(Number(amountToRecord)));
+      form.append("entryType", "credit");
+      form.append("paymentType", selectedPaymentType);
+      form.append("party", partyType === "Customer" ? "customer" : "vendor");
+      form.append("paymentDate", paymentDate || new Date().toISOString());
+      form.append("status", "approved");
+      if (remarks) form.append("internalNotes", remarks);
+      if (allocationAmount !== undefined)
+        form.append("allocationAmount", String(allocationAmount));
+      documents.forEach((d) => form.append("documents", d.file, d.name));
+
+      try {
+        await PaymentsApi.createPaymentForQuotation(booking._id, form);
+        onClose();
+        alert("Payment recorded successfully");
+      } catch (err: any) {
+        console.error("Failed to record payment", err);
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to record payment";
+        alert(msg);
+      }
       return;
     }
 
@@ -288,17 +486,14 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       paymentDate: paymentDate || new Date().toISOString(),
       status: "approved",
       internalNotes: remarks,
-      party: "Customer",
+      party: partyType === "Customer" ? "customer" : "vendor",
     };
 
     if (allocationAmount !== undefined)
       payload.allocationAmount = allocationAmount;
 
     try {
-      const resp = await PaymentsApi.createPaymentForQuotation(
-        booking._id,
-        payload,
-      );
+      await PaymentsApi.createPaymentForQuotation(booking._id, payload);
       onClose();
       alert("Payment recorded successfully");
     } catch (err: any) {
@@ -324,6 +519,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     setSettleAmount("");
     setSettleAmountDirty(false);
     setOutstandingAmount(null);
+    setPartyType("Customer");
   }, [isOpen]);
 
   // Fetch ledger (pending amount / balance) when opened with a booking
@@ -354,18 +550,52 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     };
   }, [isOpen, booking?._id]);
 
+  // Fetch unallocated payments when settle checkbox is clicked
+  useEffect(() => {
+    if (!isOpen || !settleFromAdvance) return;
+
+    const partyId =
+      partyType === "Customer"
+        ? booking?.customerId?._id
+        : (booking as any)?.vendorId?._id;
+
+    if (!partyId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const resp =
+          partyType === "Customer"
+            ? await PaymentsApi.getCustomerUnallocatedPayments(partyId)
+            : await PaymentsApi.getVendorUnallocatedPayments(partyId);
+        const list = (resp?.payments || resp?.data || resp || []) as any[];
+        if (cancelled) return;
+        const mapped = list.map((p) => ({
+          ...p,
+          settleAmount: "",
+        }));
+        setUnallocatedPayments(mapped);
+      } catch (err) {
+        console.error("Failed to load unallocated payments", err);
+        if (!cancelled) setUnallocatedPayments([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, settleFromAdvance, partyType, booking]);
+
   // When settle UI opens, collapse payment details like screenshot
   useEffect(() => {
     if (!isOpen) return;
     if (settleFromAdvance) {
       setPaymentDetailsOpen(false);
-      if (!settleAmountDirty) {
-        setSettleAmount(amountToRecord);
-      }
     } else {
       setPaymentDetailsOpen(true);
+      setUnallocatedPayments([]);
     }
-  }, [settleFromAdvance, isOpen, amountToRecord, settleAmountDirty]);
+  }, [settleFromAdvance, isOpen]);
 
   const balanceText = useMemo(() => {
     if (isLedgerLoading) return "Balance : …";
@@ -374,47 +604,63 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     return `Balance : ₹ -${formatMoney(Math.max(0, outstandingAmount))}`;
   }, [isLedgerLoading, outstandingAmount]);
 
+  const handleSettleAmountChange = (paymentId: string, value: string) => {
+    setUnallocatedPayments((prev) =>
+      prev.map((p) =>
+        p._id === paymentId ? { ...p, settleAmount: value } : p,
+      ),
+    );
+  };
+
   const settleTableData = useMemo(() => {
-    return [
-      [
-        <td key="p" className="px-4 py-3 text-center text-[13px]">
-          <span className="font-medium text-gray-900">{bookingLabel}</span>
+    return unallocatedPayments.map((payment, idx) => {
+      const unallocated = Number(payment.unallocatedAmount || 0);
+      const settle = Number(payment.settleAmount || 0);
+      const remaining = Math.max(0, unallocated - settle);
+
+      return [
+        <td key={`p-${idx}`} className="px-4 py-3 text-center text-[13px]">
+          <span className="font-medium text-gray-900">
+            {payment.customId || payment._id}
+          </span>
         </td>,
-        <td key="a" className="px-4 py-3 text-center text-[13px]">
+        <td key={`a-${idx}`} className="px-4 py-3 text-center text-[13px]">
           <div className="text-gray-900 font-medium">
-            ₹ {formatMoney(advancePaymentAmount)}
+            ₹ {formatMoney(unallocated)}
           </div>
           <div className="mt-1 text-[12px] text-orange-500 font-medium">
-            Remaining : ₹ {formatMoney(remainingAfterSettle)}
+            Remaining : ₹ {formatMoney(remaining)}
           </div>
         </td>,
-        <td key="s" className="px-4 py-3 text-center">
+        <td key={`s-${idx}`} className="px-4 py-3 text-center">
           <div className="inline-flex items-center border border-gray-200 rounded-md overflow-hidden bg-white">
             <span className="px-3 py-1.5 text-[13px] text-gray-500 bg-gray-50 border-r border-gray-200">
               ₹
             </span>
             <input
               type="text"
-              value={settleAmount}
-              onChange={(e) => {
-                setSettleAmountDirty(true);
-                setSettleAmount(sanitizeAmountInput(e.target.value));
-              }}
+              value={payment.settleAmount || ""}
+              onChange={(e) =>
+                handleSettleAmountChange(
+                  payment._id,
+                  sanitizeAmountInput(e.target.value),
+                )
+              }
               onBlur={() => {
-                const n = Number(settleAmount || 0);
+                const n = Number(payment.settleAmount || 0);
                 const clamped = Math.min(
                   Math.max(Number.isFinite(n) ? n : 0, 0),
-                  pendingAmount,
+                  unallocated,
                 );
-                setSettleAmount(String(clamped));
+                handleSettleAmountChange(payment._id, String(clamped));
               }}
               className="w-[5rem] px-3 py-1.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
             />
           </div>
         </td>,
-      ],
-    ];
-  }, [advancePaymentAmount, bookingLabel, pendingAmount, settleAmount]);
+      ];
+    });
+  }, [unallocatedPayments]);
 
   return (
     <SideSheet
@@ -430,6 +676,65 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       }
     >
       <div className="px-6 pb-8">
+        {/* Party Type Selection */}
+        <div className="mb-4 p-3 bg-white">
+          <div className="flex items-center gap-4 flex-wrap">
+            <span className="text-[13px] font-medium text-gray-700">
+              <span className="text-red-500">*</span> Party Type :
+            </span>
+
+            <div className="flex items-center gap-6">
+              {/* Customer */}
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="partyType"
+                  value="Customer"
+                  checked={partyType === "Customer"}
+                  onChange={() => setPartyType("Customer")}
+                  className="sr-only"
+                />
+                <span
+                  className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
+                    partyType === "Customer"
+                      ? "border-blue-600"
+                      : "border-gray-300"
+                  } bg-white`}
+                >
+                  {partyType === "Customer" && (
+                    <span className="w-2 h-2 rounded-full bg-blue-600" />
+                  )}
+                </span>
+                <span className="ml-2 text-[13px] text-gray-700">Customer</span>
+              </label>
+
+              {/* Vendor */}
+              <label className="flex items-center cursor-pointer">
+                <input
+                  type="radio"
+                  name="partyType"
+                  value="Vendor"
+                  checked={partyType === "Vendor"}
+                  onChange={() => setPartyType("Vendor")}
+                  className="sr-only"
+                />
+                <span
+                  className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
+                    partyType === "Vendor"
+                      ? "border-blue-600"
+                      : "border-gray-300"
+                  } bg-white`}
+                >
+                  {partyType === "Vendor" && (
+                    <span className="w-2 h-2 rounded-full bg-blue-600" />
+                  )}
+                </span>
+                <span className="ml-2 text-[13px] text-gray-700">Vendor</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <div className="mt-2 flex items-center justify-between">
           <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-[13px] font-medium text-gray-900">
             {leadPaxName}
@@ -487,7 +792,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
                     Amount Pending
                   </span>
                   <span className="text-[13px] font-semibold text-gray-900">
-                    ₹ {formatMoney(pendingAmount)}
+                    ₹ {formatMoney(totalUnallocatedAmount)}
                   </span>
                 </div>
 

@@ -297,7 +297,11 @@ const PaymentsPage = () => {
       const data = await PaymentsApi.listPayments(params);
       const list = (data?.payments || data?.data || data || []) as any[];
       const mapped: PaymentRow[] = list.map((p) => {
-        const paymentId = p._id ? String(p._id) : "";
+        const paymentId = p.customId
+          ? String(p.customId)
+          : p._id
+            ? String(p._id)
+            : "";
 
         let partyName = "";
         if (p.partyName) partyName = String(p.partyName);

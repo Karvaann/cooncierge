@@ -79,6 +79,8 @@ interface AddPaymentSidesheetProps {
   onDelete?: () => void;
   /** this will pre-select the customer and hide party type selection */
   initialCustomer?: { _id: string; name: string; customId?: string } | null;
+  /** this will pre-select the vendor when provided (used for vendor-ledger flows) */
+  initialVendor?: { _id: string; name: string; customId?: string } | null;
   /** If true, party type radios are hidden and customer is fixed to `initialCustomer` */
   disablePartyType?: boolean;
   /** Default entry type sent to backend when creating payment ('credit'|'debit') */
@@ -107,6 +109,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
   disablePartyType = false,
   entryTypeDefault = "debit",
   customId = null,
+  initialVendor = null,
 }) => {
   // Party Type State
   const [partyType, setPartyType] = useState<"Customer" | "Vendor">("Customer");
@@ -187,6 +190,17 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
   const [cashbackReceivedInr, setCashbackReceivedInr] = useState<string>("");
 
   type Currency = "INR" | "USD";
+
+  // Determine effective entry type: Payment In => credit, Payment Out => debit
+  const effectiveEntryType: "credit" | "debit" = (() => {
+    try {
+      if (typeof title === "string" && title.toLowerCase().includes("in"))
+        return "credit";
+    } catch {
+      /* ignore */
+    }
+    return "debit";
+  })();
 
   const groupBase =
     "flex items-center border border-gray-200 rounded-md overflow-hidden bg-white";
@@ -354,9 +368,10 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     }
   }, [isOpen, fetchCustomers, fetchVendors]);
 
-  // If opened with an initialCustomer (from Ledger), preselect customer
+  // If opened with an initialCustomer and vendor (from Ledger), preselect customer
   useEffect(() => {
-    if (isOpen && initialCustomer) {
+    if (!isOpen) return;
+    if (initialCustomer) {
       setSelectedCustomer({
         _id: initialCustomer._id,
         name: initialCustomer.name,
@@ -365,10 +380,17 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       setCustomerSearchTerm(
         initialCustomer.name || initialCustomer.customId || "",
       );
-      // force party type to customer when initialCustomer provided
       setPartyType("Customer");
+    } else if (initialVendor) {
+      setSelectedVendor({
+        _id: initialVendor._id,
+        name: initialVendor.name,
+        alias: initialVendor.customId,
+      });
+      setVendorSearchTerm(initialVendor.name || initialVendor.customId || "");
+      setPartyType("Vendor");
     }
-  }, [isOpen, initialCustomer]);
+  }, [isOpen, initialCustomer, initialVendor]);
 
   // Prefill fields for edit mode (or when initialPayment is provided)
   useEffect(() => {
@@ -793,7 +815,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       const form = new FormData();
       form.append("bankId", bankId);
       form.append("amount", String(Number(amount)));
-      form.append("entryType", "debit");
+      form.append("entryType", effectiveEntryType);
       form.append("paymentDate", paymentDate || new Date().toISOString());
       form.append("paymentType", paymentType || "");
       form.append("status", defaultStatus);
@@ -804,6 +826,8 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       form.append("bankChargesNotes", bankChargesNotes || "");
       form.append("cashbackReceived", String(Number(cashbackReceived || 0)));
       form.append("cashbackNotes", cashbackNotes || "");
+      // include generated custom id if present
+      if (customId) form.append("customId", String(customId));
       // include allocations if any
       if (settlePendingDocsEnabled) {
         let allocations = [];
@@ -866,12 +890,14 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     const payload: any = {
       bankId,
       amount: Number(amount),
-      entryType: "debit",
+      entryType: effectiveEntryType,
       paymentDate: paymentDate || new Date().toISOString(),
       paymentType: paymentType || "",
 
       status: defaultStatus,
       internalNotes,
+      // include generated custom id if present
+      ...(customId ? { customId: String(customId) } : {}),
       bankCharges: Number(bankCharges || 0),
       bankChargesNotes: bankChargesNotes,
       cashbackReceived: Number(cashbackReceived || 0),
@@ -1004,9 +1030,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
             <div className="flex items-center gap-4 flex-wrap">
               {disablePartyType ? (
                 <div className="px-3 py-1 rounded-full bg-gray-100 text-gray-800 font-medium">
-                  {selectedCustomer?.name ||
-                    initialCustomer?.name ||
-                    "Customer"}
+                  {partyType}
                 </div>
               ) : (
                 <>
