@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import SideSheet from "../SideSheet";
 import SingleCalendar from "../SingleCalendar";
@@ -30,6 +30,7 @@ import {
   getPhoneNumberMaxLength,
   splitPhoneWithDialCode,
 } from "@/utils/phoneUtils";
+import { getUsers } from "@/services/userApi";
 
 type CustomerData = {
   customId?: string;
@@ -48,6 +49,7 @@ type CustomerData = {
   firstname?: string;
   lastname?: string;
   phone: string | "";
+  ownerId?: string;
   email: string;
   dateOfBirth: "" | string;
   gstin: number | "";
@@ -67,6 +69,12 @@ type AddCustomerSideSheetProps = {
   formRef?: React.RefObject<HTMLFormElement | null>;
   onSuccess?: () => void;
   customerCode?: string;
+};
+
+type UserOption = {
+  _id: string;
+  name?: string;
+  email?: string;
 };
 
 const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
@@ -114,6 +122,21 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
   const initialSnapshotRef = useRef<string>("");
 
+  // Users for Owner select
+  const [users, setUsers] = useState<UserOption[]>([]);
+  const [ownerId, setOwnerId] = useState<string>("");
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  // Owner dropdown UI state (replicates primary-owner dropdown from GeneralInfoForm)
+  const [ownerListDisplay, setOwnerListDisplay] = useState<
+    {
+      id: string;
+      name: string;
+    }[]
+  >([{ id: "", name: "" }]);
+  const [ownerResults, setOwnerResults] = useState<UserOption[]>([]);
+  const [showOwnerDropdown, setShowOwnerDropdown] = useState(false);
+  const ownerRef = useRef<HTMLDivElement | null>(null);
+
   const buildSnapshot = (snapshot: {
     formData: CustomerData;
     phoneCodeValue: string;
@@ -140,15 +163,10 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       balanceAmount: snapshot.balanceAmountValue || "",
       balanceType: snapshot.balanceTypeValue || "debit",
       existingDocuments: snapshot.existingDocs.map(
-        (doc) =>
-          doc.key ||
-          doc.url ||
-          doc.fileName ||
-          doc.originalName ||
-          ""
+        (doc) => doc.key || doc.url || doc.fileName || doc.originalName || "",
       ),
       attachedFiles: snapshot.attached.map(
-        (file) => `${file.name}:${file.size}:${file.type}`
+        (file) => `${file.name}:${file.size}:${file.type}`,
       ),
     });
 
@@ -180,19 +198,19 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value } = e.target;
     const newValue =
       name === "name"
         ? allowOnlyText(value)
         : name === "gstin"
-        ? allowOnlyNumbers(value)
-        : name === "phone"
-        ? allowOnlyDigitsWithMax(value, phoneMaxLength)
-        : name === "alias"
-        ? allowTextAndNumbers(value)
-        : value;
+          ? allowOnlyNumbers(value)
+          : name === "phone"
+            ? allowOnlyDigitsWithMax(value, phoneMaxLength)
+            : name === "alias"
+              ? allowTextAndNumbers(value)
+              : value;
 
     setFormData((prev) => ({
       ...prev,
@@ -254,6 +272,31 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       const maxLen = getPhoneNumberMaxLength(parsed.dialCode);
       const trimmed = allowOnlyDigitsWithMax(digitsOnly, maxLen);
       setPhoneCode(parsed.dialCode);
+
+      if (data?.ownerId) {
+        // ownerId can be a string id or populated object { _id, name, email }
+        let id = "";
+        let displayName = "";
+        try {
+          if (typeof data.ownerId === "string") {
+            id = String(data.ownerId);
+          } else if (
+            typeof data.ownerId === "object" &&
+            data.ownerId !== null
+          ) {
+            id = String((data.ownerId as any)._id || "");
+            displayName = (data.ownerId as any).name || "";
+          }
+        } catch (e) {
+          id = String(data.ownerId || "");
+        }
+
+        setOwnerId(id);
+        setOwnerListDisplay([{ id: id, name: displayName }]);
+        setFormData((prev) => ({ ...prev, ownerId: id }));
+      } else {
+        setOwnerId("");
+      }
 
       const nextFormData: CustomerData = {
         name: nameVal,
@@ -330,16 +373,81 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     }
   }, [data]);
 
+  // Keep owner display name in sync when users list or ownerId changes
+  useEffect(() => {
+    if (!ownerId) {
+      setOwnerListDisplay([{ id: "", name: "" }]);
+      return;
+    }
+    const match = users.find((u) => u._id === ownerId);
+    if (match) {
+      setOwnerListDisplay([{ id: match._id, name: match.name || "" }]);
+    }
+  }, [users, ownerId]);
+
+  // Click-outside handler for owner dropdown
+  useEffect(() => {
+    const onPointer = (e: PointerEvent) => {
+      const target = e.target as Node | null;
+      if (ownerRef.current && !ownerRef.current.contains(target as Node)) {
+        setShowOwnerDropdown(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointer, { capture: true });
+    return () =>
+      document.removeEventListener("pointerdown", onPointer, { capture: true });
+  }, []);
+
   useEffect(() => {
     setFormData((prev) => {
       const trimmed = allowOnlyDigitsWithMax(
         String(prev.phone || ""),
-        phoneMaxLength
+        phoneMaxLength,
       );
       if (trimmed === prev.phone) return prev;
       return { ...prev, phone: trimmed };
     });
   }, [phoneMaxLength]);
+
+  // Fetch users for Owner select
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchUsers = async () => {
+      try {
+        setLoadingUsers(true);
+        const res = await getUsers();
+
+        // backend may return { data } or direct array
+        const list = res?.data || res || [];
+        setUsers(list);
+      } catch (err) {
+        console.error("Failed to load users", err);
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, [isOpen]);
+
+  // Options for Owner select
+  const ownerOptions = useMemo(() => {
+    return users.map((user) => ({
+      value: user._id,
+      label: (
+        <div className="flex flex-col">
+          <span className="text-[13px] font-medium">
+            {user.name || "Unnamed User"}
+          </span>
+          {user.email && (
+            <span className="text-[11px] text-gray-500">{user.email}</span>
+          )}
+        </div>
+      ),
+      searchLabel: `${user.name || ""} ${user.email || ""}`,
+    }));
+  }, [users]);
 
   const isDirty = React.useMemo(() => {
     if (mode !== "edit") return false;
@@ -398,7 +506,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       return;
     }
     const user = getAuthUser() as any;
-    const ownerId = user?._id;
+    const ownerIdFromAuth = user?._id;
     const businessId = user?.businessId;
 
     try {
@@ -421,7 +529,12 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       formDataToSend.append("address", String(formData.address || ""));
       formDataToSend.append("remarks", formData.remarks || "");
       formDataToSend.append("tier", tier || "");
-      formDataToSend.append("ownerId", ownerId || "");
+
+      formDataToSend.append(
+        "ownerId",
+        String(formData.ownerId || ownerId || ownerIdFromAuth || ""),
+      );
+
       formDataToSend.append("businessId", businessId || "");
 
       formDataToSend.append("customId", customerCode || "");
@@ -497,6 +610,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         balanceType: balanceType,
         tier: tier || undefined,
         remarks: formData.remarks || undefined,
+        ownerId: formData.ownerId || ownerId || undefined,
 
         documents: existingDocuments,
       };
@@ -520,8 +634,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
           mode === "view"
             ? "Customer Details"
             : mode === "edit"
-            ? "Edit Customer"
-            : "Add Customer"
+              ? "Edit Customer"
+              : "Add Customer"
         }${customerCode ? " | " + customerCode : ""}`}
         width="lg2"
         position="right"
@@ -982,6 +1096,67 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   className=""
                   // readOnly={readOnly}
                 />
+              </div>
+            </div>
+
+            {/* ================= OWNER ================ */}
+            <div className="border border-gray-200 rounded-[12px] p-3 -mt-2">
+              <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                Owner
+              </label>
+
+              <div className="w-full relative" ref={ownerRef}>
+                <input
+                  name="owner"
+                  placeholder={
+                    loadingUsers ? "Loading users..." : "Search by Name"
+                  }
+                  className="w-full border rounded-md px-3 py-2 text-[13px] focus:outline-none hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  value={ownerListDisplay[0]?.name || ""}
+                  onChange={(e) => {
+                    const value = String(e.target.value || "");
+                    setOwnerListDisplay([{ id: "", name: value }]);
+
+                    if (value.trim() === "") {
+                      setOwnerResults([]);
+                      setShowOwnerDropdown(false);
+                      return;
+                    }
+
+                    const results = users.filter((u) =>
+                      String(u.name || "")
+                        .toLowerCase()
+                        .includes(value.toLowerCase()),
+                    );
+                    setOwnerResults(results);
+                    setShowOwnerDropdown(results.length > 0);
+                  }}
+                  disabled={readOnly || loadingUsers}
+                />
+
+                {showOwnerDropdown && ownerResults.length > 0 && (
+                  <div className="absolute bg-white border border-gray-200 rounded-md w-[22rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+                    {ownerResults.map((u) => (
+                      <div
+                        key={u._id}
+                        className="p-2 cursor-pointer hover:bg-gray-100"
+                        onClick={() => {
+                          setOwnerListDisplay([
+                            { id: u._id, name: u.name || "Unnamed User" },
+                          ]);
+                          setOwnerId(u._id);
+                          setFormData((prev) => ({ ...prev, ownerId: u._id }));
+                          setOwnerResults([]);
+                          setShowOwnerDropdown(false);
+                        }}
+                      >
+                        <p className="font-medium text-[13px]">
+                          {u.name || "Unnamed User"}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

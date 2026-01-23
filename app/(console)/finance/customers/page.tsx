@@ -8,15 +8,9 @@ import { MdOutlineRemoveRedEye } from "react-icons/md";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import FullScreenLoader from "@/components/FullScreenLoader";
 import ActionMenu from "@/components/Menus/ActionMenu";
-import {
-  FaRegEdit,
-  FaRegTrashAlt,
-  FaArrowCircleLeft,
-  FaRegArrowAltCircleRight,
-} from "react-icons/fa";
+import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import DropDown from "@/components/DropDown";
 import AvatarTooltip from "@/components/AvatarToolTip";
-import { TbArrowsUpDown } from "react-icons/tb";
 import { CiFilter } from "react-icons/ci";
 import type { FilterCardOption } from "@/components/FilterCard";
 import FilterTrigger from "@/components/FilterTrigger";
@@ -27,6 +21,10 @@ import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
 import { BookingProvider } from "@/context/BookingContext";
 import { PiArrowCircleUpRight } from "react-icons/pi";
 import { PiArrowCircleDownLeft } from "react-icons/pi";
+import {
+  allowNoSpecialCharacters,
+  allowOnlyText,
+} from "@/utils/inputValidators";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -49,10 +47,10 @@ type CustomerRow = {
   customId?: string;
   name: string;
   owner: {
-    name: string;
-    email: string;
-    _id: string;
-  }; // Array of owner full names
+    _id?: string;
+    name?: string;
+    email?: string;
+  } | null;
   closingBalance: number;
   balanceType: "debit" | "credit"; // debit = you give (red), credit = you get (green)
   raw?: any;
@@ -88,6 +86,7 @@ const FinanceCustomersPage = () => {
   const [userOptions, setUserOptions] = useState<FilterCardOption[]>([]);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [ownerFilterIds, setOwnerFilterIds] = useState<string[]>([]);
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [ledgerCustomerName, setLedgerCustomerName] = useState<string | null>(
     null,
@@ -100,6 +99,8 @@ const FinanceCustomersPage = () => {
   const [selectedCustomerData, setSelectedCustomerData] = useState<any | null>(
     null,
   );
+  const [editCustomerOpen, setEditCustomerOpen] = useState(false);
+  const [editCustomerData, setEditCustomerData] = useState<any | null>(null);
 
   // Fetch users on mount to populate Owner filter options
   useEffect(() => {
@@ -147,7 +148,7 @@ const FinanceCustomersPage = () => {
 
         const mapped: CustomerRow[] = (list || []).map((it: any) => {
           const rawCustomer = it.customer ?? it;
-          const rawId = it.customer._id;
+          const rawId = rawCustomer?._id ?? rawCustomer?.id ?? "";
           const customerId =
             it?.customer?.customId ??
             it.customId ??
@@ -161,7 +162,29 @@ const FinanceCustomersPage = () => {
             it.customerName ??
             it.customer?.name ??
             "";
-          const owner = it.customer.ownerId;
+
+          // Resolve single owner object (prefer object, fallback to id/string)
+          const ownerVal =
+            rawCustomer?.ownerId ?? it.ownerId ?? it.customer?.ownerId ?? null;
+          let owner: { _id?: string; name?: string; email?: string } | null =
+            null;
+          if (ownerVal) {
+            if (typeof ownerVal === "string") {
+              owner = { _id: ownerVal, name: ownerVal, email: "" };
+            } else if (typeof ownerVal === "object") {
+              owner = {
+                _id: String(ownerVal._id ?? ownerVal.id ?? ""),
+                name:
+                  ownerVal.name ??
+                  ownerVal.fullName ??
+                  ownerVal.email ??
+                  String(ownerVal._id ?? ownerVal.id ?? ""),
+                email: ownerVal.email ?? "",
+              };
+            }
+          } else {
+            owner = null;
+          }
           const rawBalance =
             it.closingBalance?.amount ??
             it.closing_balance?.amount ??
@@ -189,6 +212,8 @@ const FinanceCustomersPage = () => {
         });
 
         if (mounted) setCustomers(mapped);
+
+        // No fallback fetch for owner names — rely on API response
       } catch (e) {
         console.error("Failed to load customer closing balances", e);
       } finally {
@@ -206,7 +231,10 @@ const FinanceCustomersPage = () => {
   const columnIconMap: Record<string, JSX.Element | null> = useMemo(() => {
     return {
       Owner: (
-        <FilterTrigger options={userOptions}>
+        <FilterTrigger
+          options={userOptions}
+          onApply={(selected) => setOwnerFilterIds(selected as string[])}
+        >
           <CiFilter className="text-white stroke-[1.5]" />
         </FilterTrigger>
       ),
@@ -281,7 +309,11 @@ const FinanceCustomersPage = () => {
       /* Search filter */
       if (q) {
         if (searchFilter === "owner") {
-          if (!c.owner.name.toLowerCase().includes(q)) {
+          if (
+            !c.owner ||
+            !c.owner.name ||
+            !c.owner.name.toLowerCase().includes(q)
+          ) {
             return false;
           }
         }
@@ -304,9 +336,15 @@ const FinanceCustomersPage = () => {
         }
       }
 
+      /* Owner filter (by selected owner ids) */
+      if (ownerFilterIds.length > 0) {
+        if (!c.owner || !c.owner._id) return false;
+        if (!ownerFilterIds.includes(String(c.owner._id))) return false;
+      }
+
       return true;
     });
-  }, [customers, effectiveSearch, searchFilter, amountFilter]);
+  }, [customers, effectiveSearch, searchFilter, amountFilter, ownerFilterIds]);
 
   const tableData = useMemo<JSX.Element[][]>(() => {
     return visibleCustomers.map((customer, index) => {
@@ -373,9 +411,16 @@ const FinanceCustomersPage = () => {
         </td>,
         <td
           key={`actions-${index}`}
-          className="px-4 py-3 text-center text-[14px]"
+          className="px-4 py-3 text-center text-[14px] align-middle h-[4rem]"
         >
-          <div className="flex items-center justify-center gap-2">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={`flex items-center justify-center gap-2 transition-all duration-200 ${
+              index === 0
+                ? "opacity-100 pointer-events-auto"
+                : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+            }`}
+          >
             <button
               type="button"
               onClick={() => {
@@ -389,9 +434,10 @@ const FinanceCustomersPage = () => {
             >
               <span className="flex items-center gap-1">
                 <MdOutlineRemoveRedEye size={12} className="text-[#414141]" />{" "}
-                View ledger{" "}
+                View ledger
               </span>
             </button>
+
             <ActionMenu
               actions={[
                 {
@@ -399,7 +445,13 @@ const FinanceCustomersPage = () => {
                   icon: <FaRegEdit />,
                   color: "text-blue-600",
                   onClick: () => {
-                    console.log("Edit customer:", customer.customerId);
+                    setEditCustomerData(
+                      customer.raw ?? {
+                        name: customer.name,
+                        customId: customer.customerId,
+                      },
+                    );
+                    setEditCustomerOpen(true);
                   },
                 },
                 {
@@ -474,7 +526,7 @@ const FinanceCustomersPage = () => {
                     )
                   }
                   buttonClassName="!rounded-l-md !rounded-r-none border bg-gray-50 text-[13px] font-normal text-gray-500"
-                  customWidth="w-40"
+                  customWidth="w-37"
                   customHeight="py-2.5"
                   noBorder={false}
                 />
@@ -484,13 +536,17 @@ const FinanceCustomersPage = () => {
                   type="text"
                   value={searchValue}
                   onChange={(e) => {
-                    const value = e.target.value;
+                    const raw = e.target.value;
+                    const value =
+                      searchFilter === "customerId"
+                        ? allowNoSpecialCharacters(raw)
+                        : allowOnlyText(raw);
                     setSearchValue(value);
                     if (value.length === 0) setEffectiveSearch("");
                     else if (value.length >= 3) setEffectiveSearch(value);
                   }}
                   placeholder={searchPlaceholder}
-                  className="w-[260px] text-[14px] py-2.5 pl-4 pr-10 rounded-r-md border border-gray-200 border-l-0 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] hover:border-green-300 text-gray-700 bg-white"
+                  className="w-[350px] text-[14px] py-2.5 pl-4 pr-10 rounded-r-md border border-gray-200 border-l-0 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] hover:border-green-300 text-gray-700 bg-white"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
                   <FiSearch />
@@ -505,6 +561,8 @@ const FinanceCustomersPage = () => {
               columns={columns}
               columnIconMap={columnIconMap}
               categoryName="Customers"
+              enableRowHoverActions={true}
+              rowIds={visibleCustomers.map((c) => c.customerId)}
             />
           </div>
         </div>
@@ -532,6 +590,19 @@ const FinanceCustomersPage = () => {
           customerCode={
             selectedCustomerData?.customId ?? selectedCustomerData?._id
           }
+        />
+      </BookingProvider>
+
+      <BookingProvider>
+        <AddCustomerSideSheet
+          data={editCustomerData}
+          isOpen={editCustomerOpen}
+          onCancel={() => {
+            setEditCustomerOpen(false);
+            setEditCustomerData(null);
+          }}
+          mode="edit"
+          customerCode={editCustomerData?.customId ?? editCustomerData?._id}
         />
       </BookingProvider>
     </>

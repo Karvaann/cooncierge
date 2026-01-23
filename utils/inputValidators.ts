@@ -76,6 +76,15 @@ export const allowOnlyDigitsWithMax = (
   return value.replace(/[^0-9]/g, "").slice(0, limit);
 };
 
+/**
+ * Blocks special characters (keeps letters, numbers, and spaces).
+ * Example: "John Doe 123" -> "John Doe 123"
+ * Example: "John@Doe#1" -> "JohnDoe1"
+ */
+export const allowNoSpecialCharacters = (value: string): string => {
+  return value.replace(/[^\p{L}\p{N}\s]/gu, "");
+};
+
 
 
 /**

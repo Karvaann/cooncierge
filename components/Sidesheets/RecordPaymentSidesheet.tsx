@@ -94,7 +94,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   // Form State
   const [amountToRecord, setAmountToRecord] = useState<string>("");
   const [paymentDate, setPaymentDate] = useState<string>("");
-  const [selectedBank, setSelectedBank] = useState<string>("Cash");
+  const [selectedBank, setSelectedBank] = useState<string>("");
   const [remarks, setRemarks] = useState<string>("");
   const [documents, setDocuments] = useState<DocumentPreview[]>([]);
 
@@ -121,8 +121,8 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
 
   // Dummy advance payment amount to match UI while backend support is wired
   const advancePaymentAmount = useMemo(() => {
-    // Keep at least as much as pending, so Remaining stays meaningful.
-    return Math.max(10000, pendingAmount);
+    // Use real pending amount (remove dummy fallback)
+    return pendingAmount;
   }, [pendingAmount]);
 
   const remainingAfterSettle = useMemo(() => {
@@ -134,7 +134,6 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   // Bank options (same as AddPaymentSidesheet)
   const bankOptions = useMemo(
     () => [
-      "Cash",
       "Bank 1",
       "Bank 2",
       "HDFC Bank",
@@ -228,9 +227,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     }
 
     const bankId = selectedBank;
-    const isValidObjectId =
-      typeof bankId === "string" && /^[a-fA-F0-9]{24}$/.test(bankId);
-    if (!isValidObjectId) {
+    if (!bankId || String(bankId).trim() === "") {
       alert("Please select a valid bank");
       return;
     }
@@ -305,7 +302,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     if (!isOpen) return;
     setAmountToRecord("");
     setPaymentDate("");
-    setSelectedBank("Cash");
+    setSelectedBank("");
     setRemarks("");
     setDocuments([]);
     setSettleFromAdvance(false);
@@ -374,7 +371,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
             ₹ {formatMoney(advancePaymentAmount)}
           </div>
           <div className="mt-1 text-[12px] text-orange-500 font-medium">
-            Remaining : ₹ {formatMoney(pendingAmount)}
+            Remaining : ₹ {formatMoney(remainingAfterSettle)}
           </div>
         </td>,
         <td key="s" className="px-4 py-3 text-center">
@@ -516,192 +513,197 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
             </span>
             <Chevron open={paymentDetailsOpen} />
           </button>
-
           {paymentDetailsOpen && (
-            <div className="px-4 pb-4">
-              {/* Amount to be recorded */}
-              <div className="mb-4">
-                <label className="block text-[13px] font-medium text-gray-700 mb-2">
-                  <span className="text-red-500">*</span>Amount to be Recorded
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[13px] text-gray-500">
-                    ₹
-                  </span>
-                  <input
-                    type="text"
-                    value={amountToRecord}
-                    onChange={(e) => {
-                      const next = sanitizeAmountInput(e.target.value);
-                      setAmountToRecord(next);
-                      if (settleFromAdvance && !settleAmountDirty) {
-                        setSettleAmount(next);
-                      }
-                    }}
-                    placeholder="Enter Amount"
-                    className="w-full pl-8 pr-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
-                  />
-                </div>
-              </div>
-
-              {/* Payment Date */}
-              <div className="mb-4">
-                <label className="block text-[13px] font-medium text-gray-700 mb-2">
-                  Payment Date
-                </label>
-                <div className="w-full">
-                  <SingleCalendar
-                    value={paymentDate}
-                    onChange={setPaymentDate}
-                    placeholder="Select Date"
-                  />
-                </div>
-              </div>
-
-              {/* Bank Selection */}
-              <div className="mb-4">
-                <label className="block text-[13px] font-medium text-gray-700 mb-2">
-                  <span className="text-red-500">*</span>Bank
-                </label>
-                <DropDown
-                  options={bankDropdownOptions}
-                  placeholder="Select Bank"
-                  value={selectedBank}
-                  onChange={(val) => setSelectedBank(val)}
-                  customWidth="w-full"
-                  buttonClassName="text-[13px]"
-                  footerAction={{
-                    label: "Add New Bank",
-                    icon: <FiPlusCircle size={16} />,
-                    onClick: () => setIsAddBankOpen(true),
-                  }}
-                />
-                <p className="mt-2 text-[12px] text-red-500">
-                  Note : By default the payment method is cash
-                </p>
-              </div>
-
-              {selectedBank && (
-                <div className="mt-4">
+            <>
+              <hr className="mb-2 -mt-1 border-t border-gray-200" />
+              <div className="px-4 pb-4">
+                {/* Amount to be recorded */}
+                <div className="mb-4">
                   <label className="block text-[13px] font-medium text-gray-700 mb-2">
-                    Payment Type
+                    <span className="text-red-500">*</span>Amount to be Recorded
                   </label>
-
-                  <div className="flex flex-wrap gap-2">
-                    {["CARD", "UPI", "IMPS", "NEFT", "RTGS", "CHEQUE"].map(
-                      (type) => {
-                        const selected = paymentType === type;
-                        return (
-                          <button
-                            key={type}
-                            type="button"
-                            onClick={() => setPaymentType(type as PaymentType)}
-                            className={`px-4 py-2 text-[13px] rounded-full border transition inline-flex items-center gap-3 ${
-                              selected
-                                ? "bg-[#F9F3FF] border-gray-300 text-gray-800 font-semibold"
-                                : "bg-[#F9F9F9] border-gray-200 text-gray-700"
-                            }`}
-                          >
-                            <div className="w-4 h-4 border border-gray-300 rounded-sm flex items-center justify-center bg-white">
-                              {selected && (
-                                <svg
-                                  xmlns="http://www.w3.org/2000/svg"
-                                  width="12"
-                                  height="11"
-                                  viewBox="0 0 12 11"
-                                  fill="none"
-                                >
-                                  <path
-                                    d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                                    stroke="#0D4B37"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                  />
-                                </svg>
-                              )}
-                            </div>
-                            <span className="leading-none">{type}</span>
-                          </button>
-                        );
-                      },
-                    )}
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[13px] text-gray-500">
+                      ₹
+                    </span>
+                    <input
+                      type="text"
+                      value={amountToRecord}
+                      onChange={(e) => {
+                        const next = sanitizeAmountInput(e.target.value);
+                        setAmountToRecord(next);
+                        if (settleFromAdvance && !settleAmountDirty) {
+                          setSettleAmount(next);
+                        }
+                      }}
+                      placeholder="Enter Amount"
+                      className="w-full pl-8 pr-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                    />
                   </div>
                 </div>
-              )}
 
-              <AddBankSidesheet
-                isOpen={isAddBankOpen}
-                onClose={() => setIsAddBankOpen(false)}
-                onSubmit={handleAddBank}
-              />
-
-              {/* Files */}
-              <label className="block text-[13px] font-medium text-gray-700 mb-2">
-                Files
-              </label>
-              <div className="mb-2">
-                <label className="inline-flex items-center px-3 py-1.5 border border-blue-500 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors">
-                  <span className="text-[13px] text-blue-500 font-medium flex items-center gap-2">
-                    <MdOutlineFileUpload size={16} />
-                    Attach Files
-                  </span>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*,.pdf,.doc,.docx"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-              <p className="text-[12px] text-red-500 mb-3">
-                Note : Maximum of 3 files can be uploaded
-              </p>
-
-              {documents.length > 0 && (
-                <div className="space-y-2 mb-4">
-                  {documents.map((doc, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
-                    >
-                      <button
-                        type="button"
-                        onClick={() =>
-                          doc.preview && window.open(doc.preview, "_blank")
-                        }
-                        className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2"
-                      >
-                        <FaRegFolder className="text-blue-500 w-3 h-3" />
-                        {doc.name}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveDocument(index)}
-                        className="text-red-500 hover:text-red-700"
-                        aria-label="Remove file"
-                      >
-                        <FiTrash2 size={16} />
-                      </button>
-                    </div>
-                  ))}
+                {/* Payment Date */}
+                <div className="mb-4">
+                  <label className="block text-[13px] font-medium text-gray-700 mb-2">
+                    Payment Date
+                  </label>
+                  <div className="w-full">
+                    <SingleCalendar
+                      customWidth="w-full"
+                      value={paymentDate}
+                      onChange={setPaymentDate}
+                      placeholder="Select Date"
+                    />
+                  </div>
                 </div>
-              )}
 
-              {/* Remarks */}
-              <div>
-                <label className="block text-[13px] font-medium text-gray-700 mb-2">
-                  Remarks
-                </label>
-                <textarea
-                  value={remarks}
-                  onChange={(e) => setRemarks(e.target.value)}
-                  placeholder="Enter your remarks..."
-                  rows={3}
-                  className="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300 resize-none"
+                {/* Bank Selection */}
+                <div className="mb-4">
+                  <label className="block text-[13px] font-medium text-gray-700 mb-2">
+                    <span className="text-red-500">*</span>Bank
+                  </label>
+                  <DropDown
+                    options={bankDropdownOptions}
+                    placeholder="Select Bank"
+                    value={selectedBank}
+                    onChange={(val) => setSelectedBank(val)}
+                    customWidth="w-full"
+                    buttonClassName="text-[13px]"
+                    footerAction={{
+                      label: "Add New Bank",
+                      icon: <FiPlusCircle size={16} />,
+                      onClick: () => setIsAddBankOpen(true),
+                    }}
+                  />
+                  <p className="mt-2 text-[12px] text-red-500">
+                    Note : Select the bank for this payment
+                  </p>
+                </div>
+
+                {selectedBank && (
+                  <div className="mb-4">
+                    <label className="block text-[13px] font-medium text-gray-700 mb-2">
+                      Payment Type
+                    </label>
+
+                    <div className="flex flex-wrap gap-2">
+                      {["CARD", "UPI", "IMPS", "NEFT", "RTGS", "CHEQUE"].map(
+                        (type) => {
+                          const selected = paymentType === type;
+                          return (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() =>
+                                setPaymentType(type as PaymentType)
+                              }
+                              className={`px-4 py-2 text-[13px] rounded-full border transition inline-flex items-center gap-3 ${
+                                selected
+                                  ? "bg-[#F9F3FF] border-gray-300 text-gray-800 font-semibold"
+                                  : "bg-[#F9F9F9] border-gray-200 text-gray-700"
+                              }`}
+                            >
+                              <div className="w-4 h-4 border border-gray-300 rounded-sm flex items-center justify-center bg-white">
+                                {selected && (
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="12"
+                                    height="11"
+                                    viewBox="0 0 12 11"
+                                    fill="none"
+                                  >
+                                    <path
+                                      d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                                      stroke="#0D4B37"
+                                      strokeWidth="1.5"
+                                      strokeLinecap="round"
+                                    />
+                                  </svg>
+                                )}
+                              </div>
+                              <span className="leading-none">{type}</span>
+                            </button>
+                          );
+                        },
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <AddBankSidesheet
+                  isOpen={isAddBankOpen}
+                  onClose={() => setIsAddBankOpen(false)}
+                  onSubmit={handleAddBank}
                 />
+
+                {/* Files */}
+                <label className="block text-[13px] font-medium text-gray-700 mb-2">
+                  Files
+                </label>
+                <div className="mb-2">
+                  <label className="inline-flex items-center px-3 py-1.5 border border-blue-500 rounded-lg cursor-pointer hover:bg-blue-50 transition-colors">
+                    <span className="text-[13px] text-blue-500 font-medium flex items-center gap-2">
+                      <MdOutlineFileUpload size={16} />
+                      Attach Files
+                    </span>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*,.pdf,.doc,.docx"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                <p className="text-[12px] text-red-500 mb-3">
+                  Note : Maximum of 3 files can be uploaded
+                </p>
+
+                {documents.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    {documents.map((doc, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            doc.preview && window.open(doc.preview, "_blank")
+                          }
+                          className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2"
+                        >
+                          <FaRegFolder className="text-blue-500 w-3 h-3" />
+                          {doc.name}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveDocument(index)}
+                          className="text-red-500 hover:text-red-700"
+                          aria-label="Remove file"
+                        >
+                          <FiTrash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Remarks */}
+                <div>
+                  <label className="block text-[13px] font-medium text-gray-700 mb-2">
+                    Remarks
+                  </label>
+                  <textarea
+                    value={remarks}
+                    onChange={(e) => setRemarks(e.target.value)}
+                    placeholder="Enter your remarks..."
+                    rows={3}
+                    className="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300 resize-none"
+                  />
+                </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       </div>

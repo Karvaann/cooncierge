@@ -280,15 +280,22 @@ const PaymentsPage = () => {
     return withIndex.map((x) => x.item);
   }, [sortState, payments]);
 
-  // Fetch payments on mount
+  // Fetch payments whenever activeTab changes (status/isDeleted)
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setIsLoadingPayments(true);
       try {
-        const data = await PaymentsApi.listPayments();
+        // map UI tab to API params
+        const params: any = {};
+        if (activeTab === "Pending") params.status = "pending";
+        else if (activeTab === "Approved") params.status = "approved";
+        else if (activeTab === "Denied") params.status = "denied";
+        else if (activeTab === "Deleted") params.isDeleted = true;
+
+        const data = await PaymentsApi.listPayments(params);
         if (cancelled) return;
-        const list = (data?.payments || []) as any[];
+        const list = (data?.payments || data?.data || data || []) as any[];
         const mapped: PaymentRow[] = list.map((p) => {
           const paymentId = p._id ? String(p._id) : "";
           const partyName = (p.partyName ||
@@ -331,7 +338,7 @@ const PaymentsPage = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [activeTab]);
 
   // Convert payments to table data
   // apply date & search filtering
@@ -411,7 +418,6 @@ const PaymentsPage = () => {
   const tableData = useMemo<JSX.Element[][]>(() => {
     return visiblePayments.map((payment, index) => {
       const cells: JSX.Element[] = [];
-
       cells.push(
         <td
           key={`paymentId-${index}`}
@@ -443,8 +449,18 @@ const PaymentsPage = () => {
         <td key={`date-${index}`} className="px-4 py-3 text-center">
           {payment.date}
         </td>,
-        <td key={`actions-${index}`} className="px-4 py-3 text-center">
-          <div className="flex items-center justify-center gap-2">
+        <td
+          key={`actions-${index}`}
+          className="px-4 py-3 text-center align-middle h-[4rem]"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className={`flex items-center justify-center gap-2 transition-all duration-200 ${
+              index === 0
+                ? "opacity-100 pointer-events-auto"
+                : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+            }`}
+          >
             <button
               type="button"
               className="bg-[#FFF1C2] text-[#0D4B37] px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-[#d0e7dc]"
@@ -608,8 +624,11 @@ const PaymentsPage = () => {
           columnIconMap={columnIconMap}
           onSort={handleSort}
           categoryName="Payments"
+          enableRowHoverActions={true}
+          rowIds={visiblePayments.map((p) => p.paymentId)}
         />
       </div>
+
       <AddPaymentSidesheet
         isOpen={isAddPaymentOpen}
         title={addPaymentMode === "in" ? "Payment In" : "Payment Out"}
