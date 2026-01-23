@@ -804,6 +804,13 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
     // if there are files, send as FormData multipart
     const hasFiles = documents.length > 0;
+    console.log(
+      "hasFiles",
+      hasFiles,
+      documents,
+      documents.length,
+      documents.length > 0,
+    );
     // determine status based on user finance maker flag
     const isFinanceMaker = !!(
       (user && (user as any).isFinanceMaker === true) ||
@@ -811,99 +818,23 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     );
     const defaultStatus = isFinanceMaker ? "pending" : "approved";
 
-    if (hasFiles) {
-      const form = new FormData();
-      form.append("bankId", bankId);
-      form.append("amount", String(Number(amount)));
-      form.append("entryType", effectiveEntryType);
-      form.append("paymentDate", paymentDate || new Date().toISOString());
-      form.append("paymentType", paymentType || "");
-      form.append("status", defaultStatus);
-      if (internalNotes) form.append("internalNotes", internalNotes);
-      // include bank charges and cashback fields
-      form.append("bankCharges", String(Number(bankCharges || 0)));
+    const form = new FormData();
+    form.append("bankId", bankId);
+    form.append("amount", String(Number(amount)));
+    form.append("entryType", effectiveEntryType);
+    form.append("paymentDate", paymentDate || new Date().toISOString());
+    form.append("paymentType", paymentType || "");
+    form.append("status", defaultStatus);
+    if (internalNotes) form.append("internalNotes", internalNotes);
+    // include bank charges and cashback fields
+    form.append("bankCharges", String(Number(bankCharges || 0)));
 
-      form.append("bankChargesNotes", bankChargesNotes || "");
-      form.append("cashbackReceived", String(Number(cashbackReceived || 0)));
-      form.append("cashbackNotes", cashbackNotes || "");
-      // include generated custom id if present
-      if (customId) form.append("customId", String(customId));
-      // include allocations if any
-      if (settlePendingDocsEnabled) {
-        let allocations = [];
-        if (settlePendingMode === "manual") {
-          allocations = pendingDocRows
-            .filter((r) => selectedManualRows.has(r.quotationId || r.bookingId))
-            .map((r) => ({
-              quotationId: r.quotationId,
-              amount: Number(r.amountPaying || 0),
-            }))
-            .filter((a) => a.quotationId && a.amount > 0);
-        } else {
-          allocations = pendingDocRows
-            .map((r) => ({
-              quotationId: r.quotationId,
-              amount: Number(r.amountPaying || 0),
-            }))
-            .filter((a) => a.quotationId && a.amount > 0);
-        }
-        const allocationTotal = allocations.reduce((s, a) => s + a.amount, 0);
-        if (allocationTotal > Number(amount)) {
-          alert("Allocation total exceeds payment amount");
-          return;
-        }
-        if (allocations.length > 0) {
-          form.append("allocations", allocations as any);
-        }
-      }
-      // append files
-      documents.forEach((d, i) => {
-        form.append("documents", d.file, d.name);
-      });
-
-      try {
-        let resp: any = null;
-        if (partyType === "Customer") {
-          resp = await PaymentsApi.createCustomerPayment(
-            selectedCustomer!._id,
-            form,
-          );
-        } else {
-          resp = await PaymentsApi.createVendorPayment(
-            selectedVendor!._id,
-            form,
-          );
-        }
-        onSubmit?.(resp);
-        onClose();
-      } catch (err: any) {
-        console.error("Failed to create payment", err);
-        const msg =
-          err?.response?.data?.message ||
-          err?.message ||
-          "Failed to create payment";
-        alert(msg);
-      }
-      return;
-    }
-
-    const payload: any = {
-      bankId,
-      amount: Number(amount),
-      entryType: effectiveEntryType,
-      paymentDate: paymentDate || new Date().toISOString(),
-      paymentType: paymentType || "",
-
-      status: defaultStatus,
-      internalNotes,
-      // include generated custom id if present
-      ...(customId ? { customId: String(customId) } : {}),
-      bankCharges: Number(bankCharges || 0),
-      bankChargesNotes: bankChargesNotes,
-      cashbackReceived: Number(cashbackReceived || 0),
-      cashbackNotes: cashbackNotes,
-    };
-    // include allocations when settling pending docs
+    form.append("bankChargesNotes", bankChargesNotes || "");
+    form.append("cashbackReceived", String(Number(cashbackReceived || 0)));
+    form.append("cashbackNotes", cashbackNotes || "");
+    // include generated custom id if present
+    if (customId) form.append("customId", String(customId));
+    // include allocations if any
     if (settlePendingDocsEnabled) {
       let allocations = [];
       if (settlePendingMode === "manual") {
@@ -922,12 +853,22 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
           }))
           .filter((a) => a.quotationId && a.amount > 0);
       }
-      if (allocations.length > 0) payload.allocations = allocations;
       const allocationTotal = allocations.reduce((s, a) => s + a.amount, 0);
       if (allocationTotal > Number(amount)) {
         alert("Allocation total exceeds payment amount");
         return;
       }
+      if (allocations.length > 0) {
+        form.append("allocations", JSON.stringify(allocations));
+      }
+    }
+    // append files
+    documents.forEach((d, i) => {
+      form.append("documents", d.file);
+    });
+
+    for (const [k, v] of form.entries()) {
+      console.log(k, v);
     }
 
     try {
@@ -935,15 +876,11 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       if (partyType === "Customer") {
         resp = await PaymentsApi.createCustomerPayment(
           selectedCustomer!._id,
-          payload,
+          form,
         );
       } else {
-        resp = await PaymentsApi.createVendorPayment(
-          selectedVendor!._id,
-          payload,
-        );
+        resp = await PaymentsApi.createVendorPayment(selectedVendor!._id, form);
       }
-
       onSubmit?.(resp);
       onClose();
     } catch (err: any) {
