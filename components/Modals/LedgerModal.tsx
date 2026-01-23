@@ -208,7 +208,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           {r.type === "opening" ? "Opening Balance" : r.customId || "NA"}
         </td>,
         <td key={`date-${index}`} className="px-4 py-3 text-center text-[14px]">
-          {formatDate(r?.data?.formFields?.bookingdate || r.date)}
+          {r.type === "opening" ? "" : formatDate(r?.data?.formFields?.bookingdate || r.date)}
         </td>,
         <td
           key={`status-${index}`}

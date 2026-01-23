@@ -782,6 +782,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
     // if there are files, send as FormData multipart
     const hasFiles = documents.length > 0;
+    console.log("hasFiles", hasFiles, documents, documents.length, documents.length > 0);
     // determine status based on user finance maker flag
     const isFinanceMaker = !!(
       (user && (user as any).isFinanceMaker === true) ||
@@ -789,7 +790,6 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     );
     const defaultStatus = isFinanceMaker ? "pending" : "approved";
 
-    if (hasFiles) {
       const form = new FormData();
       form.append("bankId", bankId);
       form.append("amount", String(Number(amount)));
@@ -829,13 +829,17 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
           return;
         }
         if (allocations.length > 0) {
-          form.append("allocations", allocations as any);
+          form.append("allocations", JSON.stringify(allocations));
         }
       }
       // append files
       documents.forEach((d, i) => {
-        form.append("documents", d.file, d.name);
+        form.append("documents", d.file);
       });
+
+      for (const [k, v] of form.entries()) {
+        console.log(k, v);
+      }
 
       try {
         let resp: any = null;
@@ -860,74 +864,6 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
           "Failed to create payment";
         alert(msg);
       }
-      return;
-    }
-
-    const payload: any = {
-      bankId,
-      amount: Number(amount),
-      entryType: "debit",
-      paymentDate: paymentDate || new Date().toISOString(),
-      paymentType: paymentType || "",
-
-      status: defaultStatus,
-      internalNotes,
-      bankCharges: Number(bankCharges || 0),
-      bankChargesNotes: bankChargesNotes,
-      cashbackReceived: Number(cashbackReceived || 0),
-      cashbackNotes: cashbackNotes,
-    };
-    // include allocations when settling pending docs
-    if (settlePendingDocsEnabled) {
-      let allocations = [];
-      if (settlePendingMode === "manual") {
-        allocations = pendingDocRows
-          .filter((r) => selectedManualRows.has(r.quotationId || r.bookingId))
-          .map((r) => ({
-            quotationId: r.quotationId,
-            amount: Number(r.amountPaying || 0),
-          }))
-          .filter((a) => a.quotationId && a.amount > 0);
-      } else {
-        allocations = pendingDocRows
-          .map((r) => ({
-            quotationId: r.quotationId,
-            amount: Number(r.amountPaying || 0),
-          }))
-          .filter((a) => a.quotationId && a.amount > 0);
-      }
-      if (allocations.length > 0) payload.allocations = allocations;
-      const allocationTotal = allocations.reduce((s, a) => s + a.amount, 0);
-      if (allocationTotal > Number(amount)) {
-        alert("Allocation total exceeds payment amount");
-        return;
-      }
-    }
-
-    try {
-      let resp: any = null;
-      if (partyType === "Customer") {
-        resp = await PaymentsApi.createCustomerPayment(
-          selectedCustomer!._id,
-          payload,
-        );
-      } else {
-        resp = await PaymentsApi.createVendorPayment(
-          selectedVendor!._id,
-          payload,
-        );
-      }
-
-      onSubmit?.(resp);
-      onClose();
-    } catch (err: any) {
-      console.error("Failed to create payment", err);
-      const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Failed to create payment";
-      alert(msg);
-    }
   };
 
   // Reset form when closed
