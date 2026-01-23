@@ -8,6 +8,7 @@ import DropDown from "@/components/DropDown";
 import AddBankSidesheet, {
   type BankPayload,
 } from "@/components/Sidesheets/AddBankSidesheet";
+import BankApi from "@/services/bankApi";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FaRegFolder } from "react-icons/fa";
 import { FiPlusCircle, FiTrash2 } from "react-icons/fi";
@@ -131,37 +132,16 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     return Math.max(0, pendingAmount - n);
   }, [pendingAmount, settleAmount]);
 
-  // Bank options (same as AddPaymentSidesheet)
-  const bankOptions = useMemo(
-    () => [
-      "Bank 1",
-      "Bank 2",
-      "HDFC Bank",
-      "ICICI Bank",
-      "State Bank of India",
-      "Axis Bank",
-      "Kotak Mahindra Bank",
-      "Punjab National Bank",
-      "Bank of Baroda",
-      "Canara Bank",
-      "Union Bank of India",
-      "Other",
-    ],
-    [],
-  );
-
-  const [banks, setBanks] = useState<Array<{ name: string }>>(
-    bankOptions.map((b) => ({ name: b })),
-  );
+  const [banks, setBanks] = useState<Array<{ _id?: string; name: string }>>([]);
   const [isAddBankOpen, setIsAddBankOpen] = useState<boolean>(false);
 
   const bankDropdownOptions = useMemo(
-    () => banks.map((b) => ({ value: b.name, label: b.name })),
+    () => banks.map((b) => ({ value: b._id || b.name, label: b.name })),
     [banks],
   );
 
   const handleAddBank = (bank: BankPayload) => {
-    const normalizedName = bank.name.trim();
+    const normalizedName = (bank.name || "").trim();
     if (!normalizedName) return;
 
     setBanks((prev) => {
@@ -169,12 +149,38 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
         (x) => x.name.toLowerCase() === normalizedName.toLowerCase(),
       );
       if (exists) return prev;
-      return [...prev, { name: normalizedName }];
+      return [...prev, { _id: bank._id, name: normalizedName }];
     });
 
-    setSelectedBank(normalizedName);
+    // Prefer returned _id when available, else use name
+    setSelectedBank(bank._id || normalizedName);
     setIsAddBankOpen(false);
   };
+
+  // Fetch banks when the sidesheet opens
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const resp = await BankApi.getBanks({ isDeleted: false });
+        const list = (resp?.banks || resp?.data || resp || []) as any[];
+        if (cancelled) return;
+        const mapped = list.map((b) => ({
+          _id: b._id,
+          name: b.name || b.alias || b.accountNumber || String(b._id),
+        }));
+        setBanks(mapped);
+      } catch (err) {
+        console.error("Failed to load banks", err);
+        if (!cancelled) setBanks([]);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   // revoke object URLs on unmount
   useEffect(() => {
@@ -237,11 +243,17 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       ? Number(settleAmount || 0)
       : undefined;
 
+    // normalize payment type to backend expected values (lowercase)
+    const selectedPaymentType =
+      paymentType && paymentType !== "" ? paymentType.toLowerCase() : "cash";
+
     if (hasFiles) {
       const form = new FormData();
       form.append("bankId", bankId);
       form.append("amount", String(Number(amountToRecord)));
       form.append("entryType", "credit");
+      form.append("paymentType", selectedPaymentType);
+      form.append("party", "Customer");
       form.append("paymentDate", paymentDate || new Date().toISOString());
       form.append("status", "approved");
       if (remarks) form.append("internalNotes", remarks);
@@ -272,9 +284,11 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       bankId,
       amount: Number(amountToRecord),
       entryType: "credit",
+      paymentType: selectedPaymentType,
       paymentDate: paymentDate || new Date().toISOString(),
       status: "approved",
       internalNotes: remarks,
+      party: "Customer",
     };
 
     if (allocationAmount !== undefined)

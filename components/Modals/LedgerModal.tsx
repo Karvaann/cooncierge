@@ -83,6 +83,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     cashbackNotes?: string;
     paymentDate?: string;
     bank?: string;
+    paymentType?: string;
     internalNotes?: string;
   } | null>(null);
 
@@ -102,7 +103,6 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   );
 
   useEffect(() => {
-
     const fetchLedger = async () => {
       try {
         const data = await PaymentsApi.getCustomerLedger(rawId!);
@@ -112,7 +112,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
       }
     };
     if (isOpen) {
-     fetchLedger();
+      fetchLedger();
     }
   }, [isOpen, customerName, rawId]);
 
@@ -167,16 +167,16 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString).toLocaleDateString("en-IN", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric"
-      });
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
     return date;
   };
 
   const tableData = useMemo<JSX.Element[][]>(() => {
-    return ledgerData?.entries?.map((r, index) => {
-      console.log(r)
+    return ledgerData?.entries?.map((r: any, index: any) => {
+      console.log(r);
       // Determine background color based on row type and ledger type
       // Customer ledger: payment=green, booking=red
       // Vendor ledger: payment=red, booking=green (inverted)
@@ -214,9 +214,11 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
               statusPillClasses[r.paymentStatus as LedgerStatus]
             }`}
           >
-            {r.paymentStatus === 'none' ? 'Pending' : r.paymentStatus === 'partial'
-                ? 'Partially Paid'
-                : 'Paid'}
+            {r.paymentStatus === "none"
+              ? "Pending"
+              : r.paymentStatus === "partial"
+                ? "Partially Paid"
+                : "Paid"}
           </span>
         </td>,
         <td
@@ -278,14 +280,15 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                         : "Payment Out",
                     );
                     setPaymentInitial({
-                      amount: String(r.amount),
-                      paymentDate: r.bookingDate,
-                      bank: r.account ?? "",
-                      internalNotes: "",
-                      bankCharges: "",
-                      bankChargesNotes: "",
-                      cashbackReceived: "",
-                      cashbackNotes: "",
+                      amount: String(r.amount || ""),
+                      paymentDate: r.paymentDate || r.date || "",
+                      bank: r.bank?._id || "",
+                      paymentType: r.paymentType || "",
+                      internalNotes: r.internalNotes || r.remarks || "",
+                      bankCharges: String(r.bankCharges || ""),
+                      bankChargesNotes: r.bankChargesNotes || "",
+                      cashbackReceived: String(r.cashbackReceived || ""),
+                      cashbackNotes: r.cashbackNotes || "",
                     });
                     setPaymentSidesheetOpen(true);
                   },
@@ -313,19 +316,28 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     }
   };
 
-  const handleEditFromViewPayment = () => {
+  const handleEditFromViewPayment = (paymentData: any) => {
+    if (!paymentData) return;
+
+    setSelectedLedgerRow(paymentData);
     setPaymentSidesheetMode("edit");
-    setPaymentSidesheetTitle("Payment In");
+    setPaymentSidesheetTitle(
+      paymentData.type === "payment"
+        ? isVendorLedger
+          ? "Payment Out"
+          : "Payment In"
+        : "Payment Out",
+    );
     setPaymentInitial({
-      amount: "10000",
-      paymentDate: "05-10-2025",
-      bank: "Bank 1",
-      internalNotes:
-        "In a world where creativity knows no bounds, the quick brown fox jumps over the lazy dog, showcasing the beauty of language and imagination.",
-      bankCharges: "",
-      bankChargesNotes: "",
-      cashbackReceived: "",
-      cashbackNotes: "",
+      amount: String(paymentData.amount || ""),
+      paymentDate: paymentData.paymentDate || paymentData.date || "",
+      bank: paymentData.bank?._id || paymentData.account || "",
+      paymentType: paymentData.paymentType || "",
+      internalNotes: paymentData.internalNotes || paymentData.remarks || "",
+      bankCharges: String(paymentData.bankCharges || ""),
+      bankChargesNotes: paymentData.bankChargesNotes || "",
+      cashbackReceived: String(paymentData.cashbackReceived || ""),
+      cashbackNotes: paymentData.cashbackNotes || "",
     });
     setIsViewPaymentOpen(false);
     setPaymentSidesheetOpen(true);
@@ -371,14 +383,21 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                 <div className="rounded-lg px-4 py-3 bg-[#F9F9F9]">
                   <div className="flex items-center gap-3">
                     <span className="text-gray-600 text-[14px] font-medium">
-                      {ledgerData?.closingBalance?.balanceType === "credit" ? "You Collect" : "You Pay"}
+                      {ledgerData?.closingBalance?.balanceType === "credit"
+                        ? "You Collect"
+                        : "You Pay"}
                     </span>
                     <span
                       className={`text-[14px] font-semibold ${
-                        ledgerData?.closingBalance?.balanceType === "credit" ? "text-red-500" : "text-green-600"
+                        ledgerData?.closingBalance?.balanceType === "credit"
+                          ? "text-red-500"
+                          : "text-green-600"
                       }`}
                     >
-                      ₹ {formatMoney(Math.abs(ledgerData?.closingBalance?.amount))}
+                      ₹{" "}
+                      {formatMoney(
+                        Math.abs(ledgerData?.closingBalance?.amount),
+                      )}
                     </span>
                   </div>
                 </div>
@@ -467,8 +486,8 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
 
             {/* Table */}
             <div className="mt-4">
-              {
-                ledgerData?.entries && <Table
+              {ledgerData?.entries && (
+                <Table
                   data={tableData}
                   columns={columns}
                   columnIconMap={columnIconMap}
@@ -482,8 +501,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                   sortableHeaderHoverClass="bg-gray-50"
                   onRowClick={handleOpenViewPaymentByRowIndex}
                 />
-              }
-              
+              )}
             </div>
           </div>
 
@@ -533,6 +551,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         onClose={() => setIsViewPaymentOpen(false)}
         onEdit={handleEditFromViewPayment}
         onDelete={() => console.log("Delete payment:", selectedLedgerRow)}
+        payment={selectedLedgerRow}
       />
       {/* Payment Sidesheet triggered from Ledger actions */}
       <AddPaymentSidesheet
@@ -546,9 +565,9 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         mode={paymentSidesheetMode}
         initialPayment={paymentInitial}
         initialCustomer={
-          customerId || customerName
+          rawId || customerName
             ? {
-                _id: customerId ?? "",
+                _id: rawId ?? "",
                 name: customerName ?? "",
                 ...(customerId ? { customId: customerId } : {}),
               }

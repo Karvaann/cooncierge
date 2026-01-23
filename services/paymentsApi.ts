@@ -65,9 +65,7 @@ export const PaymentsApi = {
   // Create payments
   async createCustomerPayment(customerId: string, payload: CreatePaymentDto | FormData) {
     if (payload instanceof FormData) {
-      const { data } = await apiClient.post(`${base}/customers/${customerId}/payments`, payload, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data } = await apiClient.post(`${base}/customers/${customerId}/payments`, payload);
       return data;
     }
     const { data } = await apiClient.post(`${base}/customers/${customerId}/payments`, payload);
@@ -76,9 +74,7 @@ export const PaymentsApi = {
 
   async createVendorPayment(vendorId: string, payload: CreatePaymentDto | FormData) {
     if (payload instanceof FormData) {
-      const { data } = await apiClient.post(`${base}/vendors/${vendorId}/payments`, payload, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data } = await apiClient.post(`${base}/vendors/${vendorId}/payments`, payload);
       return data;
     }
     const { data } = await apiClient.post(`${base}/vendors/${vendorId}/payments`, payload);
@@ -87,9 +83,7 @@ export const PaymentsApi = {
 
   async createPaymentForQuotation(quotationId: string, payload: CreatePaymentDto | FormData) {
     if (payload instanceof FormData) {
-      const { data } = await apiClient.post(`${base}/quotations/${quotationId}/payments`, payload, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data } = await apiClient.post(`${base}/quotations/${quotationId}/payments`, payload);
       return data;
     }
     const { data } = await apiClient.post(`${base}/quotations/${quotationId}/payments`, payload);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { FiSearch } from "react-icons/fi";
 import type { JSX } from "react";
 import DateRangeInput from "@/components/DateRangeInput";
@@ -27,6 +27,7 @@ const Table = dynamic(() => import("@/components/Table"), {
 
 import AddPaymentSidesheet from "@/components/Sidesheets/AddPaymentSidesheet";
 import PaymentsApi from "@/services/paymentsApi";
+import CustomIdApi from "@/services/customIdApi";
 
 // Column definitions
 const columns: string[] = [
@@ -240,6 +241,9 @@ const PaymentsPage = () => {
   const [effectiveSearch, setEffectiveSearch] = useState("");
   const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
   const [addPaymentMode, setAddPaymentMode] = useState<"out" | "in">("out");
+  const [generatedPaymentCustomId, setGeneratedPaymentCustomId] = useState<
+    string | null
+  >(null);
 
   // Sorting state
   const [sortState, setSortState] = useState<TriSortState<string>>({
@@ -281,64 +285,87 @@ const PaymentsPage = () => {
   }, [sortState, payments]);
 
   // Fetch payments whenever activeTab changes (status/isDeleted)
+  const fetchPayments = useCallback(async () => {
+    setIsLoadingPayments(true);
+    try {
+      const params: any = {};
+      if (activeTab === "Pending") params.status = "pending";
+      else if (activeTab === "Approved") params.status = "approved";
+      else if (activeTab === "Denied") params.status = "denied";
+      else if (activeTab === "Deleted") params.isDeleted = true;
+
+      const data = await PaymentsApi.listPayments(params);
+      const list = (data?.payments || data?.data || data || []) as any[];
+      const mapped: PaymentRow[] = list.map((p) => {
+        const paymentId = p._id ? String(p._id) : "";
+
+        let partyName = "";
+        if (p.partyName) partyName = String(p.partyName);
+        else if (p.partyId) {
+          if (typeof p.partyId === "object") {
+            partyName = String(
+              p.partyId.name ||
+                p.partyId.companyName ||
+                p.partyId.customId ||
+                p.partyId._id ||
+                "",
+            );
+          } else {
+            partyName = String(p.partyId);
+          }
+        } else if (p.party) partyName = String(p.party);
+
+        let linkedBooking = "-";
+        if (p.allocations && p.allocations.length > 0) {
+          const firstAlloc = p.allocations[0];
+          const q = firstAlloc.quotationId;
+          if (q) {
+            if (typeof q === "object") {
+              linkedBooking = String(q.customId || q._id || "-");
+            } else {
+              linkedBooking = String(q);
+            }
+          }
+        }
+        const amount = Number(p.amount || 0);
+        const amountType = p.entryType === "credit" ? "got" : "gave";
+        const account = (p.bankId && (p.bankId.name || p.bankId)) || "Cash";
+        const date = p.paymentDate
+          ? new Date(p.paymentDate).toLocaleDateString()
+          : p.createdAt
+            ? new Date(p.createdAt).toLocaleDateString()
+            : "";
+        const createdAt = p.createdAt || new Date().toISOString();
+        return {
+          paymentId,
+          partyName,
+          linkedBooking,
+          amount,
+          amountType: amountType as "gave" | "got",
+          account,
+          date,
+          createdAt,
+        };
+      });
+      setPayments(mapped);
+    } catch (err) {
+      console.error("Failed to load payments", err);
+      setPayments([]);
+    } finally {
+      setIsLoadingPayments(false);
+    }
+  }, [activeTab]);
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setIsLoadingPayments(true);
-      try {
-        // map UI tab to API params
-        const params: any = {};
-        if (activeTab === "Pending") params.status = "pending";
-        else if (activeTab === "Approved") params.status = "approved";
-        else if (activeTab === "Denied") params.status = "denied";
-        else if (activeTab === "Deleted") params.isDeleted = true;
-
-        const data = await PaymentsApi.listPayments(params);
-        if (cancelled) return;
-        const list = (data?.payments || data?.data || data || []) as any[];
-        const mapped: PaymentRow[] = list.map((p) => {
-          const paymentId = p._id ? String(p._id) : "";
-          const partyName = (p.partyName ||
-            p.party ||
-            String(p.partyId || "")) as string;
-          const linkedBooking =
-            p.allocations &&
-            p.allocations.length > 0 &&
-            p.allocations[0].quotationId
-              ? String(p.allocations[0].quotationId)
-              : "-";
-          const amount = Number(p.amount || 0);
-          const amountType = p.entryType === "credit" ? "got" : "gave";
-          const account = (p.bankId && (p.bankId.name || p.bankId)) || "Cash";
-          const date = p.paymentDate
-            ? new Date(p.paymentDate).toLocaleString()
-            : p.createdAt
-              ? new Date(p.createdAt).toLocaleString()
-              : "";
-          const createdAt = p.createdAt || new Date().toISOString();
-          return {
-            paymentId,
-            partyName,
-            linkedBooking,
-            amount,
-            amountType: amountType as "gave" | "got",
-            account,
-            date,
-            createdAt,
-          };
-        });
-        setPayments(mapped);
-      } catch (err) {
-        console.error("Failed to load payments", err);
-        setPayments([]);
-      } finally {
-        if (!cancelled) setIsLoadingPayments(false);
-      }
+      await fetchPayments();
+      if (cancelled) return;
     })();
     return () => {
       cancelled = true;
     };
-  }, [activeTab]);
+  }, [fetchPayments]);
 
   // Convert payments to table data
   // apply date & search filtering
@@ -447,7 +474,7 @@ const PaymentsPage = () => {
           {payment.account}
         </td>,
         <td key={`date-${index}`} className="px-4 py-3 text-center">
-          {payment.date}
+          <div className="text-[13px]">{payment.date}</div>
         </td>,
         <td
           key={`actions-${index}`}
@@ -546,8 +573,22 @@ const PaymentsPage = () => {
 
           <button
             className="flex items-center gap-2 px-4 py-2 rounded-md bg-red-600 text-white font-medium"
-            onClick={() => {
+            onClick={async () => {
               setAddPaymentMode("out");
+              try {
+                const data = await CustomIdApi.generate("paymentOut");
+                const id =
+                  data?.customId ||
+                  data?.customIdValue ||
+                  (typeof data === "string" ? data : null);
+                setGeneratedPaymentCustomId(
+                  id || `PO-${Date.now().toString().slice(-6)}`,
+                );
+              } catch (e) {
+                setGeneratedPaymentCustomId(
+                  `PO-${Date.now().toString().slice(-6)}`,
+                );
+              }
               setIsAddPaymentOpen(true);
             }}
           >
@@ -564,8 +605,22 @@ const PaymentsPage = () => {
 
           <button
             className="flex items-center gap-2 px-4 py-2 rounded-md bg-[#4CA640] text-white font-medium"
-            onClick={() => {
+            onClick={async () => {
               setAddPaymentMode("in");
+              try {
+                const data = await CustomIdApi.generate("paymentIn");
+                const id =
+                  data?.customId ||
+                  data?.customIdValue ||
+                  (typeof data === "string" ? data : null);
+                setGeneratedPaymentCustomId(
+                  id || `PI-${Date.now().toString().slice(-6)}`,
+                );
+              } catch (e) {
+                setGeneratedPaymentCustomId(
+                  `PI-${Date.now().toString().slice(-6)}`,
+                );
+              }
               setIsAddPaymentOpen(true);
             }}
           >
@@ -632,11 +687,21 @@ const PaymentsPage = () => {
       <AddPaymentSidesheet
         isOpen={isAddPaymentOpen}
         title={addPaymentMode === "in" ? "Payment In" : "Payment Out"}
+        customId={generatedPaymentCustomId}
         entryTypeDefault={addPaymentMode === "out" ? "credit" : "debit"}
-        onClose={() => setIsAddPaymentOpen(false)}
-        onSubmit={(data) => {
+        onClose={() => {
+          setIsAddPaymentOpen(false);
+          setGeneratedPaymentCustomId(null);
+        }}
+        onSubmit={async (data) => {
           console.log("AddPaymentSidesheet submitted:", data);
           setIsAddPaymentOpen(false);
+          setGeneratedPaymentCustomId(null);
+          try {
+            await fetchPayments();
+          } catch (e) {
+            console.error("Failed to refresh payments after create", e);
+          }
         }}
       />
     </div>

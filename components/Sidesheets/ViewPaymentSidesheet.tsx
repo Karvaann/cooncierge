@@ -10,8 +10,9 @@ type ViewPaymentTab = "settled" | "history";
 interface ViewPaymentSidesheetProps {
   isOpen: boolean;
   onClose: () => void;
-  onEdit?: () => void;
+  onEdit?: (paymentData: any) => void;
   onDelete?: () => void;
+  payment?: any; // The actual payment data from API
 }
 
 const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
@@ -19,29 +20,38 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
   onClose,
   onEdit,
   onDelete,
+  payment,
 }) => {
   const [activeTab, setActiveTab] = useState<ViewPaymentTab>("settled");
 
-  const dummy = useMemo(
-    () => ({
-      paymentId: "PI-ABC11",
-      partyLabel: "Payment Info - Default Customer",
-      balanceText: "Balance: ₹ -10,000.00",
-      amountText: "₹ 10000",
-      paymentDate: "05-10-2025",
-      paymentType: "IMPS",
-      bankName: "Bank 1",
-      files: ["File_1.pdf", "File_2.pdf"],
-      internalNotes:
-        "In a world where creativity knows no bounds, the quick brown fox jumps over the lazy dog, showcasing the beauty of language and imagination.",
-      settledDocs: [
-        { bookingId: "OS4J4D", date: "25-09-2025", amount: "₹ 5,000.00" },
-        { bookingId: "OS4J4E", date: "25-09-2025", amount: "₹ 0.00" },
-        { bookingId: "OS4J4F", date: "25-09-2025", amount: "₹ 0.00" },
-      ],
-    }),
-    [],
-  );
+  const formatMoney = (value: number) => {
+    try {
+      return value.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    } catch {
+      return String(value);
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "—";
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-GB").replace(/\//g, "-");
+  };
+
+  // Extract data from payment object
+  const paymentId = payment?.customId || "—";
+  const partyLabel = payment?.customer?.name || payment?.vendor?.name || "—";
+  const amount = payment?.amount || 0;
+  const paymentDate = formatDate(payment?.paymentDate || payment?.date);
+  const paymentType = payment?.paymentType || "—";
+  const bankName = payment?.bank?.name || payment?.account || "—";
+  const files = payment?.documents || [];
+  const internalNotes = payment?.internalNotes || payment?.remarks || "—";
+  const settledDocs = payment?.allocations || [];
+  const outstandingAmount = payment?.outstandingAmount || 0;
 
   return (
     <SideSheet
@@ -50,16 +60,22 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
       width="xl"
       position="right"
       title={
-        <span className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <span>View Payment In</span>
-          <span className="font-semibold">{dummy.paymentId}</span>
-        </span>
+          <span className="font-semibold">{paymentId}</span>
+          {partyLabel !== "—" && (
+            <>
+              <span className="text-gray-400">|</span>
+              <span className="font-semibold text-gray-700">{partyLabel}</span>
+            </>
+          )}
+        </div>
       }
       headerRight={
         <div className="flex items-center gap-2 mt-2">
           <button
             type="button"
-            onClick={onEdit}
+            onClick={() => onEdit?.(payment)}
             className="flex items-center gap-2 rounded-md border border-[#126ACB] bg-white px-3 py-1.5 text-[13px] font-medium text-[#126ACB] hover:bg-blue-50 disabled:opacity-50"
             disabled={!onEdit}
           >
@@ -81,10 +97,10 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
       <div className="px-6 pb-8">
         <div className="mt-2 flex items-center justify-between">
           <div className="text-[13px] font-semibold text-gray-900">
-            {dummy.partyLabel}
+            {partyLabel}
           </div>
           <div className="text-[12px] font-medium text-red-500">
-            {dummy.balanceText}
+            Outstanding: ₹ {formatMoney(outstandingAmount)}
           </div>
         </div>
 
@@ -96,7 +112,7 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
                   Amount
                 </div>
                 <div className="mt-1 text-[13px] font-semibold text-gray-900">
-                  {dummy.amountText}
+                  ₹ {formatMoney(amount)}
                 </div>
               </div>
 
@@ -105,7 +121,7 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
                   Payment Date
                 </div>
                 <div className="mt-1 text-[13px] font-medium text-gray-900">
-                  {dummy.paymentDate}
+                  {paymentDate}
                 </div>
               </div>
 
@@ -115,7 +131,7 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
                 </div>
                 <div className="mt-1">
                   <span className="inline-flex items-center rounded-full border border-purple-100 bg-purple-50 px-3 py-1 text-[12px] font-medium text-purple-700">
-                    {dummy.paymentType}
+                    {paymentType}
                   </span>
                 </div>
               </div>
@@ -125,37 +141,46 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
                   Bank
                 </div>
                 <div className="mt-1 text-[13px] font-medium text-gray-900">
-                  {dummy.bankName}
+                  {bankName}
                 </div>
               </div>
             </div>
 
             <div className="mt-4 border-t border-gray-200" />
 
-            <div className="mt-4">
-              <div className="text-[12px] font-medium text-gray-500">Files</div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {dummy.files.map((name) => (
-                  <button
-                    key={name}
-                    type="button"
-                    className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-100"
-                  >
-                    <FaRegFolder size={14} className="text-gray-600" />
-                    {name}
-                  </button>
-                ))}
+            {files.length > 0 && (
+              <div className="mt-4">
+                <div className="text-[12px] font-medium text-gray-500">
+                  Files
+                </div>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {files.map((file: any, idx: number) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-100"
+                      onClick={() =>
+                        file.url && window.open(file.url, "_blank")
+                      }
+                    >
+                      <FaRegFolder size={14} className="text-gray-600" />
+                      {file.name || file.filename || `Document ${idx + 1}`}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="mt-4">
-              <div className="text-[12px] font-medium text-gray-500">
-                Internal Notes
+            {internalNotes && internalNotes !== "—" && (
+              <div className="mt-4">
+                <div className="text-[12px] font-medium text-gray-500">
+                  Remarks
+                </div>
+                <div className="mt-2 rounded-lg border border-gray-200 bg-white p-4 text-[13px] leading-5 text-gray-700">
+                  {internalNotes}
+                </div>
               </div>
-              <div className="mt-2 rounded-lg border border-gray-200 bg-white p-4 text-[13px] leading-5 text-gray-700">
-                {dummy.internalNotes}
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -203,22 +228,37 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
                 </tr>
               </thead>
               <tbody>
-                {dummy.settledDocs.map((row, idx) => (
-                  <tr
-                    key={`${row.bookingId}-${idx}`}
-                    className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
-                  >
-                    <td className="px-4 py-3 text-center text-[13px] font-semibold text-gray-800">
-                      {row.bookingId}
-                    </td>
-                    <td className="px-4 py-3 text-center text-[13px] text-gray-700">
-                      {row.date}
-                    </td>
-                    <td className="px-4 py-3 text-right text-[13px] text-gray-700">
-                      {row.amount}
+                {settledDocs.length > 0 ? (
+                  settledDocs.map((row: any, idx: number) => (
+                    <tr
+                      key={`${row.quotationId || row.bookingId}-${idx}`}
+                      className={idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+                    >
+                      <td className="px-4 py-3 text-center text-[13px] font-semibold text-gray-800">
+                        {row.quotation?.customId ||
+                          row.booking?.customId ||
+                          row.quotationId ||
+                          row.bookingId ||
+                          "—"}
+                      </td>
+                      <td className="px-4 py-3 text-center text-[13px] text-gray-700">
+                        {formatDate(row.date || row.bookingDate)}
+                      </td>
+                      <td className="px-4 py-3 text-right text-[13px] text-gray-700">
+                        ₹ {formatMoney(row.amount || 0)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={3}
+                      className="px-4 py-6 text-center text-[13px] text-gray-500"
+                    >
+                      No settled documents
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

@@ -3,9 +3,11 @@
 import React, { useEffect, useMemo, useState } from "react";
 import SideSheet from "@/components/SideSheet";
 import Button from "@/components/Button";
+import BankApi from "@/services/bankApi";
 
 export type BankPayload = {
   name: string;
+  _id?: string;
   accountNumber: string;
   ifscCode: string;
   accountType: "savings" | "current";
@@ -37,6 +39,8 @@ const AddBankSidesheet: React.FC<AddBankSidesheetProps> = ({
     [bankName, accountNumber, ifscCode],
   );
 
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+
   useEffect(() => {
     if (!isOpen) {
       setBankName("");
@@ -46,14 +50,45 @@ const AddBankSidesheet: React.FC<AddBankSidesheetProps> = ({
     }
   }, [isOpen]);
 
-  const handleSubmit = () => {
-    if (!canSubmit) return;
-    onSubmit({
+  const handleSubmit = async () => {
+    if (!canSubmit || isSubmitting) return;
+    const payload = {
       name: bankName.trim(),
       accountNumber: accountNumber.trim(),
       ifscCode: ifscCode.trim(),
       accountType,
-    });
+    };
+
+    setIsSubmitting(true);
+    try {
+      const resp: any = await BankApi.createBank(payload as any);
+      let created: any = payload;
+      if (resp && typeof resp === "object" && resp.bank) {
+        created = resp.bank;
+      } else if (resp && typeof resp === "object") {
+        created = resp;
+      }
+
+      if (onSubmit) onSubmit(created);
+      onClose();
+      alert("Bank added");
+    } catch (err: any) {
+      console.error("Failed to create bank", err);
+      let msg = "Failed to create bank";
+      if (
+        err &&
+        err.response &&
+        err.response.data &&
+        err.response.data.message
+      ) {
+        msg = String(err.response.data.message);
+      } else if (err && err.message) {
+        msg = String(err.message);
+      }
+      alert(msg);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

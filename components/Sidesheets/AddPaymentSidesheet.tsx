@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
+import BankApi from "@/services/bankApi";
 import { FiEye, FiTrash2 } from "react-icons/fi";
 import { TbNotes } from "react-icons/tb";
 import SideSheet from "@/components/SideSheet";
@@ -69,6 +70,7 @@ interface AddPaymentSidesheetProps {
     cashbackNotes?: string;
     paymentDate?: string;
     bank?: string;
+    paymentType?: string;
     internalNotes?: string;
   } | null;
   /** When in edit mode, optionally open the view sidesheet */
@@ -81,6 +83,8 @@ interface AddPaymentSidesheetProps {
   disablePartyType?: boolean;
   /** Default entry type sent to backend when creating payment ('credit'|'debit') */
   entryTypeDefault?: "credit" | "debit";
+  /** Optional generated custom id to show in the header (e.g. PO-..., PI-...) */
+  customId?: string | null;
 }
 
 interface DocumentPreview {
@@ -102,9 +106,10 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
   initialCustomer = null,
   disablePartyType = false,
   entryTypeDefault = "debit",
+  customId = null,
 }) => {
   // Party Type State
-  const [partyType, setPartyType] = useState<"customer" | "vendor">("customer");
+  const [partyType, setPartyType] = useState<"Customer" | "Vendor">("Customer");
   // Payment Type State
   type PaymentType = "CARD" | "UPI" | "IMPS" | "NEFT" | "RTGS" | "CHEQUE";
 
@@ -246,14 +251,36 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     "Other",
   ];
 
-  const [banks, setBanks] = useState<Array<{ name: string; alias?: string }>>(
-    bankOptions.map((b) => ({ name: b })),
-  );
+  const [banks, setBanks] = useState<
+    Array<{ _id?: string; name: string; alias?: string }>
+  >(bankOptions.map((b) => ({ name: b })));
 
   const bankDropdownOptions = useMemo(
-    () => banks.map((b) => ({ value: b.name, label: b.name })),
+    () => banks.map((b) => ({ value: b._id || b.name, label: b.name })),
     [banks],
   );
+
+  // Fetch banks from API when sidesheet opens
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const resp: any = await BankApi.getBanks({ isDeleted: false });
+        if (cancelled) return;
+        const list = Array.isArray(resp?.banks)
+          ? resp.banks
+          : resp?.banks || resp || [];
+
+        if (list.length > 0) setBanks(list);
+      } catch (err) {
+        console.error("Failed to load banks", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   // revoke object URLs on unmount
   useEffect(() => {
@@ -262,19 +289,24 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     };
   }, []);
 
-  const handleAddBank = (bank: BankPayload) => {
-    const normalizedName = bank.name.trim();
-    if (!normalizedName) return;
+  const handleAddBank = (bank: any) => {
+    // bank is expected to be the created bank object from the API
+    const name = String(bank?.name || "").trim();
+    const id = bank?._id ? String(bank._id) : undefined;
+    if (!name) return;
 
     setBanks((prev) => {
       const exists = prev.some(
-        (x) => x.name.toLowerCase() === normalizedName.toLowerCase(),
+        (x) =>
+          String(x._id || x.name).toLowerCase() === (id || name).toLowerCase(),
       );
       if (exists) return prev;
-      return [...prev, { name: normalizedName }];
+      const newBank = id ? { _id: id, name } : { name };
+      return [...prev, newBank];
     });
 
-    setSelectedBank(normalizedName);
+    if (id) setSelectedBank(id);
+    else setSelectedBank(name);
     setIsAddBankOpen(false);
   };
 
@@ -334,7 +366,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
         initialCustomer.name || initialCustomer.customId || "",
       );
       // force party type to customer when initialCustomer provided
-      setPartyType("customer");
+      setPartyType("Customer");
     }
   }, [isOpen, initialCustomer]);
 
@@ -357,20 +389,25 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       setPaymentDate(initialPayment.paymentDate);
     if (typeof initialPayment.bank === "string")
       setSelectedBank(initialPayment.bank);
+    if (typeof initialPayment.paymentType === "string")
+      setPaymentType(initialPayment.paymentType as PaymentType);
     if (typeof initialPayment.internalNotes === "string")
       setInternalNotes(initialPayment.internalNotes);
   }, [isOpen, initialPayment, mode]);
 
-  // Clear pending doc rows when party or amount changes (will re-fetch on toggle)
+  // Clear pending doc rows only when amount is empty or party changes
   useEffect(() => {
-    setPendingDocRows([]);
-    setSettlePendingDocsEnabled(false);
-    setSelectedManualRows(new Set());
+    // Only clear if amount becomes empty
+    if (!amount || String(amount).trim() === "") {
+      setPendingDocRows([]);
+      setSettlePendingDocsEnabled(false);
+      setSelectedManualRows(new Set());
+    }
   }, [selectedCustomer, selectedVendor, amount]);
 
   const fetchUnsettledQuotations = async () => {
     try {
-      if (partyType === "customer" && selectedCustomer) {
+      if (partyType === "Customer" && selectedCustomer) {
         const resp = await PaymentsApi.getCustomerUnsettledQuotations(
           selectedCustomer._id,
         );
@@ -387,8 +424,25 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
           pendingAmount: Number(item.outstandingAmount || 0),
           amountPaying: "0",
         }));
-        setPendingDocRows(rows);
-      } else if (partyType === "vendor" && selectedVendor) {
+
+        // Auto-distribute amounts if in auto mode
+        if (settlePendingMode === "auto" && amount) {
+          const paymentAmount = Number(amount);
+          let remaining = paymentAmount;
+          const distributedRows = rows.map((row) => {
+            if (remaining <= 0) {
+              return { ...row, amountPaying: "0" };
+            }
+            const pendingAmt = Number(row.pendingAmount || 0);
+            const allocate = Math.min(remaining, pendingAmt);
+            remaining -= allocate;
+            return { ...row, amountPaying: String(allocate) };
+          });
+          setPendingDocRows(distributedRows);
+        } else {
+          setPendingDocRows(rows);
+        }
+      } else if (partyType === "Vendor" && selectedVendor) {
         const resp = await PaymentsApi.getVendorUnsettledQuotations(
           selectedVendor._id,
         );
@@ -405,7 +459,24 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
           pendingAmount: Number(item.outstandingAmount || 0),
           amountPaying: "0",
         }));
-        setPendingDocRows(rows);
+
+        // Auto-distribute amounts if in auto mode
+        if (settlePendingMode === "auto" && amount) {
+          const paymentAmount = Number(amount);
+          let remaining = paymentAmount;
+          const distributedRows = rows.map((row) => {
+            if (remaining <= 0) {
+              return { ...row, amountPaying: "0" };
+            }
+            const pendingAmt = Number(row.pendingAmount || 0);
+            const allocate = Math.min(remaining, pendingAmt);
+            remaining -= allocate;
+            return { ...row, amountPaying: String(allocate) };
+          });
+          setPendingDocRows(distributedRows);
+        } else {
+          setPendingDocRows(rows);
+        }
       }
     } catch (err) {
       console.error("Failed to fetch unsettled quotations", err);
@@ -423,11 +494,11 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     }
 
     // ensure party and amount are present
-    if (partyType === "customer" && !selectedCustomer) {
+    if (partyType === "Customer" && !selectedCustomer) {
       alert("Select a customer first");
       return;
     }
-    if (partyType === "vendor" && !selectedVendor) {
+    if (partyType === "Vendor" && !selectedVendor) {
       alert("Select a vendor first");
       return;
     }
@@ -442,9 +513,71 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
   const sanitizeAmountInput = (value: string) => value.replace(/[^0-9]/g, "");
 
-  // Auto-distribute payment amount in auto mode
+  // Helpers for manual allocation to ensure manual allocations never exceed total amount
+  const getManualAllocatedTotal = (excludeIndex?: number) => {
+    return pendingDocRows.reduce((s, r, i) => {
+      if (typeof excludeIndex === "number" && i === excludeIndex) return s;
+      return s + (Number(r.amountPaying || 0) || 0);
+    }, 0);
+  };
+
+  const updateManualRowAmount = (index: number, rawVal: string) => {
+    const valNum = Number(rawVal || 0);
+    const pending = Number(pendingDocRows[index]?.pendingAmount || 0);
+    const alreadyAllocated = getManualAllocatedTotal(index);
+    const totalAllowed = Math.max(Number(amount || 0) - alreadyAllocated, 0);
+
+    const clamped = Math.max(0, Math.min(valNum, pending, totalAllowed));
+
+    setPendingDocRows((prev) =>
+      prev.map((r, i) =>
+        i === index ? { ...r, amountPaying: String(clamped) } : r,
+      ),
+    );
+
+    // toggle selection for this row based on whether there's a non-zero allocation
+    const key =
+      pendingDocRows[index]?.quotationId || pendingDocRows[index]?.bookingId;
+    if (!key) return;
+    const newSet = new Set(selectedManualRows);
+    if (clamped > 0) newSet.add(key);
+    else newSet.delete(key);
+    setSelectedManualRows(newSet);
+  };
+
+  const toggleManualSelect = (index: number, checked: boolean) => {
+    const key =
+      pendingDocRows[index].quotationId || pendingDocRows[index].bookingId;
+    const newSet = new Set(selectedManualRows);
+
+    if (checked) {
+      // add to selection and allocate up to pending or remaining
+      newSet.add(key);
+      const alreadyAllocated = getManualAllocatedTotal(index);
+      const totalAllowed = Math.max(Number(amount || 0) - alreadyAllocated, 0);
+      const pending = Number(pendingDocRows[index]?.pendingAmount || 0);
+      const allocate = Math.max(0, Math.min(pending, totalAllowed));
+      setPendingDocRows((prev) =>
+        prev.map((r, i) =>
+          i === index ? { ...r, amountPaying: String(allocate) } : r,
+        ),
+      );
+    } else {
+      // remove selection and clear allocation for that row
+      newSet.delete(key);
+      setPendingDocRows((prev) =>
+        prev.map((r, i) => (i === index ? { ...r, amountPaying: "0" } : r)),
+      );
+    }
+
+    setSelectedManualRows(newSet);
+  };
+
+  // Auto-distribute payment amount in auto mode, clear in manual mode
   useEffect(() => {
-    if (settlePendingMode === "auto" && pendingDocRows.length > 0 && amount) {
+    if (pendingDocRows.length === 0) return;
+
+    if (settlePendingMode === "auto" && amount) {
       const paymentAmount = Number(amount);
       let remaining = paymentAmount;
 
@@ -461,6 +594,14 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       });
 
       setPendingDocRows(updatedRows);
+    } else if (settlePendingMode === "manual") {
+      // Clear all amounts when switching to manual mode
+      const clearedRows = pendingDocRows.map((row) => ({
+        ...row,
+        amountPaying: "0",
+      }));
+      setPendingDocRows(clearedRows);
+      setSelectedManualRows(new Set());
     }
   }, [amount, settlePendingMode]);
 
@@ -621,11 +762,11 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
   // Handle Submit - calls backend Payments API for customer/vendor
   const handleSubmit = async () => {
-    if (partyType === "customer" && !selectedCustomer) {
+    if (partyType === "Customer" && !selectedCustomer) {
       alert("Please select a customer");
       return;
     }
-    if (partyType === "vendor" && !selectedVendor) {
+    if (partyType === "Vendor" && !selectedVendor) {
       alert("Please select a vendor");
       return;
     }
@@ -654,10 +795,12 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       form.append("amount", String(Number(amount)));
       form.append("entryType", "debit");
       form.append("paymentDate", paymentDate || new Date().toISOString());
+      form.append("paymentType", paymentType || "");
       form.append("status", defaultStatus);
       if (internalNotes) form.append("internalNotes", internalNotes);
       // include bank charges and cashback fields
       form.append("bankCharges", String(Number(bankCharges || 0)));
+
       form.append("bankChargesNotes", bankChargesNotes || "");
       form.append("cashbackReceived", String(Number(cashbackReceived || 0)));
       form.append("cashbackNotes", cashbackNotes || "");
@@ -686,7 +829,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
           return;
         }
         if (allocations.length > 0) {
-          form.append("allocations", JSON.stringify(allocations));
+          form.append("allocations", allocations as any);
         }
       }
       // append files
@@ -696,7 +839,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
       try {
         let resp: any = null;
-        if (partyType === "customer") {
+        if (partyType === "Customer") {
           resp = await PaymentsApi.createCustomerPayment(
             selectedCustomer!._id,
             form,
@@ -725,6 +868,8 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       amount: Number(amount),
       entryType: "debit",
       paymentDate: paymentDate || new Date().toISOString(),
+      paymentType: paymentType || "",
+
       status: defaultStatus,
       internalNotes,
       bankCharges: Number(bankCharges || 0),
@@ -761,7 +906,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
     try {
       let resp: any = null;
-      if (partyType === "customer") {
+      if (partyType === "Customer") {
         resp = await PaymentsApi.createCustomerPayment(
           selectedCustomer!._id,
           payload,
@@ -787,7 +932,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
   // Reset form when closed
   const resetAllFields = React.useCallback(() => {
-    setPartyType("customer");
+    setPartyType("Customer");
     setSelectedCustomer(null);
     setSelectedVendor(null);
     setCustomerSearchTerm("");
@@ -825,7 +970,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     <SideSheet
       isOpen={isOpen}
       onClose={onClose}
-      title={title}
+      title={customId ? `${title}  |  ${customId}` : title}
       width="xl"
       position="right"
       headerRight={
@@ -874,20 +1019,20 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                         type="radio"
                         name="partyType"
                         value="customer"
-                        checked={partyType === "customer"}
+                        checked={partyType === "Customer"}
                         onChange={(e) =>
-                          setPartyType(e.target.value as "customer")
+                          setPartyType(e.target.value as "Customer")
                         }
                         className="sr-only"
                       />
                       <span
                         className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
-                          partyType === "customer"
+                          partyType === "Customer"
                             ? "border-blue-600"
                             : "border-gray-300"
                         } bg-white`}
                       >
-                        {partyType === "customer" && (
+                        {partyType === "Customer" && (
                           <span className="w-2 h-2 rounded-full bg-blue-600" />
                         )}
                       </span>
@@ -901,20 +1046,20 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                         type="radio"
                         name="partyType"
                         value="vendor"
-                        checked={partyType === "vendor"}
+                        checked={partyType === "Vendor"}
                         onChange={(e) =>
-                          setPartyType(e.target.value as "vendor")
+                          setPartyType(e.target.value as "Vendor")
                         }
                         className="sr-only"
                       />
                       <span
                         className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
-                          partyType === "vendor"
+                          partyType === "Vendor"
                             ? "border-blue-600"
                             : "border-gray-300"
                         } bg-white`}
                       >
-                        {partyType === "vendor" && (
+                        {partyType === "Vendor" && (
                           <span className="w-2 h-2 rounded-full bg-blue-600" />
                         )}
                       </span>
@@ -929,7 +1074,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
             <div className="mt-4 pt-4 border-t border-gray-200">
               {!initialCustomer ? (
-                disablePartyType || partyType === "customer" ? (
+                disablePartyType || partyType === "Customer" ? (
                   <div className="relative">
                     <label className="block text-[13px] font-medium text-gray-700 mb-2">
                       Search by Customer Name/ID
@@ -1477,19 +1622,9 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                                   <input
                                     type="checkbox"
                                     checked={isSelected}
-                                    onChange={(e) => {
-                                      const key =
-                                        row.quotationId || row.bookingId;
-                                      const newSet = new Set(
-                                        selectedManualRows,
-                                      );
-                                      if (e.target.checked) {
-                                        newSet.add(key);
-                                      } else {
-                                        newSet.delete(key);
-                                      }
-                                      setSelectedManualRows(newSet);
-                                    }}
+                                    onChange={(e) =>
+                                      toggleManualSelect(idx, e.target.checked)
+                                    }
                                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                                   />
                                 </td>,
@@ -1533,13 +1668,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                                       const val = sanitizeAmountInput(
                                         e.target.value,
                                       );
-                                      setPendingDocRows((prev) =>
-                                        prev.map((r, i) =>
-                                          i === idx
-                                            ? { ...r, amountPaying: val }
-                                            : r,
-                                        ),
-                                      );
+                                      updateManualRowAmount(idx, val);
                                     }}
                                     className="w-32 mx-auto px-2 py-1 text-[13px] text-center border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-600"
                                   />
