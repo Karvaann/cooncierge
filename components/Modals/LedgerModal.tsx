@@ -11,10 +11,13 @@ import Modal from "../Modal";
 import DateRangeInput from "../DateRangeInput";
 import Table from "../Table";
 import ActionMenu from "../Menus/ActionMenu";
+import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import FilterTrigger from "../FilterTrigger";
 import type { FilterCardOption } from "../FilterCard";
 import AddPaymentSidesheet from "../Sidesheets/AddPaymentSidesheet";
 import ViewPaymentSidesheet from "../Sidesheets/ViewPaymentSidesheet";
+import ConfirmationModal from "../popups/ConfirmationModal";
+import DeletePaymentModal from "../Modals/DeletePaymentModal";
 import { PiArrowCircleUpRight } from "react-icons/pi";
 import { PiArrowCircleDownLeft } from "react-icons/pi";
 import { MdOutlineFileDownload } from "react-icons/md";
@@ -22,6 +25,10 @@ import PaymentsApi from "@/services/paymentsApi";
 import DropDown from "../DropDown";
 import { exportPDF, exportXLSX } from "@/utils/exportUtils";
 import { isWithinDateRange } from "@/utils/helper";
+import BookingFormSidesheet from "../BookingFormSidesheet";
+import BookingApiService from "@/services/bookingApi";
+import { getCustomerById } from "@/services/customerApi";
+import { getVendorById } from "@/services/vendorApi";
 
 type LedgerStatus = "paid" | "none" | "partial";
 
@@ -96,10 +103,82 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
 
   const [ledgerData, setLedgerData] = useState<any>(null);
 
+  const [bookingSidesheetOpen, setBookingSidesheetOpen] = useState(false);
+  const [bookingInitialData, setBookingInitialData] = useState<any>(null);
+  const [bookingCode, setBookingCode] = useState<string>("");
+
+  const derivedBookingService = useMemo(() => {
+    const quotationTypeRaw =
+      bookingInitialData?.quotationType ||
+      bookingInitialData?.data?.quotationType;
+    const quotationType = quotationTypeRaw ? String(quotationTypeRaw) : "";
+    if (!quotationType) return null;
+
+    type BookingServiceCategory =
+      | "travel"
+      | "accommodation"
+      | "transport-land"
+      | "activity"
+      | "transport-maritime"
+      | "tickets"
+      | "travel insurance"
+      | "visas"
+      | "others";
+
+    const normalizeCategory = (val: string): BookingServiceCategory => {
+      const v = String(val).toLowerCase().trim();
+      const map: Record<string, BookingServiceCategory> = {
+        flight: "travel",
+        flights: "travel",
+        travel: "travel",
+        hotel: "accommodation",
+        hotels: "accommodation",
+        accommodation: "accommodation",
+        "transport-land": "transport-land",
+        "land-transport": "transport-land",
+        car: "transport-land",
+        land: "transport-land",
+        transportation: "transport-land",
+        "transport-maritime": "transport-maritime",
+        maritime: "transport-maritime",
+        tickets: "tickets",
+        ticket: "tickets",
+        activity: "activity",
+        activities: "activity",
+        insurance: "travel insurance",
+        "travel insurance": "travel insurance",
+        visa: "visas",
+        visas: "visas",
+        others: "others",
+        package: "others",
+      };
+      return map[v] || "others";
+    };
+
+    const prettyTitle =
+      quotationType.toLowerCase() === "hotel"
+        ? "Accommodation"
+        : quotationType
+            .split("-")
+            .join(" ")
+            .replace(/\b\w/g, (c: string) => c.toUpperCase());
+
+    return {
+      id: quotationType,
+      title: prettyTitle,
+      image: "",
+      category: normalizeCategory(quotationType),
+    };
+  }, [bookingInitialData]);
+
   const [isViewPaymentOpen, setIsViewPaymentOpen] = useState(false);
   const [selectedLedgerRow, setSelectedLedgerRow] = useState<LedgerRow | null>(
     null,
   );
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [deleteTargetEntry, setDeleteTargetEntry] = useState<any | null>(null);
+  const [paymentDeleteOpen, setPaymentDeleteOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<any | null>(null);
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
   const [pendingOnly, setPendingOnly] = useState(false);
@@ -121,31 +200,156 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     [],
   );
 
-  useEffect(() => {
-    const fetchLedger = async () => {
-      try {
-        if (isVendorLedger) {
-          const data = await PaymentsApi.getVendorLedger(rawId!);
-          setLedgerData(data);
-        } else {
-          const data = await PaymentsApi.getCustomerLedger(rawId!);
-          setLedgerData(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch ledger:", err);
+  const fetchLedger = async () => {
+    try {
+      if (!rawId) return;
+
+      if (isVendorLedger) {
+        const data = await PaymentsApi.getVendorLedger(rawId);
+        setLedgerData(data);
+      } else {
+        const data = await PaymentsApi.getCustomerLedger(rawId);
+        setLedgerData(data);
       }
-    };
+    } catch (err) {
+      console.error("Failed to fetch ledger:", err);
+    }
+  };
+
+  const resolveQuotationIdFromEntry = (entry: any): string => {
+    try {
+      const candidate =
+        entry?.referenceId ||
+        entry?.data?._id ||
+        entry?.data?.id ||
+        entry?._id ||
+        entry?.id;
+      return candidate ? String(candidate) : "";
+    } catch {
+      return "";
+    }
+  };
+
+  const normalizeMongoId = (value: unknown): string => {
+    try {
+      if (!value) return "";
+      if (typeof value === "string") return value.trim();
+      if (typeof value === "object") {
+        const maybeId = (value as any)?._id ?? (value as any)?.id;
+        return typeof maybeId === "string" ? maybeId.trim() : "";
+      }
+      return "";
+    } catch {
+      return "";
+    }
+  };
+
+  const withHydratedPartyObjects = async (quotation: any) => {
+    try {
+      if (!quotation) return quotation;
+
+      const customerIdVal = normalizeMongoId(quotation.customerId);
+      const vendorIdVal = normalizeMongoId(quotation.vendorId);
+
+      const shouldFetchCustomer =
+        Boolean(customerIdVal) &&
+        (typeof quotation.customerId !== "object" ||
+          !quotation.customerId?._id ||
+          !quotation.customerId?.name);
+      const shouldFetchVendor =
+        Boolean(vendorIdVal) &&
+        (typeof quotation.vendorId !== "object" ||
+          !quotation.vendorId?._id ||
+          (!quotation.vendorId?.companyName &&
+            !quotation.vendorId?.contactPerson));
+
+      const [customer, vendor] = await Promise.all([
+        shouldFetchCustomer
+          ? getCustomerById(customerIdVal).catch(() => null)
+          : Promise.resolve(null),
+        shouldFetchVendor
+          ? getVendorById(vendorIdVal).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+
+      return {
+        ...quotation,
+        customerId: customer
+          ? {
+              _id: customer._id,
+              name: customer.name,
+              email: customer.email,
+              phone: customer.phone,
+            }
+          : quotation.customerId,
+        vendorId: vendor
+          ? {
+              _id: vendor._id,
+              companyName: vendor.companyName,
+              contactPerson: vendor.contactPerson,
+              email: vendor.email,
+              phone: vendor.phone,
+            }
+          : quotation.vendorId,
+      };
+    } catch (err) {
+      console.error("Failed to hydrate customer/vendor:", err);
+      return quotation;
+    }
+  };
+
+  const openEditBookingFromLedgerEntry = async (entry: any) => {
+    try {
+      const quotationId = resolveQuotationIdFromEntry(entry);
+      if (!quotationId) return;
+
+      setBookingCode(entry?.customId || "");
+      // Open immediately using entry.data as fallback, then hydrate via API.
+      setBookingInitialData(
+        await withHydratedPartyObjects(entry?.data ?? null),
+      );
+      setBookingSidesheetOpen(true);
+
+      const resp = await BookingApiService.getQuotationById(quotationId);
+      if (resp?.success) {
+        const apiPayload: any = resp.data;
+        const quotation = apiPayload?.quotation;
+        if (quotation) {
+          const hydrated = await withHydratedPartyObjects(quotation);
+          setBookingInitialData(hydrated);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to open booking for edit:", err);
+      // Still allow the sidesheet to open with whatever we have
+      setBookingSidesheetOpen(true);
+    }
+  };
+
+  useEffect(() => {
     if (isOpen) {
       fetchLedger();
     }
-  }, [isOpen, customerName, rawId]);
+  }, [isOpen, rawId, isVendorLedger]);
 
-  // Normalize an entry (ledgerData.entries item) into a payment-like object
+  // Normalize an entry into a payment-like object
   // Expect the API to send the payment object with the known shape.
-  // Keep mapping minimal and avoid deep fallback chains.
   const normalizeEntryToPayment = (entry: any) => {
     if (!entry) return null;
     const data = entry.data || {};
+    // Resolve partyId to prefer nested Mongo _id when available
+    const rawPartyId = data.partyId ?? entry.partyId;
+    const resolvedPartyId =
+      rawPartyId && typeof rawPartyId === "object"
+        ? rawPartyId._id || rawPartyId.id || rawPartyId
+        : rawPartyId;
+
+    const resolvedPartyName =
+      (data.partyId && typeof data.partyId === "object" && data.partyId.name) ||
+      entry.partyName ||
+      (data.party && typeof data.party === "object" && data.party.name) ||
+      "";
+
     const payment = {
       customId: entry.customId || data.customId,
       _id: data._id || entry._id || entry.referenceId,
@@ -165,15 +369,15 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
       allocations: entry.allocations || data.allocations || [],
       outstandingAmount: data.unallocatedAmount || entry.unallocatedAmount,
       party: data.party || entry.party,
-      partyId: data.partyId || entry.partyId,
-      partyName: data.partyId?.name || entry.partyName,
+      partyId: resolvedPartyId,
+      partyName: resolvedPartyName,
       bankCharges: data.bankCharges || entry.bankCharges,
       bankChargesNotes: data.bankChargesNotes || entry.bankChargesNotes,
       cashbackReceived: data.cashbackReceived || entry.cashbackReceived,
       cashbackNotes: data.cashbackNotes || entry.cashbackNotes,
       data: data,
       // keep original entry for reference
-      _entry: entry,
+      // _entry: entry,
     } as any;
 
     return payment;
@@ -321,6 +525,77 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     return filteredEntries.map((r: any, index: any) => {
       console.log(r);
 
+      const rowActions = (() => {
+        if (r.type === "payment") {
+          return [
+            {
+              label: "Edit",
+              icon: <FaRegEdit />,
+              color: "text-blue-600",
+              onClick: () => {
+                const payment = normalizeEntryToPayment(r);
+                setSelectedLedgerRow(payment);
+                setPaymentSidesheetMode("edit");
+                const customId = payment.customId || "";
+                setPaymentSidesheetTitle(
+                  customId.startsWith("PI-") ? "Payment In" : "Payment Out",
+                );
+                setPaymentInitial({
+                  amount: String(payment.amount || ""),
+                  paymentDate: payment.paymentDate || "",
+                  bank:
+                    payment.data?.bankId?._id ||
+                    payment.bank?._id ||
+                    payment.bank ||
+                    r.data?.bankId?._id ||
+                    r.bank?._id ||
+                    r.bankId ||
+                    "",
+                  paymentType: payment.paymentType || "",
+                  internalNotes: payment.internalNotes || "",
+                  bankCharges: String(payment.bankCharges || ""),
+                  bankChargesNotes: payment.bankChargesNotes || "",
+                  cashbackReceived: String(payment.cashbackReceived || ""),
+                  cashbackNotes: payment.cashbackNotes || "",
+                });
+                setPaymentSidesheetOpen(true);
+              },
+            },
+            {
+              label: "Delete",
+              icon: <FaRegTrashAlt />,
+              color: "text-red-600",
+              onClick: () => {
+                setPaymentToDelete(r);
+                setPaymentDeleteOpen(true);
+              },
+            },
+          ];
+        }
+
+        if (r.type === "quotation") {
+          return [
+            {
+              label: "Edit",
+              icon: <FaRegEdit />,
+              color: "text-blue-600",
+              onClick: () => openEditBookingFromLedgerEntry(r),
+            },
+            {
+              label: "Delete",
+              icon: <FaRegTrashAlt />,
+              color: "text-red-600",
+              onClick: () => {
+                setDeleteTargetEntry(r);
+                setConfirmDeleteOpen(true);
+              },
+            },
+          ];
+        }
+
+        return [];
+      })();
+
       // show travel date when selected, otherwise booking date
       const displayedDate = (() => {
         if (r.type === "payment") {
@@ -423,49 +698,9 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
               <FiEye className="text-[#8B6914]" size={16} />
             </button>
 
-            <ActionMenu
-              width="w-24"
-              actions={[
-                {
-                  label: "Edit",
-                  onClick: () => {
-                    // Normalize entry and open AddPaymentSidesheet in edit mode
-                    const payment = normalizeEntryToPayment(r);
-                    setSelectedLedgerRow(payment);
-                    setPaymentSidesheetMode("edit");
-                    // Title based on customId prefix: PI- = Payment In, PO- = Payment Out
-                    const customId = payment.customId || "";
-                    setPaymentSidesheetTitle(
-                      customId.startsWith("PI-") ? "Payment In" : "Payment Out",
-                    );
-                    setPaymentInitial({
-                      amount: String(payment.amount || ""),
-                      paymentDate: payment.paymentDate || "",
-                      bank:
-                        payment.data?.bankId?._id ||
-                        payment.bank?._id ||
-                        payment.bank ||
-                        r.data?.bankId?._id ||
-                        r.bank?._id ||
-                        r.bankId ||
-                        "",
-                      paymentType: payment.paymentType || "",
-                      internalNotes: payment.internalNotes || "",
-                      bankCharges: String(payment.bankCharges || ""),
-                      bankChargesNotes: payment.bankChargesNotes || "",
-                      cashbackReceived: String(payment.cashbackReceived || ""),
-                      cashbackNotes: payment.cashbackNotes || "",
-                    });
-                    setPaymentSidesheetOpen(true);
-                  },
-                },
-                {
-                  label: "Delete",
-                  color: "text-red-600",
-                  onClick: () => console.log("Delete row:", r),
-                },
-              ]}
-            />
+            {rowActions.length > 0 ? (
+              <ActionMenu width="w-24" actions={rowActions} />
+            ) : null}
           </div>
         </td>,
       ];
@@ -513,6 +748,36 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     });
     setIsViewPaymentOpen(false);
     setPaymentSidesheetOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      if (!deleteTargetEntry) return;
+      // Confirmation modal used for deleting quotations only
+      const quotationId = resolveQuotationIdFromEntry(deleteTargetEntry);
+      if (!quotationId) {
+        console.error("No quotation id found for deletion");
+        setConfirmDeleteOpen(false);
+        setDeleteTargetEntry(null);
+        return;
+      }
+
+      const resp = await BookingApiService.deleteQuotation(quotationId);
+      if (resp?.success) {
+        setConfirmDeleteOpen(false);
+        setDeleteTargetEntry(null);
+        await fetchLedger();
+        onRefresh?.();
+      } else {
+        console.error("Failed to delete quotation:", resp?.message || resp);
+        setConfirmDeleteOpen(false);
+        setDeleteTargetEntry(null);
+      }
+    } catch (err) {
+      console.error("Error deleting quotation:", err);
+      setConfirmDeleteOpen(false);
+      setDeleteTargetEntry(null);
+    }
   };
 
   const headerLeft = (
@@ -740,7 +1005,13 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                   headerRowTextClassName="text-[#414141]"
                   headerCellTextClassName="text-[#414141]"
                   sortableHeaderHoverClass="bg-gray-50"
-                  onRowClick={handleOpenViewPaymentByRowIndex}
+                  onRowClick={(rowIndex) => {
+                    const row = filteredEntries[rowIndex];
+                    if (row?.type === "payment") {
+                      setSelectedLedgerRow(normalizeEntryToPayment(row));
+                      setIsViewPaymentOpen(true);
+                    }
+                  }}
                 />
               )}
             </div>
@@ -791,7 +1062,11 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         isOpen={isViewPaymentOpen}
         onClose={() => setIsViewPaymentOpen(false)}
         onEdit={handleEditFromViewPayment}
-        onDelete={() => console.log("Delete payment:", selectedLedgerRow)}
+        onDeleted={async () => {
+          setIsViewPaymentOpen(false);
+          setSelectedLedgerRow(null);
+          await fetchLedger(); // refresh ledger after delete
+        }}
         payment={selectedLedgerRow}
       />
       {/* Payment Sidesheet triggered from Ledger actions */}
@@ -816,6 +1091,52 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         onDelete={() =>
           console.log("Delete payment from edit header", paymentInitial)
         }
+      />
+
+      <ConfirmationModal
+        isOpen={confirmDeleteOpen}
+        onClose={() => {
+          setConfirmDeleteOpen(false);
+          setDeleteTargetEntry(null);
+        }}
+        title={
+          deleteTargetEntry?.customId
+            ? `Delete ${deleteTargetEntry.customId}?`
+            : "Delete booking?"
+        }
+        confirmText="Yes, Delete"
+        cancelText="No"
+        confirmButtonColor="bg-red-600"
+        onConfirm={handleConfirmDelete}
+      />
+
+      <DeletePaymentModal
+        isOpen={paymentDeleteOpen}
+        onClose={() => {
+          setPaymentDeleteOpen(false);
+          setPaymentToDelete(null);
+        }}
+        payment={normalizeEntryToPayment(paymentToDelete) || paymentToDelete}
+        onDeleted={async () => {
+          setPaymentDeleteOpen(false);
+          setPaymentToDelete(null);
+          await fetchLedger();
+          onRefresh?.();
+        }}
+      />
+
+      <BookingFormSidesheet
+        isOpen={bookingSidesheetOpen}
+        onClose={async () => {
+          setBookingSidesheetOpen(false);
+          setBookingInitialData(null);
+          setBookingCode("");
+          await fetchLedger();
+        }}
+        selectedService={derivedBookingService}
+        initialData={bookingInitialData}
+        mode="edit"
+        bookingCode={bookingCode}
       />
     </>
   );

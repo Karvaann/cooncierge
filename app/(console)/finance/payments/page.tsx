@@ -9,25 +9,23 @@ import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import { HiArrowsUpDown } from "react-icons/hi2";
-import {
-  getNextTriSortState,
-  type TriSortState,
-  getItemTimestamp,
-} from "@/utils/sorting";
+import { getNextTriSortState, type TriSortState } from "@/utils/sorting";
 import { PiArrowCircleUpRight } from "react-icons/pi";
 import { PiArrowCircleDownLeft } from "react-icons/pi";
 import { CiFilter } from "react-icons/ci";
 import type { FilterCardOption } from "@/components/FilterCard";
 import FilterTrigger from "@/components/FilterTrigger";
 
+import AddPaymentSidesheet from "@/components/Sidesheets/AddPaymentSidesheet";
+import PaymentsApi from "@/services/paymentsApi";
+import ConfirmationModal from "@/components/popups/ConfirmationModal";
+import BankApi from "@/services/bankApi";
+import CustomIdApi from "@/services/customIdApi";
+
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
   ssr: false,
 });
-
-import AddPaymentSidesheet from "@/components/Sidesheets/AddPaymentSidesheet";
-import PaymentsApi from "@/services/paymentsApi";
-import CustomIdApi from "@/services/customIdApi";
 
 // Column definitions
 const columns: string[] = [
@@ -61,8 +59,13 @@ type PaymentRow = {
   amount: number;
   amountType: "gave" | "got";
   account: string;
+  paymentType: string;
+  paymentDateRaw: string | null;
   date: string;
   createdAt: string;
+  id?: string | null;
+  bankId?: string | null;
+  partyType?: "Customer" | "Vendor";
 };
 
 // const dummyPayments: PaymentRow[] = [
@@ -173,43 +176,9 @@ const PaymentsPage = () => {
   const [linkedBookingFilter, setLinkedBookingFilter] = useState<string[]>([]);
   const [amountFilter, setAmountFilter] = useState<("in" | "out")[]>([]);
   const [accountFilter, setAccountFilter] = useState<string[]>([]);
+  const [bankOptions, setBankOptions] = useState<FilterCardOption[]>([]);
 
   // Using shared `FilterTrigger` component from components/FilterTrigger.
-
-  const columnIconMap: Record<string, JSX.Element> = {
-    Date: (
-      <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[2]" />
-    ),
-    "Linked Booking": (
-      <FilterTrigger
-        ariaLabel="Filter Linked Booking"
-        options={serviceOptions}
-        onApply={(selected) => {
-          // selected = array of values like ["flights", "insurance"]
-          setLinkedBookingFilter(selected);
-        }}
-        children={
-          <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
-        }
-      />
-    ),
-    Amount: (
-      <FilterTrigger
-        ariaLabel="Filter Amount"
-        options={[
-          { value: "in", label: "Payment In" },
-          { value: "out", label: "Payment Out" },
-        ]}
-        onApply={(selected) => {
-          setAmountFilter(selected as ("in" | "out")[]);
-        }}
-        children={
-          <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
-        }
-      />
-    ),
-    Account: <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />,
-  };
 
   useEffect(() => {
     const updateIndicator = () => {
@@ -229,7 +198,12 @@ const PaymentsPage = () => {
   }, [activeTab, tabOptions]);
 
   const [payments, setPayments] = useState<PaymentRow[]>([]);
-  const [isLoadingPayments, setIsLoadingPayments] = useState<boolean>(false);
+  const [editingPayment, setEditingPayment] = useState<PaymentRow | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<{
+    id?: string | null;
+    customId?: string | null;
+  } | null>(null);
 
   const totalCount = useMemo(() => payments.length, [payments]);
 
@@ -256,37 +230,90 @@ const PaymentsPage = () => {
     setSortState((prev) => getNextTriSortState(prev, column));
   };
 
+  // Column icons (Date header shows tri-state visuals based on `sortState`)
+  const columnIconMap: Record<string, JSX.Element> = {
+    Date: (
+      <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[2]" />
+    ),
+    "Linked Booking": (
+      <FilterTrigger
+        ariaLabel="Filter Linked Booking"
+        options={serviceOptions}
+        onApply={(selected) => {
+          setLinkedBookingFilter(selected);
+        }}
+        children={
+          <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
+        }
+      />
+    ),
+    Amount: (
+      <FilterTrigger
+        ariaLabel="Filter Amount"
+        options={[
+          { value: "in", label: "Payment In" },
+          { value: "out", label: "Payment Out" },
+        ]}
+        onApply={(selected) => {
+          setAmountFilter(selected as ("in" | "out")[]);
+        }}
+        children={
+          <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
+        }
+      />
+    ),
+    Account: (
+      <FilterTrigger
+        ariaLabel="Filter Account"
+        options={bankOptions}
+        onApply={(selected) => {
+          setAccountFilter(selected);
+        }}
+        children={
+          <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
+        }
+      />
+    ),
+  };
+
   // Apply sorting to payments
   const sortedPayments = useMemo(() => {
-    const list = [...payments];
-
-    if (!sortState.key || sortState.direction === "none") {
-      return list;
+    if (sortState.key !== "Date" || sortState.direction === "none") {
+      return payments;
     }
 
-    const withIndex = list.map((item, originalIndex) => ({
+    const getPaymentTimestamp = (item: PaymentRow): number | null => {
+      const raw = item.paymentDateRaw || item.createdAt;
+      if (!raw) return null;
+      const ts = new Date(raw).getTime();
+      return Number.isFinite(ts) ? ts : null;
+    };
+
+    // Stable sort: keep original order for ties.
+    const withIndex = payments.map((item, originalIndex) => ({
       item,
       originalIndex,
     }));
 
     withIndex.sort((a, b) => {
-      let cmp = 0;
-      if (sortState.key === "Date") {
-        const ta = new Date(a.item.createdAt).getTime();
-        const tb = new Date(b.item.createdAt).getTime();
-        cmp = ta - tb;
-      }
+      const at = getPaymentTimestamp(a.item);
+      const bt = getPaymentTimestamp(b.item);
 
-      if (cmp === 0) return a.originalIndex - b.originalIndex;
-      return sortState.direction === "asc" ? cmp : -cmp;
+      // Always keep missing/invalid dates at the bottom.
+      if (at === null && bt === null) return a.originalIndex - b.originalIndex;
+      if (at === null) return 1;
+      if (bt === null) return -1;
+
+      const diff = at - bt;
+      if (diff !== 0) return sortState.direction === "asc" ? diff : -diff;
+      return a.originalIndex - b.originalIndex;
     });
 
     return withIndex.map((x) => x.item);
-  }, [sortState, payments]);
+  }, [payments, sortState.direction, sortState.key]);
 
   // Fetch payments whenever activeTab changes (status/isDeleted)
   const fetchPayments = useCallback(async () => {
-    setIsLoadingPayments(true);
     try {
       const params: any = {};
       if (activeTab === "Pending") params.status = "pending";
@@ -334,12 +361,29 @@ const PaymentsPage = () => {
         const amount = Number(p.amount || 0);
         const amountType = p.entryType === "credit" ? "got" : "gave";
         const account = (p.bankId && (p.bankId.name || p.bankId)) || "Cash";
+        const paymentType = String(p.paymentType || "cash");
+        const paymentDateRaw = p.paymentDate ? String(p.paymentDate) : null;
         const date = p.paymentDate
           ? new Date(p.paymentDate).toLocaleDateString()
           : p.createdAt
             ? new Date(p.createdAt).toLocaleDateString()
             : "";
         const createdAt = p.createdAt || new Date().toISOString();
+        const inferredPartyType: "Customer" | "Vendor" = (():
+          | "Customer"
+          | "Vendor" => {
+          try {
+            if (p && p.partyId && typeof p.partyId === "object") {
+              // presence of companyName/contactPerson suggests a vendor
+              if (p.partyId.companyName || p.partyId.contactPerson)
+                return "Vendor";
+            }
+            return "Customer";
+          } catch {
+            return "Customer";
+          }
+        })();
+
         return {
           paymentId,
           partyName,
@@ -347,16 +391,22 @@ const PaymentsPage = () => {
           amount,
           amountType: amountType as "gave" | "got",
           account,
+          paymentType,
+          paymentDateRaw,
           date,
           createdAt,
+          id: p._id ? String(p._id) : null,
+          bankId:
+            p.bankId && (p.bankId._id || p.bankId)
+              ? String(p.bankId._id || p.bankId)
+              : null,
+          partyType: inferredPartyType,
         };
       });
       setPayments(mapped);
     } catch (err) {
       console.error("Failed to load payments", err);
       setPayments([]);
-    } finally {
-      setIsLoadingPayments(false);
     }
   }, [activeTab]);
 
@@ -370,6 +420,30 @@ const PaymentsPage = () => {
       cancelled = true;
     };
   }, [fetchPayments]);
+
+  // Load bank list for Account filter
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const resp = await BankApi.getBanks({ isDeleted: false });
+        const list = (resp?.banks || resp?.data || resp || []) as any[];
+        const opts: FilterCardOption[] = [
+          { value: "Cash", label: "Cash" },
+          ...list.map((b) => ({
+            value: String(b.name || b._id || b),
+            label: String(b.name || b._id || b),
+          })),
+        ];
+        if (mounted) setBankOptions(opts);
+      } catch (e) {
+        console.error("Failed to load banks for filter", e);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Convert payments to table data
   // apply date & search filtering
@@ -429,6 +503,17 @@ const PaymentsPage = () => {
         if (!matchesBooking) return false;
       }
 
+      /* Account filter */
+      if (accountFilter.length > 0) {
+        // payments' `account` holds bank name or 'Cash'
+        const matchesAccount = accountFilter.some((val) =>
+          String(p.account || "")
+            .toLowerCase()
+            .includes(String(val || "").toLowerCase()),
+        );
+        if (!matchesAccount) return false;
+      }
+
       /* Amount filter */
       if (amountFilter.length > 0) {
         const paymentType = p.amountType === "got" ? "in" : "out";
@@ -443,6 +528,7 @@ const PaymentsPage = () => {
     endDate,
     effectiveSearch,
     linkedBookingFilter,
+    accountFilter,
     amountFilter,
   ]);
 
@@ -475,7 +561,23 @@ const PaymentsPage = () => {
           </span>
         </td>,
         <td key={`account-${index}`} className="px-4 py-3 text-center">
-          {payment.account}
+          <div className="relative inline-flex items-center justify-center">
+            <span className="peer cursor-default">{payment.account}</span>
+
+            <div
+              className="absolute -top-8 left-1/2 z-50 px-2 py-1 text-[0.75rem] text-white bg-gray-800 rounded-md shadow-lg pointer-events-none -translate-x-1/2 transition-opacity duration-150 ease-in-out opacity-0 invisible whitespace-nowrap peer-hover:opacity-100 peer-hover:visible"
+              role="tooltip"
+            >
+              {String(payment.paymentType || "cash").toUpperCase()}
+              <div
+                className="absolute left-1/2 -bottom-1 w-2.5 h-2.5 bg-gray-800"
+                style={{
+                  transform: "translateX(-50%) rotate(45deg)",
+                  WebkitTransform: "translateX(-50%) rotate(45deg)",
+                }}
+              />
+            </div>
+          </div>
         </td>,
         <td key={`date-${index}`} className="px-4 py-3 text-center">
           <div className="text-[13px]">{payment.date}</div>
@@ -505,7 +607,8 @@ const PaymentsPage = () => {
                   icon: <FaRegEdit />,
                   color: "text-blue-600",
                   onClick: () => {
-                    console.log("Edit payment:", payment.paymentId);
+                    setEditingPayment(payment);
+                    setIsAddPaymentOpen(true);
                   },
                 },
                 {
@@ -513,7 +616,11 @@ const PaymentsPage = () => {
                   icon: <FaRegTrashAlt />,
                   color: "text-red-600",
                   onClick: () => {
-                    console.log("Delete payment:", payment.paymentId);
+                    setPaymentToDelete({
+                      id: payment.id || null,
+                      customId: payment.paymentId || null,
+                    });
+                    setIsConfirmOpen(true);
                   },
                 },
               ]}
@@ -690,23 +797,78 @@ const PaymentsPage = () => {
 
       <AddPaymentSidesheet
         isOpen={isAddPaymentOpen}
-        title={addPaymentMode === "in" ? "Payment In" : "Payment Out"}
+        title={
+          editingPayment
+            ? "Edit Payment"
+            : addPaymentMode === "in"
+              ? "Payment In"
+              : "Payment Out"
+        }
+        mode={editingPayment ? "edit" : "create"}
+        initialPayment={
+          editingPayment
+            ? ({
+                _id: editingPayment.id || undefined,
+                amount: String(editingPayment.amount || ""),
+                paymentDate:
+                  editingPayment.paymentDateRaw || editingPayment.createdAt,
+                bank:
+                  editingPayment.bankId ||
+                  (editingPayment.account === "Cash"
+                    ? ""
+                    : editingPayment.account),
+                paymentType: String(
+                  editingPayment.paymentType || "",
+                ).toUpperCase(),
+                internalNotes: "",
+              } as any)
+            : undefined
+        }
         customId={generatedPaymentCustomId}
+        // opened from payments list edit action -> hide view button
+        showViewButton={editingPayment ? false : true}
+        prefillPartyName={editingPayment ? editingPayment.partyName : null}
+        prefillPartyType={editingPayment ? editingPayment.partyType : null}
         entryTypeDefault={addPaymentMode === "out" ? "credit" : "debit"}
         onClose={() => {
           setIsAddPaymentOpen(false);
           setGeneratedPaymentCustomId(null);
+          setEditingPayment(null);
         }}
         onSubmit={async (data) => {
           console.log("AddPaymentSidesheet submitted:", data);
           setIsAddPaymentOpen(false);
           setGeneratedPaymentCustomId(null);
+          setEditingPayment(null);
           try {
             await fetchPayments();
           } catch (e) {
-            console.error("Failed to refresh payments after create", e);
+            console.error("Failed to refresh payments after create/update", e);
           }
         }}
+      />
+      <ConfirmationModal
+        isOpen={isConfirmOpen}
+        onClose={() => {
+          setIsConfirmOpen(false);
+          setPaymentToDelete(null);
+        }}
+        onConfirm={async () => {
+          try {
+            if (paymentToDelete?.id) {
+              await PaymentsApi.deletePayment(String(paymentToDelete.id));
+              await fetchPayments();
+            }
+          } catch (err) {
+            console.error("Failed to delete payment", err);
+          } finally {
+            setIsConfirmOpen(false);
+            setPaymentToDelete(null);
+          }
+        }}
+        title={`Do you want to Delete ${paymentToDelete?.customId || "payment"}?`}
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
       />
     </div>
   );

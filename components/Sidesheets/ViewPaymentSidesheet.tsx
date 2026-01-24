@@ -11,8 +11,9 @@ type ViewPaymentTab = "settled" | "history";
 interface ViewPaymentSidesheetProps {
   isOpen: boolean;
   onClose: () => void;
+  onDeleted?: () => void;
   onEdit?: (paymentData: any) => void;
-  onDelete?: () => void;
+
   payment?: any; // The actual payment data from API
 }
 
@@ -20,7 +21,7 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
   isOpen,
   onClose,
   onEdit,
-  onDelete,
+  onDeleted,
   payment,
 }) => {
   const [activeTab, setActiveTab] = useState<ViewPaymentTab>("settled");
@@ -307,8 +308,10 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
       <DeletePaymentModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
-        onConfirm={() => {
-          onDelete?.();
+        onDeleted={() => {
+          setIsDeleteModalOpen(false);
+          onClose(); // close sidesheet
+          onDeleted?.(); // refresh payments list / ledger
         }}
         payment={payment}
       />

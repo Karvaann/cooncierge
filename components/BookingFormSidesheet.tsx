@@ -310,7 +310,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
   // In "view" modestart read-only, but allow the user to toggle into edit.
   const [readOnlyOverride, setReadOnlyOverride] = useState<boolean | null>(
-    null
+    null,
   );
   const isReadOnly = readOnlyOverride ?? mode === "view";
 
@@ -463,13 +463,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         isEnabled: true,
       },
     ],
-    []
+    [],
   );
 
   function convertToBookingData(
     input: any,
     quotationType: string,
-    serviceStatus: string
+    serviceStatus: string,
   ) {
     const user = getAuthUser() as any;
     const businessId = user?.businessId;
@@ -493,7 +493,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
     // Detect ANY key that ends with "infoform"
     const infoFormKey = Object.keys(input).find((k) =>
-      k.toLowerCase().endsWith("infoform")
+      k.toLowerCase().endsWith("infoform"),
     );
 
     // Extract and flatten the infoform object
@@ -504,7 +504,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
     // Everything except known fields and infoform goes to formFields
     const formFields = Object.fromEntries(
-      Object.entries(rest).filter(([key]) => key !== infoFormKey)
+      Object.entries(rest).filter(([key]) => key !== infoFormKey),
     );
 
     // Merge flattened infoform into formFields
@@ -527,6 +527,25 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       return /^[a-f\d]{24}$/i.test(v);
     };
 
+    const resolveMongoObjectId = (...candidates: unknown[]): string => {
+      for (const candidate of candidates) {
+        if (!candidate) continue;
+        if (typeof candidate === "string") {
+          const v = candidate.trim();
+          if (isValidMongoObjectId(v)) return v;
+          continue;
+        }
+        if (typeof candidate === "object") {
+          const maybeId = (candidate as any)?._id ?? (candidate as any)?.id;
+          if (typeof maybeId === "string") {
+            const v = maybeId.trim();
+            if (isValidMongoObjectId(v)) return v;
+          }
+        }
+      }
+      return "";
+    };
+
     const sanitizeObjectIdList = (ids: unknown): string[] => {
       if (!Array.isArray(ids)) return [];
       return (ids as unknown[])
@@ -539,7 +558,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     // current UI stores "child" travellers under infantTravellerIds/infants/childAges.
     const adultTravelers = sanitizeObjectIdList(adultTravellerIds);
     const childTravelerIds = sanitizeObjectIdList(
-      (input as any)?.childTravellerIds ?? infantTravellerIds
+      (input as any)?.childTravellerIds ?? infantTravellerIds,
     );
     const childAgesList: Array<number | null> = Array.isArray(childAges)
       ? (childAges as Array<number | null>)
@@ -558,19 +577,19 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     const primaryOwnerId = isValidMongoObjectId(primaryOwnerCandidate)
       ? primaryOwnerCandidate
       : isValidMongoObjectId(authUserCandidate)
-      ? authUserCandidate
-      : "";
+        ? authUserCandidate
+        : "";
 
     const rawSecondaryOwnerIds: string[] = Array.isArray(secondaryBookingOwners)
       ? (secondaryBookingOwners as unknown[])
           .map((v) => String(v).trim())
           .filter(Boolean)
       : secondaryBookingOwner
-      ? [String(secondaryBookingOwner).trim()].filter(Boolean)
-      : [];
+        ? [String(secondaryBookingOwner).trim()].filter(Boolean)
+        : [];
 
     const secondaryOwnerIds: string[] = rawSecondaryOwnerIds.filter((id) =>
-      isValidMongoObjectId(id)
+      isValidMongoObjectId(id),
     );
 
     const filteredSecondaryOwnerIds = secondaryOwnerIds
@@ -610,12 +629,25 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     bookingDataTemp.append("primaryOwner", String(primaryOwnerId));
     bookingDataTemp.append(
       "secondaryOwner",
-      JSON.stringify(filteredSecondaryOwnerIds)
+      JSON.stringify(filteredSecondaryOwnerIds),
     );
     bookingDataTemp.append("owner", JSON.stringify(legacyOwnerIds));
     bookingDataTemp.append("travelDate", traveldate || flatInfoForm.traveldate);
-    bookingDataTemp.append("customerId", input.customer);
-    bookingDataTemp.append("vendorId", input.vendor);
+    const resolvedCustomerId = resolveMongoObjectId(
+      input.customer,
+      (input as any)?.customerId,
+      (input as any)?.customerId?._id,
+    );
+    const resolvedVendorId = resolveMongoObjectId(
+      input.vendor,
+      (input as any)?.vendorId,
+      (input as any)?.vendorId?._id,
+    );
+
+    // Only send valid ids; never send empty string (breaks backend casting)
+    if (resolvedCustomerId)
+      bookingDataTemp.append("customerId", resolvedCustomerId);
+    if (resolvedVendorId) bookingDataTemp.append("vendorId", resolvedVendorId);
     bookingDataTemp.append("adultTravelers", JSON.stringify(adultTravelers));
     bookingDataTemp.append("childTravelers", JSON.stringify(childTravelers));
     bookingDataTemp.append("adultNumber", String(adults ?? 0));
@@ -654,7 +686,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     if (!quotationTypeForDraft) {
       console.error("No service selected or detected for draft");
       alert(
-        "Please select a service or set a service type before saving a draft"
+        "Please select a service or set a service type before saving a draft",
       );
       setIsSubmitting(false);
       return;
@@ -665,7 +697,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       const bookingData = convertToBookingData(
         formValues,
         quotationTypeForDraft,
-        "draft"
+        "draft",
       );
 
       // Prepare multipart form data
@@ -685,7 +717,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         setSuccessTitle(
           createdCustomId
             ? `Yaay! ${createdCustomId} has been successfully saved to drafts.`
-            : "Yaay! The Data has been successfully saved to drafts!"
+            : "Yaay! The Data has been successfully saved to drafts!",
         );
         setIsSuccessModalOpen(true);
 
@@ -700,11 +732,11 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         console.error(
           "Failed to create booking:",
           response.message,
-          response.errors
+          response.errors,
         );
         // show existing alert and also display error toast with API message
         alert(
-          `Failed to create booking: ${response.message || "Unknown error"}`
+          `Failed to create booking: ${response.message || "Unknown error"}`,
         );
         setApiErrorMessage(response.message || "Failed to create booking");
         setShowApiErrorToast(true);
@@ -742,7 +774,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       if (!quotationTypeForSubmit) {
         console.error("No service selected or detected for submit");
         alert(
-          "Please select a service or set a service type before submitting"
+          "Please select a service or set a service type before submitting",
         );
         setIsSubmitting(false);
         return;
@@ -756,7 +788,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       const bookingData = convertToBookingData(
         formValues,
         quotationTypeForSubmit,
-        serviceStatus
+        serviceStatus,
       );
 
       const response = isEditingExisting
@@ -771,8 +803,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           createdCustomId
             ? `Yaay! ${createdCustomId} has been successfully saved.`
             : isEditingExisting
-            ? "Yaay! The Data has been successfully updated."
-            : "Yaay! The Data has been successfully saved."
+              ? "Yaay! The Data has been successfully updated."
+              : "Yaay! The Data has been successfully saved.",
         );
         setIsSuccessModalOpen(true);
 
@@ -787,10 +819,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         console.error(
           "Failed to create booking:",
           response.message,
-          response.errors
+          response.errors,
         );
         alert(
-          `Failed to create booking: ${response.message || "Unknown error"}`
+          `Failed to create booking: ${response.message || "Unknown error"}`,
         );
         setApiErrorMessage(response.message || "Failed to create booking");
         setShowApiErrorToast(true);
@@ -820,7 +852,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         setActiveTab(tabId);
       }
     },
-    [tabs]
+    [tabs],
   );
 
   // Form data update handler
@@ -852,8 +884,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
             activeTab === tab.id
               ? "text-[#0D4B37]"
               : tab.isEnabled
-              ? "text-gray-500 hover:text-gray-700"
-              : "text-gray-300 cursor-not-allowed"
+                ? "text-gray-500 hover:text-gray-700"
+                : "text-gray-300 cursor-not-allowed"
           }
         `}
           onClick={() => handleTabClick(tab.id)}
@@ -868,7 +900,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           )}
         </button>
       )),
-    [tabs, activeTab, handleTabClick]
+    [tabs, activeTab, handleTabClick],
   );
 
   // Memoized active tab content
@@ -1002,7 +1034,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                       text="Previous"
                       onClick={() => {
                         const currentIndex = tabs.findIndex(
-                          (tab) => tab.id === activeTab
+                          (tab) => tab.id === activeTab,
                         );
                         const prevTab = tabs[currentIndex - 1];
                         if (prevTab?.isEnabled) setActiveTab(prevTab.id);
@@ -1038,7 +1070,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           text="Next"
                           onClick={() => {
                             const currentIndex = tabs.findIndex(
-                              (tab) => tab.id === activeTab
+                              (tab) => tab.id === activeTab,
                             );
                             const nextTab = tabs[currentIndex + 1];
                             if (nextTab?.isEnabled) setActiveTab(nextTab.id);
@@ -1087,7 +1119,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           text="Next"
                           onClick={() => {
                             const currentIndex = tabs.findIndex(
-                              (tab) => tab.id === activeTab
+                              (tab) => tab.id === activeTab,
                             );
                             const nextTab = tabs[currentIndex + 1];
                             if (nextTab?.isEnabled) setActiveTab(nextTab.id);
@@ -1186,7 +1218,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 };
 
 export default function BookingFormSidesheetWrapper(
-  props: BookingFormSidesheetProps
+  props: BookingFormSidesheetProps,
 ) {
   return (
     <BookingProvider>

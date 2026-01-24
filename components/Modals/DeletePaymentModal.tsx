@@ -1,13 +1,16 @@
 "use client";
 
 import React from "react";
+import { useState } from "react";
 import Modal from "@/components/Modal";
 import { FiTrash2 } from "react-icons/fi";
+import PaymentsApi from "@/services/paymentsApi";
 
 interface DeletePaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm?: () => void;
+  onDeleted?: () => void;
   payment?: any;
 }
 
@@ -15,8 +18,13 @@ const DeletePaymentModal: React.FC<DeletePaymentModalProps> = ({
   isOpen,
   onClose,
   onConfirm,
+  onDeleted,
   payment,
 }) => {
+  const [loading, setLoading] = useState(false);
+
+  const paymentMongoId =
+    payment?._id || payment?.data?._id || payment?.paymentId;
   const formatDate = (dateString: string) => {
     if (!dateString) return "—";
     const date = new Date(dateString);
@@ -25,6 +33,23 @@ const DeletePaymentModal: React.FC<DeletePaymentModalProps> = ({
       month: "2-digit",
       year: "numeric",
     });
+  };
+
+  const handleDelete = async () => {
+    if (!paymentMongoId) return;
+
+    try {
+      setLoading(true);
+      await PaymentsApi.deletePayment(paymentMongoId);
+
+      onDeleted?.(); // refresh table / ledger
+      onClose();
+    } catch (err) {
+      console.error("Failed to delete payment", err);
+      alert("Failed to delete payment. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatMoney = (value: number) => {
@@ -129,10 +154,8 @@ const DeletePaymentModal: React.FC<DeletePaymentModalProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
+            onClick={handleDelete}
+            disabled={loading}
             className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-red-600 text-[14px] font-semibold text-white hover:bg-red-700 transition"
           >
             <FiTrash2 size={16} />

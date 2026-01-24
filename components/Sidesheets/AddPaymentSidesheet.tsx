@@ -64,6 +64,7 @@ interface AddPaymentSidesheetProps {
   mode?: "create" | "edit";
   /** Optional initial values (useful for edit mode) */
   initialPayment?: {
+    _id?: string;
     amount?: string;
     bankCharges?: string;
     bankChargesNotes?: string;
@@ -80,14 +81,20 @@ interface AddPaymentSidesheetProps {
   onDelete?: () => void;
   /** this will pre-select the customer and hide party type selection */
   initialCustomer?: { _id: string; name: string; customId?: string } | null;
-  /** this will pre-select the vendor when provided (used for vendor-ledger flows) */
+  /** this will pre-select the vendor when provided  */
   initialVendor?: { _id: string; name: string; customId?: string } | null;
   /** If true, party type radios are hidden and customer is fixed to `initialCustomer` */
   disablePartyType?: boolean;
   /** Default entry type sent to backend when creating payment ('credit'|'debit') */
   entryTypeDefault?: "credit" | "debit";
-  /** Optional generated custom id to show in the header (e.g. PO-..., PI-...) */
+  /** Optional generated custom id to show in the header */
   customId?: string | null;
+  /** When provided, hide the view button in header */
+  showViewButton?: boolean;
+  /** Prefill the party name (customer/vendor) when initial customer/vendor object isn't available */
+  prefillPartyName?: string | null;
+  /** Prefill party type when full customer/vendor object isn't available */
+  prefillPartyType?: "Customer" | "Vendor" | null | undefined;
 }
 
 interface DocumentPreview {
@@ -110,8 +117,13 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
   disablePartyType = false,
   entryTypeDefault = "debit",
   customId = null,
+  showViewButton = true,
+  prefillPartyName = null,
+  prefillPartyType = null,
   initialVendor = null,
 }) => {
+  const prefillKeyRef = React.useRef<string | null>(null);
+
   // Party Type State
   const [partyType, setPartyType] = useState<"Customer" | "Vendor">("Customer");
   // Payment Type State
@@ -393,13 +405,38 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       });
       setVendorSearchTerm(initialVendor.name || initialVendor.customId || "");
       setPartyType("Vendor");
+    } else if (prefillPartyName) {
+      // When only a party name (and optional type) is provided, prefill display
+      if (prefillPartyType === "Vendor") {
+        setSelectedVendor({ _id: "", name: prefillPartyName });
+        setVendorSearchTerm(prefillPartyName);
+        setPartyType("Vendor");
+      } else {
+        setSelectedCustomer({ _id: "", name: prefillPartyName });
+        setCustomerSearchTerm(prefillPartyName);
+        setPartyType("Customer");
+      }
     }
-  }, [isOpen, initialCustomer, initialVendor]);
+  }, [
+    isOpen,
+    initialCustomer,
+    initialVendor,
+    prefillPartyName,
+    prefillPartyType,
+  ]);
 
   // Prefill fields for edit mode (or when initialPayment is provided)
   useEffect(() => {
     if (!isOpen) return;
     if (!initialPayment) return;
+
+    // Parent recreates `initialPayment` object every render; avoid overwriting user edits.
+    const paymentId = (initialPayment as any)._id
+      ? String((initialPayment as any)._id)
+      : "";
+    const prefillKey = `${mode}:${paymentId}`;
+    if (prefillKeyRef.current === prefillKey) return;
+    prefillKeyRef.current = prefillKey;
 
     if (typeof initialPayment.amount === "string")
       setAmount(initialPayment.amount);
@@ -572,8 +609,10 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
   };
 
   const toggleManualSelect = (index: number, checked: boolean) => {
-    const key =
-      pendingDocRows[index].quotationId || pendingDocRows[index].bookingId;
+    const row = pendingDocRows[index];
+    if (!row) return;
+    const key = row.quotationId || row.bookingId;
+    if (!key) return;
     const newSet = new Set(selectedManualRows);
 
     if (checked) {
@@ -581,7 +620,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       newSet.add(key);
       const alreadyAllocated = getManualAllocatedTotal(index);
       const totalAllowed = Math.max(Number(amount || 0) - alreadyAllocated, 0);
-      const pending = Number(pendingDocRows[index]?.pendingAmount || 0);
+      const pending = Number(row?.pendingAmount || 0);
       const allocate = Math.max(0, Math.min(pending, totalAllowed));
       setPendingDocRows((prev) =>
         prev.map((r, i) =>
@@ -806,41 +845,18 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       return;
     }
 
-    // if there are files, send as FormData multipart
-    const hasFiles = documents.length > 0;
-    console.log(
-      "hasFiles",
-      hasFiles,
-      documents,
-      documents.length,
-      documents.length > 0,
-    );
     // determine status based on user finance maker flag
     const isFinanceMaker = !!(
       (user && (user as any).isFinanceMaker === true) ||
       (user as any).isFinanceMaker === "true"
     );
     const defaultStatus = isFinanceMaker ? "pending" : "approved";
-
-    const form = new FormData();
-    form.append("bankId", bankId);
-    form.append("amount", String(Number(amount)));
-    form.append("entryType", effectiveEntryType);
-    form.append("paymentDate", paymentDate || new Date().toISOString());
-    form.append("paymentType", paymentType || "");
-    form.append("status", defaultStatus);
-    if (internalNotes) form.append("internalNotes", internalNotes);
-    // include bank charges and cashback fields
-    form.append("bankCharges", String(Number(bankCharges || 0)));
-
-    form.append("bankChargesNotes", bankChargesNotes || "");
-    form.append("cashbackReceived", String(Number(cashbackReceived || 0)));
-    form.append("cashbackNotes", cashbackNotes || "");
-    // include generated custom id if present
-    if (customId) form.append("customId", String(customId));
-    // include allocations if any
+    // Build allocations array if any
+    let allocations: Array<{
+      quotationId: string | undefined;
+      amount: number;
+    }> = [];
     if (settlePendingDocsEnabled) {
-      let allocations = [];
       if (settlePendingMode === "manual") {
         allocations = pendingDocRows
           .filter((r) => selectedManualRows.has(r.quotationId || r.bookingId))
@@ -862,18 +878,70 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
         alert("Allocation total exceeds payment amount");
         return;
       }
-      if (allocations.length > 0) {
-        form.append("allocations", JSON.stringify(allocations));
-      }
     }
-    // append files
-    documents.forEach((d, i) => {
-      form.append("documents", d.file);
-    });
 
-    for (const [k, v] of form.entries()) {
-      console.log(k, v);
+    // If editing, send FormData as multipart so update supports files too
+    if (mode === "edit" && initialPayment && (initialPayment as any)._id) {
+      const paymentId = (initialPayment as any)._id;
+      const form = new FormData();
+      form.append("bankId", bankId);
+      form.append("amount", String(Number(amount)));
+      form.append("entryType", effectiveEntryType);
+      form.append("paymentDate", paymentDate || new Date().toISOString());
+      const paymentTypeToSend = paymentType
+        ? String(paymentType).toLowerCase()
+        : "cash";
+      form.append("paymentType", paymentTypeToSend);
+      form.append("status", defaultStatus);
+      if (internalNotes) form.append("internalNotes", internalNotes);
+      form.append("bankCharges", String(Number(bankCharges || 0)));
+      form.append("bankChargesNotes", bankChargesNotes || "");
+      form.append("cashbackReceived", String(Number(cashbackReceived || 0)));
+      form.append("cashbackNotes", cashbackNotes || "");
+      if (allocations.length > 0)
+        form.append("allocations", JSON.stringify(allocations));
+      documents.forEach((d) => form.append("documents", d.file));
+
+      try {
+        console.log("Updating payment (multipart) with form keys:");
+        for (const k of Array.from(form.keys())) console.log(k);
+        const resp = await PaymentsApi.updatePayment(paymentId, form);
+        onSubmit?.(resp);
+        onClose();
+      } catch (err: any) {
+        console.error("Failed to update payment", err);
+        const msg =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to update payment";
+        alert(msg);
+      }
+
+      return;
     }
+
+    // if not editing, proceed with FormData multipart for create (files supported)
+    const form = new FormData();
+    form.append("bankId", bankId);
+    form.append("amount", String(Number(amount)));
+    form.append("entryType", effectiveEntryType);
+    form.append("paymentDate", paymentDate || new Date().toISOString());
+    const paymentTypeToSend = paymentType
+      ? String(paymentType).toLowerCase()
+      : "cash";
+    form.append("paymentType", paymentTypeToSend);
+    form.append("status", defaultStatus);
+    if (internalNotes) form.append("internalNotes", internalNotes);
+    form.append("bankCharges", String(Number(bankCharges || 0)));
+    form.append("bankChargesNotes", bankChargesNotes || "");
+    form.append("cashbackReceived", String(Number(cashbackReceived || 0)));
+    form.append("cashbackNotes", cashbackNotes || "");
+    if (customId) form.append("customId", String(customId));
+    if (allocations.length > 0)
+      form.append("allocations", JSON.stringify(allocations));
+    documents.forEach((d) => form.append("documents", d.file));
+
+    for (const [k, v] of form.entries()) console.log(k, v);
 
     try {
       let resp: any = null;
@@ -899,6 +967,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
   // Reset form when closed
   const resetAllFields = React.useCallback(() => {
+    prefillKeyRef.current = null;
     setPartyType("Customer");
     setSelectedCustomer(null);
     setSelectedVendor(null);
@@ -937,20 +1006,31 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     <SideSheet
       isOpen={isOpen}
       onClose={onClose}
-      title={customId ? `${title}  |  ${customId}` : title}
+      title={(() => {
+        const partyDisplay =
+          (selectedCustomer && selectedCustomer.name) ||
+          (selectedVendor && selectedVendor.name) ||
+          prefillPartyName ||
+          null;
+        if (customId) return `${title}  |  ${customId}`;
+        if (partyDisplay) return `${title}  |  ${partyDisplay}`;
+        return title;
+      })()}
       width="xl"
       position="right"
       headerRight={
         mode === "edit" ? (
           <div className="flex items-center gap-2 mt-1">
-            <button
-              type="button"
-              onClick={onView}
-              className="flex items-center gap-2 rounded-md border border-[#126ACB] bg-white px-3 py-1.5 text-[13px] font-medium text-[#126ACB] hover:bg-blue-50 disabled:opacity-50"
-            >
-              <FiEye size={14} />
-              View
-            </button>
+            {showViewButton && (
+              <button
+                type="button"
+                onClick={onView}
+                className="flex items-center gap-2 rounded-md border border-[#126ACB] bg-white px-3 py-1.5 text-[13px] font-medium text-[#126ACB] hover:bg-blue-50 disabled:opacity-50"
+              >
+                <FiEye size={14} />
+                View
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setIsDeleteModalOpen(true)}
@@ -969,77 +1049,84 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
           {/* Party Type + Customer/Vendor Search */}
           <div className="mb-4 p-3 border border-gray-200 rounded-lg bg-white">
             <div className="flex items-center gap-4 flex-wrap">
-              {disablePartyType ? (
+              {/* {disablePartyType ? (
                 <div className="px-3 py-1 rounded-full bg-gray-100 text-gray-800 font-medium">
                   {partyType}
                 </div>
-              ) : (
-                <>
-                  <span className="text-[13px] font-medium text-gray-700">
-                    <span className="text-red-500">*</span>Party Type :
-                  </span>
-                  <div className="flex items-center gap-6">
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="radio"
-                        name="partyType"
-                        value="customer"
-                        checked={partyType === "Customer"}
-                        onChange={(e) =>
-                          setPartyType(e.target.value as "Customer")
-                        }
-                        className="sr-only"
-                      />
-                      <span
-                        className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
-                          partyType === "Customer"
-                            ? "border-blue-600"
-                            : "border-gray-300"
-                        } bg-white`}
-                      >
-                        {partyType === "Customer" && (
-                          <span className="w-2 h-2 rounded-full bg-blue-600" />
-                        )}
-                      </span>
-                      <span className="ml-2 text-[13px] text-gray-700">
-                        Customer
-                      </span>
-                    </label>
+              ) : ( */}
+              <>
+                <span className="text-[13px] font-medium text-gray-700">
+                  <span className="text-red-500">*</span>Party Type :
+                </span>
+                <div className="flex items-center gap-6">
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="partyType"
+                      value="customer"
+                      checked={partyType === "Customer"}
+                      onChange={(e) =>
+                        setPartyType(e.target.value as "Customer")
+                      }
+                      className="sr-only"
+                      disabled={disablePartyType}
+                    />
+                    <span
+                      className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
+                        partyType === "Customer"
+                          ? "border-blue-600"
+                          : "border-gray-300"
+                      } bg-white`}
+                    >
+                      {partyType === "Customer" && (
+                        <span className="w-2 h-2 rounded-full bg-blue-600" />
+                      )}
+                    </span>
+                    <span className="ml-2 text-[13px] text-gray-700">
+                      Customer
+                    </span>
+                  </label>
 
-                    <label className="flex items-center cursor-pointer">
-                      <input
-                        type="radio"
-                        name="partyType"
-                        value="vendor"
-                        checked={partyType === "Vendor"}
-                        onChange={(e) =>
-                          setPartyType(e.target.value as "Vendor")
-                        }
-                        className="sr-only"
-                      />
-                      <span
-                        className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
-                          partyType === "Vendor"
-                            ? "border-blue-600"
-                            : "border-gray-300"
-                        } bg-white`}
-                      >
-                        {partyType === "Vendor" && (
-                          <span className="w-2 h-2 rounded-full bg-blue-600" />
-                        )}
-                      </span>
-                      <span className="ml-2 text-[13px] text-gray-700">
-                        Vendor
-                      </span>
-                    </label>
-                  </div>
-                </>
-              )}
+                  <label className="flex items-center cursor-pointer">
+                    <input
+                      type="radio"
+                      name="partyType"
+                      value="vendor"
+                      checked={partyType === "Vendor"}
+                      onChange={(e) => setPartyType(e.target.value as "Vendor")}
+                      className="sr-only"
+                      disabled={disablePartyType || mode === "edit"}
+                    />
+                    <span
+                      className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
+                        partyType === "Vendor"
+                          ? "border-blue-600"
+                          : "border-gray-300"
+                      } bg-white`}
+                    >
+                      {partyType === "Vendor" && (
+                        <span className="w-2 h-2 rounded-full bg-blue-600" />
+                      )}
+                    </span>
+                    <span className="ml-2 text-[13px] text-gray-700">
+                      Vendor
+                    </span>
+                  </label>
+                </div>
+              </>
+              {/* )} */}
             </div>
 
             <div className="mt-4 pt-4 border-t border-gray-200">
-              {!initialCustomer ? (
-                disablePartyType || partyType === "Customer" ? (
+              {/* Determine which party input to show, explicit initialCustomer/initialVendor when provided */}
+              {(() => {
+                const effectivePartyType = initialCustomer
+                  ? "Customer"
+                  : initialVendor
+                    ? "Vendor"
+                    : partyType;
+
+                return effectivePartyType === "Customer" ? (
                   <div className="relative">
                     <label className="block text-[13px] font-medium text-gray-700 mb-2">
                       Search by Customer Name/ID
@@ -1366,8 +1453,8 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                       />
                     )}
                   </div>
-                )
-              ) : null}
+                );
+              })()}
 
               {/* Balance Display */}
               <div className="mt-3 text-right">

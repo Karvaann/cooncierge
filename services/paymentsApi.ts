@@ -121,6 +121,38 @@ export const PaymentsApi = {
     const { data } = await apiClient.get(`${base}`, { params });
     return data;
   },
+
+
+  // Update payment
+async updatePayment(paymentId: string, payload: FormData | Partial<{
+  bankId: string;
+  amount: number;
+  entryType: 'credit' | 'debit';
+  paymentDate: string | Date;
+  status: 'pending' | 'approved' | 'denied';
+  internalNotes: string;
+  allocations: Array<{ quotationId: string; amount: number }>;
+}>) {
+  const { data } = await apiClient.patch(
+    `${base}/payments/${paymentId}`,
+    payload,
+    payload instanceof FormData
+      ? {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      : undefined
+  );
+  return data;
+},
+
+// Delete payment (soft delete)
+async deletePayment(paymentId: string) {
+  const { data } = await apiClient.delete(`${base}/payments/${paymentId}`);
+  return data;
+},
+
 };
 
 export default PaymentsApi;

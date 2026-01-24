@@ -316,47 +316,20 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
         return;
       }
 
-      if (documents.length > 0) {
-        const form = new FormData();
-        form.append("bankId", bankId);
-        form.append("amount", String(Number(amountToRecord)));
-        form.append("entryType", "credit");
-        form.append("paymentType", selectedPaymentType);
-        form.append("paymentDate", paymentDate || new Date().toISOString());
-        form.append("status", "approved");
-        if (generatedCustomId) form.append("customId", generatedCustomId);
-        if (remarks) form.append("internalNotes", remarks);
-        documents.forEach((d) => form.append("documents", d.file, d.name));
-
-        try {
-          await PaymentsApi.createCustomerPayment(customerId, form);
-          onClose();
-          alert("Payment recorded successfully");
-        } catch (err: any) {
-          console.error("Failed to record payment", err);
-          const msg =
-            err?.response?.data?.message ||
-            err?.message ||
-            "Failed to record payment";
-          alert(msg);
-        }
-        return;
-      }
-
-      const payload: any = {
-        bankId,
-        amount: Number(amountToRecord),
-        entryType: "credit",
-        paymentType: selectedPaymentType,
-        paymentDate: paymentDate || new Date().toISOString(),
-        status: "approved",
-        internalNotes: remarks,
-      };
-
-      if (generatedCustomId) payload.customId = generatedCustomId;
+      const form = new FormData();
+      form.append("bankId", bankId);
+      form.append("amount", String(Number(amountToRecord)));
+      form.append("entryType", "credit");
+      form.append("paymentType", selectedPaymentType);
+      form.append("paymentDate", paymentDate || new Date().toISOString());
+      form.append("party", partyType === "Customer" ? "Customer" : "Vendor");
+      form.append("status", "approved");
+      if (generatedCustomId) form.append("customId", generatedCustomId);
+      if (remarks) form.append("internalNotes", remarks);
+      documents.forEach((d) => form.append("documents", d.file, d.name));
 
       try {
-        await PaymentsApi.createCustomerPayment(customerId, payload);
+        await PaymentsApi.createCustomerPayment(customerId, form);
         onClose();
         alert("Payment recorded successfully");
       } catch (err: any) {
@@ -389,47 +362,19 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
         return;
       }
 
-      if (documents.length > 0) {
-        const form = new FormData();
-        form.append("bankId", bankId);
-        form.append("amount", String(Number(amountToRecord)));
-        form.append("entryType", "credit");
-        form.append("paymentType", selectedPaymentType);
-        form.append("paymentDate", paymentDate || new Date().toISOString());
-        form.append("status", "approved");
-        if (generatedCustomId) form.append("customId", generatedCustomId);
-        if (remarks) form.append("internalNotes", remarks);
-        documents.forEach((d) => form.append("documents", d.file, d.name));
-
-        try {
-          await PaymentsApi.createVendorPayment(vendorId, form);
-          onClose();
-          alert("Payment recorded successfully");
-        } catch (err: any) {
-          console.error("Failed to record payment", err);
-          const msg =
-            err?.response?.data?.message ||
-            err?.message ||
-            "Failed to record payment";
-          alert(msg);
-        }
-        return;
-      }
-
-      const payload: any = {
-        bankId,
-        amount: Number(amountToRecord),
-        entryType: "credit",
-        paymentType: selectedPaymentType,
-        paymentDate: paymentDate || new Date().toISOString(),
-        status: "approved",
-        internalNotes: remarks,
-      };
-
-      if (generatedCustomId) payload.customId = generatedCustomId;
+      const form = new FormData();
+      form.append("bankId", bankId);
+      form.append("amount", String(Number(amountToRecord)));
+      form.append("entryType", "credit");
+      form.append("paymentType", selectedPaymentType);
+      form.append("paymentDate", paymentDate || new Date().toISOString());
+      form.append("status", "approved");
+      if (generatedCustomId) form.append("customId", generatedCustomId);
+      if (remarks) form.append("internalNotes", remarks);
+      documents.forEach((d) => form.append("documents", d.file, d.name));
 
       try {
-        await PaymentsApi.createVendorPayment(vendorId, payload);
+        await PaymentsApi.createVendorPayment(vendorId, form);
         onClose();
         alert("Payment recorded successfully");
       } catch (err: any) {
@@ -444,66 +389,66 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     }
 
     // Otherwise use createPaymentForQuotation (with allocationAmount if settling)
-    const hasFiles = documents.length > 0;
-    const allocationAmount = settleFromAdvance
-      ? Number(settleAmount || 0)
-      : undefined;
+    // const hasFiles = documents.length > 0;
+    // const allocationAmount = settleFromAdvance
+    //   ? Number(settleAmount || 0)
+    //   : undefined;
 
-    if (hasFiles) {
-      const form = new FormData();
-      form.append("bankId", bankId);
-      form.append("amount", String(Number(amountToRecord)));
-      form.append("entryType", "credit");
-      form.append("paymentType", selectedPaymentType);
-      form.append("party", partyType === "Customer" ? "customer" : "vendor");
-      form.append("paymentDate", paymentDate || new Date().toISOString());
-      form.append("status", "approved");
-      if (remarks) form.append("internalNotes", remarks);
-      if (allocationAmount !== undefined)
-        form.append("allocationAmount", String(allocationAmount));
-      documents.forEach((d) => form.append("documents", d.file, d.name));
+    // if (hasFiles) {
+    //   const form = new FormData();
+    //   form.append("bankId", bankId);
+    //   form.append("amount", String(Number(amountToRecord)));
+    //   form.append("entryType", "credit");
+    //   form.append("paymentType", selectedPaymentType);
+    //   form.append("party", partyType === "Customer" ? "Customer" : "Vendor");
+    //   form.append("paymentDate", paymentDate || new Date().toISOString());
+    //   form.append("status", "approved");
+    //   if (remarks) form.append("internalNotes", remarks);
+    //   if (allocationAmount !== undefined)
+    //     form.append("allocationAmount", String(allocationAmount));
+    //   documents.forEach((d) => form.append("documents", d.file, d.name));
 
-      try {
-        await PaymentsApi.createPaymentForQuotation(booking._id, form);
-        onClose();
-        alert("Payment recorded successfully");
-      } catch (err: any) {
-        console.error("Failed to record payment", err);
-        const msg =
-          err?.response?.data?.message ||
-          err?.message ||
-          "Failed to record payment";
-        alert(msg);
-      }
-      return;
-    }
+    //   try {
+    //     await PaymentsApi.createPaymentForQuotation(booking._id, form);
+    //     onClose();
+    //     alert("Payment recorded successfully");
+    //   } catch (err: any) {
+    //     console.error("Failed to record payment", err);
+    //     const msg =
+    //       err?.response?.data?.message ||
+    //       err?.message ||
+    //       "Failed to record payment";
+    //     alert(msg);
+    //   }
+    //   return;
+    // }
 
-    const payload: any = {
-      bankId,
-      amount: Number(amountToRecord),
-      entryType: "credit",
-      paymentType: selectedPaymentType,
-      paymentDate: paymentDate || new Date().toISOString(),
-      status: "approved",
-      internalNotes: remarks,
-      party: partyType === "Customer" ? "customer" : "vendor",
-    };
+    // const payload: any = {
+    //   bankId,
+    //   amount: Number(amountToRecord),
+    //   entryType: "credit",
+    //   paymentType: selectedPaymentType,
+    //   paymentDate: paymentDate || new Date().toISOString(),
+    //   status: "approved",
+    //   internalNotes: remarks,
+    //   party: partyType === "Customer" ? "customer" : "vendor",
+    // };
 
-    if (allocationAmount !== undefined)
-      payload.allocationAmount = allocationAmount;
+    // if (allocationAmount !== undefined)
+    //   payload.allocationAmount = allocationAmount;
 
-    try {
-      await PaymentsApi.createPaymentForQuotation(booking._id, payload);
-      onClose();
-      alert("Payment recorded successfully");
-    } catch (err: any) {
-      console.error("Failed to record payment", err);
-      const msg =
-        err?.response?.data?.message ||
-        err?.message ||
-        "Failed to record payment";
-      alert(msg);
-    }
+    // try {
+    //   await PaymentsApi.createPaymentForQuotation(booking._id, payload);
+    //   onClose();
+    //   alert("Payment recorded successfully");
+    // } catch (err: any) {
+    //   console.error("Failed to record payment", err);
+    //   const msg =
+    //     err?.response?.data?.message ||
+    //     err?.message ||
+    //     "Failed to record payment";
+    //   alert(msg);
+    // }
   };
 
   // Reset when opening
@@ -523,32 +468,32 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   }, [isOpen]);
 
   // Fetch ledger (pending amount / balance) when opened with a booking
-  useEffect(() => {
-    const quotationId = booking?._id;
-    if (!isOpen || !quotationId) return;
+  // useEffect(() => {
+  //   const quotationId = booking?._id;
+  //   if (!isOpen || !quotationId) return;
 
-    let cancelled = false;
-    (async () => {
-      setIsLedgerLoading(true);
-      try {
-        const resp = await PaymentsApi.getQuotationLedger(quotationId);
-        const outstanding = Number(resp?.outstandingAmount);
-        if (!cancelled) {
-          setOutstandingAmount(
-            Number.isFinite(outstanding) ? outstanding : null,
-          );
-        }
-      } catch (e) {
-        if (!cancelled) setOutstandingAmount(null);
-      } finally {
-        if (!cancelled) setIsLedgerLoading(false);
-      }
-    })();
+  //   let cancelled = false;
+  //   (async () => {
+  //     setIsLedgerLoading(true);
+  //     try {
+  //       const resp = await PaymentsApi.getQuotationLedger(quotationId);
+  //       const outstanding = Number(resp?.outstandingAmount);
+  //       if (!cancelled) {
+  //         setOutstandingAmount(
+  //           Number.isFinite(outstanding) ? outstanding : null,
+  //         );
+  //       }
+  //     } catch (e) {
+  //       if (!cancelled) setOutstandingAmount(null);
+  //     } finally {
+  //       if (!cancelled) setIsLedgerLoading(false);
+  //     }
+  //   })();
 
-    return () => {
-      cancelled = true;
-    };
-  }, [isOpen, booking?._id]);
+  //   return () => {
+  //     cancelled = true;
+  //   };
+  // }, [isOpen, booking?._id]);
 
   // Fetch unallocated payments when settle checkbox is clicked
   useEffect(() => {
@@ -570,11 +515,11 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
             : await PaymentsApi.getVendorUnallocatedPayments(partyId);
         const list = (resp?.payments || resp?.data || resp || []) as any[];
         if (cancelled) return;
-        const mapped = list.map((p) => ({
-          ...p,
-          settleAmount: "",
-        }));
-        setUnallocatedPayments(mapped);
+        // const mapped = list.map((p) => ({
+        //   ...p,
+        //   settleAmount: "",
+        // }));
+        setUnallocatedPayments(list);
       } catch (err) {
         console.error("Failed to load unallocated payments", err);
         if (!cancelled) setUnallocatedPayments([]);
