@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { FiSearch } from "react-icons/fi";
 import type { JSX } from "react";
 import dynamic from "next/dynamic";
@@ -16,6 +16,8 @@ import type { FilterCardOption } from "@/components/FilterCard";
 import FilterTrigger from "@/components/FilterTrigger";
 import { getUsers } from "@/services/userApi";
 import PaymentsApi from "@/services/paymentsApi";
+import { deleteCustomer, getCustomers } from "@/services/customerApi";
+import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import LedgerModal from "@/components/Modals/LedgerModal";
 import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
 import { BookingProvider } from "@/context/BookingContext";
@@ -94,6 +96,12 @@ const FinanceCustomersPage = () => {
   const [ledgerCustomerId, setLedgerCustomerId] = useState<string | null>(null);
   const [ledgerRawId, setLedgerRawId] = useState<string | null>(null);
 
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
+  const [selectedDeleteCustomId, setSelectedDeleteCustomId] = useState<
+    string | null
+  >(null);
+
   const [amountFilter, setAmountFilter] = useState<("in" | "out")[]>([]);
   const [customerViewOpen, setCustomerViewOpen] = useState(false);
   const [selectedCustomerData, setSelectedCustomerData] = useState<any | null>(
@@ -131,101 +139,93 @@ const FinanceCustomersPage = () => {
     };
   }, []);
 
-  // Fetch customer closing balances on mount and map to CustomerRow
-  useEffect(() => {
-    let mounted = true;
-    const fetchBalances = async () => {
-      setIsLoading(true);
-      try {
-        const res = await PaymentsApi.listCustomerClosingBalances();
+  // Fetch customer closing balances and map to CustomerRow
+  const fetchBalances = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await PaymentsApi.listCustomerClosingBalances();
 
-        let list: any[] = [];
-        if (Array.isArray(res)) list = res;
-        else if (Array.isArray(res?.customers)) list = res.customers;
-        else if (Array.isArray(res?.data)) list = res.data;
-        else if (Array.isArray(res?.closingBalances))
-          list = res.closingBalances;
+      let list: any[] = [];
+      if (Array.isArray(res)) list = res;
+      else if (Array.isArray(res?.customers)) list = res.customers;
+      else if (Array.isArray(res?.data)) list = res.data;
+      else if (Array.isArray(res?.closingBalances)) list = res.closingBalances;
 
-        const mapped: CustomerRow[] = (list || []).map((it: any) => {
-          const rawCustomer = it.customer ?? it;
-          const rawId = rawCustomer?._id ?? rawCustomer?.id ?? "";
-          const customerId =
-            it?.customer?.customId ??
-            it.customId ??
-            it._id ??
-            it.id ??
-            it.customer?.id ??
-            String(it?.customerId ?? "");
-          const name =
-            it.name ??
-            it.fullName ??
-            it.customerName ??
-            it.customer?.name ??
-            "";
+      const mapped: CustomerRow[] = (list || []).map((it: any) => {
+        const rawCustomer = it.customer ?? it;
+        const rawId = rawCustomer?._id ?? rawCustomer?.id ?? "";
+        const customerId =
+          it?.customer?.customId ??
+          it.customId ??
+          it._id ??
+          it.id ??
+          it.customer?.id ??
+          String(it?.customerId ?? "");
+        const name =
+          it.name ?? it.fullName ?? it.customerName ?? it.customer?.name ?? "";
 
-          // Resolve single owner object (prefer object, fallback to id/string)
-          const ownerVal =
-            rawCustomer?.ownerId ?? it.ownerId ?? it.customer?.ownerId ?? null;
-          let owner: { _id?: string; name?: string; email?: string } | null =
-            null;
-          if (ownerVal) {
-            if (typeof ownerVal === "string") {
-              owner = { _id: ownerVal, name: ownerVal, email: "" };
-            } else if (typeof ownerVal === "object") {
-              owner = {
-                _id: String(ownerVal._id ?? ownerVal.id ?? ""),
-                name:
-                  ownerVal.name ??
-                  ownerVal.fullName ??
-                  ownerVal.email ??
-                  String(ownerVal._id ?? ownerVal.id ?? ""),
-                email: ownerVal.email ?? "",
-              };
-            }
-          } else {
-            owner = null;
+        const ownerVal =
+          rawCustomer?.ownerId ?? it.ownerId ?? it.customer?.ownerId ?? null;
+        let owner: { _id?: string; name?: string; email?: string } | null =
+          null;
+        if (ownerVal) {
+          if (typeof ownerVal === "string") {
+            owner = { _id: ownerVal, name: ownerVal, email: "" };
+          } else if (typeof ownerVal === "object") {
+            owner = {
+              _id: String(ownerVal._id ?? ownerVal.id ?? ""),
+              name:
+                ownerVal.name ??
+                ownerVal.fullName ??
+                ownerVal.email ??
+                String(ownerVal._id ?? ownerVal.id ?? ""),
+              email: ownerVal.email ?? "",
+            };
           }
-          const rawBalance =
-            it.closingBalance?.amount ??
-            it.closing_balance?.amount ??
-            it.balance ??
-            it.amount ??
-            it.closingBalance ??
-            0;
-          const closingBalance = Number(rawBalance);
-          const balanceType = (it.closingBalance?.balanceType ??
-            it.balanceType ??
-            it.type ??
-            (Number(rawBalance) < 0 ? "debit" : "credit")) as
-            | "debit"
-            | "credit";
+        }
 
-          return {
-            customerId,
-            rawId,
-            name,
-            owner,
-            closingBalance: Math.abs(closingBalance),
-            balanceType,
-            raw: rawCustomer,
-          };
-        });
+        const rawBalance =
+          it.closingBalance?.amount ??
+          it.closing_balance?.amount ??
+          it.balance ??
+          it.amount ??
+          it.closingBalance ??
+          0;
+        const closingBalance = Number(rawBalance);
+        const balanceType = (it.closingBalance?.balanceType ??
+          it.balanceType ??
+          it.type ??
+          (Number(rawBalance) < 0 ? "debit" : "credit")) as "debit" | "credit";
 
-        if (mounted) setCustomers(mapped);
+        return {
+          customerId,
+          rawId,
+          name,
+          owner,
+          closingBalance: Math.abs(closingBalance),
+          balanceType,
+          raw: rawCustomer,
+        };
+      });
 
-        // No fallback fetch for owner names — rely on API response
-      } catch (e) {
-        console.error("Failed to load customer closing balances", e);
-      } finally {
-        if (mounted) setIsLoading(false);
-      }
-    };
-
-    fetchBalances();
-    return () => {
-      mounted = false;
-    };
+      setCustomers(mapped);
+    } catch (e) {
+      console.error("Failed to load customer closing balances", e);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await fetchBalances();
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchBalances]);
 
   // Map column names to header icons/components
   const columnIconMap: Record<string, JSX.Element | null> = useMemo(() => {
@@ -459,7 +459,11 @@ const FinanceCustomersPage = () => {
                   icon: <FaRegTrashAlt />,
                   color: "text-red-600",
                   onClick: () => {
-                    console.log("Delete customer:", customer.customerId);
+                    setSelectedDeleteId(
+                      customer.rawId || customer.customerId || null,
+                    );
+                    setSelectedDeleteCustomId(customer.customerId || null);
+                    setIsDeleteModalOpen(true);
                   },
                 },
               ]}
@@ -478,6 +482,22 @@ const FinanceCustomersPage = () => {
     setLedgerOpen(false);
     setLedgerCustomerName(null);
     setLedgerCustomerId(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedDeleteId) return;
+    try {
+      await deleteCustomer(selectedDeleteId);
+      setIsDeleteModalOpen(false);
+      setSelectedDeleteId(null);
+      setSelectedDeleteCustomId(null);
+      await fetchBalances();
+    } catch (e) {
+      console.error("Failed to delete customer", e);
+      setIsDeleteModalOpen(false);
+      setSelectedDeleteId(null);
+      setSelectedDeleteCustomId(null);
+    }
   };
 
   return (
@@ -569,6 +589,19 @@ const FinanceCustomersPage = () => {
       )}
 
       {/* Ledger Modal */}
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedDeleteId(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title={`Do you want to Delete ${selectedDeleteCustomId || "customer"}?`}
+        confirmText="Yes, Delete"
+        cancelText="Cancel"
+        confirmButtonColor="bg-red-600"
+      />
+
       <LedgerModal
         isOpen={ledgerOpen}
         onClose={closeLedger}

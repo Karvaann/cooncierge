@@ -60,6 +60,8 @@ interface AddPaymentSidesheetProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit?: (data: any) => void;
+  /** optional error callback to display messages in parent */
+  onError?: (message: string) => void;
   title?: string;
   mode?: "create" | "edit";
   /** Optional initial values (useful for edit mode) */
@@ -108,6 +110,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
   isOpen,
   onClose,
   onSubmit,
+  onError,
   title = "Payment Out",
   mode = "create",
   initialPayment = null,
@@ -558,15 +561,18 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
     // ensure party and amount are present
     if (partyType === "Customer" && !selectedCustomer) {
-      alert("Select a customer first");
+      if (onError) onError("Select a customer first");
+      else alert("Select a customer first");
       return;
     }
     if (partyType === "Vendor" && !selectedVendor) {
-      alert("Select a vendor first");
+      if (onError) onError("Select a vendor first");
+      else alert("Select a vendor first");
       return;
     }
     if (!amount || String(amount).trim() === "") {
-      alert("Enter an amount first");
+      if (onError) onError("Enter an amount first");
+      else alert("Enter an amount first");
       return;
     }
 
@@ -786,7 +792,8 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     const maxFiles = 3;
 
     if (documents.length + files.length > maxFiles) {
-      alert(`Maximum ${maxFiles} files can be uploaded`);
+      if (onError) onError(`Maximum ${maxFiles} files can be uploaded`);
+      else alert(`Maximum ${maxFiles} files can be uploaded`);
       return;
     }
 
@@ -828,11 +835,11 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
   // Handle Submit - calls backend Payments API for customer/vendor
   const handleSubmit = async () => {
     if (partyType === "Customer" && !selectedCustomer) {
-      alert("Please select a customer");
+      if (onError) onError("Please select a customer");
       return;
     }
     if (partyType === "Vendor" && !selectedVendor) {
-      alert("Please select a vendor");
+      if (onError) onError("Please select a vendor");
       return;
     }
 
@@ -841,7 +848,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     const isValidObjectId =
       typeof bankId === "string" && /^[a-fA-F0-9]{24}$/.test(bankId);
     if (!isValidObjectId) {
-      alert("Please select a valid bank");
+      if (onError) onError("Please select a valid bank");
       return;
     }
 
@@ -875,7 +882,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       }
       const allocationTotal = allocations.reduce((s, a) => s + a.amount, 0);
       if (allocationTotal > Number(amount)) {
-        alert("Allocation total exceeds payment amount");
+        if (onError) onError("Allocation total exceeds payment amount");
         return;
       }
     }
@@ -914,7 +921,8 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
           err?.response?.data?.message ||
           err?.message ||
           "Failed to update payment";
-        alert(msg);
+        if (onError) onError(msg);
+        else alert(msg);
       }
 
       return;
@@ -961,7 +969,8 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
         err?.response?.data?.message ||
         err?.message ||
         "Failed to create payment";
-      alert(msg);
+      if (onError) onError(msg);
+      else alert(msg);
     }
   };
 
@@ -1063,7 +1072,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                     <input
                       type="radio"
                       name="partyType"
-                      value="customer"
+                      value="Customer"
                       checked={partyType === "Customer"}
                       onChange={(e) =>
                         setPartyType(e.target.value as "Customer")
@@ -1091,7 +1100,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                     <input
                       type="radio"
                       name="partyType"
-                      value="vendor"
+                      value="Vendor"
                       checked={partyType === "Vendor"}
                       onChange={(e) => setPartyType(e.target.value as "Vendor")}
                       className="sr-only"

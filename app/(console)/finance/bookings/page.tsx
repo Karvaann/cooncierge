@@ -24,6 +24,7 @@ import AvatarTooltip from "@/components/AvatarToolTip";
 import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 import TaskButton from "@/components/TaskButton";
 import RecordPaymentSidesheet from "@/components/Sidesheets/RecordPaymentSidesheet";
+import ErrorToast from "@/components/ErrorToast";
 import { useAuth } from "@/context/AuthContext";
 import {
   getNextTriSortState,
@@ -203,6 +204,37 @@ const FinanceBookingsPage = () => {
   const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
   const [selectedPaymentBooking, setSelectedPaymentBooking] =
     useState<any>(null);
+
+  // Toast state for toasts coming from sidesheets
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastBgClass, setToastBgClass] = useState("bg-red-50");
+  const [toastMessageColor, setToastMessageColor] = useState("text-red-600");
+  const [toastBorderClass, setToastBorderClass] = useState("border-red-200");
+  const [toastCloseBtnClass, setToastCloseBtnClass] = useState(
+    "text-red-400 hover:text-red-600",
+  );
+  const [toastShowLabel, setToastShowLabel] = useState(true);
+
+  const showError = (msg: string) => {
+    setToastMessage(String(msg));
+    setToastBgClass("bg-red-50");
+    setToastMessageColor("text-red-600");
+    setToastBorderClass("border-red-200");
+    setToastCloseBtnClass("text-red-400 hover:text-red-600");
+    setToastShowLabel(true);
+    setToastVisible(true);
+  };
+
+  const showSuccess = (msg: string) => {
+    setToastMessage(String(msg));
+    setToastBgClass("bg-green-50");
+    setToastMessageColor("text-green-800");
+    setToastBorderClass("border-green-200");
+    setToastCloseBtnClass("text-green-600 hover:text-green-800");
+    setToastShowLabel(false);
+    setToastVisible(true);
+  };
 
   const { user } = useAuth();
 
@@ -1093,6 +1125,16 @@ const FinanceBookingsPage = () => {
         {/* </div> */}
 
         <div className="min-h-screen">
+          <ErrorToast
+            visible={toastVisible}
+            message={toastMessage}
+            onClose={() => setToastVisible(false)}
+            bgColorClass={toastBgClass}
+            messageColorClass={toastMessageColor}
+            borderColorClass={toastBorderClass}
+            closeButtonClass={toastCloseBtnClass}
+            showLabel={toastShowLabel}
+          />
           {/* {!error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
             <strong>Error:</strong> {error}
@@ -1168,6 +1210,8 @@ const FinanceBookingsPage = () => {
             setIsRecordPaymentOpen(false);
             setSelectedPaymentBooking(null);
           }}
+          onError={showError}
+          onSuccess={showSuccess}
         />
       </div>
     </div>
