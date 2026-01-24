@@ -298,6 +298,66 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     }
   };
 
+  // Map various quotationType values to the service category used by sidesheet
+  const mapQuotationTypeToCategory = (qt?: string) => {
+    const v = (qt || "").toLowerCase().trim();
+    const map: Record<string, string> = {
+      flight: "travel",
+      flights: "travel",
+      travel: "travel",
+      hotel: "accommodation",
+      accommodation: "accommodation",
+      car: "transport-land",
+      "transport-land": "transport-land",
+      "land-transport": "transport-land",
+      land: "transport-land",
+      transportation: "transport-land",
+      maritime: "transport-maritime",
+      "transport-maritime": "transport-maritime",
+      ticket: "tickets",
+      tickets: "tickets",
+      activity: "activity",
+      activities: "activity",
+      insurance: "travel insurance",
+      "travel insurance": "travel insurance",
+      visa: "visas",
+      visas: "visas",
+      others: "others",
+      package: "others",
+    };
+
+    return (map[v] as any) || "others";
+  };
+
+  const getQuotationDisplayLabel = (rawType?: string) => {
+    const cat = mapQuotationTypeToCategory(rawType);
+    const labelMap: Record<string, string> = {
+      travel: "Flight",
+      accommodation: "Accommodation",
+      "transport-land": "Land Transport",
+      activity: "Activity",
+      "transport-maritime": "Maritime",
+      tickets: "Tickets",
+      "travel insurance": "Travel Insurance",
+      visas: "Visas",
+      others: "Others",
+    };
+    return (
+      labelMap[cat] ||
+      String(rawType || "-").replace(/\b\w/g, (c) => c.toUpperCase())
+    );
+  };
+
+  const extractQuotationTypeFromEntry = (entry: any) => {
+    return (
+      entry?.data?.quotationType ||
+      entry?.quotationType ||
+      entry?.data?.formFields?.quotationType ||
+      entry?.data?.formFields?.serviceType ||
+      ""
+    );
+  };
+
   const openEditBookingFromLedgerEntry = async (entry: any) => {
     try {
       const quotationId = resolveQuotationIdFromEntry(entry);
@@ -634,7 +694,29 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           key={`id-${index}`}
           className="px-4 py-3 text-center font-[600] text-[14px]"
         >
-          {r.type === "opening" ? "Opening Balance" : r.customId || "NA"}
+          {r.type === "opening" ? (
+            "Opening Balance"
+          ) : r.type === "quotation" ? (
+            <div className="relative inline-flex items-center justify-center">
+              <span className="peer cursor-default">{r.customId || "NA"}</span>
+
+              <div
+                className="absolute -top-8 left-1/2 z-50 px-2 py-1 text-[0.75rem] text-white bg-gray-800 rounded-md shadow-lg pointer-events-none -translate-x-1/2 transition-opacity duration-150 ease-in-out opacity-0 invisible whitespace-nowrap peer-hover:opacity-100 peer-hover:visible"
+                role="tooltip"
+              >
+                {getQuotationDisplayLabel(extractQuotationTypeFromEntry(r))}
+                <div
+                  className="absolute left-1/2 -bottom-1 w-2.5 h-2.5 bg-gray-800"
+                  style={{
+                    transform: "translateX(-50%) rotate(45deg)",
+                    WebkitTransform: "translateX(-50%) rotate(45deg)",
+                  }}
+                />
+              </div>
+            </div>
+          ) : (
+            r.customId || "NA"
+          )}
         </td>,
         <td key={`date-${index}`} className="px-4 py-3 text-center text-[14px]">
           {formatDate(displayedDate)}

@@ -17,6 +17,7 @@ import type { FilterCardOption } from "@/components/FilterCard";
 import FilterTrigger from "@/components/FilterTrigger";
 
 import AddPaymentSidesheet from "@/components/Sidesheets/AddPaymentSidesheet";
+import ErrorToast from "@/components/ErrorToast";
 import PaymentsApi from "@/services/paymentsApi";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import BankApi from "@/services/bankApi";
@@ -218,6 +219,17 @@ const PaymentsPage = () => {
   const [generatedPaymentCustomId, setGeneratedPaymentCustomId] = useState<
     string | null
   >(null);
+
+  // Toast state for success / error messages using ErrorToast
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastBgClass, setToastBgClass] = useState("bg-red-50");
+  const [toastMessageColor, setToastMessageColor] = useState("text-red-600");
+  const [toastBorderClass, setToastBorderClass] = useState("border-red-200");
+  const [toastCloseBtnClass, setToastCloseBtnClass] = useState(
+    "text-red-400 hover:text-red-600",
+  );
+  const [toastShowLabel, setToastShowLabel] = useState(true);
 
   // Sorting state
   const [sortState, setSortState] = useState<TriSortState<string>>({
@@ -635,242 +647,301 @@ const PaymentsPage = () => {
   }, [visiblePayments]);
 
   return (
-    <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
-      <div className="flex items-center justify-between rounded-2xl px-4 py-3">
-        {/* Tabs */}
-        <div
-          className="flex items-center bg-[#F3F3F3] gap-[28px] rounded-[10px] relative p-1"
-          ref={tabsContainerRef}
-        >
-          <div
-            className="absolute h-[calc(100%-0.60rem)] bg-[#0D4B37] rounded-[8px] shadow-sm transition-all duration-300 ease-in-out top-1/2 -translate-y-1/2"
-            style={{
-              width:
-                indicatorStyle.width > 0
-                  ? `${indicatorStyle.width}px`
-                  : `calc((100% - 3.25rem) / ${tabOptions.length})`,
-              left: `${indicatorStyle.left}px`,
-            }}
-          />
-
-          {tabOptions.map((tab, idx) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              ref={(el) => {
-                tabRefs.current[idx] = el;
-              }}
-              className={`relative z-10 px-[14px] py-[6px] rounded-[8px] text-[14px] font-medium transition-colors duration-300 flex-1 ${
-                activeTab === tab
-                  ? "text-white"
-                  : "text-[#818181] hover:text-gray-900 font-semibold"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-
-        {/* Total + Action Buttons */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
-            <span className="text-gray-600 text-[0.85rem] font-medium">
-              Total
-            </span>
-            <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
-              {totalCount}
-            </span>
-          </div>
-
-          <button
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-red-600 text-white font-medium"
-            onClick={async () => {
-              setAddPaymentMode("out");
-              try {
-                const data = await CustomIdApi.generate("paymentOut");
-                const id =
-                  data?.customId ||
-                  data?.customIdValue ||
-                  (typeof data === "string" ? data : null);
-                setGeneratedPaymentCustomId(
-                  id || `PO-${Date.now().toString().slice(-6)}`,
-                );
-              } catch (e) {
-                setGeneratedPaymentCustomId(
-                  `PO-${Date.now().toString().slice(-6)}`,
-                );
-              }
-              setIsAddPaymentOpen(true);
-            }}
-          >
-            <span className="text-sm flex items-center gap-1">
-              {" "}
-              <PiArrowCircleUpRight
-                size={18}
-                height="bold"
-                strokeWidth={2}
-              />{" "}
-              You Gave
-            </span>
-          </button>
-
-          <button
-            className="flex items-center gap-2 px-4 py-2 rounded-md bg-[#4CA640] text-white font-medium"
-            onClick={async () => {
-              setAddPaymentMode("in");
-              try {
-                const data = await CustomIdApi.generate("paymentIn");
-                const id =
-                  data?.customId ||
-                  data?.customIdValue ||
-                  (typeof data === "string" ? data : null);
-                setGeneratedPaymentCustomId(
-                  id || `PI-${Date.now().toString().slice(-6)}`,
-                );
-              } catch (e) {
-                setGeneratedPaymentCustomId(
-                  `PI-${Date.now().toString().slice(-6)}`,
-                );
-              }
-              setIsAddPaymentOpen(true);
-            }}
-          >
-            <span className="text-sm flex items-center gap-1">
-              {" "}
-              <PiArrowCircleDownLeft size={18} height="bold" strokeWidth={2} />
-              You Got
-            </span>
-          </button>
-        </div>
-      </div>
-
-      <div className="border-t border-gray-200 mb-4 mt-3"></div>
-
-      {/* Date range + Search row */}
-      <div className="flex items-center justify-between mb-4 px-2 gap-4">
-        <div className="flex items-center gap-4">
-          <DateRangeInput
-            startDate={startDate}
-            endDate={endDate}
-            onChange={(s, e) => {
-              setStartDate(s);
-              setEndDate(e);
-            }}
-          />
-        </div>
-
-        <div className="flex-1 max-w-sm ml-auto">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchValue}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSearchValue(value);
-                if (value.length === 0) {
-                  setEffectiveSearch("");
-                } else if (value.length >= 3) {
-                  setEffectiveSearch(value);
-                }
-              }}
-              placeholder="Search by Payment ID/Party Name"
-              className="w-full text-[14px] py-3 pl-4  rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] text-gray-700 bg-white"
-            />
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-              <FiSearch />
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div className="min-h-[200px] mt-2 px-2">
-        <Table
-          data={tableData}
-          columns={columns}
-          columnIconMap={columnIconMap}
-          onSort={handleSort}
-          categoryName="Payments"
-          enableRowHoverActions={true}
-          rowIds={visiblePayments.map((p) => p.paymentId)}
-        />
-      </div>
-
-      <AddPaymentSidesheet
-        isOpen={isAddPaymentOpen}
-        title={
-          editingPayment
-            ? "Edit Payment"
-            : addPaymentMode === "in"
-              ? "Payment In"
-              : "Payment Out"
-        }
-        mode={editingPayment ? "edit" : "create"}
-        initialPayment={
-          editingPayment
-            ? ({
-                _id: editingPayment.id || undefined,
-                amount: String(editingPayment.amount || ""),
-                paymentDate:
-                  editingPayment.paymentDateRaw || editingPayment.createdAt,
-                bank:
-                  editingPayment.bankId ||
-                  (editingPayment.account === "Cash"
-                    ? ""
-                    : editingPayment.account),
-                paymentType: String(
-                  editingPayment.paymentType || "",
-                ).toUpperCase(),
-                internalNotes: "",
-              } as any)
-            : undefined
-        }
-        customId={generatedPaymentCustomId}
-        // opened from payments list edit action -> hide view button
-        showViewButton={editingPayment ? false : true}
-        prefillPartyName={editingPayment ? editingPayment.partyName : null}
-        prefillPartyType={editingPayment ? editingPayment.partyType : null}
-        entryTypeDefault={addPaymentMode === "out" ? "credit" : "debit"}
-        onClose={() => {
-          setIsAddPaymentOpen(false);
-          setGeneratedPaymentCustomId(null);
-          setEditingPayment(null);
-        }}
-        onSubmit={async (data) => {
-          console.log("AddPaymentSidesheet submitted:", data);
-          setIsAddPaymentOpen(false);
-          setGeneratedPaymentCustomId(null);
-          setEditingPayment(null);
-          try {
-            await fetchPayments();
-          } catch (e) {
-            console.error("Failed to refresh payments after create/update", e);
-          }
-        }}
+    <>
+      <ErrorToast
+        message={toastMessage}
+        visible={toastVisible}
+        onClose={() => setToastVisible(false)}
+        bgColorClass={toastBgClass}
+        messageColorClass={toastMessageColor}
+        borderColorClass={toastBorderClass}
+        closeButtonClass={toastCloseBtnClass}
+        showLabel={toastShowLabel}
       />
-      <ConfirmationModal
-        isOpen={isConfirmOpen}
-        onClose={() => {
-          setIsConfirmOpen(false);
-          setPaymentToDelete(null);
-        }}
-        onConfirm={async () => {
-          try {
-            if (paymentToDelete?.id) {
-              await PaymentsApi.deletePayment(String(paymentToDelete.id));
+
+      <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
+        <div className="flex items-center justify-between rounded-2xl px-4 py-3">
+          {/* Tabs */}
+          <div
+            className="flex items-center bg-[#F3F3F3] gap-[28px] rounded-[10px] relative p-1"
+            ref={tabsContainerRef}
+          >
+            <div
+              className="absolute h-[calc(100%-0.60rem)] bg-[#0D4B37] rounded-[8px] shadow-sm transition-all duration-300 ease-in-out top-1/2 -translate-y-1/2"
+              style={{
+                width:
+                  indicatorStyle.width > 0
+                    ? `${indicatorStyle.width}px`
+                    : `calc((100% - 3.25rem) / ${tabOptions.length})`,
+                left: `${indicatorStyle.left}px`,
+              }}
+            />
+
+            {tabOptions.map((tab, idx) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                ref={(el) => {
+                  tabRefs.current[idx] = el;
+                }}
+                className={`relative z-10 px-[14px] py-[6px] rounded-[8px] text-[14px] font-medium transition-colors duration-300 flex-1 ${
+                  activeTab === tab
+                    ? "text-white"
+                    : "text-[#818181] hover:text-gray-900 font-semibold"
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {/* Total + Action Buttons */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
+              <span className="text-gray-600 text-[0.85rem] font-medium">
+                Total
+              </span>
+              <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
+                {totalCount}
+              </span>
+            </div>
+
+            <button
+              className="flex items-center gap-2 px-4 py-2 rounded-md bg-red-600 text-white font-medium"
+              onClick={async () => {
+                setAddPaymentMode("out");
+                try {
+                  const data = await CustomIdApi.generate("paymentOut");
+                  const id =
+                    data?.customId ||
+                    data?.customIdValue ||
+                    (typeof data === "string" ? data : null);
+                  setGeneratedPaymentCustomId(
+                    id || `PO-${Date.now().toString().slice(-6)}`,
+                  );
+                } catch (e) {
+                  setGeneratedPaymentCustomId(
+                    `PO-${Date.now().toString().slice(-6)}`,
+                  );
+                }
+                setIsAddPaymentOpen(true);
+              }}
+            >
+              <span className="text-sm flex items-center gap-1">
+                {" "}
+                <PiArrowCircleUpRight
+                  size={18}
+                  height="bold"
+                  strokeWidth={2}
+                />{" "}
+                You Gave
+              </span>
+            </button>
+
+            <button
+              className="flex items-center gap-2 px-4 py-2 rounded-md bg-[#4CA640] text-white font-medium"
+              onClick={async () => {
+                setAddPaymentMode("in");
+                try {
+                  const data = await CustomIdApi.generate("paymentIn");
+                  const id =
+                    data?.customId ||
+                    data?.customIdValue ||
+                    (typeof data === "string" ? data : null);
+                  setGeneratedPaymentCustomId(
+                    id || `PI-${Date.now().toString().slice(-6)}`,
+                  );
+                } catch (e) {
+                  setGeneratedPaymentCustomId(
+                    `PI-${Date.now().toString().slice(-6)}`,
+                  );
+                }
+                setIsAddPaymentOpen(true);
+              }}
+            >
+              <span className="text-sm flex items-center gap-1">
+                {" "}
+                <PiArrowCircleDownLeft
+                  size={18}
+                  height="bold"
+                  strokeWidth={2}
+                />
+                You Got
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div className="border-t border-gray-200 mb-4 mt-3"></div>
+
+        {/* Date range + Search row */}
+        <div className="flex items-center justify-between mb-4 px-2 gap-4">
+          <div className="flex items-center gap-4">
+            <DateRangeInput
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(s, e) => {
+                setStartDate(s);
+                setEndDate(e);
+              }}
+            />
+          </div>
+
+          <div className="flex-1 max-w-sm ml-auto">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchValue}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearchValue(value);
+                  if (value.length === 0) {
+                    setEffectiveSearch("");
+                  } else if (value.length >= 3) {
+                    setEffectiveSearch(value);
+                  }
+                }}
+                placeholder="Search by Payment ID/Party Name"
+                className="w-full text-[14px] py-3 pl-4  rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] text-gray-700 bg-white"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                <FiSearch />
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="min-h-[200px] mt-2 px-2">
+          <Table
+            data={tableData}
+            columns={columns}
+            columnIconMap={columnIconMap}
+            onSort={handleSort}
+            categoryName="Payments"
+            enableRowHoverActions={true}
+            rowIds={visiblePayments.map((p) => p.paymentId)}
+          />
+        </div>
+
+        <AddPaymentSidesheet
+          isOpen={isAddPaymentOpen}
+          title={
+            editingPayment
+              ? "Edit Payment"
+              : addPaymentMode === "in"
+                ? "Payment In"
+                : "Payment Out"
+          }
+          mode={editingPayment ? "edit" : "create"}
+          initialPayment={
+            editingPayment
+              ? ({
+                  _id: editingPayment.id || undefined,
+                  amount: String(editingPayment.amount || ""),
+                  paymentDate:
+                    editingPayment.paymentDateRaw || editingPayment.createdAt,
+                  bank:
+                    editingPayment.bankId ||
+                    (editingPayment.account === "Cash"
+                      ? ""
+                      : editingPayment.account),
+                  paymentType: String(
+                    editingPayment.paymentType || "",
+                  ).toUpperCase(),
+                  internalNotes: "",
+                } as any)
+              : undefined
+          }
+          customId={generatedPaymentCustomId}
+          // opened from payments list edit action -> hide view button
+          showViewButton={editingPayment ? false : true}
+          prefillPartyName={editingPayment ? editingPayment.partyName : null}
+          prefillPartyType={editingPayment ? editingPayment.partyType : null}
+          entryTypeDefault={addPaymentMode === "out" ? "credit" : "debit"}
+          onClose={() => {
+            setIsAddPaymentOpen(false);
+            setGeneratedPaymentCustomId(null);
+            setEditingPayment(null);
+          }}
+          onSubmit={async (data) => {
+            console.log("AddPaymentSidesheet submitted:", data);
+            setIsAddPaymentOpen(false);
+            setGeneratedPaymentCustomId(null);
+            setEditingPayment(null);
+
+            // show success toast
+            setToastMessage("Yay! the payment has been created successfully.");
+            setToastBgClass("bg-green-50");
+            setToastMessageColor("text-green-800");
+            setToastBorderClass("border-green-200");
+            setToastCloseBtnClass("text-green-600 hover:text-green-800");
+            setToastShowLabel(false);
+            setToastVisible(true);
+
+            try {
               await fetchPayments();
+            } catch (e) {
+              console.error(
+                "Failed to refresh payments after create/update",
+                e,
+              );
             }
-          } catch (err) {
-            console.error("Failed to delete payment", err);
-          } finally {
+          }}
+          onError={(msg: string) => {
+            // show error toast from sidesheet errors
+            setToastMessage(String(msg || "An error occurred"));
+            setToastBgClass("bg-red-50");
+            setToastMessageColor("text-red-600");
+            setToastBorderClass("border-red-200");
+            setToastCloseBtnClass("text-red-400 hover:text-red-600");
+            setToastShowLabel(true);
+            setToastVisible(true);
+          }}
+        />
+        <ConfirmationModal
+          isOpen={isConfirmOpen}
+          onClose={() => {
             setIsConfirmOpen(false);
             setPaymentToDelete(null);
-          }
-        }}
-        title={`Do you want to Delete ${paymentToDelete?.customId || "payment"}?`}
-        confirmText="Yes, Delete"
-        cancelText="Cancel"
-      />
-    </div>
+          }}
+          onConfirm={async () => {
+            try {
+              if (paymentToDelete?.id) {
+                await PaymentsApi.deletePayment(String(paymentToDelete.id));
+                await fetchPayments();
+                // show success toast on delete
+                setToastMessage("Payment deleted successfully!");
+                setToastBgClass("bg-green-50");
+                setToastMessageColor("text-green-800");
+                setToastBorderClass("border-green-200");
+                setToastCloseBtnClass("text-green-600 hover:text-green-800");
+                setToastShowLabel(false);
+                setToastVisible(true);
+              }
+            } catch (err) {
+              console.error("Failed to delete payment", err);
+              const msg =
+                (err as any)?.response?.data?.message ||
+                (err as any)?.message ||
+                "Failed to delete payment";
+              setToastMessage(String(msg));
+              setToastBgClass("bg-red-50");
+              setToastMessageColor("text-red-600");
+              setToastBorderClass("border-red-200");
+              setToastCloseBtnClass("text-red-400 hover:text-red-600");
+              setToastShowLabel(true);
+              setToastVisible(true);
+            } finally {
+              setIsConfirmOpen(false);
+              setPaymentToDelete(null);
+            }
+          }}
+          title={`Do you want to Delete ${paymentToDelete?.customId || "payment"}?`}
+          confirmText="Yes, Delete"
+          cancelText="Cancel"
+        />
+      </div>
+    </>
   );
 };
 

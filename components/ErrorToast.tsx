@@ -11,6 +11,8 @@ type ErrorToastProps = {
   bgColorClass?: string;
   boldText?: string | undefined;
   messageColorClass?: string | undefined;
+  borderColorClass?: string | undefined;
+  closeButtonClass?: string | undefined;
   showLabel?: boolean | undefined;
 };
 
@@ -22,6 +24,8 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
   bgColorClass = "bg-red-50",
   boldText,
   messageColorClass = "text-red-600",
+  borderColorClass = "border-red-200",
+  closeButtonClass = "text-red-400 hover:text-red-600",
   showLabel = true,
 }) => {
   useEffect(() => {
@@ -35,7 +39,7 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
 
   return createPortal(
     <div
-      className={`fixed top-8 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-2 ${bgColorClass} border border-red-200 px-3 py-1.5 rounded-full shadow-md max-w-[90vw] text-[13px]`}
+      className={`fixed top-8 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-2 ${bgColorClass} border ${borderColorClass} px-3 py-1.5 rounded-full shadow-md max-w-[90vw] text-[13px]`}
     >
       <svg
         className={`w-4 h-4 ${
@@ -70,12 +74,12 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
       <button
         type="button"
         onClick={onClose}
-        className="ml-2 text-red-400 hover:text-red-600 text-lg font-bold"
+        className={`${closeButtonClass} ml-2 text-lg font-bold`}
       >
         ×
       </button>
     </div>,
-    document.body
+    document.body,
   );
 };
 

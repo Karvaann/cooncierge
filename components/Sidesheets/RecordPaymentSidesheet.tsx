@@ -9,6 +9,7 @@ import AddBankSidesheet, {
   type BankPayload,
 } from "@/components/Sidesheets/AddBankSidesheet";
 import BankApi from "@/services/bankApi";
+import ErrorToast from "@/components/ErrorToast";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FaRegFolder } from "react-icons/fa";
 import { FiPlusCircle, FiTrash2 } from "react-icons/fi";
@@ -27,6 +28,8 @@ interface RecordPaymentSidesheetProps {
   isOpen: boolean;
   onClose: () => void;
   booking: BookingLike | null;
+  onError?: (msg: string) => void;
+  onSuccess?: (msg: string) => void;
 }
 
 type DocumentPreview = {
@@ -77,6 +80,8 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   isOpen,
   onClose,
   booking,
+  onError,
+  onSuccess,
 }) => {
   const bookingLabel = booking?.customId || booking?._id || "";
   const leadPaxName =
@@ -103,6 +108,45 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   const [selectedBank, setSelectedBank] = useState<string>("");
   const [remarks, setRemarks] = useState<string>("");
   const [documents, setDocuments] = useState<DocumentPreview[]>([]);
+
+  // Toast state
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastBgClass, setToastBgClass] = useState("bg-red-50");
+  const [toastMessageColor, setToastMessageColor] = useState("text-red-600");
+  const [toastBorderClass, setToastBorderClass] = useState("border-red-200");
+  const [toastCloseBtnClass, setToastCloseBtnClass] = useState(
+    "text-red-400 hover:text-red-600",
+  );
+  const [toastShowLabel, setToastShowLabel] = useState(true);
+
+  const showError = (msg: string) => {
+    if (typeof onError === "function") {
+      onError(msg);
+      return;
+    }
+    setToastMessage(String(msg));
+    setToastBgClass("bg-red-50");
+    setToastMessageColor("text-red-600");
+    setToastBorderClass("border-red-200");
+    setToastCloseBtnClass("text-red-400 hover:text-red-600");
+    setToastShowLabel(true);
+    setToastVisible(true);
+  };
+
+  const showSuccess = (msg: string) => {
+    if (typeof onSuccess === "function") {
+      onSuccess(msg);
+      return;
+    }
+    setToastMessage(String(msg));
+    setToastBgClass("bg-green-50");
+    setToastMessageColor("text-green-800");
+    setToastBorderClass("border-green-200");
+    setToastCloseBtnClass("text-green-600 hover:text-green-800");
+    setToastShowLabel(false);
+    setToastVisible(true);
+  };
 
   // Advance settle UI
   const [settleFromAdvance, setSettleFromAdvance] = useState<boolean>(false);
@@ -208,7 +252,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
 
     const maxFiles = 3;
     if (documents.length + files.length > maxFiles) {
-      alert("Maximum of 3 files can be uploaded");
+      showError("Maximum of 3 files can be uploaded");
       e.target.value = "";
       return;
     }
@@ -236,7 +280,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   // Submit handler - record payment against quotation
   const handleRecordPayment = async () => {
     if (!booking?._id) {
-      alert("No booking selected");
+      showError("No booking selected");
       return;
     }
 
@@ -248,7 +292,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       );
 
       if (paymentsToAllocate.length === 0) {
-        alert("Please enter settle amounts for at least one payment");
+        showError("Please enter settle amounts for at least one payment");
         return;
       }
 
@@ -271,26 +315,26 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
           }
         }
         onClose();
-        alert("Payment(s) allocated successfully");
+        showSuccess("Payment(s) allocated successfully");
       } catch (err: any) {
         console.error("Failed to allocate payment(s)", err);
         const msg =
           err?.response?.data?.message ||
           err?.message ||
           "Failed to allocate payment(s)";
-        alert(msg);
+        showError(msg);
       }
       return;
     }
 
     if (!amountToRecord || Number(amountToRecord) <= 0) {
-      alert("Enter a valid amount to record");
+      showError("Enter a valid amount to record");
       return;
     }
 
     const bankId = selectedBank;
     if (!bankId || String(bankId).trim() === "") {
-      alert("Please select a valid bank");
+      showError("Please select a valid bank");
       return;
     }
 
@@ -301,7 +345,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     if (partyType === "Customer" && !settleFromAdvance) {
       const customerId = booking.customerId?._id;
       if (!customerId) {
-        alert("Customer ID not found");
+        showError("Customer ID not found");
         return;
       }
 
@@ -312,7 +356,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
         generatedCustomId = customIdResp?.customId || "";
       } catch (err) {
         console.error("Failed to generate custom ID", err);
-        alert("Failed to generate payment ID");
+        showError("Failed to generate payment ID");
         return;
       }
 
@@ -331,14 +375,14 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       try {
         await PaymentsApi.createCustomerPayment(customerId, form);
         onClose();
-        alert("Payment recorded successfully");
+        showSuccess("Payment recorded successfully");
       } catch (err: any) {
         console.error("Failed to record payment", err);
         const msg =
           err?.response?.data?.message ||
           err?.message ||
           "Failed to record payment";
-        alert(msg);
+        showError(msg);
       }
       return;
     }
@@ -347,7 +391,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     if (partyType === "Vendor" && !settleFromAdvance) {
       const vendorId = (booking as any).vendorId?._id;
       if (!vendorId) {
-        alert("Vendor ID not found");
+        showError("Vendor ID not found");
         return;
       }
 
@@ -358,7 +402,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
         generatedCustomId = customIdResp?.customId || "";
       } catch (err) {
         console.error("Failed to generate custom ID", err);
-        alert("Failed to generate payment ID");
+        showError("Failed to generate payment ID");
         return;
       }
 
@@ -376,14 +420,14 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       try {
         await PaymentsApi.createVendorPayment(vendorId, form);
         onClose();
-        alert("Payment recorded successfully");
+        showSuccess("Payment recorded successfully");
       } catch (err: any) {
         console.error("Failed to record payment", err);
         const msg =
           err?.response?.data?.message ||
           err?.message ||
           "Failed to record payment";
-        alert(msg);
+        showError(msg);
       }
       return;
     }
