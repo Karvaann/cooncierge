@@ -10,6 +10,13 @@ interface DropdownOption {
   searchLabel?: string;
 }
 
+interface DropdownFooterAction {
+  label: React.ReactNode;
+  icon?: React.ReactNode;
+  onClick: () => void;
+  className?: string;
+}
+
 interface DropdownProps {
   options: DropdownOption[];
   placeholder?: string;
@@ -22,12 +29,15 @@ interface DropdownProps {
   itemHeight?: number;
   noBorder?: boolean;
   buttonClassName?: string;
+  focusRingClass?: string;
+  noButtonRadius?: boolean;
   iconOnly?: boolean;
   disabled?: boolean;
   menuCentered?: boolean;
   searchable?: boolean;
   searchPlaceholder?: string;
   getOptionSearchValue?: (option: DropdownOption) => string;
+  footerAction?: DropdownFooterAction;
 }
 
 const DropDown: React.FC<DropdownProps> = ({
@@ -42,12 +52,15 @@ const DropDown: React.FC<DropdownProps> = ({
   itemHeight,
   noBorder = false,
   buttonClassName = "",
+  focusRingClass = "focus:ring-1 focus:ring-green-400",
+  noButtonRadius = false,
   iconOnly = false,
   disabled = false,
   menuCentered = false,
   searchable = false,
   searchPlaceholder = "Type to filter...",
   getOptionSearchValue,
+  footerAction,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(value || "");
@@ -71,7 +84,7 @@ const DropDown: React.FC<DropdownProps> = ({
 
   const selectedOption = options.find((opt) => opt.value === selectedValue);
   const displayText: React.ReactNode = selectedOption
-    ? selectedOption.buttonLabel ?? selectedOption.label
+    ? (selectedOption.buttonLabel ?? selectedOption.label)
     : placeholder;
 
   const filteredOptions = useMemo(() => {
@@ -188,6 +201,11 @@ const DropDown: React.FC<DropdownProps> = ({
     }
   };
 
+  const handleFooterClick = () => {
+    setIsOpen(false);
+    footerAction?.onClick();
+  };
+
   useEffect(() => {
     if (!isOpen) setSearchQuery("");
   }, [isOpen]);
@@ -207,9 +225,9 @@ const DropDown: React.FC<DropdownProps> = ({
           customHeight ? customHeight : "py-1.5"
         } flex items-center justify-between px-2 ${
           disabled ? "bg-gray-100 cursor-not-allowed text-gray-600" : "bg-white"
-        } rounded-md ${
+        } ${noButtonRadius ? "" : "rounded-md"} ${
           noBorder ? "" : "border border-gray-300"
-        } hover:border-green-300 transition-colors text-left text-[13px] focus:outline-none focus:ring-1 focus:ring-green-400 ${buttonClassName}`}
+        } hover:border-green-300 transition-colors text-left text-[13px] focus:outline-none ${focusRingClass} ${buttonClassName}`}
       >
         {!iconOnly && (
           <span className={`${selectedValue ? "text-black" : "text-gray-400"}`}>
@@ -285,13 +303,31 @@ const DropDown: React.FC<DropdownProps> = ({
                     {option.label}
                   </button>
                 ))}
+
+                {footerAction && (
+                  <button
+                    type="button"
+                    onClick={handleFooterClick}
+                    className={`w-full px-3 py-2 text-[13px] text-[#126ACB] font-semibold flex items-center justify-center gap-2 hover:bg-gray-50 border-t border-gray-200 ${
+                      footerAction.className || ""
+                    }`}
+                  >
+                    {footerAction.icon && (
+                      <span className="flex items-center">
+                        {footerAction.icon}
+                      </span>
+                    )}
+                    {footerAction.label}
+                  </button>
+                )}
+
                 {searchable && filteredOptions.length === 0 && (
                   <div className="px-3 py-2 text-[12px] text-gray-500">
                     No results
                   </div>
                 )}
               </div>,
-              document.body
+              document.body,
             )
           : null)}
     </div>

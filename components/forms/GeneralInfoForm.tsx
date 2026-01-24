@@ -819,9 +819,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     const fetchLists = async () => {
       try {
         const [cRes, travellerRes, vRes, tRes] = await Promise.all([
-          getCustomers(),
+          getCustomers({ isDeleted: false }),
           getTravellers(),
-          getVendors(),
+          getVendors({ isDeleted: false }),
           getUsers(),
         ]);
 

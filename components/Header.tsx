@@ -49,8 +49,10 @@ type HeaderMapKey =
   | "/bookings/other-services"
   | "/operations/limitless"
   | "/operations/other-services"
-  | "/finance/limitless"
-  | "/finance/other-services"
+  | "/finance/bookings"
+  | "/finance/payments"
+  | "/finance/customers"
+  | "/finance/vendors"
   | "/leads"
   | "/tasks"
   | "/directory/vendors"
@@ -90,8 +92,10 @@ const HEADER_MAP: Record<HeaderMapKey, string> = {
   "/bookings/other-services": "Bookings - OS",
   "/operations/limitless": "Operations - Limitless",
   "/operations/other-services": "Operations - OS",
-  "/finance/limitless": "My Bookings - Limitless",
-  "/finance/other-services": "My Bookings - OS",
+  "/finance/bookings": "Finance - Bookings",
+  "/finance/payments": "Finance - Payments",
+  "/finance/customers": "Finance - Customers",
+  "/finance/vendors": "Finance - Vendors",
   "/leads": "Leads",
   "/tasks": "Tasks",
   "/directory/vendors": "Directory - Vendors",

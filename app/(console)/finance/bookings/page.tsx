@@ -1,23 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import {
-  useMemo,
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  useLayoutEffect,
-} from "react";
-import { BookingApiService, DraftManager } from "@/services/bookingApi";
+import { useMemo, useState, useEffect, useCallback } from "react";
+import { BookingApiService } from "@/services/bookingApi";
 import { CustomIdApi } from "@/services/customIdApi";
-import type { DraftBooking } from "@/services/bookingApi";
-import apiClient from "@/services/apiClient";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
+import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
 // import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
-import ModalSkeleton from "@/components/skeletons/ModalSkeleton";
 import SidesheetSkeleton from "@/components/skeletons/SidesheetSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import type { JSX } from "react";
@@ -32,6 +23,7 @@ import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
 import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 import TaskButton from "@/components/TaskButton";
+import RecordPaymentSidesheet from "@/components/Sidesheets/RecordPaymentSidesheet";
 import { useAuth } from "@/context/AuthContext";
 import {
   getNextTriSortState,
@@ -54,20 +46,17 @@ const Table = dynamic(() => import("@/components/Table"), {
   ssr: false,
 });
 
-const BookingFormModal = dynamic(
-  () => import("@/components/BookingFormModal"),
-  {
-    loading: () => <ModalSkeleton />,
-    ssr: false,
-  }
-);
+const SummaryCards = dynamic(() => import("@/components/SummaryCards"), {
+  loading: () => <SummaryCardsSkeleton />,
+  ssr: false,
+});
 
 const BookingFormSidesheet = dynamic(
   () => import("@/components/BookingFormSidesheet"),
   {
     loading: () => <SidesheetSkeleton />,
     ssr: false,
-  }
+  },
 );
 
 type BookingStatus = "Confirmed" | "draft" | "Cancelled";
@@ -98,6 +87,8 @@ type FilterPayload = {
   bookingEndDate: string;
   tripStartDate: string;
   tripEndDate: string;
+  primaryOwner?: string;
+  secondaryOwners?: string[];
 };
 
 // API Data Types
@@ -191,68 +182,29 @@ const getStatusBadgeClass = (status: string): string => {
   }
 };
 
-const OSBookingsPage = () => {
+const FinanceBookingsPage = () => {
   // UI State
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [generatedBookingCode, setGeneratedBookingCode] = useState<
     string | null
   >(null);
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [selectedService, setSelectedService] = useState<BookingService | null>(
-    null
+    null,
   );
   const [generatedCustomerCode, setGeneratedCustomerCode] = useState<
     string | null
   >(null);
   const [generatedVendorCode, setGeneratedVendorCode] = useState<string | null>(
-    null
+    null,
   );
   const [sideSheetMode, setSideSheetMode] = useState<"view" | "edit">("edit");
 
+  const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
+  const [selectedPaymentBooking, setSelectedPaymentBooking] =
+    useState<any>(null);
+
   const { user } = useAuth();
-
-  const isBookingMaker = Boolean(user?.isBookingMaker);
-
-  let tabOptions;
-
-  if (isBookingMaker) {
-    tabOptions = ["Approved", "Pending", "Drafts", "Denied", "Deleted"];
-  } else {
-    tabOptions = ["Bookings", "Drafts", "Deleted"];
-  }
-
-  const [activeTab, setActiveTab] = useState("Bookings");
-
-  useEffect(() => {
-    // If auth resolves later and user is a booking maker, default to Approved.
-    if (isBookingMaker && activeTab === "Bookings") {
-      setActiveTab("Approved");
-    }
-  }, [isBookingMaker, activeTab]);
-
-  const tabContainerRef = useRef<HTMLDivElement | null>(null);
-  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
-
-  useLayoutEffect(() => {
-    const update = () => {
-      const container = tabContainerRef.current;
-      if (!container) return;
-      const activeBtn = container.querySelector(
-        `[data-tab="${activeTab}"]`
-      ) as HTMLElement | null;
-      if (!activeBtn) return;
-      // Use offsetLeft/offsetWidth so measurement is relative to container and ignores container padding
-      const shrinkPx = 5;
-      const left = activeBtn.offsetLeft + Math.round(shrinkPx / 2);
-      const width = Math.max(0, activeBtn.offsetWidth - shrinkPx);
-      setIndicator({ left, width });
-    };
-
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, [activeTab]);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
@@ -267,6 +219,8 @@ const OSBookingsPage = () => {
     bookingEndDate: "",
     tripStartDate: "",
     tripEndDate: "",
+    primaryOwner: "",
+    secondaryOwners: [],
   });
 
   // Data State
@@ -332,7 +286,7 @@ const OSBookingsPage = () => {
   const isWithinRange = (
     rawDate: string | undefined,
     start: string,
-    end: string
+    end: string,
   ) => {
     if (!rawDate) return false;
     const dt = new Date(rawDate);
@@ -367,20 +321,13 @@ const OSBookingsPage = () => {
     setIsSideSheetOpen(true);
   };
 
-  // Owner selection normalization
-  const selectedOwners: string[] = Array.isArray(filters.owner)
-    ? filters.owner
-    : filters.owner
-    ? [filters.owner]
-    : [];
-
   // Apply all filters client-side (search, booking date, travel date, owner)
   const filteredQuotations = useMemo(() => {
     return quotations.filter((q, idx) => {
       if (filters.search.trim()) {
         const s = filters.search.toLowerCase();
         const formattedServiceType = formatServiceType(
-          q.quotationType || ""
+          q.quotationType || "",
         ).toLowerCase();
         const matchesSearch =
           (q.customId || "").toLowerCase().includes(s) ||
@@ -397,7 +344,7 @@ const OSBookingsPage = () => {
           !isWithinRange(
             q.createdAt,
             filters.bookingStartDate,
-            filters.bookingEndDate
+            filters.bookingEndDate,
           )
         )
           return false;
@@ -409,34 +356,82 @@ const OSBookingsPage = () => {
           !isWithinRange(
             q.formFields?.departureDate as string,
             filters.tripStartDate,
-            filters.tripEndDate
+            filters.tripEndDate,
           )
         )
           return false;
       }
 
-      // Extract owner names from the API response
-      const ownerArray = ([] as any[]).concat(
-        q.secondaryOwner || [],
-        q.primaryOwner ? [q.primaryOwner] : []
-      );
-      const rowOwners: string[] = Array.isArray(ownerArray)
-        ? ownerArray.map((o: any) => o?.name || "").filter(Boolean)
-        : [];
+      // Check if we're using advanced search (primary + secondary owners)
+      const isAdvancedSearch =
+        filters.primaryOwner ||
+        (filters.secondaryOwners && filters.secondaryOwners.length > 0);
 
-      (q as any).__owners = rowOwners;
+      if (isAdvancedSearch) {
+        // Advanced search: match primary owner with primaryOwner field, secondary with secondaryOwner array
+        let primaryMatch = true;
+        let secondaryMatch = true;
 
-      // Filter by selected owners if any are selected
-      if (selectedOwners.length) {
-        const intersects = rowOwners.some((ownerName) =>
-          selectedOwners.includes(ownerName)
+        if (filters.primaryOwner) {
+          const quotationPrimaryOwner = q.primaryOwner?.name || "";
+          primaryMatch = quotationPrimaryOwner === filters.primaryOwner;
+        }
+
+        if (filters.secondaryOwners && filters.secondaryOwners.length > 0) {
+          const quotationSecondaryOwners = Array.isArray(q.secondaryOwner)
+            ? q.secondaryOwner.map((o: any) => o?.name || "").filter(Boolean)
+            : [];
+          // Check if all selected secondary owners are in the quotation's secondary owners
+          secondaryMatch = filters.secondaryOwners.every((selectedSecondary) =>
+            quotationSecondaryOwners.includes(selectedSecondary),
+          );
+        }
+
+        // Both conditions must be satisfied
+        if (!primaryMatch || !secondaryMatch) {
+          return false;
+        }
+
+        // Store owners for display
+        const ownerArray = ([] as any[]).concat(
+          q.secondaryOwner || [],
+          q.primaryOwner ? [q.primaryOwner] : [],
         );
-        if (!intersects) return false;
+        const rowOwners: string[] = Array.isArray(ownerArray)
+          ? ownerArray.map((o: any) => o?.name || "").filter(Boolean)
+          : [];
+        (q as any).__owners = rowOwners;
+      } else {
+        // Regular owner filtering: check against all owners (primary + secondary combined)
+        const selectedOwners: string[] = Array.isArray(filters.owner)
+          ? filters.owner
+          : filters.owner
+            ? [filters.owner]
+            : [];
+
+        // Extract owner names from the API response
+        const ownerArray = ([] as any[]).concat(
+          q.secondaryOwner || [],
+          q.primaryOwner ? [q.primaryOwner] : [],
+        );
+        const rowOwners: string[] = Array.isArray(ownerArray)
+          ? ownerArray.map((o: any) => o?.name || "").filter(Boolean)
+          : [];
+
+        (q as any).__owners = rowOwners;
+
+        // Filter by selected owners if any are selected
+        if (selectedOwners.length) {
+          const intersects = rowOwners.some((ownerName) =>
+            selectedOwners.includes(ownerName),
+          );
+          if (!intersects) return false;
+        }
       }
 
       return true;
     });
-  }, [quotations, filters, selectedOwners]);
+  }, [quotations, filters]);
 
   // Load quotations from backend
   const loadQuotations = useCallback(async () => {
@@ -449,8 +444,7 @@ const OSBookingsPage = () => {
         travelStartDate?: string;
         travelEndDate?: string;
         owner?: string | string[];
-        activeTab: string;
-      } = { activeTab };
+      } = {};
 
       if (filters.bookingStartDate)
         apiParams.bookingStartDate = filters.bookingStartDate;
@@ -459,12 +453,13 @@ const OSBookingsPage = () => {
       if (filters.tripStartDate)
         apiParams.travelStartDate = filters.tripStartDate;
       if (filters.tripEndDate) apiParams.travelEndDate = filters.tripEndDate;
-      console.log("Active tab:", activeTab);
+      // loading quotations
       // Note: Owner filtering is done client-side since API returns owner objects with names
 
-      const response = await BookingApiService.getAllQuotations(
-        Object.keys(apiParams).length ? apiParams : undefined
-      );
+      const response = await BookingApiService.getAllQuotations({
+        ...apiParams,
+        activeTab: "All",
+      });
 
       if (response.success && response.data) {
         const raw: any = response.data;
@@ -487,7 +482,6 @@ const OSBookingsPage = () => {
     filters.bookingEndDate,
     filters.tripStartDate,
     filters.tripEndDate,
-    activeTab,
   ]);
 
   // Load quotations on component mount and filter changes
@@ -500,7 +494,6 @@ const OSBookingsPage = () => {
     filters.tripStartDate,
     filters.tripEndDate,
     filters.owner,
-    activeTab,
   ]);
 
   const handleServiceSelect = (service: BookingService) => {
@@ -510,50 +503,15 @@ const OSBookingsPage = () => {
     setIsSideSheetOpen(true);
   };
 
-  // When user requests create from Filter, generate custom id first then open create modal
-  const handleCreateRequested = async () => {
-    try {
-      // simple guard against rapid duplicate calls
-      const now = Date.now();
-      const last = (window as any).__lastBookingCodeRequestAt || 0;
-      const IGNORE_MS = 1200;
-      if (now - last < IGNORE_MS) {
-        setIsCreateOpen(true);
-        return;
-      }
-      (window as any).__lastBookingCodeRequestAt = now;
-
-      // generate booking and customer ids in parallel
-      const [bookingResp, customerResp, vendorResp] = await Promise.all([
-        CustomIdApi.generate("booking"),
-        CustomIdApi.generate("customer"),
-        CustomIdApi.generate("vendor"),
-      ]);
-      const bookingId = bookingResp?.customId || null;
-      const customerId = customerResp?.customId || null;
-      const vendorId = vendorResp?.customId || null;
-      setGeneratedBookingCode(bookingId);
-      setGeneratedCustomerCode(customerId);
-      setGeneratedVendorCode(vendorId);
-    } catch (err) {
-      console.error("Failed to generate custom id:", err);
-      setGeneratedBookingCode(null);
-      setGeneratedCustomerCode(null);
-      setGeneratedVendorCode(null);
-    } finally {
-      setIsCreateOpen(true);
-    }
-  };
-
   // Handle booking completion (refresh data)
   const handleBookingComplete = useCallback(async () => {
     await loadQuotations();
     setIsSideSheetOpen(false);
     setSelectedQuotation(null);
-  }, [loadQuotations, activeTab]);
+  }, [loadQuotations]);
 
   const getServiceIcon = (
-    quotationType: string
+    quotationType: string,
   ): React.ReactElement | string => {
     if (!quotationType) return "Visa";
 
@@ -695,9 +653,8 @@ const OSBookingsPage = () => {
     if (!selectedDeleteId) return;
 
     try {
-      const response = await BookingApiService.deleteQuotation(
-        selectedDeleteId
-      );
+      const response =
+        await BookingApiService.deleteQuotation(selectedDeleteId);
 
       if (response.success) {
         // Remove from UI
@@ -812,62 +769,7 @@ const OSBookingsPage = () => {
       },
     ];
 
-    // Denied
-    if (tab === "Denied") {
-      baseActions.push({
-        label: "Request again",
-        icon: <TbArrowAutofitRight />,
-        color: "text-gray-400",
-        onClick: () => console.log("Request again", row.id),
-      });
-      baseActions.push({
-        label: "Duplicate",
-        icon: <FiCopy />,
-        color: "text-gray-400",
-        onClick: () => handleDuplicate(row),
-      });
-      return baseActions;
-    }
-
-    // Deleted
-    if (tab === "Deleted") {
-      return [
-        {
-          label: "Recover",
-          icon: <TbArrowAutofitRight />,
-          color: "text-gray-400",
-          onClick: () => console.log("Recover", row.id),
-        },
-      ];
-    }
-
-    // Approved
-    if (tab === "Approved") {
-      baseActions.push({
-        label: "Move",
-        icon: <TbArrowAutofitRight />,
-        color: "text-gray-400",
-        onClick: () => console.log("Move", row.id),
-      });
-    }
-
-    if (tab === "Bookings") {
-      baseActions.push({
-        label: "Move",
-        icon: <TbArrowAutofitRight />,
-        color: "text-gray-400",
-        onClick: () => console.log("Move", row.id),
-      });
-    }
-
-    // Default for Pending + Drafts
-    baseActions.push({
-      label: "Duplicate",
-      icon: <FiCopy />,
-      color: "text-gray-400",
-      onClick: () => handleDuplicate(row),
-    });
-
+    // Only expose Edit and Delete in finance view
     return baseActions;
   };
 
@@ -905,65 +807,55 @@ const OSBookingsPage = () => {
     };
   };
 
-  // Filter quotations based on active tab and status
+  // Combine filtered quotations and backend drafts to show all bookings
   const finalQuotations = useMemo(() => {
-    // Drafts tab shows drafts from backend with search filtering
-    if (activeTab === "Drafts") {
-      const normalizedDrafts = drafts.map(normalizeDraft);
+    const normalizedDrafts = drafts.map(normalizeDraft);
 
-      // Apply search filter to drafts
-      if (filters.search.trim()) {
-        const s = filters.search.toLowerCase();
-        return normalizedDrafts.filter((draft: any, index: number) => {
-          const formattedServiceType = formatServiceType(
-            draft.quotationType || ""
-          ).toLowerCase();
-          const draftId = draft.customId || `Draft-${index + 1}`;
-          const customerName =
-            draft.customerId?.name || draft.formFields?.customer || "";
+    const combined = [...filteredQuotations, ...normalizedDrafts];
 
-          return (
-            draftId.toLowerCase().includes(s) ||
-            formattedServiceType.includes(s) ||
-            (draft.quotationType || "").toLowerCase().includes(s) ||
-            customerName.toLowerCase().includes(s)
-          );
-        });
+    // Deduplicate by _id when present
+    const seen = new Set<string>();
+    const result: any[] = [];
+    for (const item of combined) {
+      const id = item?._id || item?.customId || JSON.stringify(item);
+      if (!seen.has(id)) {
+        seen.add(id);
+        result.push(item);
       }
-
-      return normalizedDrafts;
     }
 
-    // Filter quotations by status based on active tab
-    return filteredQuotations.filter((q) => {
-      const status = q.serviceStatus?.toLowerCase();
+    return result;
+  }, [filteredQuotations, drafts]) as any[];
 
-      switch (activeTab) {
-        case "Bookings":
-          // Show confirmed bookings
-          return status === "approved";
-        case "Pending":
-          // Show pending or draft status bookings
-          return status === "pending" || status === "draft";
-        case "Deleted":
-          // Show deleted bookings (if you have a deleted flag or status)
-          return status === "deleted";
-        default:
-          return true;
-      }
-    });
-  }, [activeTab, filteredQuotations]) as any[];
+  const summaryData = useMemo(() => {
+    const totalValue = finalQuotations.reduce((sum, item) => {
+      const val =
+        Number(item.totalAmount) || Number(item.formFields?.budget) || 0;
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
+
+    const youGiveValue = Math.round(totalValue * 0.6);
+    const youGetValue = totalValue - youGiveValue;
+
+    const fmt = (n: number) => `₹ ${n.toLocaleString("en-IN")}`;
+
+    return {
+      total: { amount: fmt(totalValue), change: "", isPositive: true },
+      youGive: { amount: fmt(youGiveValue), change: "", isPositive: false },
+      youGet: { amount: fmt(youGetValue), change: "", isPositive: true },
+    };
+  }, [finalQuotations]);
 
   // Use shared timestamp extractor from utils/sorting.ts
   // (keeps logic consistent across pages)
 
   const sortedQuotationsForTable = useMemo(() => {
     if (sortState.key !== "Travel Date" || sortState.direction === "none") {
-      return filteredQuotations;
+      return finalQuotations;
     }
 
     // Stable sort: keep original order for ties.
-    const withIndex = filteredQuotations.map((item, originalIndex) => ({
+    const withIndex = finalQuotations.map((item, originalIndex) => ({
       item,
       originalIndex,
     }));
@@ -983,7 +875,7 @@ const OSBookingsPage = () => {
     });
 
     return withIndex.map((x) => x.item);
-  }, [filteredQuotations, sortState.direction, sortState.key]);
+  }, [finalQuotations, sortState.direction, sortState.key]);
 
   // Convert quotations to table data
   const tableData = useMemo<JSX.Element[][]>(() => {
@@ -1015,10 +907,10 @@ const OSBookingsPage = () => {
         {item.travelDate
           ? formatDMY(item.travelDate)
           : item.formFields?.departureDate
-          ? formatDMY(item.formFields.departureDate)
-          : item.createdAt
-          ? formatDMY(item.createdAt)
-          : "--"}
+            ? formatDMY(item.formFields.departureDate)
+            : item.createdAt
+              ? formatDMY(item.createdAt)
+              : "--"}
       </td>,
       <td
         key={`service-${index}`}
@@ -1051,8 +943,8 @@ const OSBookingsPage = () => {
         {item.totalAmount
           ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
           : item.formFields?.budget
-          ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
-          : "--"}
+            ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
+            : "--"}
       </td>,
       <td
         key={`owners-${index}`}
@@ -1060,41 +952,50 @@ const OSBookingsPage = () => {
         className="px-4 py-3 text-center align-middle h-[3rem] cursor-pointer"
       >
         <div className="flex items-center justify-center">
-          <div className="flex items-center">
-            {(Array.isArray([
-              ...(item as any).secondaryOwner,
-              (item as any).primaryOwner,
-            ])
-              ? [
-                  ...(item as any).secondaryOwner,
-                  (item as any).primaryOwner,
-                ].map((o: any) => o?.name || "--")
-              : []
-            ).map((ownerName: string, i: number) => {
-              // Try to find owner in ownersList (fetched from API)
-              let ownerMeta = ownersList.find((o) => o.full === ownerName);
-
-              // If not found (e.g., for drafts), create a temporary owner object
-              if (!ownerMeta && ownerName && ownerName !== "--") {
-                ownerMeta = {
-                  short: computeInitials(ownerName),
-                  full: ownerName,
-                  color: (colorPalette[i % colorPalette.length] ||
-                    colorPalette[0]) as string,
-                };
-              }
-
-              if (!ownerMeta) return null;
+          {/* PRIMARY OWNER */}
+          {item.primaryOwner?.name &&
+            (() => {
+              const name = item.primaryOwner.name;
+              const ownerMeta = ownersList.find((o) => o.full === name) || {
+                short: computeInitials(name),
+                full: name,
+                color: colorPalette[0],
+              };
 
               return (
-                <AvatarTooltip
-                  key={i}
-                  short={ownerMeta.short}
-                  full={ownerMeta.full}
-                  color={ownerMeta.color}
-                />
+                <div className="mr-2">
+                  {" "}
+                  {/* 👈 GAP AFTER PRIMARY */}
+                  <AvatarTooltip
+                    short={ownerMeta.short}
+                    full={ownerMeta.full}
+                    color={ownerMeta.color}
+                  />
+                </div>
               );
-            })}
+            })()}
+
+          {/* SECONDARY OWNERS */}
+          <div className="flex items-center">
+            {Array.isArray(item.secondaryOwner) &&
+              item.secondaryOwner.map((o: any, i: number) => {
+                if (!o?.name) return null;
+
+                const ownerMeta = ownersList.find((x) => x.full === o.name) || {
+                  short: computeInitials(o.name),
+                  full: o.name,
+                  color: colorPalette[(i + 1) % colorPalette.length],
+                };
+
+                return (
+                  <AvatarTooltip
+                    key={i}
+                    short={ownerMeta.short}
+                    full={ownerMeta.full}
+                    color={ownerMeta.color}
+                  />
+                );
+              })}
           </div>
         </div>
       </td>,
@@ -1111,20 +1012,36 @@ const OSBookingsPage = () => {
       </td>,
 
       // ACTIONS COLUMN
-      <td
-        key={`actions-${index}`}
-        className="px-4 py-3 text-center align-middle h-[3rem]"
-      >
-        <div onClick={(e) => e.stopPropagation()}>
+      <td className="px-4 py-3 text-center align-middle h-[3rem]">
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className={`
+      flex items-center justify-center gap-2
+      transition-all duration-200
+      ${index === 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
+    `}
+        >
+          {/* ₹ Button */}
+          <button
+            className="w-8 h-8 rounded-md bg-blue-100 text-blue-700
+                 flex items-center justify-center hover:bg-blue-200"
+            onClick={() => {
+              setSelectedPaymentBooking(item);
+              setIsRecordPaymentOpen(true);
+            }}
+          >
+            ₹
+          </button>
+
           <ActionMenu
-            actions={getActionsForTab(activeTab, item)}
+            actions={getActionsForTab("All", item)}
             right="right-15"
           />
         </div>
       </td>,
     ]);
     return rows;
-  }, [sortedQuotationsForTable, ownersList, activeTab]);
+  }, [sortedQuotationsForTable, ownersList]);
 
   // Helper functions
 
@@ -1143,7 +1060,7 @@ const OSBookingsPage = () => {
       ],
       owners: ownersList.map((o) => ({ value: o.full, label: o.full })),
     }),
-    [ownersList]
+    [ownersList],
   );
 
   const handleFilterChange = (next: FilterPayload) => {
@@ -1195,53 +1112,15 @@ const OSBookingsPage = () => {
             serviceTypes={filterOptions.serviceTypes}
             statuses={filterOptions.statuses}
             owners={filterOptions.owners}
-            createOpen={isCreateOpen}
-            setCreateOpen={setIsCreateOpen}
-            onCreateClick={handleCreateRequested}
+            showCreateButton={false}
+            totalCount={finalQuotations.length}
+            showBookingType={true}
           />
 
+          <SummaryCards data={summaryData} />
+
           <div className="bg-white rounded-2xl shadow mt-4 pt-5 pb-3 px-3 relative">
-            {/* Tabs and Total Count Row */}
-            <div className="flex w-full justify-between items-center mb-2">
-              <div
-                ref={tabContainerRef}
-                style={{ width: "fit-content" }}
-                className="flex w-[20.5rem] ml-2 items-center bg-[#F3F3F3] rounded-xl relative py-1.5 gap-8.5"
-              >
-                {/* Sliding background indicator sized to active button */}
-                <div
-                  className="absolute h-[calc(100%-0.5rem)] bg-[#0D4B37] rounded-xl shadow-sm transition-all duration-300 ease-in-out top-1"
-                  style={{
-                    left: `${indicator.left}px`,
-                    width: `${indicator.width}px`,
-                  }}
-                />
-
-                {tabOptions.map((tab) => (
-                  <button
-                    key={tab}
-                    data-tab={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`relative z-10 py-1 px-4 rounded-lg text-[14px] font-medium transition-colors duration-300 text-center ${
-                      activeTab === tab
-                        ? "text-white"
-                        : "text-[#818181] hover:text-gray-900 font-semibold"
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
-                <span className="text-gray-600 text-[14px] font-medium">
-                  Total
-                </span>
-                <span className="bg-gray-100 text-black font-semibold text-[14px] px-2 mr-1 rounded-lg shadow-sm">
-                  {filteredQuotations.length}
-                </span>
-              </div>
-            </div>
+            {/* Header row removed: tabs and inline total moved into Filter */}
             <div className="p-2 mt-2">
               {isLoading ? (
                 <TableSkeleton />
@@ -1253,6 +1132,7 @@ const OSBookingsPage = () => {
                   onSort={handleSort}
                   categoryName="Bookings"
                   headerAlign={{ "Booking ID": "center" }}
+                  enableRowHoverActions
                 />
               )}
             </div>
@@ -1269,14 +1149,6 @@ const OSBookingsPage = () => {
           onConfirm={confirmDelete}
         />
 
-        {isCreateOpen && (
-          <BookingFormModal
-            isOpen={isCreateOpen}
-            onClose={() => setIsCreateOpen(false)}
-            onSelectedService={handleServiceSelect}
-          />
-        )}
-
         <BookingFormSidesheet
           key={selectedQuotation?._id || "create"}
           isOpen={isSideSheetOpen}
@@ -1288,9 +1160,18 @@ const OSBookingsPage = () => {
           vendorCode={generatedVendorCode ?? ""}
           mode={sideSheetMode}
         />
+
+        <RecordPaymentSidesheet
+          isOpen={isRecordPaymentOpen}
+          booking={selectedPaymentBooking}
+          onClose={() => {
+            setIsRecordPaymentOpen(false);
+            setSelectedPaymentBooking(null);
+          }}
+        />
       </div>
     </div>
   );
 };
 
-export default OSBookingsPage;
+export default FinanceBookingsPage;

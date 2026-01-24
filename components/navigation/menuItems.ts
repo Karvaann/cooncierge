@@ -7,6 +7,7 @@ import { PiCurrencyCircleDollar } from "react-icons/pi";
 import { RiContactsBook3Line } from "react-icons/ri";
 import { IoSettingsOutline } from "react-icons/io5";
 import { IoMdCheckboxOutline } from "react-icons/io";
+import { TbFileReport } from "react-icons/tb";
 
 export interface SubMenuItem {
   label: string;
@@ -63,10 +64,11 @@ export const menuItems: MenuItem[] = [
     icon: PiCurrencyCircleDollar,
     subMenu: [
       { label: "Bookings", href: "/finance/bookings" },
-      { label: "Payments", href: "/finance/payments" },
       { label: "Customers", href: "/finance/customers" },
       { label: "Vendors", href: "/finance/vendors" },
-      { label: "Reports", href: "/finance/reports" },
+      { label: "Payments", href: "/finance/payments" },
+      { label: "Journals", href: "/finance/journals" },
+      
     ],
   },
   {
@@ -77,6 +79,11 @@ export const menuItems: MenuItem[] = [
       { label: "Vendors", href: "/directory/vendors" },
       { label: "Team", href: "/directory/team" },
     ],
+  },
+  {
+    label: "Reports",
+    icon: TbFileReport,
+    href: "/reports",
   },
   {
     label: "Settings",

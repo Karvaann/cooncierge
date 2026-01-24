@@ -29,11 +29,14 @@ interface FilterState {
   status: string;
   owner: string | string[];
   bookingType: string;
+  category?: string;
   search: string;
   bookingStartDate: string;
   bookingEndDate: string;
   tripStartDate: string;
   tripEndDate: string;
+  primaryOwner?: string;
+  secondaryOwners?: string[];
 }
 
 interface FilterProps {
@@ -42,12 +45,23 @@ interface FilterProps {
   serviceTypes?: FilterOption[];
   statuses?: FilterOption[];
   owners?: FilterOption[];
+  categories?: FilterOption[];
   initialFilters?: Partial<FilterState>;
   createOpen?: boolean;
   setCreateOpen?: (open: boolean) => void;
   onCreateClick?: () => void;
+  showCreateButton?: boolean;
+  createButtonText?: string;
+  totalCount?: number;
   showBookingType?: boolean;
   searchWidth?: string;
+  searchPlaceholder?: string;
+  showOwners?: boolean;
+  showBookingDateFilter?: boolean;
+  bookingDateLabel?: string;
+  showTravelDateFilter?: boolean;
+  travelDateLabel?: string;
+  showCategory?: boolean;
 }
 
 const Filter: React.FC<FilterProps> = ({
@@ -55,13 +69,24 @@ const Filter: React.FC<FilterProps> = ({
   serviceTypes = [],
   statuses = [],
   owners = [],
+  categories = [],
   initialFilters = {},
   createOpen = false,
   setCreateOpen,
   onSearchChange,
   onCreateClick,
+  showCreateButton = true,
+  createButtonText = "+ Create",
+  totalCount,
   showBookingType = false,
   searchWidth,
+  searchPlaceholder = "Search by Booking ID / Lead Pax",
+  showOwners = true,
+  showBookingDateFilter = true,
+  bookingDateLabel = "Booking Date",
+  showTravelDateFilter = true,
+  travelDateLabel = "Travel Date",
+  showCategory = false,
 }) => {
   const initialSearch = initialFilters.search || "";
   const initialEffectiveSearch = initialSearch.length >= 3 ? initialSearch : "";
@@ -71,16 +96,19 @@ const Filter: React.FC<FilterProps> = ({
     status: initialFilters.status || "",
     owner: initialFilters.owner || "",
     bookingType: (initialFilters as any).bookingType || "",
+    category: (initialFilters as any).category || "",
     search: initialFilters.search || "",
     bookingStartDate: initialFilters.bookingStartDate || "",
     bookingEndDate: initialFilters.bookingEndDate || "",
     tripStartDate: initialFilters.tripStartDate || "",
     tripEndDate: initialFilters.tripEndDate || "",
+    primaryOwner: (initialFilters as any).primaryOwner || "",
+    secondaryOwners: (initialFilters as any).secondaryOwners || [],
   });
 
   // Only propagate search to parent when empty or >= 3 chars
   const [effectiveSearch, setEffectiveSearch] = useState<string>(
-    initialEffectiveSearch
+    initialEffectiveSearch,
   );
 
   {
@@ -160,8 +188,8 @@ const Filter: React.FC<FilterProps> = ({
     const next = Array.isArray(initialOwner)
       ? initialOwner
       : typeof initialOwner === "string" && initialOwner
-      ? [initialOwner]
-      : [];
+        ? [initialOwner]
+        : [];
     setSelectedOwners(next);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -170,7 +198,7 @@ const Filter: React.FC<FilterProps> = ({
     (key: keyof FilterState, value: string | string[]) => {
       setFilters((prev) => ({ ...prev, [key]: value }));
     },
-    []
+    [],
   );
 
   const removeOwner = useCallback(
@@ -181,7 +209,7 @@ const Filter: React.FC<FilterProps> = ({
         return next;
       });
     },
-    [updateFilter]
+    [updateFilter],
   );
 
   // Decide search input width: explicit prop > compact when booking type shown > default
@@ -194,11 +222,14 @@ const Filter: React.FC<FilterProps> = ({
       status: "",
       owner: "",
       bookingType: "",
+      category: "",
       search: "",
       bookingStartDate: "",
       bookingEndDate: "",
       tripStartDate: "",
       tripEndDate: "",
+      primaryOwner: "",
+      secondaryOwners: [],
     };
     setFilters(resetFilters);
     setSelectedOwners([]); // Reset owner pills
@@ -212,7 +243,7 @@ const Filter: React.FC<FilterProps> = ({
 
   const callbackFilters = useMemo(
     () => ({ ...filters, search: effectiveSearch }),
-    [filters, effectiveSearch]
+    [filters, effectiveSearch],
   );
 
   // Forward filter changes to parent AFTER render commit to avoid nested render updates
@@ -230,36 +261,50 @@ const Filter: React.FC<FilterProps> = ({
           {option.label || option.name || String(option)}
         </option>
       )),
-    []
+    [],
   );
 
   const serviceTypeOptions = useMemo(
     () => renderOptions(serviceTypes),
-    [serviceTypes, renderOptions]
+    [serviceTypes, renderOptions],
   );
   const statusOptions = useMemo(
     () => renderOptions(statuses),
-    [statuses, renderOptions]
+    [statuses, renderOptions],
   );
   const ownerOptions = useMemo(
     () => renderOptions(owners),
-    [owners, renderOptions]
+    [owners, renderOptions],
+  );
+
+  const categoryOptions = useMemo(
+    () => renderOptions(categories),
+    [categories, renderOptions],
   );
 
   return (
     <div className="bg-white rounded-xl shadow pt-4.5 pb-4.5 px-4 w-full relative">
       <div className="flex justify-between items-center mb-1">
         <h2 className="text-[1rem] font-semibold text-[#1F2937]">Filters</h2>
-        <Button
-          text="+ Create"
-          onClick={() => {
-            if (onCreateClick) onCreateClick();
-            else setCreateOpen?.(true);
-          }}
-          bgColor="bg-[#0D4B37]"
-          textColor="text-white"
-          className="border border-[#0D4B37] hover:bg-[#125E45] px-3.5 cursor-pointer"
-        />
+        {showCreateButton ? (
+          <Button
+            text={createButtonText}
+            onClick={() => {
+              if (onCreateClick) onCreateClick();
+              else setCreateOpen?.(true);
+            }}
+            bgColor="bg-[#0D4B37]"
+            textColor="text-white"
+            className="border border-[#0D4B37] hover:bg-[#125E45] px-3.5 cursor-pointer"
+          />
+        ) : typeof totalCount === "number" ? (
+          <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
+            <span className="text-gray-600 text-[14px] font-medium">Total</span>
+            <span className="bg-gray-100 text-black font-semibold text-[14px] px-2 mr-1 rounded-lg shadow-sm">
+              {totalCount}
+            </span>
+          </div>
+        ) : null}
       </div>
 
       <hr className="mb-2 mt-2 border-t-1 border-[#e4dfdb]" />
@@ -284,93 +329,133 @@ const Filter: React.FC<FilterProps> = ({
           {/* Status */}
 
           {/* Booking Time Period (combined box) */}
-          <DateRangeInput
-            label="Booking Date"
-            startDate={filters.bookingStartDate}
-            endDate={filters.bookingEndDate}
-            onChange={(start, end) => {
-              updateFilter("bookingStartDate", start);
-              updateFilter("bookingEndDate", end);
-            }}
-          />
+          {showBookingDateFilter && (
+            <DateRangeInput
+              label={bookingDateLabel}
+              startDate={filters.bookingStartDate}
+              endDate={filters.bookingEndDate}
+              onChange={(start, end) => {
+                updateFilter("bookingStartDate", start);
+                updateFilter("bookingEndDate", end);
+              }}
+            />
+          )}
 
-          <DateRangeInput
-            label="Travel Date"
-            startDate={filters.tripStartDate}
-            endDate={filters.tripEndDate}
-            onChange={(start, end) => {
-              updateFilter("tripStartDate", start);
-              updateFilter("tripEndDate", end);
-            }}
-          />
+          {showTravelDateFilter && (
+            <DateRangeInput
+              label={travelDateLabel}
+              startDate={filters.tripStartDate}
+              endDate={filters.tripEndDate}
+              onChange={(start, end) => {
+                updateFilter("tripStartDate", start);
+                updateFilter("tripEndDate", end);
+              }}
+            />
+          )}
+
+          {/* Category */}
+          {showCategory && (
+            <div className="flex-shrink-0">
+              <label className="block text-[#414141] font-medium mb-1.5 text-[14px]">
+                Category
+              </label>
+              <div className="relative">
+                <select
+                  value={filters.category || ""}
+                  onChange={(e) => updateFilter("category", e.target.value)}
+                  className="w-[12.75rem] border border-gray-300 hover:border-green-300 text-[14px] font-normal rounded-md px-3 py-2.5 text-gray-700 bg-white"
+                >
+                  <option value="">Select Category</option>
+                  {categoryOptions}
+                </select>
+              </div>
+            </div>
+          )}
 
           {/* Booking Owner */}
 
-          <div className="flex-shrink-0">
-            <label className="block text-[#414141] font-medium mb-1.5 text-[14px]">
-              Booking Owner
-            </label>
+          {showOwners && (
+            <div className="flex-shrink-0">
+              <label className="block text-[#414141] font-medium mb-1.5 text-[14px]">
+                Booking Owner
+              </label>
 
-            <div className="relative">
-              <FilterInputShell
-                placeholder="Select Owner"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOwnerModalOpen(true);
-                }}
-              >
-                {selectedOwners.length > 0 ? (
-                  <>
-                    <span
-                      key={selectedOwners[0]}
-                      className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[12px]"
-                    >
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (selectedOwners[0]) removeOwner(selectedOwners[0]);
-                        }}
-                        className="py-1"
+              <div className="relative">
+                <FilterInputShell
+                  placeholder="Select Owner"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOwnerModalOpen(true);
+                  }}
+                >
+                  {selectedOwners.length > 0 ? (
+                    <>
+                      <span
+                        key={selectedOwners[0]}
+                        className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[12px]"
                       >
-                        <IoClose size={16} className="text-[#818181]" />
-                      </button>
-                      {selectedOwners[0]}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (selectedOwners[0])
+                              removeOwner(selectedOwners[0]);
+                          }}
+                          className="py-1"
+                        >
+                          <IoClose size={16} className="text-[#818181]" />
+                        </button>
+                        {selectedOwners[0]}
+                      </span>
+
+                      {selectedOwners.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOwnerModalOpen(true);
+                          }}
+                          className="text-[#114958] underline text-[14px] ml-2"
+                          aria-label="Show more owners"
+                        >
+                          + {selectedOwners.length - 1}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-[#9CA3AF] text-[14px] flex items-center flex-1">
+                      Select Owner
                     </span>
+                  )}
+                </FilterInputShell>
 
-                    {selectedOwners.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOwnerModalOpen(true);
-                        }}
-                        className="text-[#114958] underline text-[14px] ml-2"
-                        aria-label="Show more owners"
-                      >
-                        + {selectedOwners.length - 1}
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-[#9CA3AF] text-[14px] flex items-center flex-1">
-                    Select Owner
-                  </span>
-                )}
-              </FilterInputShell>
-
-              <SelectBookingOwnerModal
-                isOpen={ownerModalOpen}
-                onClose={() => setOwnerModalOpen(false)}
-                owners={owners}
-                initialSelectedOwners={selectedOwners}
-                onApply={(next) => {
-                  setSelectedOwners(next);
-                  updateFilter("owner", next);
-                }}
-              />
+                <SelectBookingOwnerModal
+                  isOpen={ownerModalOpen}
+                  onClose={() => setOwnerModalOpen(false)}
+                  owners={owners}
+                  initialSelectedOwners={selectedOwners}
+                  initialPrimaryOwner={filters.primaryOwner ?? ""}
+                  initialSecondaryOwners={filters.secondaryOwners || []}
+                  onApply={(next) => {
+                    setSelectedOwners(next);
+                    updateFilter("owner", next);
+                    updateFilter("primaryOwner", "");
+                    updateFilter("secondaryOwners", []);
+                  }}
+                  onApplyAdvanced={(primary, secondary) => {
+                    // Combine for display in pills
+                    const combined = [primary, ...secondary].filter(Boolean);
+                    setSelectedOwners(combined);
+                    // Store separately for filtering logic
+                    updateFilter("primaryOwner", primary);
+                    updateFilter("secondaryOwners", secondary);
+                    updateFilter("owner", ""); // Clear regular owner when using advanced
+                  }}
+                  showAdvanceSearch={true}
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {showBookingType && (
             <div className="flex-shrink-0">
@@ -384,8 +469,8 @@ const Filter: React.FC<FilterProps> = ({
                     (filters as any).bookingType === "os"
                       ? "OS"
                       : (filters as any).bookingType === "limitless"
-                      ? "Limitless"
-                      : ""
+                        ? "Limitless"
+                        : ""
                   }
                   placeholder="Select Booking Type"
                   onClick={(e) => {
@@ -440,7 +525,7 @@ const Filter: React.FC<FilterProps> = ({
                     </div>,
                     typeof document !== "undefined"
                       ? document.body
-                      : (null as any)
+                      : (null as any),
                   )}
               </div>
             </div>
@@ -470,7 +555,7 @@ const Filter: React.FC<FilterProps> = ({
             <div className="relative">
               <input
                 type="text"
-                placeholder="Search by Booking ID / Lead Pax"
+                placeholder={searchPlaceholder}
                 value={filters.search}
                 onChange={(e) => {
                   const value = e.target.value;

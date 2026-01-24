@@ -10,6 +10,7 @@ interface TableProps {
   initialRowsPerPage?: number;
   maxRowsPerPageOptions?: number[];
   columnIconMap?: Record<string, React.ReactNode>;
+  headerAlign?: Record<string, "left" | "center" | "right">;
   onSort?: (column: string) => void;
   hideRowsPerPage?: boolean;
   showCheckboxColumn?: boolean;
@@ -19,11 +20,14 @@ interface TableProps {
   rowIds?: string[];
   droppableId?: string;
   headerClassName?: string;
+  headerRowTextClassName?: string;
+  headerCellTextClassName?: string;
   categoryName?: string;
   sortableHeaderHoverClass?: string;
   hideEntriesText?: boolean;
   onRowClick?: (rowIndex: number) => void;
   onPaginationChange?: (page: number, rowsPerPage: number) => void;
+  enableRowHoverActions?: boolean;
 }
 
 const Table: React.FC<TableProps> = ({
@@ -40,11 +44,15 @@ const Table: React.FC<TableProps> = ({
   rowIds = [],
   droppableId = "table-droppable",
   headerClassName = "",
+  headerRowTextClassName = "text-white",
+  headerCellTextClassName = "text-gray-200",
   categoryName = "",
   sortableHeaderHoverClass = "",
   hideEntriesText = false,
+  headerAlign = {},
   onRowClick,
   onPaginationChange,
+  enableRowHoverActions = false,
 }) => {
   const [page, setPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
@@ -135,7 +143,7 @@ const Table: React.FC<TableProps> = ({
         >
           <thead>
             <tr
-              className={`rounded-t-xl text-white ${
+              className={`rounded-t-xl ${headerRowTextClassName} ${
                 headerClassName || "bg-[#0D4B37]"
               }`}
             >
@@ -158,7 +166,7 @@ const Table: React.FC<TableProps> = ({
                       onSort(col);
                     }
                   }}
-                  className={`px-[18px] py-[12px] text-gray-200 font-[500] leading-4 tracking-[0.6px] text-[12px]
+                  className={`px-[18px] py-[12px] ${headerCellTextClassName} font-[500] leading-4 tracking-[0.6px] text-[12px]
           ${
             col === "Rating" ||
             col === "Date Modified" ||
@@ -174,12 +182,20 @@ const Table: React.FC<TableProps> = ({
                 >
                   <div
                     className={`flex items-center gap-2 ${
-                      index === 0 ? "justify-start" : "justify-center"
+                      headerAlign?.[col] === "left"
+                        ? "justify-start"
+                        : headerAlign?.[col] === "right"
+                        ? "justify-end"
+                        : "justify-center"
                     }`}
                   >
                     <span
                       className={`truncate ${
-                        index === 0 ? "text-left" : "text-center"
+                        headerAlign?.[col] === "left"
+                          ? "text-left"
+                          : headerAlign?.[col] === "right"
+                          ? "text-right"
+                          : "text-center"
                       }`}
                     >
                       {col}
@@ -215,11 +231,12 @@ const Table: React.FC<TableProps> = ({
                             const globalIndex = (page - 1) * rowsPerPage + idx;
                             onRowClick(globalIndex);
                           }}
-                          className={`${
-                            idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                          } hover:bg-gray-100 transition-colors h-[3rem] text-[12px] ${
-                            onRowClick ? "cursor-pointer" : ""
-                          }`}
+                          className={`
+    ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+    hover:bg-gray-100 transition-colors h-[3rem] text-[12px]
+    ${onRowClick ? "cursor-pointer" : ""}
+    ${enableRowHoverActions ? "group" : ""}
+  `}
                         >
                           {row}
                         </tr>
@@ -260,11 +277,12 @@ const Table: React.FC<TableProps> = ({
                       const globalIndex = (page - 1) * rowsPerPage + idx;
                       onRowClick(globalIndex);
                     }}
-                    className={`${
-                      idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-                    } hover:bg-gray-100 transition-colors text-[14px] ${
-                      onRowClick ? "cursor-pointer" : ""
-                    }`}
+                    className={`
+    ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
+    hover:bg-gray-100 transition-colors text-[14px]
+    ${onRowClick ? "cursor-pointer" : ""}
+    ${enableRowHoverActions ? "group" : ""}
+  `}
                   >
                     {row}
                   </tr>

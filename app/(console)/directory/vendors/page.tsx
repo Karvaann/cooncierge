@@ -27,6 +27,11 @@ import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import { MdHistory } from "react-icons/md";
 import Image from "next/image";
 import CustomIdApi from "@/services/customIdApi";
+import {
+  getNextTriSortState,
+  type TriSortState,
+  getItemTimestamp,
+} from "@/utils/sorting";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -40,6 +45,7 @@ type VendorRow = {
   rating: string;
   poc: string;
   dateModified: string;
+  createdAt?: string;
   actions: React.ComponentType<any> | string;
 };
 
@@ -115,6 +121,10 @@ const VendorDirectory = () => {
   const [activeTab, setActiveTab] = useState("Vendors");
   const [searchValue, setSearchValue] = useState("");
   const [vendors, setVendors] = useState<VendorRow[]>([]);
+  const [sortState, setSortState] = useState<TriSortState<string>>({
+    key: null,
+    direction: "none",
+  });
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const tabOptions = useMemo(() => ["Vendors", "Deleted"], []);
   const [selectMode, setSelectMode] = useState(false);
@@ -144,11 +154,41 @@ const VendorDirectory = () => {
   >([]);
 
   const filteredVendors = useMemo(() => {
-    if (!searchValue.trim()) return vendors;
+    const list = vendors;
 
-    return vendors.filter((v) => {
-      const search = searchValue.toLowerCase();
+    // Apply tri-state sorting when active
+    const sorted = (() => {
+      if (!sortState.key || sortState.direction === "none") return list;
 
+      const withIndex = list.map((item, originalIndex) => ({
+        item,
+        originalIndex,
+      }));
+
+      withIndex.sort((a, b) => {
+        let cmp = 0;
+        if (sortState.key === "Rating") {
+          const ra = Number(a.item.rating) || 0;
+          const rb = Number(b.item.rating) || 0;
+          cmp = ra - rb;
+        } else if (sortState.key === "Date Modified") {
+          const ta = getItemTimestamp({ createdAt: a.item.createdAt }) ?? 0;
+          const tb = getItemTimestamp({ createdAt: b.item.createdAt }) ?? 0;
+          cmp = ta - tb;
+        }
+
+        if (cmp === 0) return a.originalIndex - b.originalIndex;
+        return sortState.direction === "asc" ? cmp : -cmp;
+      });
+
+      return withIndex.map((x) => x.item);
+    })();
+
+    if (!searchValue.trim()) return sorted;
+
+    const search = searchValue.toLowerCase();
+
+    return sorted.filter((v) => {
       return (
         v.vendorName?.toLowerCase().includes(search) ||
         v.vendorID?.toLowerCase().includes(search) ||
@@ -156,7 +196,7 @@ const VendorDirectory = () => {
         v.poc?.toLowerCase().includes(search)
       );
     });
-  }, [vendors, searchValue]);
+  }, [vendors, searchValue, sortState]);
 
   const handleMenuToggle = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -182,16 +222,15 @@ const VendorDirectory = () => {
   };
 
   const handleSort = (column: string) => {
+    if (column === "Rating" || column === "Date Modified") {
+      setSortState((prev) => getNextTriSortState(prev, column));
+      return;
+    }
+
     const sorted = [...vendors];
-
-    if (column === "Rating") {
+    if (column === "Vendor ID") {
       sorted.reverse();
     }
-
-    if (column === "Date Modified") {
-      sorted.reverse();
-    }
-
     setVendors(sorted);
   };
 
@@ -296,6 +335,7 @@ const VendorDirectory = () => {
         poc: v.contactPerson || "—",
         rating: v.tier ? Number(v.tier.replace("tier", "")) : 4,
         dateModified: formatDMY(v.createdAt),
+        createdAt: v.createdAt,
         actions: "⋮",
       }));
       setVendors(mappedRows);

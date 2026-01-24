@@ -270,4 +270,47 @@ const isAfterDate = (a: string, b: string) => {
 };
 export { isAfterDate };
 
+const parseDateSafe = (val?: string | null): Date | null => {
+  if (!val) return null;
+
+  // If ISO or other formats parseable by Date do that first
+  const iso = new Date(val);
+  if (!isNaN(iso.getTime())) return iso;
+
+  // dd-mm-yyyy or dd/mm/yyyy
+  const m = String(val).trim().match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
+  if (m) {
+    const day = Number(m[1]);
+    const month = Number(m[2]);
+    const year = Number(m[3]);
+    const d = new Date(year, month - 1, day);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  return null;
+};
+
+const isWithinDateRange = (
+  entryDate: string,
+  start?: string,
+  end?: string,
+) => {
+  if (!start && !end) return true;
+
+  const d = parseDateSafe(entryDate);
+  const s = parseDateSafe(start ?? null);
+  const e = parseDateSafe(end ?? null);
+
+  if (!d) return false;
+
+  if (s) s.setHours(0, 0, 0, 0);
+  if (e) e.setHours(23, 59, 59, 999);
+
+  if (s && d < s) return false;
+  if (e && d > e) return false;
+
+  return true;
+};
+export { isWithinDateRange };
+
 

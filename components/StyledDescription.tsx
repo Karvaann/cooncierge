@@ -12,6 +12,7 @@ interface ActiveFormats {
 interface StyledDescriptionProps {
   label?: string;
   value?: string;
+  readOnly?: boolean;
   onChange?: (value: string) => void;
 }
 
@@ -19,6 +20,7 @@ export default function StyledDescription({
   label = "Description",
   value,
   onChange,
+  readOnly = false,
 }: StyledDescriptionProps): JSX.Element {
   const editorRef = useRef<HTMLDivElement>(null);
   const [activeFormats, setActiveFormats] = useState<ActiveFormats>({
@@ -588,7 +590,7 @@ export default function StyledDescription({
         {/* Editor Area */}
         <div
           ref={editorRef}
-          contentEditable
+          contentEditable={!readOnly}
           className="px-3 py-2 min-h-[80px] text-[0.75rem] outline-none focus:ring-0"
           style={{ color: "#9ca3af" }}
           onInput={handleEditorInput}

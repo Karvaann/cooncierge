@@ -29,6 +29,10 @@ interface SelectBookingOwnerModalProps {
   owners: BookingOwnerOption[];
   initialSelectedOwners?: string[];
   onApply: (selectedOwners: string[]) => void;
+  onApplyAdvanced?: (primary: string, secondary: string[]) => void;
+  initialPrimaryOwner?: string;
+  initialSecondaryOwners?: string[];
+  showAdvanceSearch?: boolean;
 }
 
 const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
@@ -37,14 +41,51 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
   owners,
   initialSelectedOwners = [],
   onApply,
+  onApplyAdvanced,
+  initialPrimaryOwner = "",
+  initialSecondaryOwners = [],
+  showAdvanceSearch = false,
 }) => {
+  const [isAdvanceSearchEnabled, setIsAdvanceSearchEnabled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [selectedOwners, setSelectedOwners] = useState<string[]>([]);
   const [ownerSearch, setOwnerSearch] = useState("");
 
+  // Advance search states
+  const [primaryOwner, setPrimaryOwner] = useState<string>(
+    initialPrimaryOwner || ""
+  );
+  const [secondaryOwners, setSecondaryOwners] = useState<string[]>(
+    initialSecondaryOwners || []
+  );
+  const [primarySearch, setPrimarySearch] = useState("");
+  const [secondarySearch, setSecondarySearch] = useState("");
+  const [primaryDropdownOpen, setPrimaryDropdownOpen] = useState(false);
+  const [secondaryDropdownOpen, setSecondaryDropdownOpen] = useState(false);
+
   const ownerDropdownRef = useRef<HTMLDivElement>(null);
+  const primaryDropdownRef = useRef<HTMLDivElement>(null);
+  const secondaryDropdownRef = useRef<HTMLDivElement>(null);
+
   const dropdownPortalRef = useRef<HTMLDivElement | null>(null);
+  const primaryPortalRef = useRef<HTMLDivElement | null>(null);
+  const secondaryPortalRef = useRef<HTMLDivElement | null>(null);
+
   const [dropdownPos, setDropdownPos] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
+  const [primaryDropdownPos, setPrimaryDropdownPos] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
+  const [secondaryDropdownPos, setSecondaryDropdownPos] = useState<{
     left: number;
     top: number;
     width: number;
@@ -67,10 +108,50 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
     [ownersList, ownerSearch]
   );
 
+  const filteredPrimaryList = useMemo(
+    () =>
+      ownersList.filter((o) =>
+        o.toLowerCase().includes(primarySearch.toLowerCase())
+      ),
+    [ownersList, primarySearch]
+  );
+
+  const filteredSecondaryList = useMemo(
+    () =>
+      ownersList.filter((o) =>
+        o.toLowerCase().includes(secondarySearch.toLowerCase())
+      ),
+    [ownersList, secondarySearch]
+  );
+
   const recalcDropdownPos = useCallback(() => {
     const rect = ownerDropdownRef.current?.getBoundingClientRect();
     if (rect) {
       setDropdownPos({
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+      });
+    }
+  }, []);
+
+  const recalcPrimaryPos = useCallback(() => {
+    const rect = primaryDropdownRef.current?.getBoundingClientRect();
+    if (rect) {
+      setPrimaryDropdownPos({
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+      });
+    }
+  }, []);
+
+  const recalcSecondaryPos = useCallback(() => {
+    const rect = secondaryDropdownRef.current?.getBoundingClientRect();
+    if (rect) {
+      setSecondaryDropdownPos({
         left: rect.left,
         top: rect.top,
         width: rect.width,
@@ -85,15 +166,49 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
     );
   }, []);
 
+  const togglePrimaryOwner = useCallback((name: string) => {
+    setPrimaryOwner((prev) => (prev === name ? "" : name));
+  }, []);
+
+  const toggleSecondaryOwner = useCallback((name: string) => {
+    setSecondaryOwners((prev) =>
+      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name]
+    );
+  }, []);
+
   const handleReset = useCallback(() => {
     setSelectedOwners([]);
     setOwnerSearch("");
+    setPrimaryOwner("");
+    setSecondaryOwners([]);
+    setPrimarySearch("");
+    setSecondarySearch("");
   }, []);
 
   const handleApply = useCallback(() => {
-    onApply(selectedOwners);
+    if (isAdvanceSearchEnabled) {
+      if (onApplyAdvanced) {
+        onApplyAdvanced(primaryOwner, secondaryOwners);
+      } else {
+        // Fallback: combine for backward compatibility
+        const combined = [
+          ...new Set([primaryOwner, ...secondaryOwners].filter(Boolean)),
+        ];
+        onApply(combined);
+      }
+    } else {
+      onApply(selectedOwners);
+    }
     onClose();
-  }, [onApply, onClose, selectedOwners]);
+  }, [
+    onApply,
+    onApplyAdvanced,
+    onClose,
+    selectedOwners,
+    isAdvanceSearchEnabled,
+    primaryOwner,
+    secondaryOwners,
+  ]);
 
   // Sync initial selection on open
   useEffect(() => {
@@ -101,7 +216,25 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
     setSelectedOwners(initialSelectedOwners);
     setOwnerSearch("");
     setDropdownOpen(false);
-  }, [isOpen, initialSelectedOwners]);
+
+    // Auto-enable advance search if we have primary/secondary owner values
+    const hasAdvanceSearchValues =
+      (initialPrimaryOwner && initialPrimaryOwner.length > 0) ||
+      (initialSecondaryOwners && initialSecondaryOwners.length > 0);
+    setIsAdvanceSearchEnabled(hasAdvanceSearchValues);
+
+    setPrimaryOwner(initialPrimaryOwner || "");
+    setSecondaryOwners(initialSecondaryOwners || []);
+    setPrimarySearch("");
+    setSecondarySearch("");
+    setPrimaryDropdownOpen(false);
+    setSecondaryDropdownOpen(false);
+  }, [
+    isOpen,
+    initialSelectedOwners,
+    initialPrimaryOwner,
+    initialSecondaryOwners,
+  ]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -148,6 +281,99 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
     };
   }, [dropdownOpen, recalcDropdownPos]);
 
+  // Primary dropdown positioning
+  useEffect(() => {
+    if (!primaryDropdownOpen) return;
+
+    recalcPrimaryPos();
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && primaryDropdownRef.current) {
+      ro = new ResizeObserver(() => recalcPrimaryPos());
+      try {
+        ro.observe(primaryDropdownRef.current);
+      } catch {
+        // ignore
+      }
+    }
+
+    window.addEventListener("resize", recalcPrimaryPos);
+    window.addEventListener("scroll", recalcPrimaryPos, true);
+    return () => {
+      if (ro) ro.disconnect();
+      window.removeEventListener("resize", recalcPrimaryPos);
+      window.removeEventListener("scroll", recalcPrimaryPos, true);
+    };
+  }, [primaryDropdownOpen, recalcPrimaryPos]);
+
+  // Secondary dropdown positioning
+  useEffect(() => {
+    if (!secondaryDropdownOpen) return;
+
+    recalcSecondaryPos();
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined" && secondaryDropdownRef.current) {
+      ro = new ResizeObserver(() => recalcSecondaryPos());
+      try {
+        ro.observe(secondaryDropdownRef.current);
+      } catch {
+        // ignore
+      }
+    }
+
+    window.addEventListener("resize", recalcSecondaryPos);
+    window.addEventListener("scroll", recalcSecondaryPos, true);
+    return () => {
+      if (ro) ro.disconnect();
+      window.removeEventListener("resize", recalcSecondaryPos);
+      window.removeEventListener("scroll", recalcSecondaryPos, true);
+    };
+  }, [secondaryDropdownOpen, recalcSecondaryPos]);
+
+  // Close primary dropdown on outside click
+  useEffect(() => {
+    if (!primaryDropdownOpen) return;
+
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        primaryDropdownRef.current &&
+        primaryDropdownRef.current.contains(target)
+      )
+        return;
+      if (primaryPortalRef.current && primaryPortalRef.current.contains(target))
+        return;
+      setPrimaryDropdownOpen(false);
+    };
+
+    document.addEventListener("click", handler, true);
+    return () => document.removeEventListener("click", handler, true);
+  }, [primaryDropdownOpen]);
+
+  // Close secondary dropdown on outside click
+  useEffect(() => {
+    if (!secondaryDropdownOpen) return;
+
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (
+        secondaryDropdownRef.current &&
+        secondaryDropdownRef.current.contains(target)
+      )
+        return;
+      if (
+        secondaryPortalRef.current &&
+        secondaryPortalRef.current.contains(target)
+      )
+        return;
+      setSecondaryDropdownOpen(false);
+    };
+
+    document.addEventListener("click", handler, true);
+    return () => document.removeEventListener("click", handler, true);
+  }, [secondaryDropdownOpen]);
+
   return (
     <Modal
       isOpen={isOpen}
@@ -157,115 +383,395 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
       className="w-[52rem]"
     >
       <div className="w-full">
-        <div className="relative" ref={ownerDropdownRef}>
-          <FilterInputShell
-            placeholder="Search / Select Owners"
-            className="w-full"
-            onClick={(e) => {
-              e.stopPropagation();
-              recalcDropdownPos();
-              setDropdownOpen((prev) => !prev);
-            }}
-          >
-            <input
-              value={ownerSearch}
-              onChange={(e) => setOwnerSearch(e.target.value)}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!dropdownOpen) {
-                  recalcDropdownPos();
-                  setDropdownOpen(true);
-                }
-              }}
-              placeholder="Search / Select Owners"
-              className="flex-1 min-w-[10rem] bg-transparent outline-none text-[14px] font-normal text-black placeholder:text-[#9CA3AF]"
-            />
-          </FilterInputShell>
-
-          {dropdownOpen &&
-            dropdownPos &&
-            createPortal(
+        {/* Advance Search Checkbox */}
+        {showAdvanceSearch && (
+          <div className="mb-4 flex items-center justify-end">
+            <label className="flex items-center gap-2 cursor-pointer">
               <div
-                ref={dropdownPortalRef}
-                style={{
-                  position: "fixed",
-                  left: dropdownPos.left,
-                  top: dropdownPos.top + dropdownPos.height + 6,
-                  width: dropdownPos.width,
-                  zIndex: 9999,
-                  minHeight: 32,
-                }}
-                className="bg-white border border-gray-200 rounded-md shadow-xl max-h-60 overflow-y-auto"
+                className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center cursor-pointer"
+                onClick={() => setIsAdvanceSearchEnabled((prev) => !prev)}
               >
-                {filteredOwnersList.length === 0 ? (
-                  <div className="px-3 py-2 text-gray-500 text-[0.85rem]">
-                    No owners found
-                  </div>
-                ) : (
-                  filteredOwnersList.map((owner) => {
-                    const checked = selectedOwners.includes(owner);
-
-                    return (
-                      <label
-                        key={owner}
-                        className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleOwner(owner);
-                        }}
-                      >
-                        <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
-                          {checked && (
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="12"
-                              height="11"
-                              viewBox="0 0 12 11"
-                              fill="none"
-                            >
-                              <path
-                                d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                                stroke="#0D4B37"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                              />
-                            </svg>
-                          )}
-                        </div>
-                        <span className="text-black text-[14px]">{owner}</span>
-                      </label>
-                    );
-                  })
+                {isAdvanceSearchEnabled && (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="11"
+                    viewBox="0 0 12 11"
+                    fill="none"
+                  >
+                    <path
+                      d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                      stroke="#0D4B37"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                    />
+                  </svg>
                 )}
-              </div>,
-              typeof document !== "undefined" ? document.body : (null as any)
-            )}
-        </div>
+              </div>
+              <span className="text-[14px] text-[#414141] font-medium">
+                Advance Search
+              </span>
+            </label>
+          </div>
+        )}
 
-        {/* Pills under input */}
-        <div className="mt-3 flex flex-wrap gap-2">
-          {selectedOwners.map((o) => (
-            <span
-              key={o}
-              className="flex items-center gap-2 bg-white border border-gray-200 text-black pl-2 pr-3 py-1 rounded-full text-[14px]"
-            >
-              <button
-                type="button"
-                onClick={() => toggleOwner(o)}
-                className="text-[#818181]"
-                aria-label={`Remove ${o}`}
+        {!isAdvanceSearchEnabled ? (
+          <>
+            {/* Single Owner Selection */}
+            <div className="relative" ref={ownerDropdownRef}>
+              <FilterInputShell
+                placeholder="Search / Select Owners"
+                className="w-full"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  recalcDropdownPos();
+                  setDropdownOpen((prev) => !prev);
+                }}
               >
-                <IoClose size={18} />
-              </button>
-              {o}
-            </span>
-          ))}
-        </div>
+                <input
+                  value={ownerSearch}
+                  onChange={(e) => setOwnerSearch(e.target.value)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!dropdownOpen) {
+                      recalcDropdownPos();
+                      setDropdownOpen(true);
+                    }
+                  }}
+                  placeholder="Search / Select Owners"
+                  className="flex-1 min-w-[10rem] bg-transparent outline-none text-[14px] font-normal text-black placeholder:text-[#9CA3AF]"
+                />
+              </FilterInputShell>
+
+              {dropdownOpen &&
+                dropdownPos &&
+                createPortal(
+                  <div
+                    ref={dropdownPortalRef}
+                    style={{
+                      position: "fixed",
+                      left: dropdownPos.left,
+                      top: dropdownPos.top + dropdownPos.height + 6,
+                      width: dropdownPos.width,
+                      zIndex: 9999,
+                      minHeight: 32,
+                    }}
+                    className="bg-white border border-gray-200 rounded-md shadow-xl max-h-60 overflow-y-auto"
+                  >
+                    {filteredOwnersList.length === 0 ? (
+                      <div className="px-3 py-2 text-gray-500 text-[0.85rem]">
+                        No owners found
+                      </div>
+                    ) : (
+                      filteredOwnersList.map((owner) => {
+                        const checked = selectedOwners.includes(owner);
+
+                        return (
+                          <label
+                            key={owner}
+                            className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleOwner(owner);
+                            }}
+                          >
+                            <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
+                              {checked && (
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="12"
+                                  height="11"
+                                  viewBox="0 0 12 11"
+                                  fill="none"
+                                >
+                                  <path
+                                    d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                                    stroke="#0D4B37"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                            <span className="text-black text-[14px]">
+                              {owner}
+                            </span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>,
+                  typeof document !== "undefined"
+                    ? document.body
+                    : (null as any)
+                )}
+            </div>
+
+            {/* Pills under input */}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {selectedOwners.map((o) => (
+                <span
+                  key={o}
+                  className="flex items-center gap-2 bg-white border border-gray-200 text-black pl-2 pr-3 py-1 rounded-full text-[14px]"
+                >
+                  <button
+                    type="button"
+                    onClick={() => toggleOwner(o)}
+                    className="text-[#818181]"
+                    aria-label={`Remove ${o}`}
+                  >
+                    <IoClose size={18} />
+                  </button>
+                  {o}
+                </span>
+              ))}
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Advance Search: Two Columns */}
+            <div className="grid grid-cols-2 gap-6">
+              {/* Primary Owner(s) */}
+              <div>
+                <h3 className="text-[16px] font-medium text-[#1F2937] mb-3">
+                  Primary Owner(s)
+                </h3>
+                <div className="relative" ref={primaryDropdownRef}>
+                  <FilterInputShell
+                    placeholder="Search / Select Owners"
+                    className="w-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      recalcPrimaryPos();
+                      setPrimaryDropdownOpen((prev) => !prev);
+                    }}
+                  >
+                    <input
+                      value={primarySearch}
+                      onChange={(e) => setPrimarySearch(e.target.value)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!primaryDropdownOpen) {
+                          recalcPrimaryPos();
+                          setPrimaryDropdownOpen(true);
+                        }
+                      }}
+                      placeholder="Search / Select Owners"
+                      className="flex-1 min-w-[10rem] bg-transparent outline-none text-[14px] font-normal text-black placeholder:text-[#9CA3AF]"
+                    />
+                  </FilterInputShell>
+
+                  {primaryDropdownOpen &&
+                    primaryDropdownPos &&
+                    createPortal(
+                      <div
+                        ref={primaryPortalRef}
+                        style={{
+                          position: "fixed",
+                          left: primaryDropdownPos.left,
+                          top:
+                            primaryDropdownPos.top +
+                            primaryDropdownPos.height +
+                            6,
+                          width: primaryDropdownPos.width,
+                          zIndex: 9999,
+                          minHeight: 32,
+                        }}
+                        className="bg-white border border-gray-200 rounded-md shadow-xl max-h-60 overflow-y-auto"
+                      >
+                        {filteredPrimaryList.length === 0 ? (
+                          <div className="px-3 py-2 text-gray-500 text-[0.85rem]">
+                            No owners found
+                          </div>
+                        ) : (
+                          filteredPrimaryList.map((owner) => {
+                            const checked = primaryOwner === owner;
+
+                            return (
+                              <label
+                                key={owner}
+                                className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  togglePrimaryOwner(owner);
+                                }}
+                              >
+                                <div className="w-4 h-4 border border-gray-300 rounded-full flex items-center justify-center">
+                                  {checked && (
+                                    <div className="w-2 h-2 bg-[#0D4B37] rounded-full" />
+                                  )}
+                                </div>
+                                <span className="text-black text-[14px]">
+                                  {owner}
+                                </span>
+                              </label>
+                            );
+                          })
+                        )}
+                      </div>,
+                      typeof document !== "undefined"
+                        ? document.body
+                        : (null as any)
+                    )}
+                </div>
+
+                {/* Primary Pills */}
+                <div className="mt-3 flex flex-wrap gap-2 min-h-[2rem]">
+                  {primaryOwner && (
+                    <span className="flex items-center gap-2 bg-white border border-gray-200 text-black pl-2 pr-3 py-1 rounded-full text-[14px]">
+                      <button
+                        type="button"
+                        onClick={() => setPrimaryOwner("")}
+                        className="text-[#818181]"
+                        aria-label={`Remove ${primaryOwner}`}
+                      >
+                        <IoClose size={18} />
+                      </button>
+                      {primaryOwner}
+                    </span>
+                  )}
+                </div>
+
+                {/* Primary Count */}
+                <div className="mt-3 text-[14px] text-[#6B7280]">
+                  ({primaryOwner ? 1 : 0}) Owner Selected
+                </div>
+              </div>
+
+              {/* Secondary Owner(s) */}
+              <div>
+                <h3 className="text-[16px] font-medium text-[#1F2937] mb-3">
+                  Secondary Owner(s)
+                </h3>
+                <div className="relative" ref={secondaryDropdownRef}>
+                  <FilterInputShell
+                    placeholder="Search / Select Owners"
+                    className="w-full"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      recalcSecondaryPos();
+                      setSecondaryDropdownOpen((prev) => !prev);
+                    }}
+                  >
+                    <input
+                      value={secondarySearch}
+                      onChange={(e) => setSecondarySearch(e.target.value)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (!secondaryDropdownOpen) {
+                          recalcSecondaryPos();
+                          setSecondaryDropdownOpen(true);
+                        }
+                      }}
+                      placeholder="Search / Select Owners"
+                      className="flex-1 min-w-[10rem] bg-transparent outline-none text-[14px] font-normal text-black placeholder:text-[#9CA3AF]"
+                    />
+                  </FilterInputShell>
+
+                  {secondaryDropdownOpen &&
+                    secondaryDropdownPos &&
+                    createPortal(
+                      <div
+                        ref={secondaryPortalRef}
+                        style={{
+                          position: "fixed",
+                          left: secondaryDropdownPos.left,
+                          top:
+                            secondaryDropdownPos.top +
+                            secondaryDropdownPos.height +
+                            6,
+                          width: secondaryDropdownPos.width,
+                          zIndex: 9999,
+                          minHeight: 32,
+                        }}
+                        className="bg-white border border-gray-200 rounded-md shadow-xl max-h-60 overflow-y-auto"
+                      >
+                        {filteredSecondaryList.length === 0 ? (
+                          <div className="px-3 py-2 text-gray-500 text-[0.85rem]">
+                            No owners found
+                          </div>
+                        ) : (
+                          filteredSecondaryList.map((owner) => {
+                            const checked = secondaryOwners.includes(owner);
+
+                            return (
+                              <label
+                                key={owner}
+                                className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleSecondaryOwner(owner);
+                                }}
+                              >
+                                <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
+                                  {checked && (
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      width="12"
+                                      height="11"
+                                      viewBox="0 0 12 11"
+                                      fill="none"
+                                    >
+                                      <path
+                                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                                        stroke="#0D4B37"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                      />
+                                    </svg>
+                                  )}
+                                </div>
+                                <span className="text-black text-[14px]">
+                                  {owner}
+                                </span>
+                              </label>
+                            );
+                          })
+                        )}
+                      </div>,
+                      typeof document !== "undefined"
+                        ? document.body
+                        : (null as any)
+                    )}
+                </div>
+
+                {/* Secondary Pills */}
+                <div className="mt-3 flex flex-wrap gap-2 min-h-[2rem]">
+                  {secondaryOwners.map((o) => (
+                    <span
+                      key={o}
+                      className="flex items-center gap-2 bg-white border border-gray-200 text-black pl-2 pr-3 py-1 rounded-full text-[14px]"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleSecondaryOwner(o)}
+                        className="text-[#818181]"
+                        aria-label={`Remove ${o}`}
+                      >
+                        <IoClose size={18} />
+                      </button>
+                      {o}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Secondary Count */}
+                <div className="mt-3 text-[14px] text-[#6B7280]">
+                  ({secondaryOwners.length}) Owners Selected
+                </div>
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Bottom bar */}
         <div className="mt-8 flex items-center justify-between">
           <div className="text-[14px] text-[#6B7280] font-medium">
-            ({selectedOwners.length}) Owners Selected
+            {!isAdvanceSearchEnabled
+              ? `(${selectedOwners.length}) Owners Selected`
+              : `(${
+                  (primaryOwner ? 1 : 0) + secondaryOwners.length
+                }) Owners Selected`}
           </div>
 
           <div className="flex items-center gap-3">

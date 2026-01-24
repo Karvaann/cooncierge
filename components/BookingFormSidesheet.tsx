@@ -258,6 +258,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   customerCode: customerCodeProp,
   vendorCode: vendorCodeProp,
 }) => {
+  // Bump this whenever the sidesheet is (re)opened so child forms remount
+  const [formInstanceId, setFormInstanceId] = useState(0);
+
   const [activeTab, setActiveTab] = useState<TabType>("general");
   const [formData, setFormData] = useState<any>(initialData || {});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -303,7 +306,21 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const [vendorCode, setVendorCode] = useState("");
   const initialSnapshotRef = useRef<string>("");
   const quotationId = initialData?._id || initialData?.id;
-  const isEditingExisting = mode === "edit" && Boolean(quotationId);
+  const isEditingExisting = Boolean(quotationId);
+
+  // In "view" modestart read-only, but allow the user to toggle into edit.
+  const [readOnlyOverride, setReadOnlyOverride] = useState<boolean | null>(
+    null,
+  );
+  const isReadOnly = readOnlyOverride ?? mode === "view";
+
+  // Each time the sidesheet opens, increment the instance id so
+  // GeneralInfoForm / ServiceInfoForm (and nested modals) get a fresh mount.
+  useEffect(() => {
+    if (isOpen) {
+      setFormInstanceId((prev) => prev + 1);
+    }
+  }, [isOpen]);
 
   // Accept bookingCode from parent
   useEffect(() => {
@@ -327,6 +344,24 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   // Reset form state when opening or when initialData changes
   useEffect(() => {
     if (!isOpen) return;
+
+    // Reset DOM form values (if forms use native <form> refs)
+    try {
+      generalFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      serviceFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      addCustomerFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      addVendorFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      addTravellerFormRef.current?.reset?.();
+    } catch (_) {}
+
     if (initialData && Object.keys(initialData).length > 0) {
       setFormData(initialData);
       // Load existing documents from initialData
@@ -335,14 +370,49 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       } else {
         setExistingBookingDocuments([]);
       }
+      // clear any pending new uploads from previous interactions
+      setBookingDocuments([]);
     } else {
       setFormData({});
       setExistingBookingDocuments([]);
+      setBookingDocuments([]);
     }
+
     setIsDirty(false);
     setActiveTab("general");
+    setReadOnlyOverride(null);
+
+    // snapshot initial state for dirty-checking
+    initialSnapshotRef.current = stableStringify(initialData ?? {});
   }, [initialData, isOpen]);
-  const isReadOnly = mode === "view";
+
+  // Cleanup when sidesheet is closed to ensure no stale data persists
+  useEffect(() => {
+    if (isOpen) return;
+    setFormData({});
+    setExistingBookingDocuments([]);
+    setBookingDocuments([]);
+    setIsDirty(false);
+    initialSnapshotRef.current = "";
+    setCustomerCode("");
+    setBookingCode("");
+    setVendorCode("");
+    try {
+      generalFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      serviceFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      addCustomerFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      addVendorFormRef.current?.reset?.();
+    } catch (_) {}
+    try {
+      addTravellerFormRef.current?.reset?.();
+    } catch (_) {}
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || isDirty) return;
@@ -393,13 +463,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         isEnabled: true,
       },
     ],
-    []
+    [],
   );
 
   function convertToBookingData(
     input: any,
     quotationType: string,
-    serviceStatus: string
+    serviceStatus: string,
   ) {
     const user = getAuthUser() as any;
     const businessId = user?.businessId;
@@ -423,7 +493,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
     // Detect ANY key that ends with "infoform"
     const infoFormKey = Object.keys(input).find((k) =>
-      k.toLowerCase().endsWith("infoform")
+      k.toLowerCase().endsWith("infoform"),
     );
 
     // Extract and flatten the infoform object
@@ -434,11 +504,20 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
     // Everything except known fields and infoform goes to formFields
     const formFields = Object.fromEntries(
-      Object.entries(rest).filter(([key]) => key !== infoFormKey)
+      Object.entries(rest).filter(([key]) => key !== infoFormKey),
     );
 
     // Merge flattened infoform into formFields
     Object.assign(formFields, flatInfoForm);
+
+    // Ensure cancellation modal payload is stored inside formFields.cancellationForm
+    const cancellationFormCandidate =
+      (flatInfoForm as any)?.cancellationForm ??
+      (input as any)?.cancellationForm ??
+      (formFields as any)?.cancellationForm;
+    if (cancellationFormCandidate) {
+      (formFields as any).cancellationForm = cancellationFormCandidate;
+    }
 
     const isValidMongoObjectId = (value: unknown): boolean => {
       if (typeof value !== "string") return false;
@@ -446,6 +525,25 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       if (!v) return false;
       if (v.toLowerCase() === "tba") return false;
       return /^[a-f\d]{24}$/i.test(v);
+    };
+
+    const resolveMongoObjectId = (...candidates: unknown[]): string => {
+      for (const candidate of candidates) {
+        if (!candidate) continue;
+        if (typeof candidate === "string") {
+          const v = candidate.trim();
+          if (isValidMongoObjectId(v)) return v;
+          continue;
+        }
+        if (typeof candidate === "object") {
+          const maybeId = (candidate as any)?._id ?? (candidate as any)?.id;
+          if (typeof maybeId === "string") {
+            const v = maybeId.trim();
+            if (isValidMongoObjectId(v)) return v;
+          }
+        }
+      }
+      return "";
     };
 
     const sanitizeObjectIdList = (ids: unknown): string[] => {
@@ -460,7 +558,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     // current UI stores "child" travellers under infantTravellerIds/infants/childAges.
     const adultTravelers = sanitizeObjectIdList(adultTravellerIds);
     const childTravelerIds = sanitizeObjectIdList(
-      (input as any)?.childTravellerIds ?? infantTravellerIds
+      (input as any)?.childTravellerIds ?? infantTravellerIds,
     );
     const childAgesList: Array<number | null> = Array.isArray(childAges)
       ? (childAges as Array<number | null>)
@@ -479,19 +577,19 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     const primaryOwnerId = isValidMongoObjectId(primaryOwnerCandidate)
       ? primaryOwnerCandidate
       : isValidMongoObjectId(authUserCandidate)
-      ? authUserCandidate
-      : "";
+        ? authUserCandidate
+        : "";
 
     const rawSecondaryOwnerIds: string[] = Array.isArray(secondaryBookingOwners)
       ? (secondaryBookingOwners as unknown[])
           .map((v) => String(v).trim())
           .filter(Boolean)
       : secondaryBookingOwner
-      ? [String(secondaryBookingOwner).trim()].filter(Boolean)
-      : [];
+        ? [String(secondaryBookingOwner).trim()].filter(Boolean)
+        : [];
 
     const secondaryOwnerIds: string[] = rawSecondaryOwnerIds.filter((id) =>
-      isValidMongoObjectId(id)
+      isValidMongoObjectId(id),
     );
 
     const filteredSecondaryOwnerIds = secondaryOwnerIds
@@ -517,7 +615,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     bookingDataTemp.append("channel", "B2C");
     bookingDataTemp.append("businessId", businessId._id);
     bookingDataTemp.append("formFields", JSON.stringify(formFields));
-    bookingDataTemp.append("totalAmount", String(flatInfoForm.sellingprice));
+
+    // Ensure totalAmount is a valid number (selling price from form)
+    const totalAmountValue = Number(flatInfoForm.sellingprice) || 0;
+    bookingDataTemp.append("totalAmount", String(totalAmountValue));
 
     if (flatInfoForm.bookingstatus && flatInfoForm.bookingstatus !== "") {
       bookingDataTemp.append("status", flatInfoForm.bookingstatus);
@@ -528,12 +629,25 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     bookingDataTemp.append("primaryOwner", String(primaryOwnerId));
     bookingDataTemp.append(
       "secondaryOwner",
-      JSON.stringify(filteredSecondaryOwnerIds)
+      JSON.stringify(filteredSecondaryOwnerIds),
     );
     bookingDataTemp.append("owner", JSON.stringify(legacyOwnerIds));
     bookingDataTemp.append("travelDate", traveldate || flatInfoForm.traveldate);
-    bookingDataTemp.append("customerId", input.customer);
-    bookingDataTemp.append("vendorId", input.vendor);
+    const resolvedCustomerId = resolveMongoObjectId(
+      input.customer,
+      (input as any)?.customerId,
+      (input as any)?.customerId?._id,
+    );
+    const resolvedVendorId = resolveMongoObjectId(
+      input.vendor,
+      (input as any)?.vendorId,
+      (input as any)?.vendorId?._id,
+    );
+
+    // Only send valid ids; never send empty string (breaks backend casting)
+    if (resolvedCustomerId)
+      bookingDataTemp.append("customerId", resolvedCustomerId);
+    if (resolvedVendorId) bookingDataTemp.append("vendorId", resolvedVendorId);
     bookingDataTemp.append("adultTravelers", JSON.stringify(adultTravelers));
     bookingDataTemp.append("childTravelers", JSON.stringify(childTravelers));
     bookingDataTemp.append("adultNumber", String(adults ?? 0));
@@ -572,7 +686,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     if (!quotationTypeForDraft) {
       console.error("No service selected or detected for draft");
       alert(
-        "Please select a service or set a service type before saving a draft"
+        "Please select a service or set a service type before saving a draft",
       );
       setIsSubmitting(false);
       return;
@@ -583,7 +697,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       const bookingData = convertToBookingData(
         formValues,
         quotationTypeForDraft,
-        "draft"
+        "draft",
       );
 
       // Prepare multipart form data
@@ -603,7 +717,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         setSuccessTitle(
           createdCustomId
             ? `Yaay! ${createdCustomId} has been successfully saved to drafts.`
-            : "Yaay! The Data has been successfully saved to drafts!"
+            : "Yaay! The Data has been successfully saved to drafts!",
         );
         setIsSuccessModalOpen(true);
 
@@ -618,11 +732,11 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         console.error(
           "Failed to create booking:",
           response.message,
-          response.errors
+          response.errors,
         );
         // show existing alert and also display error toast with API message
         alert(
-          `Failed to create booking: ${response.message || "Unknown error"}`
+          `Failed to create booking: ${response.message || "Unknown error"}`,
         );
         setApiErrorMessage(response.message || "Failed to create booking");
         setShowApiErrorToast(true);
@@ -660,7 +774,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       if (!quotationTypeForSubmit) {
         console.error("No service selected or detected for submit");
         alert(
-          "Please select a service or set a service type before submitting"
+          "Please select a service or set a service type before submitting",
         );
         setIsSubmitting(false);
         return;
@@ -674,7 +788,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       const bookingData = convertToBookingData(
         formValues,
         quotationTypeForSubmit,
-        serviceStatus
+        serviceStatus,
       );
 
       const response = isEditingExisting
@@ -689,8 +803,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           createdCustomId
             ? `Yaay! ${createdCustomId} has been successfully saved.`
             : isEditingExisting
-            ? "Yaay! The Data has been successfully updated."
-            : "Yaay! The Data has been successfully saved."
+              ? "Yaay! The Data has been successfully updated."
+              : "Yaay! The Data has been successfully saved.",
         );
         setIsSuccessModalOpen(true);
 
@@ -705,10 +819,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         console.error(
           "Failed to create booking:",
           response.message,
-          response.errors
+          response.errors,
         );
         alert(
-          `Failed to create booking: ${response.message || "Unknown error"}`
+          `Failed to create booking: ${response.message || "Unknown error"}`,
         );
         setApiErrorMessage(response.message || "Failed to create booking");
         setShowApiErrorToast(true);
@@ -738,7 +852,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         setActiveTab(tabId);
       }
     },
-    [tabs]
+    [tabs],
   );
 
   // Form data update handler
@@ -770,8 +884,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
             activeTab === tab.id
               ? "text-[#0D4B37]"
               : tab.isEnabled
-              ? "text-gray-500 hover:text-gray-700"
-              : "text-gray-300 cursor-not-allowed"
+                ? "text-gray-500 hover:text-gray-700"
+                : "text-gray-300 cursor-not-allowed"
           }
         `}
           onClick={() => handleTabClick(tab.id)}
@@ -786,7 +900,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           )}
         </button>
       )),
-    [tabs, activeTab, handleTabClick]
+    [tabs, activeTab, handleTabClick],
   );
 
   // Memoized active tab content
@@ -875,6 +989,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                 className={isReadOnly ? "opacity-90" : ""}
               >
                 <GeneralInfoForm
+                  key={`general-${quotationId || "new"}-${formInstanceId}`}
                   initialFormData={initialData || {}}
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting || isReadOnly}
@@ -893,11 +1008,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                 }
               >
                 <ServiceInfoFormSwitcher
+                  key={`service-${quotationId || "new"}-${formInstanceId}`}
                   initialData={initialData}
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting || isReadOnly}
                   isReadOnly={isReadOnly}
                   formRef={serviceFormRef}
+                  bookingCode={bookingCode}
                   selectedService={
                     selectedService || initialData?.quotationType
                   }
@@ -908,48 +1025,52 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
             </div>
 
             {/* Footer Actions - kept outside the scrollable area so it remains fixed at the bottom */}
-            {!isReadOnly && (
-              <div className="border-t border-gray-200 p-4 bg-white">
-                <div className="flex justify-between">
-                  {/* LEFT SIDE BUTTONS */}
-                  <div>
-                    {activeTab === "service" && (
-                      <Button
-                        text="Previous"
-                        onClick={() => {
-                          const currentIndex = tabs.findIndex(
-                            (tab) => tab.id === activeTab
-                          );
-                          const prevTab = tabs[currentIndex - 1];
-                          if (prevTab?.isEnabled) setActiveTab(prevTab.id);
-                        }}
-                        bgColor="bg-white"
-                        textColor="text-[#114958]"
-                        className="border border-[#114958] hover:bg-[#114958] "
-                        disabled={isSubmitting}
-                      />
-                    )}
+            <div className="border-t border-gray-200 p-4 bg-white">
+              <div className="flex justify-between">
+                {/* LEFT SIDE BUTTONS */}
+                <div>
+                  {activeTab === "service" && (
+                    <Button
+                      text="Previous"
+                      onClick={() => {
+                        const currentIndex = tabs.findIndex(
+                          (tab) => tab.id === activeTab,
+                        );
+                        const prevTab = tabs[currentIndex - 1];
+                        if (prevTab?.isEnabled) setActiveTab(prevTab.id);
+                      }}
+                      bgColor="bg-white"
+                      textColor="text-[#114958]"
+                      className="border border-[#114958] hover:bg-[#114958] "
+                      disabled={isSubmitting}
+                    />
+                  )}
 
-                    {/* General tab → Nothing shown */}
-                  </div>
+                  {/* General tab → Nothing shown */}
+                </div>
 
-                  {/* RIGHT SIDE BUTTONS */}
-                  <div className="flex space-x-2">
-                      <>
-                        {activeTab === "general" && !isEditingExisting &&<Button
+                {/* RIGHT SIDE BUTTONS */}
+                <div className="flex space-x-2">
+                  {/* EDIT MODE (existing behavior) */}
+                  {mode !== "view" && (
+                    <>
+                      {activeTab === "general" && !isEditingExisting && (
+                        <Button
                           text="Save As Draft"
                           onClick={handleDraftSubmit}
                           bgColor="bg-white"
                           textColor="text-[#114958]"
                           className="hover:bg-gray-200 border border-[#114958]"
                           disabled={isSubmitting}
-                        />}
+                        />
+                      )}
 
-                        {activeTab === "general" && <Button
+                      {activeTab === "general" && (
+                        <Button
                           text="Next"
                           onClick={() => {
                             const currentIndex = tabs.findIndex(
-                              (tab) => tab.id === activeTab
+                              (tab) => tab.id === activeTab,
                             );
                             const nextTab = tabs[currentIndex + 1];
                             if (nextTab?.isEnabled) setActiveTab(nextTab.id);
@@ -958,21 +1079,68 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           textColor="text-white"
                           className="hover:bg-[#0d3a45]"
                           disabled={isSubmitting}
-                        />}
-                      </>
+                        />
+                      )}
 
-                    {activeTab === "service" && (
-                      <>
-                        {!isEditingExisting && (
+                      {activeTab === "service" && (
+                        <>
+                          {!isEditingExisting && (
+                            <Button
+                              text="Save As Draft"
+                              onClick={handleDraftSubmit}
+                              bgColor="bg-white border border-[#114958]"
+                              textColor="text-[#114958]"
+                              disabled={isSubmitting}
+                            />
+                          )}
+
                           <Button
-                            text="Save As Draft"
-                            onClick={handleDraftSubmit}
-                            bgColor="bg-white border border-[#114958]"
-                            textColor="text-[#114958]"
-                            disabled={isSubmitting}
+                            text="Save"
+                            onClick={() => handleSubmit()}
+                            icon={<LuSave size={16} />}
+                            bgColor="bg-[#0D4B37]"
+                            textColor="text-white"
+                            width="w-auto"
+                            type="button"
+                            disabled={
+                              isSubmitting || !(selectedService || initialData)
+                            }
                           />
-                        )}
+                        </>
+                      )}
+                    </>
+                  )}
 
+                  {/* VIEW MODE: keep footer + allow Edit -> Save */}
+                  {mode === "view" && (
+                    <>
+                      {activeTab === "general" && (
+                        <Button
+                          text="Next"
+                          onClick={() => {
+                            const currentIndex = tabs.findIndex(
+                              (tab) => tab.id === activeTab,
+                            );
+                            const nextTab = tabs[currentIndex + 1];
+                            if (nextTab?.isEnabled) setActiveTab(nextTab.id);
+                          }}
+                          bgColor="bg-[#114958]"
+                          textColor="text-white"
+                          className="hover:bg-[#0d3a45]"
+                          disabled={isSubmitting}
+                        />
+                      )}
+
+                      {isReadOnly ? (
+                        <Button
+                          text="Edit"
+                          onClick={() => setReadOnlyOverride(false)}
+                          bgColor="bg-white"
+                          textColor="text-[#114958]"
+                          className="hover:bg-gray-200 border border-[#114958]"
+                          disabled={isSubmitting || !quotationId}
+                        />
+                      ) : (
                         <Button
                           text="Save"
                           onClick={() => handleSubmit()}
@@ -981,16 +1149,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           textColor="text-white"
                           width="w-auto"
                           type="button"
-                          disabled={
-                            isSubmitting || !(selectedService || initialData)
-                          }
+                          disabled={isSubmitting || !quotationId}
                         />
-                      </>
-                    )}
-                  </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
 
@@ -1052,7 +1218,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 };
 
 export default function BookingFormSidesheetWrapper(
-  props: BookingFormSidesheetProps
+  props: BookingFormSidesheetProps,
 ) {
   return (
     <BookingProvider>

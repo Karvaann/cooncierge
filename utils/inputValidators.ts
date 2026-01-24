@@ -76,6 +76,15 @@ export const allowOnlyDigitsWithMax = (
   return value.replace(/[^0-9]/g, "").slice(0, limit);
 };
 
+/**
+ * Blocks special characters (keeps letters, numbers, and spaces).
+ * Example: "John Doe 123" -> "John Doe 123"
+ * Example: "John@Doe#1" -> "JohnDoe1"
+ */
+export const allowNoSpecialCharacters = (value: string): string => {
+  return value.replace(/[^\p{L}\p{N}\s]/gu, "");
+};
+
 
 
 /**
@@ -90,4 +99,17 @@ export const isValidName = (value: string): boolean => {
  */
 export const isValidEmail = (email: string): boolean => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+};
+
+/**
+ * Website / URL validator
+ * Accepts optional protocol (http/https), optional www, domain + TLD,
+ * and optional path/query/fragment. Allows plain domains like "example.com".
+ */
+export const isValidWebsite = (value: string): boolean => {
+  if (!value) return false;
+  const v = value.trim();
+  if (v.length < 3 || v.length > 2048) return false;
+  const re = /^(https?:\/\/)?([\w-]+\.)+[\w-]{2,}(:\d+)?(\/.*)?$/i;
+  return re.test(v);
 };
