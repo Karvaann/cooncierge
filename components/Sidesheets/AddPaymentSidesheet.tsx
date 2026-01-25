@@ -1011,6 +1011,8 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     };
   }, [resetAllFields]);
 
+  const today = new Date().toISOString().split("T")[0];
+
   return (
     <SideSheet
       isOpen={isOpen}
@@ -2138,6 +2140,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                   onChange={setPaymentDate}
                   placeholder="Select Date"
                   customWidth="w-full"
+                  maxDate={today}
                 />
               </div>
             </div>

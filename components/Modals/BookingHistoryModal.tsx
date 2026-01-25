@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import Modal from "../Modal";
 import Table from "../Table";
@@ -15,7 +15,7 @@ import type { JSX } from "react";
 
 const BookingFormSidesheet = dynamic(
   () => import("@/components/BookingFormSidesheet"),
-  { ssr: false }
+  { ssr: false },
 );
 
 interface BookingHistoryModalProps {
@@ -54,6 +54,101 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
     string,
     any
   > | null>(null);
+  const [localBookings, setLocalBookings] = useState<Array<any>>(
+    bookings || [],
+  );
+
+  // Import services lazily via require to avoid SSR issues
+  const { getVendorBookingHistory } = require("@/services/vendorApi");
+  const { getBookingHistoryByCustomer } = require("@/services/customerApi");
+  const { getTravellerBookingHistory } = require("@/services/travellerApi");
+  const { getBookingHistoryByTeamMember } = require("@/services/teamsApi");
+
+  useEffect(() => {
+    setLocalBookings(bookings || []);
+  }, [bookings]);
+
+  const isMongoObjectId = (value: unknown) =>
+    typeof value === "string" && /^[a-f\d]{24}$/i.test(value.trim());
+
+  const resolveRecordObjectId = () => {
+    const direct = String(recordId || "").trim();
+    if (isMongoObjectId(direct)) return direct;
+
+    const first = (localBookings?.[0] || bookings?.[0]) as any;
+    if (!first) return "";
+
+    const cat = String(categoryName || "").toLowerCase();
+    const pickId = (candidate: any) => {
+      if (!candidate) return "";
+      if (typeof candidate === "string" && isMongoObjectId(candidate))
+        return candidate;
+      if (typeof candidate === "object" && isMongoObjectId(candidate?._id))
+        return String(candidate._id);
+      return "";
+    };
+
+    if (cat.includes("vendor")) return pickId(first.vendorId);
+    if (cat.includes("customer")) return pickId(first.customerId);
+    if (cat.includes("traveller") || cat.includes("traveler"))
+      return pickId(first.travellerId || first.travelerId);
+    if (cat.includes("team")) return pickId(first.teamMemberId || first.userId);
+
+    return (
+      pickId(first.customerId) ||
+      pickId(first.vendorId) ||
+      pickId(first.travellerId || first.travelerId) ||
+      pickId(first.teamMemberId || first.userId)
+    );
+  };
+
+  const refreshHistory = async (
+    params: any = {
+      sortBy: "createdAt",
+      sortOrder: "desc",
+      page: 1,
+      limit: 10,
+    },
+  ) => {
+    try {
+      const cat = String(categoryName || "").toLowerCase();
+      const id = resolveRecordObjectId();
+      if (!id) {
+        console.warn(
+          "BookingHistoryModal: cannot refresh history without a Mongo _id",
+          { categoryName, recordId },
+        );
+        return;
+      }
+
+      let resp: any = null;
+      if (cat.includes("vendor")) {
+        resp = await getVendorBookingHistory(id, params);
+      } else if (cat.includes("customer")) {
+        resp = await getBookingHistoryByCustomer(id, params);
+      } else if (cat.includes("traveller") || cat.includes("traveler")) {
+        resp = await getTravellerBookingHistory(id, params);
+      } else if (cat.includes("team") || cat.includes("team member")) {
+        resp = await getBookingHistoryByTeamMember(id, params);
+      } else {
+        // fallback: try customer then vendor
+        try {
+          resp = await getBookingHistoryByCustomer(id, params);
+        } catch (e) {
+          resp = await getVendorBookingHistory(id, params);
+        }
+      }
+
+      const quotations =
+        resp?.quotations ||
+        resp?.data?.quotations ||
+        resp?.data?.data?.quotations ||
+        [];
+      setLocalBookings(quotations || []);
+    } catch (err) {
+      console.error("Failed to refresh booking history:", err);
+    }
+  };
 
   const formatDMY = (dateString: string) => {
     const direct = new Date(dateString);
@@ -64,7 +159,7 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
       return `${day}-${month}-${year}`;
     }
     const m = String(dateString).match(
-      /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/
+      /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/,
     );
     if (m) {
       const d = m[1] || "";
@@ -105,7 +200,7 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
 
   const handleOpenSideSheet = (
     booking: Record<string, any>,
-    mode: "view" | "edit"
+    mode: "view" | "edit",
   ) => {
     console.log("Opening Booking", booking, mode);
     setSelectedBooking(booking);
@@ -113,7 +208,7 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
     setIsSideSheetOpen(true);
   };
 
-  const rows = bookings.map((item: any) => [
+  const rows = localBookings.map((item: any) => [
     <td
       key={`${item._id}-id`}
       className="px-2 py-2 text-center font-medium text-[0.75rem]"
@@ -242,6 +337,18 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
           selectedService={null}
           initialData={selectedBooking}
           mode={sideSheetMode}
+          // Allow the sidesheet to request switching into edit mode
+          onRequestEdit={() => setSideSheetMode("edit")}
+          // When the booking gets updated inside the sidesheet, refresh history
+          onBookingSaved={async (updatedBooking: any) => {
+            try {
+              // update selected booking shown and refresh the modal's listing
+              setSelectedBooking(updatedBooking || selectedBooking);
+              await refreshHistory();
+            } catch (e) {
+              console.error("Error handling bookingSaved callback:", e);
+            }
+          }}
         />
       )}
     </Modal>

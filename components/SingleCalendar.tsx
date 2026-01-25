@@ -15,7 +15,7 @@ type Props = {
   placeholder?: string;
   disablePastDates?: boolean;
   minDate?: string; // ISO string - disables all dates before this date
-  maxDate?: string; // ISO string - disables all dates after this date
+  maxDate?: string | undefined; // ISO string - disables all dates after this date
   customWidth?: string; // Custom width class for the input container
   labelClassName?: string; // Custom class for the label
   inputClassName?: string; // Custom class for the input text
@@ -88,7 +88,7 @@ export default function SingleCalendar({
   useEffect(() => {
     if (selectedDate) {
       setCurrentMonth(
-        new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1)
+        new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1),
       );
     }
   }, [value]);
@@ -116,7 +116,7 @@ export default function SingleCalendar({
     const dateOnly = new Date(
       date.getFullYear(),
       date.getMonth(),
-      date.getDate()
+      date.getDate(),
     );
     // Only allow dates within allowed range
     if (!isDateAllowed(dateOnly)) return;
@@ -131,12 +131,12 @@ export default function SingleCalendar({
     const dateOnly = new Date(
       date.getFullYear(),
       date.getMonth(),
-      date.getDate()
+      date.getDate(),
     );
     const selectedOnly = new Date(
       selectedDate.getFullYear(),
       selectedDate.getMonth(),
-      selectedDate.getDate()
+      selectedDate.getDate(),
     );
     return dateOnly.getTime() === selectedOnly.getTime();
   };
@@ -283,7 +283,7 @@ export default function SingleCalendar({
 
         onChange(parsedDate.toISOString());
         setCurrentMonth(
-          new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1)
+          new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1),
         );
         // Close dropdown when complete valid date is typed
         setOpen(false);

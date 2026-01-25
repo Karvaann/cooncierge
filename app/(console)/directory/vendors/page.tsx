@@ -59,9 +59,9 @@ const columns: string[] = [
 ];
 
 const columnIconMap: Record<string, JSX.Element> = {
-  "Vendor Name": (
-    <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
-  ),
+  // "Vendor Name": (
+  //   <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
+  // ),
   POC: (
     <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
   ),
@@ -395,7 +395,7 @@ const VendorDirectory = () => {
                       (prev) =>
                         isSelected
                           ? prev.filter((id) => id !== row.vendorID) // deselect
-                          : [...prev, row.vendorID] // select
+                          : [...prev, row.vendorID], // select
                     );
                   }}
                 />
@@ -424,7 +424,7 @@ const VendorDirectory = () => {
                   )}
                 </label>
               </div>
-            </td>
+            </td>,
           );
         }
 
@@ -437,7 +437,18 @@ const VendorDirectory = () => {
             {row.vendorCode || row.vendorID || "—"}
           </td>,
           <td key={`vendorName-${index}`} className="px-4 py-3  text-center">
-            {row.vendorName}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedVendor(row);
+                setMode("view");
+                setIsSideSheetOpen(true);
+              }}
+              className="p-0 m-0 bg-transparent border-0 hover:underline font-medium"
+              aria-label={`View ${row.vendorName}`}
+            >
+              {row.vendorName}
+            </button>
           </td>,
           <td key={`poc-${index}`} className="px-4 py-3  text-center">
             {row.poc}
@@ -485,12 +496,12 @@ const VendorDirectory = () => {
                 width="w-22"
               />
             </div>
-          </td>
+          </td>,
         );
 
         return cells;
       }),
-    [filteredVendors, selectMode, selectedVendors]
+    [filteredVendors, selectMode, selectedVendors],
   );
 
   const selectedDeletables: DeletableItem[] = useMemo(() => {
@@ -717,7 +728,7 @@ const VendorDirectory = () => {
                   try {
                     // Fetch fresh vendor data if needed
                     const vendorData = await getVendorById(
-                      selectedVendor._id || selectedVendor.vendorID
+                      selectedVendor._id || selectedVendor.vendorID,
                     );
                     setSelectedVendor(vendorData);
                     setMode("view");
@@ -735,7 +746,7 @@ const VendorDirectory = () => {
                   try {
                     // Fetch fresh vendor data if needed
                     const vendorData = await getVendorById(
-                      selectedVendor._id || selectedVendor.vendorID
+                      selectedVendor._id || selectedVendor.vendorID,
                     );
                     setSelectedVendor(vendorData);
                     setMode("edit");

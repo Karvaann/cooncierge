@@ -35,7 +35,7 @@ interface FilterState {
   bookingEndDate: string;
   tripStartDate: string;
   tripEndDate: string;
-  primaryOwner?: string;
+  primaryOwner?: string | string[];
   secondaryOwners?: string[];
 }
 
@@ -184,13 +184,32 @@ const Filter: React.FC<FilterProps> = ({
 
   // Keep UI pills in sync with initial owner filter (when provided)
   useEffect(() => {
-    const initialOwner = (initialFilters as any)?.owner;
-    const next = Array.isArray(initialOwner)
-      ? initialOwner
-      : typeof initialOwner === "string" && initialOwner
-        ? [initialOwner]
+    const rawPrimary = (initialFilters as any)?.primaryOwner;
+    const initialPrimaryOwners: string[] = Array.isArray(rawPrimary)
+      ? rawPrimary
+      : typeof rawPrimary === "string" && rawPrimary
+        ? [rawPrimary]
         : [];
-    setSelectedOwners(next);
+    const initialSecondaryOwners: string[] =
+      (initialFilters as any)?.secondaryOwners || [];
+
+    const hasAdvanced =
+      initialPrimaryOwners.length > 0 || initialSecondaryOwners.length > 0;
+
+    if (hasAdvanced) {
+      const combined = [
+        ...new Set([...initialPrimaryOwners, ...initialSecondaryOwners]),
+      ];
+      setSelectedOwners(combined);
+    } else {
+      const initialOwner = (initialFilters as any)?.owner;
+      const next = Array.isArray(initialOwner)
+        ? initialOwner
+        : typeof initialOwner === "string" && initialOwner
+          ? [initialOwner]
+          : [];
+      setSelectedOwners(next);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -203,13 +222,41 @@ const Filter: React.FC<FilterProps> = ({
 
   const removeOwner = useCallback(
     (name: string) => {
+      const currentPrimary: string[] = Array.isArray(filters.primaryOwner)
+        ? filters.primaryOwner
+        : typeof filters.primaryOwner === "string" && filters.primaryOwner
+          ? [filters.primaryOwner]
+          : [];
+      const currentSecondary: string[] = filters.secondaryOwners || [];
+      const isAdvancedActive =
+        currentPrimary.length > 0 || currentSecondary.length > 0;
+
+      if (isAdvancedActive) {
+        const nextPrimary = currentPrimary.filter((p) => p !== name);
+        const nextSecondary = currentSecondary.filter((s) => s !== name);
+        const combined = [...new Set([...nextPrimary, ...nextSecondary])];
+
+        setSelectedOwners(combined);
+        updateFilter("owner", "");
+        updateFilter(
+          "primaryOwner",
+          nextPrimary.length === 0
+            ? ""
+            : nextPrimary.length === 1
+              ? (nextPrimary[0] ?? "")
+              : nextPrimary,
+        );
+        updateFilter("secondaryOwners", nextSecondary);
+        return;
+      }
+
       setSelectedOwners((prev) => {
         const next = prev.filter((p) => p !== name);
-        updateFilter("owner", next);
+        updateFilter("owner", next.length ? next : "");
         return next;
       });
     },
-    [updateFilter],
+    [filters.primaryOwner, filters.secondaryOwners, updateFilter],
   );
 
   // Decide search input width: explicit prop > compact when booking type shown > default
@@ -434,7 +481,14 @@ const Filter: React.FC<FilterProps> = ({
                   onClose={() => setOwnerModalOpen(false)}
                   owners={owners}
                   initialSelectedOwners={selectedOwners}
-                  initialPrimaryOwner={filters.primaryOwner ?? ""}
+                  initialPrimaryOwners={
+                    Array.isArray(filters.primaryOwner)
+                      ? filters.primaryOwner
+                      : typeof filters.primaryOwner === "string" &&
+                          filters.primaryOwner
+                        ? [filters.primaryOwner]
+                        : []
+                  }
                   initialSecondaryOwners={filters.secondaryOwners || []}
                   onApply={(next) => {
                     setSelectedOwners(next);
@@ -444,10 +498,17 @@ const Filter: React.FC<FilterProps> = ({
                   }}
                   onApplyAdvanced={(primary, secondary) => {
                     // Combine for display in pills
-                    const combined = [primary, ...secondary].filter(Boolean);
+                    const combined = [...new Set([...primary, ...secondary])];
                     setSelectedOwners(combined);
                     // Store separately for filtering logic
-                    updateFilter("primaryOwner", primary);
+                    updateFilter(
+                      "primaryOwner",
+                      primary.length === 0
+                        ? ""
+                        : primary.length === 1
+                          ? (primary[0] ?? "")
+                          : primary,
+                    );
                     updateFilter("secondaryOwners", secondary);
                     updateFilter("owner", ""); // Clear regular owner when using advanced
                   }}

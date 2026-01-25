@@ -60,6 +60,8 @@ interface BookingFormSidesheetProps {
   bookingCode?: string;
   customerCode?: string;
   vendorCode?: string;
+  onRequestEdit?: () => void;
+  onBookingSaved?: (updatedBooking: any) => void;
 }
 
 type TabType = "general" | "service" | "review";
@@ -257,6 +259,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   bookingCode: bookingCodeProp,
   customerCode: customerCodeProp,
   vendorCode: vendorCodeProp,
+  onRequestEdit,
+  onBookingSaved,
 }) => {
   // Bump this whenever the sidesheet is (re)opened so child forms remount
   const [formInstanceId, setFormInstanceId] = useState(0);
@@ -721,6 +725,19 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         );
         setIsSuccessModalOpen(true);
 
+        try {
+          const updated = respData?.quotation || respData || null;
+          if (updated) {
+            try {
+              onBookingSaved?.(updated);
+            } catch (e) {
+              /* swallow */
+            }
+          }
+        } catch (e) {
+          /* ignore */
+        }
+
         // Reset all forms
         generalFormRef.current?.reset();
 
@@ -749,7 +766,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [selectedService, collectAllFormData, onClose, bookingDocuments]);
+  }, [
+    selectedService,
+    collectAllFormData,
+    onClose,
+    bookingDocuments,
+    onBookingSaved,
+  ]);
 
   const handleSubmit = useCallback(async () => {
     setIsSubmitting(true);
@@ -808,6 +831,20 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         );
         setIsSuccessModalOpen(true);
 
+        // Notify parent (e.g. BookingHistoryModal) so it can refresh history.
+        try {
+          const updated = respData?.quotation || respData || null;
+          if (updated) {
+            try {
+              onBookingSaved?.(updated);
+            } catch (e) {
+              /* swallow */
+            }
+          }
+        } catch (e) {
+          /* ignore */
+        }
+
         // Reset all forms
         generalFormRef.current?.reset();
 
@@ -842,6 +879,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     convertToBookingData,
     isEditingExisting,
     quotationId,
+    onBookingSaved,
   ]);
 
   // Optimized tab click handler
@@ -1134,7 +1172,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                       {isReadOnly ? (
                         <Button
                           text="Edit"
-                          onClick={() => setReadOnlyOverride(false)}
+                          onClick={() => {
+                            setReadOnlyOverride(false);
+                            try {
+                              onRequestEdit?.();
+                            } catch (e) {
+                              /* ignore */
+                            }
+                          }}
                           bgColor="bg-white"
                           textColor="text-[#114958]"
                           className="hover:bg-gray-200 border border-[#114958]"

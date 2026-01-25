@@ -20,7 +20,15 @@ import Button from "@/components/Button";
 type BookingLike = {
   _id: string;
   customId?: string;
-  customerId?: { _id: string; name: string };
+  customerId?: { _id: string; name: string; email?: string };
+  vendorId?: {
+    _id: string;
+    companyName?: string;
+    contactPerson?: string;
+    name?: string;
+  };
+  companyName?: string;
+  name?: string;
   formFields?: { customer?: string };
 };
 
@@ -84,8 +92,6 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   onSuccess,
 }) => {
   const bookingLabel = booking?.customId || booking?._id || "";
-  const leadPaxName =
-    booking?.customerId?.name || booking?.formFields?.customer || "--";
 
   // Ledger state (to show pending/balance similar to screenshot)
   const [outstandingAmount, setOutstandingAmount] = useState<number | null>(
@@ -101,6 +107,21 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   type PartyType = "Customer" | "Vendor";
 
   const [partyType, setPartyType] = useState<PartyType>("Customer");
+
+  const partyDisplayName = useMemo(() => {
+    if (!booking) return "--";
+    if (partyType === "Vendor") {
+      const vendor = (booking as any).vendorId;
+      return vendor?.companyName || booking.companyName || "--";
+    }
+    // Customer
+    return (
+      booking.customerId?.name ||
+      booking.formFields?.customer ||
+      booking.name ||
+      "--"
+    );
+  }, [partyType, booking]);
 
   // Form State
   const [amountToRecord, setAmountToRecord] = useState<string>("");
@@ -155,6 +176,13 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   const [settleAmountDirty, setSettleAmountDirty] = useState<boolean>(false);
   const [unallocatedPayments, setUnallocatedPayments] = useState<any[]>([]);
 
+  // Party closing balance state
+  const [partyClosing, setPartyClosing] = useState<{
+    amount: number;
+    balanceType: "debit" | "credit";
+  } | null>(null);
+  const [isPartyClosingLoading, setIsPartyClosingLoading] = useState(false);
+
   const amountToRecordNumber = useMemo(() => {
     const n = Number(amountToRecord);
     return Number.isFinite(n) ? n : 0;
@@ -206,7 +234,10 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
         (x) => x.name.toLowerCase() === normalizedName.toLowerCase(),
       );
       if (exists) return prev;
-      return [...prev, { _id: bank._id, name: normalizedName }];
+      const newBank = bank._id
+        ? { _id: bank._id, name: normalizedName }
+        : { name: normalizedName };
+      return [...prev, newBank];
     });
 
     // Prefer returned _id when available, else use name
@@ -338,8 +369,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       return;
     }
 
-    const selectedPaymentType =
-      paymentType && paymentType !== "" ? paymentType.toLowerCase() : "cash";
+    const selectedPaymentType = (paymentType || "cash").toLowerCase();
 
     // When Customer party + NOT settling from advance → use createCustomerPayment
     if (partyType === "Customer" && !settleFromAdvance) {
@@ -368,6 +398,11 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       form.append("paymentDate", paymentDate || new Date().toISOString());
       form.append("party", partyType === "Customer" ? "Customer" : "Vendor");
       form.append("status", "approved");
+      // Send allocations with quotation id and amount when not settling from advance
+      const allocationsPayload = JSON.stringify([
+        { quotationId: booking._id, amount: Number(amountToRecord) },
+      ]);
+      form.append("allocations", allocationsPayload);
       if (generatedCustomId) form.append("customId", generatedCustomId);
       if (remarks) form.append("internalNotes", remarks);
       documents.forEach((d) => form.append("documents", d.file, d.name));
@@ -413,6 +448,11 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       form.append("paymentType", selectedPaymentType);
       form.append("paymentDate", paymentDate || new Date().toISOString());
       form.append("status", "approved");
+      // Send allocations with quotation id and amount when not settling from advance
+      const allocationsPayload = JSON.stringify([
+        { quotationId: booking._id, amount: Number(amountToRecord) },
+      ]);
+      form.append("allocations", allocationsPayload);
       if (generatedCustomId) form.append("customId", generatedCustomId);
       if (remarks) form.append("internalNotes", remarks);
       documents.forEach((d) => form.append("documents", d.file, d.name));
@@ -575,6 +615,51 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     };
   }, [isOpen, settleFromAdvance, partyType, booking]);
 
+  // Fetch closing balance for selected party (customer/vendor)
+  useEffect(() => {
+    if (!isOpen || !booking) return;
+
+    const partyId =
+      partyType === "Customer"
+        ? booking.customerId?._id
+        : (booking as any).vendorId?._id;
+
+    if (!partyId) {
+      setPartyClosing(null);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        setIsPartyClosingLoading(true);
+        const resp =
+          partyType === "Customer"
+            ? await PaymentsApi.getCustomerLedger(partyId)
+            : await PaymentsApi.getVendorLedger(partyId);
+
+        const closing = resp?.closingBalance;
+        if (cancelled) return;
+        if (closing && typeof closing.amount === "number") {
+          setPartyClosing({
+            amount: Number(closing.amount || 0),
+            balanceType: closing.balanceType || "debit",
+          });
+        } else {
+          setPartyClosing(null);
+        }
+      } catch (err) {
+        if (!cancelled) setPartyClosing(null);
+      } finally {
+        if (!cancelled) setIsPartyClosingLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, partyType, booking]);
+
   // When settle UI opens, collapse payment details like screenshot
   useEffect(() => {
     if (!isOpen) return;
@@ -587,11 +672,14 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   }, [settleFromAdvance, isOpen]);
 
   const balanceText = useMemo(() => {
-    if (isLedgerLoading) return "Balance : …";
-    if (typeof outstandingAmount !== "number") return "Balance : ₹ --";
-    // keep visual consistent with screenshot (negative sign)
-    return `Balance : ₹ -${formatMoney(Math.max(0, outstandingAmount))}`;
-  }, [isLedgerLoading, outstandingAmount]);
+    if (isPartyClosingLoading) return "Balance : …";
+    if (!partyClosing) return "Balance : ₹ --";
+    const amt = formatMoney(Math.max(0, partyClosing.amount));
+    // show negative sign when balance type is credit
+    return partyClosing.balanceType === "credit"
+      ? `Balance : ₹ -${amt}`
+      : `Balance : ₹ ${amt}`;
+  }, [isPartyClosingLoading, partyClosing]);
 
   const handleSettleAmountChange = (paymentId: string, value: string) => {
     setUnallocatedPayments((prev) =>
@@ -650,6 +738,8 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       ];
     });
   }, [unallocatedPayments]);
+
+  const today = new Date().toISOString().split("T")[0];
 
   return (
     <SideSheet
@@ -726,7 +816,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
 
         <div className="mt-2 flex items-center justify-between">
           <div className="inline-flex items-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-[13px] font-medium text-gray-900">
-            {leadPaxName}
+            {partyDisplayName}
           </div>
           <div className="text-[12px] font-medium text-red-500">
             {balanceText}
@@ -793,9 +883,10 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
                       "Amount (₹)": "center",
                       "Settle Amount (₹)": "center",
                     }}
-                    hideRowsPerPage
+                    // show rows-per-page control and default to 2 rows
+                    maxRowsPerPageOptions={[2, 5, 10, 25]}
+                    initialRowsPerPage={2}
                     hideEntriesText
-                    initialRowsPerPage={1}
                     data={settleTableData}
                   />
                 </div>
@@ -812,7 +903,17 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
         <div className="mb-4 border border-gray-200 rounded-lg bg-white overflow-hidden">
           <button
             type="button"
-            onClick={() => setPaymentDetailsOpen((p) => !p)}
+            onClick={() =>
+              setPaymentDetailsOpen((p) => {
+                const next = !p;
+                if (next) {
+                  // Opening payment details then disable settle-from-advance and clear allocations UI
+                  setSettleFromAdvance(false);
+                  setUnallocatedPayments([]);
+                }
+                return next;
+              })
+            }
             className="w-full flex items-center justify-between px-4 py-3"
             aria-expanded={paymentDetailsOpen}
           >
@@ -861,6 +962,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
                       value={paymentDate}
                       onChange={setPaymentDate}
                       placeholder="Select Date"
+                      maxDate={today}
                     />
                   </div>
                 </div>

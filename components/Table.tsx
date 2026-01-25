@@ -61,19 +61,19 @@ const Table: React.FC<TableProps> = ({
   const totalRows = useMemo(() => data.length, [data.length]);
   const totalPages = useMemo(
     () => Math.ceil(totalRows / rowsPerPage),
-    [totalRows, rowsPerPage]
+    [totalRows, rowsPerPage],
   );
 
   const paginatedRows = useMemo(
     () => data.slice((page - 1) * rowsPerPage, page * rowsPerPage),
-    [data, page, rowsPerPage]
+    [data, page, rowsPerPage],
   );
 
   // Memoized empty rows for consistent table height
   const emptyRows = useMemo(
     () =>
       Array.from({ length: Math.max(0, rowsPerPage - paginatedRows.length) }),
-    [rowsPerPage, paginatedRows.length]
+    [rowsPerPage, paginatedRows.length],
   );
 
   // Memoized pagination buttons
@@ -93,7 +93,7 @@ const Table: React.FC<TableProps> = ({
           {idx + 1}
         </button>
       )),
-    [totalPages, page]
+    [totalPages, page],
   );
 
   // Optimized handlers
@@ -185,8 +185,8 @@ const Table: React.FC<TableProps> = ({
                       headerAlign?.[col] === "left"
                         ? "justify-start"
                         : headerAlign?.[col] === "right"
-                        ? "justify-end"
-                        : "justify-center"
+                          ? "justify-end"
+                          : "justify-center"
                     }`}
                   >
                     <span
@@ -194,8 +194,8 @@ const Table: React.FC<TableProps> = ({
                         headerAlign?.[col] === "left"
                           ? "text-left"
                           : headerAlign?.[col] === "right"
-                          ? "text-right"
-                          : "text-center"
+                            ? "text-right"
+                            : "text-center"
                       }`}
                     >
                       {col}
@@ -317,7 +317,7 @@ const Table: React.FC<TableProps> = ({
         }`}
       >
         {!hideRowsPerPage && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ml-2">
             <span className="text-gray-600 text-[14px]">Rows per page:</span>
             <DropDown
               options={maxRowsPerPageOptions.map((o) => ({

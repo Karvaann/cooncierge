@@ -1077,7 +1077,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                         if (val === "USD") {
                           next.costInr = computeInr(
                             String(v.costprice ?? ""),
-                            String(v.costRoe ?? "")
+                            String(v.costRoe ?? ""),
                           );
                         } else {
                           next.costRoe = "";
@@ -1117,7 +1117,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                               costRoe: e.target.value,
                               costInr: computeInr(
                                 String(v.costprice ?? ""),
-                                e.target.value
+                                e.target.value,
                               ),
                             })
                           }
@@ -1183,7 +1183,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                         if (val === "USD") {
                           next.sellingInr = computeInr(
                             String(v.sellingprice ?? ""),
-                            String(v.sellingRoe ?? "")
+                            String(v.sellingRoe ?? ""),
                           );
                         } else {
                           next.sellingRoe = "";
@@ -1223,7 +1223,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                               sellingRoe: e.target.value,
                               sellingInr: computeInr(
                                 String(v.sellingprice ?? ""),
-                                e.target.value
+                                e.target.value,
                               ),
                             })
                           }
@@ -1419,8 +1419,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                                   item.key === "price"
                                     ? v.vendorBaseCurrency || "INR"
                                     : item.key === "received"
-                                    ? v.vendorIncentiveCurrency || "INR"
-                                    : v.commissionCurrency || "INR"
+                                      ? v.vendorIncentiveCurrency || "INR"
+                                      : v.commissionCurrency || "INR"
                                 }
                                 onChange={(val) => {
                                   const curr = String(val) as "INR" | "USD";
@@ -1430,7 +1430,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                                       vendorBaseInr:
                                         curr === "INR"
                                           ? ""
-                                          : v.vendorBaseInr ?? "",
+                                          : (v.vendorBaseInr ?? ""),
                                     });
                                   } else if (item.key === "received") {
                                     update({
@@ -1438,7 +1438,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                                       vendorIncentiveInr:
                                         curr === "INR"
                                           ? ""
-                                          : v.vendorIncentiveInr ?? "",
+                                          : (v.vendorIncentiveInr ?? ""),
                                     });
                                   } else {
                                     update({
@@ -1446,7 +1446,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                                       commissionInr:
                                         curr === "INR"
                                           ? ""
-                                          : v.commissionInr ?? "",
+                                          : (v.commissionInr ?? ""),
                                     });
                                   }
                                 }}
@@ -1467,8 +1467,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                                   item.key === "price"
                                     ? v.vendorBasePrice
                                     : item.key === "received"
-                                    ? v.vendorIncentiveReceived
-                                    : v.commissionPaid
+                                      ? v.vendorIncentiveReceived
+                                      : v.commissionPaid
                                 }
                                 onChange={(e) => {
                                   const raw = e.target.value;
@@ -1480,7 +1480,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                                     if (v.vendorBaseCurrency === "USD") {
                                       next.vendorBaseInr = computeInr(
                                         sanitized,
-                                        v.vendorBaseRoe
+                                        v.vendorBaseRoe,
                                       );
                                     }
                                     update(next);
@@ -1492,7 +1492,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                                     if (v.vendorIncentiveCurrency === "USD") {
                                       next.vendorIncentiveInr = computeInr(
                                         sanitized,
-                                        v.vendorIncentiveRoe
+                                        v.vendorIncentiveRoe,
                                       );
                                     }
                                     update(next);
@@ -1503,7 +1503,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                                     if (v.commissionCurrency === "USD") {
                                       next.commissionInr = computeInr(
                                         sanitized,
-                                        v.commissionRoe
+                                        v.commissionRoe,
                                       );
                                     }
                                     update(next);
@@ -1530,8 +1530,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                                       item.key === "price"
                                         ? v.vendorBaseRoe
                                         : item.key === "received"
-                                        ? v.vendorIncentiveRoe
-                                        : v.commissionRoe
+                                          ? v.vendorIncentiveRoe
+                                          : v.commissionRoe
                                     }
                                     onChange={(e) => {
                                       const roe = e.target.value;
@@ -1540,7 +1540,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                                           vendorBaseRoe: roe,
                                           vendorBaseInr: computeInr(
                                             v.vendorBasePrice,
-                                            roe
+                                            roe,
                                           ),
                                         });
                                       } else if (item.key === "received") {
@@ -1548,7 +1548,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                                           vendorIncentiveRoe: roe,
                                           vendorIncentiveInr: computeInr(
                                             v.vendorIncentiveReceived,
-                                            roe
+                                            roe,
                                           ),
                                         });
                                       } else {
@@ -1556,7 +1556,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                                           commissionRoe: roe,
                                           commissionInr: computeInr(
                                             v.commissionPaid,
-                                            roe
+                                            roe,
                                           ),
                                         });
                                       }
@@ -1574,8 +1574,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                                     {item.key === "price"
                                       ? v.vendorBaseInr || ""
                                       : item.key === "received"
-                                      ? v.vendorIncentiveInr || ""
-                                      : v.commissionInr || ""}
+                                        ? v.vendorIncentiveInr || ""
+                                        : v.commissionInr || ""}
                                   </div>
                                 </div>
                               </>
@@ -1689,7 +1689,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                             if (val === "USD") {
                               next.sellingInr = computeInr(
                                 String(v.sellingprice ?? ""),
-                                String(v.sellingRoe ?? "")
+                                String(v.sellingRoe ?? ""),
                               );
                             } else {
                               next.sellingRoe = "";
@@ -1739,7 +1739,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                                 sellingRoe: e.target.value,
                                 sellingInr: computeInr(
                                   String(v.sellingprice ?? ""),
-                                  e.target.value
+                                  e.target.value,
                                 ),
                               })
                             }
