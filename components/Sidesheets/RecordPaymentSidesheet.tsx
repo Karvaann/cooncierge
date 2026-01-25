@@ -883,9 +883,10 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
                       "Amount (₹)": "center",
                       "Settle Amount (₹)": "center",
                     }}
-                    hideRowsPerPage
+                    // show rows-per-page control and default to 2 rows
+                    maxRowsPerPageOptions={[2, 5, 10, 25]}
+                    initialRowsPerPage={2}
                     hideEntriesText
-                    initialRowsPerPage={1}
                     data={settleTableData}
                   />
                 </div>
