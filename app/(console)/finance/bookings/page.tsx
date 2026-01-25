@@ -88,7 +88,7 @@ type FilterPayload = {
   bookingEndDate: string;
   tripStartDate: string;
   tripEndDate: string;
-  primaryOwner?: string;
+  primaryOwner?: string | string[];
   secondaryOwners?: string[];
 };
 
@@ -395,26 +395,34 @@ const FinanceBookingsPage = () => {
       }
 
       // Check if we're using advanced search (primary + secondary owners)
+      const selectedPrimaryOwners: string[] = Array.isArray(
+        filters.primaryOwner,
+      )
+        ? filters.primaryOwner
+        : filters.primaryOwner
+          ? [filters.primaryOwner]
+          : [];
+      const selectedSecondaryOwners: string[] = filters.secondaryOwners || [];
+
       const isAdvancedSearch =
-        filters.primaryOwner ||
-        (filters.secondaryOwners && filters.secondaryOwners.length > 0);
+        selectedPrimaryOwners.length > 0 || selectedSecondaryOwners.length > 0;
 
       if (isAdvancedSearch) {
         // Advanced search: match primary owner with primaryOwner field, secondary with secondaryOwner array
         let primaryMatch = true;
         let secondaryMatch = true;
 
-        if (filters.primaryOwner) {
+        if (selectedPrimaryOwners.length > 0) {
           const quotationPrimaryOwner = q.primaryOwner?.name || "";
-          primaryMatch = quotationPrimaryOwner === filters.primaryOwner;
+          primaryMatch = selectedPrimaryOwners.includes(quotationPrimaryOwner);
         }
 
-        if (filters.secondaryOwners && filters.secondaryOwners.length > 0) {
+        if (selectedSecondaryOwners.length > 0) {
           const quotationSecondaryOwners = Array.isArray(q.secondaryOwner)
             ? q.secondaryOwner.map((o: any) => o?.name || "").filter(Boolean)
             : [];
           // Check if all selected secondary owners are in the quotation's secondary owners
-          secondaryMatch = filters.secondaryOwners.every((selectedSecondary) =>
+          secondaryMatch = selectedSecondaryOwners.every((selectedSecondary) =>
             quotationSecondaryOwners.includes(selectedSecondary),
           );
         }
@@ -991,7 +999,7 @@ const FinanceBookingsPage = () => {
               const ownerMeta = ownersList.find((o) => o.full === name) || {
                 short: computeInitials(name),
                 full: name,
-                color: colorPalette[0],
+                color: colorPalette[0] ?? "",
               };
 
               return (
@@ -1016,7 +1024,10 @@ const FinanceBookingsPage = () => {
                 const ownerMeta = ownersList.find((x) => x.full === o.name) || {
                   short: computeInitials(o.name),
                   full: o.name,
-                  color: colorPalette[(i + 1) % colorPalette.length],
+                  color:
+                    colorPalette[(i + 1) % colorPalette.length] ??
+                    colorPalette[0] ??
+                    "",
                 };
 
                 return (

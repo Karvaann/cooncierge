@@ -219,7 +219,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
     showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
     vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
     vendorIncentiveReceived: String(
-      normalizedExternalData?.vendorIncentiveReceived ?? ""
+      normalizedExternalData?.vendorIncentiveReceived ?? "",
     ),
     commissionPaid: String(normalizedExternalData?.commissionPaid ?? ""),
     importantinfo: normalizedExternalData?.importantinfo || "",
@@ -239,62 +239,62 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 
   // Advanced Pricing State
   const [showAdvancedPricing, setShowAdvancedPricing] = useState(
-    Boolean(normalizedExternalData?.showAdvancedPricing)
+    Boolean(normalizedExternalData?.showAdvancedPricing),
   );
   // Vendor payment summary fields
   const [vendorBasePrice, setVendorBasePrice] = useState<string>(
-    String(normalizedExternalData?.vendorBasePrice ?? "")
+    String(normalizedExternalData?.vendorBasePrice ?? ""),
   );
   const [vendorIncentiveReceived, setVendorIncentiveReceived] =
     useState<string>(
-      String(normalizedExternalData?.vendorIncentiveReceived ?? "")
+      String(normalizedExternalData?.vendorIncentiveReceived ?? ""),
     );
   const [commissionPaid, setCommissionPaid] = useState<string>(
-    String(normalizedExternalData?.commissionPaid ?? "")
+    String(normalizedExternalData?.commissionPaid ?? ""),
   );
 
   // Vendor advanced-pricing detailed state (currency, roe, computed INR, notes)
   const [vendorBaseCurrency, setVendorBaseCurrency] = useState<"INR" | "USD">(
-    (normalizedExternalData?.vendorBaseCurrency as "INR" | "USD") || "INR"
+    (normalizedExternalData?.vendorBaseCurrency as "INR" | "USD") || "INR",
   );
   const [vendorBaseRoe, setVendorBaseRoe] = useState<string>(
-    String(normalizedExternalData?.vendorBaseRoe ?? "")
+    String(normalizedExternalData?.vendorBaseRoe ?? ""),
   );
   const [vendorBaseInr, setVendorBaseInr] = useState<string>(
-    String(normalizedExternalData?.vendorBaseInr ?? "")
+    String(normalizedExternalData?.vendorBaseInr ?? ""),
   );
   const [vendorBaseNotes, setVendorBaseNotes] = useState<string>(
-    String(normalizedExternalData?.vendorBaseNotes ?? "")
+    String(normalizedExternalData?.vendorBaseNotes ?? ""),
   );
 
   const [vendorIncentiveCurrency, setVendorIncentiveCurrency] = useState<
     "INR" | "USD"
   >(
-    (normalizedExternalData?.vendorIncentiveCurrency as "INR" | "USD") || "INR"
+    (normalizedExternalData?.vendorIncentiveCurrency as "INR" | "USD") || "INR",
   );
   const [vendorIncentiveRoe, setVendorIncentiveRoe] = useState<string>(
-    String(normalizedExternalData?.vendorIncentiveRoe ?? "")
+    String(normalizedExternalData?.vendorIncentiveRoe ?? ""),
   );
   const [vendorIncentiveInr, setVendorIncentiveInr] = useState<string>(
-    String(normalizedExternalData?.vendorIncentiveInr ?? "")
+    String(normalizedExternalData?.vendorIncentiveInr ?? ""),
   );
   const [vendorIncentiveNotes, setVendorIncentiveNotes] = useState<string>(
-    String(normalizedExternalData?.vendorIncentiveNotes ?? "")
+    String(normalizedExternalData?.vendorIncentiveNotes ?? ""),
   );
   const [showVendorIncentiveNotesFlag, setShowVendorIncentiveNotesFlag] =
     useState<boolean>(false);
 
   const [commissionCurrency, setCommissionCurrency] = useState<"INR" | "USD">(
-    (normalizedExternalData?.commissionCurrency as "INR" | "USD") || "INR"
+    (normalizedExternalData?.commissionCurrency as "INR" | "USD") || "INR",
   );
   const [commissionRoeState, setCommissionRoeState] = useState<string>(
-    String(normalizedExternalData?.commissionRoe ?? "")
+    String(normalizedExternalData?.commissionRoe ?? ""),
   );
   const [commissionInr, setCommissionInr] = useState<string>(
-    String(normalizedExternalData?.commissionInr ?? "")
+    String(normalizedExternalData?.commissionInr ?? ""),
   );
   const [commissionNotes, setCommissionNotes] = useState<string>(
-    String(normalizedExternalData?.commissionNotes ?? "")
+    String(normalizedExternalData?.commissionNotes ?? ""),
   );
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -429,7 +429,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         message: "Invalid email format",
       },
     }),
-    []
+    [],
   );
 
   // Enhanced validation function using API validation
@@ -495,7 +495,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 
       return "";
     },
-    [validationRules]
+    [validationRules],
   );
 
   // Validate all fields
@@ -506,7 +506,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
     Object.keys(validationRules).forEach((fieldName) => {
       const error = validateField(
         fieldName,
-        formData[fieldName as keyof FlightInfoFormData]
+        formData[fieldName as keyof FlightInfoFormData],
       );
       if (error) {
         newErrors[fieldName] = error;
@@ -520,7 +520,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 
   // Normal handleChange that only updates local state
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value, type } = e.target;
     const processedValue =
@@ -549,7 +549,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 
       setTouched((prev) => ({ ...prev, [name]: true }));
     },
-    [validateField, showValidation]
+    [validateField, showValidation],
   );
 
   // Handle form submission
@@ -561,14 +561,17 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         onSubmit?.(formData);
       } else {
         // Mark all fields as touched to show validation errors
-        const allTouched = Object.keys(validationRules).reduce((acc, key) => {
-          acc[key] = true;
-          return acc;
-        }, {} as Record<string, boolean>);
+        const allTouched = Object.keys(validationRules).reduce(
+          (acc, key) => {
+            acc[key] = true;
+            return acc;
+          },
+          {} as Record<string, boolean>,
+        );
         setTouched(allTouched);
       }
     },
-    [formData, validateForm, onSubmit, validationRules]
+    [formData, validateForm, onSubmit, validationRules],
   );
 
   // Enhanced input field component with validation indicators
@@ -611,8 +614,8 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
               hasError
                 ? "border-red-300 focus:ring-red-200"
                 : isValid && touched[name]
-                ? "border-green-300 focus:ring-green-200"
-                : "border-gray-200 focus:ring-green-200"
+                  ? "border-green-300 focus:ring-green-200"
+                  : "border-gray-200 focus:ring-green-200"
             }
             ${
               isSubmitting || isValidatingField
@@ -703,7 +706,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 
     // Preserve any already-entered cancellation/refund details
     ...(formData.bookingstatus === "cancelled"
-      ? formData.cancellationForm ?? {}
+      ? (formData.cancellationForm ?? {})
       : {}),
   };
 
@@ -728,10 +731,10 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
           setVendorBaseNotes(String(data.vendorBaseNotes ?? ""));
 
           setVendorIncentiveReceived(
-            String(data.vendorIncentiveReceived ?? "")
+            String(data.vendorIncentiveReceived ?? ""),
           );
           setVendorIncentiveCurrency(
-            (data.vendorIncentiveCurrency as any) || "INR"
+            (data.vendorIncentiveCurrency as any) || "INR",
           );
           setVendorIncentiveRoe(String(data.vendorIncentiveRoe ?? ""));
           setVendorIncentiveInr(String(data.vendorIncentiveInr ?? ""));
@@ -862,7 +865,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                   value={formData.PNR}
                   onChange={(e) => {
                     const sanitizedValue = allowUppercaseAlphanumeric6(
-                      e.target.value
+                      e.target.value,
                     )
                       .replace(/[^a-zA-Z0-9]/g, "") // allow only alphanumeric
                       .toUpperCase(); // convert to uppercase
@@ -922,7 +925,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                   >
                     {type}
                   </button>
-                )
+                ),
               )}
             </div>
 
@@ -1023,6 +1026,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
               setFormData((prev) => ({ ...prev, importantinfo: val }))
             }
             readOnly={isReadOnly}
+            // disabled={isSubmitting}
           />
         </div>
 

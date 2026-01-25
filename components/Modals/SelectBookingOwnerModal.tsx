@@ -29,8 +29,8 @@ interface SelectBookingOwnerModalProps {
   owners: BookingOwnerOption[];
   initialSelectedOwners?: string[];
   onApply: (selectedOwners: string[]) => void;
-  onApplyAdvanced?: (primary: string, secondary: string[]) => void;
-  initialPrimaryOwner?: string;
+  onApplyAdvanced?: (primary: string[], secondary: string[]) => void;
+  initialPrimaryOwners?: string[];
   initialSecondaryOwners?: string[];
   showAdvanceSearch?: boolean;
 }
@@ -42,7 +42,7 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
   initialSelectedOwners = [],
   onApply,
   onApplyAdvanced,
-  initialPrimaryOwner = "",
+  initialPrimaryOwners = [],
   initialSecondaryOwners = [],
   showAdvanceSearch = false,
 }) => {
@@ -52,11 +52,11 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
   const [ownerSearch, setOwnerSearch] = useState("");
 
   // Advance search states
-  const [primaryOwner, setPrimaryOwner] = useState<string>(
-    initialPrimaryOwner || ""
+  const [primaryOwners, setPrimaryOwners] = useState<string[]>(
+    initialPrimaryOwners || [],
   );
   const [secondaryOwners, setSecondaryOwners] = useState<string[]>(
-    initialSecondaryOwners || []
+    initialSecondaryOwners || [],
   );
   const [primarySearch, setPrimarySearch] = useState("");
   const [secondarySearch, setSecondarySearch] = useState("");
@@ -95,33 +95,33 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
   const ownersList = useMemo(
     () =>
       (owners || []).map(
-        (o: any) => o.label || o.name || o.value || String(o)
+        (o: any) => o.label || o.name || o.value || String(o),
       ) as string[],
-    [owners]
+    [owners],
   );
 
   const filteredOwnersList = useMemo(
     () =>
       ownersList.filter((o) =>
-        o.toLowerCase().includes(ownerSearch.toLowerCase())
+        o.toLowerCase().includes(ownerSearch.toLowerCase()),
       ),
-    [ownersList, ownerSearch]
+    [ownersList, ownerSearch],
   );
 
   const filteredPrimaryList = useMemo(
     () =>
       ownersList.filter((o) =>
-        o.toLowerCase().includes(primarySearch.toLowerCase())
+        o.toLowerCase().includes(primarySearch.toLowerCase()),
       ),
-    [ownersList, primarySearch]
+    [ownersList, primarySearch],
   );
 
   const filteredSecondaryList = useMemo(
     () =>
       ownersList.filter((o) =>
-        o.toLowerCase().includes(secondarySearch.toLowerCase())
+        o.toLowerCase().includes(secondarySearch.toLowerCase()),
       ),
-    [ownersList, secondarySearch]
+    [ownersList, secondarySearch],
   );
 
   const recalcDropdownPos = useCallback(() => {
@@ -160,39 +160,53 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
     }
   }, []);
 
+  const arraysEqual = (a?: string[], b?: string[]) => {
+    if (a === b) return true;
+    if (!a || !b) return false;
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+    return true;
+  };
+
   const toggleOwner = useCallback((name: string) => {
     setSelectedOwners((prev) =>
-      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name]
+      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name],
     );
   }, []);
 
   const togglePrimaryOwner = useCallback((name: string) => {
-    setPrimaryOwner((prev) => (prev === name ? "" : name));
+    setPrimaryOwners((prev) =>
+      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name],
+    );
   }, []);
 
   const toggleSecondaryOwner = useCallback((name: string) => {
     setSecondaryOwners((prev) =>
-      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name]
+      prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name],
     );
   }, []);
 
   const handleReset = useCallback(() => {
     setSelectedOwners([]);
     setOwnerSearch("");
-    setPrimaryOwner("");
+    setPrimaryOwners([]);
     setSecondaryOwners([]);
     setPrimarySearch("");
     setSecondarySearch("");
+    setDropdownOpen(false);
+    setPrimaryDropdownOpen(false);
+    setSecondaryDropdownOpen(false);
+    setIsAdvanceSearchEnabled(false);
   }, []);
 
   const handleApply = useCallback(() => {
     if (isAdvanceSearchEnabled) {
       if (onApplyAdvanced) {
-        onApplyAdvanced(primaryOwner, secondaryOwners);
+        onApplyAdvanced(primaryOwners, secondaryOwners);
       } else {
         // Fallback: combine for backward compatibility
         const combined = [
-          ...new Set([primaryOwner, ...secondaryOwners].filter(Boolean)),
+          ...new Set([...primaryOwners, ...secondaryOwners].filter(Boolean)),
         ];
         onApply(combined);
       }
@@ -206,35 +220,41 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
     onClose,
     selectedOwners,
     isAdvanceSearchEnabled,
-    primaryOwner,
+    primaryOwners,
     secondaryOwners,
   ]);
 
   // Sync initial selection on open
   useEffect(() => {
     if (!isOpen) return;
-    setSelectedOwners(initialSelectedOwners);
+
+    if (!arraysEqual(selectedOwners, initialSelectedOwners)) {
+      setSelectedOwners(initialSelectedOwners);
+    }
+
     setOwnerSearch("");
-    setDropdownOpen(false);
+    if (dropdownOpen) setDropdownOpen(false);
 
     // Auto-enable advance search if we have primary/secondary owner values
     const hasAdvanceSearchValues =
-      (initialPrimaryOwner && initialPrimaryOwner.length > 0) ||
+      (initialPrimaryOwners && initialPrimaryOwners.length > 0) ||
       (initialSecondaryOwners && initialSecondaryOwners.length > 0);
-    setIsAdvanceSearchEnabled(hasAdvanceSearchValues);
+    if (isAdvanceSearchEnabled !== hasAdvanceSearchValues) {
+      setIsAdvanceSearchEnabled(hasAdvanceSearchValues);
+    }
 
-    setPrimaryOwner(initialPrimaryOwner || "");
-    setSecondaryOwners(initialSecondaryOwners || []);
+    if (!arraysEqual(primaryOwners, initialPrimaryOwners)) {
+      setPrimaryOwners(initialPrimaryOwners || []);
+    }
+    if (!arraysEqual(secondaryOwners, initialSecondaryOwners)) {
+      setSecondaryOwners(initialSecondaryOwners || []);
+    }
+
     setPrimarySearch("");
     setSecondarySearch("");
-    setPrimaryDropdownOpen(false);
-    setSecondaryDropdownOpen(false);
-  }, [
-    isOpen,
-    initialSelectedOwners,
-    initialPrimaryOwner,
-    initialSecondaryOwners,
-  ]);
+    if (primaryDropdownOpen) setPrimaryDropdownOpen(false);
+    if (secondaryDropdownOpen) setSecondaryDropdownOpen(false);
+  }, [isOpen]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -503,7 +523,7 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                   </div>,
                   typeof document !== "undefined"
                     ? document.body
-                    : (null as any)
+                    : (null as any),
                 )}
             </div>
 
@@ -585,7 +605,7 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                           </div>
                         ) : (
                           filteredPrimaryList.map((owner) => {
-                            const checked = primaryOwner === owner;
+                            const checked = primaryOwners.includes(owner);
 
                             return (
                               <label
@@ -611,30 +631,33 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                       </div>,
                       typeof document !== "undefined"
                         ? document.body
-                        : (null as any)
+                        : (null as any),
                     )}
                 </div>
 
                 {/* Primary Pills */}
                 <div className="mt-3 flex flex-wrap gap-2 min-h-[2rem]">
-                  {primaryOwner && (
-                    <span className="flex items-center gap-2 bg-white border border-gray-200 text-black pl-2 pr-3 py-1 rounded-full text-[14px]">
+                  {primaryOwners.map((o) => (
+                    <span
+                      key={o}
+                      className="flex items-center gap-2 bg-white border border-gray-200 text-black pl-2 pr-3 py-1 rounded-full text-[14px]"
+                    >
                       <button
                         type="button"
-                        onClick={() => setPrimaryOwner("")}
+                        onClick={() => togglePrimaryOwner(o)}
                         className="text-[#818181]"
-                        aria-label={`Remove ${primaryOwner}`}
+                        aria-label={`Remove ${o}`}
                       >
                         <IoClose size={18} />
                       </button>
-                      {primaryOwner}
+                      {o}
                     </span>
-                  )}
+                  ))}
                 </div>
 
                 {/* Primary Count */}
                 <div className="mt-3 text-[14px] text-[#6B7280]">
-                  ({primaryOwner ? 1 : 0}) Owner Selected
+                  ({primaryOwners.length}) Owner Selected
                 </div>
               </div>
 
@@ -731,7 +754,7 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                       </div>,
                       typeof document !== "undefined"
                         ? document.body
-                        : (null as any)
+                        : (null as any),
                     )}
                 </div>
 
@@ -769,9 +792,7 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
           <div className="text-[14px] text-[#6B7280] font-medium">
             {!isAdvanceSearchEnabled
               ? `(${selectedOwners.length}) Owners Selected`
-              : `(${
-                  (primaryOwner ? 1 : 0) + secondaryOwners.length
-                }) Owners Selected`}
+              : `(${primaryOwners.length + secondaryOwners.length}) Owners Selected`}
           </div>
 
           <div className="flex items-center gap-3">

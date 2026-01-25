@@ -420,7 +420,7 @@ const buildInitialState = (externalFormData: any = {}): GeneralInfoFormData => {
         ...externalFormData.__owners
           .filter((v: unknown) => typeof v === "string")
           .map((v: string) => v.trim())
-          .filter(Boolean)
+          .filter(Boolean),
       );
     }
 
@@ -478,14 +478,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   formRef,
 }) => {
   const [formData, setFormData] = useState<GeneralInfoFormData>(
-    buildInitialState(externalFormData)
+    buildInitialState(externalFormData),
   );
 
   const [showSecondaryOwnerField, setShowSecondaryOwnerField] =
     useState<boolean>(
       () =>
         (buildInitialState(externalFormData).secondaryBookingOwners || [])
-          .length > 0
+          .length > 0,
     );
 
   const isSameState = (next: GeneralInfoFormData, prev: GeneralInfoFormData) =>
@@ -495,7 +495,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Reset/prefill when incoming data truly changes (avoids render loops)
   const externalSignature = useMemo(
     () => JSON.stringify(externalFormData ?? {}),
-    [externalFormData]
+    [externalFormData],
   );
   const lastExternalSignature = useRef(externalSignature);
 
@@ -507,7 +507,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
     setShowSecondaryOwnerField(
       Array.isArray(nextState.secondaryBookingOwners) &&
-        nextState.secondaryBookingOwners.length > 0
+        nextState.secondaryBookingOwners.length > 0,
     );
 
     lastExternalSignature.current = externalSignature;
@@ -563,14 +563,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const [allTravellers, setAllTravellers] = useState<TravellerDataType[]>([]);
 
   const [customerResults, setCustomerResults] = useState<CustomerDataType[]>(
-    []
+    [],
   );
   const [vendorResults, setVendorResults] = useState<VendorDataType[]>([]);
   const [primaryOwnerResults, setPrimaryOwnerResults] = useState<
     TeamDataType[]
   >([]);
   const [travellerResults, setTravellerResults] = useState<TravellerDataType[]>(
-    []
+    [],
   );
 
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
@@ -601,7 +601,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   } | null>(null);
 
   const [activeCustomerIndex, setActiveCustomerIndex] = useState<number | null>(
-    null
+    null,
   );
 
   const [ownerList, setOwnerList] = useState<{ id: string; name: string }[]>([
@@ -614,7 +614,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       (formData.adultTravellers || [""]).map((name, idx) => ({
         id: formData.adultTravellerIds?.[idx] ?? "",
         name: name || "",
-      }))
+      })),
     );
   }, [formData.adultTravellers, formData.adultTravellerIds]);
 
@@ -623,7 +623,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       (formData.infantTravellers || []).map((name, idx) => ({
         id: formData.infantTravellerIds?.[idx] ?? "",
         name: name || "",
-      }))
+      })),
     );
   }, [formData.infantTravellers, formData.infantTravellerIds]);
 
@@ -634,7 +634,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // View vendor sidesheet state
   const [isViewVendorOpen, setIsViewVendorOpen] = useState(false);
   const [viewVendorData, setViewVendorData] = useState<VendorDataType | null>(
-    null
+    null,
   );
   // View traveller sidesheet state
   const [isViewTravellerOpen, setIsViewTravellerOpen] = useState(false);
@@ -671,7 +671,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       const isInSecondaryOwner = isEventInside(e, teamsSecondaryRef.current);
       const isInSecondaryOwnerPortal = isEventInside(
         e,
-        secondaryOwnerPortalRef.current
+        secondaryOwnerPortalRef.current,
       );
 
       let isInTraveller = false;
@@ -764,7 +764,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Handler to open view sidesheet for traveller
   const handleViewTraveller = async (
     type: "adultTravellers" | "infantTravellers",
-    index: number
+    index: number,
   ) => {
     const idsArray =
       type === "adultTravellers"
@@ -780,13 +780,13 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     // Try cached list first (match by id or name)
     if (idFromState) {
       traveller = allTravellers.find(
-        (t) => t._id === idFromState || t.id === idFromState
+        (t) => t._id === idFromState || t.id === idFromState,
       );
     }
 
     if (!traveller && nameFromState) {
       traveller = allTravellers.find(
-        (t) => t.name === nameFromState || t.email === nameFromState
+        (t) => t.name === nameFromState || t.email === nameFromState,
       );
     }
 
@@ -896,7 +896,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Keep selected secondary owner pills aligned with ids in formData
   useEffect(() => {
     const idsFromArray: string[] = Array.isArray(
-      formData.secondaryBookingOwners
+      formData.secondaryBookingOwners,
     )
       ? formData.secondaryBookingOwners
       : [];
@@ -915,7 +915,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       uniqueIds.map((id) => {
         const match = allTeams.find((t) => t._id === id);
         return { id, name: match?.name || id };
-      })
+      }),
     );
   }, [
     allTeams,
@@ -975,7 +975,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     if (!Array.isArray(allVendors) || allVendors.length === 0) return;
 
     const match = allVendors.find(
-      (v) => v._id === externalFormData.vendorId?._id
+      (v) => v._id === externalFormData.vendorId?._id,
     );
     if (match) {
       setVendorList([
@@ -1004,7 +1004,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     if (!Array.isArray(allCustomers) || allCustomers.length === 0) return;
 
     const match = allCustomers.find(
-      (c) => c._id === externalFormData.customerId?._id
+      (c) => c._id === externalFormData.customerId?._id,
     );
     if (match) {
       setCustomerList([{ id: match._id, name: match.name }]);
@@ -1073,8 +1073,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     const adultEntries: Array<string | TravellerDataType> = adultFromBackend
       ? adultFromBackend
       : legacyTravellers
-      ? legacyTravellers
-      : [];
+        ? legacyTravellers
+        : [];
     const adultIds = adultEntries.map((t) => normalizeId(t)).filter(Boolean);
     const adultNames = adultEntries.map((t) => {
       const id = normalizeId(t);
@@ -1085,7 +1085,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       // 2. resolved name from traveller list
       // 3. fallback TBA
       return normalizeTravellerName(
-        fromObj || (id ? travellerNameById(id) : "")
+        fromObj || (id ? travellerNameById(id) : ""),
       );
     });
 
@@ -1099,7 +1099,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       const fromObj = normalizeName(c?.id);
 
       return normalizeTravellerName(
-        fromObj || (id ? travellerNameById(id) : "")
+        fromObj || (id ? travellerNameById(id) : ""),
       );
     });
 
@@ -1173,7 +1173,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const runFuzzySearch = <T,>(
     list: T[],
     term: string,
-    keys: (keyof T)[]
+    keys: (keyof T)[],
   ): T[] => {
     if (!term.trim()) return [];
 
@@ -1325,7 +1325,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // update customer field from customer array
   const updateCustomerField = (
     index: number,
-    data: { id: string; name: string }
+    data: { id: string; name: string },
   ) => {
     const updated = [...customerList];
     updated[index] = data;
@@ -1342,7 +1342,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     type: "adultTravellers" | "infantTravellers",
     index: number,
     value: string,
-    id?: string
+    id?: string,
   ) => {
     const idType =
       type === "adultTravellers" ? "adultTravellerIds" : "infantTravellerIds";
@@ -1474,7 +1474,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // clearInput() helper
   const clearInput = (
     fieldName: string,
-    overrideHandler?: (value: string) => void
+    overrideHandler?: (value: string) => void,
   ) => {
     if (overrideHandler) {
       overrideHandler("");
@@ -1562,7 +1562,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       //   message: "Booking owner is required",
       // },
     }),
-    []
+    [],
   );
 
   // Enhanced validation function using API validation
@@ -1602,7 +1602,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
       return "";
     },
-    [validationRules]
+    [validationRules],
   );
 
   // Customer validation handler
@@ -1666,7 +1666,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     Object.keys(validationRules).forEach((fieldName) => {
       const error = validateField(
         fieldName,
-        formData[fieldName as keyof GeneralInfoFormData]
+        formData[fieldName as keyof GeneralInfoFormData],
       );
       if (error) {
         newErrors[fieldName] = error;
@@ -1680,7 +1680,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   // Handle input changes
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value, type } = e.target;
     const processedValue = type === "number" ? value : value;
@@ -1720,7 +1720,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
       setTouched((prev) => ({ ...prev, [name]: true }));
     },
-    [validateField, showValidation, customerList]
+    [validateField, showValidation, customerList],
   );
 
   // Handle form submission
@@ -1732,20 +1732,23 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         onSubmit?.(formData);
       } else {
         // Mark all fields as touched to show validation errors
-        const allTouched = Object.keys(validationRules).reduce((acc, key) => {
-          acc[key] = true;
-          return acc;
-        }, {} as Record<string, boolean>);
+        const allTouched = Object.keys(validationRules).reduce(
+          (acc, key) => {
+            acc[key] = true;
+            return acc;
+          },
+          {} as Record<string, boolean>,
+        );
         setTouched(allTouched);
       }
     },
-    [formData, validateForm, onSubmit, validationRules]
+    [formData, validateForm, onSubmit, validationRules],
   );
 
   // Memoized traveller count
   const totalTravellers = useMemo(
     () => formData.adults + formData.children + formData.infants,
-    [formData.adults, formData.children, formData.infants]
+    [formData.adults, formData.children, formData.infants],
   );
 
   // Helper to get input field props
@@ -1755,7 +1758,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       value?: string | number;
       onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
       skipValidation?: boolean;
-    }
+    },
   ) => {
     const value = options?.value !== undefined ? options.value : "";
 
@@ -2402,7 +2405,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                               "adultTravellers",
                               index,
                               getTravellerDisplayName(t),
-                              t._id
+                              t._id,
                             );
                             setActiveTravellerDropdown(null);
                             setTravellerResults([]);
@@ -2630,7 +2633,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                   "infantTravellers",
                                   index,
                                   getTravellerDisplayName(t),
-                                  t._id
+                                  t._id,
                                 );
                                 setActiveTravellerDropdown(null);
                                 setTravellerResults([]);
@@ -2770,8 +2773,13 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           {!showSecondaryOwnerField ? (
             <button
               type="button"
-              onClick={() => setShowSecondaryOwnerField(true)}
-              className="w-[59%] flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-[13px] py-2 rounded-md border border-gray-200"
+              onClick={() => !isReadOnly && setShowSecondaryOwnerField(true)}
+              disabled={isReadOnly}
+              className={`w-[59%] flex items-center justify-center gap-2 bg-gray-100 text-gray-700 text-[13px] py-2 rounded-md border border-gray-200 ${
+                isReadOnly
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:bg-gray-200"
+              }`}
             >
               <GoPlus size={14} />
               Add Secondary Owner
@@ -2786,6 +2794,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   type="button"
                   aria-label="Remove secondary owner"
                   onClick={() => {
+                    if (isReadOnly) return;
                     setShowSecondaryOwnerField(false);
                     setSelectedSecondaryOwners([]);
                     setSecondaryOwnerDropdownOpen(false);
@@ -2796,7 +2805,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       secondaryBookingOwners: [],
                     }));
                   }}
-                  className="w-5 h-5 flex items-center justify-center mb-1 rounded-full border border-gray-200 bg-white hover:bg-gray-50"
+                  disabled={isReadOnly}
+                  className={`w-5 h-5 flex items-center justify-center mb-1 rounded-full border border-gray-200 bg-white ${
+                    isReadOnly
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:bg-gray-50"
+                  }`}
                 >
                   <FiMinus size={12} />
                 </button>
@@ -2805,8 +2819,13 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               <div className="w-[59%]" ref={teamsSecondaryRef}>
                 {/* Filter-style multi-select pills input */}
                 <div
-                  className="w-full min-h-[1.5rem] text-[12px] -mt-0.5 border border-gray-200 hover:border-green-200 rounded-md px-2.5 py-2 flex items-center flex-wrap gap-1 cursor-pointer"
+                  className={`w-full min-h-[1.5rem] text-[12px] -mt-0.5 border border-gray-200 rounded-md px-2.5 py-2 flex items-center flex-wrap gap-1 ${
+                    isReadOnly
+                      ? "bg-gray-100 text-gray-700 cursor-not-allowed"
+                      : "hover:border-green-200 cursor-pointer"
+                  }`}
                   onClick={(e) => {
+                    if (isReadOnly) return;
                     e.stopPropagation();
                     const rect =
                       teamsSecondaryRef.current?.getBoundingClientRect();
@@ -2831,9 +2850,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
+                            if (isReadOnly) return;
 
                             setSelectedSecondaryOwners((prev) =>
-                              prev.filter((p) => p.id !== o.id)
+                              prev.filter((p) => p.id !== o.id),
                             );
 
                             setFormData((prev) => {
@@ -2850,7 +2870,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                               };
                             });
                           }}
-                          className="py-1"
+                          disabled={isReadOnly}
+                          className={`py-1 ${isReadOnly ? "opacity-50 cursor-not-allowed" : ""}`}
                         >
                           <IoClose size={16} className="text-[#818181]" />
                         </button>
@@ -2885,14 +2906,15 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       {Array.isArray(allTeams) && allTeams.length > 0 ? (
                         allTeams.map((t: TeamDataType) => {
                           const checked = selectedSecondaryOwners.some(
-                            (o) => o.id === t._id
+                            (o) => o.id === t._id,
                           );
 
                           return (
                             <label
                               key={t._id}
-                              className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
+                              className={`flex items-center gap-2 px-2 py-2 border-b border-gray-200 ${isReadOnly ? "cursor-default" : "hover:bg-gray-50 cursor-pointer"}`}
                               onClick={(e) => {
+                                if (isReadOnly) return;
                                 e.stopPropagation();
 
                                 // Don't allow primary as secondary
@@ -2903,7 +2925,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                                 setSelectedSecondaryOwners((prev) => {
                                   const exists = prev.some(
-                                    (o) => o.id === t._id
+                                    (o) => o.id === t._id,
                                   );
                                   const next = exists
                                     ? prev.filter((o) => o.id !== t._id)
@@ -2914,7 +2936,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                       .map((o) => String(o.id).trim())
                                       .filter(Boolean)
                                       .filter(
-                                        (id, i, a) => a.indexOf(id) === i
+                                        (id, i, a) => a.indexOf(id) === i,
                                       );
                                     return {
                                       ...statePrev,
@@ -2960,7 +2982,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     </div>,
                     typeof document !== "undefined"
                       ? document.body
-                      : (null as any)
+                      : (null as any),
                   )}
               </div>
             </>

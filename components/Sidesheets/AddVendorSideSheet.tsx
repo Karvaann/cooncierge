@@ -162,33 +162,6 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
     }
   };
 
-  const openHistoryForVendor = async () => {
-    try {
-      const vendorId = data?._id;
-      if (!vendorId) return;
-      const resp = await getVendorBookingHistory(vendorId, {
-        sortBy: "createdAt",
-        sortOrder: "desc",
-        page: 1,
-        limit: 10,
-      });
-      const quotations = resp?.quotations || [];
-      const mapped = quotations.map((q: any) => ({
-        id: q.customId || q._id,
-        bookingDate: q.createdAt ? formatDMY(q.createdAt) : "—",
-        travelDate: q.travelDate ? String(q.travelDate) : "",
-        status: mapStatusForModal(q.status),
-        amount: q.totalAmount != null ? String(q.totalAmount) : "0",
-      }));
-      setHistoryBookings(mapped);
-      setIsHistoryOpen(true);
-    } catch (e) {
-      console.error("Failed to open vendor history:", e);
-      setHistoryBookings([]);
-      setIsHistoryOpen(true);
-    }
-  };
-
   // Handle selecting files
   const handleFileChange = () => {
     const files = fileRef.current?.files;
@@ -244,7 +217,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       const rawPhone = String(data.phone || "");
       const parsed = splitPhoneWithDialCode(
         rawPhone,
-        data.countryCode || "+91"
+        data.countryCode || "+91",
       );
       const digitsOnly = parsed.number.replace(/\D/g, "");
       const maxLen = getPhoneNumberMaxLength(parsed.dialCode);
@@ -294,7 +267,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
     setFormData((prev) => {
       const trimmed = allowOnlyDigitsWithMax(
         String(prev.phone || ""),
-        phoneMaxLength
+        phoneMaxLength,
       );
       if (trimmed === prev.phone) return prev;
       return { ...prev, phone: trimmed };
@@ -349,7 +322,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       formDataToSend.append("companyName", formData.companyName);
       formDataToSend.append(
         "contactPerson",
-        String(formData.contactPerson || "")
+        String(formData.contactPerson || ""),
       );
       formDataToSend.append("alias", formData.alias || "");
       formDataToSend.append("dateOfBirth", formData.dateOfBirth || "");
@@ -476,8 +449,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
           mode === "view"
             ? "Vendor Details"
             : mode === "edit"
-            ? "Edit Vendor"
-            : "Add Vendor"
+              ? "Edit Vendor"
+              : "Add Vendor"
         }${vendorCode ? " | " + vendorCode : ""}`}
         width="lg2"
         position="right"
@@ -549,7 +522,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   name="companyName"
                   value={formData.companyName}
                   onChange={(e) => {
-                    const v = allowOnlyText(e.target.value);
+                    const v = String(e.target.value);
                     setFormData({ ...formData, companyName: v });
                     if (invalidField === "company" && String(v).trim()) {
                       setInvalidField(null);
@@ -592,7 +565,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                           ...formData,
                           phone: allowOnlyDigitsWithMax(
                             e.target.value,
-                            phoneMaxLength
+                            phoneMaxLength,
                           ),
                         })
                       }
@@ -709,7 +682,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                           ...formData,
                           phone: allowOnlyDigitsWithMax(
                             e.target.value,
-                            phoneMaxLength
+                            phoneMaxLength,
                           ),
                         })
                       }
@@ -764,18 +737,19 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 Billing Address
               </label>
               <hr className="mt-1 mb-3 border-t border-gray-200" />
-              <input
+              <textarea
                 name="address"
+                rows={3}
                 value={formData.address}
                 onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    address: allowTextAndNumbers(e.target.value),
-                  })
+                  setFormData((prev) => ({
+                    ...prev,
+                    address: e.target.value,
+                  }))
                 }
                 placeholder="Enter Billing Address"
                 disabled={readOnly}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700 resize-none"
               />
             </div>
 
@@ -920,7 +894,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                         setBalanceAmount(value);
                       } else {
                         alert(
-                          "Please enter only numbers. Letters and special characters are not allowed."
+                          "Please enter only numbers. Letters and special characters are not allowed.",
                         );
                       }
                     }}
@@ -1047,7 +1021,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 placeholder="Enter Your Remarks Here"
                 className={`
             w-full border border-gray-200 rounded-md px-3 py-2 text-[13px]  mt-2 transition-colors
-            focus:ring focus:ring-green-400 hover:border-green-400
+            focus:ring focus:ring-green-400 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700
           `}
                 disabled={readOnly}
               />
