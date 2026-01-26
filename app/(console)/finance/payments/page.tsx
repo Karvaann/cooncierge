@@ -219,6 +219,7 @@ const PaymentsPage = () => {
   const [generatedPaymentCustomId, setGeneratedPaymentCustomId] = useState<
     string | null
   >(null);
+  const [isCursorInTable, setIsCursorInTable] = useState(false);
 
   // Toast state for success / error messages using ErrorToast
   const [toastVisible, setToastVisible] = useState(false);
@@ -601,9 +602,11 @@ const PaymentsPage = () => {
           <div
             onClick={(e) => e.stopPropagation()}
             className={`flex items-center justify-center gap-2 transition-all duration-200 ${
-              index === 0
-                ? "opacity-100 pointer-events-auto"
-                : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+              isCursorInTable
+                ? "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+                : index === 0
+                  ? "opacity-100 pointer-events-auto"
+                  : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
             }`}
           >
             <button
@@ -644,7 +647,7 @@ const PaymentsPage = () => {
 
       return cells;
     });
-  }, [visiblePayments]);
+  }, [visiblePayments, isCursorInTable]);
 
   return (
     <>
@@ -811,7 +814,11 @@ const PaymentsPage = () => {
           </div>
         </div>
 
-        <div className="min-h-[200px] mt-2 px-2">
+        <div
+          className="min-h-[200px] mt-2 px-2"
+          onMouseEnter={() => setIsCursorInTable(true)}
+          onMouseLeave={() => setIsCursorInTable(false)}
+        >
           <Table
             data={tableData}
             columns={columns}

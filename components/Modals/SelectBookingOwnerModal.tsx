@@ -616,9 +616,22 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                                   togglePrimaryOwner(owner);
                                 }}
                               >
-                                <div className="w-4 h-4 border border-gray-300 rounded-full flex items-center justify-center">
+                                <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
                                   {checked && (
-                                    <div className="w-2 h-2 bg-[#0D4B37] rounded-full" />
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      width="12"
+                                      height="11"
+                                      viewBox="0 0 12 11"
+                                      fill="none"
+                                    >
+                                      <path
+                                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                                        stroke="#0D4B37"
+                                        strokeWidth="1.5"
+                                        strokeLinecap="round"
+                                      />
+                                    </svg>
                                   )}
                                 </div>
                                 <span className="text-black text-[14px]">

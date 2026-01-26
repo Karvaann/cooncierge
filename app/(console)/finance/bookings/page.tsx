@@ -266,6 +266,7 @@ const FinanceBookingsPage = () => {
     key: null,
     direction: "none",
   });
+  const [isCursorInTable, setIsCursorInTable] = useState(false);
   // Owners list built dynamically from quotations data
   const [ownersList, setOwnersList] = useState<Owner[]>([]);
 
@@ -1061,7 +1062,7 @@ const FinanceBookingsPage = () => {
           className={`
       flex items-center justify-center gap-2
       transition-all duration-200
-      ${index === 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
+      ${isCursorInTable ? "opacity-0 group-hover:opacity-100" : index === 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
     `}
         >
           {/* ₹ Button */}
@@ -1084,7 +1085,7 @@ const FinanceBookingsPage = () => {
       </td>,
     ]);
     return rows;
-  }, [sortedQuotationsForTable, ownersList]);
+  }, [sortedQuotationsForTable, ownersList, isCursorInTable]);
 
   // Helper functions
 
@@ -1174,7 +1175,11 @@ const FinanceBookingsPage = () => {
 
           <div className="bg-white rounded-2xl shadow mt-4 pt-5 pb-3 px-3 relative">
             {/* Header row removed: tabs and inline total moved into Filter */}
-            <div className="p-2 mt-2">
+            <div
+              className="p-2 mt-2"
+              onMouseEnter={() => setIsCursorInTable(true)}
+              onMouseLeave={() => setIsCursorInTable(false)}
+            >
               {isLoading ? (
                 <TableSkeleton />
               ) : (
