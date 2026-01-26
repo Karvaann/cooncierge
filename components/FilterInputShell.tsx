@@ -2,11 +2,13 @@
 
 import React from "react";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
+import { IoClose } from "react-icons/io5";
 
 interface FilterInputShellProps {
   value?: string;
   placeholder: string;
   onClick: (e: React.MouseEvent) => void;
+  onClear?: (e: React.MouseEvent) => void;
   children?: React.ReactNode;
   className?: string;
 }
@@ -16,6 +18,7 @@ const FilterInputShell: React.FC<FilterInputShellProps> = ({
   placeholder,
   onClick,
   children,
+  onClear,
   className = "",
 }) => {
   return (
@@ -38,7 +41,21 @@ const FilterInputShell: React.FC<FilterInputShellProps> = ({
         </span>
       )}
 
-      <MdOutlineKeyboardArrowDown className="ml-auto text-gray-400 pointer-events-none" />
+      {value && typeof onClear === "function" ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClear?.(e);
+          }}
+          aria-label="Clear"
+          className="ml-auto py-1"
+        >
+          <IoClose className="text-[#818181]" />
+        </button>
+      ) : (
+        <MdOutlineKeyboardArrowDown className="ml-auto text-gray-400 pointer-events-none" />
+      )}
     </div>
   );
 };

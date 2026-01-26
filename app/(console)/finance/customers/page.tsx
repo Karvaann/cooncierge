@@ -255,16 +255,8 @@ const FinanceCustomersPage = () => {
     };
   }, [userOptions]);
 
-  // Calculate totals
-  const { youGet, youGive } = useMemo(() => {
-    const get = customers
-      .filter((c) => c.balanceType === "credit")
-      .reduce((sum, c) => sum + c.closingBalance, 0);
-    const give = customers
-      .filter((c) => c.balanceType === "debit")
-      .reduce((sum, c) => sum + c.closingBalance, 0);
-    return { youGet: get, youGive: give };
-  }, [customers]);
+  // Calculate totals (defaults to totals for visible / filtered customers below)
+  const { youGet, youGive } = { youGet: 0, youGive: 0 };
 
   // Search state
   const [searchValue, setSearchValue] = useState("");
@@ -477,6 +469,21 @@ const FinanceCustomersPage = () => {
     });
   }, [visibleCustomers]);
 
+  // Recompute totals based on currently visible (filtered) customers
+  const totalsForVisible = useMemo(() => {
+    const get = visibleCustomers
+      .filter((c) => c.balanceType === "credit")
+      .reduce((sum, c) => sum + c.closingBalance, 0);
+    const give = visibleCustomers
+      .filter((c) => c.balanceType === "debit")
+      .reduce((sum, c) => sum + c.closingBalance, 0);
+    return { youGet: get, youGive: give };
+  }, [visibleCustomers]);
+
+  // use totalsForVisible in render
+  const youGetVisible = totalsForVisible.youGet;
+  const youGiveVisible = totalsForVisible.youGive;
+
   // Ledger modal handlers
   const closeLedger = () => {
     setLedgerOpen(false);
@@ -516,7 +523,7 @@ const FinanceCustomersPage = () => {
                       You Get
                     </span>
                     <span className="text-[#4CA640] text-[14px] font-semibold">
-                      ₹ {youGet.toLocaleString()}
+                      ₹ {youGetVisible.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -527,7 +534,7 @@ const FinanceCustomersPage = () => {
                       You Give
                     </span>
                     <span className="text-[#C30010] text-[14px] font-semibold">
-                      ₹ {youGive.toLocaleString()}
+                      ₹ {youGiveVisible.toLocaleString()}
                     </span>
                   </div>
                 </div>

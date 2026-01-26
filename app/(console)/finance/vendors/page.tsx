@@ -236,16 +236,8 @@ const FinanceVendorsPage = () => {
     };
   }, [userOptions]);
 
-  // Calculate totals
-  const { youGet, youGive } = useMemo(() => {
-    const get = vendors
-      .filter((c) => c.balanceType === "credit")
-      .reduce((sum, c) => sum + c.closingBalance, 0);
-    const give = vendors
-      .filter((c) => c.balanceType === "debit")
-      .reduce((sum, c) => sum + c.closingBalance, 0);
-    return { youGet: get, youGive: give };
-  }, [vendors]);
+  // Calculate totals (will be recomputed for visible vendors below)
+  const { youGet, youGive } = { youGet: 0, youGive: 0 };
 
   // Search state
   const [searchValue, setSearchValue] = useState("");
@@ -426,6 +418,20 @@ const FinanceVendorsPage = () => {
     });
   }, [visibleVendors]);
 
+  // Recompute totals based on currently visible (filtered) vendors
+  const totalsForVisibleVendors = useMemo(() => {
+    const get = visibleVendors
+      .filter((c) => c.balanceType === "credit")
+      .reduce((sum, c) => sum + c.closingBalance, 0);
+    const give = visibleVendors
+      .filter((c) => c.balanceType === "debit")
+      .reduce((sum, c) => sum + c.closingBalance, 0);
+    return { youGet: get, youGive: give };
+  }, [visibleVendors]);
+
+  const youGetVisibleV = totalsForVisibleVendors.youGet;
+  const youGiveVisibleV = totalsForVisibleVendors.youGive;
+
   return (
     <>
       {isLoading ? (
@@ -442,7 +448,7 @@ const FinanceVendorsPage = () => {
                       You Get
                     </span>
                     <span className="text-[#4CA640] text-[14px] font-semibold">
-                      ₹ {youGet.toLocaleString()}
+                      ₹ {youGetVisibleV.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -453,7 +459,7 @@ const FinanceVendorsPage = () => {
                       You Give
                     </span>
                     <span className="text-[#C30010] text-[14px] font-semibold">
-                      ₹ {youGive.toLocaleString()}
+                      ₹ {youGiveVisibleV.toLocaleString()}
                     </span>
                   </div>
                 </div>

@@ -1,4 +1,5 @@
 "use client";
+import ConfirmationModal from "../popups/ConfirmationModal";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
@@ -192,6 +193,8 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
   // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  // Confirm-close modal state (shown when attempting to close in edit mode)
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
 
   // Currency and ROE State
   const [amountCurrency, setAmountCurrency] = useState<Currency>("INR");
@@ -267,6 +270,12 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     setVendorResults(vendorList);
     setShowVendorDropdown(true);
   };
+
+  // When opened from ledger (initialCustomer/initialVendor) or when parent requests,
+  // lock the party selection UI so user cannot change the party.
+  const lockedToParty = Boolean(
+    initialCustomer || initialVendor || disablePartyType,
+  );
 
   // Bank options (you can customize this list)
   const bankOptions = [
@@ -455,8 +464,21 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       setPaymentDate(initialPayment.paymentDate);
     if (typeof initialPayment.bank === "string")
       setSelectedBank(initialPayment.bank);
-    if (typeof initialPayment.paymentType === "string")
-      setPaymentType(initialPayment.paymentType as PaymentType);
+    if (typeof initialPayment.paymentType === "string") {
+      const raw = String(initialPayment.paymentType || "")
+        .trim()
+        .toLowerCase();
+      const map: Record<string, PaymentType> = {
+        card: "CARD",
+        upi: "UPI",
+        imps: "IMPS",
+        neft: "NEFT",
+        rtgs: "RTGS",
+        cheque: "CHEQUE",
+      };
+      if (raw && map[raw]) setPaymentType(map[raw]);
+      else setPaymentType("");
+    }
     if (typeof initialPayment.internalNotes === "string")
       setInternalNotes(initialPayment.internalNotes);
   }, [isOpen, initialPayment, mode]);
@@ -1011,12 +1033,21 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     };
   }, [resetAllFields]);
 
+  // Intercept close requests so we can confirm when in edit mode
+  const handleRequestClose = () => {
+    if (mode === "edit") {
+      setConfirmCloseOpen(true);
+    } else {
+      onClose();
+    }
+  };
+
   const today = new Date().toISOString().split("T")[0];
 
   return (
     <SideSheet
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleRequestClose}
       title={(() => {
         const partyDisplay =
           (selectedCustomer && selectedCustomer.name) ||
@@ -1060,15 +1091,15 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
           {/* Party Type + Customer/Vendor Search */}
           <div className="mb-4 p-3 border border-gray-200 rounded-lg bg-white">
             <div className="flex items-center gap-4 flex-wrap">
-              {/* {disablePartyType ? (
+              <span className="text-[13px] font-medium text-gray-700">
+                <span className="text-red-500">*</span>Party Type :
+              </span>
+
+              {lockedToParty ? (
                 <div className="px-3 py-1 rounded-full bg-gray-100 text-gray-800 font-medium">
                   {partyType}
                 </div>
-              ) : ( */}
-              <>
-                <span className="text-[13px] font-medium text-gray-700">
-                  <span className="text-red-500">*</span>Party Type :
-                </span>
+              ) : (
                 <div className="flex items-center gap-6">
                   <label className="flex items-center cursor-pointer">
                     <input
@@ -1080,7 +1111,6 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                         setPartyType(e.target.value as "Customer")
                       }
                       className="sr-only"
-                      disabled={disablePartyType}
                     />
                     <span
                       className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
@@ -1106,7 +1136,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                       checked={partyType === "Vendor"}
                       onChange={(e) => setPartyType(e.target.value as "Vendor")}
                       className="sr-only"
-                      disabled={disablePartyType || mode === "edit"}
+                      disabled={mode === "edit"}
                     />
                     <span
                       className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
@@ -1124,8 +1154,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                     </span>
                   </label>
                 </div>
-              </>
-              {/* )} */}
+              )}
             </div>
 
             <div className="mt-4 pt-4 border-t border-gray-200">
@@ -1147,11 +1176,13 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                         type="text"
                         value={customerSearchTerm}
                         onClick={() => {
+                          if (lockedToParty) return;
                           if (selectedCustomer) {
                             resetCustomerSelection();
                           }
                         }}
                         onChange={(e) => {
+                          if (lockedToParty) return;
                           const value = allowTextAndNumbers(e.target.value);
                           // typing resets previously selected customer
                           if (selectedCustomer) setSelectedCustomer(null);
@@ -1174,6 +1205,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                           setShowCustomerDropdown(results.length > 0);
                         }}
                         onFocus={() => {
+                          if (lockedToParty) return;
                           if (
                             customerSearchTerm.trim() !== "" &&
                             customerResults.length > 0
@@ -1181,7 +1213,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                             setShowCustomerDropdown(true);
                         }}
                         placeholder="Search by Customer Name/ID"
-                        readOnly={false}
+                        readOnly={lockedToParty}
                         className={`w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300 ${
                           selectedCustomer
                             ? "text-transparent caret-transparent"
@@ -1305,11 +1337,13 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                         type="text"
                         value={vendorSearchTerm}
                         onClick={() => {
+                          if (lockedToParty) return;
                           if (selectedVendor) {
                             resetVendorSelection();
                           }
                         }}
                         onChange={(e) => {
+                          if (lockedToParty) return;
                           const value = allowTextAndNumbers(e.target.value);
                           if (selectedVendor) setSelectedVendor(null);
                           setVendorSearchTerm(value);
@@ -1331,6 +1365,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                           setShowVendorDropdown(results.length > 0);
                         }}
                         onFocus={() => {
+                          if (lockedToParty) return;
                           if (
                             vendorSearchTerm.trim() !== "" &&
                             vendorResults.length > 0
@@ -1338,7 +1373,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                             setShowVendorDropdown(true);
                         }}
                         placeholder="Search by Vendor Name/ID"
-                        readOnly={false}
+                        readOnly={lockedToParty}
                         className={`w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300 ${
                           selectedVendor
                             ? "text-transparent caret-transparent"
@@ -1753,32 +1788,34 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
               <h3 className="text-[13px] font-semibold text-gray-900">
                 Payment Details
               </h3>
-              <label
-                className="flex items-center gap-2 cursor-pointer"
-                onClick={() => setShowPaymentBreakdown((prev) => !prev)}
-              >
-                <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
-                  {showPaymentBreakdown && (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="12"
-                      height="11"
-                      viewBox="0 0 12 11"
-                      fill="none"
-                    >
-                      <path
-                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                        stroke="#0D4B37"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  )}
-                </div>
-                <span className="text-[13px] text-gray-700 font-medium">
-                  Show Payment Breakdown
-                </span>
-              </label>
+              {effectiveEntryType === "debit" && (
+                <label
+                  className="flex items-center gap-2 cursor-pointer"
+                  onClick={() => setShowPaymentBreakdown((prev) => !prev)}
+                >
+                  <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
+                    {showPaymentBreakdown && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="11"
+                        viewBox="0 0 12 11"
+                        fill="none"
+                      >
+                        <path
+                          d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                          stroke="#0D4B37"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-[13px] text-gray-700 font-medium">
+                    Show Payment Breakdown
+                  </span>
+                </label>
+              )}
             </div>
 
             {/* Enter Amount */}
@@ -2326,6 +2363,17 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
             paymentType: paymentType,
             amount: Number(amount || 0),
           },
+        }}
+      />
+      <ConfirmationModal
+        isOpen={confirmCloseOpen}
+        onClose={() => setConfirmCloseOpen(false)}
+        title={"Do you want to confirm the made changes?"}
+        confirmText={"Yes, Close"}
+        cancelText={"Cancel"}
+        onConfirm={() => {
+          setConfirmCloseOpen(false);
+          onClose();
         }}
       />
     </SideSheet>

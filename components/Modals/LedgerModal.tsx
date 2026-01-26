@@ -15,6 +15,7 @@ import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import FilterTrigger from "../FilterTrigger";
 import type { FilterCardOption } from "../FilterCard";
 import AddPaymentSidesheet from "../Sidesheets/AddPaymentSidesheet";
+import CustomIdApi from "@/services/customIdApi";
 import ViewPaymentSidesheet from "../Sidesheets/ViewPaymentSidesheet";
 import ConfirmationModal from "../popups/ConfirmationModal";
 import DeletePaymentModal from "../Modals/DeletePaymentModal";
@@ -102,6 +103,8 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   } | null>(null);
 
   const [ledgerData, setLedgerData] = useState<any>(null);
+  const [paymentCustomId, setPaymentCustomId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const [bookingSidesheetOpen, setBookingSidesheetOpen] = useState(false);
   const [bookingInitialData, setBookingInitialData] = useState<any>(null);
@@ -564,15 +567,22 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
       // Choose the date field according to selected date column
       let entryDate: string = "";
       if (entry.type === "payment") {
-        entryDate = entry.paymentDate || "";
+        entryDate =
+          entry.paymentDate ||
+          entry.date ||
+          entry.data?.paymentDate ||
+          entry.data?.formFields?.paymentDate ||
+          "";
       } else if (dateColumnLabel === "Travel Date") {
         entryDate =
           entry.travelDate ||
           entry.data?.travelDate ||
           entry.data?.formFields?.traveldate ||
+          entry.date ||
           "";
       } else {
-        entryDate = entry.data?.formFields?.bookingdate || "";
+        // Booking Date (default)
+        entryDate = entry.data?.formFields?.bookingdate || entry.date || "";
       }
 
       if (!isWithinDateRange(entryDate, startDate, endDate)) return false;
@@ -951,7 +961,39 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         disableOverlayClick={false}
         headerLeft={headerLeft}
       >
-        <div className="p-2 -mt-4" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="p-2 -mt-4 relative"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {isRefreshing && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm">
+              <div className="inline-flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-md shadow">
+                <svg
+                  className="animate-spin h-6 w-6 text-gray-700"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
+                </svg>
+                <span className="text-sm text-gray-700 font-medium">
+                  Refreshing ledger...
+                </span>
+              </div>
+            </div>
+          )}
           <div className="border border-gray-200 rounded-xl p-3">
             {/* Top actions row */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -982,7 +1024,17 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                   type="button"
                   className="p-2 rounded-md text-gray-500 hover:bg-gray-50 transition"
                   aria-label="Refresh"
-                  onClick={() => onRefresh?.()}
+                  onClick={async () => {
+                    setIsRefreshing(true);
+                    try {
+                      await fetchLedger();
+                    } catch (err) {
+                      console.error("Failed to refresh ledger:", err);
+                    } finally {
+                      setIsRefreshing(false);
+                    }
+                    onRefresh?.();
+                  }}
                 >
                   <LuRefreshCcw size={18} />
                 </button>
@@ -1103,10 +1155,23 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           <div className="mt-4 flex items-center gap-3">
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 setPaymentSidesheetMode("create");
                 setPaymentInitial(null);
                 setPaymentSidesheetTitle("Payment Out");
+                try {
+                  const resp: any = await CustomIdApi.generate("paymentOut");
+                  const id =
+                    resp?.customId ||
+                    resp?.data?.customId ||
+                    resp?.id ||
+                    (typeof resp === "string" ? resp : null) ||
+                    null;
+                  setPaymentCustomId(id);
+                } catch (err) {
+                  console.error("Failed to generate custom id:", err);
+                  setPaymentCustomId(null);
+                }
                 setPaymentSidesheetOpen(true);
               }}
               className="bg-[#EB382B] hover:bg-[#DC2626] text-white px-4 py-2.5 rounded-md text-[14px] font-semibold"
@@ -1118,10 +1183,23 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 setPaymentSidesheetMode("create");
                 setPaymentInitial(null);
                 setPaymentSidesheetTitle("Payment In");
+                try {
+                  const resp: any = await CustomIdApi.generate("paymentIn");
+                  const id =
+                    resp?.customId ||
+                    resp?.data?.customId ||
+                    resp?.id ||
+                    (typeof resp === "string" ? resp : null) ||
+                    null;
+                  setPaymentCustomId(id);
+                } catch (err) {
+                  console.error("Failed to generate custom id:", err);
+                  setPaymentCustomId(null);
+                }
                 setPaymentSidesheetOpen(true);
               }}
               className="bg-[#4CA640] hover:bg-[#16A34A] text-white px-4 py-2.5 rounded-md text-[14px] font-semibold"
@@ -1158,6 +1236,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           setPaymentSidesheetOpen(false);
           setPaymentSidesheetMode("create");
           setPaymentInitial(null);
+          setPaymentCustomId(null);
         }}
         title={paymentSidesheetTitle}
         mode={paymentSidesheetMode}
@@ -1165,6 +1244,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         initialCustomer={computedInitialCustomer}
         initialVendor={computedInitialVendor}
         disablePartyType={true}
+        customId={paymentCustomId}
         onView={() => {
           setPaymentSidesheetOpen(false);
           // keep selectedLedgerRow so view can reference it if needed

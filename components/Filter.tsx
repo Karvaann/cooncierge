@@ -531,7 +531,7 @@ const Filter: React.FC<FilterProps> = ({
                       ? "OS"
                       : (filters as any).bookingType === "limitless"
                         ? "Limitless"
-                        : ""
+                        : (filters as any).bookingType || ""
                   }
                   placeholder="Select Booking Type"
                   onClick={(e) => {
@@ -547,6 +547,11 @@ const Filter: React.FC<FilterProps> = ({
                       });
                     }
                     setBookingTypeOpen((prev) => !prev);
+                  }}
+                  onClear={(e) => {
+                    e.stopPropagation();
+                    updateFilter("bookingType", "");
+                    setBookingTypeOpen(false);
                   }}
                 />
 

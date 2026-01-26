@@ -130,6 +130,8 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   const [remarks, setRemarks] = useState<string>("");
   const [documents, setDocuments] = useState<DocumentPreview[]>([]);
 
+  
+
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
