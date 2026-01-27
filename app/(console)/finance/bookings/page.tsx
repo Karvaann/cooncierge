@@ -871,12 +871,12 @@ const FinanceBookingsPage = () => {
 
     const youGiveValue = finalQuotations.reduce((sum, item) => {
       const val =
-        Number(item.formFields?.costprice) || 0;
+        Number(item.vendorRemainingAmount) || 0;
       return sum + (isNaN(val) ? 0 : val);
     }, 0);
     const youGetValue = finalQuotations.reduce((sum, item) => {
       const val =
-        Number(item.totalAmount) || Number(item.formFields?.sellingprice) || 0;
+        Number(item.totalAmount) || Number(item.customerRemainingAmount) || 0;
       return sum + (isNaN(val) ? 0 : val);
     }, 0);
 
