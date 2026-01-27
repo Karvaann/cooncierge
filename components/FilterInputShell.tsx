@@ -9,6 +9,7 @@ interface FilterInputShellProps {
   onClick: (e: React.MouseEvent) => void;
   children?: React.ReactNode;
   className?: string;
+  suffixIcon?: React.ReactNode;
 }
 
 const FilterInputShell: React.FC<FilterInputShellProps> = ({
@@ -17,6 +18,7 @@ const FilterInputShell: React.FC<FilterInputShellProps> = ({
   onClick,
   children,
   className = "",
+  suffixIcon,
 }) => {
   return (
     <div
@@ -38,7 +40,9 @@ const FilterInputShell: React.FC<FilterInputShellProps> = ({
         </span>
       )}
 
-      <MdOutlineKeyboardArrowDown className="ml-auto text-gray-400 pointer-events-none" />
+      {suffixIcon ?? (
+        <MdOutlineKeyboardArrowDown className="ml-auto text-gray-400 pointer-events-none" />
+      )}
     </div>
   );
 };

@@ -262,6 +262,13 @@ const Filter: React.FC<FilterProps> = ({
   // Decide search input width: explicit prop > compact when booking type shown > default
   const searchInputWidth =
     searchWidth ?? (showBookingType ? "w-[18rem]" : "w-98");
+  const bookingTypeValue = (filters as any).bookingType;
+  const bookingTypeLabel =
+    bookingTypeValue === "os"
+      ? "OS"
+      : bookingTypeValue === "limitless"
+        ? "Limitless"
+        : "";
 
   const handleReset = useCallback(() => {
     const resetFilters: FilterState = {
@@ -526,13 +533,6 @@ const Filter: React.FC<FilterProps> = ({
 
               <div className="relative" ref={bookingTypeRef}>
                 <FilterInputShell
-                  value={
-                    (filters as any).bookingType === "os"
-                      ? "OS"
-                      : (filters as any).bookingType === "limitless"
-                        ? "Limitless"
-                        : ""
-                  }
                   placeholder="Select Booking Type"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -548,7 +548,33 @@ const Filter: React.FC<FilterProps> = ({
                     }
                     setBookingTypeOpen((prev) => !prev);
                   }}
-                />
+                  suffixIcon={
+                    bookingTypeLabel ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateFilter("bookingType" as any, "");
+                          setBookingTypeOpen(false);
+                        }}
+                        className="ml-auto text-[#818181] hover:text-[#5f5f5f]"
+                        aria-label="Clear booking type"
+                      >
+                        <IoClose size={18} />
+                      </button>
+                    ) : null
+                  }
+                >
+                  {bookingTypeLabel ? (
+                    <span className="text-black text-[14px]">
+                      {bookingTypeLabel}
+                    </span>
+                  ) : (
+                    <span className="text-[#9CA3AF] text-[14px] flex items-center flex-1">
+                      Select Booking Type
+                    </span>
+                  )}
+                </FilterInputShell>
 
                 {bookingTypeOpen &&
                   bookingTypePos &&
