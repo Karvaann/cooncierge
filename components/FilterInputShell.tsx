@@ -11,6 +11,7 @@ interface FilterInputShellProps {
   onClear?: (e: React.MouseEvent) => void;
   children?: React.ReactNode;
   className?: string;
+  suffixIcon?: React.ReactNode;
 }
 
 const FilterInputShell: React.FC<FilterInputShellProps> = ({
@@ -20,6 +21,7 @@ const FilterInputShell: React.FC<FilterInputShellProps> = ({
   children,
   onClear,
   className = "",
+  suffixIcon,
 }) => {
   return (
     <div
@@ -41,19 +43,7 @@ const FilterInputShell: React.FC<FilterInputShellProps> = ({
         </span>
       )}
 
-      {value && typeof onClear === "function" ? (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onClear?.(e);
-          }}
-          aria-label="Clear"
-          className="ml-auto py-1"
-        >
-          <IoClose className="text-[#818181]" />
-        </button>
-      ) : (
+      {suffixIcon ?? (
         <MdOutlineKeyboardArrowDown className="ml-auto text-gray-400 pointer-events-none" />
       )}
     </div>

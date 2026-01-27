@@ -223,7 +223,10 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   const [isAddBankOpen, setIsAddBankOpen] = useState<boolean>(false);
 
   const bankDropdownOptions = useMemo(
-    () => banks.map((b) => ({ value: b._id || b.name, label: b.name })),
+    () => [
+      ...banks.map((b) => ({ value: b._id || b.name, label: b.name })),
+      { value: 'cash', label: 'Cash' },
+    ],
     [banks],
   );
 
@@ -992,7 +995,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
                   </p>
                 </div>
 
-                {selectedBank && (
+                {selectedBank && selectedBank !== "cash" && (
                   <div className="mb-4">
                     <label className="block text-[13px] font-medium text-gray-700 mb-2">
                       Payment Type

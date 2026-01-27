@@ -869,14 +869,19 @@ const FinanceBookingsPage = () => {
   }, [filteredQuotations, drafts]) as any[];
 
   const summaryData = useMemo(() => {
-    const totalValue = finalQuotations.reduce((sum, item) => {
+
+    const youGiveValue = finalQuotations.reduce((sum, item) => {
       const val =
-        Number(item.totalAmount) || Number(item.formFields?.budget) || 0;
+        Number(item.vendorRemainingAmount) || 0;
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
+    const youGetValue = finalQuotations.reduce((sum, item) => {
+      const val =
+        Number(item.totalAmount) || Number(item.customerRemainingAmount) || 0;
       return sum + (isNaN(val) ? 0 : val);
     }, 0);
 
-    const youGiveValue = Math.round(totalValue * 0.6);
-    const youGetValue = totalValue - youGiveValue;
+    const totalValue = Math.abs(youGiveValue - youGetValue);
 
     const fmt = (n: number) => `₹ ${n.toLocaleString("en-IN")}`;
 
