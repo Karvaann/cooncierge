@@ -10,6 +10,10 @@ import StyledDescription from "../StyledDescription";
 import DropDown from "@/components/DropDown";
 import SingleCalendar from "@/components/SingleCalendar";
 import { FaRegFolder } from "react-icons/fa";
+import CancellationModal, {
+  CancellationModalFormState,
+} from "@/components/Modals/CancellationModal";
+import AmountSection, { AmountSectionValue } from "@/components/AmountSection";
 
 // Type definitions
 interface OtherServiceInfoFormData {
@@ -27,6 +31,7 @@ interface OtherServiceInfoFormData {
   vendorBasePrice?: number | string;
   vendorIncentiveReceived?: number | string;
   commissionPaid?: number | string;
+  cancellationForm?: CancellationModalFormState;
 }
 
 interface ValidationErrors {
@@ -94,7 +99,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
     vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
     vendorIncentiveReceived: String(
-      normalizedExternalData?.vendorIncentiveReceived ?? ""
+      normalizedExternalData?.vendorIncentiveReceived ?? "",
     ),
     commissionPaid: String(normalizedExternalData?.commissionPaid ?? ""),
   });
@@ -105,7 +110,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   // Advanced Pricing State
   const [showAdvancedPricing, setShowAdvancedPricing] = useState(
-    Boolean(normalizedExternalData?.showAdvancedPricing)
+    Boolean(normalizedExternalData?.showAdvancedPricing),
   );
   const [vendorCurrency, setVendorCurrency] = useState("USD");
   const [vendorAmount, setVendorAmount] = useState("");
@@ -122,15 +127,21 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   const [commissionAmount, setCommissionAmount] = useState("");
   // Advanced pricing vendor payment summary states
   const [vendorBasePrice, setVendorBasePrice] = useState<string>(
-    String(normalizedExternalData?.vendorBasePrice ?? "")
+    String(normalizedExternalData?.vendorBasePrice ?? ""),
   );
   const [vendorIncentiveReceived, setVendorIncentiveReceived] =
     useState<string>(
-      String(normalizedExternalData?.vendorIncentiveReceived ?? "")
+      String(normalizedExternalData?.vendorIncentiveReceived ?? ""),
     );
   const [commissionPaid, setCommissionPaid] = useState<string>(
-    String(normalizedExternalData?.commissionPaid ?? "")
+    String(normalizedExternalData?.commissionPaid ?? ""),
   );
+
+  // Cancellation modal state
+  const [isCancellationModalOpen, setIsCancellationModalOpen] =
+    useState<boolean>(false);
+  const [pendingPrevBookingStatus, setPendingPrevBookingStatus] =
+    useState<string>("");
 
   const derivedCostPrice = useMemo(() => {
     const a = Number(vendorBasePrice) || 0;
@@ -186,35 +197,22 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   const options = [
     { value: "confirmed", label: "Confirmed" },
     { value: "cancelled", label: "Cancelled" },
-    // { value: "", label: "Booking Status" },
   ];
 
   const handleBookingStatusChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, bookingstatus: value }));
+    const next = String(value || "");
+    const nextLower = next.toLowerCase();
+    const shouldOpenCancellation =
+      nextLower === "cancelled" || nextLower === "canceled";
+
+    if (shouldOpenCancellation) {
+      setPendingPrevBookingStatus(String(formData.bookingstatus || ""));
+      setIsCancellationModalOpen(true);
+    }
+
+    setFormData((prev) => ({ ...prev, bookingstatus: next }));
   };
-
-  // Sync with external form data when it changes
-  useEffect(() => {
-    if (!externalFormData || Object.keys(externalFormData).length === 0) return;
-    const nextPricing = {
-      showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
-      vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
-      vendorIncentiveReceived: String(
-        normalizedExternalData?.vendorIncentiveReceived ?? ""
-      ),
-      commissionPaid: String(normalizedExternalData?.commissionPaid ?? ""),
-    };
-    setShowAdvancedPricing(nextPricing.showAdvancedPricing);
-    setVendorBasePrice(nextPricing.vendorBasePrice);
-    setVendorIncentiveReceived(nextPricing.vendorIncentiveReceived);
-    setCommissionPaid(nextPricing.commissionPaid);
-    setFormData((prev) => ({
-      ...prev,
-      ...normalizedExternalData,
-      ...nextPricing,
-    }));
-  }, [externalFormData, normalizedExternalData]);
-
+  // Sync advanced-pricing summary states back into the main formData
   useEffect(() => {
     setFormData((prev) => ({
       ...prev,
@@ -265,7 +263,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         message: "Invalid email format",
       },
     }),
-    []
+    [],
   );
 
   // Enhanced validation function using API validation
@@ -314,7 +312,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
       return "";
     },
-    [validationRules]
+    [validationRules],
   );
 
   // Validate all fields
@@ -325,7 +323,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     Object.keys(validationRules).forEach((fieldName) => {
       const error = validateField(
         fieldName,
-        formData[fieldName as keyof OtherServiceInfoFormData]
+        formData[fieldName as keyof OtherServiceInfoFormData],
       );
       if (error) {
         newErrors[fieldName] = error;
@@ -339,7 +337,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   // Normal handleChange that only updates local state
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value, type } = e.target;
     const processedValue =
@@ -368,7 +366,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
       setTouched((prev) => ({ ...prev, [name]: true }));
     },
-    [validateField, showValidation]
+    [validateField, showValidation],
   );
 
   // Handle form submission
@@ -380,14 +378,17 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         onSubmit?.(formData);
       } else {
         // Mark all fields as touched to show validation errors
-        const allTouched = Object.keys(validationRules).reduce((acc, key) => {
-          acc[key] = true;
-          return acc;
-        }, {} as Record<string, boolean>);
+        const allTouched = Object.keys(validationRules).reduce(
+          (acc, key) => {
+            acc[key] = true;
+            return acc;
+          },
+          {} as Record<string, boolean>,
+        );
         setTouched(allTouched);
       }
     },
-    [formData, validateForm, onSubmit, validationRules]
+    [formData, validateForm, onSubmit, validationRules],
   );
 
   // Enhanced input field component with validation indicators
@@ -430,8 +431,8 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
               hasError
                 ? "border-red-300 focus:ring-red-200"
                 : isValid && touched[name]
-                ? "border-green-300 focus:ring-green-200"
-                : "border-gray-200 focus:ring-blue-200"
+                  ? "border-green-300 focus:ring-green-200"
+                  : "border-gray-200 focus:ring-blue-200"
             }
             ${
               isSubmitting || isValidatingField
@@ -488,8 +489,74 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   const today = new Date().toISOString().split("T")[0];
 
+  const cancellationModalInitialValues: Partial<CancellationModalFormState> = {
+    vendorBasePrice: String(vendorBasePrice ?? ""),
+    vendorBaseCurrency: (vendorCurrency as "INR" | "USD") || "INR",
+    vendorBaseRoe: String(vendorROE ?? ""),
+    vendorBaseInr: String(vendorINR ?? ""),
+    vendorBaseNotes: "",
+
+    vendorIncentiveReceived: String(vendorIncentiveReceived ?? ""),
+    vendorIncentiveCurrency: (vendorCurrency as "INR" | "USD") || "INR",
+    vendorIncentiveRoe: String(vendorROE ?? ""),
+    vendorIncentiveInr: String(vendorINR ?? ""),
+    vendorIncentiveNotes: "",
+
+    commissionPaid: String(commissionPaid ?? ""),
+    commissionCurrency: (commissionCurrency as "INR" | "USD") || "INR",
+    commissionRoe: "",
+    commissionInr: "",
+    commissionNotes: "",
+
+    costprice: String(formData.costprice ?? ""),
+    costCurrency: "INR",
+    costRoe: "",
+    costInr: "",
+    costNotes: "",
+
+    sellingprice: String(formData.sellingprice ?? ""),
+    sellingCurrency: "INR",
+    sellingRoe: "",
+    sellingInr: "",
+    sellingNotes: "",
+
+    ...((formData as any).cancellationForm ?? {}),
+  };
+
+  const handleCancellationSave = (data: CancellationModalFormState) => {
+    setVendorBasePrice(String(data.vendorBasePrice ?? ""));
+    setVendorIncentiveReceived(String(data.vendorIncentiveReceived ?? ""));
+    setCommissionPaid(String(data.commissionPaid ?? ""));
+
+    setFormData((prev) => ({
+      ...prev,
+      cancellationForm: data,
+      bookingstatus: "cancelled",
+    }));
+    setShowAdvancedPricing(Boolean(data.showAdvancedPricing));
+
+    setIsCancellationModalOpen(false);
+    setPendingPrevBookingStatus("");
+  };
   return (
     <>
+      <CancellationModal
+        isOpen={isCancellationModalOpen}
+        onClose={() => {
+          setIsCancellationModalOpen(false);
+          setFormData((prev) => ({
+            ...prev,
+            bookingstatus: pendingPrevBookingStatus || "confirmed",
+          }));
+          setPendingPrevBookingStatus("");
+        }}
+        onSave={handleCancellationSave}
+        recordLabel={""}
+        statusLabel={"Cancelled"}
+        linkedShowAdvancedPricing={showAdvancedPricing}
+        onLinkedShowAdvancedPricingChange={setShowAdvancedPricing}
+        initialValues={cancellationModalInitialValues}
+      />
       <div
         className={`space-y-4 p-4 -mt-1 ${
           isReadOnly
@@ -546,256 +613,18 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
           {/* Amount Section */}
 
-          <div className="mb-4 border border-gray-200 rounded-lg p-3">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-[13px] font-medium text-gray-700">Amount</h3>
-
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  id="remember"
-                  className="hidden"
-                  checked={showAdvancedPricing}
-                  onChange={() => setShowAdvancedPricing(!showAdvancedPricing)}
-                />
-                <label
-                  htmlFor="remember"
-                  className="w-4 h-4 border border-gray-400 rounded-md flex items-center justify-center cursor-pointer peer-checked:bg-green-600"
-                >
-                  {showAdvancedPricing && (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="12"
-                      height="11"
-                      viewBox="0 0 12 11"
-                      fill="none"
-                    >
-                      <path
-                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                        stroke="#0D4B37"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  )}
-                </label>
-                <span className="text-[13px] text-gray-700">
-                  Show Advanced Pricing
-                </span>
-              </label>
-            </div>
-
-            <hr className="mb-3 -mt-1 border-t border-gray-200" />
-
-            {!showAdvancedPricing ? (
-              <>
-                {/* Cost Price */}
-                <div className="mb-3">
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1">
-                    Cost Price
-                  </label>
-                  <div className="flex">
-                    <div className="relative">
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[13px] font-medium text-gray-700 hover:bg-gray-100"
-                      >
-                        ₹
-                      </button>
-                    </div>
-                    <input
-                      type="text"
-                      name="costprice"
-                      value={formData.costprice}
-                      disabled={isReadOnly || isSubmitting}
-                      onChange={handlePriceChange("costprice")}
-                      placeholder="Enter Cost Price"
-                      className="w-[10rem] px-2 py-1.5 text-[13px] border border-l-0 border-gray-300 rounded-r-md focus:outline-none hover:border-green-300"
-                    />
-                  </div>
-                </div>
-
-                {/* Selling Price */}
-                <div>
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1">
-                    Selling Price
-                  </label>
-                  <div className="flex">
-                    <div className="relative">
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded-l-md bg-gray-50 text-[13px] font-medium text-gray-700 hover:bg-gray-100"
-                      >
-                        ₹
-                      </button>
-                    </div>
-                    <input
-                      type="text"
-                      name="sellingprice"
-                      value={formData.sellingprice}
-                      disabled={isReadOnly || isSubmitting}
-                      onChange={handlePriceChange("sellingprice")}
-                      placeholder="Enter Selling Price"
-                      className="w-[10rem] px-2 py-1.5 text-[13px] border border-l-0 border-gray-300 rounded-r-md focus:outline-none hover:border-green-300"
-                    />
-                  </div>
-                </div>
-
-                <div className="w-[9rem] rounded-lg p-1 mt-1 bg-white">
-                  {/* Label on top */}
-                  <span className="text-[13px] font-medium text-gray-700 block mb-2">
-                    Net
-                  </span>
-
-                  {/* Amount + percentage row */}
-                  <div className="flex items-center gap-3">
-                    {/* Blue pill amount */}
-                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[13px] font-medium rounded-md">
-                      {`INR ${
-                        Number(formData.sellingprice) -
-                        Number(formData.costprice)
-                      }`}
-                    </span>
-
-                    {/* Percentage */}
-                    <span className="text-[13px] text-gray-700 font-medium">
-                      {formData.costprice && formData.sellingprice
-                        ? `${(
-                            ((Number(formData.sellingprice) -
-                              Number(formData.costprice)) /
-                              Number(formData.costprice)) *
-                            100
-                          ).toFixed(2)}%`
-                        : "0%"}
-                    </span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              /* Advanced Pricing Component */
-              <div className="space-y-3">
-                <h4 className="text-[13px] font-medium text-gray-700 mb-3">
-                  Vendor Payment Summary
-                </h4>
-                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                  {[
-                    { label: "Vendor Base Price", key: "price" },
-                    { label: "Vendor Incentive Received", key: "received" },
-                    { label: "Commission Paid", key: "payout" },
-                    { label: "Cost Price", key: "cost" },
-                  ].map((item, index) => (
-                    <div
-                      key={index}
-                      className="grid grid-cols-12 border-b last:border-b-0 border-gray-200"
-                    >
-                      <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
-                        {item.label}
-                      </div>
-                      <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
-                        {item.key !== "cost" && (
-                          <div className="text-gray-600 text-[0.85rem] font-medium">
-                            ₹
-                          </div>
-                        )}
-                        {item.key !== "cost" ? (
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            disabled={isReadOnly || isSubmitting}
-                            pattern="^\\d*(?:\\.\\d*)?$"
-                            placeholder="Enter Amount"
-                            value={
-                              item.key === "price"
-                                ? vendorBasePrice
-                                : item.key === "received"
-                                ? vendorIncentiveReceived
-                                : commissionPaid
-                            }
-                            onChange={(e) => {
-                              const raw = e.target.value;
-                              const sanitized = sanitizeNumeric(raw);
-                              if (item.key === "price")
-                                setVendorBasePrice(String(sanitized));
-                              else if (item.key === "received")
-                                setVendorIncentiveReceived(String(sanitized));
-                              else setCommissionPaid(String(sanitized));
-                            }}
-                            className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[13px] focus:ring-1 hover:border-green-300 focus:outline-none"
-                          />
-                        ) : (
-                          <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">{`₹ ${derivedCostPrice.toFixed(
-                            2
-                          )}`}</div>
-                        )}
-                        {item.key !== "cost" && (
-                          <input
-                            type="text"
-                            disabled={isReadOnly || isSubmitting}
-                            placeholder="Enter notes here..."
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-[13px] focus:ring-1 hover:border-green-300 focus:outline-none"
-                          />
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <h4 className="text-[0.8rem] font-semibold text-gray-700">
-                  Customer Revenue Summary
-                </h4>
-                <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
-                  <div className="grid grid-cols-12">
-                    <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
-                      Selling Price
-                    </div>
-                    <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
-                      <div className="text-gray-600 text-[0.85rem] font-medium">
-                        ₹
-                      </div>
-                      <input
-                        type="text"
-                        inputMode="decimal"
-                        pattern="^\\d*(?:\\.\\d*)?$"
-                        disabled={isReadOnly || isSubmitting}
-                        placeholder="Enter Amount"
-                        value={String(formData.sellingprice ?? "")}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            sellingprice: String(
-                              sanitizeNumeric(e.target.value)
-                            ),
-                          }))
-                        }
-                        className="w-[12rem] px-3 py-2 border border-gray-300 rounded-lg text-[13px] focus:ring-1 hover:border-green-300 focus:outline-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="w-[12rem] rounded-lg p-1 mt-1 bg-white">
-                  <span className="text-[13px] font-medium text-gray-700 block mb-2">
-                    Net
-                  </span>
-                  <div className="flex items-center gap-3">
-                    <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[13px] font-medium rounded-md">
-                      {`INR ${(
-                        (Number(formData.sellingprice) || 0) - derivedCostPrice
-                      ).toFixed(2)}`}
-                    </span>
-                    <span className="text-[13px] text-gray-700 font-medium">
-                      {derivedCostPrice > 0 && formData.sellingprice
-                        ? `${(
-                            (((Number(formData.sellingprice) || 0) -
-                              derivedCostPrice) /
-                              derivedCostPrice) *
-                            100
-                          ).toFixed(2)}%`
-                        : "0%"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+          <AmountSection
+            value={formData as any}
+            onChange={(updated) =>
+              setFormData((prev) => ({ ...prev, ...updated }))
+            }
+            bookingStatus={formData.bookingstatus}
+            cancellationForm={formData.cancellationForm}
+            showAdvancedPricing={showAdvancedPricing}
+            onToggleAdvancedPricing={setShowAdvancedPricing}
+            isReadOnly={isReadOnly}
+            isSubmitting={isSubmitting}
+          />
 
           {/* ================= Tickets INFO ================ */}
           <div className="w-[48vw] border border-gray-200 rounded-[12px] p-3 mt-4">

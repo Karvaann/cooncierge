@@ -130,8 +130,6 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   const [remarks, setRemarks] = useState<string>("");
   const [documents, setDocuments] = useState<DocumentPreview[]>([]);
 
-  
-
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -225,7 +223,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   const bankDropdownOptions = useMemo(
     () => [
       ...banks.map((b) => ({ value: b._id || b.name, label: b.name })),
-      { value: 'cash', label: 'Cash' },
+      { value: "cash", label: "Cash" },
     ],
     [banks],
   );
@@ -347,6 +345,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
             await PaymentsApi.allocateVendorPaymentToQuotation(payment._id, {
               quotationId,
               amount: Number(payment.settleAmount),
+              // amountCurrency: "INR",
             });
           }
         }
@@ -403,6 +402,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       form.append("paymentDate", paymentDate || new Date().toISOString());
       form.append("party", partyType === "Customer" ? "Customer" : "Vendor");
       form.append("status", "approved");
+      form.append("amountCurrency", "INR");
       // Send allocations with quotation id and amount when not settling from advance
       const allocationsPayload = JSON.stringify([
         { quotationId: booking._id, amount: Number(amountToRecord) },
@@ -453,6 +453,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       form.append("paymentType", selectedPaymentType);
       form.append("paymentDate", paymentDate || new Date().toISOString());
       form.append("status", "approved");
+      form.append("amountCurrency", "INR");
       // Send allocations with quotation id and amount when not settling from advance
       const allocationsPayload = JSON.stringify([
         { quotationId: booking._id, amount: Number(amountToRecord) },

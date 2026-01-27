@@ -3,20 +3,24 @@ import ConfirmationModal from "../popups/ConfirmationModal";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
+import ErrorToast from "@/components/ErrorToast";
 import BankApi from "@/services/bankApi";
 import { FiEye, FiTrash2 } from "react-icons/fi";
 import { TbNotes } from "react-icons/tb";
 import SideSheet from "@/components/SideSheet";
 import SingleCalendar from "@/components/SingleCalendar";
-import Fuse from "fuse.js";
-import { allowTextAndNumbers } from "@/utils/inputValidators";
 import Button from "@/components/Button";
-import { getCustomers } from "@/services/customerApi";
-import { getVendors } from "@/services/vendorApi";
 import { FaRegFolder } from "react-icons/fa";
 import { MdOutlineFileUpload } from "react-icons/md";
 import Table from "@/components/Table";
 import DropDown from "@/components/DropDown";
+import CustomerDropDown, {
+  type CustomerDataType,
+} from "@/components/dropdowns/CustomerDropDown";
+import VendorDropDown, {
+  type VendorDataType,
+} from "@/components/dropdowns/VendorDropDown";
 import AddBankSidesheet, {
   type BankPayload,
 } from "@/components/Sidesheets/AddBankSidesheet";
@@ -34,29 +38,6 @@ type PendingDocRow = {
   quotationId?: string;
 };
 
-interface CustomerDataType {
-  _id: string;
-  id?: string | undefined;
-  customId?: string | undefined;
-  name: string;
-  email?: string | undefined;
-  phone?: string | undefined;
-  tier?: string | number | undefined;
-}
-
-interface VendorDataType {
-  _id: string;
-  customId?: string | undefined;
-  name: string;
-  alias?: string | undefined;
-
-  companyName?: string | undefined;
-  contactPerson?: string | undefined;
-  email?: string | undefined;
-  phone?: string | undefined;
-  tier?: string | number | undefined;
-}
-
 interface AddPaymentSidesheetProps {
   isOpen: boolean;
   onClose: () => void;
@@ -68,15 +49,37 @@ interface AddPaymentSidesheetProps {
   /** Optional initial values (useful for edit mode) */
   initialPayment?: {
     _id?: string;
-    amount?: string;
-    bankCharges?: string;
+    customId?: string;
+    party?: "Customer" | "Vendor" | string;
+    partyId?: { _id?: string; name?: string; companyName?: string } | string;
+
+    amount?: string | number;
+    /** Backend sometimes returns `amountCurreny` (typo) */
+    amountCurrency?: "INR" | "USD" | string;
+    amountCurreny?: "INR" | "USD" | string;
+    amountRoe?: string | number;
+    amountInr?: string | number;
+
+    bankCharges?: string | number;
+    bankChargesCurrency?: "INR" | "USD" | string;
+    bankChargesRoe?: string | number;
+    bankChargesInr?: string | number;
     bankChargesNotes?: string;
-    cashbackReceived?: string;
+
+    cashbackReceived?: string | number;
+    cashbackReceivedCurrency?: "INR" | "USD" | string;
+    cashbackReceivedRoe?: string | number;
+    cashbackReceivedInr?: string | number;
     cashbackNotes?: string;
+
     paymentDate?: string;
+    /** Bank can be an id string, or populated object from backend */
     bank?: string;
+    bankId?: { _id?: string; name?: string } | string;
     paymentType?: string;
     internalNotes?: string;
+    paymentBreakdown?: boolean;
+    allocations?: Array<{ quotationId?: string; amount?: number }>;
   } | null;
   /** When in edit mode, optionally open the view sidesheet */
   onView?: () => void;
@@ -141,22 +144,10 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
   const [selectedVendor, setSelectedVendor] = useState<VendorDataType | null>(
     null,
   );
-  const [customerSearchTerm, setCustomerSearchTerm] = useState<string>("");
-  const [vendorSearchTerm, setVendorSearchTerm] = useState<string>("");
-  const [customerList, setCustomerList] = useState<CustomerDataType[]>([]);
-  const [vendorList, setVendorList] = useState<VendorDataType[]>([]);
-  const [customerResults, setCustomerResults] = useState<CustomerDataType[]>(
-    [],
-  );
-  const [vendorResults, setVendorResults] = useState<VendorDataType[]>([]);
-  const [isLoadingCustomers, setIsLoadingCustomers] = useState<boolean>(false);
-  const [isLoadingVendors, setIsLoadingVendors] = useState<boolean>(false);
-  const [showCustomerDropdown, setShowCustomerDropdown] =
-    useState<boolean>(false);
-  const [showVendorDropdown, setShowVendorDropdown] = useState<boolean>(false);
 
   // Form State
   const [amount, setAmount] = useState<string>("");
+  const [amountNotes, setAmountNotes] = useState<string>("");
   const [bankCharges, setBankCharges] = useState<string>("");
   const [bankChargesNotes, setBankChargesNotes] = useState<string>("");
   const [cashbackReceived, setCashbackReceived] = useState<string>("");
@@ -176,6 +167,15 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
   const [showCashbackNotes, setShowCashbackNotes] = useState<boolean>(false);
 
   const { user } = useAuth();
+  const [errorToastVisible, setErrorToastVisible] = useState(false);
+  const [errorToastMessage, setErrorToastMessage] = useState("");
+  const showErrorToast = (msg: string) => {
+    setErrorToastMessage(msg);
+    setErrorToastVisible(true);
+  };
+
+  // business currency (shared util)
+  const businessCurrency = getBusinessCurrency(user as any);
 
   // Settle Pending Docs (Auto UI)
   const [settlePendingDocsEnabled, setSettlePendingDocsEnabled] =
@@ -257,24 +257,10 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     });
   };
 
-  const resetCustomerSelection = () => {
-    setSelectedCustomer(null);
-    setCustomerSearchTerm("");
-    setCustomerResults(customerList); // show full list initially
-    setShowCustomerDropdown(true);
-  };
-
-  const resetVendorSelection = () => {
-    setSelectedVendor(null);
-    setVendorSearchTerm("");
-    setVendorResults(vendorList);
-    setShowVendorDropdown(true);
-  };
-
   // When opened from ledger (initialCustomer/initialVendor) or when parent requests,
   // lock the party selection UI so user cannot change the party.
   const lockedToParty = Boolean(
-    initialCustomer || initialVendor || disablePartyType,
+    initialCustomer || initialVendor || disablePartyType || mode === "edit",
   );
 
   // Bank options (you can customize this list)
@@ -352,50 +338,6 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     setIsAddBankOpen(false);
   };
 
-  // Fetch Customers
-  const fetchCustomers = useCallback(async (searchTerm: string = "") => {
-    setIsLoadingCustomers(true);
-    try {
-      const params: any = { isDeleted: false };
-      if (searchTerm.trim()) {
-        params.search = searchTerm;
-      }
-      const customers = await getCustomers(params);
-      setCustomerList(customers || []);
-    } catch (error) {
-      console.error("Error fetching customers:", error);
-      setCustomerList([]);
-    } finally {
-      setIsLoadingCustomers(false);
-    }
-  }, []);
-
-  // Fetch Vendors
-  const fetchVendors = useCallback(async (searchTerm: string = "") => {
-    setIsLoadingVendors(true);
-    try {
-      const params: any = { isDeleted: false };
-      if (searchTerm.trim()) {
-        params.search = searchTerm;
-      }
-      const vendors = await getVendors(params);
-      setVendorList(vendors || []);
-    } catch (error) {
-      console.error("Error fetching vendors:", error);
-      setVendorList([]);
-    } finally {
-      setIsLoadingVendors(false);
-    }
-  }, []);
-
-  // Initial fetch on mount
-  useEffect(() => {
-    if (isOpen) {
-      fetchCustomers();
-      fetchVendors();
-    }
-  }, [isOpen, fetchCustomers, fetchVendors]);
-
   // If opened with an initialCustomer and vendor (from Ledger), preselect customer
   useEffect(() => {
     if (!isOpen) return;
@@ -405,9 +347,6 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
         name: initialCustomer.name,
         customId: initialCustomer.customId,
       });
-      setCustomerSearchTerm(
-        initialCustomer.name || initialCustomer.customId || "",
-      );
       setPartyType("Customer");
     } else if (initialVendor) {
       setSelectedVendor({
@@ -415,17 +354,14 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
         name: initialVendor.name,
         alias: initialVendor.customId,
       });
-      setVendorSearchTerm(initialVendor.name || initialVendor.customId || "");
       setPartyType("Vendor");
     } else if (prefillPartyName) {
       // When only a party name (and optional type) is provided, prefill display
       if (prefillPartyType === "Vendor") {
         setSelectedVendor({ _id: "", name: prefillPartyName });
-        setVendorSearchTerm(prefillPartyName);
         setPartyType("Vendor");
       } else {
         setSelectedCustomer({ _id: "", name: prefillPartyName });
-        setCustomerSearchTerm(prefillPartyName);
         setPartyType("Customer");
       }
     }
@@ -450,16 +386,101 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     if (prefillKeyRef.current === prefillKey) return;
     prefillKeyRef.current = prefillKey;
 
+    // Set party type from initialPayment (Customer or Vendor)
+    if (
+      initialPayment.party === "Customer" ||
+      initialPayment.party === "Vendor"
+    ) {
+      setPartyType(initialPayment.party);
+    }
+
+    // Set party selection (customer or vendor) from initialPayment.partyId
+    if (initialPayment.partyId && typeof initialPayment.partyId === "object") {
+      if (initialPayment.party === "Customer") {
+        setSelectedCustomer({
+          _id: (initialPayment.partyId as any)._id || "",
+          name: (initialPayment.partyId as any).name || "",
+          customId: (initialPayment.partyId as any).customId,
+        });
+      } else if (initialPayment.party === "Vendor") {
+        setSelectedVendor({
+          _id: (initialPayment.partyId as any)._id || "",
+          name:
+            (initialPayment.partyId as any).companyName ||
+            (initialPayment.partyId as any).name ||
+            "",
+          companyName: (initialPayment.partyId as any).companyName || "",
+          alias: (initialPayment.partyId as any).customId,
+        });
+      }
+    }
+
     if (typeof initialPayment.amount === "string")
       setAmount(initialPayment.amount);
+    else if (typeof initialPayment.amount === "number")
+      setAmount(String(initialPayment.amount));
+
+    // Amount currency and ROE
+    const amountCurrencyValue =
+      initialPayment.amountCurrency || initialPayment.amountCurreny;
+    if (amountCurrencyValue === "USD" || amountCurrencyValue === "INR") {
+      setAmountCurrency(amountCurrencyValue as Currency);
+    }
+    if (initialPayment.amountRoe) {
+      setAmountRoe(String(initialPayment.amountRoe));
+    }
+    if (initialPayment.amountInr) {
+      setAmountInr(String(initialPayment.amountInr));
+    }
+
+    // Bank charges
     if (typeof initialPayment.bankCharges === "string")
       setBankCharges(initialPayment.bankCharges);
+    else if (typeof initialPayment.bankCharges === "number")
+      setBankCharges(String(initialPayment.bankCharges));
+
     if (typeof initialPayment.bankChargesNotes === "string")
       setBankChargesNotes(initialPayment.bankChargesNotes);
+
+    // Bank charges currency and ROE
+    if (
+      initialPayment.bankChargesCurrency === "USD" ||
+      initialPayment.bankChargesCurrency === "INR"
+    ) {
+      setBankChargesCurrency(initialPayment.bankChargesCurrency as Currency);
+    }
+    if (initialPayment.bankChargesRoe) {
+      setBankChargesRoe(String(initialPayment.bankChargesRoe));
+    }
+    if (initialPayment.bankChargesInr) {
+      setBankChargesInr(String(initialPayment.bankChargesInr));
+    }
+
+    // Cashback
     if (typeof initialPayment.cashbackReceived === "string")
       setCashbackReceived(initialPayment.cashbackReceived);
+    else if (typeof initialPayment.cashbackReceived === "number")
+      setCashbackReceived(String(initialPayment.cashbackReceived));
+
     if (typeof initialPayment.cashbackNotes === "string")
       setCashbackNotes(initialPayment.cashbackNotes);
+
+    // Cashback currency and ROE
+    if (
+      initialPayment.cashbackReceivedCurrency === "USD" ||
+      initialPayment.cashbackReceivedCurrency === "INR"
+    ) {
+      setCashbackReceivedCurrency(
+        initialPayment.cashbackReceivedCurrency as Currency,
+      );
+    }
+    if (initialPayment.cashbackReceivedRoe) {
+      setCashbackReceivedRoe(String(initialPayment.cashbackReceivedRoe));
+    }
+    if (initialPayment.cashbackReceivedInr) {
+      setCashbackReceivedInr(String(initialPayment.cashbackReceivedInr));
+    }
+
     if (typeof initialPayment.paymentDate === "string")
       setPaymentDate(initialPayment.paymentDate);
     if (typeof initialPayment.bank === "string")
@@ -481,6 +502,10 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     }
     if (typeof initialPayment.internalNotes === "string")
       setInternalNotes(initialPayment.internalNotes);
+
+    // Set payment breakdown checkbox state
+    if (typeof initialPayment.paymentBreakdown === "boolean")
+      setShowPaymentBreakdown(initialPayment.paymentBreakdown);
   }, [isOpen, initialPayment, mode]);
 
   // Clear pending doc rows only when amount is empty or party changes
@@ -666,6 +691,42 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     setSelectedManualRows(newSet);
   };
 
+  // calc INR equivalents when amount/ROE/currency is present in edit mode
+  useEffect(() => {
+    if (requiresRoe(amountCurrency, businessCurrency) && amount && amountRoe) {
+      const inr = computeInr(amount, amountRoe);
+      setAmountInr(inr);
+    }
+
+    if (
+      requiresRoe(bankChargesCurrency, businessCurrency) &&
+      bankCharges &&
+      bankChargesRoe
+    ) {
+      const inr = computeInr(bankCharges, bankChargesRoe);
+      setBankChargesInr(inr);
+    }
+
+    if (
+      requiresRoe(cashbackReceivedCurrency, businessCurrency) &&
+      cashbackReceived &&
+      cashbackReceivedRoe
+    ) {
+      const inr = computeInr(cashbackReceived, cashbackReceivedRoe);
+      setCashbackReceivedInr(inr);
+    }
+  }, [
+    amountCurrency,
+    amount,
+    amountRoe,
+    bankChargesCurrency,
+    bankCharges,
+    bankChargesRoe,
+    cashbackReceivedCurrency,
+    cashbackReceived,
+    cashbackReceivedRoe,
+  ]);
+
   // Auto-distribute payment amount in auto mode, clear in manual mode
   useEffect(() => {
     if (pendingDocRows.length === 0) return;
@@ -728,44 +789,14 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     }
   };
 
-  // Debounced customer search
-  useEffect(() => {
-    if (!showCustomerDropdown) return;
-
-    const timer = setTimeout(() => {
-      fetchCustomers(customerSearchTerm);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [customerSearchTerm, showCustomerDropdown, fetchCustomers]);
-
-  // Debounced vendor search
-  useEffect(() => {
-    if (!showVendorDropdown) return;
-
-    const timer = setTimeout(() => {
-      fetchVendors(vendorSearchTerm);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [vendorSearchTerm, showVendorDropdown, fetchVendors]);
-
   // Handle Customer Selection
   const handleCustomerSelect = (customer: CustomerDataType) => {
     setSelectedCustomer(customer);
-    setCustomerSearchTerm(customer.name || customer.customId || "");
-    setCustomerResults([]);
-    setShowCustomerDropdown(false);
   };
 
   // Handle Vendor Selection
   const handleVendorSelect = (vendor: VendorDataType) => {
     setSelectedVendor(vendor);
-    setVendorSearchTerm(
-      vendor.companyName || vendor.contactPerson || vendor.customId || "",
-    );
-    setVendorResults([]);
-    setShowVendorDropdown(false);
   };
 
   // Calculate Balance (placeholder logic)
@@ -773,40 +804,6 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     // TODO: Fetch actual balance from API based on selected customer/vendor
     return "0.00";
   }, [selectedCustomer, selectedVendor]);
-
-  // Fuzzy search helper (copied from GeneralInfoForm)
-  function runFuzzySearch<T>(list: T[], term: string, keys: (keyof T)[]): T[] {
-    if (!term.trim()) return [];
-
-    const fuse = new Fuse(list, {
-      threshold: 0.3,
-      keys: keys as string[],
-    });
-
-    const results = fuse.search(term).map((r) => r.item);
-    return results;
-  }
-
-  const getTierRating = (tier: unknown): number | null => {
-    try {
-      if (!tier) return null;
-      if (typeof tier === "number")
-        return Math.min(Math.max(Math.round(tier), 1), 5);
-      if (typeof tier === "string") {
-        const m = (tier as string).match(/\d+/);
-        if (!m) return null;
-        return Math.min(Math.max(Number(m[0]), 1), 5);
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  };
-
-  const getAlias = (obj: unknown): string => {
-    const anyObj = obj as any;
-    return (anyObj?.alias || anyObj?.nickname || "") as string;
-  };
 
   // Handle File Selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -911,10 +908,57 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
     // If editing, send FormData as multipart so update supports files too
     if (mode === "edit" && initialPayment && (initialPayment as any)._id) {
+      // Validation: when selected currency differs from business currency, require ROE/INR and amount where applicable
+      if (requiresRoe(amountCurrency, businessCurrency)) {
+        if (!amount || String(amount).trim() === "") {
+          showErrorToast("Please input the ROE before submitting.");
+          return;
+        }
+        if (!amountRoe || String(amountRoe).trim() === "") {
+          showErrorToast("Please input the ROE before submitting.");
+          return;
+        }
+      }
+
+      if (
+        requiresRoe(bankChargesCurrency, businessCurrency) &&
+        String(bankCharges || "").trim() !== ""
+      ) {
+        if (!bankChargesRoe || String(bankChargesRoe).trim() === "") {
+          showErrorToast("Please input the ROE before submitting.");
+          return;
+        }
+        if (!bankChargesInr || String(bankChargesInr).trim() === "") {
+          showErrorToast("Please input the ROE before submitting.");
+          return;
+        }
+      }
+
+      if (
+        requiresRoe(cashbackReceivedCurrency, businessCurrency) &&
+        String(cashbackReceived || "").trim() !== ""
+      ) {
+        if (!cashbackReceivedRoe || String(cashbackReceivedRoe).trim() === "") {
+          showErrorToast("Please input the ROE before submitting.");
+          return;
+        }
+        if (!cashbackReceivedInr || String(cashbackReceivedInr).trim() === "") {
+          showErrorToast("Please input the ROE before submitting.");
+          return;
+        }
+      }
+
       const paymentId = (initialPayment as any)._id;
       const form = new FormData();
       form.append("bankId", bankId);
       form.append("amount", String(Number(amount)));
+      form.append("amountCurrency", String(amountCurrency || "INR"));
+      // backend expects `amountCurreny` (note spelling) — include for compatibility
+      form.append("amountCurreny", String(amountCurrency || "INR"));
+      if (typeof amountRoe === "string" && amountRoe !== "")
+        form.append("amountRoe", String(amountRoe));
+      if (typeof amountInr === "string" && amountInr !== "")
+        form.append("amountInr", String(amountInr));
       form.append("entryType", effectiveEntryType);
       form.append("paymentDate", paymentDate || new Date().toISOString());
       const paymentTypeToSend = paymentType
@@ -922,10 +966,24 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
         : "cash";
       form.append("paymentType", paymentTypeToSend);
       form.append("status", defaultStatus);
+      form.append("paymentBreakdown", String(showPaymentBreakdown));
       if (internalNotes) form.append("internalNotes", internalNotes);
       form.append("bankCharges", String(Number(bankCharges || 0)));
+      form.append("bankChargesCurrency", String(bankChargesCurrency || "INR"));
+      if (typeof bankChargesRoe === "string" && bankChargesRoe !== "")
+        form.append("bankChargesRoe", String(bankChargesRoe));
+      if (typeof bankChargesInr === "string" && bankChargesInr !== "")
+        form.append("bankChargesInr", String(bankChargesInr));
       form.append("bankChargesNotes", bankChargesNotes || "");
       form.append("cashbackReceived", String(Number(cashbackReceived || 0)));
+      form.append(
+        "cashbackReceivedCurrency",
+        String(cashbackReceivedCurrency || "INR"),
+      );
+      if (typeof cashbackReceivedRoe === "string" && cashbackReceivedRoe !== "")
+        form.append("cashbackReceivedRoe", String(cashbackReceivedRoe));
+      if (typeof cashbackReceivedInr === "string" && cashbackReceivedInr !== "")
+        form.append("cashbackReceivedInr", String(cashbackReceivedInr));
       form.append("cashbackNotes", cashbackNotes || "");
       if (allocations.length > 0)
         form.append("allocations", JSON.stringify(allocations));
@@ -951,9 +1009,56 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     }
 
     // if not editing, proceed with FormData multipart for create (files supported)
+    // Validation: when selected currency differs from business currency, require ROE/INR and amount where applicable
+    if (requiresRoe(amountCurrency, businessCurrency)) {
+      if (!amount || String(amount).trim() === "") {
+        showErrorToast("Please input the ROE before submitting.");
+        return;
+      }
+      if (!amountRoe || String(amountRoe).trim() === "") {
+        showErrorToast("Please input the ROE before submitting.");
+        return;
+      }
+    }
+
+    if (
+      requiresRoe(bankChargesCurrency, businessCurrency) &&
+      String(bankCharges || "").trim() !== ""
+    ) {
+      if (!bankChargesRoe || String(bankChargesRoe).trim() === "") {
+        showErrorToast("Please input the ROE before submitting.");
+        return;
+      }
+      if (!bankChargesInr || String(bankChargesInr).trim() === "") {
+        showErrorToast("Please input the ROE before submitting.");
+        return;
+      }
+    }
+
+    if (
+      requiresRoe(cashbackReceivedCurrency, businessCurrency) &&
+      String(cashbackReceived || "").trim() !== ""
+    ) {
+      if (!cashbackReceivedRoe || String(cashbackReceivedRoe).trim() === "") {
+        showErrorToast("Please input the ROE before submitting.");
+        return;
+      }
+      if (!cashbackReceivedInr || String(cashbackReceivedInr).trim() === "") {
+        showErrorToast("Please input the ROE before submitting.");
+        return;
+      }
+    }
+
     const form = new FormData();
     form.append("bankId", bankId);
     form.append("amount", String(Number(amount)));
+    form.append("amountCurrency", String(amountCurrency || "INR"));
+    // Also send backend's expected key (typo preserved)
+    form.append("amountCurreny", String(amountCurrency || "INR"));
+    if (typeof amountRoe === "string" && amountRoe !== "")
+      form.append("amountRoe", String(amountRoe));
+    if (typeof amountInr === "string" && amountInr !== "")
+      form.append("amountInr", String(amountInr));
     form.append("entryType", effectiveEntryType);
     form.append("paymentDate", paymentDate || new Date().toISOString());
     const paymentTypeToSend = paymentType
@@ -961,10 +1066,24 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       : "cash";
     form.append("paymentType", paymentTypeToSend);
     form.append("status", defaultStatus);
+    form.append("paymentBreakdown", String(showPaymentBreakdown));
     if (internalNotes) form.append("internalNotes", internalNotes);
     form.append("bankCharges", String(Number(bankCharges || 0)));
+    form.append("bankChargesCurrency", String(bankChargesCurrency || "INR"));
+    if (typeof bankChargesRoe === "string" && bankChargesRoe !== "")
+      form.append("bankChargesRoe", String(bankChargesRoe));
+    if (typeof bankChargesInr === "string" && bankChargesInr !== "")
+      form.append("bankChargesInr", String(bankChargesInr));
     form.append("bankChargesNotes", bankChargesNotes || "");
     form.append("cashbackReceived", String(Number(cashbackReceived || 0)));
+    form.append(
+      "cashbackReceivedCurrency",
+      String(cashbackReceivedCurrency || "INR"),
+    );
+    if (typeof cashbackReceivedRoe === "string" && cashbackReceivedRoe !== "")
+      form.append("cashbackReceivedRoe", String(cashbackReceivedRoe));
+    if (typeof cashbackReceivedInr === "string" && cashbackReceivedInr !== "")
+      form.append("cashbackReceivedInr", String(cashbackReceivedInr));
     form.append("cashbackNotes", cashbackNotes || "");
     if (customId) form.append("customId", String(customId));
     if (allocations.length > 0)
@@ -1002,17 +1121,29 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     setPartyType("Customer");
     setSelectedCustomer(null);
     setSelectedVendor(null);
-    setCustomerSearchTerm("");
-    setVendorSearchTerm("");
     setAmount("");
+    setAmountCurrency("INR");
+    setAmountRoe("");
+    setAmountInr("");
+    setAmountNotes("");
     setBankCharges("");
+    setBankChargesCurrency("INR");
+    setBankChargesRoe("");
+    setBankChargesInr("");
     setBankChargesNotes("");
     setCashbackReceived("");
+    setCashbackReceivedCurrency("INR");
+    setCashbackReceivedRoe("");
+    setCashbackReceivedInr("");
     setCashbackNotes("");
     setPaymentDate("");
     setSelectedBank("");
     setInternalNotes("");
     setShowPaymentBreakdown(false);
+    setSettlePendingDocsEnabled(false);
+    setSettlePendingMode("auto");
+    setPendingDocRows([]);
+    setSelectedManualRows(new Set());
     setDocuments([]);
     setIsAddBankOpen(false);
     setShowAmountNotes(false);
@@ -1051,10 +1182,18 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       title={(() => {
         const partyDisplay =
           (selectedCustomer && selectedCustomer.name) ||
-          (selectedVendor && selectedVendor.name) ||
+          (selectedVendor &&
+            (selectedVendor.companyName || selectedVendor.name)) ||
           prefillPartyName ||
           null;
-        if (customId) return `${title}  |  ${customId}`;
+
+        const paymentCustomId = customId || (initialPayment as any)?.customId;
+        if (mode === "edit") {
+          if (paymentCustomId) return `${title}  |  ${paymentCustomId}`;
+          return title;
+        }
+
+        if (paymentCustomId) return `${title}  |  ${paymentCustomId}`;
         if (partyDisplay) return `${title}  |  ${partyDisplay}`;
         return title;
       })()}
@@ -1167,338 +1306,27 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                     : partyType;
 
                 return effectivePartyType === "Customer" ? (
-                  <div className="relative">
-                    <label className="block text-[13px] font-medium text-gray-700 mb-2">
-                      Search by Customer Name/ID
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={customerSearchTerm}
-                        onClick={() => {
-                          if (lockedToParty) return;
-                          if (selectedCustomer) {
-                            resetCustomerSelection();
-                          }
-                        }}
-                        onChange={(e) => {
-                          if (lockedToParty) return;
-                          const value = allowTextAndNumbers(e.target.value);
-                          // typing resets previously selected customer
-                          if (selectedCustomer) setSelectedCustomer(null);
-                          setCustomerSearchTerm(value);
-
-                          if (value.trim() === "") {
-                            setCustomerResults([]);
-                            setShowCustomerDropdown(false);
-                            return;
-                          }
-
-                          const results = runFuzzySearch(customerList, value, [
-                            "name",
-                            "customId",
-                            "tier",
-                            "phone",
-                          ]);
-
-                          setCustomerResults(results);
-                          setShowCustomerDropdown(results.length > 0);
-                        }}
-                        onFocus={() => {
-                          if (lockedToParty) return;
-                          if (
-                            customerSearchTerm.trim() !== "" &&
-                            customerResults.length > 0
-                          )
-                            setShowCustomerDropdown(true);
-                        }}
-                        placeholder="Search by Customer Name/ID"
-                        readOnly={lockedToParty}
-                        className={`w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300 ${
-                          selectedCustomer
-                            ? "text-transparent caret-transparent"
-                            : ""
-                        }`}
-                      />
-                      {selectedCustomer && (
-                        <div className="absolute inset-y-0 left-0 right-10 flex items-center px-4 pointer-events-none">
-                          {(() => {
-                            const rating =
-                              getTierRating((selectedCustomer as any).tier) ??
-                              4;
-                            const alias = getAlias(selectedCustomer) || "-";
-                            return (
-                              <div className="flex items-center justify-between w-full">
-                                <div className="flex items-center gap-1 min-w-0">
-                                  <p className="font-medium text-[13px] text-gray-900 truncate">
-                                    {selectedCustomer.name}
-                                  </p>
-                                  <span className="text-gray-300">|</span>
-                                  <p className="text-[13px] text-gray-600 truncate">
-                                    {alias}
-                                  </p>
-                                  <span className="text-gray-300">|</span>
-                                  <p className="text-[13px] text-gray-600 truncate">
-                                    {selectedCustomer.customId || "-"}
-                                  </p>
-                                </div>
-
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <img
-                                    src={`/icons/tier-${rating}.png`}
-                                    alt={`Tier ${rating}`}
-                                    className="w-4 h-4 object-contain"
-                                  />
-                                  <span className="text-[13px] font-semibold text-gray-700">
-                                    {rating}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      )}
-                      <svg
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                        />
-                      </svg>
-                    </div>
-
-                    {/* Customer Dropdown */}
-                    {showCustomerDropdown && customerResults.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-                        {customerResults.map((customer) => {
-                          let rating =
-                            getTierRating((customer as any).tier) ?? 4;
-                          rating = Math.min(Math.max(rating || 4, 1), 5);
-                          const alias = getAlias(customer) || "-";
-                          return (
-                            <div
-                              key={customer._id}
-                              onClick={() => handleCustomerSelect(customer)}
-                              className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-1 min-w-0">
-                                  <p className="font-medium text-[13px] text-gray-900 truncate">
-                                    {customer.name}
-                                  </p>
-                                  <span className="text-gray-300">|</span>
-                                  <p className="text-[13px] text-gray-600 truncate">
-                                    {alias || "-"}
-                                  </p>
-                                  <span className="text-gray-300">|</span>
-                                  <p className="text-[13px] text-gray-600 truncate">
-                                    {customer.customId || "-"}
-                                  </p>
-                                </div>
-
-                                <div className="flex items-center gap-1 shrink-0">
-                                  <img
-                                    src={`/icons/tier-${rating}.png`}
-                                    alt={`Tier ${rating}`}
-                                    className="w-4 h-4 object-contain"
-                                  />
-                                  <span className="text-[13px] font-semibold text-gray-700">
-                                    {rating}
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Click outside to close dropdown */}
-                    {showCustomerDropdown && (
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setShowCustomerDropdown(false)}
-                      />
-                    )}
-                  </div>
+                  <CustomerDropDown
+                    isOpen={isOpen}
+                    locked={lockedToParty}
+                    selectedCustomer={selectedCustomer}
+                    onSelectCustomer={(c) => {
+                      if (lockedToParty) return;
+                      if (c) handleCustomerSelect(c);
+                      else setSelectedCustomer(null);
+                    }}
+                  />
                 ) : (
-                  <div className="relative">
-                    <label className="block text-[13px] font-medium text-gray-700 mb-2">
-                      Search by Vendor Name/ID
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={vendorSearchTerm}
-                        onClick={() => {
-                          if (lockedToParty) return;
-                          if (selectedVendor) {
-                            resetVendorSelection();
-                          }
-                        }}
-                        onChange={(e) => {
-                          if (lockedToParty) return;
-                          const value = allowTextAndNumbers(e.target.value);
-                          if (selectedVendor) setSelectedVendor(null);
-                          setVendorSearchTerm(value);
-
-                          if (value.trim() === "") {
-                            setVendorResults([]);
-                            setShowVendorDropdown(false);
-                            return;
-                          }
-
-                          const results = runFuzzySearch(vendorList, value, [
-                            "companyName",
-                            "alias",
-                            "tier",
-                            "customId",
-                          ]);
-
-                          setVendorResults(results);
-                          setShowVendorDropdown(results.length > 0);
-                        }}
-                        onFocus={() => {
-                          if (lockedToParty) return;
-                          if (
-                            vendorSearchTerm.trim() !== "" &&
-                            vendorResults.length > 0
-                          )
-                            setShowVendorDropdown(true);
-                        }}
-                        placeholder="Search by Vendor Name/ID"
-                        readOnly={lockedToParty}
-                        className={`w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300 ${
-                          selectedVendor
-                            ? "text-transparent caret-transparent"
-                            : ""
-                        }`}
-                      />
-                      {selectedVendor && (
-                        <div className="absolute inset-y-0 left-0 right-10 flex items-center px-4 pointer-events-none">
-                          {(() => {
-                            const rating = getTierRating(
-                              (selectedVendor as any).tier,
-                            );
-                            const alias = getAlias(selectedVendor) || "-";
-                            const primary =
-                              selectedVendor.companyName ||
-                              selectedVendor.contactPerson ||
-                              "";
-                            return (
-                              <div className="flex items-center justify-between w-full">
-                                <div className="flex items-center gap-1 min-w-0">
-                                  <p className="font-normal text-[13px] text-gray-900 truncate">
-                                    {primary}
-                                  </p>
-                                  <span className="text-gray-300">|</span>
-                                  <p className="text-[13px] text-gray-600 truncate">
-                                    {alias}
-                                  </p>
-                                  <span className="text-gray-300">|</span>
-                                  <p className="text-[13px] text-gray-600 truncate">
-                                    {selectedVendor.customId || "-"}
-                                  </p>
-                                </div>
-
-                                {rating !== null ? (
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <img
-                                      src={`/icons/tier-${rating}.png`}
-                                      alt={`Tier ${rating}`}
-                                      className="w-4 h-4 object-contain"
-                                    />
-                                    <span className="text-[13px] font-semibold text-gray-700">
-                                      {rating}
-                                    </span>
-                                  </div>
-                                ) : null}
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      )}
-                      <svg
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                        />
-                      </svg>
-                    </div>
-
-                    {/* Vendor Dropdown */}
-                    {showVendorDropdown && vendorResults.length > 0 && (
-                      <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-auto">
-                        {vendorResults.map((vendor) => {
-                          let rating: number | null = getTierRating(
-                            (vendor as any).tier,
-                          );
-                          if (rating !== null)
-                            rating = Math.min(Math.max(rating, 1), 5);
-                          const alias = getAlias(vendor) || "-";
-                          const primary =
-                            vendor.companyName || vendor.contactPerson || "";
-                          return (
-                            <div
-                              key={vendor._id}
-                              onClick={() => handleVendorSelect(vendor)}
-                              className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-1 min-w-0">
-                                  <p className="font-normal text-[13px] text-gray-900 truncate">
-                                    {primary}
-                                  </p>
-                                  <span className="text-gray-300">|</span>
-                                  <p className="text-[13px] text-gray-600 truncate">
-                                    {alias || "-"}
-                                  </p>
-                                  <span className="text-gray-300">|</span>
-                                  <p className="text-[13px] text-gray-600 truncate">
-                                    {vendor.customId || "-"}
-                                  </p>
-                                </div>
-
-                                {rating !== null ? (
-                                  <div className="flex items-center gap-1 shrink-0">
-                                    <img
-                                      src={`/icons/tier-${rating}.png`}
-                                      alt={`Tier ${rating}`}
-                                      className="w-4 h-4 object-contain"
-                                    />
-                                    <span className="text-[0.75rem] font-semibold text-gray-700">
-                                      {rating}
-                                    </span>
-                                  </div>
-                                ) : null}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Click outside to close dropdown */}
-                    {showVendorDropdown && (
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setShowVendorDropdown(false)}
-                      />
-                    )}
-                  </div>
+                  <VendorDropDown
+                    isOpen={isOpen}
+                    locked={lockedToParty}
+                    selectedVendor={selectedVendor}
+                    onSelectVendor={(v) => {
+                      if (lockedToParty) return;
+                      if (v) handleVendorSelect(v);
+                      else setSelectedVendor(null);
+                    }}
+                  />
                 );
               })()}
 
@@ -1826,7 +1654,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
               <div
                 className={`grid ${
-                  amountCurrency === "USD"
+                  requiresRoe(amountCurrency, businessCurrency)
                     ? "grid-cols-[220px_160px_170px_44px]"
                     : "grid-cols-[380px_44px]"
                 } gap-3 items-center`}
@@ -1841,7 +1669,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                     value={amountCurrency}
                     onChange={(val) => {
                       setAmountCurrency(val as Currency);
-                      if (val === "USD") {
+                      if (requiresRoe(val, businessCurrency)) {
                         setAmountInr(
                           computeInr(
                             String(amount || ""),
@@ -1866,7 +1694,10 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                     onChange={(e) => {
                       const val = e.target.value.replace(/[^0-9]/g, "");
                       setAmount(val);
-                      if (amountCurrency === "USD" && amountRoe) {
+                      if (
+                        requiresRoe(amountCurrency, businessCurrency) &&
+                        amountRoe
+                      ) {
                         setAmountInr(computeInr(val, amountRoe));
                       }
                     }}
@@ -1876,7 +1707,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                 </div>
 
                 {/* ROE Field (only for USD) */}
-                {amountCurrency === "USD" && (
+                {requiresRoe(amountCurrency, businessCurrency) && (
                   <>
                     <div className={groupBase}>
                       <span className={addonLabel}>ROE</span>
@@ -1919,8 +1750,8 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
               {showAmountNotes && (
                 <div className="mt-3">
                   <textarea
-                    value={bankChargesNotes}
-                    onChange={(e) => setBankChargesNotes(e.target.value)}
+                    value={amountNotes}
+                    onChange={(e) => setAmountNotes(e.target.value)}
                     placeholder="Enter Notes"
                     rows={3}
                     className={inputBase}
@@ -1938,7 +1769,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                   </label>
                   <div
                     className={`grid ${
-                      bankChargesCurrency === "USD"
+                      requiresRoe(bankChargesCurrency, businessCurrency)
                         ? "grid-cols-[220px_160px_170px_44px]"
                         : "grid-cols-[380px_44px]"
                     } gap-3 items-center`}
@@ -1953,7 +1784,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                         value={bankChargesCurrency}
                         onChange={(val) => {
                           setBankChargesCurrency(val as Currency);
-                          if (val === "USD") {
+                          if (requiresRoe(val, businessCurrency)) {
                             setBankChargesInr(
                               computeInr(
                                 String(bankCharges || ""),
@@ -1978,7 +1809,13 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                         onChange={(e) => {
                           const val = e.target.value.replace(/[^0-9]/g, "");
                           setBankCharges(val);
-                          if (bankChargesCurrency === "USD" && bankChargesRoe) {
+                          if (
+                            requiresRoe(
+                              bankChargesCurrency,
+                              businessCurrency,
+                            ) &&
+                            bankChargesRoe
+                          ) {
                             setBankChargesInr(computeInr(val, bankChargesRoe));
                           }
                         }}
@@ -1987,7 +1824,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                       />
                     </div>
 
-                    {bankChargesCurrency === "USD" && (
+                    {requiresRoe(bankChargesCurrency, businessCurrency) && (
                       <>
                         <div className={groupBase}>
                           <span className={addonLabel}>ROE</span>
@@ -2052,7 +1889,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                   </label>
                   <div
                     className={`grid ${
-                      cashbackReceivedCurrency === "USD"
+                      requiresRoe(cashbackReceivedCurrency, businessCurrency)
                         ? "grid-cols-[220px_160px_170px_44px]"
                         : "grid-cols-[380px_44px]"
                     } gap-3 items-center`}
@@ -2067,7 +1904,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                         value={cashbackReceivedCurrency}
                         onChange={(val) => {
                           setCashbackReceivedCurrency(val as Currency);
-                          if (val === "USD") {
+                          if (requiresRoe(val, businessCurrency)) {
                             setCashbackReceivedInr(
                               computeInr(
                                 String(cashbackReceived || ""),
@@ -2093,7 +1930,10 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                           const val = e.target.value.replace(/[^0-9]/g, "");
                           setCashbackReceived(val);
                           if (
-                            cashbackReceivedCurrency === "USD" &&
+                            requiresRoe(
+                              cashbackReceivedCurrency,
+                              businessCurrency,
+                            ) &&
                             cashbackReceivedRoe
                           ) {
                             setCashbackReceivedInr(
@@ -2106,7 +1946,10 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                       />
                     </div>
 
-                    {cashbackReceivedCurrency === "USD" && (
+                    {requiresRoe(
+                      cashbackReceivedCurrency,
+                      businessCurrency,
+                    ) && (
                       <>
                         <div className={groupBase}>
                           <span className={addonLabel}>ROE</span>
@@ -2332,7 +2175,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
         {/* Fixed Footer */}
         <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-end items-center">
           <Button
-            text="Add Payment"
+            text={mode === "edit" ? "Update Payment" : "Add Payment"}
             onClick={handleSubmit}
             bgColor="bg-[#0D4B37]"
             textColor="text-white"
@@ -2348,7 +2191,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
           onDelete?.();
         }}
         payment={{
-          customId: customId || "—",
+          customId: customId || initialPayment?.customId || "—",
           data: {
             partyId: {
               name:
@@ -2375,6 +2218,12 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
           setConfirmCloseOpen(false);
           onClose();
         }}
+      />
+      <ErrorToast
+        message={errorToastMessage}
+        visible={errorToastVisible}
+        onClose={() => setErrorToastVisible(false)}
+        autoHideMs={4000}
       />
     </SideSheet>
   );

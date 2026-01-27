@@ -3,6 +3,9 @@
 import React, { useId, useMemo, useState } from "react";
 import DropDown from "@/components/DropDown";
 import { TbNotes } from "react-icons/tb";
+import { useAuth } from "@/context/AuthContext";
+import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
+import MultiCurrencyInput from "@/components/multiCurrencyUI";
 
 export type AmountSectionValue = {
   costprice?: string;
@@ -85,6 +88,9 @@ const AmountSection: React.FC<AmountSectionProps> = ({
 }) => {
   const checkboxId = useId();
 
+  const { user } = useAuth();
+  const businessCurrency = getBusinessCurrency(user);
+
   const v = value ?? {};
   const update = (patch: Partial<AmountSectionValue>) =>
     onChange({ ...v, ...patch });
@@ -103,20 +109,28 @@ const AmountSection: React.FC<AmountSectionProps> = ({
     bookingStatus?.toLowerCase() === "cancelled" && Boolean(cancellationForm);
 
   const derivedCostPrice = useMemo(() => {
+    // Always compute components in INR. If an amount is provided in USD,
+    // prefer the explicit INR field
+    const parseNum = (s?: string) =>
+      Number(String(s ?? "").replace(/,/g, "")) || 0;
+
     const base =
-      v.vendorBaseCurrency === "USD"
-        ? Number(v.vendorBaseInr) || 0
-        : Number(v.vendorBasePrice) || 0;
+      String(v.vendorBaseCurrency) === "USD"
+        ? parseNum(v.vendorBaseInr) ||
+          parseNum(v.vendorBasePrice) * parseNum(v.vendorBaseRoe)
+        : parseNum(v.vendorBasePrice);
 
     const inc =
-      v.vendorIncentiveCurrency === "USD"
-        ? Number(v.vendorIncentiveInr) || 0
-        : Number(v.vendorIncentiveReceived) || 0;
+      String(v.vendorIncentiveCurrency) === "USD"
+        ? parseNum(v.vendorIncentiveInr) ||
+          parseNum(v.vendorIncentiveReceived) * parseNum(v.vendorIncentiveRoe)
+        : parseNum(v.vendorIncentiveReceived);
 
     const com =
-      v.commissionCurrency === "USD"
-        ? Number(v.commissionInr) || 0
-        : Number(v.commissionPaid) || 0;
+      String(v.commissionCurrency) === "USD"
+        ? parseNum(v.commissionInr) ||
+          parseNum(v.commissionPaid) * parseNum(v.commissionRoe)
+        : parseNum(v.commissionPaid);
 
     return base - inc + com;
   }, [
@@ -139,7 +153,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
       const next: any = { ...v, [field]: sanitized };
 
       if (field === "costprice") {
-        if (v.costCurrency === "USD") {
+        if (requiresRoe(v.costCurrency, businessCurrency)) {
           next.costInr = computeInr(sanitized, v.costRoe ?? "");
         } else {
           next.costInr = "";
@@ -147,7 +161,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
       }
 
       if (field === "sellingprice") {
-        if (v.sellingCurrency === "USD") {
+        if (requiresRoe(v.sellingCurrency, businessCurrency)) {
           next.sellingInr = computeInr(sanitized, v.sellingRoe ?? "");
         } else {
           next.sellingInr = "";
@@ -214,7 +228,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <div className="p-4 border-b border-gray-200">
                   <div
                     className={`grid ${
-                      cancellationForm?.costCurrency === "USD"
+                      requiresRoe(
+                        cancellationForm?.costCurrency,
+                        businessCurrency,
+                      )
                         ? "grid-cols-[160px_90px_130px]"
                         : "grid-cols-[340px]"
                     } gap-3 items-center`}
@@ -228,7 +245,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       </div>
                     </div>
 
-                    {cancellationForm?.costCurrency === "USD" && (
+                    {requiresRoe(
+                      cancellationForm?.costCurrency,
+                      businessCurrency,
+                    ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
                           <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
@@ -276,7 +296,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <div className="p-4 border-b border-gray-200">
                   <div
                     className={`grid ${
-                      cancellationForm?.costRefundCurrency === "USD"
+                      requiresRoe(
+                        cancellationForm?.costRefundCurrency,
+                        businessCurrency,
+                      )
                         ? "grid-cols-[160px_90px_130px]"
                         : "grid-cols-[340px]"
                     } gap-3 items-center`}
@@ -290,7 +313,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       </div>
                     </div>
 
-                    {cancellationForm?.costRefundCurrency === "USD" && (
+                    {requiresRoe(
+                      cancellationForm?.costRefundCurrency,
+                      businessCurrency,
+                    ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
                           <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
@@ -338,7 +364,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <div className="p-4 border-b border-gray-200">
                   <div
                     className={`grid ${
-                      cancellationForm?.sellingCurrency === "USD"
+                      requiresRoe(
+                        cancellationForm?.sellingCurrency,
+                        businessCurrency,
+                      )
                         ? "grid-cols-[170px_100px_140px]"
                         : "grid-cols-[340px]"
                     } gap-3 items-center`}
@@ -352,7 +381,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       </div>
                     </div>
 
-                    {cancellationForm?.sellingCurrency === "USD" && (
+                    {requiresRoe(
+                      cancellationForm?.sellingCurrency,
+                      businessCurrency,
+                    ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
                           <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
@@ -400,7 +432,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <div className="p-4">
                   <div
                     className={`grid ${
-                      cancellationForm?.sellingRefundCurrency === "USD"
+                      requiresRoe(
+                        cancellationForm?.sellingRefundCurrency,
+                        businessCurrency,
+                      )
                         ? "grid-cols-[160px_90px_130px]"
                         : "grid-cols-[340px]"
                     } gap-3 items-center`}
@@ -414,7 +449,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       </div>
                     </div>
 
-                    {cancellationForm?.sellingRefundCurrency === "USD" && (
+                    {requiresRoe(
+                      cancellationForm?.sellingRefundCurrency,
+                      businessCurrency,
+                    ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
                           <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
@@ -464,7 +502,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <div className="p-4 border-b border-gray-200">
                   <div
                     className={`grid ${
-                      cancellationForm?.vendorBaseCurrency === "USD"
+                      requiresRoe(
+                        cancellationForm?.vendorBaseCurrency,
+                        businessCurrency,
+                      )
                         ? "grid-cols-[160px_90px_130px]"
                         : "grid-cols-[340px]"
                     } gap-3 items-center`}
@@ -478,7 +519,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       </div>
                     </div>
 
-                    {cancellationForm?.vendorBaseCurrency === "USD" && (
+                    {requiresRoe(
+                      cancellationForm?.vendorBaseCurrency,
+                      businessCurrency,
+                    ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
                           <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
@@ -526,7 +570,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <div className="p-4 border-b border-gray-200">
                   <div
                     className={`grid ${
-                      cancellationForm?.vendorInvoiceRefundCurrency === "USD"
+                      requiresRoe(
+                        cancellationForm?.vendorInvoiceRefundCurrency,
+                        businessCurrency,
+                      )
                         ? "grid-cols-[160px_90px_130px]"
                         : "grid-cols-[340px]"
                     } gap-3 items-center`}
@@ -540,8 +587,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       </div>
                     </div>
 
-                    {cancellationForm?.vendorInvoiceRefundCurrency ===
-                      "USD" && (
+                    {requiresRoe(
+                      cancellationForm?.vendorInvoiceRefundCurrency,
+                      businessCurrency,
+                    ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
                           <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
@@ -591,7 +640,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <div className="p-4 border-b border-gray-200">
                   <div
                     className={`grid ${
-                      cancellationForm?.vendorIncentiveCurrency === "USD"
+                      requiresRoe(
+                        cancellationForm?.vendorIncentiveCurrency,
+                        businessCurrency,
+                      )
                         ? "grid-cols-[160px_90px_130px]"
                         : "grid-cols-[340px]"
                     } gap-3 items-center`}
@@ -605,7 +657,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       </div>
                     </div>
 
-                    {cancellationForm?.vendorIncentiveCurrency === "USD" && (
+                    {requiresRoe(
+                      cancellationForm?.vendorIncentiveCurrency,
+                      businessCurrency,
+                    ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
                           <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
@@ -653,7 +708,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <div className="p-4 border-b border-gray-200">
                   <div
                     className={`grid ${
-                      cancellationForm?.chargebackCurrency === "USD"
+                      requiresRoe(
+                        cancellationForm?.chargebackCurrency,
+                        businessCurrency,
+                      )
                         ? "grid-cols-[160px_90px_130px]"
                         : "grid-cols-[340px]"
                     } gap-3 items-center`}
@@ -667,7 +725,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       </div>
                     </div>
 
-                    {cancellationForm?.chargebackCurrency === "USD" && (
+                    {requiresRoe(
+                      cancellationForm?.chargebackCurrency,
+                      businessCurrency,
+                    ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
                           <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
@@ -715,7 +776,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <div className="p-4 border-b border-gray-200">
                   <div
                     className={`grid ${
-                      cancellationForm?.commissionCurrency === "USD"
+                      requiresRoe(
+                        cancellationForm?.commissionCurrency,
+                        businessCurrency,
+                      )
                         ? "grid-cols-[160px_90px_130px]"
                         : "grid-cols-[340px]"
                     } gap-3 items-center`}
@@ -729,7 +793,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       </div>
                     </div>
 
-                    {cancellationForm?.commissionCurrency === "USD" && (
+                    {requiresRoe(
+                      cancellationForm?.commissionCurrency,
+                      businessCurrency,
+                    ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
                           <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
@@ -777,7 +844,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <div className="p-4 border-b border-gray-200">
                   <div
                     className={`grid ${
-                      cancellationForm?.commissionRefundCurrency === "USD"
+                      requiresRoe(
+                        cancellationForm?.commissionRefundCurrency,
+                        businessCurrency,
+                      )
                         ? "grid-cols-[160px_90px_130px]"
                         : "grid-cols-[340px]"
                     } gap-3 items-center`}
@@ -791,7 +861,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       </div>
                     </div>
 
-                    {cancellationForm?.commissionRefundCurrency === "USD" && (
+                    {requiresRoe(
+                      cancellationForm?.commissionRefundCurrency,
+                      businessCurrency,
+                    ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
                           <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
@@ -839,7 +912,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <div className="p-4 border-b border-gray-200">
                   <div
                     className={`grid ${
-                      cancellationForm?.sellingCurrency === "USD"
+                      requiresRoe(
+                        cancellationForm?.sellingCurrency,
+                        businessCurrency,
+                      )
                         ? "grid-cols-[170px_100px_140px]"
                         : "grid-cols-[340px]"
                     } gap-3 items-center`}
@@ -853,7 +929,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       </div>
                     </div>
 
-                    {cancellationForm?.sellingCurrency === "USD" && (
+                    {requiresRoe(
+                      cancellationForm?.sellingCurrency,
+                      businessCurrency,
+                    ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
                           <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
@@ -901,7 +980,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <div className="p-4">
                   <div
                     className={`grid ${
-                      cancellationForm?.sellingRefundCurrency === "USD"
+                      requiresRoe(
+                        cancellationForm?.sellingRefundCurrency,
+                        businessCurrency,
+                      )
                         ? "grid-cols-[160px_90px_130px]"
                         : "grid-cols-[340px]"
                     } gap-3 items-center`}
@@ -915,7 +997,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       </div>
                     </div>
 
-                    {cancellationForm?.sellingRefundCurrency === "USD" && (
+                    {requiresRoe(
+                      cancellationForm?.sellingRefundCurrency,
+                      businessCurrency,
+                    ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
                           <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
@@ -1061,105 +1146,50 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <label className="block text-[13px] font-medium text-gray-700 mb-1">
                   Cost Price
                 </label>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                    <DropDown
-                      options={[
-                        { value: "INR", label: "INR" },
-                        { value: "USD", label: "USD" },
-                      ]}
-                      value={v.costCurrency || "INR"}
-                      onChange={(val) => {
-                        const next: any = {
-                          ...v,
-                          costCurrency: val as "INR" | "USD",
-                        };
-                        if (val === "USD") {
-                          next.costInr = computeInr(
-                            String(v.costprice ?? ""),
-                            String(v.costRoe ?? ""),
-                          );
-                        } else {
-                          next.costRoe = "";
-                          next.costInr = "";
-                        }
-                        onChange(next);
-                      }}
-                      customWidth="w-[64px]"
-                      noBorder={true}
-                      noButtonRadius={true}
-                      focusRingClass=""
-                      buttonClassName="bg-white text-[13px] text-gray-700 px-2 h-[34px]"
-                      className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center"
-                    />
-
-                    <input
-                      type="text"
-                      name="costprice"
-                      value={v.costprice}
-                      onChange={handlePriceChange("costprice")}
-                      placeholder=""
-                      disabled={isReadOnly || isSubmitting}
-                      className="h-[34px] px-2 text-[13px] outline-none"
-                    />
-                  </div>
-
-                  {v.costCurrency === "USD" && (
-                    <>
-                      <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
-                        <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                          ROE
-                        </span>
-                        <input
-                          value={v.costRoe}
-                          onChange={(e) =>
-                            update({
-                              costRoe: e.target.value,
-                              costInr: computeInr(
-                                String(v.costprice ?? ""),
-                                e.target.value,
-                              ),
-                            })
-                          }
-                          className="h-[34px] px-2 text-[13px] outline-none w-[6rem]"
-                          placeholder=""
-                        />
-                      </div>
-
-                      <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                        <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                          INR
-                        </span>
-                        <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                          {v.costInr || ""}
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  <button
-                    type="button"
-                    className="w-9 h-9 rounded-md bg-[#FFF2D6] hover:bg-[#FFE8B7] transition flex items-center justify-center"
-                    aria-label="Add notes"
-                    onClick={() => setShowCostNotesFlag((s) => !s)}
-                  >
-                    <TbNotes size={16} className="text-[#F59E0B]" />
-                  </button>
-                </div>
-
-                {showCostNotesFlag && (
-                  <div className="mt-3">
-                    <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                      Notes
-                    </label>
-                    <input
-                      value={v.costNotes}
-                      onChange={(e) => update({ costNotes: e.target.value })}
-                      className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none"
-                      placeholder="Enter your notes here"
-                    />
-                  </div>
-                )}
+                <MultiCurrencyInput
+                  currency={(v.costCurrency as "INR" | "USD") || "INR"}
+                  onCurrencyChange={(val) => {
+                    const next: any = {
+                      ...v,
+                      costCurrency: val,
+                    };
+                    if (requiresRoe(val as string, businessCurrency)) {
+                      next.costInr = computeInr(
+                        String(v.costprice ?? ""),
+                        String(v.costRoe ?? ""),
+                      );
+                    } else {
+                      next.costRoe = "";
+                      next.costInr = "";
+                    }
+                    onChange(next);
+                  }}
+                  amount={v.costprice || ""}
+                  onAmountChange={(val) => {
+                    const sanitized = sanitizeNumeric(val);
+                    const next: any = { ...v, costprice: sanitized };
+                    if (requiresRoe(v.costCurrency, businessCurrency)) {
+                      next.costInr = computeInr(sanitized, v.costRoe ?? "");
+                    } else {
+                      next.costInr = "";
+                    }
+                    onChange(next);
+                  }}
+                  roe={v.costRoe || ""}
+                  onRoeChange={(val) =>
+                    update({
+                      costRoe: val,
+                      costInr: computeInr(String(v.costprice ?? ""), val),
+                    })
+                  }
+                  inr={v.costInr || ""}
+                  notes={v.costNotes || ""}
+                  onNotesChange={(val) => update({ costNotes: val })}
+                  showNotes={showCostNotesFlag}
+                  onToggleNotes={() => setShowCostNotesFlag((s) => !s)}
+                  businessCurrency={businessCurrency}
+                  requiresRoe={requiresRoe}
+                />
               </div>
 
               {/* Selling Price */}
@@ -1167,105 +1197,53 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <label className="block text-[13px] font-medium text-gray-700 mb-1">
                   Selling Price
                 </label>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                    <DropDown
-                      options={[
-                        { value: "INR", label: "INR" },
-                        { value: "USD", label: "USD" },
-                      ]}
-                      value={v.sellingCurrency || "INR"}
-                      onChange={(val) => {
-                        const next: any = {
-                          ...v,
-                          sellingCurrency: val as "INR" | "USD",
-                        };
-                        if (val === "USD") {
-                          next.sellingInr = computeInr(
-                            String(v.sellingprice ?? ""),
-                            String(v.sellingRoe ?? ""),
-                          );
-                        } else {
-                          next.sellingRoe = "";
-                          next.sellingInr = "";
-                        }
-                        onChange(next);
-                      }}
-                      customWidth="w-[64px]"
-                      noBorder={true}
-                      noButtonRadius={true}
-                      focusRingClass=""
-                      buttonClassName="bg-white text-[13px] text-gray-700 px-2 h-[34px]"
-                      className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center"
-                    />
-
-                    <input
-                      type="text"
-                      name="sellingprice"
-                      value={v.sellingprice}
-                      onChange={handlePriceChange("sellingprice")}
-                      placeholder=""
-                      disabled={isReadOnly || isSubmitting}
-                      className="h-[34px] px-2 text-[13px] outline-none"
-                    />
-                  </div>
-
-                  {v.sellingCurrency === "USD" && (
-                    <>
-                      <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
-                        <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                          ROE
-                        </span>
-                        <input
-                          value={v.sellingRoe}
-                          onChange={(e) =>
-                            update({
-                              sellingRoe: e.target.value,
-                              sellingInr: computeInr(
-                                String(v.sellingprice ?? ""),
-                                e.target.value,
-                              ),
-                            })
-                          }
-                          className="h-[34px] px-2 text-[13px] outline-none w-[6rem]"
-                          placeholder=""
-                        />
-                      </div>
-
-                      <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                        <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                          INR
-                        </span>
-                        <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                          {v.sellingInr || ""}
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  <button
-                    type="button"
-                    className="w-9 h-9 rounded-md bg-[#FFF2D6] hover:bg-[#FFE8B7] transition flex items-center justify-center"
-                    aria-label="Add notes"
-                    onClick={() => setShowSellingNotesFlag((s) => !s)}
-                  >
-                    <TbNotes size={16} className="text-[#F59E0B]" />
-                  </button>
-                </div>
-
-                {showSellingNotesFlag && (
-                  <div className="mt-3">
-                    <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                      Notes
-                    </label>
-                    <input
-                      value={v.sellingNotes}
-                      onChange={(e) => update({ sellingNotes: e.target.value })}
-                      className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none"
-                      placeholder="Enter your notes here"
-                    />
-                  </div>
-                )}
+                <MultiCurrencyInput
+                  currency={(v.sellingCurrency as "INR" | "USD") || "INR"}
+                  onCurrencyChange={(val) => {
+                    const next: any = {
+                      ...v,
+                      sellingCurrency: val,
+                    };
+                    if (requiresRoe(val as string, businessCurrency)) {
+                      next.sellingInr = computeInr(
+                        String(v.sellingprice ?? ""),
+                        String(v.sellingRoe ?? ""),
+                      );
+                    } else {
+                      next.sellingRoe = "";
+                      next.sellingInr = "";
+                    }
+                    onChange(next);
+                  }}
+                  amount={v.sellingprice || ""}
+                  onAmountChange={(val) => {
+                    const sanitized = sanitizeNumeric(val);
+                    const next: any = { ...v, sellingprice: sanitized };
+                    if (requiresRoe(v.sellingCurrency, businessCurrency)) {
+                      next.sellingInr = computeInr(
+                        sanitized,
+                        v.sellingRoe ?? "",
+                      );
+                    } else {
+                      next.sellingInr = "";
+                    }
+                    onChange(next);
+                  }}
+                  roe={v.sellingRoe || ""}
+                  onRoeChange={(val) =>
+                    update({
+                      sellingRoe: val,
+                      sellingInr: computeInr(String(v.sellingprice ?? ""), val),
+                    })
+                  }
+                  inr={v.sellingInr || ""}
+                  notes={v.sellingNotes || ""}
+                  onNotesChange={(val) => update({ sellingNotes: val })}
+                  showNotes={showSellingNotesFlag}
+                  onToggleNotes={() => setShowSellingNotesFlag((s) => !s)}
+                  businessCurrency={businessCurrency}
+                  requiresRoe={requiresRoe}
+                />
               </div>
 
               {/* NET */}
@@ -1408,245 +1386,182 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
                       {item.key !== "cost" ? (
                         <div className="flex flex-col w-full">
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                              <DropDown
-                                options={[
-                                  { value: "INR", label: "INR" },
-                                  { value: "USD", label: "USD" },
-                                ]}
-                                value={
-                                  item.key === "price"
-                                    ? v.vendorBaseCurrency || "INR"
-                                    : item.key === "received"
-                                      ? v.vendorIncentiveCurrency || "INR"
-                                      : v.commissionCurrency || "INR"
+                          <MultiCurrencyInput
+                            currency={
+                              (item.key === "price"
+                                ? v.vendorBaseCurrency || "INR"
+                                : item.key === "received"
+                                  ? v.vendorIncentiveCurrency || "INR"
+                                  : v.commissionCurrency || "INR") as
+                                | "INR"
+                                | "USD"
+                            }
+                            onCurrencyChange={(curr) => {
+                              if (item.key === "price") {
+                                update({
+                                  vendorBaseCurrency: curr,
+                                  vendorBaseInr: requiresRoe(
+                                    curr,
+                                    businessCurrency,
+                                  )
+                                    ? (v.vendorBaseInr ?? "")
+                                    : "",
+                                });
+                              } else if (item.key === "received") {
+                                update({
+                                  vendorIncentiveCurrency: curr,
+                                  vendorIncentiveInr: requiresRoe(
+                                    curr,
+                                    businessCurrency,
+                                  )
+                                    ? (v.vendorIncentiveInr ?? "")
+                                    : "",
+                                });
+                              } else {
+                                update({
+                                  commissionCurrency: curr,
+                                  commissionInr: requiresRoe(
+                                    curr,
+                                    businessCurrency,
+                                  )
+                                    ? (v.commissionInr ?? "")
+                                    : "",
+                                });
+                              }
+                            }}
+                            amount={
+                              item.key === "price"
+                                ? v.vendorBasePrice || ""
+                                : item.key === "received"
+                                  ? v.vendorIncentiveReceived || ""
+                                  : v.commissionPaid || ""
+                            }
+                            onAmountChange={(val) => {
+                              const sanitized = sanitizeNumeric(val);
+                              if (item.key === "price") {
+                                const next: any = {
+                                  vendorBasePrice: String(sanitized),
+                                };
+                                if (
+                                  requiresRoe(
+                                    v.vendorBaseCurrency,
+                                    businessCurrency,
+                                  )
+                                ) {
+                                  next.vendorBaseInr = computeInr(
+                                    sanitized,
+                                    v.vendorBaseRoe,
+                                  );
                                 }
-                                onChange={(val) => {
-                                  const curr = String(val) as "INR" | "USD";
-                                  if (item.key === "price") {
-                                    update({
-                                      vendorBaseCurrency: curr,
-                                      vendorBaseInr:
-                                        curr === "INR"
-                                          ? ""
-                                          : (v.vendorBaseInr ?? ""),
-                                    });
-                                  } else if (item.key === "received") {
-                                    update({
-                                      vendorIncentiveCurrency: curr,
-                                      vendorIncentiveInr:
-                                        curr === "INR"
-                                          ? ""
-                                          : (v.vendorIncentiveInr ?? ""),
-                                    });
-                                  } else {
-                                    update({
-                                      commissionCurrency: curr,
-                                      commissionInr:
-                                        curr === "INR"
-                                          ? ""
-                                          : (v.commissionInr ?? ""),
-                                    });
-                                  }
-                                }}
-                                customWidth="w-[64px]"
-                                noBorder={true}
-                                noButtonRadius={true}
-                                focusRingClass=""
-                                buttonClassName="bg-white text-[13px] text-gray-700 px-2 h-[34px]"
-                                className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center"
-                              />
-
-                              <input
-                                type="text"
-                                inputMode="decimal"
-                                pattern="^\\d*(?:\\.\\d*)?$"
-                                placeholder="Enter Amount"
-                                value={
-                                  item.key === "price"
-                                    ? v.vendorBasePrice
-                                    : item.key === "received"
-                                      ? v.vendorIncentiveReceived
-                                      : v.commissionPaid
+                                update(next);
+                              } else if (item.key === "received") {
+                                const next: any = {
+                                  vendorIncentiveReceived: String(sanitized),
+                                };
+                                if (
+                                  requiresRoe(
+                                    v.vendorIncentiveCurrency,
+                                    businessCurrency,
+                                  )
+                                ) {
+                                  next.vendorIncentiveInr = computeInr(
+                                    sanitized,
+                                    v.vendorIncentiveRoe,
+                                  );
                                 }
-                                onChange={(e) => {
-                                  const raw = e.target.value;
-                                  const sanitized = sanitizeNumeric(raw);
-                                  if (item.key === "price") {
-                                    const next: any = {
-                                      vendorBasePrice: String(sanitized),
-                                    };
-                                    if (v.vendorBaseCurrency === "USD") {
-                                      next.vendorBaseInr = computeInr(
-                                        sanitized,
-                                        v.vendorBaseRoe,
-                                      );
-                                    }
-                                    update(next);
-                                  } else if (item.key === "received") {
-                                    const next: any = {
-                                      vendorIncentiveReceived:
-                                        String(sanitized),
-                                    };
-                                    if (v.vendorIncentiveCurrency === "USD") {
-                                      next.vendorIncentiveInr = computeInr(
-                                        sanitized,
-                                        v.vendorIncentiveRoe,
-                                      );
-                                    }
-                                    update(next);
-                                  } else {
-                                    const next: any = {
-                                      commissionPaid: String(sanitized),
-                                    };
-                                    if (v.commissionCurrency === "USD") {
-                                      next.commissionInr = computeInr(
-                                        sanitized,
-                                        v.commissionRoe,
-                                      );
-                                    }
-                                    update(next);
-                                  }
-                                }}
-                                disabled={isReadOnly || isSubmitting}
-                                className="h-[34px] px-3 text-[13px] outline-none"
-                              />
-                            </div>
-
-                            {(item.key === "price" &&
-                              v.vendorBaseCurrency === "USD") ||
-                            (item.key === "received" &&
-                              v.vendorIncentiveCurrency === "USD") ||
-                            (item.key === "payout" &&
-                              v.commissionCurrency === "USD") ? (
-                              <>
-                                <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
-                                  <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                                    ROE
-                                  </span>
-                                  <input
-                                    value={
-                                      item.key === "price"
-                                        ? v.vendorBaseRoe
-                                        : item.key === "received"
-                                          ? v.vendorIncentiveRoe
-                                          : v.commissionRoe
-                                    }
-                                    onChange={(e) => {
-                                      const roe = e.target.value;
-                                      if (item.key === "price") {
-                                        update({
-                                          vendorBaseRoe: roe,
-                                          vendorBaseInr: computeInr(
-                                            v.vendorBasePrice,
-                                            roe,
-                                          ),
-                                        });
-                                      } else if (item.key === "received") {
-                                        update({
-                                          vendorIncentiveRoe: roe,
-                                          vendorIncentiveInr: computeInr(
-                                            v.vendorIncentiveReceived,
-                                            roe,
-                                          ),
-                                        });
-                                      } else {
-                                        update({
-                                          commissionRoe: roe,
-                                          commissionInr: computeInr(
-                                            v.commissionPaid,
-                                            roe,
-                                          ),
-                                        });
-                                      }
-                                    }}
-                                    className="h-[34px] px-2 text-[13px] outline-none w-[6rem]"
-                                    placeholder=""
-                                  />
-                                </div>
-
-                                <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                                  <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                                    INR
-                                  </span>
-                                  <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                                    {item.key === "price"
-                                      ? v.vendorBaseInr || ""
-                                      : item.key === "received"
-                                        ? v.vendorIncentiveInr || ""
-                                        : v.commissionInr || ""}
-                                  </div>
-                                </div>
-                              </>
-                            ) : null}
-
-                            <button
-                              type="button"
-                              className="w-9 h-9 rounded-md bg-[#FFF2D6] hover:bg-[#FFE8B7] transition flex items-center justify-center"
-                              aria-label="Add notes"
-                              onClick={() => {
-                                if (item.key === "price")
-                                  setShowVendorBaseNotesFlag((s) => !s);
-                                else if (item.key === "received")
-                                  setShowVendorIncentiveNotesFlag((s) => !s);
-                                else setShowCommissionNotesFlag((s) => !s);
-                              }}
-                            >
-                              <TbNotes size={16} className="text-[#F59E0B]" />
-                            </button>
-                          </div>
-
-                          {item.key === "price" && showVendorBaseNotesFlag && (
-                            <div className="mt-3">
-                              <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                                Notes
-                              </label>
-                              <input
-                                value={v.vendorBaseNotes}
-                                onChange={(e) =>
-                                  update({ vendorBaseNotes: e.target.value })
+                                update(next);
+                              } else {
+                                const next: any = {
+                                  commissionPaid: String(sanitized),
+                                };
+                                if (
+                                  requiresRoe(
+                                    v.commissionCurrency,
+                                    businessCurrency,
+                                  )
+                                ) {
+                                  next.commissionInr = computeInr(
+                                    sanitized,
+                                    v.commissionRoe,
+                                  );
                                 }
-                                className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none"
-                                placeholder="Enter your notes here"
-                              />
-                            </div>
-                          )}
-
-                          {item.key === "received" &&
-                            showVendorIncentiveNotesFlag && (
-                              <div className="mt-3">
-                                <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                                  Notes
-                                </label>
-                                <input
-                                  value={v.vendorIncentiveNotes}
-                                  onChange={(e) =>
-                                    update({
-                                      vendorIncentiveNotes: e.target.value,
-                                    })
-                                  }
-                                  className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none"
-                                  placeholder="Enter your notes here"
-                                />
-                              </div>
-                            )}
-
-                          {item.key === "payout" && showCommissionNotesFlag && (
-                            <div className="mt-3">
-                              <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                                Notes
-                              </label>
-                              <input
-                                value={v.commissionNotes}
-                                onChange={(e) =>
-                                  update({ commissionNotes: e.target.value })
-                                }
-                                className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none"
-                                placeholder="Enter your notes here"
-                              />
-                            </div>
-                          )}
+                                update(next);
+                              }
+                            }}
+                            roe={
+                              item.key === "price"
+                                ? v.vendorBaseRoe || ""
+                                : item.key === "received"
+                                  ? v.vendorIncentiveRoe || ""
+                                  : v.commissionRoe || ""
+                            }
+                            onRoeChange={(roe) => {
+                              if (item.key === "price") {
+                                update({
+                                  vendorBaseRoe: roe,
+                                  vendorBaseInr: computeInr(
+                                    v.vendorBasePrice,
+                                    roe,
+                                  ),
+                                });
+                              } else if (item.key === "received") {
+                                update({
+                                  vendorIncentiveRoe: roe,
+                                  vendorIncentiveInr: computeInr(
+                                    v.vendorIncentiveReceived,
+                                    roe,
+                                  ),
+                                });
+                              } else {
+                                update({
+                                  commissionRoe: roe,
+                                  commissionInr: computeInr(
+                                    v.commissionPaid,
+                                    roe,
+                                  ),
+                                });
+                              }
+                            }}
+                            inr={
+                              item.key === "price"
+                                ? v.vendorBaseInr || ""
+                                : item.key === "received"
+                                  ? v.vendorIncentiveInr || ""
+                                  : v.commissionInr || ""
+                            }
+                            notes={
+                              item.key === "price"
+                                ? v.vendorBaseNotes || ""
+                                : item.key === "received"
+                                  ? v.vendorIncentiveNotes || ""
+                                  : v.commissionNotes || ""
+                            }
+                            onNotesChange={(val) => {
+                              if (item.key === "price") {
+                                update({ vendorBaseNotes: val });
+                              } else if (item.key === "received") {
+                                update({ vendorIncentiveNotes: val });
+                              } else {
+                                update({ commissionNotes: val });
+                              }
+                            }}
+                            showNotes={
+                              item.key === "price"
+                                ? showVendorBaseNotesFlag
+                                : item.key === "received"
+                                  ? showVendorIncentiveNotesFlag
+                                  : showCommissionNotesFlag
+                            }
+                            onToggleNotes={() => {
+                              if (item.key === "price")
+                                setShowVendorBaseNotesFlag((s) => !s);
+                              else if (item.key === "received")
+                                setShowVendorIncentiveNotesFlag((s) => !s);
+                              else setShowCommissionNotesFlag((s) => !s);
+                            }}
+                            businessCurrency={businessCurrency}
+                            requiresRoe={requiresRoe}
+                          />
                         </div>
                       ) : (
                         <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">
@@ -1674,19 +1589,17 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                         ₹
                       </div>
 
-                      <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                        <DropDown
-                          options={[
-                            { value: "INR", label: "INR" },
-                            { value: "USD", label: "USD" },
-                          ]}
-                          value={v.sellingCurrency || "INR"}
-                          onChange={(val) => {
+                      <div className="flex-1">
+                        <MultiCurrencyInput
+                          currency={
+                            (v.sellingCurrency as "INR" | "USD") || "INR"
+                          }
+                          onCurrencyChange={(val) => {
                             const next: any = {
                               ...v,
-                              sellingCurrency: val as "INR" | "USD",
+                              sellingCurrency: val,
                             };
-                            if (val === "USD") {
+                            if (requiresRoe(val as string, businessCurrency)) {
                               next.sellingInr = computeInr(
                                 String(v.sellingprice ?? ""),
                                 String(v.sellingRoe ?? ""),
@@ -1697,83 +1610,44 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                             }
                             onChange(next);
                           }}
-                          customWidth="w-[64px]"
-                          noBorder={true}
-                          noButtonRadius={true}
-                          focusRingClass=""
-                          buttonClassName="bg-white text-[13px] text-gray-700 px-2 h-[34px]"
-                          className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center"
-                        />
-
-                        <input
-                          type="text"
-                          name="sellingprice"
-                          value={String(v.sellingprice ?? "")}
-                          onChange={handlePriceChange("sellingprice")}
-                          placeholder="Enter Amount"
-                          disabled={isReadOnly || isSubmitting}
-                          className="h-[34px] px-3 text-[13px] outline-none"
-                        />
-                      </div>
-
-                      <button
-                        type="button"
-                        className="w-9 h-9 rounded-md bg-[#FFF2D6] hover:bg-[#FFE8B7] transition flex items-center justify-center"
-                        aria-label="Add notes"
-                        onClick={() => setShowSellingNotesFlag((s) => !s)}
-                      >
-                        <TbNotes size={16} className="text-[#F59E0B]" />
-                      </button>
-                    </div>
-
-                    {v.sellingCurrency === "USD" && (
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                            ROE
-                          </span>
-                          <input
-                            value={v.sellingRoe}
-                            onChange={(e) =>
-                              update({
-                                sellingRoe: e.target.value,
-                                sellingInr: computeInr(
-                                  String(v.sellingprice ?? ""),
-                                  e.target.value,
-                                ),
-                              })
+                          amount={v.sellingprice || ""}
+                          onAmountChange={(val) => {
+                            const sanitized = sanitizeNumeric(val);
+                            const next: any = { ...v, sellingprice: sanitized };
+                            if (
+                              requiresRoe(v.sellingCurrency, businessCurrency)
+                            ) {
+                              next.sellingInr = computeInr(
+                                sanitized,
+                                v.sellingRoe ?? "",
+                              );
+                            } else {
+                              next.sellingInr = "";
                             }
-                            className="h-[34px] px-2 text-[13px] outline-none w-[6rem]"
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {v.sellingInr || ""}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {showSellingNotesFlag && (
-                      <div className="mt-2">
-                        <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                          Notes
-                        </label>
-                        <input
-                          value={v.sellingNotes}
-                          onChange={(e) =>
-                            update({ sellingNotes: e.target.value })
+                            onChange(next);
+                          }}
+                          roe={v.sellingRoe || ""}
+                          onRoeChange={(val) =>
+                            update({
+                              sellingRoe: val,
+                              sellingInr: computeInr(
+                                String(v.sellingprice ?? ""),
+                                val,
+                              ),
+                            })
                           }
-                          className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none"
-                          placeholder="Enter your notes here"
+                          inr={v.sellingInr || ""}
+                          notes={v.sellingNotes || ""}
+                          onNotesChange={(val) => update({ sellingNotes: val })}
+                          showNotes={showSellingNotesFlag}
+                          onToggleNotes={() =>
+                            setShowSellingNotesFlag((s) => !s)
+                          }
+                          businessCurrency={businessCurrency}
+                          requiresRoe={requiresRoe}
                         />
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>

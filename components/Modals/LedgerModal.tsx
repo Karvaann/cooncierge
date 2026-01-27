@@ -91,6 +91,8 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     "create" | "edit"
   >("create");
   const [paymentInitial, setPaymentInitial] = useState<{
+    _id?: string;
+    customId?: string;
     amount?: string;
     bankCharges?: string;
     bankChargesNotes?: string;
@@ -400,45 +402,127 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   const normalizeEntryToPayment = (entry: any) => {
     if (!entry) return null;
     const data = entry.data || {};
+
+    const paymentData =
+      data &&
+      typeof data === "object" &&
+      data.payment &&
+      typeof data.payment === "object"
+        ? data.payment
+        : data;
+
+    const resolvedPartyTypeRaw =
+      paymentData.party ||
+      data.party ||
+      entry.party ||
+      entry.data?.payment?.party ||
+      "";
+    const resolvedPartyType = String(resolvedPartyTypeRaw || "");
+    const resolvedPartyTypeLower = resolvedPartyType.toLowerCase();
+
     // Resolve partyId to prefer nested Mongo _id when available
-    const rawPartyId = data.partyId ?? entry.partyId;
+    const rawPartyId = paymentData.partyId ?? data.partyId ?? entry.partyId;
     const resolvedPartyId =
       rawPartyId && typeof rawPartyId === "object"
         ? rawPartyId._id || rawPartyId.id || rawPartyId
         : rawPartyId;
 
-    const resolvedPartyName =
-      (data.partyId && typeof data.partyId === "object" && data.partyId.name) ||
-      entry.partyName ||
-      (data.party && typeof data.party === "object" && data.party.name) ||
-      "";
+    const partyObj: any =
+      (rawPartyId && typeof rawPartyId === "object" && rawPartyId) || null;
+
+    const resolvedPartyName = (() => {
+      const fallback = entry.partyName || "";
+      if (!partyObj) return fallback;
+
+      if (resolvedPartyTypeLower === "vendor") {
+        return (
+          partyObj.companyName ||
+          partyObj.name ||
+          partyObj.contactPerson ||
+          fallback
+        );
+      }
+
+      return (
+        partyObj.name ||
+        partyObj.companyName ||
+        partyObj.contactPerson ||
+        fallback
+      );
+    })();
+
+    const resolvedCustomId =
+      entry.customId || paymentData.customId || data.customId || "";
+    const resolvedId =
+      paymentData._id || data._id || entry._id || entry.referenceId;
+    const resolvedBank =
+      paymentData.bankId || data.bankId || entry.bank || entry.bankId || null;
+    const resolvedAllocations =
+      paymentData.allocations || data.allocations || entry.allocations || [];
 
     const payment = {
-      customId: entry.customId || data.customId,
-      _id: data._id || entry._id || entry.referenceId,
-      amount: Number(data.amount || entry.amount || 0),
-      entryType: data.entryType || entry.entryType,
-      paymentDate: data.paymentDate || entry.paymentDate || entry.date,
-      paymentType: data.paymentType || entry.paymentType,
-      bank: data.bankId || entry.bank || entry.bankId || null,
+      customId: resolvedCustomId,
+      _id: resolvedId,
+      amount: Number(paymentData.amount ?? data.amount ?? entry.amount ?? 0),
+      entryType: paymentData.entryType || data.entryType || entry.entryType,
+      paymentDate:
+        paymentData.paymentDate ||
+        data.paymentDate ||
+        entry.paymentDate ||
+        entry.date,
+      paymentType:
+        paymentData.paymentType || data.paymentType || entry.paymentType,
+      bank: resolvedBank,
       account: entry.account,
-      documents: data.documents || entry.documents || [],
+      documents:
+        paymentData.documents || data.documents || entry.documents || [],
       internalNotes:
+        paymentData.internalNotes ||
+        paymentData.notes ||
         data.internalNotes ||
         data.notes ||
         entry.internalNotes ||
         entry.notes ||
         "",
-      allocations: entry.allocations || data.allocations || [],
-      outstandingAmount: data.unallocatedAmount || entry.unallocatedAmount,
-      party: data.party || entry.party,
+      allocations: resolvedAllocations,
+      outstandingAmount:
+        paymentData.unallocatedAmount ||
+        data.unallocatedAmount ||
+        entry.unallocatedAmount,
+      party: resolvedPartyType,
       partyId: resolvedPartyId,
       partyName: resolvedPartyName,
-      bankCharges: data.bankCharges || entry.bankCharges,
-      bankChargesNotes: data.bankChargesNotes || entry.bankChargesNotes,
-      cashbackReceived: data.cashbackReceived || entry.cashbackReceived,
-      cashbackNotes: data.cashbackNotes || entry.cashbackNotes,
-      data: data,
+      bankCharges:
+        paymentData.bankCharges || data.bankCharges || entry.bankCharges,
+      bankChargesNotes:
+        paymentData.bankChargesNotes ||
+        data.bankChargesNotes ||
+        entry.bankChargesNotes,
+      cashbackReceived:
+        paymentData.cashbackReceived ||
+        data.cashbackReceived ||
+        entry.cashbackReceived,
+      cashbackNotes:
+        paymentData.cashbackNotes || data.cashbackNotes || entry.cashbackNotes,
+      amountCurrency:
+        paymentData.amountCurrency ||
+        paymentData.amountCurreny ||
+        data.amountCurrency ||
+        data.amountCurreny,
+      amountRoe: paymentData.amountRoe || data.amountRoe,
+      amountInr: paymentData.amountInr || data.amountInr,
+      bankChargesCurrency:
+        paymentData.bankChargesCurrency || data.bankChargesCurrency,
+      bankChargesRoe: paymentData.bankChargesRoe || data.bankChargesRoe,
+      bankChargesInr: paymentData.bankChargesInr || data.bankChargesInr,
+      cashbackReceivedCurrency:
+        paymentData.cashbackReceivedCurrency || data.cashbackReceivedCurrency,
+      cashbackReceivedRoe:
+        paymentData.cashbackReceivedRoe || data.cashbackReceivedRoe,
+      cashbackReceivedInr:
+        paymentData.cashbackReceivedInr || data.cashbackReceivedInr,
+      data: paymentData,
+      _rawData: data,
       // keep original entry for reference
       // _entry: entry,
     } as any;
@@ -610,22 +694,31 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                 setPaymentSidesheetTitle(
                   customId.startsWith("PI-") ? "Payment In" : "Payment Out",
                 );
+                setPaymentCustomId(customId || null);
                 setPaymentInitial({
+                  _id: payment._id,
+                  customId: customId,
                   amount: String(payment.amount || ""),
+                  amountCurrency: payment.amountCurrency,
+                  amountRoe: payment.amountRoe,
+                  amountInr: payment.amountInr,
                   paymentDate: payment.paymentDate || "",
                   bank:
                     payment.data?.bankId?._id ||
                     payment.bank?._id ||
-                    payment.bank ||
-                    r.data?.bankId?._id ||
-                    r.bank?._id ||
-                    r.bankId ||
+                    (typeof payment.bank === "string" ? payment.bank : "") ||
                     "",
                   paymentType: payment.paymentType || "",
                   internalNotes: payment.internalNotes || "",
                   bankCharges: String(payment.bankCharges || ""),
+                  bankChargesCurrency: payment.bankChargesCurrency,
+                  bankChargesRoe: payment.bankChargesRoe,
+                  bankChargesInr: payment.bankChargesInr,
                   bankChargesNotes: payment.bankChargesNotes || "",
                   cashbackReceived: String(payment.cashbackReceived || ""),
+                  cashbackReceivedCurrency: payment.cashbackReceivedCurrency,
+                  cashbackReceivedRoe: payment.cashbackReceivedRoe,
+                  cashbackReceivedInr: payment.cashbackReceivedInr,
                   cashbackNotes: payment.cashbackNotes || "",
                 });
                 setPaymentSidesheetOpen(true);
@@ -826,16 +919,31 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     setPaymentSidesheetTitle(
       customId.startsWith("PI-") ? "Payment In" : "Payment Out",
     );
+    setPaymentCustomId(customId || null);
     setPaymentInitial({
+      _id: payment._id,
+      customId: customId,
       amount: String(payment.amount || ""),
+      amountCurrency: payment.amountCurrency,
+      amountRoe: payment.amountRoe,
+      amountInr: payment.amountInr,
       paymentDate: payment.paymentDate || "",
       bank:
-        payment.data?.bankId?._id || payment.bank?._id || payment.bank || "",
+        payment.data?.bankId?._id ||
+        payment.bank?._id ||
+        (typeof payment.bank === "string" ? payment.bank : "") ||
+        "",
       paymentType: payment.paymentType || "",
       internalNotes: payment.internalNotes || "",
       bankCharges: String(payment.bankCharges || ""),
+      bankChargesCurrency: payment.bankChargesCurrency,
+      bankChargesRoe: payment.bankChargesRoe,
+      bankChargesInr: payment.bankChargesInr,
       bankChargesNotes: payment.bankChargesNotes || "",
       cashbackReceived: String(payment.cashbackReceived || ""),
+      cashbackReceivedCurrency: payment.cashbackReceivedCurrency,
+      cashbackReceivedRoe: payment.cashbackReceivedRoe,
+      cashbackReceivedInr: payment.cashbackReceivedInr,
       cashbackNotes: payment.cashbackNotes || "",
     });
     setIsViewPaymentOpen(false);

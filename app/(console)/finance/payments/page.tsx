@@ -58,6 +58,21 @@ type PaymentRow = {
   partyName: string;
   linkedBooking: string;
   amount: number;
+
+  amountCurrency?: "INR" | "USD";
+  amountRoe?: number | string;
+  amountInr?: number | string;
+
+  bankCharges?: number | string;
+  bankChargesCurrency?: "INR" | "USD";
+  bankChargesRoe?: number | string;
+  bankChargesInr?: number | string;
+
+  cashbackReceived?: number | string;
+  cashbackReceivedCurrency?: "INR" | "USD";
+  cashbackReceivedRoe?: number | string;
+  cashbackReceivedInr?: number | string;
+
   amountType: "gave" | "got";
   account: string;
   paymentType: string;
@@ -402,6 +417,21 @@ const PaymentsPage = () => {
           partyName,
           linkedBooking,
           amount,
+
+          amountCurrency: p.amountCurrency || p.amountCurreny || "INR",
+          amountRoe: p.amountRoe,
+          amountInr: p.amountInr,
+
+          bankCharges: p.bankCharges,
+          bankChargesCurrency: p.bankChargesCurrency || "INR",
+          bankChargesRoe: p.bankChargesRoe,
+          bankChargesInr: p.bankChargesInr,
+
+          cashbackReceived: p.cashbackReceived,
+          cashbackReceivedCurrency: p.cashbackReceivedCurrency || "INR",
+          cashbackReceivedRoe: p.cashbackReceivedRoe,
+          cashbackReceivedInr: p.cashbackReceivedInr,
+
           amountType: amountType as "gave" | "got",
           account,
           paymentType,
@@ -845,16 +875,28 @@ const PaymentsPage = () => {
               ? ({
                   _id: editingPayment.id || undefined,
                   amount: String(editingPayment.amount || ""),
+                  amountCurrency: editingPayment.amountCurrency,
+                  amountRoe: editingPayment.amountRoe,
+                  amountInr: editingPayment.amountInr,
+
+                  bankCharges: editingPayment.bankCharges,
+                  bankChargesCurrency: editingPayment.bankChargesCurrency,
+                  bankChargesRoe: editingPayment.bankChargesRoe,
+                  bankChargesInr: editingPayment.bankChargesInr,
+
+                  cashbackReceived: editingPayment.cashbackReceived,
+                  cashbackReceivedCurrency:
+                    editingPayment.cashbackReceivedCurrency,
+                  cashbackReceivedRoe: editingPayment.cashbackReceivedRoe,
+                  cashbackReceivedInr: editingPayment.cashbackReceivedInr,
+
                   paymentDate:
                     editingPayment.paymentDateRaw || editingPayment.createdAt,
-                  bank:
-                    editingPayment.bankId ||
-                    (editingPayment.account === "Cash"
-                      ? ""
-                      : editingPayment.account),
+
+                  bank: editingPayment.bankId || "",
                   paymentType: String(
                     editingPayment.paymentType || "",
-                  ).toUpperCase(),
+                  ).toLowerCase(),
                   internalNotes: "",
                 } as any)
               : undefined
