@@ -39,6 +39,7 @@ type PieceMapKey =
   | "vendors"
   | "settings"
   | "approvals"
+  | "view-booking"
   | "ProfileSettings"
   | "UserProfile";
 
@@ -61,6 +62,7 @@ type HeaderMapKey =
   | "/dashboard"
   | "/settings"
   | "/approvals"
+  | "/bookings/view-booking"
   | "/ProfileSettings"
   | "/ProfileSettings/UserProfile";
 
@@ -82,6 +84,7 @@ const PIECE_MAP: Record<PieceMapKey, string> = {
   ProfileSettings: "Profile Settings",
   UserProfile: "User Profile",
   settings: "Settings",
+  "view-booking": "View Booking",
   approvals: "Approvals",
 } as const;
 
@@ -106,6 +109,7 @@ const HEADER_MAP: Record<HeaderMapKey, string> = {
   "/ProfileSettings/UserProfile": "User Profile",
   "/settings": "Settings",
   "/approvals": "Approvals",
+  "/bookings/view-booking": "Bookings - Limitless",
 } as const;
 
 const Header: React.FC<HeaderProps> = ({ isOpen }) => {
@@ -172,7 +176,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
       zIndex: 30,
       // height: "fit-content",
     }),
-    [isOpen]
+    [isOpen],
   );
 
   const dropdownClasses = useMemo(
@@ -180,7 +184,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
       `absolute right-0 top-full mt-4 -mr-3 w-70 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden transition-all duration-300 ease-in-out ${
         isDropDownOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
       }`,
-    [isDropDownOpen]
+    [isDropDownOpen],
   );
 
   useEffect(() => {

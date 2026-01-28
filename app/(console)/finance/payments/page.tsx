@@ -57,6 +57,7 @@ type PaymentRow = {
   paymentId: string;
   partyName: string;
   linkedBooking: string;
+  serviceType?: string;
   amount: number;
 
   amountCurrency?: "INR" | "USD";
@@ -311,10 +312,11 @@ const PaymentsPage = () => {
     }
 
     const getPaymentTimestamp = (item: PaymentRow): number | null => {
-      const raw = item.paymentDateRaw || item.createdAt;
-      if (!raw) return null;
-      const ts = new Date(raw).getTime();
-      return Number.isFinite(ts) ? ts : null;
+      try {
+        return new Date(item.paymentDateRaw || item.createdAt).getTime();
+      } catch {
+        return null;
+      }
     };
 
     // Stable sort: keep original order for ties.
@@ -375,17 +377,16 @@ const PaymentsPage = () => {
         } else if (p.party) partyName = String(p.party);
 
         let linkedBooking = "-";
-        if (p.allocations && p.allocations.length > 0) {
-          const firstAlloc = p.allocations[0];
-          const q = firstAlloc.quotationId;
-          if (q) {
-            if (typeof q === "object") {
-              linkedBooking = String(q.customId || q._id || "-");
-            } else {
-              linkedBooking = String(q);
-            }
+        let serviceType: string | undefined;
+
+        if (p.allocations?.length > 0) {
+          const q = p.allocations[0].quotationId;
+          if (q && typeof q === "object") {
+            linkedBooking = String(q.customId || q._id || "-");
+            serviceType = String(q.serviceType || q.type || "").toLowerCase();
           }
         }
+
         const amount = Number(p.amount || 0);
         const amountType = p.entryType === "credit" ? "got" : "gave";
         const account = (p.bankId && (p.bankId.name || p.bankId)) || "Cash";
@@ -416,6 +417,7 @@ const PaymentsPage = () => {
           paymentId,
           partyName,
           linkedBooking,
+          serviceType,
           amount,
 
           amountCurrency: p.amountCurrency || p.amountCurreny || "INR",
@@ -494,6 +496,9 @@ const PaymentsPage = () => {
     const start = startDate ? new Date(startDate) : null;
     const end = endDate ? new Date(endDate) : null;
 
+    const getPaymentDate = (p: PaymentRow) =>
+      new Date(p.paymentDateRaw || p.createdAt);
+
     // expand end to end-of-day for inclusive filtering
     const endOfDay = end
       ? new Date(
@@ -521,8 +526,8 @@ const PaymentsPage = () => {
     return sortedPayments.filter((p) => {
       /* Date filter */
       if (start && endOfDay) {
-        const t = new Date(p.createdAt).getTime();
-        if (t < start.getTime() || t > endOfDay.getTime()) {
+        const paymentDate = getPaymentDate(p).getTime();
+        if (paymentDate < start.getTime() || paymentDate > endOfDay.getTime()) {
           return false;
         }
       }
@@ -538,12 +543,8 @@ const PaymentsPage = () => {
 
       /* Linked Booking filter */
       if (linkedBookingFilter.length > 0) {
-        // dummy assumption: booking prefix or mapping
-        const matchesBooking = linkedBookingFilter.some((type) =>
-          p.linkedBooking.toLowerCase().includes(type),
-        );
-
-        if (!matchesBooking) return false;
+        if (!p.serviceType) return false;
+        if (!linkedBookingFilter.includes(p.serviceType)) return false;
       }
 
       /* Account filter */

@@ -975,7 +975,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
                   </span>
                 </div>
 
-                <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-visible">
+                <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-x-auto max-w-full">
                   <Table
                     columns={["Payment", "Amount (₹)", "Settle Amount (₹)"]}
                     headerAlign={{

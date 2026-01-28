@@ -75,7 +75,7 @@ const getSecureRandomIndex = (max: number): number => {
   if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
     const array = new Uint32Array(1);
     window.crypto.getRandomValues(array);
-    return array[0] % max;
+    return (array[0] ?? 0) % max;
   }
   return Math.floor(Math.random() * max);
 };
@@ -136,6 +136,32 @@ export const getRandomBorderClass = (): string => {
   
   const randomIndex = getSecureRandomIndex(borderClasses.length);
   return borderClasses[randomIndex]!;
+};
+
+/**
+ * Deterministically maps a string seed (e.g., owner name) to a border+text color pair.
+ * Useful for avatar chips so colors stay stable across renders.
+ */
+export const getOwnerAvatarColorClass = (seed: string): string => {
+  const palette = [
+    "border-pink-700 text-pink-700",
+    "border-[#AF52DE] text-[#AF52DE]",
+    "border-[#5856D6] text-[#5856D6]",
+    "border-cyan-700 text-cyan-700",
+    "border-emerald-700 text-emerald-700",
+    "border-amber-700 text-amber-700",
+  ] as const;
+
+  const input = (seed || "").trim().toLowerCase();
+
+  // Simple stable hash (djb2-ish)
+  let hash = 5381;
+  for (let i = 0; i < input.length; i++) {
+    hash = (hash * 33) ^ input.charCodeAt(i);
+  }
+
+  const idx = Math.abs(hash) % palette.length;
+  return palette[idx]!;
 };
 
 /**

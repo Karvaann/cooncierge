@@ -155,7 +155,7 @@ const columns: string[] = [
   "Booking ID",
   "Lead Pax",
   "Travel Date",
-  "Service",
+  "Destination",
   "Service Status",
   "Amount",
   "Owners",
@@ -173,7 +173,7 @@ const columnIconMap: Record<string, JSX.Element> = {
   "Travel Date": (
     <TbArrowsUpDown className="inline w-3 h-3 text-white stroke-[1.5]" />
   ),
-  Service: <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />,
+  Destination: <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />,
   "Booking Status": (
     <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
   ),
@@ -1030,7 +1030,7 @@ const LimitlessBookingsPage = () => {
               : "--"}
       </td>,
       <td
-        key={`service-${index}`}
+        key={`destination-${index}`}
         onClick={() => handleViewBooking(item)}
         className="px-4 py-3 text-center text-[14px] text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
       >

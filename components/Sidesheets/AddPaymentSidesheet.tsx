@@ -1442,7 +1442,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                           </div>
                         </div>
 
-                        <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-visible">
+                        <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-x-auto max-w-full">
                           <Table
                             columns={[
                               "Booking ID",
@@ -1523,7 +1523,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                           payment. You can select multiple invoices
                         </div>
 
-                        <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-visible">
+                        <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-x-auto max-w-full">
                           <Table
                             columns={[
                               "Select",

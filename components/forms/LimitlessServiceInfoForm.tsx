@@ -653,17 +653,6 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
           }`}
         />
       </div>
-
-      {/* Submit Button */}
-      {/* <div className="flex justify-end mt-3">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-5 py-1.5 bg-[#114958] text-[0.8rem] text-white rounded-md hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? "Saving..." : "Save"}
-          </button>
-        </div> */}
     </div>
   );
 };
