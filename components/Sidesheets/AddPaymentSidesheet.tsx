@@ -4,6 +4,7 @@ import ConfirmationModal from "../popups/ConfirmationModal";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
+import MultiCurrencyInput from "@/components/multiCurrencyUI";
 import ErrorToast from "@/components/ErrorToast";
 import BankApi from "@/services/bankApi";
 import { FiEye, FiTrash2 } from "react-icons/fi";
@@ -284,7 +285,10 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
   >(bankOptions.map((b) => ({ name: b })));
 
   const bankDropdownOptions = useMemo(
-    () => banks.map((b) => ({ value: b._id || b.name, label: b.name })),
+    () => [
+      ...banks.map((b) => ({ value: b._id || b.name, label: b.name })),
+      { value: "cash", label: "Cash" },
+    ],
     [banks],
   );
 
@@ -862,10 +866,12 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       return;
     }
 
-    // bankId must be a valid Mongo ObjectId (24 hex chars)
+    // bankId must be a valid Mongo ObjectId (24 hex chars) OR the literal 'cash'
     const bankId = selectedBank;
     const isValidObjectId =
-      typeof bankId === "string" && /^[a-fA-F0-9]{24}$/.test(bankId);
+      typeof bankId === "string" &&
+      (/^[a-fA-F0-9]{24}$/.test(bankId) ||
+        String(bankId).toLowerCase() === "cash");
     if (!isValidObjectId) {
       if (onError) onError("Please select a valid bank");
       return;
@@ -964,7 +970,9 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       const paymentTypeToSend = paymentType
         ? String(paymentType).toLowerCase()
         : "cash";
-      form.append("paymentType", paymentTypeToSend);
+      if (String(bankId).toLowerCase() !== "cash") {
+        form.append("paymentType", paymentTypeToSend);
+      }
       form.append("status", defaultStatus);
       form.append("paymentBreakdown", String(showPaymentBreakdown));
       if (internalNotes) form.append("internalNotes", internalNotes);
@@ -1064,7 +1072,9 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     const paymentTypeToSend = paymentType
       ? String(paymentType).toLowerCase()
       : "cash";
-    form.append("paymentType", paymentTypeToSend);
+    if (String(bankId).toLowerCase() !== "cash") {
+      form.append("paymentType", paymentTypeToSend);
+    }
     form.append("status", defaultStatus);
     form.append("paymentBreakdown", String(showPaymentBreakdown));
     if (internalNotes) form.append("internalNotes", internalNotes);
@@ -1652,112 +1662,50 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                 <span className="text-red-500">*</span> Enter Amount
               </label>
 
-              <div
-                className={`grid ${
-                  requiresRoe(amountCurrency, businessCurrency)
-                    ? "grid-cols-[220px_160px_170px_44px]"
-                    : "grid-cols-[380px_44px]"
-                } gap-3 items-center`}
-              >
-                {/* Amount Input */}
-                <div className={groupBase}>
-                  <DropDown
-                    options={[
-                      { value: "INR", label: "INR" },
-                      { value: "USD", label: "USD" },
-                    ]}
-                    value={amountCurrency}
-                    onChange={(val) => {
-                      setAmountCurrency(val as Currency);
-                      if (requiresRoe(val, businessCurrency)) {
-                        setAmountInr(
-                          computeInr(
-                            String(amount || ""),
-                            String(amountRoe || ""),
-                          ),
-                        );
-                      } else {
-                        setAmountRoe("");
-                        setAmountInr("");
-                      }
-                    }}
-                    customWidth="w-[64px]"
-                    noBorder={true}
-                    noButtonRadius={true}
-                    focusRingClass=""
-                    buttonClassName="bg-white text-[0.78rem] text-gray-700 px-2 h-[34px]"
-                    className={groupSelectWhite}
-                  />
-                  <input
-                    type="text"
-                    value={amount}
-                    onChange={(e) => {
-                      const val = e.target.value.replace(/[^0-9]/g, "");
-                      setAmount(val);
-                      if (
-                        requiresRoe(amountCurrency, businessCurrency) &&
-                        amountRoe
-                      ) {
-                        setAmountInr(computeInr(val, amountRoe));
-                      }
-                    }}
-                    placeholder="Enter Amount"
-                    className={groupInput}
-                  />
-                </div>
-
-                {/* ROE Field (only for USD) */}
-                {requiresRoe(amountCurrency, businessCurrency) && (
-                  <>
-                    <div className={groupBase}>
-                      <span className={addonLabel}>ROE</span>
-                      <input
-                        type="text"
-                        value={amountRoe}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/[^0-9.]/g, "");
-                          setAmountRoe(val);
-                          if (amount) {
-                            setAmountInr(computeInr(amount, val));
-                          }
-                        }}
-                        placeholder="Rate"
-                        className={groupInput}
-                      />
-                    </div>
-
-                    <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                      <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                        INR
-                      </span>
-                      <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                        {amountInr || ""}
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Notes Button */}
-                <button
-                  type="button"
-                  onClick={() => setShowAmountNotes(!showAmountNotes)}
-                  className={noteBtn}
-                >
-                  <TbNotes size={16} />
-                </button>
-              </div>
-
-              {showAmountNotes && (
-                <div className="mt-3">
-                  <textarea
-                    value={amountNotes}
-                    onChange={(e) => setAmountNotes(e.target.value)}
-                    placeholder="Enter Notes"
-                    rows={3}
-                    className={inputBase}
-                  />
-                </div>
-              )}
+              <MultiCurrencyInput
+                currency={amountCurrency}
+                onCurrencyChange={(c) => {
+                  setAmountCurrency(c);
+                  if (requiresRoe(c, businessCurrency)) {
+                    setAmountInr(
+                      computeInr(String(amount || ""), String(amountRoe || "")),
+                    );
+                  } else {
+                    setAmountRoe("");
+                    setAmountInr("");
+                  }
+                }}
+                amount={amount}
+                onAmountChange={(val) => {
+                  const sanitized = val.replace(/[^0-9]/g, "");
+                  setAmount(sanitized);
+                  if (
+                    requiresRoe(amountCurrency, businessCurrency) &&
+                    amountRoe
+                  ) {
+                    setAmountInr(computeInr(sanitized, amountRoe));
+                  }
+                }}
+                amountPlaceholder="Enter Amount"
+                roe={amountRoe}
+                onRoeChange={(val) => {
+                  const sanitized = val.replace(/[^0-9.]/g, "");
+                  setAmountRoe(sanitized);
+                  if (amount) {
+                    setAmountInr(computeInr(amount, sanitized));
+                  }
+                }}
+                inr={amountInr}
+                notes={amountNotes}
+                onNotesChange={setAmountNotes}
+                showNotes={showAmountNotes}
+                onToggleNotes={() => setShowAmountNotes(!showAmountNotes)}
+                notesPlaceholder="Enter Notes"
+                businessCurrency={businessCurrency}
+                requiresRoe={requiresRoe}
+                inputClassName={inputBase}
+                useWhiteDropdown={true}
+              />
             </div>
 
             {showPaymentBreakdown && (
@@ -1767,119 +1715,57 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                   <label className="block text-[13px] font-medium text-gray-700 mb-2">
                     Bank Charges
                   </label>
-                  <div
-                    className={`grid ${
-                      requiresRoe(bankChargesCurrency, businessCurrency)
-                        ? "grid-cols-[220px_160px_170px_44px]"
-                        : "grid-cols-[380px_44px]"
-                    } gap-3 items-center`}
-                  >
-                    {/* Amount Input */}
-                    <div className={groupBase}>
-                      <DropDown
-                        options={[
-                          { value: "INR", label: "INR" },
-                          { value: "USD", label: "USD" },
-                        ]}
-                        value={bankChargesCurrency}
-                        onChange={(val) => {
-                          setBankChargesCurrency(val as Currency);
-                          if (requiresRoe(val, businessCurrency)) {
-                            setBankChargesInr(
-                              computeInr(
-                                String(bankCharges || ""),
-                                String(bankChargesRoe || ""),
-                              ),
-                            );
-                          } else {
-                            setBankChargesRoe("");
-                            setBankChargesInr("");
-                          }
-                        }}
-                        customWidth="w-[64px]"
-                        noBorder={true}
-                        noButtonRadius={true}
-                        focusRingClass=""
-                        buttonClassName="bg-white text-[0.78rem] text-gray-700 px-2 h-[34px]"
-                        className={groupSelectWhite}
-                      />
-                      <input
-                        type="text"
-                        value={bankCharges}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/[^0-9]/g, "");
-                          setBankCharges(val);
-                          if (
-                            requiresRoe(
-                              bankChargesCurrency,
-                              businessCurrency,
-                            ) &&
-                            bankChargesRoe
-                          ) {
-                            setBankChargesInr(computeInr(val, bankChargesRoe));
-                          }
-                        }}
-                        placeholder="Enter Amount"
-                        className={groupInput}
-                      />
-                    </div>
-
-                    {requiresRoe(bankChargesCurrency, businessCurrency) && (
-                      <>
-                        <div className={groupBase}>
-                          <span className={addonLabel}>ROE</span>
-                          <input
-                            type="text"
-                            value={bankChargesRoe}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(
-                                /[^0-9.]/g,
-                                "",
-                              );
-                              setBankChargesRoe(val);
-                              if (bankCharges) {
-                                setBankChargesInr(computeInr(bankCharges, val));
-                              }
-                            }}
-                            placeholder="Rate"
-                            className={groupInput}
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {bankChargesInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {/* Notes Button */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowBankChargesNotes(!showBankChargesNotes)
+                  <MultiCurrencyInput
+                    currency={bankChargesCurrency}
+                    onCurrencyChange={(c) => {
+                      setBankChargesCurrency(c);
+                      if (requiresRoe(c, businessCurrency)) {
+                        setBankChargesInr(
+                          computeInr(
+                            String(bankCharges || ""),
+                            String(bankChargesRoe || ""),
+                          ),
+                        );
+                      } else {
+                        setBankChargesRoe("");
+                        setBankChargesInr("");
                       }
-                      className={noteBtn}
-                    >
-                      <TbNotes size={16} />
-                    </button>
-                  </div>
-
-                  {showBankChargesNotes && (
-                    <div className="mt-3">
-                      <textarea
-                        value={bankChargesNotes}
-                        onChange={(e) => setBankChargesNotes(e.target.value)}
-                        placeholder="Enter Notes"
-                        rows={3}
-                        className={inputBase}
-                      />
-                    </div>
-                  )}
+                    }}
+                    amount={bankCharges}
+                    onAmountChange={(val) => {
+                      const sanitized = val.replace(/[^0-9]/g, "");
+                      setBankCharges(sanitized);
+                      if (
+                        requiresRoe(bankChargesCurrency, businessCurrency) &&
+                        bankChargesRoe
+                      ) {
+                        setBankChargesInr(
+                          computeInr(sanitized, bankChargesRoe),
+                        );
+                      }
+                    }}
+                    amountPlaceholder="Enter Amount"
+                    roe={bankChargesRoe}
+                    onRoeChange={(val) => {
+                      const sanitized = val.replace(/[^0-9.]/g, "");
+                      setBankChargesRoe(sanitized);
+                      if (bankCharges) {
+                        setBankChargesInr(computeInr(bankCharges, sanitized));
+                      }
+                    }}
+                    inr={bankChargesInr}
+                    notes={bankChargesNotes}
+                    onNotesChange={setBankChargesNotes}
+                    showNotes={showBankChargesNotes}
+                    onToggleNotes={() =>
+                      setShowBankChargesNotes(!showBankChargesNotes)
+                    }
+                    notesPlaceholder="Enter Notes"
+                    businessCurrency={businessCurrency}
+                    requiresRoe={requiresRoe}
+                    inputClassName={inputBase}
+                    useWhiteDropdown={true}
+                  />
                 </div>
 
                 {/* Cashback Received */}
@@ -1887,124 +1773,62 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                   <label className="block text-[13px] font-medium text-gray-700 mb-2">
                     Cashback Received
                   </label>
-                  <div
-                    className={`grid ${
-                      requiresRoe(cashbackReceivedCurrency, businessCurrency)
-                        ? "grid-cols-[220px_160px_170px_44px]"
-                        : "grid-cols-[380px_44px]"
-                    } gap-3 items-center`}
-                  >
-                    {/* Amount Input */}
-                    <div className={groupBase}>
-                      <DropDown
-                        options={[
-                          { value: "INR", label: "INR" },
-                          { value: "USD", label: "USD" },
-                        ]}
-                        value={cashbackReceivedCurrency}
-                        onChange={(val) => {
-                          setCashbackReceivedCurrency(val as Currency);
-                          if (requiresRoe(val, businessCurrency)) {
-                            setCashbackReceivedInr(
-                              computeInr(
-                                String(cashbackReceived || ""),
-                                String(cashbackReceivedRoe || ""),
-                              ),
-                            );
-                          } else {
-                            setCashbackReceivedRoe("");
-                            setCashbackReceivedInr("");
-                          }
-                        }}
-                        customWidth="w-[64px]"
-                        noBorder={true}
-                        noButtonRadius={true}
-                        focusRingClass=""
-                        buttonClassName="bg-white text-[0.78rem] text-gray-700 px-2 h-[34px]"
-                        className={groupSelectWhite}
-                      />
-                      <input
-                        type="text"
-                        value={cashbackReceived}
-                        onChange={(e) => {
-                          const val = e.target.value.replace(/[^0-9]/g, "");
-                          setCashbackReceived(val);
-                          if (
-                            requiresRoe(
-                              cashbackReceivedCurrency,
-                              businessCurrency,
-                            ) &&
-                            cashbackReceivedRoe
-                          ) {
-                            setCashbackReceivedInr(
-                              computeInr(val, cashbackReceivedRoe),
-                            );
-                          }
-                        }}
-                        placeholder="Enter Amount"
-                        className={groupInput}
-                      />
-                    </div>
-
-                    {requiresRoe(
-                      cashbackReceivedCurrency,
-                      businessCurrency,
-                    ) && (
-                      <>
-                        <div className={groupBase}>
-                          <span className={addonLabel}>ROE</span>
-                          <input
-                            type="text"
-                            value={cashbackReceivedRoe}
-                            onChange={(e) => {
-                              const val = e.target.value.replace(
-                                /[^0-9.]/g,
-                                "",
-                              );
-                              setCashbackReceivedRoe(val);
-                              if (cashbackReceived) {
-                                setCashbackReceivedInr(
-                                  computeInr(cashbackReceived, val),
-                                );
-                              }
-                            }}
-                            placeholder="Rate"
-                            className={groupInput}
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {cashbackReceivedInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {/* Notes Button */}
-                    <button
-                      type="button"
-                      onClick={() => setShowCashbackNotes(!showCashbackNotes)}
-                      className={noteBtn}
-                    >
-                      <TbNotes size={16} />
-                    </button>
-                  </div>
-
-                  {showCashbackNotes && (
-                    <div className="mt-3">
-                      <textarea
-                        value={cashbackNotes}
-                        onChange={(e) => setCashbackNotes(e.target.value)}
-                        placeholder="Enter Notes"
-                        rows={3}
-                        className={inputBase}
-                      />
-                    </div>
-                  )}
+                  <MultiCurrencyInput
+                    currency={cashbackReceivedCurrency}
+                    onCurrencyChange={(c) => {
+                      setCashbackReceivedCurrency(c);
+                      if (requiresRoe(c, businessCurrency)) {
+                        setCashbackReceivedInr(
+                          computeInr(
+                            String(cashbackReceived || ""),
+                            String(cashbackReceivedRoe || ""),
+                          ),
+                        );
+                      } else {
+                        setCashbackReceivedRoe("");
+                        setCashbackReceivedInr("");
+                      }
+                    }}
+                    amount={cashbackReceived}
+                    onAmountChange={(val) => {
+                      const sanitized = val.replace(/[^0-9]/g, "");
+                      setCashbackReceived(sanitized);
+                      if (
+                        requiresRoe(
+                          cashbackReceivedCurrency,
+                          businessCurrency,
+                        ) &&
+                        cashbackReceivedRoe
+                      ) {
+                        setCashbackReceivedInr(
+                          computeInr(sanitized, cashbackReceivedRoe),
+                        );
+                      }
+                    }}
+                    amountPlaceholder="Enter Amount"
+                    roe={cashbackReceivedRoe}
+                    onRoeChange={(val) => {
+                      const sanitized = val.replace(/[^0-9.]/g, "");
+                      setCashbackReceivedRoe(sanitized);
+                      if (cashbackReceived) {
+                        setCashbackReceivedInr(
+                          computeInr(cashbackReceived, sanitized),
+                        );
+                      }
+                    }}
+                    inr={cashbackReceivedInr}
+                    notes={cashbackNotes}
+                    onNotesChange={setCashbackNotes}
+                    showNotes={showCashbackNotes}
+                    onToggleNotes={() =>
+                      setShowCashbackNotes(!showCashbackNotes)
+                    }
+                    notesPlaceholder="Enter Notes"
+                    businessCurrency={businessCurrency}
+                    requiresRoe={requiresRoe}
+                    inputClassName={inputBase}
+                    useWhiteDropdown={true}
+                  />
                 </div>
               </div>
             )}

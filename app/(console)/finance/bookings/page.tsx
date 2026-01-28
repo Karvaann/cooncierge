@@ -18,6 +18,7 @@ import { MdOutlineEdit } from "react-icons/md";
 import { TbArrowAutofitRight } from "react-icons/tb";
 import { FiCopy } from "react-icons/fi";
 import { CiFilter } from "react-icons/ci";
+// import FilterTrigger from "@/components/FilterTrigger";
 import { TbArrowsUpDown } from "react-icons/tb";
 import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
@@ -80,7 +81,7 @@ type BookingService = {
 };
 
 type FilterPayload = {
-  serviceType: string;
+  serviceType: string | string[];
   status: string;
   owner: string | string[];
   search: string;
@@ -161,15 +162,8 @@ interface Owner {
   color: string;
 }
 
-const columnIconMap: Record<string, JSX.Element> = {
-  "Travel Date": (
-    <TbArrowsUpDown className="inline w-3 h-3 text-white stroke-[1.5]" />
-  ),
-  Service: <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />,
-  "Booking Status": (
-    <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
-  ),
-};
+// column icons will be created inside the component so they can reference
+// runtime values (service options / FilterTrigger callbacks).
 
 const getStatusBadgeClass = (status: string): string => {
   switch (status) {
@@ -395,7 +389,51 @@ const FinanceBookingsPage = () => {
           return false;
       }
 
-      // Check if we're using advanced search (primary + secondary owners)
+      /*
+      // Service type filter (supports string or array values)
+      if (filters.serviceType) {
+        const selected = Array.isArray(filters.serviceType)
+          ? filters.serviceType
+          : [filters.serviceType];
+        if (selected.length) {
+          const qt = (q.quotationType || "").toLowerCase().trim();
+          const mapToFilterValue = (t: string) => {
+            if (["flight", "flights", "travel"].includes(t)) return "flights";
+            if (["hotel", "accommodation"].includes(t)) return "accommodation";
+            if (
+              [
+                "car",
+                "land",
+                "transportation",
+                "transport-land",
+                "land-transport",
+                "land_transportation",
+              ].includes(t)
+            )
+              return "transportation_land";
+            if (["maritime", "transport-maritime"].includes(t))
+              return "transportation_maritime";
+            if (["package"].includes(t)) return "package";
+            if (["activity", "activities"].includes(t)) return "activity";
+            if (["insurance", "travel insurance"].includes(t))
+              return "insurance";
+            if (["visa", "visas"].includes(t)) return "visas";
+            if (["ticket", "tickets"].includes(t)) return "tickets";
+            return "others";
+          };
+
+          const qVal = mapToFilterValue(qt);
+          const matches = selected.some(
+            (s) =>
+              String(s).toLowerCase() === qVal ||
+              String(s).toLowerCase() === qt,
+          );
+          if (!matches) return false;
+        }
+      }
+      */
+
+      // if we're using advanced search (primary + secondary owners)
       const selectedPrimaryOwners: string[] = Array.isArray(
         filters.primaryOwner,
       )
@@ -422,7 +460,7 @@ const FinanceBookingsPage = () => {
           const quotationSecondaryOwners = Array.isArray(q.secondaryOwner)
             ? q.secondaryOwner.map((o: any) => o?.name || "").filter(Boolean)
             : [];
-          // Check if all selected secondary owners are in the quotation's secondary owners
+          // if all selected secondary owners are in the quotation's secondary owners
           secondaryMatch = selectedSecondaryOwners.every((selectedSecondary) =>
             quotationSecondaryOwners.includes(selectedSecondary),
           );
@@ -495,7 +533,7 @@ const FinanceBookingsPage = () => {
         apiParams.travelStartDate = filters.tripStartDate;
       if (filters.tripEndDate) apiParams.travelEndDate = filters.tripEndDate;
       // loading quotations
-      // Note: Owner filtering is done client-side since API returns owner objects with names
+      // Owner filtering is done client-side since API returns owner objects with names
 
       const response = await BookingApiService.getAllQuotations({
         ...apiParams,
@@ -826,7 +864,7 @@ const FinanceBookingsPage = () => {
 
   const normalizeDraft = (draft: any) => {
     // Backend drafts are quotations with serviceStatus = 'draft'
-    // They have the same structure as regular quotations
+
     return {
       _id: draft._id,
       customId: draft.customId || null,
@@ -869,10 +907,8 @@ const FinanceBookingsPage = () => {
   }, [filteredQuotations, drafts]) as any[];
 
   const summaryData = useMemo(() => {
-
     const youGiveValue = finalQuotations.reduce((sum, item) => {
-      const val =
-        Number(item.vendorRemainingAmount) || 0;
+      const val = Number(item.vendorRemainingAmount) || 0;
       return sum + (isNaN(val) ? 0 : val);
     }, 0);
     const youGetValue = finalQuotations.reduce((sum, item) => {
@@ -893,7 +929,6 @@ const FinanceBookingsPage = () => {
   }, [finalQuotations]);
 
   // Use shared timestamp extractor from utils/sorting.ts
-  // (keeps logic consistent across pages)
 
   const sortedQuotationsForTable = useMemo(() => {
     if (sortState.key !== "Travel Date" || sortState.direction === "none") {
@@ -1111,6 +1146,35 @@ const FinanceBookingsPage = () => {
     }),
     [ownersList],
   );
+
+  /*
+  const serviceOptions = useMemo(
+    () => [
+      { value: "flights", label: "Flights" },
+      { value: "accommodation", label: "Accommodation" },
+      { value: "insurance", label: "Travel Insurance" },
+      { value: "activity", label: "Activity" },
+      { value: "visas", label: "Visas" },
+      { value: "tickets", label: "Ticket (attraction)" },
+      { value: "others", label: "Others" },
+      { value: "transportation_land", label: "Transportation (Land)" },
+      { value: "transportation_maritime", label: "Transportation (Maritime)" },
+    ],
+    [],
+  );
+  */
+
+  const columnIconMap = useMemo(() => {
+    return {
+      "Travel Date": (
+        <TbArrowsUpDown className="inline w-3 h-3 text-white stroke-[1.5]" />
+      ),
+      // Service column icon removed
+      "Booking Status": (
+        <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
+      ),
+    } as Record<string, JSX.Element>;
+  }, []);
 
   const handleFilterChange = (next: FilterPayload) => {
     setFilters(next);

@@ -30,6 +30,8 @@ import BookingFormSidesheet from "../BookingFormSidesheet";
 import BookingApiService from "@/services/bookingApi";
 import { getCustomerById } from "@/services/customerApi";
 import { getVendorById } from "@/services/vendorApi";
+import type { BankDto } from "@/services/bankApi";
+import BankApi from "@/services/bankApi";
 
 type LedgerStatus = "paid" | "none" | "partial";
 
@@ -112,6 +114,10 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   const [bookingInitialData, setBookingInitialData] = useState<any>(null);
   const [bookingCode, setBookingCode] = useState<string>("");
 
+  // bank states
+  const [banks, setBanks] = useState<BankDto[]>([]);
+  const [selectedBankIds, setSelectedBankIds] = useState<string[]>([]);
+
   const derivedBookingService = useMemo(() => {
     const quotationTypeRaw =
       bookingInitialData?.quotationType ||
@@ -189,10 +195,64 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   const [pendingOnly, setPendingOnly] = useState(false);
   const [downloadType, setDownloadType] = useState<"pdf" | "excel">("pdf");
 
-  const accountOptions: FilterCardOption[] = useMemo(
-    () => ["Bank 1", "Bank 2", "Cash"].map((v) => ({ value: v, label: v })),
-    [],
-  );
+  // Fetch banks when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    (async () => {
+      try {
+        const resp: any = await BankApi.getBanks({ isDeleted: false });
+
+        // SAFELY extract array
+        const bankList = Array.isArray(resp)
+          ? resp
+          : Array.isArray(resp?.banks)
+            ? resp.banks
+            : Array.isArray(resp?.data)
+              ? resp.data
+              : Array.isArray(resp?.data?.banks)
+                ? resp.data.banks
+                : [];
+
+        setBanks(bankList);
+      } catch (err) {
+        console.error("Failed to fetch banks:", err);
+        setBanks([]);
+      }
+    })();
+  }, [isOpen]);
+
+  const accountOptions: FilterCardOption[] = useMemo(() => {
+    return banks.map((b) => ({
+      value: b._id as string,
+      label: `${b.name} • ${b.accountType}`,
+    }));
+  }, [banks]);
+
+  const resolveBankFromEntry = (entry: any) => {
+    return (
+      entry?.bankId ||
+      entry?.bank ||
+      entry?.data?.bankId ||
+      entry?.data?.payment?.bankId ||
+      null
+    );
+  };
+
+  const resolveBankNameFromEntry = (entry: any): string => {
+    const bank = resolveBankFromEntry(entry);
+
+    if (!bank) return "—";
+
+    // If populated object
+    if (typeof bank === "object") {
+      return bank.name || "—";
+    }
+
+    // If only ID (fallback)
+    const matched = banks.find((b) => b._id === bank);
+    return matched?.name || "—";
+  };
 
   // Date column label and filter options (Booking Date <-> Travel Date)
   const [dateColumnLabel, setDateColumnLabel] =
@@ -564,7 +624,9 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         <FilterTrigger
           ariaLabel="Filter Account"
           options={accountOptions}
-          onApply={(sel) => console.log("Account filter applied:", sel)}
+          onApply={(sel) => {
+            setSelectedBankIds(Array.isArray(sel) ? sel : []);
+          }}
         >
           <CiFilter className="inline w-3 h-3 text-gray-600 stroke-[1.5]" />
         </FilterTrigger>
@@ -648,6 +710,19 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
       // Pending filter
       if (pendingOnly && entry.paymentStatus !== "none") return false;
 
+      // Account filter
+      if (selectedBankIds.length > 0) {
+        const bank = resolveBankFromEntry(entry);
+        const bankId =
+          bank && typeof bank === "object"
+            ? (bank._id ?? "")
+            : String(bank || "");
+
+        if (!bankId || !selectedBankIds.includes(bankId)) {
+          return false;
+        }
+      }
+
       // Choose the date field according to selected date column
       let entryDate: string = "";
       if (entry.type === "payment") {
@@ -673,7 +748,14 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
 
       return true;
     });
-  }, [ledgerData, pendingOnly, startDate, endDate, dateColumnLabel]);
+  }, [
+    ledgerData,
+    pendingOnly,
+    startDate,
+    endDate,
+    dateColumnLabel,
+    selectedBankIds,
+  ]);
 
   const tableData = useMemo<JSX.Element[][]>(() => {
     return filteredEntries.map((r: any, index: any) => {
@@ -846,7 +928,29 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           key={`account-${index}`}
           className="px-4 py-3 text-center text-[14px]"
         >
-          {r.account ?? ""}
+          <div className="relative inline-flex items-center justify-center">
+            <span className="peer cursor-default">
+              {resolveBankNameFromEntry(r)}
+            </span>
+
+            <div
+              className="absolute -top-8 left-1/2 z-50 px-2 py-1 text-[0.75rem] text-white bg-gray-800 rounded-md shadow-lg pointer-events-none -translate-x-1/2 transition-opacity duration-150 ease-in-out opacity-0 invisible whitespace-nowrap peer-hover:opacity-100 peer-hover:visible"
+              role="tooltip"
+            >
+              {r?.paymentType ||
+                r?.data?.payment?.paymentType ||
+                r?.data?.paymentType ||
+                r?.data?.payment?.type ||
+                "-"}
+              <div
+                className="absolute left-1/2 -bottom-1 w-2.5 h-2.5 bg-gray-800"
+                style={{
+                  transform: "translateX(-50%) rotate(45deg)",
+                  WebkitTransform: "translateX(-50%) rotate(45deg)",
+                }}
+              />
+            </div>
+          </div>
         </td>,
         <td
           key={`amount-${index}`}

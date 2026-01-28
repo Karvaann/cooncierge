@@ -27,6 +27,7 @@ import ActivityServiceInfoForm from "./forms/ActivityServiceInfoForm";
 import InsuranceServiceInfoForm from "./forms/InsuranceServiceInfoForm";
 import VisasServiceInfoForm from "./forms/VisasServiceInfoForm";
 import OthersServiceInfoForm from "./forms/OthersServiceInfoForm";
+import LimitlessServiceInfoForm from "./forms/LimitlessServiceInfoForm";
 import Button from "./Button";
 import { LuSave } from "react-icons/lu";
 
@@ -62,6 +63,7 @@ interface BookingFormSidesheetProps {
   vendorCode?: string;
   onRequestEdit?: () => void;
   onBookingSaved?: (updatedBooking: any) => void;
+  hideVendor?: boolean;
 }
 
 type TabType = "general" | "service" | "review";
@@ -142,6 +144,9 @@ function ServiceInfoFormSwitcher(props: any) {
       // others
       others: "others",
       package: "others",
+
+      // limitless
+      limitless: "limitless",
     };
 
     return map[v] || v;
@@ -239,6 +244,16 @@ function ServiceInfoFormSwitcher(props: any) {
         />
       );
 
+    case "limitless":
+      return (
+        <LimitlessServiceInfoForm
+          {...props}
+          externalFormData={initialData}
+          onAddDocuments={onAddDocuments}
+          existingDocuments={existingDocuments}
+        />
+      );
+
     // you can keep adding cases for "transport" or "activity" later
     default:
       return (
@@ -261,6 +276,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   vendorCode: vendorCodeProp,
   onRequestEdit,
   onBookingSaved,
+  hideVendor = false,
 }) => {
   // Bump this whenever the sidesheet is (re)opened so child forms remount
   const [formInstanceId, setFormInstanceId] = useState(0);
@@ -1033,6 +1049,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   isSubmitting={isSubmitting || isReadOnly}
                   isReadOnly={isReadOnly}
                   formRef={generalFormRef as React.RefObject<HTMLFormElement>}
+                  hideVendor={hideVendor}
                 />
               </div>
 
