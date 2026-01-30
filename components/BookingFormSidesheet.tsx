@@ -351,7 +351,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     } catch (_) {
       /* ignore */
     }
-    router.push("/bookings/view-booking");
+    router.push("/bookings/limitless/view-booking");
   }, [onClose, router]);
 
   // In "view" modestart read-only, but allow the user to toggle into edit.

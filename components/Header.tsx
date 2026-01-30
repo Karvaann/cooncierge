@@ -62,7 +62,9 @@ type HeaderMapKey =
   | "/dashboard"
   | "/settings"
   | "/approvals"
-  | "/bookings/view-booking"
+  | "/bookings/limitless/view-booking"
+  | "/bookings/other-services/view-booking/flights"
+  | "/bookings/other-services/view-booking/accommodation"
   | "/ProfileSettings"
   | "/ProfileSettings/UserProfile";
 
@@ -93,6 +95,8 @@ const HEADER_MAP: Record<HeaderMapKey, string> = {
   "/sales/other-services": "Sales - OS",
   "/bookings/limitless": "Bookings - Limitless",
   "/bookings/other-services": "Bookings - OS",
+  "/bookings/other-services/view-booking/flights": "Bookings - OS",
+  "/bookings/other-services/view-booking/accommodation": "Bookings - OS",
   "/operations/limitless": "Operations - Limitless",
   "/operations/other-services": "Operations - OS",
   "/finance/bookings": "Finance - Bookings",
@@ -109,7 +113,7 @@ const HEADER_MAP: Record<HeaderMapKey, string> = {
   "/ProfileSettings/UserProfile": "User Profile",
   "/settings": "Settings",
   "/approvals": "Approvals",
-  "/bookings/view-booking": "Bookings - Limitless",
+  "/bookings/limitless/view-booking": "Bookings - Limitless",
 } as const;
 
 const Header: React.FC<HeaderProps> = ({ isOpen }) => {
@@ -154,7 +158,39 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
   // Memoized breadcrumb generation
   const breadcrumbElements = useMemo(() => {
     const urlPieces = pathname.split("/").slice(1);
-    return urlPieces.map((piece, index) => (
+
+    // For any view-booking route under bookings, always show:
+    // Home / Bookings / View Booking
+    const bookingsIndex = urlPieces.indexOf("bookings");
+    const viewBookingIndex = urlPieces.indexOf("view-booking");
+    if (
+      bookingsIndex !== -1 &&
+      viewBookingIndex !== -1 &&
+      bookingsIndex < viewBookingIndex
+    ) {
+      return ["bookings", "view-booking"].map((piece, index) => (
+        <span key={`${piece}-${index}`} className="flex items-center">
+          <span className="text-gray-400 text-[12px] mx-1">/</span>
+          <span className="text-[#114958] text-[10px] mr-1">
+            {PIECE_MAP[piece as PieceMapKey] || piece}
+          </span>
+        </span>
+      ));
+    }
+
+    // For view-booking pages, hide the intermediate service segment
+    const filteredPieces = urlPieces.filter((piece, index, pieces) => {
+      const isServiceSegment =
+        piece === "limitless" || piece === "other-services";
+      const isBetweenBookingsAndViewBooking =
+        isServiceSegment &&
+        pieces[index - 1] === "bookings" &&
+        pieces[index + 1] === "view-booking";
+
+      return !isBetweenBookingsAndViewBooking;
+    });
+
+    return filteredPieces.map((piece, index) => (
       <span key={`${piece}-${index}`} className="flex items-center">
         <span className="text-gray-400 text-[12px] mx-1">/</span>
         <span className="text-[#114958] text-[10px] mr-1">

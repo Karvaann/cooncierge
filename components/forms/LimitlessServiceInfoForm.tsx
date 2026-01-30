@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { validateOtherServiceInfoForm } from "@/services/bookingApi";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineFileUpload } from "react-icons/md";
-import { FiTrash2 } from "react-icons/fi";
+import { FiTrash2, FiSearch } from "react-icons/fi";
+import { IoClose } from "react-icons/io5";
 import { useRef } from "react";
 import StyledDescription from "../StyledDescription";
 import DropDown from "@/components/DropDown";
@@ -15,9 +17,11 @@ import { allowUppercaseAlphanumeric6 } from "@/utils/inputValidators";
 import type { CancellationModalFormState } from "@/components/Modals/CancellationModal";
 import { useAuth } from "@/context/AuthContext";
 import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
+import LimitlessApi from "@/services/limitlessApi";
 
 // Type definitions
 interface LimitlessServiceInfoFormData {
+  customId?: string;
   bookingdate: string;
   traveldatestart: string;
   traveldateend: string;
@@ -90,6 +94,7 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
 
   // Internal form state
   const [formData, setFormData] = useState<LimitlessServiceInfoFormData>({
+    customId: normalizedExternalData?.customId || "",
     bookingdate: normalizedExternalData?.bookingdate || "",
     traveldatestart: normalizedExternalData?.traveldatestart || "",
     traveldateend: normalizedExternalData?.traveldateend || "",
@@ -121,6 +126,154 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
     Boolean(formData.sellingNotes),
   );
 
+  type Place = { id: string; name: string };
+
+  const demoPlaces = useMemo<Place[]>(
+    () => [
+      { id: "dest-1", name: "Paris" },
+      { id: "dest-2", name: "London" },
+      { id: "dest-3", name: "Rome" },
+      { id: "dest-4", name: "Dubai" },
+      { id: "dest-5", name: "Bangkok" },
+    ],
+    [],
+  );
+
+  const [selectedDestinations, setSelectedDestinations] = useState<Place[]>([
+    // optionally preselect one: { id: "dest-1", name: "Paris" }
+  ]);
+  const [isDestDropdownOpen, setIsDestDropdownOpen] = useState(false);
+  const destDropdownRef = useRef<HTMLDivElement | null>(null);
+  const destPanelRef = useRef<HTMLDivElement | null>(null);
+  const [destDropdownPos, setDestDropdownPos] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
+
+  const toggleDestination = (place: Place) => {
+    setSelectedDestinations((prev) => {
+      const exists = prev.some((p) => p.id === place.id);
+      return exists ? prev.filter((p) => p.id !== place.id) : [...prev, place];
+    });
+  };
+
+  const updateDestPos = () => {
+    const el = destDropdownRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setDestDropdownPos({
+      top: rect.bottom + window.scrollY + 8,
+      left: rect.left + window.scrollX,
+      width: rect.width,
+    });
+  };
+
+  const openDestDropdown = () => {
+    updateDestPos();
+    setIsDestDropdownOpen(true);
+  };
+
+  const closeDestDropdown = () => {
+    setDestDropdownPos(null);
+    setIsDestDropdownOpen(false);
+  };
+
+  // Create Limitless (multipart/form-data)
+  const handleSubmit = useCallback(async () => {
+    const formDataPayload = new FormData();
+
+    const appendIfPresent = (key: string, value: unknown) => {
+      if (value === undefined || value === null) return;
+      const str = String(value);
+      if (str.trim() === "") return;
+      formDataPayload.append(key, str);
+    };
+
+    // Required by controller if serviceStatus !== 'draft'
+    appendIfPresent("totalAmount", formData.sellingprice);
+    appendIfPresent("travelDate", formData.traveldatestart);
+
+    // Optional / mapped fields
+    appendIfPresent("bookingDate", formData.bookingdate);
+    appendIfPresent("roe", formData.sellingRoe);
+    appendIfPresent("currency", formData.sellingCurrency || "INR");
+    appendIfPresent("limitlessTitle", formData.itineraryname);
+    appendIfPresent("description", formData.description);
+    appendIfPresent("remarks", formData.remarks);
+
+    appendIfPresent("customId", (formData as any).customId);
+
+    // Keep as JSON string (backend parses JSON fields when they arrive as strings)
+    formDataPayload.append(
+      "limitlessDestinations",
+      JSON.stringify(selectedDestinations.map((d) => d.name)),
+    );
+
+    // Make this explicit so backend validation is predictable
+    formDataPayload.append("serviceStatus", "approved");
+
+    // Documents field name must be "documents" (multer middleware expects it)
+    attachedFiles.slice(0, 3).forEach((file) => {
+      formDataPayload.append("documents", file);
+    });
+
+    return LimitlessApi.createLimitless(formDataPayload);
+  }, [attachedFiles, formData, selectedDestinations]);
+
+  useEffect(() => {
+    if (!isDestDropdownOpen) return;
+
+    const onPointerDown = (event: PointerEvent | MouseEvent | TouchEvent) => {
+      const rawEvent = event as any;
+      const target = (rawEvent.target || null) as Node | null;
+      if (!target) return;
+
+      // Prefer composedPath (works with portals / shadow DOM), fallback to event.path or normal contains
+      const path: EventTarget[] =
+        (rawEvent.composedPath && rawEvent.composedPath()) ||
+        rawEvent.path ||
+        [];
+
+      const clickedInAnchor = Boolean(
+        destDropdownRef.current &&
+        (destDropdownRef.current.contains(target) ||
+          path.includes(destDropdownRef.current)),
+      );
+
+      const clickedInPanel = Boolean(
+        destPanelRef.current &&
+        (destPanelRef.current.contains(target) ||
+          path.includes(destPanelRef.current)),
+      );
+
+      if (!clickedInAnchor && !clickedInPanel) closeDestDropdown();
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeDestDropdown();
+    };
+
+    const onReposition = () => updateDestPos();
+
+    // listen to pointerdown/touchstart/mousedown for broader coverage
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("touchstart", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    window.addEventListener("scroll", onReposition, true);
+    window.addEventListener("resize", onReposition);
+
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("touchstart", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("scroll", onReposition, true);
+      window.removeEventListener("resize", onReposition);
+    };
+  }, [isDestDropdownOpen]);
+
   // Handle selecting multiple files
   const handleFileChange = () => {
     const files = fileInputRef.current?.files;
@@ -150,6 +303,43 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
       ...normalizedExternalData,
     }));
   }, [externalFormData, normalizedExternalData]);
+
+  // Calculate nights and days from travel start/end (expects DD-MM-YYYY or DD/MM/YYYY)
+  const nightsDaysDisplay = useMemo(() => {
+    const parseToUTC = (s?: string) => {
+      if (!s || typeof s !== "string") return null;
+
+      // If it's an ISO string (from SingleCalendar onChange) or YYYY-MM-DD-like, parse via Date
+      if (s.includes("T") || /^\d{4}-\d{2}-\d{2}/.test(s)) {
+        const d = new Date(s);
+        if (Number.isNaN(d.getTime())) return null;
+        return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+      }
+
+      // Otherwise expect DD-MM-YYYY or DD/MM/YYYY
+      const parts = s.includes("-") ? s.split("-") : s.split("/");
+      if (parts.length !== 3) return null;
+      const [dd, mm, yyyy] = parts;
+      const day = Number(dd);
+      const monthIndex = Number(mm) - 1;
+      const year = Number(yyyy);
+      if (Number.isNaN(day) || Number.isNaN(monthIndex) || Number.isNaN(year))
+        return null;
+      return Date.UTC(year, monthIndex, day);
+    };
+
+    const startUtc = parseToUTC(formData.traveldatestart);
+    const endUtc = parseToUTC(formData.traveldateend);
+    if (startUtc === null || endUtc === null) return "";
+
+    const msPerDay = 24 * 60 * 60 * 1000;
+    // Round to nearest integer number of days to be resilient to DST/local offsets
+    const diffDays = Math.round((endUtc - startUtc) / msPerDay);
+    const nights = Math.max(0, diffDays);
+    const days = nights + 1;
+
+    return `${nights}N/${days}D`;
+  }, [formData.traveldatestart, formData.traveldateend]);
 
   useEffect(() => {
     onFormDataUpdate({ limitlessinfoform: formData });
@@ -296,124 +486,6 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
     [validateField, showValidation],
   );
 
-  // Handle form submission
-  const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-
-      if (validateForm()) {
-        onSubmit?.(formData);
-      } else {
-        // Mark all fields as touched to show validation errors
-        const allTouched = Object.keys(validationRules).reduce(
-          (acc, key) => {
-            acc[key] = true;
-            return acc;
-          },
-          {} as Record<string, boolean>,
-        );
-        setTouched(allTouched);
-      }
-    },
-    [formData, validateForm, onSubmit, validationRules],
-  );
-
-  // Enhanced input field component with validation indicators
-  const InputField: React.FC<{
-    name: keyof LimitlessServiceInfoFormData;
-    id?: string;
-    type?: string;
-    placeholder?: string;
-    required?: boolean;
-    className?: string;
-    min?: number;
-  }> = ({
-    name,
-    type = "text",
-    placeholder,
-    required,
-    className = "",
-    min,
-  }) => {
-    const isValidatingField = name === "bookingdate" && isValidating;
-    const hasError = errors[name] && touched[name];
-    const hasValue = formData[name] && String(formData[name]).trim();
-    const isValid = hasValue && !hasError && !isValidatingField;
-
-    return (
-      <div className="relative">
-        <input
-          type={type}
-          name={name}
-          value={type === "file" ? undefined : String(formData[name] ?? "")}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          placeholder={placeholder}
-          required={required}
-          min={min}
-          disabled={isSubmitting || isValidatingField}
-          className={`
-            w-full border rounded-md px-3 py-2 pr-10 text-sm transition-colors
-            ${
-              hasError
-                ? "border-red-300 focus:ring-red-200"
-                : isValid && touched[name]
-                  ? "border-green-300 focus:ring-green-200"
-                  : "border-gray-200 hover:border-green-400 focus:ring-green-300"
-            }
-            ${
-              isSubmitting || isValidatingField
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }
-            ${className}
-          `}
-        />
-
-        {/* Validation indicator */}
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-          {isValidatingField && (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
-          )}
-          {!isValidatingField && isValid && touched[name] && (
-            <svg
-              className="h-4 w-4 text-green-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          )}
-          {!isValidatingField && hasError && (
-            <svg
-              className="h-4 w-4 text-red-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          )}
-        </div>
-
-        {hasError && (
-          <p className="text-red-500 text-xs mt-1">{errors[name]}</p>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div
       className={`space-y-4 p-4 -mt-1 ${
@@ -460,17 +532,28 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
             />
 
             {/* Travel Date End */}
-            <SingleCalendar
-              label="Travel Date End"
-              value={formData.traveldateend}
-              onChange={(date) =>
-                setFormData((prev) => ({ ...prev, traveldateend: date }))
-              }
-              placeholder="DD-MM-YYYY"
-              minDate={formData.traveldatestart || formData.bookingdate}
-              showCalendarIcon={false}
-              readOnly={!formData.traveldatestart}
-            />
+            <div className="flex items-center gap-2">
+              <SingleCalendar
+                label="Travel Date End"
+                value={formData.traveldateend}
+                onChange={(date) =>
+                  setFormData((prev) => ({ ...prev, traveldateend: date }))
+                }
+                placeholder="DD-MM-YYYY"
+                minDate={formData.traveldatestart || formData.bookingdate}
+                showCalendarIcon={false}
+                readOnly={!formData.traveldatestart}
+              />
+
+              {nightsDaysDisplay && (
+                <div
+                  title="Nights / Days"
+                  className="ml-2 mt-4 inline-flex items-center px-3 py-1.5 rounded-md bg-white text-sm font-semibold text-gray-800 border border-gray-200 shadow-sm"
+                >
+                  {nightsDaysDisplay}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -508,29 +591,121 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
           />
         </div>
 
-        {/* ================= Travel Insurance INFO ================ */}
+        {/* ================= Limitless INFO ================ */}
         <div className="w-[48vw] border border-gray-200 rounded-[12px] p-3 mt-4">
           <h1 className="text-[0.85rem] font-medium text-gray-800 mb-2">
-            Travel Insurance Info
+            Limitless Info
           </h1>
 
           <hr className="mt-1 mb-3 border-t border-gray-200" />
 
           {/* Confirmation number + Title (stacked) */}
           <div className="flex flex-col gap-3 w-full mb-4">
-            {/* Confirmation number */}
+            {/* Destinations multi-select (replaces confirmation number) */}
             <div className="flex flex-col w-full">
               <label className="text-[13px] font-medium text-gray-700 mb-1">
-                Confirmation number
+                Destinations
               </label>
-              <input
-                type="text"
-                name="confirmationNumber"
-                value={formData.confirmationNumber}
-                onChange={handleChange}
-                placeholder="Enter Confirmation Number"
-                className="w-[30%] px-3 py-1.5 border border-gray-300 rounded-md text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
-              />
+              <div className="relative" ref={destDropdownRef}>
+                <div
+                  className="w-[30%] min-h-[44px] border border-gray-300 rounded-md px-3 py-2 flex items-center flex-wrap gap-2 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsDestDropdownOpen((v) => {
+                      const next = !v;
+                      if (next) openDestDropdown();
+                      else closeDestDropdown();
+                      return next;
+                    });
+                  }}
+                >
+                  <span className="text-gray-400">
+                    <FiSearch />
+                  </span>
+
+                  {selectedDestinations.length > 0 ? (
+                    selectedDestinations.map((p) => (
+                      <span
+                        key={p.id}
+                        className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[12px]"
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleDestination(p);
+                          }}
+                          className="py-1"
+                          aria-label={`Remove ${p.name}`}
+                        >
+                          <IoClose size={16} className="text-[#818181]" />
+                        </button>
+                        {p.name}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-[#9CA3AF] text-[13px]">
+                      Select destinations
+                    </span>
+                  )}
+
+                  <span className="ml-auto text-gray-400 text-[12px]">▾</span>
+                </div>
+
+                {isDestDropdownOpen &&
+                  destDropdownPos &&
+                  createPortal(
+                    <div
+                      ref={destPanelRef}
+                      style={{
+                        top: destDropdownPos.top,
+                        left: destDropdownPos.left,
+                        width: destDropdownPos.width,
+                      }}
+                      className="absolute bg-white border border-gray-200 rounded-[10px] shadow-xl max-h-52 overflow-y-auto z-[9999]"
+                    >
+                      {demoPlaces.map((place) => {
+                        const checked = selectedDestinations.some(
+                          (p) => p.id === place.id,
+                        );
+                        return (
+                          <button
+                            key={place.id}
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleDestination(place);
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2 border-b border-gray-100 hover:bg-gray-50"
+                          >
+                            <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
+                              {checked && (
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  width="12"
+                                  height="11"
+                                  viewBox="0 0 12 11"
+                                  fill="none"
+                                >
+                                  <path
+                                    d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                                    stroke="#0D4B37"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                  />
+                                </svg>
+                              )}
+                            </div>
+                            <span className="text-[14px] text-[#020202]">
+                              {place.name}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>,
+                    document.body,
+                  )}
+              </div>
             </div>
 
             {/* Itinerary Name */}

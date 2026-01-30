@@ -524,7 +524,7 @@ const LimitlessBookingsPage = () => {
 
       // generate booking and customer ids in parallel
       const [bookingResp, customerResp, vendorResp] = await Promise.all([
-        CustomIdApi.generate("booking"),
+        CustomIdApi.generate("limitless"),
         CustomIdApi.generate("customer"),
         CustomIdApi.generate("vendor"),
       ]);
