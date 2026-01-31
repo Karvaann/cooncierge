@@ -7,6 +7,9 @@ import DropDown from "../DropDown";
 import { FiFileText, FiSave } from "react-icons/fi";
 import { TbNotes } from "react-icons/tb";
 import { allowOnlyNumbers } from "@/utils/inputValidators";
+import { useAuth } from "@/context/AuthContext";
+import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
+import MultiCurrencyInput from "../multiCurrencyUI";
 
 type Currency = "USD" | "INR";
 
@@ -233,16 +236,16 @@ export default function CancellationModal({
       next.costRefundCurrency =
         (incoming.cost.refundCurrency as Currency) ?? next.costRefundCurrency;
       next.costRefundAmount = String(
-        incoming.cost.refundAmount ?? next.costRefundAmount ?? ""
+        incoming.cost.refundAmount ?? next.costRefundAmount ?? "",
       );
       next.costRefundNotes = String(
-        incoming.cost.refundNotes ?? next.costRefundNotes ?? ""
+        incoming.cost.refundNotes ?? next.costRefundNotes ?? "",
       );
       next.costRefundRoe = String(
-        incoming.cost.refundRoe ?? next.costRefundRoe ?? ""
+        incoming.cost.refundRoe ?? next.costRefundRoe ?? "",
       );
       next.costRefundInr = String(
-        incoming.cost.refundInr ?? next.costRefundInr ?? ""
+        incoming.cost.refundInr ?? next.costRefundInr ?? "",
       );
     }
 
@@ -250,27 +253,27 @@ export default function CancellationModal({
       next.sellingCurrency =
         (incoming.selling.currency as Currency) ?? next.sellingCurrency;
       next.sellingprice = String(
-        incoming.selling.amount ?? next.sellingprice ?? ""
+        incoming.selling.amount ?? next.sellingprice ?? "",
       );
       next.sellingRoe = String(incoming.selling.roe ?? next.sellingRoe ?? "");
       next.sellingInr = String(incoming.selling.inr ?? next.sellingInr ?? "");
       next.sellingNotes = String(
-        incoming.selling.notes ?? next.sellingNotes ?? ""
+        incoming.selling.notes ?? next.sellingNotes ?? "",
       );
       next.sellingRefundCurrency =
         (incoming.selling.refundCurrency as Currency) ??
         next.sellingRefundCurrency;
       next.sellingRefundAmount = String(
-        incoming.selling.refundAmount ?? next.sellingRefundAmount ?? ""
+        incoming.selling.refundAmount ?? next.sellingRefundAmount ?? "",
       );
       next.sellingRefundNotes = String(
-        incoming.selling.refundNotes ?? next.sellingRefundNotes ?? ""
+        incoming.selling.refundNotes ?? next.sellingRefundNotes ?? "",
       );
       next.sellingRefundRoe = String(
-        incoming.selling.refundRoe ?? next.sellingRefundRoe ?? ""
+        incoming.selling.refundRoe ?? next.sellingRefundRoe ?? "",
       );
       next.sellingRefundInr = String(
-        incoming.selling.refundInr ?? next.sellingRefundInr ?? ""
+        incoming.selling.refundInr ?? next.sellingRefundInr ?? "",
       );
     }
 
@@ -282,16 +285,16 @@ export default function CancellationModal({
           (incomingAp.vendorInvoice.currency as Currency) ??
           next.vendorBaseCurrency;
         next.vendorBasePrice = String(
-          incomingAp.vendorInvoice.amount ?? next.vendorBasePrice ?? ""
+          incomingAp.vendorInvoice.amount ?? next.vendorBasePrice ?? "",
         );
         next.vendorBaseRoe = String(
-          incomingAp.vendorInvoice.roe ?? next.vendorBaseRoe ?? ""
+          incomingAp.vendorInvoice.roe ?? next.vendorBaseRoe ?? "",
         );
         next.vendorBaseInr = String(
-          incomingAp.vendorInvoice.inr ?? next.vendorBaseInr ?? ""
+          incomingAp.vendorInvoice.inr ?? next.vendorBaseInr ?? "",
         );
         next.vendorBaseNotes = String(
-          incomingAp.vendorInvoice.notes ?? next.vendorBaseNotes ?? ""
+          incomingAp.vendorInvoice.notes ?? next.vendorBaseNotes ?? "",
         );
       }
       if (incomingAp.vendorInvoiceRefund) {
@@ -301,22 +304,22 @@ export default function CancellationModal({
         next.vendorInvoiceRefundAmount = String(
           incomingAp.vendorInvoiceRefund.amount ??
             next.vendorInvoiceRefundAmount ??
-            ""
+            "",
         );
         next.vendorInvoiceRefundNotes = String(
           incomingAp.vendorInvoiceRefund.notes ??
             next.vendorInvoiceRefundNotes ??
-            ""
+            "",
         );
         next.vendorInvoiceRefundRoe = String(
           incomingAp.vendorInvoiceRefund.roe ??
             next.vendorInvoiceRefundRoe ??
-            ""
+            "",
         );
         next.vendorInvoiceRefundInr = String(
           incomingAp.vendorInvoiceRefund.inr ??
             next.vendorInvoiceRefundInr ??
-            ""
+            "",
         );
       }
       if (incomingAp.supplierIncentive) {
@@ -326,16 +329,16 @@ export default function CancellationModal({
         next.vendorIncentiveReceived = String(
           incomingAp.supplierIncentive.amount ??
             next.vendorIncentiveReceived ??
-            ""
+            "",
         );
         next.vendorIncentiveRoe = String(
-          incomingAp.supplierIncentive.roe ?? next.vendorIncentiveRoe ?? ""
+          incomingAp.supplierIncentive.roe ?? next.vendorIncentiveRoe ?? "",
         );
         next.vendorIncentiveInr = String(
-          incomingAp.supplierIncentive.inr ?? next.vendorIncentiveInr ?? ""
+          incomingAp.supplierIncentive.inr ?? next.vendorIncentiveInr ?? "",
         );
         next.vendorIncentiveNotes = String(
-          incomingAp.supplierIncentive.notes ?? next.vendorIncentiveNotes ?? ""
+          incomingAp.supplierIncentive.notes ?? next.vendorIncentiveNotes ?? "",
         );
       }
       if (incomingAp.chargeback) {
@@ -343,16 +346,16 @@ export default function CancellationModal({
           (incomingAp.chargeback.currency as Currency) ??
           next.chargebackCurrency;
         next.chargebackAmount = String(
-          incomingAp.chargeback.amount ?? next.chargebackAmount ?? ""
+          incomingAp.chargeback.amount ?? next.chargebackAmount ?? "",
         );
         next.chargebackNotes = String(
-          incomingAp.chargeback.notes ?? next.chargebackNotes ?? ""
+          incomingAp.chargeback.notes ?? next.chargebackNotes ?? "",
         );
         next.chargebackRoe = String(
-          incomingAp.chargeback.roe ?? next.chargebackRoe ?? ""
+          incomingAp.chargeback.roe ?? next.chargebackRoe ?? "",
         );
         next.chargebackInr = String(
-          incomingAp.chargeback.inr ?? next.chargebackInr ?? ""
+          incomingAp.chargeback.inr ?? next.chargebackInr ?? "",
         );
       }
       if (incomingAp.commissionPayout) {
@@ -360,16 +363,16 @@ export default function CancellationModal({
           (incomingAp.commissionPayout.currency as Currency) ??
           next.commissionCurrency;
         next.commissionPaid = String(
-          incomingAp.commissionPayout.amount ?? next.commissionPaid ?? ""
+          incomingAp.commissionPayout.amount ?? next.commissionPaid ?? "",
         );
         next.commissionRoe = String(
-          incomingAp.commissionPayout.roe ?? next.commissionRoe ?? ""
+          incomingAp.commissionPayout.roe ?? next.commissionRoe ?? "",
         );
         next.commissionInr = String(
-          incomingAp.commissionPayout.inr ?? next.commissionInr ?? ""
+          incomingAp.commissionPayout.inr ?? next.commissionInr ?? "",
         );
         next.commissionNotes = String(
-          incomingAp.commissionPayout.notes ?? next.commissionNotes ?? ""
+          incomingAp.commissionPayout.notes ?? next.commissionNotes ?? "",
         );
       }
       if (incomingAp.commissionRefund) {
@@ -379,16 +382,16 @@ export default function CancellationModal({
         next.commissionRefundAmount = String(
           incomingAp.commissionRefund.amount ??
             next.commissionRefundAmount ??
-            ""
+            "",
         );
         next.commissionRefundNotes = String(
-          incomingAp.commissionRefund.notes ?? next.commissionRefundNotes ?? ""
+          incomingAp.commissionRefund.notes ?? next.commissionRefundNotes ?? "",
         );
         next.commissionRefundRoe = String(
-          incomingAp.commissionRefund.roe ?? next.commissionRefundRoe ?? ""
+          incomingAp.commissionRefund.roe ?? next.commissionRefundRoe ?? "",
         );
         next.commissionRefundInr = String(
-          incomingAp.commissionRefund.inr ?? next.commissionRefundInr ?? ""
+          incomingAp.commissionRefund.inr ?? next.commissionRefundInr ?? "",
         );
       }
 
@@ -399,26 +402,26 @@ export default function CancellationModal({
         "commissionPaid" in incomingAp
       ) {
         next.vendorBasePrice = String(
-          incomingAp.vendorBasePrice ?? next.vendorBasePrice ?? ""
+          incomingAp.vendorBasePrice ?? next.vendorBasePrice ?? "",
         );
         next.vendorBaseNotes = String(
-          incomingAp.vendorBasePriceNotes ?? next.vendorBaseNotes ?? ""
+          incomingAp.vendorBasePriceNotes ?? next.vendorBaseNotes ?? "",
         );
         next.vendorIncentiveReceived = String(
           incomingAp.vendorIncentiveReceived ??
             next.vendorIncentiveReceived ??
-            ""
+            "",
         );
         next.vendorIncentiveNotes = String(
           incomingAp.vendorIncentiveReceivedNotes ??
             next.vendorIncentiveNotes ??
-            ""
+            "",
         );
         next.commissionPaid = String(
-          incomingAp.commissionPaid ?? next.commissionPaid ?? ""
+          incomingAp.commissionPaid ?? next.commissionPaid ?? "",
         );
         next.commissionNotes = String(
-          incomingAp.commissionPaidNotes ?? next.commissionNotes ?? ""
+          incomingAp.commissionPaidNotes ?? next.commissionNotes ?? "",
         );
       }
     }
@@ -439,6 +442,8 @@ export default function CancellationModal({
   };
 
   const [form, setForm] = useState<CancellationModalFormState>(mergedInitial);
+  const { user } = useAuth();
+  const businessCurrency = getBusinessCurrency(user as any);
   const [showCenterRefundNotes, setShowCenterRefundNotes] = useState(false);
   const [advNotesVisible, setAdvNotesVisible] = useState({
     vendorBase: false,
@@ -462,9 +467,9 @@ export default function CancellationModal({
     amount: string,
     currency: Currency,
     roe: string,
-    inr: string
+    inr: string,
   ): number => {
-    if (currency === "USD" && inr) {
+    if (requiresRoe(currency, businessCurrency) && inr) {
       return parseFloat(String(inr).replace(/,/g, "")) || 0;
     }
     return parseFloat(String(amount).replace(/,/g, "")) || 0;
@@ -478,19 +483,19 @@ export default function CancellationModal({
         form.vendorBasePrice,
         form.vendorBaseCurrency,
         form.vendorBaseRoe,
-        form.vendorBaseInr
+        form.vendorBaseInr,
       );
       const supplierIncentive = parseToInr(
         form.vendorIncentiveReceived,
         form.vendorIncentiveCurrency,
         form.vendorIncentiveRoe,
-        form.vendorIncentiveInr
+        form.vendorIncentiveInr,
       );
       const commissionPaid = parseToInr(
         form.commissionPaid,
         form.commissionCurrency,
         form.commissionRoe,
-        form.commissionInr
+        form.commissionInr,
       );
       return vendorBase - supplierIncentive + commissionPaid;
     } else {
@@ -499,7 +504,7 @@ export default function CancellationModal({
         form.costprice,
         form.costCurrency,
         form.costRoe,
-        form.costInr
+        form.costInr,
       );
     }
   }, [
@@ -528,7 +533,7 @@ export default function CancellationModal({
       form.sellingprice,
       form.sellingCurrency,
       form.sellingRoe,
-      form.sellingInr
+      form.sellingInr,
     );
   }, [
     form.sellingprice,
@@ -545,19 +550,19 @@ export default function CancellationModal({
         form.vendorInvoiceRefundAmount,
         form.vendorInvoiceRefundCurrency,
         form.vendorInvoiceRefundRoe,
-        form.vendorInvoiceRefundInr
+        form.vendorInvoiceRefundInr,
       );
       const chargeback = parseToInr(
         form.chargebackAmount,
         form.chargebackCurrency,
         form.chargebackRoe,
-        form.chargebackInr
+        form.chargebackInr,
       );
       const commissionRefund = parseToInr(
         form.commissionRefundAmount,
         form.commissionRefundCurrency,
         form.commissionRefundRoe,
-        form.commissionRefundInr
+        form.commissionRefundInr,
       );
       return vendorRefund - chargeback + commissionRefund;
     } else {
@@ -566,7 +571,7 @@ export default function CancellationModal({
         form.costRefundAmount,
         form.costRefundCurrency,
         form.costRefundRoe,
-        form.costRefundInr
+        form.costRefundInr,
       );
     }
   }, [
@@ -595,7 +600,7 @@ export default function CancellationModal({
       form.sellingRefundAmount,
       form.sellingRefundCurrency,
       form.sellingRefundRoe,
-      form.sellingRefundInr
+      form.sellingRefundInr,
     );
   }, [
     form.sellingRefundAmount,
@@ -607,11 +612,11 @@ export default function CancellationModal({
   // Calculate nets
   const oldNet = useMemo(
     () => oldSellingPrice - oldCostPrice,
-    [oldSellingPrice, oldCostPrice]
+    [oldSellingPrice, oldCostPrice],
   );
   const newNet = useMemo(
     () => newSellingPrice - newCostPrice,
-    [newSellingPrice, newCostPrice]
+    [newSellingPrice, newCostPrice],
   );
 
   // Calculate margins as percentages
@@ -767,121 +772,63 @@ export default function CancellationModal({
                   Cost Price
                 </div>
                 <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      form.costCurrency === "USD"
-                        ? "grid-cols-[220px_160px_170px_44px]"
-                        : "grid-cols-[380px_44px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className={groupBase}>
-                      <DropDown
-                        options={[
-                          { value: "INR", label: "INR" },
-                          { value: "USD", label: "USD" },
-                        ]}
-                        value={form.costCurrency}
-                        onChange={(val) =>
-                          setForm((prev) => {
-                            const next: CancellationModalFormState = {
-                              ...prev,
-                              costCurrency: val as Currency,
-                            };
-                            if (val === "USD") {
-                              next.costInr = computeInr(
-                                String(prev.costprice ?? ""),
-                                String(prev.costRoe ?? "")
-                              );
-                            } else {
-                              next.costRoe = "";
-                              next.costInr = "";
-                            }
-                            return next;
-                          })
+                  <MultiCurrencyInput
+                    currency={form.costCurrency}
+                    onCurrencyChange={(val) =>
+                      setForm((prev) => {
+                        const next: CancellationModalFormState = {
+                          ...prev,
+                          costCurrency: val,
+                        };
+                        if (requiresRoe(val, businessCurrency)) {
+                          next.costInr = computeInr(
+                            String(prev.costprice ?? ""),
+                            String(prev.costRoe ?? ""),
+                          );
+                        } else {
+                          next.costRoe = "";
+                          next.costInr = "";
                         }
-                        customWidth="w-[64px]"
-                        noBorder={true}
-                        noButtonRadius={true}
-                        focusRingClass=""
-                        buttonClassName="bg-white text-[0.78rem] text-gray-700 px-2 h-[34px]"
-                        className={groupSelectWhite}
-                      />
-                      <input
-                        value={form.costprice}
-                        onChange={(e) => {
-                          const amount = allowOnlyNumbers(e.target.value);
-                          setForm((prev) => ({
-                            ...prev,
-                            costprice: amount,
-                            costInr:
-                              prev.costCurrency === "USD"
-                                ? computeInr(amount, prev.costRoe)
-                                : "",
-                          }));
-                        }}
-                        className={groupInput}
-                        placeholder="Enter Amount"
-                      />
-                    </div>
-
-                    {form.costCurrency === "USD" ? (
-                      <>
-                        <div className={groupBase}>
-                          <span className={addonLabel}>ROE</span>
-                          <input
-                            value={form.costRoe}
-                            onChange={(e) => {
-                              const roe = allowOnlyNumbers(e.target.value);
-                              setForm((prev) => ({
-                                ...prev,
-                                costRoe: roe,
-                                costInr: computeInr(prev.costprice, roe),
-                              }));
-                            }}
-                            className={groupInput}
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {form.costInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    ) : null}
-
-                    <button
-                      type="button"
-                      className={noteBtn}
-                      aria-label="Add notes"
-                      onClick={() => setShowCostNotes((s) => !s)}
-                    >
-                      <TbNotes size={16} className="text-[#F59E0B]" />
-                    </button>
-                  </div>
-
-                  {showCostNotes && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <input
-                        value={form.costNotes}
-                        onChange={(e) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            costNotes: e.target.value,
-                          }))
-                        }
-                        className={inputBase}
-                        placeholder="Enter your notes here"
-                      />
-                    </div>
-                  )}
+                        return next;
+                      })
+                    }
+                    amount={form.costprice}
+                    onAmountChange={(val) => {
+                      const amount = allowOnlyNumbers(val);
+                      setForm((prev) => ({
+                        ...prev,
+                        costprice: amount,
+                        costInr: requiresRoe(
+                          prev.costCurrency,
+                          businessCurrency,
+                        )
+                          ? computeInr(amount, prev.costRoe)
+                          : "",
+                      }));
+                    }}
+                    roe={form.costRoe}
+                    onRoeChange={(val) => {
+                      const roe = allowOnlyNumbers(val);
+                      setForm((prev) => ({
+                        ...prev,
+                        costRoe: roe,
+                        costInr: computeInr(prev.costprice, roe),
+                      }));
+                    }}
+                    inr={form.costInr}
+                    notes={form.costNotes}
+                    onNotesChange={(val) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        costNotes: val,
+                      }))
+                    }
+                    showNotes={showCostNotes}
+                    onToggleNotes={() => setShowCostNotes((s) => !s)}
+                    businessCurrency={businessCurrency}
+                    requiresRoe={requiresRoe}
+                    inputClassName={inputBase}
+                  />
                 </div>
               </div>
 
@@ -891,119 +838,63 @@ export default function CancellationModal({
                   Refund Received
                 </div>
                 <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      form.costRefundCurrency === "USD"
-                        ? "grid-cols-[220px_160px_170px_44px]"
-                        : "grid-cols-[380px_44px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className={groupBase}>
-                      <DropDown
-                        options={[
-                          { value: "INR", label: "INR" },
-                          { value: "USD", label: "USD" },
-                        ]}
-                        value={form.costRefundCurrency}
-                        onChange={(val) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            costRefundCurrency: val as Currency,
-                            costRefundRoe:
-                              val === "USD" ? prev.costRefundRoe : "",
-                            costRefundInr:
-                              val === "USD" ? prev.costRefundInr : "",
-                          }))
-                        }
-                        customWidth="w-[64px]"
-                        noBorder={true}
-                        noButtonRadius={true}
-                        focusRingClass=""
-                        buttonClassName="bg-gray-50 text-[0.78rem] text-gray-700 px-2 h-[34px]"
-                        className={groupSelectWhite}
-                      />
-                      <input
-                        value={form.costRefundAmount}
-                        onChange={(e) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            costRefundAmount: allowOnlyNumbers(e.target.value),
-                            costRefundInr:
-                              prev.costRefundCurrency === "USD"
-                                ? computeInr(
-                                    allowOnlyNumbers(e.target.value),
-                                    prev.costRefundRoe
-                                  )
-                                : prev.costRefundInr,
-                          }))
-                        }
-                        className={groupInput}
-                        placeholder="Enter Amount"
-                      />
-                    </div>
-
-                    {form.costRefundCurrency === "USD" ? (
-                      <>
-                        <div className={groupBase}>
-                          <span className={addonLabel}>ROE</span>
-                          <input
-                            value={form.costRefundRoe}
-                            onChange={(e) => {
-                              const roe = allowOnlyNumbers(e.target.value);
-                              setForm((prev) => ({
-                                ...prev,
-                                costRefundRoe: roe,
-                                costRefundInr: computeInr(
-                                  prev.costRefundAmount,
-                                  roe
-                                ),
-                              }));
-                            }}
-                            className={groupInput}
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {form.costRefundInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    ) : null}
-
-                    <button
-                      type="button"
-                      className={noteBtn}
-                      aria-label="Add notes"
-                      onClick={() => setShowCenterRefundNotes((s) => !s)}
-                    >
-                      <TbNotes size={16} className="text-[#F59E0B]" />
-                    </button>
-                  </div>
-
-                  {form.costRefundCurrency === "USD" &&
-                    showCenterRefundNotes && (
-                      <div className="mt-3">
-                        <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                          Notes
-                        </label>
-                        <input
-                          value={form.costRefundNotes}
-                          onChange={(e) =>
-                            setForm((prev) => ({
-                              ...prev,
-                              costRefundNotes: e.target.value,
-                            }))
-                          }
-                          className={inputBase}
-                          placeholder="Enter your notes here"
-                        />
-                      </div>
-                    )}
+                  <MultiCurrencyInput
+                    currency={form.costRefundCurrency}
+                    onCurrencyChange={(val) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        costRefundCurrency: val,
+                        costRefundRoe: requiresRoe(val, businessCurrency)
+                          ? prev.costRefundRoe
+                          : "",
+                        costRefundInr: requiresRoe(val, businessCurrency)
+                          ? prev.costRefundInr
+                          : "",
+                      }))
+                    }
+                    amount={form.costRefundAmount}
+                    onAmountChange={(val) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        costRefundAmount: allowOnlyNumbers(val),
+                        costRefundInr: requiresRoe(
+                          prev.costRefundCurrency,
+                          businessCurrency,
+                        )
+                          ? computeInr(
+                              allowOnlyNumbers(val),
+                              prev.costRefundRoe,
+                            )
+                          : prev.costRefundInr,
+                      }))
+                    }
+                    roe={form.costRefundRoe}
+                    onRoeChange={(val) => {
+                      const roe = allowOnlyNumbers(val);
+                      setForm((prev) => ({
+                        ...prev,
+                        costRefundRoe: roe,
+                        costRefundInr: computeInr(prev.costRefundAmount, roe),
+                      }));
+                    }}
+                    inr={form.costRefundInr}
+                    notes={form.costRefundNotes}
+                    onNotesChange={(val) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        costRefundNotes: val,
+                      }))
+                    }
+                    showNotes={
+                      requiresRoe(form.costRefundCurrency, businessCurrency) &&
+                      showCenterRefundNotes
+                    }
+                    onToggleNotes={() => setShowCenterRefundNotes((s) => !s)}
+                    businessCurrency={businessCurrency}
+                    requiresRoe={requiresRoe}
+                    inputClassName={inputBase}
+                    useWhiteDropdown={false}
+                  />
                 </div>
               </div>
             </div>
@@ -1015,129 +906,68 @@ export default function CancellationModal({
                   Vendor Base Price
                 </div>
                 <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      form.vendorBaseCurrency === "USD"
-                        ? "grid-cols-[220px_160px_170px_44px]"
-                        : "grid-cols-[380px_44px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className={groupBase}>
-                      <DropDown
-                        options={[
-                          { value: "INR", label: "INR" },
-                          { value: "USD", label: "USD" },
-                        ]}
-                        value={form.vendorBaseCurrency}
-                        onChange={(val) =>
-                          setForm((prev) => {
-                            const next: CancellationModalFormState = {
-                              ...prev,
-                              vendorBaseCurrency: val as Currency,
-                            };
-                            if (val === "USD") {
-                              next.vendorBaseInr = computeInr(
-                                String(prev.vendorBasePrice ?? ""),
-                                String(prev.vendorBaseRoe ?? "")
-                              );
-                            } else {
-                              next.vendorBaseRoe = "";
-                              next.vendorBaseInr = "";
-                            }
-                            return next;
-                          })
+                  <MultiCurrencyInput
+                    currency={form.vendorBaseCurrency}
+                    onCurrencyChange={(val) =>
+                      setForm((prev) => {
+                        const next: CancellationModalFormState = {
+                          ...prev,
+                          vendorBaseCurrency: val,
+                        };
+                        if (requiresRoe(val, businessCurrency)) {
+                          next.vendorBaseInr = computeInr(
+                            String(prev.vendorBasePrice ?? ""),
+                            String(prev.vendorBaseRoe ?? ""),
+                          );
+                        } else {
+                          next.vendorBaseRoe = "";
+                          next.vendorBaseInr = "";
                         }
-                        customWidth="w-[64px]"
-                        noBorder={true}
-                        noButtonRadius={true}
-                        focusRingClass=""
-                        buttonClassName="bg-white text-[0.78rem] text-gray-700 px-2 h-[34px]"
-                        className={groupSelectWhite}
-                      />
-                      <input
-                        value={form.vendorBasePrice}
-                        onChange={(e) => {
-                          const amount = allowOnlyNumbers(e.target.value);
-                          setForm((prev) => ({
-                            ...prev,
-                            vendorBasePrice: amount,
-                            vendorBaseInr:
-                              prev.vendorBaseCurrency === "USD"
-                                ? computeInr(amount, prev.vendorBaseRoe)
-                                : "",
-                          }));
-                        }}
-                        className={groupInput}
-                        placeholder="Enter Amount"
-                      />
-                    </div>
-
-                    {form.vendorBaseCurrency === "USD" ? (
-                      <>
-                        <div className={groupBase}>
-                          <span className={addonLabel}>ROE</span>
-                          <input
-                            value={form.vendorBaseRoe}
-                            onChange={(e) => {
-                              const roe = allowOnlyNumbers(e.target.value);
-                              setForm((prev) => ({
-                                ...prev,
-                                vendorBaseRoe: roe,
-                                vendorBaseInr: computeInr(
-                                  prev.vendorBasePrice,
-                                  roe
-                                ),
-                              }));
-                            }}
-                            className={groupInput}
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {form.vendorBaseInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    ) : null}
-
-                    <button
-                      type="button"
-                      className={noteBtn}
-                      aria-label="Add notes"
-                      onClick={() =>
-                        setAdvNotesVisible((p) => ({
-                          ...p,
-                          vendorBase: !p.vendorBase,
-                        }))
-                      }
-                    >
-                      <TbNotes size={16} className="text-[#F59E0B]" />
-                    </button>
-                  </div>
-
-                  {advNotesVisible.vendorBase && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <input
-                        value={form.vendorBaseNotes}
-                        onChange={(e) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            vendorBaseNotes: e.target.value,
-                          }))
-                        }
-                        className={inputBase}
-                        placeholder="Enter your notes here"
-                      />
-                    </div>
-                  )}
+                        return next;
+                      })
+                    }
+                    amount={form.vendorBasePrice}
+                    onAmountChange={(val) => {
+                      const amount = allowOnlyNumbers(val);
+                      setForm((prev) => ({
+                        ...prev,
+                        vendorBasePrice: amount,
+                        vendorBaseInr: requiresRoe(
+                          prev.vendorBaseCurrency,
+                          businessCurrency,
+                        )
+                          ? computeInr(amount, prev.vendorBaseRoe)
+                          : "",
+                      }));
+                    }}
+                    roe={form.vendorBaseRoe}
+                    onRoeChange={(val) => {
+                      const roe = allowOnlyNumbers(val);
+                      setForm((prev) => ({
+                        ...prev,
+                        vendorBaseRoe: roe,
+                        vendorBaseInr: computeInr(prev.vendorBasePrice, roe),
+                      }));
+                    }}
+                    inr={form.vendorBaseInr}
+                    notes={form.vendorBaseNotes}
+                    onNotesChange={(val) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vendorBaseNotes: val,
+                      }))
+                    }
+                    showNotes={advNotesVisible.vendorBase}
+                    onToggleNotes={() =>
+                      setAdvNotesVisible((p) => ({
+                        ...p,
+                        vendorBase: !p.vendorBase,
+                      }))
+                    }
+                    businessCurrency={businessCurrency}
+                    requiresRoe={requiresRoe}
+                    inputClassName={inputBase}
+                  />
                 </div>
               </div>
 
@@ -1146,125 +976,74 @@ export default function CancellationModal({
                   Refund Received
                 </div>
                 <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      form.vendorInvoiceRefundCurrency === "USD"
-                        ? "grid-cols-[220px_160px_170px_44px]"
-                        : "grid-cols-[380px_44px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className={groupBase}>
-                      <DropDown
-                        options={[
-                          { value: "INR", label: "INR" },
-                          { value: "USD", label: "USD" },
-                        ]}
-                        value={form.vendorInvoiceRefundCurrency}
-                        onChange={(val) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            vendorInvoiceRefundCurrency: val as Currency,
-                            vendorInvoiceRefundRoe:
-                              val === "USD" ? prev.vendorInvoiceRefundRoe : "",
-                            vendorInvoiceRefundInr:
-                              val === "USD" ? prev.vendorInvoiceRefundInr : "",
-                          }))
-                        }
-                        customWidth="w-[64px]"
-                        noBorder={true}
-                        noButtonRadius={true}
-                        focusRingClass=""
-                        buttonClassName="bg-gray-50 text-[0.78rem] text-gray-700 px-2 h-[34px]"
-                        className={groupSelectWhite}
-                      />
-                      <input
-                        value={form.vendorInvoiceRefundAmount}
-                        onChange={(e) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            vendorInvoiceRefundAmount: allowOnlyNumbers(
-                              e.target.value
-                            ),
-                            vendorInvoiceRefundInr:
-                              prev.vendorInvoiceRefundCurrency === "USD"
-                                ? computeInr(
-                                    allowOnlyNumbers(e.target.value),
-                                    prev.vendorInvoiceRefundRoe
-                                  )
-                                : prev.vendorInvoiceRefundInr,
-                          }))
-                        }
-                        className={groupInput}
-                        placeholder="Enter Amount"
-                      />
-                    </div>
-
-                    {form.vendorInvoiceRefundCurrency === "USD" ? (
-                      <>
-                        <div className={groupBase}>
-                          <span className={addonLabel}>ROE</span>
-                          <input
-                            value={form.vendorInvoiceRefundRoe}
-                            onChange={(e) => {
-                              const roe = allowOnlyNumbers(e.target.value);
-                              setForm((prev) => ({
-                                ...prev,
-                                vendorInvoiceRefundRoe: roe,
-                                vendorInvoiceRefundInr: computeInr(
-                                  prev.vendorInvoiceRefundAmount,
-                                  roe
-                                ),
-                              }));
-                            }}
-                            className={groupInput}
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {form.vendorInvoiceRefundInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    ) : null}
-
-                    <button
-                      type="button"
-                      className={noteBtn}
-                      aria-label="Add notes"
-                      onClick={() =>
-                        setAdvNotesVisible((p) => ({
-                          ...p,
-                          vendorInvoiceRefund: !p.vendorInvoiceRefund,
-                        }))
-                      }
-                    >
-                      <TbNotes size={16} className="text-[#F59E0B]" />
-                    </button>
-                  </div>
-
-                  {advNotesVisible.vendorInvoiceRefund && (
-                    <div className="mt-4">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <input
-                        value={form.vendorInvoiceRefundNotes}
-                        onChange={(e) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            vendorInvoiceRefundNotes: e.target.value,
-                          }))
-                        }
-                        className={smallInputBase}
-                        placeholder="Enter your notes here"
-                      />
-                    </div>
-                  )}
+                  <MultiCurrencyInput
+                    currency={form.vendorInvoiceRefundCurrency}
+                    onCurrencyChange={(val) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vendorInvoiceRefundCurrency: val,
+                        vendorInvoiceRefundRoe: requiresRoe(
+                          val,
+                          businessCurrency,
+                        )
+                          ? prev.vendorInvoiceRefundRoe
+                          : "",
+                        vendorInvoiceRefundInr: requiresRoe(
+                          val,
+                          businessCurrency,
+                        )
+                          ? prev.vendorInvoiceRefundInr
+                          : "",
+                      }))
+                    }
+                    amount={form.vendorInvoiceRefundAmount}
+                    onAmountChange={(val) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vendorInvoiceRefundAmount: allowOnlyNumbers(val),
+                        vendorInvoiceRefundInr: requiresRoe(
+                          prev.vendorInvoiceRefundCurrency,
+                          businessCurrency,
+                        )
+                          ? computeInr(
+                              allowOnlyNumbers(val),
+                              prev.vendorInvoiceRefundRoe,
+                            )
+                          : prev.vendorInvoiceRefundInr,
+                      }))
+                    }
+                    roe={form.vendorInvoiceRefundRoe}
+                    onRoeChange={(val) => {
+                      const roe = allowOnlyNumbers(val);
+                      setForm((prev) => ({
+                        ...prev,
+                        vendorInvoiceRefundRoe: roe,
+                        vendorInvoiceRefundInr: computeInr(
+                          prev.vendorInvoiceRefundAmount,
+                          roe,
+                        ),
+                      }));
+                    }}
+                    inr={form.vendorInvoiceRefundInr}
+                    notes={form.vendorInvoiceRefundNotes}
+                    onNotesChange={(val) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vendorInvoiceRefundNotes: val,
+                      }))
+                    }
+                    showNotes={advNotesVisible.vendorInvoiceRefund}
+                    onToggleNotes={() =>
+                      setAdvNotesVisible((p) => ({
+                        ...p,
+                        vendorInvoiceRefund: !p.vendorInvoiceRefund,
+                      }))
+                    }
+                    businessCurrency={businessCurrency}
+                    requiresRoe={requiresRoe}
+                    inputClassName={smallInputBase}
+                    useWhiteDropdown={false}
+                  />
                 </div>
               </div>
 
@@ -1273,129 +1052,71 @@ export default function CancellationModal({
                   Supplier Incentive Received
                 </div>
                 <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      form.vendorIncentiveCurrency === "USD"
-                        ? "grid-cols-[220px_160px_170px_44px]"
-                        : "grid-cols-[380px_44px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className={groupBase}>
-                      <DropDown
-                        options={[
-                          { value: "INR", label: "INR" },
-                          { value: "USD", label: "USD" },
-                        ]}
-                        value={form.vendorIncentiveCurrency}
-                        onChange={(val) =>
-                          setForm((prev) => {
-                            const next: CancellationModalFormState = {
-                              ...prev,
-                              vendorIncentiveCurrency: val as Currency,
-                            };
-                            if (val === "USD") {
-                              next.vendorIncentiveInr = computeInr(
-                                String(prev.vendorIncentiveReceived ?? ""),
-                                String(prev.vendorIncentiveRoe ?? "")
-                              );
-                            } else {
-                              next.vendorIncentiveRoe = "";
-                              next.vendorIncentiveInr = "";
-                            }
-                            return next;
-                          })
+                  <MultiCurrencyInput
+                    currency={form.vendorIncentiveCurrency}
+                    onCurrencyChange={(val) =>
+                      setForm((prev) => {
+                        const next: CancellationModalFormState = {
+                          ...prev,
+                          vendorIncentiveCurrency: val,
+                        };
+                        if (requiresRoe(val, businessCurrency)) {
+                          next.vendorIncentiveInr = computeInr(
+                            String(prev.vendorIncentiveReceived ?? ""),
+                            String(prev.vendorIncentiveRoe ?? ""),
+                          );
+                        } else {
+                          next.vendorIncentiveRoe = "";
+                          next.vendorIncentiveInr = "";
                         }
-                        customWidth="w-[64px]"
-                        noBorder={true}
-                        noButtonRadius={true}
-                        focusRingClass=""
-                        buttonClassName="bg-white text-[0.78rem] text-gray-700 px-2 h-[34px]"
-                        className={groupSelectWhite}
-                      />
-                      <input
-                        value={form.vendorIncentiveReceived}
-                        onChange={(e) => {
-                          const amount = allowOnlyNumbers(e.target.value);
-                          setForm((prev) => ({
-                            ...prev,
-                            vendorIncentiveReceived: amount,
-                            vendorIncentiveInr:
-                              prev.vendorIncentiveCurrency === "USD"
-                                ? computeInr(amount, prev.vendorIncentiveRoe)
-                                : "",
-                          }));
-                        }}
-                        className={groupInput}
-                        placeholder="Enter Amount"
-                      />
-                    </div>
-
-                    {form.vendorIncentiveCurrency === "USD" ? (
-                      <>
-                        <div className={groupBase}>
-                          <span className={addonLabel}>ROE</span>
-                          <input
-                            value={form.vendorIncentiveRoe}
-                            onChange={(e) => {
-                              const roe = allowOnlyNumbers(e.target.value);
-                              setForm((prev) => ({
-                                ...prev,
-                                vendorIncentiveRoe: roe,
-                                vendorIncentiveInr: computeInr(
-                                  prev.vendorIncentiveReceived,
-                                  roe
-                                ),
-                              }));
-                            }}
-                            className={groupInput}
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {form.vendorIncentiveInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    ) : null}
-
-                    <button
-                      type="button"
-                      className={noteBtn}
-                      aria-label="Add notes"
-                      onClick={() =>
-                        setAdvNotesVisible((p) => ({
-                          ...p,
-                          vendorIncentive: !p.vendorIncentive,
-                        }))
-                      }
-                    >
-                      <TbNotes size={16} className="text-[#F59E0B]" />
-                    </button>
-                  </div>
-
-                  {advNotesVisible.vendorIncentive && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <input
-                        value={form.vendorIncentiveNotes}
-                        onChange={(e) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            vendorIncentiveNotes: e.target.value,
-                          }))
-                        }
-                        className={inputBase}
-                        placeholder="Enter your notes here"
-                      />
-                    </div>
-                  )}
+                        return next;
+                      })
+                    }
+                    amount={form.vendorIncentiveReceived}
+                    onAmountChange={(val) => {
+                      const amount = allowOnlyNumbers(val);
+                      setForm((prev) => ({
+                        ...prev,
+                        vendorIncentiveReceived: amount,
+                        vendorIncentiveInr: requiresRoe(
+                          prev.vendorIncentiveCurrency,
+                          businessCurrency,
+                        )
+                          ? computeInr(amount, prev.vendorIncentiveRoe)
+                          : "",
+                      }));
+                    }}
+                    roe={form.vendorIncentiveRoe}
+                    onRoeChange={(val) => {
+                      const roe = allowOnlyNumbers(val);
+                      setForm((prev) => ({
+                        ...prev,
+                        vendorIncentiveRoe: roe,
+                        vendorIncentiveInr: computeInr(
+                          prev.vendorIncentiveReceived,
+                          roe,
+                        ),
+                      }));
+                    }}
+                    inr={form.vendorIncentiveInr}
+                    notes={form.vendorIncentiveNotes}
+                    onNotesChange={(val) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        vendorIncentiveNotes: val,
+                      }))
+                    }
+                    showNotes={advNotesVisible.vendorIncentive}
+                    onToggleNotes={() =>
+                      setAdvNotesVisible((p) => ({
+                        ...p,
+                        vendorIncentive: !p.vendorIncentive,
+                      }))
+                    }
+                    businessCurrency={businessCurrency}
+                    requiresRoe={requiresRoe}
+                    inputClassName={inputBase}
+                  />
                 </div>
               </div>
 
@@ -1404,123 +1125,65 @@ export default function CancellationModal({
                   Chargeback
                 </div>
                 <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      form.chargebackCurrency === "USD"
-                        ? "grid-cols-[220px_160px_170px_44px]"
-                        : "grid-cols-[380px_44px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className={groupBase}>
-                      <DropDown
-                        options={[
-                          { value: "INR", label: "INR" },
-                          { value: "USD", label: "USD" },
-                        ]}
-                        value={form.chargebackCurrency}
-                        onChange={(val) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            chargebackCurrency: val as Currency,
-                            chargebackRoe:
-                              val === "USD" ? prev.chargebackRoe : "",
-                            chargebackInr:
-                              val === "USD" ? prev.chargebackInr : "",
-                          }))
-                        }
-                        customWidth="w-[64px]"
-                        noBorder={true}
-                        noButtonRadius={true}
-                        focusRingClass=""
-                        buttonClassName="bg-gray-50 text-[0.78rem] text-gray-700 px-2 h-[34px]"
-                        className={groupSelectWhite}
-                      />
-                      <input
-                        value={form.chargebackAmount}
-                        onChange={(e) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            chargebackAmount: allowOnlyNumbers(e.target.value),
-                            chargebackInr:
-                              prev.chargebackCurrency === "USD"
-                                ? computeInr(
-                                    allowOnlyNumbers(e.target.value),
-                                    prev.chargebackRoe
-                                  )
-                                : prev.chargebackInr,
-                          }))
-                        }
-                        className={groupInput}
-                        placeholder="Enter Amount"
-                      />
-                    </div>
-
-                    {form.chargebackCurrency === "USD" ? (
-                      <>
-                        <div className={groupBase}>
-                          <span className={addonLabel}>ROE</span>
-                          <input
-                            value={form.chargebackRoe}
-                            onChange={(e) => {
-                              const roe = allowOnlyNumbers(e.target.value);
-                              setForm((prev) => ({
-                                ...prev,
-                                chargebackRoe: roe,
-                                chargebackInr: computeInr(
-                                  prev.chargebackAmount,
-                                  roe
-                                ),
-                              }));
-                            }}
-                            className={groupInput}
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {form.chargebackInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    ) : null}
-
-                    <button
-                      type="button"
-                      className={noteBtn}
-                      aria-label="Add notes"
-                      onClick={() =>
-                        setAdvNotesVisible((p) => ({
-                          ...p,
-                          chargeback: !p.chargeback,
-                        }))
-                      }
-                    >
-                      <TbNotes size={16} className="text-[#F59E0B]" />
-                    </button>
-                  </div>
-
-                  {advNotesVisible.chargeback && (
-                    <div className="mt-4">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <input
-                        value={form.chargebackNotes}
-                        onChange={(e) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            chargebackNotes: e.target.value,
-                          }))
-                        }
-                        className={smallInputBase}
-                        placeholder="Enter your notes here"
-                      />
-                    </div>
-                  )}
+                  <MultiCurrencyInput
+                    currency={form.chargebackCurrency}
+                    onCurrencyChange={(val) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        chargebackCurrency: val,
+                        chargebackRoe: requiresRoe(val, businessCurrency)
+                          ? prev.chargebackRoe
+                          : "",
+                        chargebackInr: requiresRoe(val, businessCurrency)
+                          ? prev.chargebackInr
+                          : "",
+                      }))
+                    }
+                    amount={form.chargebackAmount}
+                    onAmountChange={(val) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        chargebackAmount: allowOnlyNumbers(val),
+                        chargebackInr: requiresRoe(
+                          prev.chargebackCurrency,
+                          businessCurrency,
+                        )
+                          ? computeInr(
+                              allowOnlyNumbers(val),
+                              prev.chargebackRoe,
+                            )
+                          : prev.chargebackInr,
+                      }))
+                    }
+                    roe={form.chargebackRoe}
+                    onRoeChange={(val) => {
+                      const roe = allowOnlyNumbers(val);
+                      setForm((prev) => ({
+                        ...prev,
+                        chargebackRoe: roe,
+                        chargebackInr: computeInr(prev.chargebackAmount, roe),
+                      }));
+                    }}
+                    inr={form.chargebackInr}
+                    notes={form.chargebackNotes}
+                    onNotesChange={(val) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        chargebackNotes: val,
+                      }))
+                    }
+                    showNotes={advNotesVisible.chargeback}
+                    onToggleNotes={() =>
+                      setAdvNotesVisible((p) => ({
+                        ...p,
+                        chargeback: !p.chargeback,
+                      }))
+                    }
+                    businessCurrency={businessCurrency}
+                    requiresRoe={requiresRoe}
+                    inputClassName={smallInputBase}
+                    useWhiteDropdown={false}
+                  />
                 </div>
               </div>
 
@@ -1529,129 +1192,69 @@ export default function CancellationModal({
                   Commission Payout
                 </div>
                 <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      form.commissionCurrency === "USD"
-                        ? "grid-cols-[220px_160px_170px_44px]"
-                        : "grid-cols-[380px_44px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className={groupBase}>
-                      <DropDown
-                        options={[
-                          { value: "INR", label: "INR" },
-                          { value: "USD", label: "USD" },
-                        ]}
-                        value={form.commissionCurrency}
-                        onChange={(val) =>
-                          setForm((prev) => {
-                            const next: CancellationModalFormState = {
-                              ...prev,
-                              commissionCurrency: val as Currency,
-                            };
-                            if (val === "USD") {
-                              next.commissionInr = computeInr(
-                                String(prev.commissionPaid ?? ""),
-                                String(prev.commissionRoe ?? "")
-                              );
-                            } else {
-                              next.commissionRoe = "";
-                              next.commissionInr = "";
-                            }
-                            return next;
-                          })
+                  <MultiCurrencyInput
+                    currency={form.commissionCurrency}
+                    onCurrencyChange={(val) =>
+                      setForm((prev) => {
+                        const next: CancellationModalFormState = {
+                          ...prev,
+                          commissionCurrency: val,
+                        };
+                        if (requiresRoe(val as Currency, businessCurrency)) {
+                          next.commissionInr = computeInr(
+                            String(prev.commissionPaid ?? ""),
+                            String(prev.commissionRoe ?? ""),
+                          );
+                        } else {
+                          next.commissionRoe = "";
+                          next.commissionInr = "";
                         }
-                        customWidth="w-[64px]"
-                        noBorder={true}
-                        noButtonRadius={true}
-                        focusRingClass=""
-                        buttonClassName="bg-white text-[0.78rem] text-gray-700 px-2 h-[34px]"
-                        className={groupSelectWhite}
-                      />
-                      <input
-                        value={form.commissionPaid}
-                        onChange={(e) => {
-                          const amount = allowOnlyNumbers(e.target.value);
-                          setForm((prev) => ({
-                            ...prev,
-                            commissionPaid: amount,
-                            commissionInr:
-                              prev.commissionCurrency === "USD"
-                                ? computeInr(amount, prev.commissionRoe)
-                                : "",
-                          }));
-                        }}
-                        className={groupInput}
-                        placeholder="Enter Amount"
-                      />
-                    </div>
-
-                    {form.commissionCurrency === "USD" ? (
-                      <>
-                        <div className={groupBase}>
-                          <span className={addonLabel}>ROE</span>
-                          <input
-                            value={form.commissionRoe}
-                            onChange={(e) => {
-                              const roe = allowOnlyNumbers(e.target.value);
-                              setForm((prev) => ({
-                                ...prev,
-                                commissionRoe: roe,
-                                commissionInr: computeInr(
-                                  prev.commissionPaid,
-                                  roe
-                                ),
-                              }));
-                            }}
-                            className={groupInput}
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {form.commissionInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    ) : null}
-
-                    <button
-                      type="button"
-                      className={noteBtn}
-                      aria-label="Add notes"
-                      onClick={() =>
-                        setAdvNotesVisible((p) => ({
-                          ...p,
-                          commissionPaid: !p.commissionPaid,
-                        }))
-                      }
-                    >
-                      <TbNotes size={16} className="text-[#F59E0B]" />
-                    </button>
-                  </div>
-
-                  {advNotesVisible.commissionPaid && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <input
-                        value={form.commissionNotes}
-                        onChange={(e) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            commissionNotes: e.target.value,
-                          }))
-                        }
-                        className={inputBase}
-                        placeholder="Enter your notes here"
-                      />
-                    </div>
-                  )}
+                        return next;
+                      })
+                    }
+                    amount={form.commissionPaid}
+                    onAmountChange={(val) => {
+                      const amount = allowOnlyNumbers(val);
+                      setForm((prev) => ({
+                        ...prev,
+                        commissionPaid: amount,
+                        commissionInr: requiresRoe(
+                          prev.commissionCurrency,
+                          businessCurrency,
+                        )
+                          ? computeInr(amount, prev.commissionRoe)
+                          : "",
+                      }));
+                    }}
+                    roe={form.commissionRoe}
+                    onRoeChange={(val) => {
+                      const roe = allowOnlyNumbers(val);
+                      setForm((prev) => ({
+                        ...prev,
+                        commissionRoe: roe,
+                        commissionInr: computeInr(prev.commissionPaid, roe),
+                      }));
+                    }}
+                    inr={form.commissionInr}
+                    businessCurrency={businessCurrency}
+                    notes={form.commissionNotes}
+                    onNotesChange={(val) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        commissionNotes: val,
+                      }))
+                    }
+                    showNotes={advNotesVisible.commissionPaid}
+                    onToggleNotes={() =>
+                      setAdvNotesVisible((p) => ({
+                        ...p,
+                        commissionPaid: !p.commissionPaid,
+                      }))
+                    }
+                    useWhiteDropdown={true}
+                    inputClassName={inputBase}
+                    requiresRoe={requiresRoe}
+                  />
                 </div>
               </div>
 
@@ -1660,125 +1263,72 @@ export default function CancellationModal({
                   Refund Received
                 </div>
                 <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      form.commissionRefundCurrency === "USD"
-                        ? "grid-cols-[220px_160px_170px_44px]"
-                        : "grid-cols-[380px_44px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className={groupBase}>
-                      <DropDown
-                        options={[
-                          { value: "INR", label: "INR" },
-                          { value: "USD", label: "USD" },
-                        ]}
-                        value={form.commissionRefundCurrency}
-                        onChange={(val) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            commissionRefundCurrency: val as Currency,
-                            commissionRefundRoe:
-                              val === "USD" ? prev.commissionRefundRoe : "",
-                            commissionRefundInr:
-                              val === "USD" ? prev.commissionRefundInr : "",
-                          }))
-                        }
-                        customWidth="w-[64px]"
-                        noBorder={true}
-                        noButtonRadius={true}
-                        focusRingClass=""
-                        buttonClassName="bg-gray-50 text-[0.78rem] text-gray-700 px-2 h-[34px]"
-                        className={groupSelectWhite}
-                      />
-                      <input
-                        value={form.commissionRefundAmount}
-                        onChange={(e) =>
-                          setForm((prev) => ({
-                            ...prev,
-                            commissionRefundAmount: allowOnlyNumbers(
-                              e.target.value
-                            ),
-                            commissionRefundInr:
-                              prev.commissionRefundCurrency === "USD"
-                                ? computeInr(
-                                    allowOnlyNumbers(e.target.value),
-                                    prev.commissionRefundRoe
-                                  )
-                                : prev.commissionRefundInr,
-                          }))
-                        }
-                        className={groupInput}
-                        placeholder="Enter Amount"
-                      />
-                    </div>
-
-                    {form.commissionRefundCurrency === "USD" ? (
-                      <>
-                        <div className={groupBase}>
-                          <span className={addonLabel}>ROE</span>
-                          <input
-                            value={form.commissionRefundRoe}
-                            onChange={(e) => {
-                              const roe = allowOnlyNumbers(e.target.value);
-                              setForm((prev) => ({
-                                ...prev,
-                                commissionRefundRoe: roe,
-                                commissionRefundInr: computeInr(
-                                  prev.commissionRefundAmount,
-                                  roe
-                                ),
-                              }));
-                            }}
-                            className={groupInput}
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {form.commissionRefundInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    ) : null}
-
-                    <button
-                      type="button"
-                      className={noteBtn}
-                      aria-label="Add notes"
-                      onClick={() =>
-                        setAdvNotesVisible((p) => ({
-                          ...p,
-                          commissionRefund: !p.commissionRefund,
-                        }))
-                      }
-                    >
-                      <TbNotes size={16} className="text-[#F59E0B]" />
-                    </button>
-                  </div>
-
-                  {advNotesVisible.commissionRefund && (
-                    <div className="mt-4">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <input
-                        value={form.commissionRefundNotes}
-                        onChange={(e) => {
-                          setForm((prev) => ({
-                            ...prev,
-                            commissionRefundNotes: e.target.value,
-                          }));
-                        }}
-                        className={smallInputBase}
-                        placeholder="Enter your notes here"
-                      />
-                    </div>
-                  )}
+                  <MultiCurrencyInput
+                    currency={form.commissionRefundCurrency}
+                    onCurrencyChange={(val) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        commissionRefundCurrency: val,
+                        commissionRefundRoe: requiresRoe(
+                          val as Currency,
+                          businessCurrency,
+                        )
+                          ? prev.commissionRefundRoe
+                          : "",
+                        commissionRefundInr: requiresRoe(
+                          val as Currency,
+                          businessCurrency,
+                        )
+                          ? prev.commissionRefundInr
+                          : "",
+                      }))
+                    }
+                    amount={form.commissionRefundAmount}
+                    onAmountChange={(val) => {
+                      const amount = allowOnlyNumbers(val);
+                      setForm((prev) => ({
+                        ...prev,
+                        commissionRefundAmount: amount,
+                        commissionRefundInr: requiresRoe(
+                          prev.commissionRefundCurrency,
+                          businessCurrency,
+                        )
+                          ? computeInr(amount, prev.commissionRefundRoe)
+                          : prev.commissionRefundInr,
+                      }));
+                    }}
+                    roe={form.commissionRefundRoe}
+                    onRoeChange={(val) => {
+                      const roe = allowOnlyNumbers(val);
+                      setForm((prev) => ({
+                        ...prev,
+                        commissionRefundRoe: roe,
+                        commissionRefundInr: computeInr(
+                          prev.commissionRefundAmount,
+                          roe,
+                        ),
+                      }));
+                    }}
+                    inr={form.commissionRefundInr}
+                    businessCurrency={businessCurrency}
+                    notes={form.commissionRefundNotes}
+                    onNotesChange={(val) =>
+                      setForm((prev) => ({
+                        ...prev,
+                        commissionRefundNotes: val,
+                      }))
+                    }
+                    showNotes={advNotesVisible.commissionRefund}
+                    onToggleNotes={() =>
+                      setAdvNotesVisible((p) => ({
+                        ...p,
+                        commissionRefund: !p.commissionRefund,
+                      }))
+                    }
+                    useWhiteDropdown={false}
+                    inputClassName={smallInputBase}
+                    requiresRoe={requiresRoe}
+                  />
                 </div>
               </div>
             </>
@@ -1790,121 +1340,64 @@ export default function CancellationModal({
               Selling Price
             </div>
             <div className="p-4 border-b border-gray-200">
-              <div
-                className={`grid ${
-                  form.sellingCurrency === "USD"
-                    ? "grid-cols-[220px_160px_170px_44px]"
-                    : "grid-cols-[380px_44px]"
-                } gap-3 items-center`}
-              >
-                <div className={groupBase}>
-                  <DropDown
-                    options={[
-                      { value: "INR", label: "INR" },
-                      { value: "USD", label: "USD" },
-                    ]}
-                    value={form.sellingCurrency}
-                    onChange={(val) =>
-                      setForm((prev) => {
-                        const next: CancellationModalFormState = {
-                          ...prev,
-                          sellingCurrency: val as Currency,
-                        };
-                        if (val === "USD") {
-                          next.sellingInr = computeInr(
-                            String(prev.sellingprice ?? ""),
-                            String(prev.sellingRoe ?? "")
-                          );
-                        } else {
-                          next.sellingRoe = "";
-                          next.sellingInr = "";
-                        }
-                        return next;
-                      })
+              <MultiCurrencyInput
+                currency={form.sellingCurrency}
+                onCurrencyChange={(val) =>
+                  setForm((prev) => {
+                    const next: CancellationModalFormState = {
+                      ...prev,
+                      sellingCurrency: val,
+                    };
+                    if (requiresRoe(val as Currency, businessCurrency)) {
+                      next.sellingInr = computeInr(
+                        String(prev.sellingprice ?? ""),
+                        String(prev.sellingRoe ?? ""),
+                      );
+                    } else {
+                      next.sellingRoe = "";
+                      next.sellingInr = "";
                     }
-                    customWidth="w-[64px]"
-                    noBorder={true}
-                    noButtonRadius={true}
-                    focusRingClass=""
-                    buttonClassName="bg-white text-[0.78rem] text-gray-700 px-2 h-[34px]"
-                    className={groupSelectWhite}
-                  />
-                  <input
-                    value={form.sellingprice}
-                    onChange={(e) => {
-                      const amount = allowOnlyNumbers(e.target.value);
-                      setForm((prev) => ({
-                        ...prev,
-                        sellingprice: amount,
-                        sellingInr:
-                          prev.sellingCurrency === "USD"
-                            ? computeInr(amount, prev.sellingRoe)
-                            : "",
-                      }));
-                    }}
-                    className={groupInput}
-                    placeholder="Enter Amount"
-                  />
-                </div>
-
-                {form.sellingCurrency === "USD" ? (
-                  <>
-                    <div className={groupBase}>
-                      <span className={addonLabel}>ROE</span>
-                      <input
-                        value={form.sellingRoe}
-                        onChange={(e) => {
-                          const roe = allowOnlyNumbers(e.target.value);
-                          setForm((prev) => ({
-                            ...prev,
-                            sellingRoe: roe,
-                            sellingInr: computeInr(prev.sellingprice, roe),
-                          }));
-                        }}
-                        className={groupInput}
-                        placeholder=""
-                      />
-                    </div>
-
-                    <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                      <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                        INR
-                      </span>
-                      <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                        {form.sellingInr || ""}
-                      </div>
-                    </div>
-                  </>
-                ) : null}
-
-                <button
-                  type="button"
-                  className={noteBtn}
-                  aria-label="Add notes"
-                  onClick={() => setShowSellingNotes((s) => !s)}
-                >
-                  <TbNotes size={16} className="text-[#F59E0B]" />
-                </button>
-              </div>
-
-              {showSellingNotes && (
-                <div className="mt-3">
-                  <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                    Notes
-                  </label>
-                  <input
-                    value={form.sellingNotes}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        sellingNotes: e.target.value,
-                      }))
-                    }
-                    className={inputBase}
-                    placeholder="Enter your notes here"
-                  />
-                </div>
-              )}
+                    return next;
+                  })
+                }
+                amount={form.sellingprice}
+                onAmountChange={(val) => {
+                  const amount = allowOnlyNumbers(val);
+                  setForm((prev) => ({
+                    ...prev,
+                    sellingprice: amount,
+                    sellingInr: requiresRoe(
+                      prev.sellingCurrency,
+                      businessCurrency,
+                    )
+                      ? computeInr(amount, prev.sellingRoe)
+                      : "",
+                  }));
+                }}
+                roe={form.sellingRoe}
+                onRoeChange={(val) => {
+                  const roe = allowOnlyNumbers(val);
+                  setForm((prev) => ({
+                    ...prev,
+                    sellingRoe: roe,
+                    sellingInr: computeInr(prev.sellingprice, roe),
+                  }));
+                }}
+                inr={form.sellingInr}
+                businessCurrency={businessCurrency}
+                notes={form.sellingNotes}
+                onNotesChange={(val) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    sellingNotes: val,
+                  }))
+                }
+                showNotes={showSellingNotes}
+                onToggleNotes={() => setShowSellingNotes((s) => !s)}
+                useWhiteDropdown={true}
+                inputClassName={inputBase}
+                requiresRoe={requiresRoe}
+              />
             </div>
           </div>
 
@@ -1914,118 +1407,64 @@ export default function CancellationModal({
               Refund Received
             </div>
             <div className="p-4">
-              <div
-                className={`grid ${
-                  form.sellingRefundCurrency === "USD"
-                    ? "grid-cols-[220px_160px_170px_44px]"
-                    : "grid-cols-[380px_44px]"
-                } gap-3 items-center`}
-              >
-                <div className={groupBase}>
-                  <DropDown
-                    options={[
-                      { value: "INR", label: "INR" },
-                      { value: "USD", label: "USD" },
-                    ]}
-                    value={form.sellingRefundCurrency}
-                    onChange={(val) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        sellingRefundCurrency: val as Currency,
-                        sellingRefundRoe:
-                          val === "USD" ? prev.sellingRefundRoe : "",
-                        sellingRefundInr:
-                          val === "USD" ? prev.sellingRefundInr : "",
-                      }))
-                    }
-                    customWidth="w-[64px]"
-                    noBorder={true}
-                    noButtonRadius={true}
-                    focusRingClass=""
-                    buttonClassName="bg-white text-[0.78rem] text-gray-700 px-2 h-[34px]"
-                    className={groupSelectWhite}
-                  />
-                  <input
-                    value={form.sellingRefundAmount}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        sellingRefundAmount: allowOnlyNumbers(e.target.value),
-                        sellingRefundInr:
-                          prev.sellingRefundCurrency === "USD"
-                            ? computeInr(
-                                allowOnlyNumbers(e.target.value),
-                                prev.sellingRefundRoe
-                              )
-                            : prev.sellingRefundInr,
-                      }))
-                    }
-                    className={groupInput}
-                    placeholder="Enter Amount"
-                  />
-                </div>
-
-                {form.sellingRefundCurrency === "USD" ? (
-                  <>
-                    <div className={groupBase}>
-                      <span className={addonLabel}>ROE</span>
-                      <input
-                        value={form.sellingRefundRoe}
-                        onChange={(e) => {
-                          const roe = allowOnlyNumbers(e.target.value);
-                          setForm((prev) => ({
-                            ...prev,
-                            sellingRefundRoe: roe,
-                            sellingRefundInr: computeInr(
-                              prev.sellingRefundAmount,
-                              roe
-                            ),
-                          }));
-                        }}
-                        className={groupInput}
-                        placeholder=""
-                      />
-                    </div>
-
-                    <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                      <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                        INR
-                      </span>
-                      <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                        {form.sellingRefundInr || ""}
-                      </div>
-                    </div>
-                  </>
-                ) : null}
-
-                <button
-                  type="button"
-                  className={noteBtn}
-                  aria-label="Add notes"
-                  onClick={() => setShowSellingRefundNotes((s) => !s)}
-                >
-                  <TbNotes size={16} className="text-[#F59E0B]" />
-                </button>
-              </div>
-
-              {showSellingRefundNotes && (
-                <div className="mt-4">
-                  <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                    Notes
-                  </label>
-                  <input
-                    value={form.sellingRefundNotes}
-                    onChange={(e) =>
-                      setForm((prev) => ({
-                        ...prev,
-                        sellingRefundNotes: e.target.value,
-                      }))
-                    }
-                    className={smallInputBase}
-                    placeholder="Enter your notes here"
-                  />
-                </div>
-              )}
+              <MultiCurrencyInput
+                currency={form.sellingRefundCurrency}
+                onCurrencyChange={(val) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    sellingRefundCurrency: val,
+                    sellingRefundRoe: requiresRoe(
+                      val as Currency,
+                      businessCurrency,
+                    )
+                      ? prev.sellingRefundRoe
+                      : "",
+                    sellingRefundInr: requiresRoe(
+                      val as Currency,
+                      businessCurrency,
+                    )
+                      ? prev.sellingRefundInr
+                      : "",
+                  }))
+                }
+                amount={form.sellingRefundAmount}
+                onAmountChange={(val) => {
+                  const amount = allowOnlyNumbers(val);
+                  setForm((prev) => ({
+                    ...prev,
+                    sellingRefundAmount: amount,
+                    sellingRefundInr: requiresRoe(
+                      prev.sellingRefundCurrency,
+                      businessCurrency,
+                    )
+                      ? computeInr(amount, prev.sellingRefundRoe)
+                      : prev.sellingRefundInr,
+                  }));
+                }}
+                roe={form.sellingRefundRoe}
+                onRoeChange={(val) => {
+                  const roe = allowOnlyNumbers(val);
+                  setForm((prev) => ({
+                    ...prev,
+                    sellingRefundRoe: roe,
+                    sellingRefundInr: computeInr(prev.sellingRefundAmount, roe),
+                  }));
+                }}
+                inr={form.sellingRefundInr}
+                businessCurrency={businessCurrency}
+                notes={form.sellingRefundNotes}
+                onNotesChange={(val) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    sellingRefundNotes: val,
+                  }))
+                }
+                showNotes={showSellingRefundNotes}
+                onToggleNotes={() => setShowSellingRefundNotes((s) => !s)}
+                useWhiteDropdown={true}
+                inputClassName={smallInputBase}
+                requiresRoe={requiresRoe}
+              />
             </div>
           </div>
         </div>

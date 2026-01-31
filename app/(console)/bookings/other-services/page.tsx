@@ -30,9 +30,9 @@ import { CiFilter } from "react-icons/ci";
 import { TbArrowsUpDown } from "react-icons/tb";
 import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
-import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 import TaskButton from "@/components/TaskButton";
 import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
 import {
   getNextTriSortState,
   type TriSortState,
@@ -59,7 +59,7 @@ const BookingFormModal = dynamic(
   {
     loading: () => <ModalSkeleton />,
     ssr: false,
-  }
+  },
 );
 
 const BookingFormSidesheet = dynamic(
@@ -67,7 +67,7 @@ const BookingFormSidesheet = dynamic(
   {
     loading: () => <SidesheetSkeleton />,
     ssr: false,
-  }
+  },
 );
 
 type BookingStatus = "Confirmed" | "draft" | "Cancelled";
@@ -192,6 +192,7 @@ const getStatusBadgeClass = (status: string): string => {
 };
 
 const OSBookingsPage = () => {
+  const router = useRouter();
   // UI State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [generatedBookingCode, setGeneratedBookingCode] = useState<
@@ -200,13 +201,13 @@ const OSBookingsPage = () => {
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
   const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
   const [selectedService, setSelectedService] = useState<BookingService | null>(
-    null
+    null,
   );
   const [generatedCustomerCode, setGeneratedCustomerCode] = useState<
     string | null
   >(null);
   const [generatedVendorCode, setGeneratedVendorCode] = useState<string | null>(
-    null
+    null,
   );
   const [sideSheetMode, setSideSheetMode] = useState<"view" | "edit">("edit");
 
@@ -239,7 +240,7 @@ const OSBookingsPage = () => {
       const container = tabContainerRef.current;
       if (!container) return;
       const activeBtn = container.querySelector(
-        `[data-tab="${activeTab}"]`
+        `[data-tab="${activeTab}"]`,
       ) as HTMLElement | null;
       if (!activeBtn) return;
       // Use offsetLeft/offsetWidth so measurement is relative to container and ignores container padding
@@ -332,7 +333,7 @@ const OSBookingsPage = () => {
   const isWithinRange = (
     rawDate: string | undefined,
     start: string,
-    end: string
+    end: string,
   ) => {
     if (!rawDate) return false;
     const dt = new Date(rawDate);
@@ -350,6 +351,39 @@ const OSBookingsPage = () => {
   };
 
   const handleViewBooking = (item: any) => {
+    const quotationTypeNormalized = String(item?.quotationType || "")
+      .toLowerCase()
+      .trim();
+
+    // Only flight-type quotations should open the Flights view page.
+
+    if (quotationTypeNormalized === "travel") {
+      const quotationId = item?._id;
+      if (quotationId) {
+        // Pass the full quotation object to the flights page via sessionStorage.
+
+        try {
+          const storageKey = `os-flight-quotation:${quotationId}`;
+          sessionStorage.setItem(storageKey, JSON.stringify(item));
+          router.push(
+            `/bookings/other-services/view-booking/flights?cacheKey=${encodeURIComponent(
+              storageKey,
+            )}`,
+          );
+          return;
+        } catch (e) {
+          console.error("Failed to cache quotation for view booking:", e);
+        }
+
+        router.push(
+          `/bookings/other-services/view-booking/flights?quotationId=${encodeURIComponent(
+            quotationId,
+          )}`,
+        );
+      }
+      return;
+    }
+
     const quotationType = item.quotationType || "";
     const category = mapQuotationTypeToCategory(quotationType);
     const title = formatServiceType(quotationType);
@@ -371,8 +405,8 @@ const OSBookingsPage = () => {
   const selectedOwners: string[] = Array.isArray(filters.owner)
     ? filters.owner
     : filters.owner
-    ? [filters.owner]
-    : [];
+      ? [filters.owner]
+      : [];
 
   // Apply all filters client-side (search, booking date, travel date, owner)
   const filteredQuotations = useMemo(() => {
@@ -380,7 +414,7 @@ const OSBookingsPage = () => {
       if (filters.search.trim()) {
         const s = filters.search.toLowerCase();
         const formattedServiceType = formatServiceType(
-          q.quotationType || ""
+          q.quotationType || "",
         ).toLowerCase();
         const matchesSearch =
           (q.customId || "").toLowerCase().includes(s) ||
@@ -397,7 +431,7 @@ const OSBookingsPage = () => {
           !isWithinRange(
             q.createdAt,
             filters.bookingStartDate,
-            filters.bookingEndDate
+            filters.bookingEndDate,
           )
         )
           return false;
@@ -409,7 +443,7 @@ const OSBookingsPage = () => {
           !isWithinRange(
             q.formFields?.departureDate as string,
             filters.tripStartDate,
-            filters.tripEndDate
+            filters.tripEndDate,
           )
         )
           return false;
@@ -418,7 +452,7 @@ const OSBookingsPage = () => {
       // Extract owner names from the API response
       const ownerArray = ([] as any[]).concat(
         q.secondaryOwner || [],
-        q.primaryOwner ? [q.primaryOwner] : []
+        q.primaryOwner ? [q.primaryOwner] : [],
       );
       const rowOwners: string[] = Array.isArray(ownerArray)
         ? ownerArray.map((o: any) => o?.name || "").filter(Boolean)
@@ -429,7 +463,7 @@ const OSBookingsPage = () => {
       // Filter by selected owners if any are selected
       if (selectedOwners.length) {
         const intersects = rowOwners.some((ownerName) =>
-          selectedOwners.includes(ownerName)
+          selectedOwners.includes(ownerName),
         );
         if (!intersects) return false;
       }
@@ -463,7 +497,7 @@ const OSBookingsPage = () => {
       // Note: Owner filtering is done client-side since API returns owner objects with names
 
       const response = await BookingApiService.getAllQuotations(
-        Object.keys(apiParams).length ? apiParams : undefined
+        Object.keys(apiParams).length ? apiParams : undefined,
       );
 
       if (response.success && response.data) {
@@ -553,7 +587,7 @@ const OSBookingsPage = () => {
   }, [loadQuotations, activeTab]);
 
   const getServiceIcon = (
-    quotationType: string
+    quotationType: string,
   ): React.ReactElement | string => {
     if (!quotationType) return "Visa";
 
@@ -695,9 +729,8 @@ const OSBookingsPage = () => {
     if (!selectedDeleteId) return;
 
     try {
-      const response = await BookingApiService.deleteQuotation(
-        selectedDeleteId
-      );
+      const response =
+        await BookingApiService.deleteQuotation(selectedDeleteId);
 
       if (response.success) {
         // Remove from UI
@@ -916,7 +949,7 @@ const OSBookingsPage = () => {
         const s = filters.search.toLowerCase();
         return normalizedDrafts.filter((draft: any, index: number) => {
           const formattedServiceType = formatServiceType(
-            draft.quotationType || ""
+            draft.quotationType || "",
           ).toLowerCase();
           const draftId = draft.customId || `Draft-${index + 1}`;
           const customerName =
@@ -1015,10 +1048,10 @@ const OSBookingsPage = () => {
         {item.travelDate
           ? formatDMY(item.travelDate)
           : item.formFields?.departureDate
-          ? formatDMY(item.formFields.departureDate)
-          : item.createdAt
-          ? formatDMY(item.createdAt)
-          : "--"}
+            ? formatDMY(item.formFields.departureDate)
+            : item.createdAt
+              ? formatDMY(item.createdAt)
+              : "--"}
       </td>,
       <td
         key={`service-${index}`}
@@ -1051,8 +1084,8 @@ const OSBookingsPage = () => {
         {item.totalAmount
           ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
           : item.formFields?.budget
-          ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
-          : "--"}
+            ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
+            : "--"}
       </td>,
       <td
         key={`owners-${index}`}
@@ -1143,7 +1176,7 @@ const OSBookingsPage = () => {
       ],
       owners: ownersList.map((o) => ({ value: o.full, label: o.full })),
     }),
-    [ownersList]
+    [ownersList],
   );
 
   const handleFilterChange = (next: FilterPayload) => {

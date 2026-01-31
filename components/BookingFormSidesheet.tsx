@@ -7,6 +7,7 @@ import React, {
   useRef,
   useEffect,
 } from "react";
+import { useRouter } from "next/navigation";
 import ConfirmPopupModal from "./popups/BookingPopups/ConfirmPopupModal";
 import SuccessPopupModal from "./popups/BookingPopups/SuccessPopupModal";
 import ErrorToast from "./ErrorToast";
@@ -27,6 +28,7 @@ import ActivityServiceInfoForm from "./forms/ActivityServiceInfoForm";
 import InsuranceServiceInfoForm from "./forms/InsuranceServiceInfoForm";
 import VisasServiceInfoForm from "./forms/VisasServiceInfoForm";
 import OthersServiceInfoForm from "./forms/OthersServiceInfoForm";
+import LimitlessServiceInfoForm from "./forms/LimitlessServiceInfoForm";
 import Button from "./Button";
 import { LuSave } from "react-icons/lu";
 
@@ -62,6 +64,7 @@ interface BookingFormSidesheetProps {
   vendorCode?: string;
   onRequestEdit?: () => void;
   onBookingSaved?: (updatedBooking: any) => void;
+  hideVendor?: boolean;
 }
 
 type TabType = "general" | "service" | "review";
@@ -142,6 +145,9 @@ function ServiceInfoFormSwitcher(props: any) {
       // others
       others: "others",
       package: "others",
+
+      // limitless
+      limitless: "limitless",
     };
 
     return map[v] || v;
@@ -239,6 +245,16 @@ function ServiceInfoFormSwitcher(props: any) {
         />
       );
 
+    case "limitless":
+      return (
+        <LimitlessServiceInfoForm
+          {...props}
+          externalFormData={initialData}
+          onAddDocuments={onAddDocuments}
+          existingDocuments={existingDocuments}
+        />
+      );
+
     // you can keep adding cases for "transport" or "activity" later
     default:
       return (
@@ -261,7 +277,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   vendorCode: vendorCodeProp,
   onRequestEdit,
   onBookingSaved,
+  hideVendor = false,
 }) => {
+  const router = useRouter();
+
   // Bump this whenever the sidesheet is (re)opened so child forms remount
   const [formInstanceId, setFormInstanceId] = useState(0);
 
@@ -311,6 +330,29 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const initialSnapshotRef = useRef<string>("");
   const quotationId = initialData?._id || initialData?.id;
   const isEditingExisting = Boolean(quotationId);
+
+  const isLimitlessBooking = useMemo(() => {
+    const rawServiceValue =
+      typeof selectedService === "string"
+        ? selectedService
+        : (selectedService as any)?.category;
+    const normalized = String(
+      rawServiceValue || initialData?.quotationType || "",
+    )
+      .toLowerCase()
+      .trim();
+    return normalized === "limitless";
+  }, [initialData?.quotationType, selectedService]);
+
+  const handleProceedToBookingSummary = useCallback(() => {
+    // Close sidesheet (best-effort) and open booking summary page.
+    try {
+      onClose();
+    } catch (_) {
+      /* ignore */
+    }
+    router.push("/bookings/limitless/view-booking");
+  }, [onClose, router]);
 
   // In "view" modestart read-only, but allow the user to toggle into edit.
   const [readOnlyOverride, setReadOnlyOverride] = useState<boolean | null>(
@@ -1033,6 +1075,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   isSubmitting={isSubmitting || isReadOnly}
                   isReadOnly={isReadOnly}
                   formRef={generalFormRef as React.RefObject<HTMLFormElement>}
+                  hideVendor={hideVendor}
                 />
               </div>
 
@@ -1133,9 +1176,21 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           )}
 
                           <Button
-                            text="Save"
-                            onClick={() => handleSubmit()}
-                            icon={<LuSave size={16} />}
+                            text={
+                              isLimitlessBooking
+                                ? "Proceed to booking summary"
+                                : "Save"
+                            }
+                            onClick={() =>
+                              isLimitlessBooking
+                                ? handleProceedToBookingSummary()
+                                : handleSubmit()
+                            }
+                            icon={
+                              isLimitlessBooking ? undefined : (
+                                <LuSave size={16} />
+                              )
+                            }
                             bgColor="bg-[#0D4B37]"
                             textColor="text-white"
                             width="w-auto"
@@ -1187,9 +1242,21 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                         />
                       ) : (
                         <Button
-                          text="Save"
-                          onClick={() => handleSubmit()}
-                          icon={<LuSave size={16} />}
+                          text={
+                            isLimitlessBooking
+                              ? "Proceed to booking summary"
+                              : "Save"
+                          }
+                          onClick={() =>
+                            isLimitlessBooking
+                              ? handleProceedToBookingSummary()
+                              : handleSubmit()
+                          }
+                          icon={
+                            isLimitlessBooking ? undefined : (
+                              <LuSave size={16} />
+                            )
+                          }
                           bgColor="bg-[#0D4B37]"
                           textColor="text-white"
                           width="w-auto"

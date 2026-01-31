@@ -16,6 +16,9 @@ import { FiPlusCircle, FiTrash2 } from "react-icons/fi";
 import PaymentsApi from "@/services/paymentsApi";
 import CustomIdApi from "@/services/customIdApi";
 import Button from "@/components/Button";
+import MultiCurrencyInput from "@/components/multiCurrencyUI";
+import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
+import { useAuth } from "@/context/AuthContext";
 
 type BookingLike = {
   _id: string;
@@ -125,10 +128,44 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
 
   // Form State
   const [amountToRecord, setAmountToRecord] = useState<string>("");
+  const { user } = useAuth();
+  const businessCurrency = useMemo(() => getBusinessCurrency(user), [user]);
+
+  const [currency, setCurrency] = useState<"INR" | "USD">(
+    (businessCurrency as "INR" | "USD") || "INR",
+  );
+  const [roe, setRoe] = useState<string>("");
+  const [inr, setInr] = useState<string>("");
+  const [showNotes, setShowNotes] = useState<boolean>(false);
   const [paymentDate, setPaymentDate] = useState<string>("");
   const [selectedBank, setSelectedBank] = useState<string>("");
   const [remarks, setRemarks] = useState<string>("");
   const [documents, setDocuments] = useState<DocumentPreview[]>([]);
+
+  // Payment breakdown (visible for Vendor)
+  const [showPaymentBreakdown, setShowPaymentBreakdown] =
+    useState<boolean>(false);
+
+  // Bank charges state
+  const [bankCharges, setBankCharges] = useState<string>("");
+  const [bankChargesCurrency, setBankChargesCurrency] = useState<"INR" | "USD">(
+    "INR",
+  );
+  const [bankChargesRoe, setBankChargesRoe] = useState<string>("");
+  const [bankChargesInr, setBankChargesInr] = useState<string>("");
+  const [bankChargesNotes, setBankChargesNotes] = useState<string>("");
+  const [showBankChargesNotes, setShowBankChargesNotes] =
+    useState<boolean>(false);
+
+  // Cashback state
+  const [cashbackReceived, setCashbackReceived] = useState<string>("");
+  const [cashbackReceivedCurrency, setCashbackReceivedCurrency] = useState<
+    "INR" | "USD"
+  >("INR");
+  const [cashbackReceivedRoe, setCashbackReceivedRoe] = useState<string>("");
+  const [cashbackReceivedInr, setCashbackReceivedInr] = useState<string>("");
+  const [cashbackNotes, setCashbackNotes] = useState<string>("");
+  const [showCashbackNotes, setShowCashbackNotes] = useState<boolean>(false);
 
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
@@ -188,6 +225,59 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     return Number.isFinite(n) ? n : 0;
   }, [amountToRecord]);
 
+  // compute INR display value when currency/roe/amount change
+  useEffect(() => {
+    if (currency === "INR") {
+      setInr(amountToRecord ? formatMoney(Number(amountToRecord)) : "");
+      return;
+    }
+    const a = Number(amountToRecord || 0);
+    const r = Number(roe || 0);
+    if (a > 0 && r > 0) {
+      setInr(formatMoney(a * r));
+    } else {
+      setInr("");
+    }
+  }, [amountToRecord, roe, currency]);
+
+  const computeInr = (amount: string, rate: string) => {
+    const a = Number(String(amount).replace(/,/g, ""));
+    const r = Number(String(rate).replace(/,/g, ""));
+    if (!isFinite(a) || !isFinite(r) || a === 0 || r === 0) return "";
+    const product = a * r;
+    const hasFraction = Math.abs(product - Math.round(product)) > 1e-9;
+    return product.toLocaleString("en-US", {
+      minimumFractionDigits: hasFraction ? 2 : 0,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  // compute INR for bank charges and cashback when ROE/values change
+  useEffect(() => {
+    if (
+      requiresRoe(bankChargesCurrency, businessCurrency) &&
+      bankCharges &&
+      bankChargesRoe
+    ) {
+      setBankChargesInr(computeInr(bankCharges, bankChargesRoe));
+    }
+    if (
+      requiresRoe(cashbackReceivedCurrency, businessCurrency) &&
+      cashbackReceived &&
+      cashbackReceivedRoe
+    ) {
+      setCashbackReceivedInr(computeInr(cashbackReceived, cashbackReceivedRoe));
+    }
+  }, [
+    bankChargesCurrency,
+    bankCharges,
+    bankChargesRoe,
+    cashbackReceivedCurrency,
+    cashbackReceived,
+    cashbackReceivedRoe,
+    businessCurrency,
+  ]);
+
   const pendingAmount = useMemo(() => {
     if (
       typeof outstandingAmount === "number" &&
@@ -223,7 +313,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   const bankDropdownOptions = useMemo(
     () => [
       ...banks.map((b) => ({ value: b._id || b.name, label: b.name })),
-      { value: 'cash', label: 'Cash' },
+      { value: "cash", label: "Cash" },
     ],
     [banks],
   );
@@ -345,6 +435,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
             await PaymentsApi.allocateVendorPaymentToQuotation(payment._id, {
               quotationId,
               amount: Number(payment.settleAmount),
+              // amountCurrency: "INR",
             });
           }
         }
@@ -397,10 +488,13 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       form.append("bankId", bankId);
       form.append("amount", String(Number(amountToRecord)));
       form.append("entryType", "credit");
-      form.append("paymentType", selectedPaymentType);
+      if (String(bankId).toLowerCase() !== "cash") {
+        form.append("paymentType", selectedPaymentType);
+      }
       form.append("paymentDate", paymentDate || new Date().toISOString());
       form.append("party", partyType === "Customer" ? "Customer" : "Vendor");
       form.append("status", "approved");
+      form.append("amountCurrency", "INR");
       // Send allocations with quotation id and amount when not settling from advance
       const allocationsPayload = JSON.stringify([
         { quotationId: booking._id, amount: Number(amountToRecord) },
@@ -448,9 +542,12 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       form.append("bankId", bankId);
       form.append("amount", String(Number(amountToRecord)));
       form.append("entryType", "credit");
-      form.append("paymentType", selectedPaymentType);
+      if (String(bankId).toLowerCase() !== "cash") {
+        form.append("paymentType", selectedPaymentType);
+      }
       form.append("paymentDate", paymentDate || new Date().toISOString());
       form.append("status", "approved");
+      form.append("amountCurrency", "INR");
       // Send allocations with quotation id and amount when not settling from advance
       const allocationsPayload = JSON.stringify([
         { quotationId: booking._id, amount: Number(amountToRecord) },
@@ -878,7 +975,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
                   </span>
                 </div>
 
-                <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-visible">
+                <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-x-auto max-w-full">
                   <Table
                     columns={["Payment", "Amount (₹)", "Settle Amount (₹)"]}
                     headerAlign={{
@@ -920,39 +1017,206 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
             className="w-full flex items-center justify-between px-4 py-3"
             aria-expanded={paymentDetailsOpen}
           >
-            <span className="text-[13px] font-semibold text-gray-900">
-              Payment Details
-            </span>
-            <Chevron open={paymentDetailsOpen} />
+            <div className="flex items-center gap-3">
+              <span className="text-[13px] font-semibold text-gray-900">
+                Payment Details
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              {paymentDetailsOpen && partyType === "Vendor" && (
+                <label
+                  className="flex items-center gap-2 cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowPaymentBreakdown((prev) => !prev);
+                  }}
+                >
+                  <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
+                    {showPaymentBreakdown && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="11"
+                        viewBox="0 0 12 11"
+                        fill="none"
+                      >
+                        <path
+                          d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                          stroke="#0D4B37"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-[13px] text-gray-700 font-medium">
+                    Show Payment Breakdown
+                  </span>
+                </label>
+              )}
+              <Chevron open={paymentDetailsOpen} />
+            </div>
           </button>
           {paymentDetailsOpen && (
             <>
               <hr className="mb-2 -mt-1 border-t border-gray-200" />
               <div className="px-4 pb-4">
+                {/* (Checkbox moved to header) */}
+
                 {/* Amount to be recorded */}
                 <div className="mb-4">
                   <label className="block text-[13px] font-medium text-gray-700 mb-2">
                     <span className="text-red-500">*</span>Amount to be Recorded
                   </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[13px] text-gray-500">
-                      ₹
-                    </span>
-                    <input
-                      type="text"
-                      value={amountToRecord}
-                      onChange={(e) => {
-                        const next = sanitizeAmountInput(e.target.value);
+                  <div>
+                    <MultiCurrencyInput
+                      currency={currency}
+                      onCurrencyChange={(c) => setCurrency(c)}
+                      amount={amountToRecord}
+                      onAmountChange={(val) => {
+                        const next = sanitizeAmountInput(val);
                         setAmountToRecord(next);
                         if (settleFromAdvance && !settleAmountDirty) {
                           setSettleAmount(next);
                         }
                       }}
-                      placeholder="Enter Amount"
-                      className="w-full pl-8 pr-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                      amountPlaceholder="Enter Amount"
+                      roe={roe}
+                      onRoeChange={setRoe}
+                      inr={inr}
+                      notes={remarks}
+                      onNotesChange={setRemarks}
+                      showNotes={showNotes}
+                      onToggleNotes={() => setShowNotes((s) => !s)}
+                      businessCurrency={businessCurrency}
+                      requiresRoe={requiresRoe}
+                      inputClassName="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
                     />
                   </div>
                 </div>
+
+                {/* Payment Breakdown UI (Vendor) - moved just under Amount input */}
+                {partyType === "Vendor" && showPaymentBreakdown && (
+                  <div className="mb-4 space-y-4">
+                    {/* Bank Charges */}
+                    <div>
+                      <label className="block text-[13px] font-medium text-gray-700 mb-2">
+                        Bank Charges
+                      </label>
+                      <MultiCurrencyInput
+                        currency={bankChargesCurrency}
+                        onCurrencyChange={(c) => {
+                          setBankChargesCurrency(c);
+                          if (requiresRoe(c, businessCurrency)) {
+                            setBankChargesInr(
+                              computeInr(
+                                String(bankCharges || ""),
+                                String(bankChargesRoe || ""),
+                              ),
+                            );
+                          } else {
+                            setBankChargesRoe("");
+                            setBankChargesInr("");
+                          }
+                        }}
+                        amount={bankCharges}
+                        onAmountChange={(val) => {
+                          const sanitized = val.replace(/[^0-9]/g, "");
+                          setBankCharges(sanitized);
+                          if (
+                            requiresRoe(
+                              bankChargesCurrency,
+                              businessCurrency,
+                            ) &&
+                            bankChargesRoe
+                          ) {
+                            setBankChargesInr(
+                              computeInr(sanitized, bankChargesRoe),
+                            );
+                          }
+                        }}
+                        amountPlaceholder="Enter Amount"
+                        roe={bankChargesRoe}
+                        onRoeChange={(val) => {
+                          const sanitized = val.replace(/[^0-9.]/g, "");
+                          setBankChargesRoe(sanitized);
+                          if (bankCharges)
+                            setBankChargesInr(
+                              computeInr(bankCharges, sanitized),
+                            );
+                        }}
+                        inr={bankChargesInr}
+                        notes={bankChargesNotes}
+                        onNotesChange={setBankChargesNotes}
+                        showNotes={showBankChargesNotes}
+                        onToggleNotes={() => setShowBankChargesNotes((s) => !s)}
+                        businessCurrency={businessCurrency}
+                        requiresRoe={requiresRoe}
+                        inputClassName="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                        useWhiteDropdown={true}
+                      />
+                    </div>
+
+                    {/* Cashback Received */}
+                    <div>
+                      <label className="block text-[13px] font-medium text-gray-700 mb-2">
+                        Cashback Received
+                      </label>
+                      <MultiCurrencyInput
+                        currency={cashbackReceivedCurrency}
+                        onCurrencyChange={(c) => {
+                          setCashbackReceivedCurrency(c);
+                          if (requiresRoe(c, businessCurrency)) {
+                            setCashbackReceivedInr(
+                              computeInr(
+                                String(cashbackReceived || ""),
+                                String(cashbackReceivedRoe || ""),
+                              ),
+                            );
+                          } else {
+                            setCashbackReceivedRoe("");
+                            setCashbackReceivedInr("");
+                          }
+                        }}
+                        amount={cashbackReceived}
+                        onAmountChange={(val) => {
+                          const sanitized = val.replace(/[^0-9]/g, "");
+                          setCashbackReceived(sanitized);
+                          if (
+                            requiresRoe(
+                              cashbackReceivedCurrency,
+                              businessCurrency,
+                            ) &&
+                            cashbackReceivedRoe
+                          ) {
+                            setCashbackReceivedInr(
+                              computeInr(sanitized, cashbackReceivedRoe),
+                            );
+                          }
+                        }}
+                        amountPlaceholder="Enter Amount"
+                        roe={cashbackReceivedRoe}
+                        onRoeChange={(val) => {
+                          const sanitized = val.replace(/[^0-9.]/g, "");
+                          setCashbackReceivedRoe(sanitized);
+                          if (cashbackReceived)
+                            setCashbackReceivedInr(
+                              computeInr(cashbackReceived, sanitized),
+                            );
+                        }}
+                        inr={cashbackReceivedInr}
+                        notes={cashbackNotes}
+                        onNotesChange={setCashbackNotes}
+                        showNotes={showCashbackNotes}
+                        onToggleNotes={() => setShowCashbackNotes((s) => !s)}
+                        businessCurrency={businessCurrency}
+                        requiresRoe={requiresRoe}
+                        inputClassName="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                        useWhiteDropdown={true}
+                      />
+                    </div>
+                  </div>
+                )}
 
                 {/* Payment Date */}
                 <div className="mb-4">

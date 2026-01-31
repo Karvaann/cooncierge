@@ -2,11 +2,13 @@
 
 import React from "react";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
+import { IoClose } from "react-icons/io5";
 
 interface FilterInputShellProps {
   value?: string;
   placeholder: string;
   onClick: (e: React.MouseEvent) => void;
+  onClear?: (e: React.MouseEvent) => void;
   children?: React.ReactNode;
   className?: string;
   suffixIcon?: React.ReactNode;
@@ -17,6 +19,7 @@ const FilterInputShell: React.FC<FilterInputShellProps> = ({
   placeholder,
   onClick,
   children,
+  onClear,
   className = "",
   suffixIcon,
 }) => {

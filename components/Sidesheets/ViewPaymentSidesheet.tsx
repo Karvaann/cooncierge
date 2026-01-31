@@ -62,7 +62,15 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
     payment?.bank?.name ||
     payment?.account ||
     "—";
-  const files = payment?.data?.documents || payment?.documents || [];
+  const rawFiles =
+    payment?.data?.documents ||
+    payment?.documents ||
+    payment?.data?.payment?.documents ||
+    payment?.data?.payments?.documents ||
+    payment?.data?.attachments ||
+    [];
+
+  const files = Array.isArray(rawFiles) ? rawFiles : [];
   const internalNotes =
     payment?.data?.internalNotes ||
     payment?.data?.notes ||
@@ -186,19 +194,55 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
                   Files
                 </div>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {files.map((file: any, idx: number) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-100"
-                      onClick={() =>
-                        file.url && window.open(file.url, "_blank")
-                      }
-                    >
-                      <FaRegFolder size={14} className="text-gray-600" />
-                      {file.name || file.filename || `Document ${idx + 1}`}
-                    </button>
-                  ))}
+                  {files.map((file: any, idx: number) => {
+                    // support string URLs and varied file object shapes
+                    const fileUrl =
+                      typeof file === "string"
+                        ? file
+                        : file.url ||
+                          file.fileUrl ||
+                          file.path ||
+                          file.downloadUrl ||
+                          file.file ||
+                          file.link;
+
+                    const rawName =
+                      typeof file === "string"
+                        ? null
+                        : file.name ||
+                          file.filename ||
+                          file.originalName ||
+                          file.fileName ||
+                          file.title;
+
+                    const inferredName =
+                      rawName ||
+                      (fileUrl
+                        ? decodeURIComponent(
+                            (fileUrl + "").split("/").pop() || "",
+                          )
+                        : null) ||
+                      `Document ${idx + 1}`;
+
+                    const key =
+                      (file &&
+                        (file._id || file.id || inferredName || fileUrl)) ||
+                      idx;
+
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        className="inline-flex items-center gap-2 rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-[12px] font-medium text-gray-700 hover:bg-gray-100"
+                        onClick={() =>
+                          fileUrl && window.open(fileUrl, "_blank", "noopener")
+                        }
+                      >
+                        <FaRegFolder size={14} className="text-gray-600" />
+                        {inferredName}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}

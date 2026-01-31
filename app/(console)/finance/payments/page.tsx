@@ -57,7 +57,23 @@ type PaymentRow = {
   paymentId: string;
   partyName: string;
   linkedBooking: string;
+  serviceType?: string;
   amount: number;
+
+  amountCurrency?: "INR" | "USD";
+  amountRoe?: number | string;
+  amountInr?: number | string;
+
+  bankCharges?: number | string;
+  bankChargesCurrency?: "INR" | "USD";
+  bankChargesRoe?: number | string;
+  bankChargesInr?: number | string;
+
+  cashbackReceived?: number | string;
+  cashbackReceivedCurrency?: "INR" | "USD";
+  cashbackReceivedRoe?: number | string;
+  cashbackReceivedInr?: number | string;
+
   amountType: "gave" | "got";
   account: string;
   paymentType: string;
@@ -219,6 +235,7 @@ const PaymentsPage = () => {
   const [generatedPaymentCustomId, setGeneratedPaymentCustomId] = useState<
     string | null
   >(null);
+  const [isCursorInTable, setIsCursorInTable] = useState(false);
 
   // Toast state for success / error messages using ErrorToast
   const [toastVisible, setToastVisible] = useState(false);
@@ -295,10 +312,11 @@ const PaymentsPage = () => {
     }
 
     const getPaymentTimestamp = (item: PaymentRow): number | null => {
-      const raw = item.paymentDateRaw || item.createdAt;
-      if (!raw) return null;
-      const ts = new Date(raw).getTime();
-      return Number.isFinite(ts) ? ts : null;
+      try {
+        return new Date(item.paymentDateRaw || item.createdAt).getTime();
+      } catch {
+        return null;
+      }
     };
 
     // Stable sort: keep original order for ties.
@@ -359,17 +377,16 @@ const PaymentsPage = () => {
         } else if (p.party) partyName = String(p.party);
 
         let linkedBooking = "-";
-        if (p.allocations && p.allocations.length > 0) {
-          const firstAlloc = p.allocations[0];
-          const q = firstAlloc.quotationId;
-          if (q) {
-            if (typeof q === "object") {
-              linkedBooking = String(q.customId || q._id || "-");
-            } else {
-              linkedBooking = String(q);
-            }
+        let serviceType: string | undefined;
+
+        if (p.allocations?.length > 0) {
+          const q = p.allocations[0].quotationId;
+          if (q && typeof q === "object") {
+            linkedBooking = String(q.customId || q._id || "-");
+            serviceType = String(q.serviceType || q.type || "").toLowerCase();
           }
         }
+
         const amount = Number(p.amount || 0);
         const amountType = p.entryType === "credit" ? "got" : "gave";
         const account = (p.bankId && (p.bankId.name || p.bankId)) || "Cash";
@@ -400,7 +417,23 @@ const PaymentsPage = () => {
           paymentId,
           partyName,
           linkedBooking,
+          serviceType,
           amount,
+
+          amountCurrency: p.amountCurrency || p.amountCurreny || "INR",
+          amountRoe: p.amountRoe,
+          amountInr: p.amountInr,
+
+          bankCharges: p.bankCharges,
+          bankChargesCurrency: p.bankChargesCurrency || "INR",
+          bankChargesRoe: p.bankChargesRoe,
+          bankChargesInr: p.bankChargesInr,
+
+          cashbackReceived: p.cashbackReceived,
+          cashbackReceivedCurrency: p.cashbackReceivedCurrency || "INR",
+          cashbackReceivedRoe: p.cashbackReceivedRoe,
+          cashbackReceivedInr: p.cashbackReceivedInr,
+
           amountType: amountType as "gave" | "got",
           account,
           paymentType,
@@ -463,6 +496,9 @@ const PaymentsPage = () => {
     const start = startDate ? new Date(startDate) : null;
     const end = endDate ? new Date(endDate) : null;
 
+    const getPaymentDate = (p: PaymentRow) =>
+      new Date(p.paymentDateRaw || p.createdAt);
+
     // expand end to end-of-day for inclusive filtering
     const endOfDay = end
       ? new Date(
@@ -490,8 +526,8 @@ const PaymentsPage = () => {
     return sortedPayments.filter((p) => {
       /* Date filter */
       if (start && endOfDay) {
-        const t = new Date(p.createdAt).getTime();
-        if (t < start.getTime() || t > endOfDay.getTime()) {
+        const paymentDate = getPaymentDate(p).getTime();
+        if (paymentDate < start.getTime() || paymentDate > endOfDay.getTime()) {
           return false;
         }
       }
@@ -507,12 +543,8 @@ const PaymentsPage = () => {
 
       /* Linked Booking filter */
       if (linkedBookingFilter.length > 0) {
-        // dummy assumption: booking prefix or mapping
-        const matchesBooking = linkedBookingFilter.some((type) =>
-          p.linkedBooking.toLowerCase().includes(type),
-        );
-
-        if (!matchesBooking) return false;
+        if (!p.serviceType) return false;
+        if (!linkedBookingFilter.includes(p.serviceType)) return false;
       }
 
       /* Account filter */
@@ -601,9 +633,11 @@ const PaymentsPage = () => {
           <div
             onClick={(e) => e.stopPropagation()}
             className={`flex items-center justify-center gap-2 transition-all duration-200 ${
-              index === 0
-                ? "opacity-100 pointer-events-auto"
-                : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+              isCursorInTable
+                ? "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+                : index === 0
+                  ? "opacity-100 pointer-events-auto"
+                  : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
             }`}
           >
             <button
@@ -644,7 +678,7 @@ const PaymentsPage = () => {
 
       return cells;
     });
-  }, [visiblePayments]);
+  }, [visiblePayments, isCursorInTable]);
 
   return (
     <>
@@ -811,7 +845,11 @@ const PaymentsPage = () => {
           </div>
         </div>
 
-        <div className="min-h-[200px] mt-2 px-2">
+        <div
+          className="min-h-[200px] mt-2 px-2"
+          onMouseEnter={() => setIsCursorInTable(true)}
+          onMouseLeave={() => setIsCursorInTable(false)}
+        >
           <Table
             data={tableData}
             columns={columns}
@@ -838,16 +876,28 @@ const PaymentsPage = () => {
               ? ({
                   _id: editingPayment.id || undefined,
                   amount: String(editingPayment.amount || ""),
+                  amountCurrency: editingPayment.amountCurrency,
+                  amountRoe: editingPayment.amountRoe,
+                  amountInr: editingPayment.amountInr,
+
+                  bankCharges: editingPayment.bankCharges,
+                  bankChargesCurrency: editingPayment.bankChargesCurrency,
+                  bankChargesRoe: editingPayment.bankChargesRoe,
+                  bankChargesInr: editingPayment.bankChargesInr,
+
+                  cashbackReceived: editingPayment.cashbackReceived,
+                  cashbackReceivedCurrency:
+                    editingPayment.cashbackReceivedCurrency,
+                  cashbackReceivedRoe: editingPayment.cashbackReceivedRoe,
+                  cashbackReceivedInr: editingPayment.cashbackReceivedInr,
+
                   paymentDate:
                     editingPayment.paymentDateRaw || editingPayment.createdAt,
-                  bank:
-                    editingPayment.bankId ||
-                    (editingPayment.account === "Cash"
-                      ? ""
-                      : editingPayment.account),
+
+                  bank: editingPayment.bankId || "",
                   paymentType: String(
                     editingPayment.paymentType || "",
-                  ).toUpperCase(),
+                  ).toLowerCase(),
                   internalNotes: "",
                 } as any)
               : undefined

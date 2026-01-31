@@ -236,16 +236,8 @@ const FinanceVendorsPage = () => {
     };
   }, [userOptions]);
 
-  // Calculate totals
-  const { youGet, youGive } = useMemo(() => {
-    const get = vendors
-      .filter((c) => c.balanceType === "credit")
-      .reduce((sum, c) => sum + c.closingBalance, 0);
-    const give = vendors
-      .filter((c) => c.balanceType === "debit")
-      .reduce((sum, c) => sum + c.closingBalance, 0);
-    return { youGet: get, youGive: give };
-  }, [vendors]);
+  // Calculate totals (will be recomputed for visible vendors below)
+  const { youGet, youGive } = { youGet: 0, youGive: 0 };
 
   // Search state
   const [searchValue, setSearchValue] = useState("");
@@ -254,6 +246,7 @@ const FinanceVendorsPage = () => {
   >("poc");
 
   const [effectiveSearch, setEffectiveSearch] = useState("");
+  const [isCursorInTable, setIsCursorInTable] = useState(false);
 
   // Filter options for dropdown
   const filterOptions = useMemo(
@@ -369,9 +362,11 @@ const FinanceVendorsPage = () => {
           <div
             onClick={(e) => e.stopPropagation()}
             className={`flex items-center justify-center gap-2 transition-all duration-200 ${
-              index === 0
-                ? "opacity-100 pointer-events-auto"
-                : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+              isCursorInTable
+                ? "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+                : index === 0
+                  ? "opacity-100 pointer-events-auto"
+                  : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
             }`}
           >
             <button
@@ -424,7 +419,21 @@ const FinanceVendorsPage = () => {
 
       return cells;
     });
+  }, [visibleVendors, isCursorInTable]);
+
+  // Recompute totals based on currently visible (filtered) vendors
+  const totalsForVisibleVendors = useMemo(() => {
+    const get = visibleVendors
+      .filter((c) => c.balanceType === "credit")
+      .reduce((sum, c) => sum + c.closingBalance, 0);
+    const give = visibleVendors
+      .filter((c) => c.balanceType === "debit")
+      .reduce((sum, c) => sum + c.closingBalance, 0);
+    return { youGet: get, youGive: give };
   }, [visibleVendors]);
+
+  const youGetVisibleV = totalsForVisibleVendors.youGet;
+  const youGiveVisibleV = totalsForVisibleVendors.youGive;
 
   return (
     <>
@@ -442,7 +451,7 @@ const FinanceVendorsPage = () => {
                       You Get
                     </span>
                     <span className="text-[#4CA640] text-[14px] font-semibold">
-                      ₹ {youGet.toLocaleString()}
+                      ₹ {youGetVisibleV.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -453,7 +462,7 @@ const FinanceVendorsPage = () => {
                       You Give
                     </span>
                     <span className="text-[#C30010] text-[14px] font-semibold">
-                      ₹ {youGive.toLocaleString()}
+                      ₹ {youGiveVisibleV.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -501,7 +510,11 @@ const FinanceVendorsPage = () => {
 
           <div className="border-t border-gray-200 mb-4 mt-3"></div>
 
-          <div className="min-h-[200px] mt-2 px-2">
+          <div
+            className="min-h-[200px] mt-2 px-2"
+            onMouseEnter={() => setIsCursorInTable(true)}
+            onMouseLeave={() => setIsCursorInTable(false)}
+          >
             <Table
               data={tableData}
               columns={columns}

@@ -15,6 +15,7 @@ import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import FilterTrigger from "../FilterTrigger";
 import type { FilterCardOption } from "../FilterCard";
 import AddPaymentSidesheet from "../Sidesheets/AddPaymentSidesheet";
+import CustomIdApi from "@/services/customIdApi";
 import ViewPaymentSidesheet from "../Sidesheets/ViewPaymentSidesheet";
 import ConfirmationModal from "../popups/ConfirmationModal";
 import DeletePaymentModal from "../Modals/DeletePaymentModal";
@@ -29,6 +30,8 @@ import BookingFormSidesheet from "../BookingFormSidesheet";
 import BookingApiService from "@/services/bookingApi";
 import { getCustomerById } from "@/services/customerApi";
 import { getVendorById } from "@/services/vendorApi";
+import type { BankDto } from "@/services/bankApi";
+import BankApi from "@/services/bankApi";
 
 type LedgerStatus = "paid" | "none" | "partial";
 
@@ -90,6 +93,8 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     "create" | "edit"
   >("create");
   const [paymentInitial, setPaymentInitial] = useState<{
+    _id?: string;
+    customId?: string;
     amount?: string;
     bankCharges?: string;
     bankChargesNotes?: string;
@@ -102,10 +107,16 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   } | null>(null);
 
   const [ledgerData, setLedgerData] = useState<any>(null);
+  const [paymentCustomId, setPaymentCustomId] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
   const [bookingSidesheetOpen, setBookingSidesheetOpen] = useState(false);
   const [bookingInitialData, setBookingInitialData] = useState<any>(null);
   const [bookingCode, setBookingCode] = useState<string>("");
+
+  // bank states
+  const [banks, setBanks] = useState<BankDto[]>([]);
+  const [selectedBankIds, setSelectedBankIds] = useState<string[]>([]);
 
   const derivedBookingService = useMemo(() => {
     const quotationTypeRaw =
@@ -184,10 +195,64 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   const [pendingOnly, setPendingOnly] = useState(false);
   const [downloadType, setDownloadType] = useState<"pdf" | "excel">("pdf");
 
-  const accountOptions: FilterCardOption[] = useMemo(
-    () => ["Bank 1", "Bank 2", "Cash"].map((v) => ({ value: v, label: v })),
-    [],
-  );
+  // Fetch banks when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    (async () => {
+      try {
+        const resp: any = await BankApi.getBanks({ isDeleted: false });
+
+        // SAFELY extract array
+        const bankList = Array.isArray(resp)
+          ? resp
+          : Array.isArray(resp?.banks)
+            ? resp.banks
+            : Array.isArray(resp?.data)
+              ? resp.data
+              : Array.isArray(resp?.data?.banks)
+                ? resp.data.banks
+                : [];
+
+        setBanks(bankList);
+      } catch (err) {
+        console.error("Failed to fetch banks:", err);
+        setBanks([]);
+      }
+    })();
+  }, [isOpen]);
+
+  const accountOptions: FilterCardOption[] = useMemo(() => {
+    return banks.map((b) => ({
+      value: b._id as string,
+      label: `${b.name} • ${b.accountType}`,
+    }));
+  }, [banks]);
+
+  const resolveBankFromEntry = (entry: any) => {
+    return (
+      entry?.bankId ||
+      entry?.bank ||
+      entry?.data?.bankId ||
+      entry?.data?.payment?.bankId ||
+      null
+    );
+  };
+
+  const resolveBankNameFromEntry = (entry: any): string => {
+    const bank = resolveBankFromEntry(entry);
+
+    if (!bank) return "—";
+
+    // If populated object
+    if (typeof bank === "object") {
+      return bank.name || "—";
+    }
+
+    // If only ID (fallback)
+    const matched = banks.find((b) => b._id === bank);
+    return matched?.name || "—";
+  };
 
   // Date column label and filter options (Booking Date <-> Travel Date)
   const [dateColumnLabel, setDateColumnLabel] =
@@ -397,45 +462,127 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   const normalizeEntryToPayment = (entry: any) => {
     if (!entry) return null;
     const data = entry.data || {};
+
+    const paymentData =
+      data &&
+      typeof data === "object" &&
+      data.payment &&
+      typeof data.payment === "object"
+        ? data.payment
+        : data;
+
+    const resolvedPartyTypeRaw =
+      paymentData.party ||
+      data.party ||
+      entry.party ||
+      entry.data?.payment?.party ||
+      "";
+    const resolvedPartyType = String(resolvedPartyTypeRaw || "");
+    const resolvedPartyTypeLower = resolvedPartyType.toLowerCase();
+
     // Resolve partyId to prefer nested Mongo _id when available
-    const rawPartyId = data.partyId ?? entry.partyId;
+    const rawPartyId = paymentData.partyId ?? data.partyId ?? entry.partyId;
     const resolvedPartyId =
       rawPartyId && typeof rawPartyId === "object"
         ? rawPartyId._id || rawPartyId.id || rawPartyId
         : rawPartyId;
 
-    const resolvedPartyName =
-      (data.partyId && typeof data.partyId === "object" && data.partyId.name) ||
-      entry.partyName ||
-      (data.party && typeof data.party === "object" && data.party.name) ||
-      "";
+    const partyObj: any =
+      (rawPartyId && typeof rawPartyId === "object" && rawPartyId) || null;
+
+    const resolvedPartyName = (() => {
+      const fallback = entry.partyName || "";
+      if (!partyObj) return fallback;
+
+      if (resolvedPartyTypeLower === "vendor") {
+        return (
+          partyObj.companyName ||
+          partyObj.name ||
+          partyObj.contactPerson ||
+          fallback
+        );
+      }
+
+      return (
+        partyObj.name ||
+        partyObj.companyName ||
+        partyObj.contactPerson ||
+        fallback
+      );
+    })();
+
+    const resolvedCustomId =
+      entry.customId || paymentData.customId || data.customId || "";
+    const resolvedId =
+      paymentData._id || data._id || entry._id || entry.referenceId;
+    const resolvedBank =
+      paymentData.bankId || data.bankId || entry.bank || entry.bankId || null;
+    const resolvedAllocations =
+      paymentData.allocations || data.allocations || entry.allocations || [];
 
     const payment = {
-      customId: entry.customId || data.customId,
-      _id: data._id || entry._id || entry.referenceId,
-      amount: Number(data.amount || entry.amount || 0),
-      entryType: data.entryType || entry.entryType,
-      paymentDate: data.paymentDate || entry.paymentDate || entry.date,
-      paymentType: data.paymentType || entry.paymentType,
-      bank: data.bankId || entry.bank || entry.bankId || null,
+      customId: resolvedCustomId,
+      _id: resolvedId,
+      amount: Number(paymentData.amount ?? data.amount ?? entry.amount ?? 0),
+      entryType: paymentData.entryType || data.entryType || entry.entryType,
+      paymentDate:
+        paymentData.paymentDate ||
+        data.paymentDate ||
+        entry.paymentDate ||
+        entry.date,
+      paymentType:
+        paymentData.paymentType || data.paymentType || entry.paymentType,
+      bank: resolvedBank,
       account: entry.account,
-      documents: data.documents || entry.documents || [],
+      documents:
+        paymentData.documents || data.documents || entry.documents || [],
       internalNotes:
+        paymentData.internalNotes ||
+        paymentData.notes ||
         data.internalNotes ||
         data.notes ||
         entry.internalNotes ||
         entry.notes ||
         "",
-      allocations: entry.allocations || data.allocations || [],
-      outstandingAmount: data.unallocatedAmount || entry.unallocatedAmount,
-      party: data.party || entry.party,
+      allocations: resolvedAllocations,
+      outstandingAmount:
+        paymentData.unallocatedAmount ||
+        data.unallocatedAmount ||
+        entry.unallocatedAmount,
+      party: resolvedPartyType,
       partyId: resolvedPartyId,
       partyName: resolvedPartyName,
-      bankCharges: data.bankCharges || entry.bankCharges,
-      bankChargesNotes: data.bankChargesNotes || entry.bankChargesNotes,
-      cashbackReceived: data.cashbackReceived || entry.cashbackReceived,
-      cashbackNotes: data.cashbackNotes || entry.cashbackNotes,
-      data: data,
+      bankCharges:
+        paymentData.bankCharges || data.bankCharges || entry.bankCharges,
+      bankChargesNotes:
+        paymentData.bankChargesNotes ||
+        data.bankChargesNotes ||
+        entry.bankChargesNotes,
+      cashbackReceived:
+        paymentData.cashbackReceived ||
+        data.cashbackReceived ||
+        entry.cashbackReceived,
+      cashbackNotes:
+        paymentData.cashbackNotes || data.cashbackNotes || entry.cashbackNotes,
+      amountCurrency:
+        paymentData.amountCurrency ||
+        paymentData.amountCurreny ||
+        data.amountCurrency ||
+        data.amountCurreny,
+      amountRoe: paymentData.amountRoe || data.amountRoe,
+      amountInr: paymentData.amountInr || data.amountInr,
+      bankChargesCurrency:
+        paymentData.bankChargesCurrency || data.bankChargesCurrency,
+      bankChargesRoe: paymentData.bankChargesRoe || data.bankChargesRoe,
+      bankChargesInr: paymentData.bankChargesInr || data.bankChargesInr,
+      cashbackReceivedCurrency:
+        paymentData.cashbackReceivedCurrency || data.cashbackReceivedCurrency,
+      cashbackReceivedRoe:
+        paymentData.cashbackReceivedRoe || data.cashbackReceivedRoe,
+      cashbackReceivedInr:
+        paymentData.cashbackReceivedInr || data.cashbackReceivedInr,
+      data: paymentData,
+      _rawData: data,
       // keep original entry for reference
       // _entry: entry,
     } as any;
@@ -477,7 +624,9 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         <FilterTrigger
           ariaLabel="Filter Account"
           options={accountOptions}
-          onApply={(sel) => console.log("Account filter applied:", sel)}
+          onApply={(sel) => {
+            setSelectedBankIds(Array.isArray(sel) ? sel : []);
+          }}
         >
           <CiFilter className="inline w-3 h-3 text-gray-600 stroke-[1.5]" />
         </FilterTrigger>
@@ -561,25 +710,52 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
       // Pending filter
       if (pendingOnly && entry.paymentStatus !== "none") return false;
 
+      // Account filter
+      if (selectedBankIds.length > 0) {
+        const bank = resolveBankFromEntry(entry);
+        const bankId =
+          bank && typeof bank === "object"
+            ? (bank._id ?? "")
+            : String(bank || "");
+
+        if (!bankId || !selectedBankIds.includes(bankId)) {
+          return false;
+        }
+      }
+
       // Choose the date field according to selected date column
       let entryDate: string = "";
       if (entry.type === "payment") {
-        entryDate = entry.paymentDate || "";
+        entryDate =
+          entry.paymentDate ||
+          entry.date ||
+          entry.data?.paymentDate ||
+          entry.data?.formFields?.paymentDate ||
+          "";
       } else if (dateColumnLabel === "Travel Date") {
         entryDate =
           entry.travelDate ||
           entry.data?.travelDate ||
           entry.data?.formFields?.traveldate ||
+          entry.date ||
           "";
       } else {
-        entryDate = entry.data?.formFields?.bookingdate || "";
+        // Booking Date (default)
+        entryDate = entry.data?.formFields?.bookingdate || entry.date || "";
       }
 
       if (!isWithinDateRange(entryDate, startDate, endDate)) return false;
 
       return true;
     });
-  }, [ledgerData, pendingOnly, startDate, endDate, dateColumnLabel]);
+  }, [
+    ledgerData,
+    pendingOnly,
+    startDate,
+    endDate,
+    dateColumnLabel,
+    selectedBankIds,
+  ]);
 
   const tableData = useMemo<JSX.Element[][]>(() => {
     return filteredEntries.map((r: any, index: any) => {
@@ -600,22 +776,31 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                 setPaymentSidesheetTitle(
                   customId.startsWith("PI-") ? "Payment In" : "Payment Out",
                 );
+                setPaymentCustomId(customId || null);
                 setPaymentInitial({
+                  _id: payment._id,
+                  customId: customId,
                   amount: String(payment.amount || ""),
+                  amountCurrency: payment.amountCurrency,
+                  amountRoe: payment.amountRoe,
+                  amountInr: payment.amountInr,
                   paymentDate: payment.paymentDate || "",
                   bank:
                     payment.data?.bankId?._id ||
                     payment.bank?._id ||
-                    payment.bank ||
-                    r.data?.bankId?._id ||
-                    r.bank?._id ||
-                    r.bankId ||
+                    (typeof payment.bank === "string" ? payment.bank : "") ||
                     "",
                   paymentType: payment.paymentType || "",
                   internalNotes: payment.internalNotes || "",
                   bankCharges: String(payment.bankCharges || ""),
+                  bankChargesCurrency: payment.bankChargesCurrency,
+                  bankChargesRoe: payment.bankChargesRoe,
+                  bankChargesInr: payment.bankChargesInr,
                   bankChargesNotes: payment.bankChargesNotes || "",
                   cashbackReceived: String(payment.cashbackReceived || ""),
+                  cashbackReceivedCurrency: payment.cashbackReceivedCurrency,
+                  cashbackReceivedRoe: payment.cashbackReceivedRoe,
+                  cashbackReceivedInr: payment.cashbackReceivedInr,
                   cashbackNotes: payment.cashbackNotes || "",
                 });
                 setPaymentSidesheetOpen(true);
@@ -743,7 +928,29 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           key={`account-${index}`}
           className="px-4 py-3 text-center text-[14px]"
         >
-          {r.account ?? ""}
+          <div className="relative inline-flex items-center justify-center">
+            <span className="peer cursor-default">
+              {resolveBankNameFromEntry(r)}
+            </span>
+
+            <div
+              className="absolute -top-8 left-1/2 z-50 px-2 py-1 text-[0.75rem] text-white bg-gray-800 rounded-md shadow-lg pointer-events-none -translate-x-1/2 transition-opacity duration-150 ease-in-out opacity-0 invisible whitespace-nowrap peer-hover:opacity-100 peer-hover:visible"
+              role="tooltip"
+            >
+              {r?.paymentType ||
+                r?.data?.payment?.paymentType ||
+                r?.data?.paymentType ||
+                r?.data?.payment?.type ||
+                "-"}
+              <div
+                className="absolute left-1/2 -bottom-1 w-2.5 h-2.5 bg-gray-800"
+                style={{
+                  transform: "translateX(-50%) rotate(45deg)",
+                  WebkitTransform: "translateX(-50%) rotate(45deg)",
+                }}
+              />
+            </div>
+          </div>
         </td>,
         <td
           key={`amount-${index}`}
@@ -816,16 +1023,31 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     setPaymentSidesheetTitle(
       customId.startsWith("PI-") ? "Payment In" : "Payment Out",
     );
+    setPaymentCustomId(customId || null);
     setPaymentInitial({
+      _id: payment._id,
+      customId: customId,
       amount: String(payment.amount || ""),
+      amountCurrency: payment.amountCurrency,
+      amountRoe: payment.amountRoe,
+      amountInr: payment.amountInr,
       paymentDate: payment.paymentDate || "",
       bank:
-        payment.data?.bankId?._id || payment.bank?._id || payment.bank || "",
+        payment.data?.bankId?._id ||
+        payment.bank?._id ||
+        (typeof payment.bank === "string" ? payment.bank : "") ||
+        "",
       paymentType: payment.paymentType || "",
       internalNotes: payment.internalNotes || "",
       bankCharges: String(payment.bankCharges || ""),
+      bankChargesCurrency: payment.bankChargesCurrency,
+      bankChargesRoe: payment.bankChargesRoe,
+      bankChargesInr: payment.bankChargesInr,
       bankChargesNotes: payment.bankChargesNotes || "",
       cashbackReceived: String(payment.cashbackReceived || ""),
+      cashbackReceivedCurrency: payment.cashbackReceivedCurrency,
+      cashbackReceivedRoe: payment.cashbackReceivedRoe,
+      cashbackReceivedInr: payment.cashbackReceivedInr,
       cashbackNotes: payment.cashbackNotes || "",
     });
     setIsViewPaymentOpen(false);
@@ -951,7 +1173,39 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         disableOverlayClick={false}
         headerLeft={headerLeft}
       >
-        <div className="p-2 -mt-4" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="p-2 -mt-4 relative"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {isRefreshing && (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm">
+              <div className="inline-flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-md shadow">
+                <svg
+                  className="animate-spin h-6 w-6 text-gray-700"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  />
+                </svg>
+                <span className="text-sm text-gray-700 font-medium">
+                  Refreshing ledger...
+                </span>
+              </div>
+            </div>
+          )}
           <div className="border border-gray-200 rounded-xl p-3">
             {/* Top actions row */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -982,7 +1236,17 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                   type="button"
                   className="p-2 rounded-md text-gray-500 hover:bg-gray-50 transition"
                   aria-label="Refresh"
-                  onClick={() => onRefresh?.()}
+                  onClick={async () => {
+                    setIsRefreshing(true);
+                    try {
+                      await fetchLedger();
+                    } catch (err) {
+                      console.error("Failed to refresh ledger:", err);
+                    } finally {
+                      setIsRefreshing(false);
+                    }
+                    onRefresh?.();
+                  }}
                 >
                   <LuRefreshCcw size={18} />
                 </button>
@@ -1103,10 +1367,23 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           <div className="mt-4 flex items-center gap-3">
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 setPaymentSidesheetMode("create");
                 setPaymentInitial(null);
                 setPaymentSidesheetTitle("Payment Out");
+                try {
+                  const resp: any = await CustomIdApi.generate("paymentOut");
+                  const id =
+                    resp?.customId ||
+                    resp?.data?.customId ||
+                    resp?.id ||
+                    (typeof resp === "string" ? resp : null) ||
+                    null;
+                  setPaymentCustomId(id);
+                } catch (err) {
+                  console.error("Failed to generate custom id:", err);
+                  setPaymentCustomId(null);
+                }
                 setPaymentSidesheetOpen(true);
               }}
               className="bg-[#EB382B] hover:bg-[#DC2626] text-white px-4 py-2.5 rounded-md text-[14px] font-semibold"
@@ -1118,10 +1395,23 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
                 setPaymentSidesheetMode("create");
                 setPaymentInitial(null);
                 setPaymentSidesheetTitle("Payment In");
+                try {
+                  const resp: any = await CustomIdApi.generate("paymentIn");
+                  const id =
+                    resp?.customId ||
+                    resp?.data?.customId ||
+                    resp?.id ||
+                    (typeof resp === "string" ? resp : null) ||
+                    null;
+                  setPaymentCustomId(id);
+                } catch (err) {
+                  console.error("Failed to generate custom id:", err);
+                  setPaymentCustomId(null);
+                }
                 setPaymentSidesheetOpen(true);
               }}
               className="bg-[#4CA640] hover:bg-[#16A34A] text-white px-4 py-2.5 rounded-md text-[14px] font-semibold"
@@ -1158,6 +1448,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           setPaymentSidesheetOpen(false);
           setPaymentSidesheetMode("create");
           setPaymentInitial(null);
+          setPaymentCustomId(null);
         }}
         title={paymentSidesheetTitle}
         mode={paymentSidesheetMode}
@@ -1165,6 +1456,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         initialCustomer={computedInitialCustomer}
         initialVendor={computedInitialVendor}
         disablePartyType={true}
+        customId={paymentCustomId}
         onView={() => {
           setPaymentSidesheetOpen(false);
           // keep selectedLedgerRow so view can reference it if needed

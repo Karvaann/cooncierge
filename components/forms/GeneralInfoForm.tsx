@@ -360,6 +360,7 @@ interface GeneralInfoFormProps {
   isReadOnly?: boolean;
   showValidation?: boolean;
   formRef?: React.RefObject<HTMLFormElement>;
+  hideVendor?: boolean;
 }
 
 const buildInitialState = (externalFormData: any = {}): GeneralInfoFormData => {
@@ -476,6 +477,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   isReadOnly = false,
   showValidation = true,
   formRef,
+  hideVendor = false,
 }) => {
   const [formData, setFormData] = useState<GeneralInfoFormData>(
     buildInitialState(externalFormData),
@@ -1989,20 +1991,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           </div>
                         );
                       })}
-                      {/* Staple option */}
-                      {/* <div
-                      className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
-                      onClick={() => {
-                        updateCustomerField(index, { id: "", name: "TBA" });
-                        setFormData((prev) => ({ ...prev, customer: "" }));
-                        setActiveCustomerIndex(null);
-                        setShowCustomerDropdown(false);
-                      }}
-                    >
-                      <p className="font-medium text-[0.70rem] text-gray-700">
-                        Don't have the name? Enter TBA
-                      </p>
-                    </div> */}
+                      {/* Staple option removed */}
                     </div>
                   )}
               </div>
@@ -2036,7 +2025,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         ))}
       </div>
       {/* Vendor Section */}
-      <div className="border border-gray-200 rounded-[12px] px-3 py-4">
+      {!hideVendor && <div className="border border-gray-200 rounded-[12px] px-3 py-4">
         <h2 className="text-[13px]  font-medium mb-2">Vendors</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
 
@@ -2199,19 +2188,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     </div>
                   );
                 })}
-                {/* Staple option */}
-                {/* <div
-                  className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
-                  onClick={() => {
-                    setVendorList([{ id: "", name: "TBA" }]);
-                    setFormData((prev) => ({ ...prev, vendor: "" }));
-                    setShowVendorDropdown(false);
-                  }}
-                >
-                  <p className="font-medium text-[0.70rem] text-gray-700">
-                    Don't have the name? Enter TBA
-                  </p>
-                </div> */}
+                {/* Staple option removed */}
               </div>
             )}
           </div>
@@ -2237,7 +2214,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             onClickView={() => handleViewVendor()}
           />
         </div>
-      </div>
+      </div>}
 
       {/* Travellers Counter Section */}
       <div className="border border-gray-200 rounded-xl p-3">
@@ -3041,19 +3018,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         mode="view"
         data={viewTravellerData}
       />
-
-      {/* Submit Button (if standalone) */}
-      {/* {onSubmit && (
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-4 py-2 bg-[#114958] text-white text-[0.75rem] rounded-lg hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? "Saving..." : "Save General Info"}
-          </button>
-        </div>
-      )} */}
     </form>
   );
 };
