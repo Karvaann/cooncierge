@@ -17,7 +17,7 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [openSubMenuIndex, setOpenSubMenuIndex] = useState<number | null>(null);
   const sidebarRef = useRef<HTMLDivElement | null>(null);
-  const {user} = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -88,10 +88,10 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
             let itemsToRender = menuItems;
 
             if (!user?.isBookingChecker) {
-              itemsToRender = itemsToRender.filter((it) => it.label !== "Approvals");
+              itemsToRender = itemsToRender.filter(
+                (it) => it.label !== "Approvals",
+              );
             }
-
-
 
             return itemsToRender.map((item, index) => {
               const isActive = openSubMenuIndex === index;
