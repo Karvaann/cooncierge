@@ -174,6 +174,43 @@ export const combineClasses = (...classes: (string | undefined | null | false)[]
 };
 
 /**
+ * Returns a currency symbol for common currencies.
+ * Defaults to rupee if unknown/undefined to preserve existing behaviour.
+ */
+export const getCurrencySymbol = (currency?: string): string => {
+  if (!currency) return "₹";
+  const c = String(currency).trim().toUpperCase();
+  const map: Record<string, string> = {
+    USD: "$",
+    USDT: "$",
+    INR: "₹",
+    EUR: "€",
+    GBP: "£",
+  };
+  return map[c] || c;
+};
+
+/**
+ * Returns a locale string suitable for formatting numbers for the given currency.
+ */
+export const getCurrencyLocale = (currency?: string): string => {
+  if (!currency) return "en-IN";
+  const c = String(currency).trim().toUpperCase();
+  switch (c) {
+    case "USD":
+    case "USDT":
+      return "en-US";
+    case "EUR":
+      return "de-DE";
+    case "GBP":
+      return "en-GB";
+    case "INR":
+    default:
+      return "en-IN";
+  }
+};
+
+/**
  * Debounce function for performance optimization
  * @param func Function to debounce
  * @param wait Wait time in milliseconds

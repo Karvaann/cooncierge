@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { TbNotes } from "react-icons/tb";
 import DropDown from "./DropDown";
 
@@ -82,6 +82,29 @@ export default function MultiCurrencyInput({
 }: MultiCurrencyInputProps) {
   const showRoeFields = requiresRoe(currency, businessCurrency);
 
+  const computedInr = useMemo(() => {
+    if (!showRoeFields) return "";
+    if (String(inr ?? "").trim() !== "") return String(inr);
+
+    const amountNum = Number(String(amount ?? "").replace(/,/g, ""));
+    const roeNum = Number(String(roe ?? "").replace(/,/g, ""));
+    if (
+      !isFinite(amountNum) ||
+      !isFinite(roeNum) ||
+      amountNum === 0 ||
+      roeNum === 0
+    ) {
+      return "";
+    }
+
+    const product = amountNum * roeNum;
+    const hasFraction = Math.abs(product - Math.round(product)) > 1e-9;
+    return product.toLocaleString("en-US", {
+      minimumFractionDigits: hasFraction ? 2 : 0,
+      maximumFractionDigits: 2,
+    });
+  }, [amount, roe, inr, showRoeFields]);
+
   return (
     <>
       <div
@@ -135,7 +158,7 @@ export default function MultiCurrencyInput({
                 INR
               </span>
               <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                {inr || ""}
+                {computedInr || ""}
               </div>
             </div>
           </>

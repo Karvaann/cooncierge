@@ -1,15 +1,16 @@
 "use client";
 
 import React, { useEffect, useId, useMemo, useState } from "react";
-import OneWayLayout from "./FlightLayouts/ViewOneWayLayout";
+import ViewOneWayLayout from "./FlightLayouts/ViewOneWayLayout";
+import ViewRoundTripLayout from "./FlightLayouts/ViewRoundTripLayout";
+import AccommodationSegmentCard from "./AccommodationLayouts/AccommodationSegmentCard";
+import AddServicesModal from "./components/AddServicesModal";
+import { FiSave } from "react-icons/fi";
 
-const defaultTabs = [
-  "At a Glance",
-  "Itinerary",
-  "Flights",
-  "Accommodations",
-  "Visas",
-];
+import { MdKeyboardArrowRight } from "react-icons/md";
+import { MdKeyboardArrowLeft } from "react-icons/md";
+
+const defaultTabs = ["At a Glance", "Itinerary", "Flights", "Accommodations"];
 
 type Props = {
   tabs?: string[];
@@ -24,7 +25,7 @@ type Props = {
   onLinkClick?: () => void;
 };
 
-const clampToFive = (tabs: string[]) => tabs.slice(0, 5);
+const dedupe = (arr: string[]) => Array.from(new Set(arr.filter(Boolean)));
 
 const ProgressRing = ({ percent }: { percent: number }) => {
   const size = 44;
@@ -109,7 +110,33 @@ export default function ViewBookingLayoutTabs({
 }: Props) {
   const id = useId();
 
-  const stepTabs = useMemo(() => clampToFive(tabs), [tabs]);
+  const serviceLabelMap: Record<string, string> = {
+    visa: "Visas",
+    insurance: "Insurance",
+  };
+
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
+
+  const computedTabs = useMemo(() => {
+    const base = tabs?.length ? tabs : defaultTabs;
+    const serviceTabs = selectedServices
+      .map((v) => serviceLabelMap[v] ?? v)
+      .filter(Boolean);
+    return dedupe([...base, ...serviceTabs]);
+  }, [selectedServices, tabs]);
+
+  const stepTabs = useMemo(() => computedTabs, [computedTabs]);
+  const orderedTabs = useMemo(() => {
+    // Prefer an order where Accommodations comes before Flights (so Accommodations is center)
+    const desired = ["At a Glance", "Itinerary", "Accommodations", "Flights"];
+    const present = stepTabs.slice();
+    if (present.includes("Accommodations") && present.includes("Flights")) {
+      const core = desired.filter((t) => present.includes(t));
+      const extras = present.filter((t) => !desired.includes(t));
+      return [...core, ...extras];
+    }
+    return present;
+  }, [stepTabs]);
   const defaultActive = useMemo(
     () =>
       initial ??
@@ -127,6 +154,33 @@ export default function ViewBookingLayoutTabs({
     () => new Set<string>(),
   );
 
+  const [isAddServiceOpen, setIsAddServiceOpen] = useState(false);
+
+  // Navigation helpers
+  const currentIndex = stepTabs.indexOf(active);
+
+  const hasPrev = currentIndex > 0;
+  const hasNext = currentIndex < stepTabs.length - 1;
+
+  const goPrev = () => {
+    if (!hasPrev) return;
+    const prev = stepTabs[currentIndex - 1];
+    if (!prev) return;
+    handleTabClick(prev);
+  };
+
+  const goNext = () => {
+    if (!hasNext) return;
+    const next = stepTabs[currentIndex + 1];
+    if (!next) return;
+    handleTabClick(next);
+  };
+
+  const handleAddService = (services: string[]) => {
+    const list = Array.isArray(services) ? services : [services as any];
+    setSelectedServices((prev) => dedupe([...prev, ...list]));
+  };
+
   // Local flight form state used to render the OneWayLayout inside the Flights tab.
   // This keeps the tab self-contained; the parent page can later pass shared state if desired.
   const [flightFormData, setFlightFormData] = useState<any>({
@@ -134,6 +188,10 @@ export default function ViewBookingLayoutTabs({
     traveldate: "",
     bookingstatus: "Confirmed",
     costprice: "",
+    costCurrency: "INR",
+    costRoe: "",
+    costInr: "",
+    costNotes: "",
     sellingprice: "",
     PNR: "",
     pnrEnabled: false,
@@ -147,8 +205,37 @@ export default function ViewBookingLayoutTabs({
     ],
     returnSegments: [],
     samePNRForAllSegments: false,
+    sameVendorForAllFlights: false,
     flightType: "One Way",
     remarks: "",
+  });
+
+  const [accommodationFormData, setAccommodationFormData] = useState<any>({
+    bookingdate: "",
+    traveldate: "",
+    bookingstatus: "Confirmed",
+    sameVendorForAllHotels: false,
+    segments: [
+      {
+        id: Date.now().toString(),
+        hotelName: "",
+        vendor: null,
+        allTravellersCheckingIn: true,
+        checkindate: "",
+        checkintime: "",
+        checkoutdate: "",
+        checkouttime: "",
+        accommodationType: "Hotel",
+        confirmationNumber: "",
+        pax: "",
+        mealPlan: "",
+        costprice: "",
+        costCurrency: "INR",
+        costRoe: "",
+        costInr: "",
+        costNotes: "",
+      },
+    ],
   });
 
   useEffect(() => {
@@ -161,7 +248,7 @@ export default function ViewBookingLayoutTabs({
     setNotRequired(Boolean(notRequiredDefault));
   }, [notRequiredDefault]);
 
-  const totalSteps = stepTabs.length || 5;
+  const totalSteps = stepTabs.length || 1;
 
   const stepsCompletedCount = useMemo(() => {
     // Only count completions that correspond to visible steps
@@ -208,50 +295,64 @@ export default function ViewBookingLayoutTabs({
 
   return (
     <div className="w-full rounded-[12px] border border-gray-200 bg-white overflow-hidden">
-      {/* Tabs Row */}
-      <div className="flex w-full">
-        {stepTabs.map((t, idx) => {
-          const isCompleted = completedTabs.has(t);
-          const isCurrent = active === t;
+      {/* Tabs Row: centered tabs with equal spacing; Add Service sits at the far right */}
+      <div className="flex w-full items-center">
+        <div className="flex flex-1">
+          {orderedTabs.map((t, idx) => {
+            const isCompleted = completedTabs.has(t);
+            const isCurrent = active === t;
 
-          const textClass = isCompleted
-            ? "text-green-600"
-            : isCurrent
-              ? "text-orange-500"
-              : "text-gray-400";
+            const textClass = isCompleted
+              ? "text-green-600"
+              : isCurrent
+                ? "text-orange-500"
+                : "text-gray-400";
 
-          const badgeClass = isCompleted
-            ? "bg-green-100 text-green-600"
-            : isCurrent
-              ? "bg-orange-100 text-orange-500"
-              : "bg-gray-100 text-gray-400";
+            const badgeClass = isCompleted
+              ? "bg-green-100 text-green-600"
+              : isCurrent
+                ? "bg-orange-100 text-orange-500"
+                : "bg-gray-100 text-gray-400";
 
-          return (
-            <button
-              key={t}
-              type="button"
-              onClick={() => handleTabClick(t)}
-              className={
-                "flex-1 px-4 py-4 text-[16px] font-medium border-b-2 transition-colors flex items-center justify-center gap-3 min-w-0 " +
-                (isCurrent
-                  ? "border-orange-500"
-                  : "border-transparent hover:text-gray-900")
-              }
-              aria-current={isCurrent ? "page" : undefined}
-              title={t}
-            >
-              <span
-                className={
-                  "w-7 h-7 rounded-full flex items-center justify-center text-[13px] font-semibold flex-none " +
-                  badgeClass
-                }
-              >
-                {idx + 1}
-              </span>
-              <span className={"truncate " + textClass}>{t}</span>
-            </button>
-          );
-        })}
+            return (
+              <div key={t} className="flex-1 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => handleTabClick(t)}
+                  className={
+                    "inline-flex items-center px-4 py-3.5 text-[15px] font-medium border-b-2 transition-colors gap-3 min-w-0 justify-center " +
+                    (isCurrent
+                      ? "border-orange-500"
+                      : "border-transparent hover:text-gray-900")
+                  }
+                  aria-current={isCurrent ? "page" : undefined}
+                  title={t}
+                >
+                  <span
+                    className={
+                      "w-6 h-6 rounded-full flex items-center justify-center text-[13px] font-semibold flex-none " +
+                      badgeClass
+                    }
+                  >
+                    {idx + 1}
+                  </span>
+                  <span className={"truncate " + textClass}>{t}</span>
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mr-3">
+          <button
+            type="button"
+            className="px-4 py-1.5 rounded-md text-white text-[15px] font-medium shadow"
+            style={{ backgroundColor: "#126ACB" }}
+            onClick={() => setIsAddServiceOpen(true)}
+          >
+            + Add Service
+          </button>
+        </div>
       </div>
 
       {/* Controls Row */}
@@ -330,16 +431,155 @@ export default function ViewBookingLayoutTabs({
       {/* Tab Panels */}
       <div className="px-6 pb-6">
         {active === "Flights" ? (
-          <OneWayLayout
-            formData={flightFormData}
-            setFormData={setFlightFormData}
+          <>
+            {/* Flight Type Tabs (match FlightServiceInfoForm) */}
+            <div className="inline-flex mb-3 ml-2 rounded-lg border border-gray-200">
+              {(["One Way", "Round Trip", "Multi-City"] as const).map(
+                (type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() =>
+                      setFlightFormData((prev: any) => ({
+                        ...prev,
+                        flightType: type,
+                        ...(type === "Round Trip" &&
+                        (!Array.isArray(prev.returnSegments) ||
+                          prev.returnSegments.length === 0)
+                          ? {
+                              returnSegments: [
+                                {
+                                  id: `return-${Date.now()}`,
+                                  flightnumber: "",
+                                  traveldate: "",
+                                  cabinclass: "",
+                                },
+                              ],
+                            }
+                          : null),
+                      }))
+                    }
+                    className={`px-3 py-1.5 text-[0.7rem] font-medium transition-colors rounded-lg
+        ${
+          flightFormData.flightType === type
+            ? "bg-[#E8F9F7] text-green-700 font-semibold border border-green-700"
+            : "bg-transparent text-gray-700"
+        }`}
+                  >
+                    {type}
+                  </button>
+                ),
+              )}
+            </div>
+
+            {flightFormData.flightType === "One Way" ? (
+              <ViewOneWayLayout
+                formData={flightFormData}
+                setFormData={setFlightFormData}
+              />
+            ) : flightFormData.flightType === "Round Trip" ? (
+              <ViewRoundTripLayout
+                formData={flightFormData}
+                setFormData={setFlightFormData}
+              />
+            ) : (
+              <div className="ml-2 text-[13px] text-gray-500">
+                {flightFormData.flightType} view coming soon.
+              </div>
+            )}
+          </>
+        ) : active === "Accommodations" ? (
+          <AccommodationSegmentCard
+            formData={accommodationFormData}
+            setFormData={setAccommodationFormData}
           />
+        ) : active === "Visas" ? (
+          <div className="ml-2 text-[13px] text-gray-500">
+            Visas view coming soon.
+          </div>
+        ) : active === "Insurance" ? (
+          <div className="ml-2 text-[13px] text-gray-500">
+            Insurance view coming soon.
+          </div>
         ) : (
           <div className="text-gray-600 py-4">
             {/* Other tab content can be added here */}
           </div>
         )}
       </div>
+
+      {/* Footer Actions */}
+      <div className="flex items-center justify-between px-6 py-3.5 border-t border-gray-200 bg-white">
+        {/* Prev / Next arrows */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={goPrev}
+            disabled={!hasPrev}
+            className={`w-6 h-6 rounded-full flex items-center justify-center border shadow
+        ${
+          hasPrev
+            ? "border-gray-300 hover:bg-gray-100 text-gray-400"
+            : "border-gray-200 text-gray-300 cursor-not-allowed"
+        }
+      `}
+            title="Previous"
+          >
+            <MdKeyboardArrowLeft size={20} />
+          </button>
+
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={!hasNext}
+            className={`w-6 h-6 rounded-full flex items-center justify-center border shadow
+        ${
+          hasNext
+            ? "border-gray-300 hover:bg-gray-100 text-gray-400"
+            : "border-gray-200 text-gray-300 cursor-not-allowed"
+        }
+      `}
+            title="Next"
+          >
+            <MdKeyboardArrowRight size={20} />
+          </button>
+        </div>
+
+        {/* Save actions */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              console.log("Save as Draft clicked");
+              // TODO: draft save logic
+            }}
+            className="px-3 py-1.5 text-[13px] rounded-md border border-[#0D4B37] text-[#0D4B37] font-medium hover:bg-emerald-50 transition"
+          >
+            Save as Draft
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              console.log("Save clicked");
+              // TODO: final save logic
+            }}
+            className="px-3 py-1.5 text-[13px] rounded-md bg-[#0D4B37] text-white font-medium hover:bg-emerald-600 transition flex items-center gap-2"
+          >
+            <FiSave /> Save
+          </button>
+        </div>
+      </div>
+
+      <AddServicesModal
+        isOpen={isAddServiceOpen}
+        onClose={() => setIsAddServiceOpen(false)}
+        defaultValue={selectedServices}
+        onAdd={(svc) => {
+          handleAddService(svc);
+          setIsAddServiceOpen(false);
+        }}
+      />
     </div>
   );
 }

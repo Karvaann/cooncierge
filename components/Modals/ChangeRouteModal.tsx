@@ -74,8 +74,6 @@ const ChangeRouteModal = ({ isOpen, onClose }: Props) => {
   const [cities, setCities] = useState<CityRow[]>([
     { id: "city-1", city: "City 1", nights: 7 },
   ]);
-  const [pickupPoint, setPickupPoint] = useState("Dubai International Airport");
-  const [dropPoint, setDropPoint] = useState("Dubai International Airport");
 
   const togglePlace = (place: Place) => {
     setSelectedSearchPlaces((prev) => {
@@ -431,30 +429,6 @@ const ChangeRouteModal = ({ isOpen, onClose }: Props) => {
                 <FiPlus />
                 Add City
               </button>
-
-              <div>
-                <div className="text-[12px] font-semibold text-gray-700">
-                  Pickup Point
-                </div>
-                <input
-                  value={pickupPoint}
-                  onChange={(e) => setPickupPoint(e.target.value)}
-                  className="mt-2 w-full border border-gray-200 rounded-[8px] px-3 py-2 text-[13px] text-gray-700"
-                  placeholder="Pickup Point"
-                />
-              </div>
-
-              <div>
-                <div className="text-[12px] font-semibold text-gray-700">
-                  Drop Point
-                </div>
-                <input
-                  value={dropPoint}
-                  onChange={(e) => setDropPoint(e.target.value)}
-                  className="mt-2 w-full border border-gray-200 rounded-[8px] px-3 py-2 text-[13px] text-gray-700"
-                  placeholder="Drop Point"
-                />
-              </div>
 
               <div className="pt-2 flex justify-center">
                 <button

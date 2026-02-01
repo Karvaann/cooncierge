@@ -1238,6 +1238,7 @@ const FinanceBookingsPage = () => {
             showCreateButton={false}
             totalCount={finalQuotations.length}
             showBookingType={true}
+            allowAdvanceOwnerSearch={true}
           />
 
           <SummaryCards data={summaryData} />

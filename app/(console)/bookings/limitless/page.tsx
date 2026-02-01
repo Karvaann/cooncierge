@@ -1,4 +1,5 @@
 "use client";
+import { getCurrencySymbol, getCurrencyLocale } from "@/utils/helper";
 
 import dynamic from "next/dynamic";
 import {
@@ -9,28 +10,25 @@ import {
   useRef,
   useLayoutEffect,
 } from "react";
-import { BookingApiService, DraftManager } from "@/services/bookingApi";
 import { CustomIdApi } from "@/services/customIdApi";
-import type { DraftBooking } from "@/services/bookingApi";
-import apiClient from "@/services/apiClient";
+import LimitlessApi, {
+  type GetAllLimitlessParams,
+  type LimitlessServiceStatus,
+} from "@/services/limitlessApi";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
 // import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
-import ModalSkeleton from "@/components/skeletons/ModalSkeleton";
 import SidesheetSkeleton from "@/components/skeletons/SidesheetSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import type { JSX } from "react";
-import { formatServiceType } from "@/utils/helper";
 import { FaRegTrashAlt } from "react-icons/fa";
 import { MdOutlineEdit } from "react-icons/md";
 import { TbArrowAutofitRight } from "react-icons/tb";
 import { FiCopy } from "react-icons/fi";
 import { CiFilter } from "react-icons/ci";
 import { TbArrowsUpDown } from "react-icons/tb";
-import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
-import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 import TaskButton from "@/components/TaskButton";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -54,14 +52,6 @@ const Table = dynamic(() => import("@/components/Table"), {
   ssr: false,
 });
 
-const BookingFormModal = dynamic(
-  () => import("@/components/BookingFormModal"),
-  {
-    loading: () => <ModalSkeleton />,
-    ssr: false,
-  },
-);
-
 const BookingFormSidesheet = dynamic(
   () => import("@/components/BookingFormSidesheet"),
   {
@@ -69,8 +59,6 @@ const BookingFormSidesheet = dynamic(
     ssr: false,
   },
 );
-
-type BookingStatus = "Confirmed" | "draft" | "Cancelled";
 
 type BookingService = {
   id: string;
@@ -100,38 +88,33 @@ type FilterPayload = {
   tripEndDate: string;
 };
 
-// API Data Types
-interface QuotationData {
-  customId: string;
+type OwnerRef = { _id?: string; name?: string; email?: string };
+
+type LimitlessBooking = {
   _id: string;
-  quotationType: string;
-  channel: string;
-  partyId: string;
-  customerId: {
-    _id: string;
-    name: string;
-    email: string;
-    phone: string;
-  };
-  formFields: {
-    customer?: string;
-    destination?: string;
-    departureDate?: string;
-    budget?: number;
-    traveller1?: string;
-    [key: string]: unknown;
-  };
-  // Optional fields present on some responses / normalized objects
+  customId?: string;
+  createdAt?: string;
+  updatedAt?: string;
   travelDate?: string;
-  serviceStatus?: string;
-  owner?: Array<{ name?: string }>;
-  primaryOwner?: { name?: string };
-  secondaryOwner?: Array<{ name?: string }>;
-  totalAmount: number;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
+  bookingDate?: string;
+  status?: "confirmed" | "cancelled";
+  serviceStatus?: LimitlessServiceStatus;
+  isDeleted?: boolean;
+  totalAmount?: number;
+  currency?: string;
+  customerId?: {
+    _id?: string;
+    name?: string;
+    email?: string;
+    phone?: string;
+    companyName?: string;
+  };
+  primaryOwner?: OwnerRef;
+  secondaryOwner?: OwnerRef[];
+  limitlessDestinations?: string[];
+  limitlessTitle?: string;
+  description?: string;
+};
 
 // interface SummaryData {
 //   total: {
@@ -179,13 +162,32 @@ const columnIconMap: Record<string, JSX.Element> = {
   ),
 };
 
-const getStatusBadgeClass = (status: string): string => {
+const formatServiceStatusLabel = (status?: LimitlessServiceStatus) => {
   switch (status) {
-    case "Confirmed":
+    case "approved":
+      return "Approved";
+    case "pending":
+      return "Pending";
+    case "draft":
+      return "Draft";
+    case "denied":
+      return "Denied";
+    default:
+      return "--";
+  }
+};
+
+const getServiceStatusBadgeClass = (
+  status?: LimitlessServiceStatus,
+): string => {
+  switch (status) {
+    case "approved":
       return "px-2 py-1 text-[0.70rem] border border-green-100 font-semibold rounded-full bg-[#F0FDF4] text-[#15803D]";
-    case "Draft":
+    case "pending":
       return "px-2 py-1 text-[0.70rem] border border-yellow-200 font-semibold rounded-full bg-yellow-100 text-yellow-700";
-    case "Deleted":
+    case "draft":
+      return "px-2 py-1 text-[0.70rem] border border-gray-200 font-semibold rounded-full bg-gray-100 text-gray-700";
+    case "denied":
     default:
       return "px-2 py-1 text-[0.75rem] border border-red-100 font-semibold rounded-full bg-[#FEE2E2] text-[#991B1B]";
   }
@@ -256,7 +258,6 @@ const LimitlessBookingsPage = () => {
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
-  const [searchValue, setSearchValue] = useState("");
   // Filters state
   const [filters, setFilters] = useState<FilterPayload>({
     serviceType: "",
@@ -270,8 +271,7 @@ const LimitlessBookingsPage = () => {
   });
 
   // Data State
-  const [quotations, setQuotations] = useState<QuotationData[]>([]);
-  const [drafts, setDrafts] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<LimitlessBooking[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
@@ -280,7 +280,7 @@ const LimitlessBookingsPage = () => {
     key: null,
     direction: "none",
   });
-  // Owners list built dynamically from quotations data
+  // Owners list built dynamically from bookings data
   const [ownersList, setOwnersList] = useState<Owner[]>([]);
 
   const computeInitials = (name: string) => {
@@ -299,12 +299,12 @@ const LimitlessBookingsPage = () => {
     "border-amber-700 text-amber-700",
   ];
 
-  // Build owners list from quotations data
+  // Build owners list from bookings data
   useEffect(() => {
-    if (quotations.length === 0) return;
+    if (bookings.length === 0) return;
 
     const uniqueOwnerNames = new Set<string>();
-    quotations.forEach((q: any) => {
+    bookings.forEach((q: any) => {
       const ownerArray = ([] as any[])
         .concat(q?.secondaryOwner || [], [q?.primaryOwner])
         .filter(Boolean);
@@ -320,7 +320,7 @@ const LimitlessBookingsPage = () => {
     }));
 
     setOwnersList(list);
-  }, [quotations]);
+  }, [bookings]);
 
   const handleSort = (column: string) => {
     // Only "Travel Date" is sortable on this table right now.
@@ -350,16 +350,12 @@ const LimitlessBookingsPage = () => {
   };
 
   const handleViewBooking = (item: any) => {
-    const quotationType = item.quotationType || "";
-    const category = mapQuotationTypeToCategory(quotationType);
-    const title = formatServiceType(quotationType);
-
     setSelectedQuotation(item);
     setSelectedService({
       id: item._id,
-      title,
+      title: "Limitless",
       image: "",
-      category,
+      category: "limitless" as any,
       description: "",
     });
 
@@ -376,18 +372,17 @@ const LimitlessBookingsPage = () => {
 
   // Apply all filters client-side (search, booking date, travel date, owner)
   const filteredQuotations = useMemo(() => {
-    return quotations.filter((q, idx) => {
+    return bookings.filter((q, idx) => {
       if (filters.search.trim()) {
         const s = filters.search.toLowerCase();
-        const formattedServiceType = formatServiceType(
-          q.quotationType || "",
-        ).toLowerCase();
+
+        const destination = (q.limitlessDestinations || []).join(", ");
+        const title = q.limitlessTitle || "";
         const matchesSearch =
           (q.customId || "").toLowerCase().includes(s) ||
-          formattedServiceType.includes(s) ||
-          (q.quotationType || "").toLowerCase().includes(s) ||
           (q.customerId?.name || "").toLowerCase().includes(s) ||
-          (q.formFields.traveller1 || "").toLowerCase().includes(s);
+          destination.toLowerCase().includes(s) ||
+          title.toLowerCase().includes(s);
         if (!matchesSearch) return false;
       }
 
@@ -407,7 +402,7 @@ const LimitlessBookingsPage = () => {
       if (filters.tripStartDate || filters.tripEndDate) {
         if (
           !isWithinRange(
-            q.formFields?.departureDate as string,
+            q.travelDate,
             filters.tripStartDate,
             filters.tripEndDate,
           )
@@ -436,48 +431,65 @@ const LimitlessBookingsPage = () => {
 
       return true;
     });
-  }, [quotations, filters, selectedOwners]);
+  }, [bookings, filters, selectedOwners]);
 
-  // Load quotations from backend
-  const loadQuotations = useCallback(async () => {
+  const getParamsForActiveTab = useCallback(
+    (
+      tab: string,
+    ): Pick<GetAllLimitlessParams, "serviceStatus" | "isDeleted"> => {
+      if (tab === "Deleted") return { isDeleted: true };
+
+      if (tab === "Approved")
+        return { serviceStatus: "approved", isDeleted: false };
+      if (tab === "Pending")
+        return { serviceStatus: "pending", isDeleted: false };
+      if (tab === "Drafts") return { serviceStatus: "draft", isDeleted: false };
+      if (tab === "Denied")
+        return { serviceStatus: "denied", isDeleted: false };
+
+      // Non-booking-maker default tab.
+      if (tab === "Bookings")
+        return { serviceStatus: "approved", isDeleted: false };
+
+      return { isDeleted: false };
+    },
+    [],
+  );
+
+  // Load limitless bookings from backend
+  const loadBookings = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const apiParams: {
-        bookingStartDate?: string;
-        bookingEndDate?: string;
-        travelStartDate?: string;
-        travelEndDate?: string;
-        owner?: string | string[];
-        activeTab: string;
-      } = { activeTab };
+
+      const tabParams = getParamsForActiveTab(activeTab);
+      const params: GetAllLimitlessParams = {
+        ...tabParams,
+      };
 
       if (filters.bookingStartDate)
-        apiParams.bookingStartDate = filters.bookingStartDate;
+        params.bookingStartDate = filters.bookingStartDate;
       if (filters.bookingEndDate)
-        apiParams.bookingEndDate = filters.bookingEndDate;
-      if (filters.tripStartDate)
-        apiParams.travelStartDate = filters.tripStartDate;
-      if (filters.tripEndDate) apiParams.travelEndDate = filters.tripEndDate;
-      console.log("Active tab:", activeTab);
-      // Note: Owner filtering is done client-side since API returns owner objects with names
+        params.bookingEndDate = filters.bookingEndDate;
+      if (filters.tripStartDate) params.travelStartDate = filters.tripStartDate;
+      if (filters.tripEndDate) params.travelEndDate = filters.tripEndDate;
 
-      const response = await BookingApiService.getAllQuotations(
-        Object.keys(apiParams).length ? apiParams : undefined,
+      // Note: Owner filtering is done client-side since API expects owner IDs.
+
+      const response: any = await LimitlessApi.getAll(
+        Object.keys(params).length ? params : undefined,
       );
 
-      if (response.success && response.data) {
-        const raw: any = response.data;
-        const allQuotations =
-          (raw?.quotations as any[]) || (raw as any[]) || [];
-
-        setQuotations(allQuotations);
-        // calculateSummaryData(response.data?.quotations);
-      } else {
-        throw new Error(response.message || "Failed to load quotations");
+      if (!response?.success) {
+        throw new Error(
+          response?.message || "Failed to load limitless bookings",
+        );
       }
+
+      const items = (response?.limitless as LimitlessBooking[]) || [];
+      setBookings(items);
     } catch (err) {
-      console.error("Error loading quotations:", err);
+      console.error("Error loading limitless bookings:", err);
       setError(err instanceof Error ? err.message : "Failed to load bookings");
     } finally {
       setIsLoading(false);
@@ -488,13 +500,14 @@ const LimitlessBookingsPage = () => {
     filters.tripStartDate,
     filters.tripEndDate,
     activeTab,
+    getParamsForActiveTab,
   ]);
 
-  // Load quotations on component mount and filter changes
+  // Load bookings on component mount and filter changes
   useEffect(() => {
-    loadQuotations();
+    loadBookings();
   }, [
-    loadQuotations,
+    loadBookings,
     filters.bookingStartDate,
     filters.bookingEndDate,
     filters.tripStartDate,
@@ -502,13 +515,6 @@ const LimitlessBookingsPage = () => {
     filters.owner,
     activeTab,
   ]);
-
-  const handleServiceSelect = (service: BookingService) => {
-    setSelectedQuotation(null);
-    setSelectedService(service);
-    setSideSheetMode("edit");
-    setIsSideSheetOpen(true);
-  };
 
   // When user requests create from Filter, generate custom id first then open sidesheet directly
   const handleCreateRequested = async () => {
@@ -557,144 +563,10 @@ const LimitlessBookingsPage = () => {
 
   // Handle booking completion (refresh data)
   const handleBookingComplete = useCallback(async () => {
-    await loadQuotations();
+    await loadBookings();
     setIsSideSheetOpen(false);
     setSelectedQuotation(null);
-  }, [loadQuotations, activeTab]);
-
-  const getServiceIcon = (
-    quotationType: string,
-  ): React.ReactElement | string => {
-    if (!quotationType) return "Visa";
-
-    const normalized = quotationType.toLowerCase().trim();
-
-    // Use the same logic as formatServiceType for consistency
-    const typeMap: Record<string, string> = {
-      flight: "flight",
-      flights: "flight",
-      travel: "flight",
-
-      hotel: "accommodation",
-      accommodation: "accommodation",
-
-      maritime: "maritime",
-      "transport-maritime": "maritime",
-      "maritime transportation": "maritime",
-      "maritime-transportation": "maritime",
-      maritime_transportation: "maritime",
-      car: "land",
-      "land transportation": "land",
-      "land-transportation": "land",
-      land_transportation: "land",
-      transportation: "land",
-      land: "land",
-      "transport-land": "land",
-
-      package: "package",
-
-      "travel insurance": "insurance",
-
-      activity: "activity",
-      activities: "activity",
-
-      insurance: "insurance",
-
-      visa: "visa",
-      visas: "visa",
-
-      ticket: "ticket",
-      tickets: "ticket",
-    };
-
-    const key = typeMap[normalized] || normalized;
-
-    const iconMap: Record<string, JSX.Element | string> = {
-      flight: (
-        <Image
-          src="/icons/service-icons/flight.svg"
-          alt="Flight"
-          width={16}
-          height={16}
-          className="object-contain"
-        />
-      ),
-      accommodation: (
-        <Image
-          src="/icons/service-icons/accommodation.svg"
-          alt="Accommodation"
-          width={14}
-          height={14}
-          className="object-contain"
-        />
-      ),
-      activity: (
-        <Image
-          src="/icons/service-icons/activity.svg"
-          alt="Activity"
-          width={9}
-          height={9}
-          className="object-contain"
-        />
-      ),
-      insurance: (
-        <Image
-          src="/icons/service-icons/insurance.svg"
-          alt="Insurance"
-          width={14}
-          height={14}
-          className="object-contain"
-        />
-      ),
-      ticket: (
-        <Image
-          src="/icons/service-icons/ticket.svg"
-          alt="Tickets"
-          width={14}
-          height={14}
-          className="object-contain"
-        />
-      ),
-      tickets: (
-        <Image
-          src="/icons/service-icons/ticket.svg"
-          alt="Tickets"
-          width={14}
-          height={14}
-          className="object-contain"
-        />
-      ),
-      land: (
-        <Image
-          src="/icons/service-icons/land-icon.svg"
-          alt="Land Transport"
-          width={11}
-          height={11}
-          className="object-contain"
-        />
-      ),
-      visa: (
-        <Image
-          src="/icons/service-icons/visa-icon-final.svg"
-          alt="visa"
-          width={12}
-          height={12}
-          className="object-contain"
-        />
-      ),
-      package: "Package", // optional: add a package icon later
-    };
-
-    return iconMap[key] || "📋"; // fallback
-  };
-
-  const mapStatus = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      confirmed: "Confirmed",
-      cancelled: "Cancelled",
-    };
-    return statusMap[status?.toLowerCase()] || "Confirmed";
-  };
+  }, [loadBookings, activeTab]);
 
   const handleDeleteClick = (quotationId: string) => {
     setSelectedDeleteId(quotationId);
@@ -705,12 +577,12 @@ const LimitlessBookingsPage = () => {
     if (!selectedDeleteId) return;
 
     try {
-      const response =
-        await BookingApiService.deleteQuotation(selectedDeleteId);
+      const response: any =
+        await LimitlessApi.deleteLimitless(selectedDeleteId);
 
       if (response.success) {
         // Remove from UI
-        setQuotations((prev) => prev.filter((q) => q._id !== selectedDeleteId));
+        setBookings((prev) => prev.filter((q) => q._id !== selectedDeleteId));
       }
     } catch (err) {
       console.error("Delete failed:", err);
@@ -720,42 +592,11 @@ const LimitlessBookingsPage = () => {
     setSelectedDeleteId(null);
   };
 
-  // Map various quotationType values to the service category used by sidesheet
-  const mapQuotationTypeToCategory = (qt?: string) => {
-    const v = (qt || "").toLowerCase().trim();
-    const map: Record<string, string> = {
-      flight: "travel",
-      flights: "travel",
-      travel: "travel",
-      hotel: "accommodation",
-      accommodation: "accommodation",
-      car: "transport-land",
-      "transport-land": "transport-land",
-      "land-transport": "transport-land",
-      land: "transport-land",
-      transportation: "transport-land",
-      maritime: "transport-maritime",
-      "transport-maritime": "transport-maritime",
-      ticket: "tickets",
-      tickets: "tickets",
-      activity: "activity",
-      activities: "activity",
-      insurance: "travel insurance",
-      "travel insurance": "travel insurance",
-      visa: "visas",
-      visas: "visas",
-      others: "others",
-      package: "others",
-    };
-
-    return (map[v] as any) || "others";
-  };
-
   // fetch new booking custom id, clone quotation and open sidesheet
   const handleDuplicate = async (item: any) => {
     try {
       // fetch custom id for booking
-      const resp = await CustomIdApi.generate("booking");
+      const resp = await CustomIdApi.generate("limitless");
       const newId = resp?.customId || resp?.customid || null;
       if (!newId) {
         console.error("Failed to generate booking custom id", resp);
@@ -769,18 +610,13 @@ const LimitlessBookingsPage = () => {
       // ensure customId is blank
       clone.customId = null;
 
-      // determine and set service object expected by sidesheet
-      const quotationType = clone.quotationType || clone.serviceType || "";
-      const category = mapQuotationTypeToCategory(quotationType);
-      const title = formatServiceType(quotationType || "others");
-
       setGeneratedBookingCode(newId);
       setSelectedQuotation(clone);
       setSelectedService({
         id: newId,
-        title,
+        title: "Limitless",
         image: "",
-        category,
+        category: "limitless" as any,
         description: "",
       });
 
@@ -797,7 +633,7 @@ const LimitlessBookingsPage = () => {
       row?._id ||
       row?.id ||
       (row.isReal
-        ? quotations?.[row.originalIndex]?._id
+        ? bookings?.[row.originalIndex]?._id
         : finalQuotations?.[row.originalIndex]?.id);
 
     const baseActions = [
@@ -806,9 +642,28 @@ const LimitlessBookingsPage = () => {
         icon: <MdOutlineEdit />,
         color: "text-blue-600",
         onClick: () => {
+          // Resolve the actual booking object and ensure selectedService is set
+          const resolvedId =
+            row?._id ||
+            row?.id ||
+            (row.isReal ? bookings?.[row.originalIndex]?._id : null) ||
+            (row.originalIndex != null
+              ? bookings?.[row.originalIndex]?._id
+              : null);
+
+          const bookingObj =
+            bookings.find((b) => b._id === resolvedId) || row || null;
+
+          setSelectedQuotation(bookingObj);
+          setSelectedService({
+            id: bookingObj?._id || resolvedId || "limitless",
+            title: "Limitless",
+            image: "",
+            category: "limitless" as any,
+            description: "",
+          });
           setIsSideSheetOpen(true);
           setSideSheetMode("edit");
-          setSelectedQuotation(row);
         },
       },
       {
@@ -890,89 +745,20 @@ const LimitlessBookingsPage = () => {
     return `${day}-${month}-${year}`;
   };
 
-  const normalizeDraft = (draft: any) => {
-    // Backend drafts are quotations with serviceStatus = 'draft'
-    // They have the same structure as regular quotations
-    return {
-      _id: draft._id,
-      customId: draft.customId || null,
-      quotationType: draft.quotationType || "others",
-      formFields: draft.formFields || {},
-      totalAmount: draft.totalAmount || 0,
-      status: "draft",
-      serviceStatus: draft.serviceStatus,
-      createdAt: draft.createdAt || null,
-      travelDate: draft.travelDate || null,
-      isDraft: true,
-      customerId: draft.customerId,
-      vendorId: draft.vendorId,
-      owner: draft.owner || [],
-      travelers: draft.travelers || [],
-      adultTravlers: draft.adultTravlers || 0,
-      childTravlers: draft.childTravlers || 0,
-      remarks: draft.remarks || "",
-    };
-  };
-
-  // Filter quotations based on active tab and status
-  const finalQuotations = useMemo(() => {
-    // Drafts tab shows drafts from backend with search filtering
-    if (activeTab === "Drafts") {
-      const normalizedDrafts = drafts.map(normalizeDraft);
-
-      // Apply search filter to drafts
-      if (filters.search.trim()) {
-        const s = filters.search.toLowerCase();
-        return normalizedDrafts.filter((draft: any, index: number) => {
-          const formattedServiceType = formatServiceType(
-            draft.quotationType || "",
-          ).toLowerCase();
-          const draftId = draft.customId || `Draft-${index + 1}`;
-          const customerName =
-            draft.customerId?.name || draft.formFields?.customer || "";
-
-          return (
-            draftId.toLowerCase().includes(s) ||
-            formattedServiceType.includes(s) ||
-            (draft.quotationType || "").toLowerCase().includes(s) ||
-            customerName.toLowerCase().includes(s)
-          );
-        });
-      }
-
-      return normalizedDrafts;
-    }
-
-    // Filter quotations by status based on active tab
-    return filteredQuotations.filter((q) => {
-      const status = q.serviceStatus?.toLowerCase();
-
-      switch (activeTab) {
-        case "Bookings":
-          // Show confirmed bookings
-          return status === "approved";
-        case "Pending":
-          // Show pending or draft status bookings
-          return status === "pending" || status === "draft";
-        case "Deleted":
-          // Show deleted bookings (if you have a deleted flag or status)
-          return status === "deleted";
-        default:
-          return true;
-      }
-    });
-  }, [activeTab, filteredQuotations]) as any[];
+  // Active tab filtering is done server-side (via loadBookings params).
+  // Client-side filtering (search/date/owner) is applied in filteredQuotations.
+  const finalQuotations = filteredQuotations as any[];
 
   // Use shared timestamp extractor from utils/sorting.ts
   // (keeps logic consistent across pages)
 
   const sortedQuotationsForTable = useMemo(() => {
     if (sortState.key !== "Travel Date" || sortState.direction === "none") {
-      return filteredQuotations;
+      return finalQuotations;
     }
 
     // Stable sort: keep original order for ties.
-    const withIndex = filteredQuotations.map((item, originalIndex) => ({
+    const withIndex = finalQuotations.map((item, originalIndex) => ({
       item,
       originalIndex,
     }));
@@ -992,7 +778,7 @@ const LimitlessBookingsPage = () => {
     });
 
     return withIndex.map((x) => x.item);
-  }, [filteredQuotations, sortState.direction, sortState.key]);
+  }, [finalQuotations, sortState.direction, sortState.key]);
 
   // Convert quotations to table data
   const tableData = useMemo<JSX.Element[][]>(() => {
@@ -1014,7 +800,7 @@ const LimitlessBookingsPage = () => {
         onClick={() => handleViewBooking(item)}
         className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
       >
-        {item.customerId?.name || item.formFields?.customer || "--"}
+        {item.customerId?.name || "--"}
       </td>,
       <td
         key={`date-${index}`}
@@ -1023,24 +809,29 @@ const LimitlessBookingsPage = () => {
       >
         {item.travelDate
           ? formatDMY(item.travelDate)
-          : item.formFields?.departureDate
-            ? formatDMY(item.formFields.departureDate)
-            : item.createdAt
-              ? formatDMY(item.createdAt)
-              : "--"}
+          : item.createdAt
+            ? formatDMY(item.createdAt)
+            : "--"}
       </td>,
       <td
         key={`destination-${index}`}
         onClick={() => handleViewBooking(item)}
         className="px-4 py-3 text-center text-[14px] text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
       >
-        <div className="flex items-center justify-center gap-2">
-          <div className="w-4 h-4 flex items-center justify-center">
-            {getServiceIcon(item.quotationType || "draft")}
+        <div className="text-center leading-tight">
+          <div>
+            {(Array.isArray(item.limitlessDestinations) &&
+            item.limitlessDestinations.length
+              ? item.limitlessDestinations.join(", ")
+              : item.limitlessTitle) || "--"}
           </div>
-          <span className="text-center leading-tight">
-            {formatServiceType(item.quotationType || "draft")}
-          </span>
+          {item.limitlessTitle ? (
+            <div className="mt-1 flex justify-center">
+              <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">
+                {item.limitlessTitle}
+              </span>
+            </div>
+          ) : null}
         </div>
       </td>,
       <td
@@ -1048,8 +839,8 @@ const LimitlessBookingsPage = () => {
         onClick={() => handleViewBooking(item)}
         className="px-4 py-3 text-center align-middle text-[14px] h-[3rem] cursor-pointer"
       >
-        <span className={getStatusBadgeClass(mapStatus(item.status))}>
-          {mapStatus(item.status)}
+        <span className={getServiceStatusBadgeClass(item.serviceStatus)}>
+          {formatServiceStatusLabel(item.serviceStatus)}
         </span>
       </td>,
       <td
@@ -1057,11 +848,16 @@ const LimitlessBookingsPage = () => {
         onClick={() => handleViewBooking(item)}
         className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
       >
-        {item.totalAmount
-          ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
-          : item.formFields?.budget
-            ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
-            : "--"}
+        {item.totalAmount ? (
+          <span>
+            {getCurrencySymbol(item?.currency)}{" "}
+            {new Intl.NumberFormat(getCurrencyLocale(item?.currency)).format(
+              item.totalAmount,
+            )}
+          </span>
+        ) : (
+          "--"
+        )}
       </td>,
       <td
         key={`owners-${index}`}
@@ -1069,41 +865,51 @@ const LimitlessBookingsPage = () => {
         className="px-4 py-3 text-center align-middle h-[3rem] cursor-pointer"
       >
         <div className="flex items-center justify-center">
-          <div className="flex items-center">
-            {(Array.isArray([
-              ...(item as any).secondaryOwner,
-              (item as any).primaryOwner,
-            ])
-              ? [
-                  ...(item as any).secondaryOwner,
-                  (item as any).primaryOwner,
-                ].map((o: any) => o?.name || "--")
-              : []
-            ).map((ownerName: string, i: number) => {
-              // Try to find owner in ownersList (fetched from API)
-              let ownerMeta = ownersList.find((o) => o.full === ownerName);
-
-              // If not found (e.g., for drafts), create a temporary owner object
-              if (!ownerMeta && ownerName && ownerName !== "--") {
-                ownerMeta = {
-                  short: computeInitials(ownerName),
-                  full: ownerName,
-                  color: (colorPalette[i % colorPalette.length] ||
-                    colorPalette[0]) as string,
-                };
-              }
-
-              if (!ownerMeta) return null;
+          {/* PRIMARY OWNER */}
+          {item.primaryOwner?.name &&
+            (() => {
+              const name = item.primaryOwner?.name || "";
+              const ownerMeta = ownersList.find((o) => o.full === name) || {
+                short: computeInitials(name),
+                full: name,
+                color: colorPalette[0] ?? "",
+              };
 
               return (
-                <AvatarTooltip
-                  key={i}
-                  short={ownerMeta.short}
-                  full={ownerMeta.full}
-                  color={ownerMeta.color}
-                />
+                <div className="mr-2">
+                  <AvatarTooltip
+                    short={ownerMeta.short}
+                    full={ownerMeta.full}
+                    color={ownerMeta.color}
+                  />
+                </div>
               );
-            })}
+            })()}
+
+          {/* SECONDARY OWNERS */}
+          <div className="flex items-center">
+            {Array.isArray(item.secondaryOwner) &&
+              item.secondaryOwner.map((o: any, i: number) => {
+                if (!o?.name) return null;
+
+                const ownerMeta = ownersList.find((x) => x.full === o.name) || {
+                  short: computeInitials(o.name),
+                  full: o.name,
+                  color:
+                    colorPalette[(i + 1) % colorPalette.length] ??
+                    colorPalette[0] ??
+                    "",
+                };
+
+                return (
+                  <AvatarTooltip
+                    key={i}
+                    short={ownerMeta.short}
+                    full={ownerMeta.full}
+                    color={ownerMeta.color}
+                  />
+                );
+              })}
           </div>
         </div>
       </td>,
@@ -1139,16 +945,12 @@ const LimitlessBookingsPage = () => {
 
   const filterOptions = useMemo(
     () => ({
-      serviceTypes: [
-        { value: "flight", label: "✈️ Flight" },
-        { value: "hotel", label: "🏨 Hotel" },
-        { value: "car", label: "🚗 Car Rental" },
-        { value: "package", label: "🎫 Package" },
-      ],
+      serviceTypes: [{ value: "limitless", label: "♾️ Limitless" }],
       statuses: [
-        { value: "successful", label: "Successful" },
+        { value: "approved", label: "Approved" },
         { value: "pending", label: "Pending" },
-        { value: "failed", label: "Failed" },
+        { value: "draft", label: "Draft" },
+        { value: "denied", label: "Denied" },
       ],
       owners: ownersList.map((o) => ({ value: o.full, label: o.full })),
     }),
@@ -1157,7 +959,6 @@ const LimitlessBookingsPage = () => {
 
   const handleFilterChange = (next: FilterPayload) => {
     setFilters(next);
-    setSearchValue(next.search);
   };
 
   return (
@@ -1185,22 +986,24 @@ const LimitlessBookingsPage = () => {
         {/* </div> */}
 
         <div className="min-h-screen">
-          {/* {!error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <strong>Error:</strong> {error}
-            <button
-              onClick={loadQuotations}
-              className="ml-4 text-sm underline hover:no-underline"
-              type="button"
-            >
-              Retry
-            </button>
-          </div>
-        )} */}
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+              <strong>Error:</strong> {error}
+              <button
+                onClick={loadBookings}
+                className="ml-4 text-sm underline hover:no-underline"
+                type="button"
+              >
+                Retry
+              </button>
+            </div>
+          )}
 
           <Filter
             onFilterChange={handleFilterChange}
-            onSearchChange={(value) => setSearchValue(value)}
+            onSearchChange={(value) =>
+              setFilters((prev) => ({ ...prev, search: value }))
+            }
             serviceTypes={filterOptions.serviceTypes}
             statuses={filterOptions.statuses}
             owners={filterOptions.owners}

@@ -62,6 +62,7 @@ interface FilterProps {
   showTravelDateFilter?: boolean;
   travelDateLabel?: string;
   showCategory?: boolean;
+  allowAdvanceOwnerSearch?: boolean;
 }
 
 const Filter: React.FC<FilterProps> = ({
@@ -87,6 +88,7 @@ const Filter: React.FC<FilterProps> = ({
   showTravelDateFilter = true,
   travelDateLabel = "Travel Date",
   showCategory = false,
+  allowAdvanceOwnerSearch = false,
 }) => {
   const initialSearch = initialFilters.search || "";
   const initialEffectiveSearch = initialSearch.length >= 3 ? initialSearch : "";
@@ -519,7 +521,7 @@ const Filter: React.FC<FilterProps> = ({
                     updateFilter("secondaryOwners", secondary);
                     updateFilter("owner", ""); // Clear regular owner when using advanced
                   }}
-                  showAdvanceSearch={true}
+                  showAdvanceSearch={allowAdvanceOwnerSearch}
                 />
               </div>
             </div>

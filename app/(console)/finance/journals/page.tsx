@@ -375,6 +375,7 @@ const FinanceJournalsPage = () => {
           showBookingDateFilter
           bookingDateLabel="Date Range"
           showCategory
+          allowAdvanceOwnerSearch={true}
           categories={[
             { value: "Bank Charges", label: "Bank Charges" },
             { value: "Commission Payout", label: "Commission Payout" },

@@ -12,6 +12,7 @@ import ConfirmPopupModal from "./popups/BookingPopups/ConfirmPopupModal";
 import SuccessPopupModal from "./popups/BookingPopups/SuccessPopupModal";
 import ErrorToast from "./ErrorToast";
 import { BookingProvider, useBooking } from "@/context/BookingContext";
+import { useLimitlessDraft } from "@/context/LimitlessDraftContext";
 import { BookingApiService } from "@/services/bookingApi";
 import apiClient from "@/services/apiClient";
 import SideSheet from "@/components/SideSheet";
@@ -280,6 +281,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   hideVendor = false,
 }) => {
   const router = useRouter();
+  const { setDraft: setLimitlessDraft } = useLimitlessDraft();
 
   // Bump this whenever the sidesheet is (re)opened so child forms remount
   const [formInstanceId, setFormInstanceId] = useState(0);
@@ -345,6 +347,17 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   }, [initialData?.quotationType, selectedService]);
 
   const handleProceedToBookingSummary = useCallback(() => {
+    // Persist current Limitless form + docs so the view page can submit it.
+    try {
+      setLimitlessDraft({
+        bookingCode: bookingCode || formData?.customId || "",
+        formData: formData || {},
+        documents: bookingDocuments,
+      });
+    } catch (_) {
+      /* ignore */
+    }
+
     // Close sidesheet (best-effort) and open booking summary page.
     try {
       onClose();
@@ -352,7 +365,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       /* ignore */
     }
     router.push("/bookings/limitless/view-booking");
-  }, [onClose, router]);
+  }, [
+    bookingCode,
+    bookingDocuments,
+    formData,
+    onClose,
+    router,
+    setLimitlessDraft,
+  ]);
 
   // In "view" modestart read-only, but allow the user to toggle into edit.
   const [readOnlyOverride, setReadOnlyOverride] = useState<boolean | null>(
@@ -1243,9 +1263,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                       ) : (
                         <Button
                           text={
-                            isLimitlessBooking
-                              ? "Proceed to booking summary"
-                              : "Save"
+                            isLimitlessBooking ? "Proceed to Summary" : "Save"
                           }
                           onClick={() =>
                             isLimitlessBooking

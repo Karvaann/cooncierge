@@ -47,7 +47,7 @@ export const menuItems: MenuItem[] = [
     label: "Bookings",
     icon: TbLuggage,
     subMenu: [
-      // { label: "Limitless", href: "/bookings/limitless" },
+      { label: "Limitless", href: "/bookings/limitless" },
       { label: "Other Services", href: "/bookings/other-services" },
     ],
   },
