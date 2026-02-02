@@ -10,9 +10,24 @@ import VendorDropDown, {
 } from "@/components/dropdowns/VendorDropDown";
 import MultiCurrencyInput from "@/components/multiCurrencyUI";
 import AdvancedPricingModal from "@/components/viewBookingLayouts/components/AdvancedPricingModal";
+import AllTravellersModal from "@/components/viewBookingLayouts/components/AllTravellersModal";
+import RoomSegmentCard, {
+  type RoomSegment,
+} from "@/components/viewBookingLayouts/AccommodationLayouts/RoomSegmentCard";
 import { useAuth } from "@/context/AuthContext";
 import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
 import { allowTextAndNumbers } from "@/utils/inputValidators";
+
+const genId = () => Date.now().toString() + Math.random().toString(36).slice(2);
+
+const defaultRoom = (): RoomSegment => ({
+  id: genId(),
+  roomName: "",
+  adults: 2,
+  children: 0,
+  bedType: "",
+  meals: "",
+});
 
 export interface AccommodationSegment {
   id?: string | null;
@@ -31,6 +46,9 @@ export interface AccommodationSegment {
   confirmationNumber: string;
   pax: number | string;
   mealPlan: string;
+  selectedTravellers?: string[];
+
+  rooms?: RoomSegment[];
 
   costprice: number | string;
   costCurrency?: "INR" | "USD";
@@ -242,6 +260,8 @@ function AccommodationSegmentCardItem({
   const checkboxBaseId = React.useId();
   const nights = clampNights(segment.checkindate, segment.checkoutdate);
 
+  const [showTravellersModal, setShowTravellersModal] = useState(false);
+
   const [openAdvancedModal, setOpenAdvancedModal] = useState(false);
   const [advancedValue, setAdvancedValue] = useState<any>(() => ({
     vendorBaseCurrency: segment.costCurrency ?? "INR",
@@ -269,19 +289,41 @@ function AccommodationSegmentCardItem({
             Hotel {index + 1}
           </div>
 
-          <CustomCheckbox
-            id={`${checkboxBaseId}-all-travellers`}
-            checked={Boolean(segment.allTravellersCheckingIn)}
-            onCheckedChange={(checked) =>
-              onSegmentChange({ allTravellersCheckingIn: checked })
-            }
-            label={
-              <span className="whitespace-nowrap">
-                All Travellers are Checking into this Hotel
-              </span>
-            }
-            stopPropagation
-          />
+          <>
+            <CustomCheckbox
+              id={`${checkboxBaseId}-all-travellers`}
+              checked={Boolean(segment.allTravellersCheckingIn)}
+              onCheckedChange={(checked) => {
+                if (checked) {
+                  setShowTravellersModal(true);
+                } else {
+                  onSegmentChange({
+                    allTravellersCheckingIn: false,
+                    selectedTravellers: [],
+                  });
+                }
+              }}
+              label={
+                <span className="whitespace-nowrap">
+                  All Travellers are Checking into this Hotel
+                </span>
+              }
+              stopPropagation
+            />
+
+            <AllTravellersModal
+              isOpen={showTravellersModal}
+              onClose={() => setShowTravellersModal(false)}
+              value={segment.selectedTravellers ?? []}
+              onSave={(selected) => {
+                onSegmentChange({
+                  allTravellersCheckingIn: selected.length > 0,
+                  selectedTravellers: selected,
+                });
+                setShowTravellersModal(false);
+              }}
+            />
+          </>
         </div>
 
         <div className="flex items-center gap-2 flex-none">
@@ -687,6 +729,13 @@ function AccommodationSegmentCardItem({
                 />
               </div>
             </div>
+
+            <div className="mt-6">
+              <RoomSegmentCard
+                rooms={segment.rooms ?? []}
+                onRoomsChange={(rooms) => onSegmentChange({ rooms })}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -717,23 +766,34 @@ export default function AccommodationSegmentCard({
   const segments = Array.isArray(formData.segments) ? formData.segments : [];
 
   useEffect(() => {
-    const missingIds = segments.some((s) => !s?.id);
-    if (!missingIds) return;
+    const missingAnything = segments.some((s) => {
+      if (!s?.id) return true;
+      if (!Array.isArray(s?.rooms) || s.rooms.length === 0) return true;
+      return s.rooms.some((r) => !r?.id);
+    });
+    if (!missingAnything) return;
     setFormData((prev) => ({
       ...prev,
       segments: (prev.segments || []).map((s) =>
-        s.id
+        s.id &&
+        Array.isArray(s.rooms) &&
+        s.rooms.length > 0 &&
+        s.rooms.every((r) => r?.id)
           ? s
           : {
               ...s,
-              id: Date.now().toString() + Math.random().toString(36).slice(2),
+              id: s.id ?? genId(),
+              rooms: (Array.isArray(s.rooms) && s.rooms.length > 0
+                ? s.rooms
+                : [defaultRoom()]
+              ).map((r) => (r?.id ? r : { ...r, id: genId() })),
             },
       ),
     }));
   }, [segments, setFormData]);
 
   const addSegment = () => {
-    const newId = Date.now().toString() + Math.random().toString(36).slice(2);
+    const newId = genId();
     const next: AccommodationSegment = {
       id: newId,
       hotelName: "",
@@ -747,6 +807,7 @@ export default function AccommodationSegmentCard({
       confirmationNumber: "",
       pax: "",
       mealPlan: "",
+      rooms: [defaultRoom()],
       costprice: "",
       costCurrency: "INR",
       costRoe: "",

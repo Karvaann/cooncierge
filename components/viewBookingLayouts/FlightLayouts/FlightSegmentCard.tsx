@@ -10,6 +10,7 @@ import VendorDropDown, {
 } from "@/components/dropdowns/VendorDropDown";
 import MultiCurrencyInput from "@/components/multiCurrencyUI";
 import AdvancedPricingModal from "@/components/viewBookingLayouts/components/AdvancedPricingModal";
+import AllTravellersModal from "@/components/viewBookingLayouts/components/AllTravellersModal";
 import { requiresRoe } from "@/utils/currencyUtil";
 
 export interface SegmentPreview {
@@ -38,6 +39,7 @@ export interface FlightSegment {
   vendor?: VendorDataType | null;
 
   allTravellersTakingThisFlight?: boolean;
+  selectedTravellers?: string[];
   cabinPcs?: number;
   cabinWeightKg?: string;
   checkInPcs?: number;
@@ -139,6 +141,7 @@ export default function FlightSegmentCard({
   onShowAdvancedPricingToggle,
 }: FlightSegmentCardProps) {
   const checkboxBaseId = React.useId();
+  const [showTravellersModal, setShowTravellersModal] = React.useState(false);
   const [openAdvancedModal, setOpenAdvancedModal] = React.useState(false);
   const [advancedValue, setAdvancedValue] = React.useState<any>(() => ({
     vendorBaseCurrency: costCurrency,
@@ -290,19 +293,39 @@ export default function FlightSegmentCard({
         </div>
 
         <div className="flex items-center justify-end gap-2">
-          <CustomCheckbox
-            id={`${checkboxBaseId}-all-travellers`}
-            checked={Boolean(segment.allTravellersTakingThisFlight)}
-            onCheckedChange={(checked) =>
-              onSegmentChange({ allTravellersTakingThisFlight: checked })
-            }
-            label={
-              <span className="whitespace-nowrap">
-                All Travellers are taking this Flight
-              </span>
-            }
-            stopPropagation
-          />
+          <>
+            <CustomCheckbox
+              id={`${checkboxBaseId}-all-travellers`}
+              checked={Boolean(segment.allTravellersTakingThisFlight)}
+              onCheckedChange={(checked) => {
+                if (checked) setShowTravellersModal(true);
+                else
+                  onSegmentChange({
+                    allTravellersTakingThisFlight: false,
+                    selectedTravellers: [],
+                  });
+              }}
+              label={
+                <span className="whitespace-nowrap">
+                  All Travellers are taking this Flight
+                </span>
+              }
+              stopPropagation
+            />
+
+            <AllTravellersModal
+              isOpen={showTravellersModal}
+              onClose={() => setShowTravellersModal(false)}
+              value={segment.selectedTravellers ?? []}
+              onSave={(selected) => {
+                onSegmentChange({
+                  allTravellersTakingThisFlight: selected.length > 0,
+                  selectedTravellers: selected,
+                });
+                setShowTravellersModal(false);
+              }}
+            />
+          </>
 
           {canRemove && onRemove && (
             <button
