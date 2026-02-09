@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { validateOtherServiceInfoForm } from "@/services/bookingApi";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineFileUpload } from "react-icons/md";
-import { FiTrash2, FiSearch } from "react-icons/fi";
+import { FiTrash2 } from "react-icons/fi";
 import { IoClose } from "react-icons/io5";
 import { useRef } from "react";
 import StyledDescription from "../StyledDescription";
@@ -653,7 +653,7 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
           />
         </div>
 
-        {/* ================= Limitless INFO ================ */}
+        {/* Limitless INFO */}
         <div className="w-[48vw] border border-gray-200 rounded-[12px] p-3 mt-4">
           <h1 className="text-[0.85rem] font-medium text-gray-800 mb-2">
             Limitless Info
@@ -663,14 +663,14 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
 
           {/* Confirmation number + Title (stacked) */}
           <div className="flex flex-col gap-3 w-full mb-4">
-            {/* Destinations multi-select (replaces confirmation number) */}
+            {/* Destinations multi-select */}
             <div className="flex flex-col w-full">
               <label className="text-[13px] font-medium text-gray-700 mb-1">
                 Destinations
               </label>
               <div className="relative" ref={destDropdownRef}>
                 <div
-                  className="w-[30%] min-h-[44px] border border-gray-300 rounded-md px-3 py-2 flex items-center flex-wrap gap-2 cursor-pointer"
+                  className="w-[320px] min-h-[44px] border border-gray-300 rounded-md px-3 py-2 flex items-center flex-wrap gap-2 cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsDestDropdownOpen((v) => {
@@ -681,10 +681,6 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
                     });
                   }}
                 >
-                  <span className="text-gray-400">
-                    <FiSearch />
-                  </span>
-
                   {selectedDestinations.length > 0 ? (
                     selectedDestinations.map((p) => (
                       <span
@@ -707,11 +703,13 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
                     ))
                   ) : (
                     <span className="text-[#9CA3AF] text-[13px]">
-                      Select destinations
+                      Select Destination(s)
                     </span>
                   )}
 
-                  <span className="ml-auto text-gray-400 text-[12px]">▾</span>
+                  <span className="ml-auto flex items-center">
+                    <MdKeyboardArrowDown size={20} className="text-gray-400" />
+                  </span>
                 </div>
 
                 {isDestDropdownOpen &&

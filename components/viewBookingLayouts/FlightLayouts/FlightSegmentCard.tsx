@@ -1,8 +1,12 @@
 "use client";
 
 import React from "react";
-import { FiMinusCircle } from "react-icons/fi";
-import { MdKeyboardArrowDown, MdKeyboardArrowUp } from "react-icons/md";
+import { FiEdit2, FiMinusCircle } from "react-icons/fi";
+import {
+  MdFlightTakeoff,
+  MdKeyboardArrowDown,
+  MdKeyboardArrowUp,
+} from "react-icons/md";
 import SingleCalendar from "@/components/SingleCalendar";
 import DropDown from "@/components/DropDown";
 import VendorDropDown, {
@@ -11,7 +15,9 @@ import VendorDropDown, {
 import MultiCurrencyInput from "@/components/multiCurrencyUI";
 import AdvancedPricingModal from "@/components/viewBookingLayouts/components/AdvancedPricingModal";
 import AllTravellersModal from "@/components/viewBookingLayouts/components/AllTravellersModal";
+import FlightPreviewModal from "@/components/viewBookingLayouts/components/FlightPreviewModal";
 import { requiresRoe } from "@/utils/currencyUtil";
+import CustomCheckbox from "@/components/CustomCheckbox";
 
 export interface SegmentPreview {
   airline?: string;
@@ -143,6 +149,7 @@ export default function FlightSegmentCard({
   const checkboxBaseId = React.useId();
   const [showTravellersModal, setShowTravellersModal] = React.useState(false);
   const [openAdvancedModal, setOpenAdvancedModal] = React.useState(false);
+  const [openPreviewModal, setOpenPreviewModal] = React.useState(false);
   const [advancedValue, setAdvancedValue] = React.useState<any>(() => ({
     vendorBaseCurrency: costCurrency,
     vendorBasePrice: String(costPrice ?? ""),
@@ -179,120 +186,26 @@ export default function FlightSegmentCard({
     onSegmentChange({ [field]: next } as Partial<FlightSegment>);
   };
 
-  const CustomCheckbox = ({
-    id,
-    checked,
-    onCheckedChange,
-    label,
-    stopPropagation,
-    labelClassName,
-    wrapperClassName,
-  }: {
-    id: string;
-    checked: boolean;
-    onCheckedChange: (checked: boolean) => void;
-    label: React.ReactNode;
-    stopPropagation?: boolean;
-    labelClassName?: string;
-    wrapperClassName?: string;
-  }) => {
-    return (
-      <div
-        className={wrapperClassName || "flex items-center gap-2"}
-        onClick={(e) => {
-          if (stopPropagation) e.stopPropagation();
-        }}
-      >
-        <input
-          type="checkbox"
-          id={id}
-          className="hidden"
-          checked={checked}
-          onChange={(e) => onCheckedChange(e.target.checked)}
-        />
-        <label
-          htmlFor={id}
-          className="w-4 h-4 border border-[#0D4B37] rounded-sm flex items-center justify-center cursor-pointer"
-        >
-          {checked && (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="11"
-              height="10"
-              viewBox="0 0 11 10"
-              fill="none"
-            >
-              <path
-                d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                stroke="#0D4B37"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          )}
-        </label>
-        <span
-          className={
-            labelClassName ||
-            "text-[0.75rem] text-gray-600 cursor-pointer select-none"
-          }
-        >
-          {label}
-        </span>
-      </div>
-    );
-  };
+  const hasPreview = Boolean(
+    preview?.origin ||
+    preview?.destination ||
+    preview?.departureTime ||
+    preview?.arrivalTime ||
+    preview?.duration,
+  );
 
   const header = (
     <div className="px-4 py-3 bg-[#F9F9F9]">
-      <div className="grid grid-cols-1 lg:grid-cols-[90px_1.4fr_1fr_1fr_0.9fr_auto] gap-4 items-center">
-        <div className="text-[0.85rem] font-medium text-gray-800">
-          Flight {index + 1}
-        </div>
-
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="font-semibold text-gray-900 truncate">
-                {preview?.airline || "Airline"}
-              </span>
-              <span className="text-gray-500">|</span>
-              <span className="text-gray-700 truncate">
-                {preview?.flightNumber || segment.flightnumber || "Flight No."}
-              </span>
-            </div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="text-[0.85rem] font-medium text-gray-800 flex-none">
+            Flight {index + 1}
           </div>
-        </div>
 
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="font-medium text-gray-900 truncate">
-            {preview?.origin || "-"}
-          </span>
-          <span className="text-gray-400">|</span>
-          <span className="font-medium text-gray-900">
-            {preview?.departureTime || "--"}
-          </span>
-        </div>
+          <div className="font-semibold text-gray-900 truncate">
+            {preview?.airline || "Airline"}
+          </div>
 
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="font-medium text-gray-900 truncate">
-            {preview?.destination || "-"}
-          </span>
-          <span className="text-gray-400">|</span>
-          <span className="font-medium text-gray-900">
-            {preview?.arrivalTime || "--"}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <span className="font-medium text-gray-900">
-            {preview?.duration || "--"}
-          </span>
-          <span className="text-gray-400">|</span>
-          <span className="font-medium text-gray-900">0 Stops</span>
-        </div>
-
-        <div className="flex items-center justify-end gap-2">
           <>
             <CustomCheckbox
               id={`${checkboxBaseId}-all-travellers`}
@@ -326,7 +239,9 @@ export default function FlightSegmentCard({
               }}
             />
           </>
+        </div>
 
+        <div className="flex items-center gap-2 flex-none">
           {canRemove && onRemove && (
             <button
               onClick={(e) => {
@@ -340,6 +255,63 @@ export default function FlightSegmentCard({
               <FiMinusCircle size={18} />
             </button>
           )}
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-1 lg:grid-cols-[1.4fr_1fr_1fr_0.9fr_auto] gap-4 items-center">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded border border-gray-200 bg-white flex items-center justify-center text-gray-500 text-[11px] font-semibold">
+            <MdFlightTakeoff size={18} className="text-gray-400" />
+          </div>
+          <div className="min-w-0">
+            <div className="font-semibold text-gray-900 truncate">
+              {preview?.flightNumber || segment.flightnumber || "NA"}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="font-medium text-gray-900 truncate">
+            {preview?.origin || "NA"}
+          </span>
+          <span className="text-gray-400">|</span>
+          <span className="font-medium text-gray-900">
+            {preview?.departureTime || "NA"}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="font-medium text-gray-900 truncate">
+            {preview?.destination || "NA"}
+          </span>
+          <span className="text-gray-400">|</span>
+          <span className="font-medium text-gray-900">
+            {preview?.arrivalTime || "NA"}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="font-medium text-gray-900">
+            {preview?.duration || "NA"}
+          </span>
+          <span className="text-gray-400">|</span>
+          <span className="font-medium text-gray-900">
+            {hasPreview ? "0 Stops" : "NA"}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenPreviewModal(true);
+            }}
+            className="w-7 h-7 rounded-md border border-gray-200 flex items-center justify-center hover:bg-gray-50"
+            aria-label="Edit flight preview"
+          >
+            <FiEdit2 size={16} className="text-blue-600" />
+          </button>
 
           <button
             type="button"
@@ -360,6 +332,18 @@ export default function FlightSegmentCard({
           </button>
         </div>
       </div>
+
+      <FlightPreviewModal
+        isOpen={openPreviewModal}
+        onClose={() => setOpenPreviewModal(false)}
+        {...(preview ? { preview } : {})}
+        travelDate={segment.traveldate || travelDate}
+        defaultFlightNumber={segment.flightnumber}
+        onSave={(pv) => {
+          onPreviewChange?.(pv);
+        }}
+      />
+
       <AdvancedPricingModal
         isOpen={openAdvancedModal}
         value={advancedValue}

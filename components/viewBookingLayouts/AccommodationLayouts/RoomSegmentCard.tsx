@@ -242,13 +242,13 @@ export default function RoomSegmentCard({
                   <Stat
                     icon={<MdKingBed size={18} className="text-[#7C3AED]" />}
                     label="BED TYPE"
-                    value={room.bedType || "--"}
+                    value={room.bedType || "NA"}
                     iconWrapClassName="bg-purple-100"
                   />
                   <Stat
                     icon={<MdRestaurant size={18} className="text-[#1A9B3D]" />}
                     label="MEALS"
-                    value={room.meals || "--"}
+                    value={room.meals || "NA"}
                     valueClassName={room.meals ? "text-[#1A9B3D]" : ""}
                     iconWrapClassName="bg-green-100"
                   />

@@ -699,7 +699,7 @@ const ViewBookingPage = () => {
                   )}
                 />
 
-                <div className="w-full">
+                <div className="w-[160px] ml-41">
                   <Button
                     text={isSaving ? "Saving..." : "Save & Update"}
                     bgColor="bg-[#0D4B37]"

@@ -1,6 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import FilterTrigger from "@/components/FilterTrigger";
+import type { FilterCardOption } from "@/components/FilterCard";
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { BookingApiService } from "@/services/bookingApi";
 import { CustomIdApi } from "@/services/customIdApi";
@@ -144,18 +146,6 @@ interface QuotationData {
 //   };
 // }
 
-const columns: string[] = [
-  "Booking ID",
-  "Lead Pax",
-  "Travel Date",
-  "Service",
-  "Service Status",
-  "Amount",
-  "Owners",
-  "Tasks",
-  "Actions",
-];
-
 interface Owner {
   short: string;
   full: string;
@@ -263,6 +253,21 @@ const FinanceBookingsPage = () => {
   const [isCursorInTable, setIsCursorInTable] = useState(false);
   // Owners list built dynamically from quotations data
   const [ownersList, setOwnersList] = useState<Owner[]>([]);
+
+  const [statusColumnLabel, setStatusColumnLabel] =
+    useState<string>("Booking Status");
+
+  const columns: string[] = [
+    "Booking ID",
+    "Lead Pax",
+    "Travel Date",
+    "Service",
+    statusColumnLabel,
+    "Amount",
+    "Owners",
+    "Tasks",
+    "Actions",
+  ];
 
   const computeInitials = (name: string) => {
     const parts = name.trim().split(/\s+/);
@@ -1164,17 +1169,44 @@ const FinanceBookingsPage = () => {
   );
   */
 
+  const statusFilterOptions = useMemo<FilterCardOption[]>(
+    () => [
+      { value: "payment", label: "Payment Status" },
+      { value: "booking", label: "Booking Status" },
+    ],
+    [],
+  );
+
   const columnIconMap = useMemo(() => {
+    const trigger = (
+      <FilterTrigger
+        options={statusFilterOptions}
+        mode="single"
+        align="left"
+        onApply={(vals) => {
+          if (!vals || vals.length === 0) {
+            setStatusColumnLabel("Booking Status");
+            return;
+          }
+          const sel = vals[0];
+          if (sel === "payment") setStatusColumnLabel("Payment Status");
+          else if (sel === "booking") setStatusColumnLabel("Booking Status");
+          else setStatusColumnLabel("Booking Status");
+        }}
+      >
+        <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
+      </FilterTrigger>
+    );
+
     return {
       "Travel Date": (
         <TbArrowsUpDown className="inline w-3 h-3 text-white stroke-[1.5]" />
       ),
-      // Service column icon removed
-      "Booking Status": (
-        <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
-      ),
+      "Service Status": trigger,
+      "Payment Status": trigger,
+      "Booking Status": trigger,
     } as Record<string, JSX.Element>;
-  }, []);
+  }, [statusFilterOptions]);
 
   const handleFilterChange = (next: FilterPayload) => {
     setFilters(next);

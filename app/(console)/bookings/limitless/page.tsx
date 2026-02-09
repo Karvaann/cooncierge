@@ -173,7 +173,7 @@ const formatServiceStatusLabel = (status?: LimitlessServiceStatus) => {
     case "denied":
       return "Denied";
     default:
-      return "--";
+      return "NA";
   }
 };
 
@@ -800,7 +800,7 @@ const LimitlessBookingsPage = () => {
         onClick={() => handleViewBooking(item)}
         className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
       >
-        {item.customerId?.name || "--"}
+        {item.customerId?.name || "NA"}
       </td>,
       <td
         key={`date-${index}`}
@@ -811,7 +811,7 @@ const LimitlessBookingsPage = () => {
           ? formatDMY(item.travelDate)
           : item.createdAt
             ? formatDMY(item.createdAt)
-            : "--"}
+            : "NA"}
       </td>,
       <td
         key={`destination-${index}`}
@@ -823,7 +823,7 @@ const LimitlessBookingsPage = () => {
             {(Array.isArray(item.limitlessDestinations) &&
             item.limitlessDestinations.length
               ? item.limitlessDestinations.join(", ")
-              : item.limitlessTitle) || "--"}
+              : item.limitlessTitle) || "NA"}
           </div>
           {item.limitlessTitle ? (
             <div className="mt-1 flex justify-center">
@@ -856,7 +856,7 @@ const LimitlessBookingsPage = () => {
             )}
           </span>
         ) : (
-          "--"
+          "NA"
         )}
       </td>,
       <td

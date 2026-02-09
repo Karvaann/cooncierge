@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import AmountSection from "@/components/AmountSection";
+import MultiCurrencyInput from "@/components/multiCurrencyUI";
+import { requiresRoe } from "@/utils/currencyUtil";
 import AdvancedPricingModal from "@/components/viewBookingLayouts/components/AdvancedPricingModal";
 import StyledDescription from "@/components/StyledDescription";
+import CustomCheckbox from "@/components/CustomCheckbox";
+import { allowTextAndNumbers } from "@/utils/inputValidators";
 
 interface OtherServiceInfoFormData {
   confirmationNumber?: string | number;
@@ -37,6 +40,8 @@ export default function OtherServiceLayoutUI({
   onFormDataUpdate,
   isReadOnly = false,
 }: Props) {
+  const checkboxBaseId = React.useId();
+
   const normalized = useMemo(() => {
     const src = externalFormData ?? {};
     return (src as Partial<OtherServiceInfoFormData>) ?? {};
@@ -63,6 +68,9 @@ export default function OtherServiceLayoutUI({
   const [showAdvancedPricing, setShowAdvancedPricing] = useState(
     Boolean(normalized.showAdvancedPricing),
   );
+
+  const [totalCostForAllFlights, setTotalCostForAllFlights] = useState(false);
+  const [showCostNotes, setShowCostNotes] = useState(false);
 
   // Modal state and advanced value (same shape used in FlightSegmentCard)
   const [openAdvancedModal, setOpenAdvancedModal] = useState(false);
@@ -105,119 +113,136 @@ export default function OtherServiceLayoutUI({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-      <div className="px-4 py-3">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <>
+      <div className="py-3 px-0 -ml-2">
+        <div className="flex items-start gap-2">
           <div>
-            <label className="text-sm text-gray-600 mb-2 block">
+            <label className="text-[13px] text-gray-600 mb-2 block">
               Confirmation Number
             </label>
             <input
               name="confirmationNumber"
+              placeholder="Enter Confirmation No."
               value={String(formData.confirmationNumber ?? "")}
-              onChange={handleChange}
+              onChange={(e) => {
+                const val = allowTextAndNumbers(e.target.value || "");
+                setFormData((prev) => ({ ...prev, confirmationNumber: val }));
+              }}
               readOnly={isReadOnly}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
+              className="w-[100%] px-2 py-2 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300 text-[13px] placeholder:text-[13px]"
             />
           </div>
-
-          <div>
-            <label className="text-sm text-gray-600 mb-2 block">Title</label>
+          <div className="flex-1">
+            <label className="text-[13px] text-gray-600 mb-2 block">
+              Title
+            </label>
             <input
               name="title"
+              placeholder="Enter Title"
               value={String(formData.title ?? "")}
               onChange={handleChange}
               readOnly={isReadOnly}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300 text-[13px] placeholder:text-[13px]"
             />
           </div>
         </div>
 
-        <div className="mt-4">
-          <label className="text-sm text-gray-600 mb-2 block">
-            Description
-          </label>
-          <div className="border border-gray-200 rounded-md bg-white">
-            <div className="p-3">
-              <StyledDescription
-                value={String(formData.description ?? "")}
-                onChange={(v: any) =>
-                  setFormData((p) => ({ ...p, description: v }))
-                }
-                readOnly={isReadOnly}
-              />
-            </div>
+        <div className="mt-4 ">
+          <div className="p-0 ">
+            <StyledDescription
+              value={String(formData.description ?? "")}
+              onChange={(v: any) =>
+                setFormData((p) => ({ ...p, description: v }))
+              }
+              readOnly={isReadOnly}
+              labelSize="text-[14px]"
+              boxWidth="w-90%"
+            />
           </div>
         </div>
 
         <div className="mt-5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-medium text-gray-800">Amount</h3>
-            <div className="flex items-center gap-3">
-              <label className="text-sm text-gray-600 flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={showAdvancedPricing}
-                  onChange={(e) => setShowAdvancedPricing(e.target.checked)}
-                  className="hidden"
+          <div className="mt-5 border border-gray-200 rounded-lg p-3">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[13px] font-medium text-gray-700">Amount</h3>
+              <div className="flex items-center gap-5">
+                <CustomCheckbox
+                  id={`${checkboxBaseId}-total-cost`}
+                  checked={Boolean(totalCostForAllFlights)}
+                  onCheckedChange={setTotalCostForAllFlights}
+                  label={
+                    <span className="text-[13px] text-gray-700">
+                      Total Cost for all Flights
+                    </span>
+                  }
+                  labelClassName="text-[13px] text-gray-700"
                 />
-                <span className="w-4 h-4 border border-[#0D4B37] rounded-sm flex items-center justify-center">
-                  {showAdvancedPricing && (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="11"
-                      height="10"
-                      viewBox="0 0 11 10"
-                      fill="none"
-                    >
-                      <path
-                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                        stroke="#0D4B37"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  )}
-                </span>
-                <span className="text-[0.85rem]">Show Advanced Pricing</span>
-              </label>
 
-              <button
-                type="button"
-                onClick={() => setOpenAdvancedModal(true)}
-                className="w-8 h-8 rounded border border-gray-200 flex items-center justify-center hover:bg-gray-50"
-                aria-label="Open advanced pricing"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  className="text-[#F59E0B]"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M12 6v6l4 2"
-                  />
-                </svg>
-              </button>
+                <CustomCheckbox
+                  id={`${checkboxBaseId}-advanced-pricing`}
+                  checked={Boolean(showAdvancedPricing)}
+                  onCheckedChange={() => {
+                    setAdvancedValue((prev: any) => ({
+                      ...prev,
+                      vendorBaseCurrency: formData.costCurrency ?? "INR",
+                      vendorBasePrice: String(formData.costprice ?? ""),
+                      vendorBaseRoe: String(formData.costRoe ?? ""),
+                      vendorBaseInr: String(formData.costInr ?? ""),
+                      vendorBaseNotes: String(formData.costNotes ?? ""),
+                      vendorIncentiveCurrency: "INR",
+                      vendorIncentiveReceived: String(
+                        formData.vendorIncentiveReceived ?? "",
+                      ),
+                      commissionCurrency: "INR",
+                      commissionPaid: String(formData.commissionPaid ?? ""),
+                    }));
+                    setOpenAdvancedModal(true);
+                    setShowAdvancedPricing(true);
+                    setFormData((p) => ({ ...p, showAdvancedPricing: true }));
+                  }}
+                  label={
+                    <span className="text-[13px] text-gray-700">
+                      Show Advanced Pricing
+                    </span>
+                  }
+                  labelClassName="text-[13px] text-gray-700"
+                />
+              </div>
             </div>
-          </div>
 
-          <div className="mt-3 border border-gray-200 rounded-lg p-3">
-            <AmountSection
-              value={formData as any}
-              onChange={(updated: any) =>
-                setFormData((prev) => ({ ...prev, ...updated }))
-              }
-              showAdvancedPricing={showAdvancedPricing}
-              onToggleAdvancedPricing={setShowAdvancedPricing}
-              isReadOnly={isReadOnly}
-            />
+            <hr className="mb-3 -mt-1 border-t border-gray-200" />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div>
+                <label className="block mb-1 font-medium text-gray-600 text-[13px]">
+                  Cost Price
+                </label>
+                <MultiCurrencyInput
+                  currency={formData.costCurrency as any}
+                  onCurrencyChange={(c: any) =>
+                    setFormData((p) => ({ ...p, costCurrency: c }))
+                  }
+                  amount={String(formData.costprice ?? "")}
+                  onAmountChange={(v: string) =>
+                    setFormData((p) => ({ ...p, costprice: v }))
+                  }
+                  roe={String(formData.costRoe ?? "")}
+                  onRoeChange={(r: string) =>
+                    setFormData((p) => ({ ...p, costRoe: r }))
+                  }
+                  inr={String(formData.costInr ?? "")}
+                  notes={String(formData.costNotes ?? "")}
+                  onNotesChange={(n: string) =>
+                    setFormData((p) => ({ ...p, costNotes: n }))
+                  }
+                  showNotes={showCostNotes}
+                  onToggleNotes={() => setShowCostNotes((v) => !v)}
+                  businessCurrency={"INR"}
+                  requiresRoe={requiresRoe}
+                  useWhiteDropdown={true}
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -226,8 +251,8 @@ export default function OtherServiceLayoutUI({
         isOpen={openAdvancedModal}
         value={advancedValue}
         onChange={(next: any) => setAdvancedValue(next)}
-        showTotal={false}
-        onToggleTotal={() => {}}
+        showTotal={Boolean(totalCostForAllFlights)}
+        onToggleTotal={setTotalCostForAllFlights}
         onClose={() => setOpenAdvancedModal(false)}
         onSave={(val: any) => {
           const parseNum = (s?: any) =>
@@ -256,7 +281,6 @@ export default function OtherServiceLayoutUI({
               ? result.toFixed(2)
               : String(Math.round(result));
           }
-
           setFormData((prev) => ({
             ...prev,
             costprice: String(resStr),
@@ -276,10 +300,12 @@ export default function OtherServiceLayoutUI({
             commissionPaid: String(
               val.commissionPaid ?? prev.commissionPaid ?? "",
             ),
+            showAdvancedPricing: true,
           }));
+          setShowAdvancedPricing(true);
           setOpenAdvancedModal(false);
         }}
       />
-    </div>
+    </>
   );
 }

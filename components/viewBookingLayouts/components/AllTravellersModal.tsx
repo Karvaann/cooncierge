@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Modal from "@/components/Modal";
 import { FiUser } from "react-icons/fi";
+import CustomCheckbox from "@/components/CustomCheckbox";
 
 export type TravellerRow = {
   id: string;
@@ -17,29 +18,6 @@ interface AllTravellersModalProps {
   travellers?: TravellerRow[];
   value?: string[]; // selected ids
   onSave?: (selected: string[]) => void;
-}
-
-function CustomCheckbox({ checked }: { checked: boolean }) {
-  return (
-    <div className="w-5 h-5 rounded-sm border border-gray-300 flex items-center justify-center bg-white">
-      {checked && (
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="12"
-          height="10"
-          viewBox="0 0 11 10"
-          fill="none"
-        >
-          <path
-            d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-            stroke="#0D4B37"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </svg>
-      )}
-    </div>
-  );
 }
 
 const AllTravellersModal: React.FC<AllTravellersModalProps> = ({

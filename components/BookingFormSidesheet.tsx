@@ -1142,7 +1142,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                       }}
                       bgColor="bg-white"
                       textColor="text-[#114958]"
-                      className="border border-[#114958] hover:bg-[#114958] "
+                      className="border border-[#0D4B37] hover:cursror-pointer"
                       disabled={isSubmitting}
                     />
                   )}
@@ -1152,7 +1152,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
                 {/* RIGHT SIDE BUTTONS */}
                 <div className="flex space-x-2">
-                  {/* EDIT MODE (existing behavior) */}
+                  {/* EDIT MODE */}
                   {mode !== "view" && (
                     <>
                       {activeTab === "general" && !isEditingExisting && (
@@ -1160,8 +1160,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           text="Save As Draft"
                           onClick={handleDraftSubmit}
                           bgColor="bg-white"
-                          textColor="text-[#114958]"
-                          className="hover:bg-gray-200 border border-[#114958]"
+                          textColor="text-[#0D4B37]"
+                          className="hover:bg-gray-200 border border-[#0D4B37]"
                           disabled={isSubmitting}
                         />
                       )}
@@ -1176,9 +1176,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                             const nextTab = tabs[currentIndex + 1];
                             if (nextTab?.isEnabled) setActiveTab(nextTab.id);
                           }}
-                          bgColor="bg-[#114958]"
+                          bgColor="bg-[#0D4B37]"
                           textColor="text-white"
-                          className="hover:bg-[#0d3a45]"
+                          className="hover:cursor-pointer"
                           disabled={isSubmitting}
                         />
                       )}
@@ -1189,8 +1189,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                             <Button
                               text="Save As Draft"
                               onClick={handleDraftSubmit}
-                              bgColor="bg-white border border-[#114958]"
-                              textColor="text-[#114958]"
+                              bgColor="bg-white border border-[#0D4B37]"
+                              textColor="text-[#0D4B37]"
                               disabled={isSubmitting}
                             />
                           )}
@@ -1224,7 +1224,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                     </>
                   )}
 
-                  {/* VIEW MODE: keep footer + allow Edit -> Save */}
+                  {/* VIEW MODE */}
                   {mode === "view" && (
                     <>
                       {activeTab === "general" && (

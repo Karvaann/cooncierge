@@ -17,6 +17,7 @@ import RoomSegmentCard, {
 import { useAuth } from "@/context/AuthContext";
 import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
 import { allowTextAndNumbers } from "@/utils/inputValidators";
+import CustomCheckbox from "@/components/CustomCheckbox";
 
 const genId = () => Date.now().toString() + Math.random().toString(36).slice(2);
 
@@ -77,9 +78,9 @@ const clampNights = (checkIn?: string, checkOut?: string) => {
 };
 
 const formatDDMMYYYY = (iso?: string) => {
-  if (!iso) return "--";
+  if (!iso) return "NA";
   const d = new Date(iso);
-  if (isNaN(d.getTime())) return "--";
+  if (isNaN(d.getTime())) return "NA";
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const yyyy = String(d.getFullYear());
@@ -142,70 +143,6 @@ const sanitizeTimeInput = (nextRaw: string, prevRaw: string) => {
 
   return val;
 };
-
-function CustomCheckbox({
-  id,
-  checked,
-  onCheckedChange,
-  label,
-  stopPropagation,
-  labelClassName,
-  wrapperClassName,
-}: {
-  id: string;
-  checked: boolean;
-  onCheckedChange: (checked: boolean) => void;
-  label: React.ReactNode;
-  stopPropagation?: boolean;
-  labelClassName?: string;
-  wrapperClassName?: string;
-}) {
-  return (
-    <div
-      className={wrapperClassName || "flex items-center gap-2"}
-      onClick={(e) => {
-        if (stopPropagation) e.stopPropagation();
-      }}
-    >
-      <input
-        type="checkbox"
-        id={id}
-        className="hidden"
-        checked={checked}
-        onChange={(e) => onCheckedChange(e.target.checked)}
-      />
-      <label
-        htmlFor={id}
-        className="w-4 h-4 border border-[#0D4B37] rounded-sm flex items-center justify-center cursor-pointer"
-      >
-        {checked && (
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="11"
-            height="10"
-            viewBox="0 0 11 10"
-            fill="none"
-          >
-            <path
-              d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-              stroke="#0D4B37"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            />
-          </svg>
-        )}
-      </label>
-      <span
-        className={
-          labelClassName ||
-          "text-[0.75rem] text-gray-600 cursor-pointer select-none"
-        }
-      >
-        {label}
-      </span>
-    </div>
-  );
-}
 
 function AccommodationSegmentCardItem({
   segment,

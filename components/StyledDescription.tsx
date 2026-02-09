@@ -14,6 +14,8 @@ interface StyledDescriptionProps {
   value?: string;
   readOnly?: boolean;
   onChange?: (value: string) => void;
+  labelSize?: string; // Tailwind text size class for the label (e.g. "text-[15px]")
+  boxWidth?: string; // Tailwind width class for the description box (e.g. "w-full")
 }
 
 export default function StyledDescription({
@@ -21,6 +23,8 @@ export default function StyledDescription({
   value,
   onChange,
   readOnly = false,
+  labelSize = "text-[0.75rem]",
+  boxWidth = "w-[99%]",
 }: StyledDescriptionProps): JSX.Element {
   const editorRef = useRef<HTMLDivElement>(null);
   const [activeFormats, setActiveFormats] = useState<ActiveFormats>({
@@ -37,7 +41,7 @@ export default function StyledDescription({
 
   const createStyledList = (
     type: "ul" | "ol",
-    sourceList?: HTMLUListElement | HTMLOListElement
+    sourceList?: HTMLUListElement | HTMLOListElement,
   ) => {
     const list = document.createElement(type);
     list.className = getListClassName(type);
@@ -90,7 +94,7 @@ export default function StyledDescription({
 
   const getClosestLiAtSelection = (
     editor: HTMLDivElement,
-    sel: Selection
+    sel: Selection,
   ): HTMLLIElement | null => {
     const node = sel.anchorNode || sel.focusNode;
     if (!node) return null;
@@ -107,7 +111,7 @@ export default function StyledDescription({
   const getSelectedListItems = (
     editor: HTMLDivElement,
     sel: Selection,
-    range: Range
+    range: Range,
   ): HTMLLIElement[] => {
     if (range.collapsed) {
       const li = getClosestLiAtSelection(editor, sel);
@@ -121,7 +125,7 @@ export default function StyledDescription({
 
   const findTopLevelBlockAtSelection = (
     editor: HTMLDivElement,
-    sel: Selection
+    sel: Selection,
   ): HTMLElement | null => {
     const node = sel.anchorNode || sel.focusNode;
     if (!node) return null;
@@ -147,7 +151,7 @@ export default function StyledDescription({
 
   const convertSelectedListItemsToType = (
     targetType: "ul" | "ol",
-    selectedLis: HTMLLIElement[]
+    selectedLis: HTMLLIElement[],
   ) => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -173,7 +177,7 @@ export default function StyledDescription({
     const processGroup = (
       list: HTMLUListElement | HTMLOListElement,
       firstLi: HTMLLIElement,
-      lastLi: HTMLLIElement
+      lastLi: HTMLLIElement,
     ) => {
       const parent = list.parentNode;
       if (!parent) return;
@@ -234,7 +238,7 @@ export default function StyledDescription({
 
     for (const [list, items] of byList.entries()) {
       const listItems = Array.from(list.children).filter(
-        (n): n is HTMLLIElement => n instanceof HTMLLIElement
+        (n): n is HTMLLIElement => n instanceof HTMLLIElement,
       );
 
       const indices = items
@@ -443,7 +447,7 @@ export default function StyledDescription({
       (list.tagName.toLowerCase() === "ul" ? "space" : "newline");
 
     const items: string[] = Array.from(list.querySelectorAll("li")).map(
-      (li) => li.innerHTML || ""
+      (li) => li.innerHTML || "",
     );
 
     const frag = document.createDocumentFragment();
@@ -527,10 +531,12 @@ export default function StyledDescription({
   return (
     <>
       {/* Header */}
-      <div className="px-3 py-2 -mb-1 -ml-2">
-        <h3 className="text-[0.75rem] font-medium text-gray-700">{label}</h3>
+      <div className="px-0 py-2 -mb-1">
+        <h3 className={`${labelSize} font-medium text-gray-700`}>{label}</h3>
       </div>
-      <div className="w-[99%] mt-1 bg-white rounded-md border border-gray-200">
+      <div
+        className={`${boxWidth} mt-1 bg-white rounded-md border border-gray-200`}
+      >
         {/* Toolbar */}
         <div className="flex items-center gap-2 px-2 py-1">
           <button
@@ -591,7 +597,7 @@ export default function StyledDescription({
         <div
           ref={editorRef}
           contentEditable={!readOnly}
-          className="px-3 py-2 min-h-[80px] text-[0.75rem] outline-none focus:ring-0"
+          className="px-3 py-2 min-h-[80px] text-[13px] outline-none focus:ring-0"
           style={{ color: "#9ca3af" }}
           onInput={handleEditorInput}
           onMouseUp={updateActiveFormats}

@@ -183,7 +183,7 @@ export default function MultiCityLayout({
 
   const fetchFlightData = async (
     segment: FlightSegment | ReturnFlightSegment,
-    isReturn: boolean = false
+    isReturn: boolean = false,
   ) => {
     try {
       if (!segment.flightnumber) return;
@@ -234,11 +234,11 @@ export default function MultiCityLayout({
         setFormData((prev) => ({
           ...prev,
           returnSegments: prev.returnSegments.map((s) =>
-            s.id === segment.id ? { ...s, preview } : s
+            s.id === segment.id ? { ...s, preview } : s,
           ),
         }));
         lastFetchedRef.current[segment.id!] = String(
-          segment.flightnumber ?? ""
+          segment.flightnumber ?? "",
         );
       } else {
         setSegmentPreview((prev) => ({
@@ -248,11 +248,11 @@ export default function MultiCityLayout({
         setFormData((prev) => ({
           ...prev,
           segments: prev.segments.map((s) =>
-            s.id === segment.id ? { ...s, preview } : s
+            s.id === segment.id ? { ...s, preview } : s,
           ),
         }));
         lastFetchedRef.current[segment.id!] = String(
-          segment.flightnumber ?? ""
+          segment.flightnumber ?? "",
         );
       }
     } catch (error) {
@@ -294,7 +294,7 @@ export default function MultiCityLayout({
         fetchFlightData(segment, false)
           .then(() => {
             lastFetchedRef.current[segmentId] = String(
-              segment.flightnumber || ""
+              segment.flightnumber || "",
             );
           })
           .catch(() => {})
@@ -344,7 +344,7 @@ export default function MultiCityLayout({
         fetchFlightData(segment, true)
           .then(() => {
             lastFetchedRef.current[segmentId] = String(
-              segment.flightnumber || ""
+              segment.flightnumber || "",
             );
           })
           .catch(() => {})
@@ -438,7 +438,7 @@ export default function MultiCityLayout({
   const handleSegmentPnr = (
     segmentId: string,
     value: string,
-    type: "segments" | "returnSegments"
+    type: "segments" | "returnSegments",
   ) => {
     setFormData((prev) => {
       const updated = [...prev[type]];
@@ -529,10 +529,11 @@ export default function MultiCityLayout({
                           placeholder="A320"
                           value={segment.flightnumber}
                           onChange={(e) => {
-                            const updatedSegments = formData.segments.map((s) =>
-                              s.id === segment.id
-                                ? { ...s, flightnumber: e.target.value }
-                                : s
+                            const updatedSegments = formData.segments.map(
+                              (s) =>
+                                s.id === segment.id
+                                  ? { ...s, flightnumber: e.target.value }
+                                  : s,
                             );
                             setFormData({
                               ...formData,
@@ -560,7 +561,7 @@ export default function MultiCityLayout({
                               handleSegmentPnr(
                                 segment.id!,
                                 e.target.value,
-                                "segments"
+                                "segments",
                               )
                             }
                             className="w-[18rem] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
@@ -574,10 +575,11 @@ export default function MultiCityLayout({
                           label="Travel Date"
                           value={segment.traveldate}
                           onChange={(date) => {
-                            const updatedSegments = formData.segments.map((s) =>
-                              s.id === segment.id
-                                ? { ...s, traveldate: date }
-                                : s
+                            const updatedSegments = formData.segments.map(
+                              (s) =>
+                                s.id === segment.id
+                                  ? { ...s, traveldate: date }
+                                  : s,
                             );
                             setFormData({
                               ...formData,
@@ -609,10 +611,11 @@ export default function MultiCityLayout({
                           placeholder="Cabin Class"
                           value={segment.cabinclass}
                           onChange={(val: string) => {
-                            const updatedSegments = formData.segments.map((s) =>
-                              s.id === segment.id
-                                ? { ...s, cabinclass: val }
-                                : s
+                            const updatedSegments = formData.segments.map(
+                              (s) =>
+                                s.id === segment.id
+                                  ? { ...s, cabinclass: val }
+                                  : s,
                             );
                             setFormData({
                               ...formData,
@@ -648,10 +651,10 @@ export default function MultiCityLayout({
                                 origin: pv?.origin ?? "",
                                 destination: pv?.destination ?? "",
                                 departureTime: toTimeInput(
-                                  pv?.departureTimeRaw ?? pv?.departureTime
+                                  pv?.departureTimeRaw ?? pv?.departureTime,
                                 ),
                                 arrivalTime: toTimeInput(
-                                  pv?.arrivalTimeRaw ?? pv?.arrivalTime
+                                  pv?.arrivalTimeRaw ?? pv?.arrivalTime,
                                 ),
                                 duration: pv?.duration ?? "",
                               },
@@ -813,7 +816,7 @@ export default function MultiCityLayout({
                                           [segment.id!]: {
                                             ...prev[segment.id!],
                                             departureTime: capTimeInput(
-                                              e.target.value
+                                              e.target.value,
                                             ),
                                           },
                                         }))
@@ -839,7 +842,7 @@ export default function MultiCityLayout({
                                           [segment.id!]: {
                                             ...prev[segment.id!],
                                             arrivalTime: capTimeInput(
-                                              e.target.value
+                                              e.target.value,
                                             ),
                                           },
                                         }))
@@ -902,7 +905,7 @@ export default function MultiCityLayout({
                                             60;
                                           const h = Math.floor(diff / 60);
                                           const m = Math.abs(
-                                            Math.floor(diff % 60)
+                                            Math.floor(diff % 60),
                                           );
                                           durationVal = `${h}h ${m}m`;
                                         }
@@ -925,10 +928,10 @@ export default function MultiCityLayout({
                                         arr ?? preview?.arrivalTime ?? "",
                                       departureTimeRaw: dep
                                         ? `${segment.traveldate}T${dep}`
-                                        : preview?.departureTimeRaw ?? "",
+                                        : (preview?.departureTimeRaw ?? ""),
                                       arrivalTimeRaw: arr
                                         ? `${segment.traveldate}T${arr}`
-                                        : preview?.arrivalTimeRaw ?? "",
+                                        : (preview?.arrivalTimeRaw ?? ""),
                                       flightNumber:
                                         d.flightNumber ??
                                         preview?.flightNumber ??
@@ -946,7 +949,7 @@ export default function MultiCityLayout({
                                       segments: prev.segments.map((s) =>
                                         s.id === segment.id
                                           ? { ...s, preview: newPreview }
-                                          : s
+                                          : s,
                                       ),
                                     }));
                                     lastFetchedRef.current[segment.id!] =

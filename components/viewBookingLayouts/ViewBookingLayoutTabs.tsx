@@ -3,8 +3,11 @@
 import React, { useEffect, useId, useMemo, useState } from "react";
 import ViewOneWayLayout from "./FlightLayouts/ViewOneWayLayout";
 import ViewRoundTripLayout from "./FlightLayouts/ViewRoundTripLayout";
+import ViewMultiCityLayout from "./FlightLayouts/ViewMultiCityLayout";
 import AccommodationSegmentCard from "./AccommodationLayouts/AccommodationSegmentCard";
 import AddServicesModal from "./components/AddServicesModal";
+import LinkBookingModal from "./components/LinkBookingModal";
+import OtherServiceLayoutUI from "./OtherServiceLayouts/OtherServiceLayoutUI";
 import { FiSave } from "react-icons/fi";
 
 import { MdKeyboardArrowRight } from "react-icons/md";
@@ -117,6 +120,11 @@ export default function ViewBookingLayoutTabs({
 
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
 
+  const hasBothServices = useMemo(
+    () => ["visa", "insurance"].every((s) => selectedServices.includes(s)),
+    [selectedServices],
+  );
+
   const computedTabs = useMemo(() => {
     const base = tabs?.length ? tabs : defaultTabs;
     const serviceTabs = selectedServices
@@ -155,6 +163,7 @@ export default function ViewBookingLayoutTabs({
   );
 
   const [isAddServiceOpen, setIsAddServiceOpen] = useState(false);
+  const [isLinkBookingOpen, setIsLinkBookingOpen] = useState(false);
 
   // Navigation helpers
   const currentIndex = stepTabs.indexOf(active);
@@ -343,15 +352,17 @@ export default function ViewBookingLayoutTabs({
           })}
         </div>
 
-        <div className="mr-3">
-          <button
-            type="button"
-            className="px-4 py-1.5 rounded-md text-white text-[15px] font-medium shadow"
-            style={{ backgroundColor: "#126ACB" }}
-            onClick={() => setIsAddServiceOpen(true)}
-          >
-            + Add Service
-          </button>
+        <div className="mr-4">
+          {!hasBothServices && (
+            <button
+              type="button"
+              className="px-4 py-1.5 rounded-md text-white text-[14px] font-medium shadow"
+              style={{ backgroundColor: "#126ACB" }}
+              onClick={() => setIsAddServiceOpen(true)}
+            >
+              + Add Service
+            </button>
+          )}
         </div>
       </div>
 
@@ -370,7 +381,13 @@ export default function ViewBookingLayoutTabs({
             ) : (
               <button
                 type="button"
-                onClick={onLinkClick}
+                onClick={() => {
+                  if (onLinkClick) {
+                    onLinkClick();
+                    return;
+                  }
+                  setIsLinkBookingOpen(true);
+                }}
                 className="text-[14px] text-blue-600 underline font-medium"
               >
                 {linkLabel}
@@ -482,6 +499,11 @@ export default function ViewBookingLayoutTabs({
                 formData={flightFormData}
                 setFormData={setFlightFormData}
               />
+            ) : flightFormData.flightType === "Multi-City" ? (
+              <ViewMultiCityLayout
+                formData={flightFormData}
+                setFormData={setFlightFormData}
+              />
             ) : (
               <div className="ml-2 text-[13px] text-gray-500">
                 {flightFormData.flightType} view coming soon.
@@ -494,12 +516,20 @@ export default function ViewBookingLayoutTabs({
             setFormData={setAccommodationFormData}
           />
         ) : active === "Visas" ? (
-          <div className="ml-2 text-[13px] text-gray-500">
-            Visas view coming soon.
+          <div className="ml-2">
+            <OtherServiceLayoutUI
+              externalFormData={{}}
+              onFormDataUpdate={() => {}}
+              isReadOnly={false}
+            />
           </div>
         ) : active === "Insurance" ? (
-          <div className="ml-2 text-[13px] text-gray-500">
-            Insurance view coming soon.
+          <div className="ml-2">
+            <OtherServiceLayoutUI
+              externalFormData={{}}
+              onFormDataUpdate={() => {}}
+              isReadOnly={false}
+            />
           </div>
         ) : (
           <div className="text-gray-600 py-4">
@@ -578,6 +608,17 @@ export default function ViewBookingLayoutTabs({
         onAdd={(svc) => {
           handleAddService(svc);
           setIsAddServiceOpen(false);
+        }}
+      />
+
+      <LinkBookingModal
+        isOpen={isLinkBookingOpen}
+        onClose={() => setIsLinkBookingOpen(false)}
+        selectedServiceLabel={linkLabel}
+        onLink={(ids) => {
+          // TODO: replace with actual link API call when available
+          console.log("Link bookings:", ids);
+          setIsLinkBookingOpen(false);
         }}
       />
     </div>
