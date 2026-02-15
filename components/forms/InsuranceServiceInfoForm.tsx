@@ -15,6 +15,7 @@ import CancellationModal, {
   CancellationModalFormState,
 } from "@/components/Modals/CancellationModal";
 import AmountSection from "@/components/AmountSection";
+import { getDefaultShowAdvancedPricing } from "@/utils/advancedPricing";
 
 // Type definitions
 interface OtherServiceInfoFormData {
@@ -113,6 +114,11 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     return fields as Partial<OtherServiceInfoFormData>;
   }, [externalFormData]);
 
+  const defaultShowAdvancedPricing = useMemo(
+    () => getDefaultShowAdvancedPricing(normalizedExternalData, isReadOnly),
+    [isReadOnly, normalizedExternalData],
+  );
+
   // Internal form state
   const [formData, setFormData] = useState<OtherServiceInfoFormData>({
     bookingdate: normalizedExternalData?.bookingdate || "",
@@ -135,7 +141,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     description: normalizedExternalData?.description || "",
     documents: "",
     remarks: normalizedExternalData?.remarks || "",
-    showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
+    showAdvancedPricing: defaultShowAdvancedPricing,
     vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
     vendorBaseCurrency:
       (normalizedExternalData?.vendorBaseCurrency as "USD" | "INR") || "INR",
@@ -143,16 +149,16 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     vendorBaseInr: String(normalizedExternalData?.vendorBaseInr ?? ""),
     vendorBaseNotes: normalizedExternalData?.vendorBaseNotes || "",
     vendorIncentiveReceived: String(
-      normalizedExternalData?.vendorIncentiveReceived ?? ""
+      normalizedExternalData?.vendorIncentiveReceived ?? "",
     ),
     vendorIncentiveCurrency:
       (normalizedExternalData?.vendorIncentiveCurrency as "USD" | "INR") ||
       "INR",
     vendorIncentiveRoe: String(
-      normalizedExternalData?.vendorIncentiveRoe ?? ""
+      normalizedExternalData?.vendorIncentiveRoe ?? "",
     ),
     vendorIncentiveInr: String(
-      normalizedExternalData?.vendorIncentiveInr ?? ""
+      normalizedExternalData?.vendorIncentiveInr ?? "",
     ),
     vendorIncentiveNotes: normalizedExternalData?.vendorIncentiveNotes || "",
     commissionPaid: String(normalizedExternalData?.commissionPaid ?? ""),
@@ -171,7 +177,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   // Advanced Pricing State
   const [showAdvancedPricing, setShowAdvancedPricing] = useState(
-    Boolean(normalizedExternalData?.showAdvancedPricing)
+    defaultShowAdvancedPricing,
   );
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -226,11 +232,22 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   useEffect(() => {
     if (!externalFormData || Object.keys(externalFormData).length === 0) return;
 
+    const nextShowAdvancedPricing = getDefaultShowAdvancedPricing(
+      normalizedExternalData,
+      isReadOnly,
+    );
+
     setFormData((prev) => ({
       ...prev,
       ...normalizedExternalData,
+      showAdvancedPricing: nextShowAdvancedPricing,
     }));
-  }, [externalFormData, normalizedExternalData]);
+    setShowAdvancedPricing(nextShowAdvancedPricing);
+  }, [externalFormData, isReadOnly, normalizedExternalData]);
+
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, showAdvancedPricing }));
+  }, [showAdvancedPricing]);
 
   useEffect(() => {
     onFormDataUpdate({ insuranceinfoform: formData });
@@ -266,7 +283,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         message: "Invalid email format",
       },
     }),
-    []
+    [],
   );
 
   // Enhanced validation function using API validation
@@ -315,7 +332,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
       return "";
     },
-    [validationRules]
+    [validationRules],
   );
 
   // Validate all fields
@@ -326,7 +343,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     Object.keys(validationRules).forEach((fieldName) => {
       const error = validateField(
         fieldName,
-        formData[fieldName as keyof OtherServiceInfoFormData]
+        formData[fieldName as keyof OtherServiceInfoFormData],
       );
       if (error) {
         newErrors[fieldName] = error;
@@ -340,7 +357,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   // Normal handleChange that only updates local state
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value, type } = e.target;
     const newValue =
@@ -374,7 +391,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
       setTouched((prev) => ({ ...prev, [name]: true }));
     },
-    [validateField, showValidation]
+    [validateField, showValidation],
   );
 
   // Handle form submission
@@ -386,14 +403,17 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         onSubmit?.(formData);
       } else {
         // Mark all fields as touched to show validation errors
-        const allTouched = Object.keys(validationRules).reduce((acc, key) => {
-          acc[key] = true;
-          return acc;
-        }, {} as Record<string, boolean>);
+        const allTouched = Object.keys(validationRules).reduce(
+          (acc, key) => {
+            acc[key] = true;
+            return acc;
+          },
+          {} as Record<string, boolean>,
+        );
         setTouched(allTouched);
       }
     },
-    [formData, validateForm, onSubmit, validationRules]
+    [formData, validateForm, onSubmit, validationRules],
   );
 
   // Enhanced input field component with validation indicators
@@ -436,8 +456,8 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
               hasError
                 ? "border-red-300 focus:ring-red-200"
                 : isValid && touched[name]
-                ? "border-green-300 focus:ring-green-200"
-                : "border-gray-200 hover:border-green-400 focus:ring-green-300"
+                  ? "border-green-300 focus:ring-green-200"
+                  : "border-gray-200 hover:border-green-400 focus:ring-green-300"
             }
             ${
               isSubmitting || isValidatingField
@@ -525,7 +545,7 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     sellingNotes: String(formData.sellingNotes ?? ""),
 
     ...(formData.bookingstatus === "cancelled"
-      ? formData.cancellationForm ?? {}
+      ? (formData.cancellationForm ?? {})
       : {}),
   };
 
@@ -565,54 +585,56 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
             sellingNotes: String(data.sellingNotes ?? prev.sellingNotes ?? ""),
 
             vendorBasePrice: String(
-              data.vendorBasePrice ?? prev.vendorBasePrice ?? ""
+              data.vendorBasePrice ?? prev.vendorBasePrice ?? "",
             ),
             vendorBaseCurrency:
               (data.vendorBaseCurrency as "INR" | "USD") ||
               (prev.vendorBaseCurrency as "INR" | "USD") ||
               "INR",
             vendorBaseRoe: String(
-              data.vendorBaseRoe ?? prev.vendorBaseRoe ?? ""
+              data.vendorBaseRoe ?? prev.vendorBaseRoe ?? "",
             ),
             vendorBaseInr: String(
-              data.vendorBaseInr ?? prev.vendorBaseInr ?? ""
+              data.vendorBaseInr ?? prev.vendorBaseInr ?? "",
             ),
             vendorBaseNotes: String(
-              data.vendorBaseNotes ?? prev.vendorBaseNotes ?? ""
+              data.vendorBaseNotes ?? prev.vendorBaseNotes ?? "",
             ),
 
             vendorIncentiveReceived: String(
-              data.vendorIncentiveReceived ?? prev.vendorIncentiveReceived ?? ""
+              data.vendorIncentiveReceived ??
+                prev.vendorIncentiveReceived ??
+                "",
             ),
             vendorIncentiveCurrency:
               (data.vendorIncentiveCurrency as "INR" | "USD") ||
               (prev.vendorIncentiveCurrency as "INR" | "USD") ||
               "INR",
             vendorIncentiveRoe: String(
-              data.vendorIncentiveRoe ?? prev.vendorIncentiveRoe ?? ""
+              data.vendorIncentiveRoe ?? prev.vendorIncentiveRoe ?? "",
             ),
             vendorIncentiveInr: String(
-              data.vendorIncentiveInr ?? prev.vendorIncentiveInr ?? ""
+              data.vendorIncentiveInr ?? prev.vendorIncentiveInr ?? "",
             ),
             vendorIncentiveNotes: String(
-              data.vendorIncentiveNotes ?? prev.vendorIncentiveNotes ?? ""
+              data.vendorIncentiveNotes ?? prev.vendorIncentiveNotes ?? "",
             ),
 
             commissionPaid: String(
-              data.commissionPaid ?? prev.commissionPaid ?? ""
+              data.commissionPaid ?? prev.commissionPaid ?? "",
             ),
             commissionCurrency:
               (data.commissionCurrency as "INR" | "USD") ||
               (prev.commissionCurrency as "INR" | "USD") ||
               "INR",
             commissionRoe: String(
-              data.commissionRoe ?? prev.commissionRoe ?? ""
+              data.commissionRoe ?? prev.commissionRoe ?? "",
             ),
             commissionInr: String(
-              data.commissionInr ?? prev.commissionInr ?? ""
+              data.commissionInr ?? prev.commissionInr ?? "",
             ),
             commissionNotes: String(
-              data.commissionNotes ?? prev.commissionNotes ?? ""
+              data.commissionNotes ?? prev.commissionNotes ?? "",
             ),
 
             cancellationForm: data,

@@ -23,7 +23,7 @@ import {
   allowOnlyText,
 } from "@/utils/inputValidators";
 import { vi } from "date-fns/locale";
-import LedgerModal from "@/components/Modals/LedgerModal";
+import LedgerModal from "@/components/Modals/LedgerModal/LedgerModal";
 import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import { deleteVendor } from "@/services/vendorApi";

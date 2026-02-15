@@ -21,6 +21,7 @@ import CancellationModal, {
   CancellationModalFormState,
 } from "@/components/Modals/CancellationModal";
 import AmountSection from "@/components/AmountSection";
+import { getDefaultShowAdvancedPricing } from "@/utils/advancedPricing";
 
 // Type definitions
 interface FlightInfoFormData {
@@ -159,6 +160,11 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
     return fields as Partial<FlightInfoFormData>;
   }, [externalFormData]);
 
+  const defaultShowAdvancedPricing = useMemo(
+    () => getDefaultShowAdvancedPricing(normalizedExternalData, isReadOnly),
+    [isReadOnly, normalizedExternalData],
+  );
+
   // Internal form state
   const [formData, setFormData] = useState<FlightInfoFormData>(() => ({
     bookingdate: normalizedExternalData?.bookingdate || "",
@@ -216,7 +222,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
       (normalizedExternalData?.flightType as FlightInfoFormData["flightType"]) ||
       "One Way",
     remarks: normalizedExternalData?.remarks || "",
-    showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
+    showAdvancedPricing: defaultShowAdvancedPricing,
     vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
     vendorIncentiveReceived: String(
       normalizedExternalData?.vendorIncentiveReceived ?? "",
@@ -239,7 +245,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 
   // Advanced Pricing State
   const [showAdvancedPricing, setShowAdvancedPricing] = useState(
-    Boolean(normalizedExternalData?.showAdvancedPricing),
+    defaultShowAdvancedPricing,
   );
   // Vendor payment summary fields
   const [vendorBasePrice, setVendorBasePrice] = useState<string>(
@@ -324,9 +330,15 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   useEffect(() => {
     if (!externalFormData || Object.keys(externalFormData).length === 0) return;
 
+    const nextShowAdvancedPricing = getDefaultShowAdvancedPricing(
+      normalizedExternalData,
+      isReadOnly,
+    );
+
     setFormData((prev) => ({
       ...prev,
       ...normalizedExternalData,
+      showAdvancedPricing: nextShowAdvancedPricing,
       segments:
         normalizedExternalData.segments &&
         normalizedExternalData.segments.length
@@ -354,7 +366,13 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
           | "Round Trip"
           | "Multi-City") ?? prev.flightType,
     }));
-  }, [externalFormData, normalizedExternalData]);
+
+    setShowAdvancedPricing(nextShowAdvancedPricing);
+  }, [externalFormData, isReadOnly, normalizedExternalData]);
+
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, showAdvancedPricing }));
+  }, [showAdvancedPricing]);
 
   useEffect(() => {
     onFormDataUpdate({ flightinfoform: formData });

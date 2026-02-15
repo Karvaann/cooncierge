@@ -1,50 +1,54 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { CiFilter } from "react-icons/ci";
-import { FiEye } from "react-icons/fi";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import { IoChevronDownOutline } from "react-icons/io5";
 import { LuRefreshCcw } from "react-icons/lu";
-import type { JSX } from "react";
-import Modal from "../Modal";
-import DateRangeInput from "../DateRangeInput";
-import Table from "../Table";
-import ActionMenu from "../Menus/ActionMenu";
-import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
-import FilterTrigger from "../FilterTrigger";
-import type { FilterCardOption } from "../FilterCard";
-import CustomIdApi from "@/services/customIdApi";
-import ConfirmationModal from "../popups/ConfirmationModal";
-import DeletePaymentModal from "../Modals/DeletePaymentModal";
+import Modal from "../../Modal";
+import DateRangeInput from "../../DateRangeInput";
+import Table from "../../Table";
+import FilterTrigger from "../../FilterTrigger";
+import type { FilterCardOption } from "../../FilterCard";
+import ConfirmationModal from "../../popups/ConfirmationModal";
+import DeletePaymentModal from "../DeletePaymentModal";
 import { PiArrowCircleUpRight } from "react-icons/pi";
 import { PiArrowCircleDownLeft } from "react-icons/pi";
 import { MdOutlineFileDownload } from "react-icons/md";
-import PaymentsApi from "@/services/paymentsApi";
-import DropDown from "../DropDown";
+import DropDown from "../../DropDown";
 import { exportPDF, exportXLSX } from "@/utils/exportUtils";
-import { isWithinDateRange } from "@/utils/helper";
-import BookingApiService from "@/services/bookingApi";
-import { getCustomerById } from "@/services/customerApi";
-import { getVendorById } from "@/services/vendorApi";
-import type { BankDto } from "@/services/bankApi";
-import BankApi from "@/services/bankApi";
+import {
+  isWithinDateRange,
+  formatDate,
+  formatMoney,
+  toNumberOrZero,
+} from "@/utils/helper";
+import {
+  useLedgerBanks,
+  useLedgerData,
+  useLedgerQuotationApi,
+  usePaymentCustomId,
+} from "./components/LedgerModalApiHooks";
+import LedgerRow from "./components/LedgerRow";
 
 const AddPaymentSidesheet = dynamic(
-  () => import("../Sidesheets/AddPaymentSidesheet"),
+  () => import("../../Sidesheets/AddPaymentSidesheet"),
   { ssr: false, loading: () => null },
 );
 
 const ViewPaymentSidesheet = dynamic(
-  () => import("../Sidesheets/ViewPaymentSidesheet"),
+  () => import("../../Sidesheets/ViewPaymentSidesheet"),
   { ssr: false, loading: () => null },
 );
 
-const BookingFormSidesheet = dynamic(() => import("../BookingFormSidesheet"), {
-  ssr: false,
-  loading: () => null,
-});
+const BookingFormSidesheet = dynamic(
+  () => import("../../BookingFormSidesheet"),
+  {
+    ssr: false,
+    loading: () => null,
+  },
+);
 
 type LedgerStatus = "paid" | "none" | "partial";
 
@@ -71,36 +75,6 @@ interface LedgerModalProps {
   onViewPdf?: () => void;
   isVendorLedger?: boolean; // If true, inverts the color scheme
 }
-
-const statusPillClasses: Record<LedgerStatus, string> = {
-  paid: "bg-green-100 text-green-700 border border-green-200",
-  none: "bg-yellow-100 text-yellow-800 border border-yellow-200",
-  partial: "bg-orange-100 text-orange-700 border border-orange-200",
-};
-
-const formatMoney = (value: number) => {
-  try {
-    return value.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  } catch {
-    return String(value);
-  }
-};
-
-const toNumberOrZero = (value: unknown): number => {
-  try {
-    if (value == null) return 0;
-    if (typeof value === "number") return Number.isFinite(value) ? value : 0;
-    const s = String(value).replace(/,/g, "").trim();
-    if (!s) return 0;
-    const n = Number(s);
-    return Number.isFinite(n) ? n : 0;
-  } catch {
-    return 0;
-  }
-};
 
 const isEmptyScalar = (value: unknown): boolean => {
   return value == null || String(value).trim() === "";
@@ -145,7 +119,11 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     internalNotes?: string;
   } | null>(null);
 
-  const [ledgerData, setLedgerData] = useState<any>(null);
+  const { ledgerData, fetchLedger } = useLedgerData({
+    enabled: isOpen,
+    rawId,
+    isVendorLedger,
+  });
   const [paymentCustomId, setPaymentCustomId] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
@@ -154,8 +132,15 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   const [bookingCode, setBookingCode] = useState<string>("");
 
   // bank states
-  const [banks, setBanks] = useState<BankDto[]>([]);
+  const { banks } = useLedgerBanks({ enabled: isOpen });
   const [selectedBankIds, setSelectedBankIds] = useState<string[]>([]);
+
+  const {
+    withHydratedPartyObjects,
+    getHydratedQuotationById,
+    deleteQuotation,
+  } = useLedgerQuotationApi();
+  const { generatePaymentCustomId } = usePaymentCustomId();
 
   const derivedBookingService = useMemo(() => {
     const quotationTypeRaw =
@@ -234,33 +219,6 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   const [pendingOnly, setPendingOnly] = useState(false);
   const [downloadType, setDownloadType] = useState<"pdf" | "excel">("pdf");
 
-  // Fetch banks when modal opens
-  useEffect(() => {
-    if (!isOpen) return;
-
-    (async () => {
-      try {
-        const resp: any = await BankApi.getBanks({ isDeleted: false });
-
-        // SAFELY extract array
-        const bankList = Array.isArray(resp)
-          ? resp
-          : Array.isArray(resp?.banks)
-            ? resp.banks
-            : Array.isArray(resp?.data)
-              ? resp.data
-              : Array.isArray(resp?.data?.banks)
-                ? resp.data.banks
-                : [];
-
-        setBanks(bankList);
-      } catch (err) {
-        console.error("Failed to fetch banks:", err);
-        setBanks([]);
-      }
-    })();
-  }, [isOpen]);
-
   const accountOptions: FilterCardOption[] = useMemo(() => {
     return banks.map((b) => ({
       value: b._id as string,
@@ -278,21 +236,6 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     );
   };
 
-  const resolveBankNameFromEntry = (entry: any): string => {
-    const bank = resolveBankFromEntry(entry);
-
-    if (!bank) return "—";
-
-    // If populated object
-    if (typeof bank === "object") {
-      return bank.name || "—";
-    }
-
-    // If only ID (fallback)
-    const matched = banks.find((b) => b._id === bank);
-    return matched?.name || "—";
-  };
-
   // Date column label and filter options (Booking Date <-> Travel Date)
   const [dateColumnLabel, setDateColumnLabel] =
     useState<string>("Booking Date");
@@ -304,23 +247,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     [],
   );
 
-  const fetchLedger = async () => {
-    try {
-      if (!rawId) return;
-
-      if (isVendorLedger) {
-        const data = await PaymentsApi.getVendorLedger(rawId);
-        setLedgerData(data);
-      } else {
-        const data = await PaymentsApi.getCustomerLedger(rawId);
-        setLedgerData(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch ledger:", err);
-    }
-  };
-
-  const resolveQuotationIdFromEntry = (entry: any): string => {
+  const resolveQuotationIdFromEntry = useCallback((entry: any): string => {
     try {
       const candidate =
         entry?.referenceId ||
@@ -332,75 +259,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     } catch {
       return "";
     }
-  };
-
-  const normalizeMongoId = (value: unknown): string => {
-    try {
-      if (!value) return "";
-      if (typeof value === "string") return value.trim();
-      if (typeof value === "object") {
-        const maybeId = (value as any)?._id ?? (value as any)?.id;
-        return typeof maybeId === "string" ? maybeId.trim() : "";
-      }
-      return "";
-    } catch {
-      return "";
-    }
-  };
-
-  const withHydratedPartyObjects = async (quotation: any) => {
-    try {
-      if (!quotation) return quotation;
-
-      const customerIdVal = normalizeMongoId(quotation.customerId);
-      const vendorIdVal = normalizeMongoId(quotation.vendorId);
-
-      const shouldFetchCustomer =
-        Boolean(customerIdVal) &&
-        (typeof quotation.customerId !== "object" ||
-          !quotation.customerId?._id ||
-          !quotation.customerId?.name);
-      const shouldFetchVendor =
-        Boolean(vendorIdVal) &&
-        (typeof quotation.vendorId !== "object" ||
-          !quotation.vendorId?._id ||
-          (!quotation.vendorId?.companyName &&
-            !quotation.vendorId?.contactPerson));
-
-      const [customer, vendor] = await Promise.all([
-        shouldFetchCustomer
-          ? getCustomerById(customerIdVal).catch(() => null)
-          : Promise.resolve(null),
-        shouldFetchVendor
-          ? getVendorById(vendorIdVal).catch(() => null)
-          : Promise.resolve(null),
-      ]);
-
-      return {
-        ...quotation,
-        customerId: customer
-          ? {
-              _id: customer._id,
-              name: customer.name,
-              email: customer.email,
-              phone: customer.phone,
-            }
-          : quotation.customerId,
-        vendorId: vendor
-          ? {
-              _id: vendor._id,
-              companyName: vendor.companyName,
-              contactPerson: vendor.contactPerson,
-              email: vendor.email,
-              phone: vendor.phone,
-            }
-          : quotation.vendorId,
-      };
-    } catch (err) {
-      console.error("Failed to hydrate customer/vendor:", err);
-      return quotation;
-    }
-  };
+  }, []);
 
   // Map various quotationType values to the service category used by sidesheet
   const mapQuotationTypeToCategory = (qt?: string) => {
@@ -462,43 +321,37 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     );
   };
 
-  const openEditBookingFromLedgerEntry = async (entry: any) => {
-    try {
-      const quotationId = resolveQuotationIdFromEntry(entry);
-      if (!quotationId) return;
+  const openEditBookingFromLedgerEntry = useCallback(
+    async (entry: any) => {
+      try {
+        const quotationId = resolveQuotationIdFromEntry(entry);
+        if (!quotationId) return;
 
-      setBookingCode(entry?.customId || "");
-      // Open immediately using entry.data as fallback, then hydrate via API.
-      setBookingInitialData(
-        await withHydratedPartyObjects(entry?.data ?? null),
-      );
-      setBookingSidesheetOpen(true);
+        setBookingCode(entry?.customId || "");
+        // Open immediately using entry.data as fallback, then hydrate via API.
+        setBookingInitialData(
+          await withHydratedPartyObjects(entry?.data ?? null),
+        );
+        setBookingSidesheetOpen(true);
 
-      const resp = await BookingApiService.getQuotationById(quotationId);
-      if (resp?.success) {
-        const apiPayload: any = resp.data;
-        const quotation = apiPayload?.quotation;
-        if (quotation) {
-          const hydrated = await withHydratedPartyObjects(quotation);
-          setBookingInitialData(hydrated);
-        }
+        const hydrated = await getHydratedQuotationById(quotationId);
+        if (hydrated) setBookingInitialData(hydrated);
+      } catch (err) {
+        console.error("Failed to open booking for edit:", err);
+        // Still allow the sidesheet to open with whatever we have
+        setBookingSidesheetOpen(true);
       }
-    } catch (err) {
-      console.error("Failed to open booking for edit:", err);
-      // Still allow the sidesheet to open with whatever we have
-      setBookingSidesheetOpen(true);
-    }
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchLedger();
-    }
-  }, [isOpen, rawId, isVendorLedger]);
+    },
+    [
+      getHydratedQuotationById,
+      resolveQuotationIdFromEntry,
+      withHydratedPartyObjects,
+    ],
+  );
 
   // Normalize an entry into a payment-like object
   // Expect the API to send the payment object with the known shape.
-  const normalizeEntryToPayment = (entry: any) => {
+  const normalizeEntryToPayment = useCallback((entry: any) => {
     if (!entry) return null;
     const data = entry.data || {};
 
@@ -627,7 +480,74 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     } as any;
 
     return payment;
-  };
+  }, []);
+
+  const bankNameById = useMemo(() => {
+    return new Map(
+      (banks || [])
+        .filter((b: any) => b && b._id)
+        .map((b: any) => [String(b._id), String(b.name || "")]),
+    );
+  }, [banks]);
+
+  const handleEditPaymentRow = useCallback(
+    (entry: any) => {
+      const payment = normalizeEntryToPayment(entry);
+      if (!payment) return;
+      setSelectedLedgerRow(payment);
+      setPaymentSidesheetMode("edit");
+      const customId = payment.customId || "";
+      setPaymentSidesheetTitle(
+        customId.startsWith("PI-") ? "Payment In" : "Payment Out",
+      );
+      setPaymentCustomId(customId || null);
+      setPaymentInitial({
+        _id: payment._id,
+        customId: customId,
+        amount: String(payment.amount || ""),
+        amountCurrency: payment.amountCurrency,
+        amountRoe: payment.amountRoe,
+        amountInr: payment.amountInr,
+        paymentDate: payment.paymentDate || "",
+        bank:
+          payment.data?.bankId?._id ||
+          payment.bank?._id ||
+          (typeof payment.bank === "string" ? payment.bank : "") ||
+          "",
+        paymentType: payment.paymentType || "",
+        internalNotes: payment.internalNotes || "",
+        bankCharges: String(payment.bankCharges || ""),
+        bankChargesCurrency: payment.bankChargesCurrency,
+        bankChargesRoe: payment.bankChargesRoe,
+        bankChargesInr: payment.bankChargesInr,
+        bankChargesNotes: payment.bankChargesNotes || "",
+        cashbackReceived: String(payment.cashbackReceived || ""),
+        cashbackReceivedCurrency: payment.cashbackReceivedCurrency,
+        cashbackReceivedRoe: payment.cashbackReceivedRoe,
+        cashbackReceivedInr: payment.cashbackReceivedInr,
+        cashbackNotes: payment.cashbackNotes || "",
+      });
+      setPaymentSidesheetOpen(true);
+    },
+    [normalizeEntryToPayment],
+  );
+
+  const handleDeletePaymentRow = useCallback((entry: any) => {
+    setPaymentToDelete(entry);
+    setPaymentDeleteOpen(true);
+  }, []);
+
+  const handleEditQuotationRow = useCallback(
+    (entry: any) => {
+      openEditBookingFromLedgerEntry(entry);
+    },
+    [openEditBookingFromLedgerEntry],
+  );
+
+  const handleDeleteQuotationRow = useCallback((entry: any) => {
+    setDeleteTargetEntry(entry);
+    setConfirmDeleteOpen(true);
+  }, []);
 
   const statusOptions: FilterCardOption[] = useMemo(
     () =>
@@ -694,15 +614,6 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     ];
   }, [dateColumnLabel]);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString).toLocaleDateString("en-IN", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
-    return date;
-  };
-
   const expandedLedgerEntries = useMemo(() => {
     const entries = ledgerData?.entries;
     if (!Array.isArray(entries)) return [];
@@ -732,8 +643,6 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         return [{ ...entry, _displayAmount: toNumberOrZero(costPriceRaw) }];
       }
 
-      // When backend doesn't provide cost price, show 2 records:
-      // vendor base price + vendor incentive (Supplier Incentive)
       const basePriceRaw = resolveVendorBasePriceRaw(entry);
       const incentiveRaw = resolveVendorIncentiveRaw(entry);
 
@@ -757,7 +666,6 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     });
   }, [ledgerData, isVendorLedger]);
 
-  // Format ledger data for export
   const formatLedgerDataForExport = () => {
     if (!expandedLedgerEntries?.length) return [];
 
@@ -766,6 +674,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         typeof entry?._displayAmount === "number"
           ? entry._displayAmount
           : entry.amount;
+
       const idLabel =
         entry.type === "opening"
           ? "Opening Balance"
@@ -801,10 +710,11 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     });
   };
 
-  // Handle download based on selected type
   const handleDownload = () => {
     const formattedData = formatLedgerDataForExport();
-    const fileName = `${customerName || "Ledger"}_${customerId || ""}_${new Date().toISOString().split("T")[0]}`;
+    const fileName = `${customerName || "Ledger"}_${customerId || ""}_${
+      new Date().toISOString().split("T")[0]
+    }`;
 
     if (downloadType === "pdf") {
       exportPDF(formattedData, fileName);
@@ -817,10 +727,8 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     if (!expandedLedgerEntries?.length) return [];
 
     return expandedLedgerEntries.filter((entry: any) => {
-      // Pending filter
       if (pendingOnly && entry.paymentStatus !== "none") return false;
 
-      // Account filter
       if (selectedBankIds.length > 0) {
         const bank = resolveBankFromEntry(entry);
         const bankId =
@@ -833,7 +741,6 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         }
       }
 
-      // Choose the date field according to selected date column
       let entryDate: string = "";
       if (entry.type === "payment") {
         entryDate =
@@ -850,7 +757,6 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           entry.date ||
           "";
       } else {
-        // Booking Date (default)
         entryDate = entry.data?.formFields?.bookingdate || entry.date || "";
       }
 
@@ -865,255 +771,40 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     endDate,
     dateColumnLabel,
     selectedBankIds,
+    resolveBankFromEntry,
   ]);
 
-  const tableData = useMemo<JSX.Element[][]>(() => {
-    return filteredEntries.map((r: any, index: any) => {
-      console.log(r);
-
-      const rowActions = (() => {
-        if (r.type === "payment") {
-          return [
-            {
-              label: "Edit",
-              icon: <FaRegEdit />,
-              color: "text-blue-600",
-              onClick: () => {
-                const payment = normalizeEntryToPayment(r);
-                setSelectedLedgerRow(payment);
-                setPaymentSidesheetMode("edit");
-                const customId = payment.customId || "";
-                setPaymentSidesheetTitle(
-                  customId.startsWith("PI-") ? "Payment In" : "Payment Out",
-                );
-                setPaymentCustomId(customId || null);
-                setPaymentInitial({
-                  _id: payment._id,
-                  customId: customId,
-                  amount: String(payment.amount || ""),
-                  amountCurrency: payment.amountCurrency,
-                  amountRoe: payment.amountRoe,
-                  amountInr: payment.amountInr,
-                  paymentDate: payment.paymentDate || "",
-                  bank:
-                    payment.data?.bankId?._id ||
-                    payment.bank?._id ||
-                    (typeof payment.bank === "string" ? payment.bank : "") ||
-                    "",
-                  paymentType: payment.paymentType || "",
-                  internalNotes: payment.internalNotes || "",
-                  bankCharges: String(payment.bankCharges || ""),
-                  bankChargesCurrency: payment.bankChargesCurrency,
-                  bankChargesRoe: payment.bankChargesRoe,
-                  bankChargesInr: payment.bankChargesInr,
-                  bankChargesNotes: payment.bankChargesNotes || "",
-                  cashbackReceived: String(payment.cashbackReceived || ""),
-                  cashbackReceivedCurrency: payment.cashbackReceivedCurrency,
-                  cashbackReceivedRoe: payment.cashbackReceivedRoe,
-                  cashbackReceivedInr: payment.cashbackReceivedInr,
-                  cashbackNotes: payment.cashbackNotes || "",
-                });
-                setPaymentSidesheetOpen(true);
-              },
-            },
-            {
-              label: "Delete",
-              icon: <FaRegTrashAlt />,
-              color: "text-red-600",
-              onClick: () => {
-                setPaymentToDelete(r);
-                setPaymentDeleteOpen(true);
-              },
-            },
-          ];
-        }
-
-        if (r.type === "quotation") {
-          return [
-            {
-              label: "Edit",
-              icon: <FaRegEdit />,
-              color: "text-blue-600",
-              onClick: () => openEditBookingFromLedgerEntry(r),
-            },
-            {
-              label: "Delete",
-              icon: <FaRegTrashAlt />,
-              color: "text-red-600",
-              onClick: () => {
-                setDeleteTargetEntry(r);
-                setConfirmDeleteOpen(true);
-              },
-            },
-          ];
-        }
-
-        return [];
-      })();
-
-      // show travel date when selected, otherwise booking date
-      const displayedDate = (() => {
-        if (r.type === "payment") {
-          return r.paymentDate || r.date;
-        }
-
-        if (dateColumnLabel === "Travel Date") {
-          return (
-            r.travelDate || r.data?.travelDate || r.data?.formFields?.traveldate
-          );
-        }
-
-        // Default: Booking Date
-        return r.data?.formFields?.bookingdate || r.date;
-      })();
-      // Determine background color based on row type and ledger type
-
-      const amountBgClass = isVendorLedger
-        ? r.type === "payment"
-          ? "bg-red-50"
-          : "bg-green-50"
-        : r.type === "payment"
-          ? "bg-green-50"
-          : "bg-red-50";
-      const amountTextClass = isVendorLedger
-        ? r.type === "payment"
-          ? "text-red-500"
-          : "text-green-600"
-        : r.type === "payment"
-          ? "text-green-600"
-          : "text-red-500";
-
-      const displayAmount =
-        typeof r?._displayAmount === "number" ? r._displayAmount : r.amount;
+  const tableData = useMemo<React.ReactNode[][]>(() => {
+    return filteredEntries.map((entry: any, idx: number) => {
+      const stableKey =
+        `${entry?.type || "row"}-` +
+        `${entry?._id || entry?.referenceId || entry?.customId || idx}-` +
+        `${entry?._vendorSplit || ""}`;
 
       return [
-        <td
-          key={`id-${index}`}
-          className="px-4 py-3 text-center font-[600] text-[14px]"
-        >
-          {r.type === "opening" ? (
-            "Opening Balance"
-          ) : r.type === "quotation" ? (
-            <div className="relative inline-flex flex-col items-center justify-center">
-              <span className="peer cursor-default leading-5">
-                {r.customId || "NA"}
-              </span>
-              {r._displayIdSubLabel ? (
-                <span className="text-[12px] font-[500] text-gray-500 leading-4 mt-1">
-                  {String(r._displayIdSubLabel)}
-                </span>
-              ) : null}
-
-              <div
-                className="absolute -top-8 left-1/2 z-50 px-2 py-1 text-[0.75rem] text-white bg-gray-800 rounded-md shadow-lg pointer-events-none -translate-x-1/2 transition-opacity duration-150 ease-in-out opacity-0 invisible whitespace-nowrap peer-hover:opacity-100 peer-hover:visible"
-                role="tooltip"
-              >
-                {getQuotationDisplayLabel(extractQuotationTypeFromEntry(r))}
-                <div
-                  className="absolute left-1/2 -bottom-1 w-2.5 h-2.5 bg-gray-800"
-                  style={{
-                    transform: "translateX(-50%) rotate(45deg)",
-                    WebkitTransform: "translateX(-50%) rotate(45deg)",
-                  }}
-                />
-              </div>
-            </div>
-          ) : (
-            r.customId || "NA"
-          )}
-        </td>,
-        <td key={`date-${index}`} className="px-4 py-3 text-center text-[14px]">
-          {formatDate(displayedDate)}
-        </td>,
-        <td
-          key={`status-${index}`}
-          className="px-4 py-3 text-center text-[14px]"
-        >
-          <span
-            className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-[12px] font-semibold ${
-              statusPillClasses[r.paymentStatus as LedgerStatus]
-            }`}
-          >
-            {r.type === "opening" || r.type === "payment"
-              ? ""
-              : r.paymentStatus === "none"
-                ? "Pending"
-                : r.paymentStatus === "partial"
-                  ? "Partially Paid"
-                  : "Paid"}
-          </span>
-        </td>,
-        <td
-          key={`account-${index}`}
-          className="px-4 py-3 text-center text-[14px]"
-        >
-          <div className="relative inline-flex items-center justify-center">
-            <span className="peer cursor-default">
-              {resolveBankNameFromEntry(r)}
-            </span>
-
-            <div
-              className="absolute -top-8 left-1/2 z-50 px-2 py-1 text-[0.75rem] text-white bg-gray-800 rounded-md shadow-lg pointer-events-none -translate-x-1/2 transition-opacity duration-150 ease-in-out opacity-0 invisible whitespace-nowrap peer-hover:opacity-100 peer-hover:visible"
-              role="tooltip"
-            >
-              {r?.paymentType ||
-                r?.data?.payment?.paymentType ||
-                r?.data?.paymentType ||
-                r?.data?.payment?.type ||
-                "-"}
-              <div
-                className="absolute left-1/2 -bottom-1 w-2.5 h-2.5 bg-gray-800"
-                style={{
-                  transform: "translateX(-50%) rotate(45deg)",
-                  WebkitTransform: "translateX(-50%) rotate(45deg)",
-                }}
-              />
-            </div>
-          </div>
-        </td>,
-        <td
-          key={`amount-${index}`}
-          className={`px-4 py-3 text-center text-[14px] ${amountBgClass}`}
-        >
-          <span className="font-semibold">₹ {formatMoney(displayAmount)}</span>
-        </td>,
-        <td
-          key={`closing-${index}`}
-          className={`px-4 py-3 text-center text-[14px] ${amountBgClass}`}
-        >
-          <span className={`${amountTextClass} font-semibold`}>
-            ₹ {formatMoney(r.closingBalance.amount)}
-          </span>
-        </td>,
-        <td
-          key={`actions-${index}`}
-          className="px-4 py-3 text-center text-[14px]"
-        >
-          <div
-            className="flex items-center justify-center gap-2"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              type="button"
-              className="p-2 rounded-md bg-[#FEF7E7] hover:bg-[#FDF1D5] transition border border-[#F5E6C3]"
-              aria-label="View"
-              onClick={(e) => {
-                e.stopPropagation();
-                // View handled by row click for payment rows only.
-                // Intentionally do not open the ViewPaymentSidesheet here.
-              }}
-            >
-              <FiEye className="text-[#8B6914]" size={16} />
-            </button>
-
-            {rowActions.length > 0 ? (
-              <ActionMenu width="w-24" actions={rowActions} />
-            ) : null}
-          </div>
-        </td>,
+        <LedgerRow
+          key={stableKey}
+          entry={entry}
+          dateColumnLabel={dateColumnLabel}
+          isVendorLedger={isVendorLedger}
+          bankNameById={bankNameById}
+          onEditPayment={handleEditPaymentRow}
+          onDeletePayment={handleDeletePaymentRow}
+          onEditQuotation={handleEditQuotationRow}
+          onDeleteQuotation={handleDeleteQuotationRow}
+        />,
       ];
     });
-  }, [filteredEntries, isVendorLedger, dateColumnLabel]);
+  }, [
+    filteredEntries,
+    dateColumnLabel,
+    isVendorLedger,
+    bankNameById,
+    handleEditPaymentRow,
+    handleDeletePaymentRow,
+    handleEditQuotationRow,
+    handleDeleteQuotationRow,
+  ]);
 
   const handleOpenViewPaymentByRowIndex = (rowIndex: number) => {
     const row = filteredEntries?.[rowIndex];
@@ -1185,7 +876,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         return;
       }
 
-      const resp = await BookingApiService.deleteQuotation(quotationId);
+      const resp = await deleteQuotation(quotationId);
       if (resp?.success) {
         setConfirmDeleteOpen(false);
         setDeleteTargetEntry(null);
@@ -1293,7 +984,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         headerLeft={headerLeft}
       >
         <div
-          className="p-2 -mt-4 relative"
+          className="p-2 -mt-4 relative flex flex-col max-h-[75vh]"
           onClick={(e) => e.stopPropagation()}
         >
           {isRefreshing && (
@@ -1325,7 +1016,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
               </div>
             </div>
           )}
-          <div className="border border-gray-200 rounded-xl p-3">
+          <div className="border border-gray-200 rounded-xl p-3 flex flex-col flex-1 min-h-0">
             {/* Top actions row */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
@@ -1455,8 +1146,8 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
               </label>
             </div>
 
-            {/* Table */}
-            <div className="mt-4">
+            {/* Table (scrolls inside modal) */}
+            <div className="mt-4 flex-1 overflow-auto min-h-0">
               {ledgerData?.entries && (
                 <Table
                   data={tableData}
@@ -1483,7 +1174,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           </div>
 
           {/* Bottom summary buttons */}
-          <div className="sticky bottom-0 z-20 -mx-4 px-4 pt-4 pb-2 bg-white border-t border-gray-100">
+          <div className="flex-none -mx-4 px-4 pt-4 pb-2 bg-white border-t border-gray-100">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -1491,19 +1182,9 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                   setPaymentSidesheetMode("create");
                   setPaymentInitial(null);
                   setPaymentSidesheetTitle("Payment Out");
-                  try {
-                    const resp: any = await CustomIdApi.generate("paymentOut");
-                    const id =
-                      resp?.customId ||
-                      resp?.data?.customId ||
-                      resp?.id ||
-                      (typeof resp === "string" ? resp : null) ||
-                      null;
-                    setPaymentCustomId(id);
-                  } catch (err) {
-                    console.error("Failed to generate custom id:", err);
-                    setPaymentCustomId(null);
-                  }
+                  setPaymentCustomId(
+                    await generatePaymentCustomId("paymentOut"),
+                  );
                   setPaymentSidesheetOpen(true);
                 }}
                 className="bg-[#EB382B] hover:bg-[#DC2626] text-white px-4 py-2.5 rounded-md text-[14px] font-semibold"
@@ -1523,19 +1204,9 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                   setPaymentSidesheetMode("create");
                   setPaymentInitial(null);
                   setPaymentSidesheetTitle("Payment In");
-                  try {
-                    const resp: any = await CustomIdApi.generate("paymentIn");
-                    const id =
-                      resp?.customId ||
-                      resp?.data?.customId ||
-                      resp?.id ||
-                      (typeof resp === "string" ? resp : null) ||
-                      null;
-                    setPaymentCustomId(id);
-                  } catch (err) {
-                    console.error("Failed to generate custom id:", err);
-                    setPaymentCustomId(null);
-                  }
+                  setPaymentCustomId(
+                    await generatePaymentCustomId("paymentIn"),
+                  );
                   setPaymentSidesheetOpen(true);
                 }}
                 className="bg-[#4CA640] hover:bg-[#16A34A] text-white px-4 py-2.5 rounded-md text-[14px] font-semibold"
