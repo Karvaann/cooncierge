@@ -56,8 +56,8 @@ const SelectedPackageCard = ({
 
   return (
     <div className="rounded-[12px] border border-gray-200 bg-white overflow-hidden">
-      <div className="px-5 py-4">
-        <div className="text-[16px] font-semibold text-[#020202]">
+      <div className="px-5 py-3">
+        <div className="text-[16px] font-medium text-[#020202]">
           Selected Package
         </div>
       </div>
@@ -65,20 +65,20 @@ const SelectedPackageCard = ({
 
       <div className="p-5 space-y-4">
         {/* Itinerary headline */}
-        <div className="text-[14px] font-semibold text-[#020202] tracking-wide">
+        <div className="text-[14px] -mt-1 font-semibold text-[#020202] tracking-wide">
           {itineraryName}
         </div>
 
         {/* Destination + Dates */}
         <div className="flex items-center justify-between gap-10 flex-wrap">
-          <div className="flex items-center gap-6 flex-wrap">
+          <div className="flex items-center gap-24 flex-wrap">
             <div className="flex items-center gap-2 text-gray-700">
               <IoLocationSharp className="text-gray-400" size={18} />
-              <span className="text-[14px] text-gray-600">{destination}</span>
+              <span className="text-[14px] text-[#818181]">{destination}</span>
             </div>
 
             <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-2 text-[15px] text-[#020202] font-semibold">
+              <div className="flex items-center gap-2 text-[15px] text-[#020202] font-medium">
                 <IoCalendarClearOutline className="text-[#020202]" size={18} />
                 <span>{startDate}</span>
                 <span className="text-gray-400 font-medium">→</span>
@@ -87,7 +87,7 @@ const SelectedPackageCard = ({
 
               <div className="w-px h-6 bg-gray-200 hidden sm:block" />
 
-              <div className="text-[15px] text-[#020202] font-semibold">
+              <div className="text-[15px] text-[#020202] font-medium">
                 {nightsLabel}
               </div>
             </div>
@@ -105,7 +105,9 @@ const SelectedPackageCard = ({
         {/* Price + Breakdown */}
         <div className="rounded-[12px] bg-[#F8F8F8] p-4">
           <div className="flex items-center justify-between">
-            <div className="text-[13px] text-gray-600">Total Net Price</div>
+            <div className="text-[14px] font-medium text-[#818181]">
+              Total Net Price
+            </div>
             <div className="text-[18px] font-semibold text-[#020202]">
               {formatMoney(currencySymbol, totalNetPrice)}
             </div>
@@ -159,14 +161,16 @@ const SelectedPackageCard = ({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={onDownloadPdf}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#EAF3FF] text-blue-700 font-semibold text-[14px] hover:bg-blue-100"
-        >
-          <FiDownload />
-          Download PDF
-        </button>
+        <div className="flex justify-center">
+          <button
+            type="button"
+            onClick={onDownloadPdf}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-[#EAF3FF] text-blue-700 font-semibold text-[14px] hover:bg-blue-100"
+          >
+            <FiDownload />
+            Download PDF
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import ConfirmPopupModal from "./popups/BookingPopups/ConfirmPopupModal";
 import SuccessPopupModal from "./popups/BookingPopups/SuccessPopupModal";
 import ErrorToast from "./ErrorToast";
 import { BookingProvider, useBooking } from "@/context/BookingContext";
+import { useLimitlessDraft } from "@/context/LimitlessDraftContext";
 import { BookingApiService } from "@/services/bookingApi";
 import apiClient from "@/services/apiClient";
 import SideSheet from "@/components/SideSheet";
@@ -280,6 +281,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   hideVendor = false,
 }) => {
   const router = useRouter();
+  const { setDraft: setLimitlessDraft } = useLimitlessDraft();
 
   // Bump this whenever the sidesheet is (re)opened so child forms remount
   const [formInstanceId, setFormInstanceId] = useState(0);
@@ -345,6 +347,17 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   }, [initialData?.quotationType, selectedService]);
 
   const handleProceedToBookingSummary = useCallback(() => {
+    // Persist current Limitless form + docs so the view page can submit it.
+    try {
+      setLimitlessDraft({
+        bookingCode: bookingCode || formData?.customId || "",
+        formData: formData || {},
+        documents: bookingDocuments,
+      });
+    } catch (_) {
+      /* ignore */
+    }
+
     // Close sidesheet (best-effort) and open booking summary page.
     try {
       onClose();
@@ -352,7 +365,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       /* ignore */
     }
     router.push("/bookings/limitless/view-booking");
-  }, [onClose, router]);
+  }, [
+    bookingCode,
+    bookingDocuments,
+    formData,
+    onClose,
+    router,
+    setLimitlessDraft,
+  ]);
 
   // In "view" modestart read-only, but allow the user to toggle into edit.
   const [readOnlyOverride, setReadOnlyOverride] = useState<boolean | null>(
@@ -1122,7 +1142,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                       }}
                       bgColor="bg-white"
                       textColor="text-[#114958]"
-                      className="border border-[#114958] hover:bg-[#114958] "
+                      className="border border-[#0D4B37] hover:cursror-pointer"
                       disabled={isSubmitting}
                     />
                   )}
@@ -1132,7 +1152,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
                 {/* RIGHT SIDE BUTTONS */}
                 <div className="flex space-x-2">
-                  {/* EDIT MODE (existing behavior) */}
+                  {/* EDIT MODE */}
                   {mode !== "view" && (
                     <>
                       {activeTab === "general" && !isEditingExisting && (
@@ -1140,8 +1160,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           text="Save As Draft"
                           onClick={handleDraftSubmit}
                           bgColor="bg-white"
-                          textColor="text-[#114958]"
-                          className="hover:bg-gray-200 border border-[#114958]"
+                          textColor="text-[#0D4B37]"
+                          className="hover:bg-gray-200 border border-[#0D4B37]"
                           disabled={isSubmitting}
                         />
                       )}
@@ -1156,9 +1176,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                             const nextTab = tabs[currentIndex + 1];
                             if (nextTab?.isEnabled) setActiveTab(nextTab.id);
                           }}
-                          bgColor="bg-[#114958]"
+                          bgColor="bg-[#0D4B37]"
                           textColor="text-white"
-                          className="hover:bg-[#0d3a45]"
+                          className="hover:cursor-pointer"
                           disabled={isSubmitting}
                         />
                       )}
@@ -1169,8 +1189,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                             <Button
                               text="Save As Draft"
                               onClick={handleDraftSubmit}
-                              bgColor="bg-white border border-[#114958]"
-                              textColor="text-[#114958]"
+                              bgColor="bg-white border border-[#0D4B37]"
+                              textColor="text-[#0D4B37]"
                               disabled={isSubmitting}
                             />
                           )}
@@ -1204,7 +1224,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                     </>
                   )}
 
-                  {/* VIEW MODE: keep footer + allow Edit -> Save */}
+                  {/* VIEW MODE */}
                   {mode === "view" && (
                     <>
                       {activeTab === "general" && (
@@ -1243,9 +1263,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                       ) : (
                         <Button
                           text={
-                            isLimitlessBooking
-                              ? "Proceed to booking summary"
-                              : "Save"
+                            isLimitlessBooking ? "Proceed to Summary" : "Save"
                           }
                           onClick={() =>
                             isLimitlessBooking

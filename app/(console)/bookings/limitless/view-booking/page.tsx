@@ -1,18 +1,25 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { TbClipboardText } from "react-icons/tb";
 import { HiOutlineDotsHorizontal } from "react-icons/hi";
 import LogsUI from "@/components/LogsUI";
-import { FiEdit2 } from "react-icons/fi";
+import { FiEdit2, FiUser } from "react-icons/fi";
 import { IoCalendarClearOutline, IoLocationSharp } from "react-icons/io5";
 import AvatarTooltip from "@/components/AvatarToolTip";
 import { getOwnerAvatarColorClass } from "@/utils/helper";
 import ViewItineraryDetailsAccordian from "@/components/accordians/ViewItineraryDetailsAccordian";
 import SelectedPackageCard from "@/components/SelectedPackageCard";
-import PickupDropCard from "@/components/PickupDropCard";
+import RouteCard from "@/components/RouteCard";
 import ViewBookingLayoutTabs from "@/components/viewBookingLayouts/ViewBookingLayoutTabs";
 import ModifySearchModal from "@/components/Modals/ModifySearchModal";
+import Button from "@/components/Button";
+import ErrorToast from "@/components/ErrorToast";
+import { useLimitlessDraft } from "@/context/LimitlessDraftContext";
+import LimitlessApi from "@/services/limitlessApi";
+import { useAuth } from "@/context/AuthContext";
+import { useRouter } from "next/navigation";
+import { TbEdit } from "react-icons/tb";
 
 type BookingOwner = {
   full: string;
@@ -85,54 +92,81 @@ const TravelDatesSummaryCard = ({
   destination,
   startDate,
   endDate,
-  nightsDaysDisplay,
+  nightsLabel,
+  travellersCount,
   onEdit,
 }: {
   destination: string;
   startDate: string;
   endDate: string;
-  nightsDaysDisplay: string;
+  nightsLabel: string;
+  travellersCount?: number;
   onEdit?: () => void;
 }) => {
   return (
-    <div className="rounded-[12px] border border-gray-200 bg-[#FFF7E8] px-5 py-4 flex items-center justify-between shadow-sm w-full">
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-[#FFEAD1] flex items-center justify-center">
-            <IoLocationSharp className="text-[#D97706]" size={16} />
+    <div
+      className="rounded-[12px] border border-gray-200 px-5 py-4 shadow-sm w-full"
+      style={{ background: "linear-gradient(90deg, #FFF8E5 0%, #FFFCF5 100%)" }}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0 space-y-5">
+          <div className="flex items-center -mt-1 gap-2 -ml-1">
+            <div className="w-8 h-8 rounded-full bg-[#FFEAD1] flex items-center justify-center">
+              <IoLocationSharp className="text-[#DC6601]" size={16} />
+            </div>
+            <div className="text-[16px] font-semibold text-[#DC6601] truncate">
+              {destination}
+            </div>
           </div>
-          <div className="text-[18px] font-semibold text-[#B45309]">
-            {destination}
+
+          <div className="mt-3 flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 text-[15px] text-[#020202] font-medium">
+              <IoCalendarClearOutline className="text-[#020202]" size={18} />
+              <span>{startDate}</span>
+              <span className="text-gray-400 font-medium">→</span>
+              <span>{endDate}</span>
+            </div>
+
+            <div className="hidden sm:block w-px h-6 bg-gray-300" />
+
+            <div className="text-[15px] text-[#020202] font-medium">
+              {nightsLabel}
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="flex items-center gap-2 text-[16px] text-[#020202] font-semibold">
-            <IoCalendarClearOutline className="text-[#020202]" size={18} />
-            <span>{startDate}</span>
-            <span className="text-gray-400 font-medium">→</span>
-            <span>{endDate}</span>
-          </div>
-          <div className="hidden sm:block w-px h-6 bg-gray-300" />
-          <div className="text-[16px] text-[#020202] font-semibold">
-            {nightsDaysDisplay}
-          </div>
+        <div className="flex flex-col items-end gap-3 flex-shrink-0">
+          <button
+            type="button"
+            className="w-9 h-9 rounded-[10px] border border-gray-200 bg-[#F3F4F6] flex items-center justify-center hover:bg-gray-200"
+            aria-label="Edit travel dates"
+            onClick={onEdit}
+          >
+            <TbEdit className="text-blue-600" size={19} />
+          </button>
+
+          {typeof travellersCount === "number" && (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-[10px] bg-[#F3E8FF] flex items-center justify-center">
+                <FiUser className="text-[#7C3AED]" size={18} />
+              </div>
+              <div className="text-[14px] text-gray-600">
+                <span className="font-semibold text-[#020202]">
+                  {travellersCount}
+                </span>{" "}
+                Travellers
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      <button
-        type="button"
-        className="w-10 h-10 rounded-[10px] border border-blue-200 bg-white flex items-center justify-center hover:bg-blue-50"
-        aria-label="Edit travel dates"
-        onClick={onEdit}
-      >
-        <FiEdit2 className="text-blue-600" size={18} />
-      </button>
     </div>
   );
 };
 
 const ViewBookingPage = () => {
+  const { user } = useAuth();
+  const { draft, clearDraft } = useLimitlessDraft();
   const tabOptions = useMemo(() => ["Booking Info", "Booking Log"], []);
   const [activeTab, setActiveTab] =
     useState<(typeof tabOptions)[number]>("Booking Info");
@@ -141,9 +175,14 @@ const ViewBookingPage = () => {
   const tabsContainerRef = useRef<HTMLDivElement | null>(null);
   const [indicatorStyle, setIndicatorStyle] = useState({ width: 0, left: 0 });
 
-  const bookingId = useMemo(() => "OS-ABC12", []);
+  const router = useRouter();
 
-  // These should come from the user's selected dates (wired to dummy for now)
+  const bookingId = useMemo(
+    () => draft?.bookingCode || "OS-ABC12",
+    [draft?.bookingCode],
+  );
+
+  // These should come from the user's selected dates (fallback to dummy)
   const [travelStartDate, setTravelStartDate] = useState<string>(() =>
     new Date(2025, 4, 5).toISOString(),
   );
@@ -153,11 +192,267 @@ const ViewBookingPage = () => {
 
   const [isModifySearchOpen, setIsModifySearchOpen] = useState(false);
 
-  const destination = useMemo(() => "Dubai", []);
+  const destination = useMemo(() => {
+    const info = (draft?.formData as any)?.limitlessinfoform;
+    const destinations = info?.limitlessDestinations;
+    if (Array.isArray(destinations) && destinations.length) {
+      return String(destinations[0] ?? "Dubai") || "Dubai";
+    }
+    return "Dubai";
+  }, [draft]);
+
+  useEffect(() => {
+    const info = (draft?.formData as any)?.limitlessinfoform;
+    if (!info) return;
+
+    if (info.traveldatestart) setTravelStartDate(String(info.traveldatestart));
+    if (info.traveldateend) setTravelEndDate(String(info.traveldateend));
+  }, [draft]);
   const { nights, display: nightsDaysDisplay } = useMemo(
     () => computeNightsDaysDisplay(travelStartDate, travelEndDate),
     [travelStartDate, travelEndDate],
   );
+
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastBgClass, setToastBgClass] = useState("bg-red-50");
+  const [toastMessageColor, setToastMessageColor] = useState("text-red-600");
+  const [toastBorderClass, setToastBorderClass] = useState("border-red-200");
+  const [toastCloseBtnClass, setToastCloseBtnClass] = useState(
+    "text-red-400 hover:text-red-600",
+  );
+  const [toastShowLabel, setToastShowLabel] = useState(true);
+
+  const showError = (msg: string) => {
+    setToastMessage(String(msg));
+    setToastBgClass("bg-red-50");
+    setToastMessageColor("text-red-600");
+    setToastBorderClass("border-red-200");
+    setToastCloseBtnClass("text-red-400 hover:text-red-600");
+    setToastShowLabel(true);
+    setToastVisible(true);
+  };
+
+  const showSuccess = (msg: string) => {
+    setToastMessage(String(msg));
+    setToastBgClass("bg-green-50");
+    setToastMessageColor("text-green-800");
+    setToastBorderClass("border-green-200");
+    setToastCloseBtnClass("text-green-600 hover:text-green-800");
+    setToastShowLabel(false);
+    setToastVisible(true);
+  };
+
+  const handleSaveAndUpdate = async () => {
+    if (!draft) {
+      showError(
+        "No Limitless draft data found. Please fill the Limitless form first.",
+      );
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+
+      const isValidObjectId = (value: unknown): boolean => {
+        if (typeof value !== "string") return false;
+        const v = value.trim();
+        return /^[a-f\d]{24}$/i.test(v);
+      };
+
+      const extractObjectId = (value: unknown): string | null => {
+        if (!value) return null;
+        if (typeof value === "string") {
+          const v = value.trim();
+          return isValidObjectId(v) ? v : null;
+        }
+        if (typeof value === "object") {
+          const maybeId = (value as any)?._id ?? (value as any)?.id;
+          if (typeof maybeId === "string") {
+            const v = maybeId.trim();
+            return isValidObjectId(v) ? v : null;
+          }
+        }
+        return null;
+      };
+
+      const appendIfPresent = (fd: FormData, key: string, value: unknown) => {
+        if (value === undefined || value === null) return;
+        const str = String(value);
+        if (!str.trim()) return;
+        fd.append(key, str);
+      };
+
+      const sanitizeObjectIdList = (ids: unknown): string[] => {
+        if (!Array.isArray(ids)) return [];
+        return (ids as unknown[])
+          .map((id) => extractObjectId(id))
+          .filter((id): id is string => Boolean(id));
+      };
+
+      const info = (draft.formData as any)?.limitlessinfoform || {};
+
+      const formDataPayload = new FormData();
+
+      // Required identifiers
+      appendIfPresent(
+        formDataPayload,
+        "customId",
+        draft.bookingCode || info.customId || (draft.formData as any)?.customId,
+      );
+
+      // Service status
+      const isBookingMaker = Boolean((user as any)?.isBookingMaker);
+      formDataPayload.append(
+        "serviceStatus",
+        isBookingMaker ? "pending" : "approved",
+      );
+
+      // Required fields when serviceStatus !== 'draft'
+      appendIfPresent(formDataPayload, "totalAmount", info.sellingprice);
+      appendIfPresent(formDataPayload, "travelDate", info.traveldatestart);
+
+      // Optional fields
+      appendIfPresent(formDataPayload, "bookingDate", info.bookingdate);
+      appendIfPresent(formDataPayload, "roe", info.sellingRoe);
+      appendIfPresent(formDataPayload, "currency", info.sellingCurrency);
+      appendIfPresent(formDataPayload, "limitlessTitle", info.itineraryname);
+      appendIfPresent(formDataPayload, "description", info.description);
+      appendIfPresent(formDataPayload, "remarks", info.remarks);
+
+      // Customer + owners (IDs)
+      const customerId = extractObjectId((draft.formData as any)?.customer);
+      if (customerId)
+        appendIfPresent(formDataPayload, "customerId", customerId);
+
+      const primaryOwner = extractObjectId(
+        (draft.formData as any)?.bookingOwner,
+      );
+      if (primaryOwner)
+        appendIfPresent(formDataPayload, "primaryOwner", primaryOwner);
+
+      const secondaryOwnersRaw =
+        (draft.formData as any)?.secondaryBookingOwners ??
+        (draft.formData as any)?.secondaryBookingOwner;
+      const secondaryOwners = Array.isArray(secondaryOwnersRaw)
+        ? sanitizeObjectIdList(secondaryOwnersRaw)
+        : extractObjectId(secondaryOwnersRaw)
+          ? [extractObjectId(secondaryOwnersRaw)!]
+          : [];
+      if (secondaryOwners.length) {
+        formDataPayload.append(
+          "secondaryOwner",
+          JSON.stringify(secondaryOwners),
+        );
+      }
+
+      // Travellers
+      const adultsCountRaw = (draft.formData as any)?.adults;
+      const childrenCountRaw = (draft.formData as any)?.children;
+      const infantsCountRaw = (draft.formData as any)?.infants;
+
+      const adultsCount = Number(adultsCountRaw || 0);
+      const childrenCount = Number(childrenCountRaw || 0);
+      const infantsCount = Number(infantsCountRaw || 0);
+
+      if (!Number.isNaN(adultsCount)) {
+        appendIfPresent(formDataPayload, "adultNumber", adultsCount);
+      }
+      const childNumber = childrenCount + infantsCount;
+      appendIfPresent(formDataPayload, "childNumber", childNumber);
+
+      const adultTravellerIds = sanitizeObjectIdList(
+        (draft.formData as any)?.adultTravellerIds,
+      );
+      if (adultTravellerIds.length) {
+        formDataPayload.append(
+          "adultTravelers",
+          JSON.stringify(adultTravellerIds),
+        );
+      }
+
+      const childTravellerIds = sanitizeObjectIdList(
+        (draft.formData as any)?.childTravellerIds ??
+          (draft.formData as any)?.infantTravellerIds,
+      );
+      const childAges = Array.isArray((draft.formData as any)?.childAges)
+        ? ((draft.formData as any)?.childAges as Array<number | null>)
+        : [];
+      if (childTravellerIds.length) {
+        const childTravelers = childTravellerIds.map((id, idx) => {
+          const ageCandidate = childAges[idx];
+          const age =
+            typeof ageCandidate === "number" ? ageCandidate : undefined;
+          return age !== undefined ? { id, age } : { id };
+        });
+        formDataPayload.append(
+          "childTravelers",
+          JSON.stringify(childTravelers),
+        );
+      }
+
+      // Destinations
+      const destinations = Array.isArray(info?.limitlessDestinations)
+        ? info.limitlessDestinations
+        : Array.isArray((draft.formData as any)?.limitlessDestinations)
+          ? (draft.formData as any)?.limitlessDestinations
+          : [];
+      if (destinations.length) {
+        formDataPayload.append(
+          "limitlessDestinations",
+          JSON.stringify(destinations.map((d: any) => String(d))),
+        );
+      }
+
+      // Documents (max 3)
+      (draft.documents || []).slice(0, 3).forEach((file) => {
+        formDataPayload.append("documents", file);
+      });
+
+      const response: any = await LimitlessApi.createLimitless(formDataPayload);
+
+      if (response?.success) {
+        const createdId =
+          response?.limitless?.customId || response?.data?.customId;
+        showSuccess(
+          createdId
+            ? `Saved Limitless booking: ${createdId}`
+            : "Saved Limitless booking",
+        );
+        router.replace("/bookings/limitless");
+        clearDraft();
+        return;
+      }
+
+      showError(response?.message || "Failed to save Limitless booking");
+    } catch (err) {
+      console.error("Failed to save limitless booking:", err);
+      showError(
+        err instanceof Error ? err.message : "Failed to save Limitless booking",
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const nightsLabel = useMemo(
+    () => (typeof nights === "number" ? `${nights}N` : ""),
+    [nights],
+  );
+
+  const travellersCount = useMemo(() => {
+    if (!draft) return undefined;
+    const adults = Number((draft.formData as any)?.adults || 0);
+    const children = Number((draft.formData as any)?.children || 0);
+    const infants = Number((draft.formData as any)?.infants || 0);
+    const total =
+      (Number.isNaN(adults) ? 0 : adults) +
+      (Number.isNaN(children) ? 0 : children) +
+      (Number.isNaN(infants) ? 0 : infants);
+    return total > 0 ? total : undefined;
+  }, [draft]);
 
   const travelStartDateDisplay = useMemo(
     () => formatToDDMMYYYY(travelStartDate),
@@ -230,18 +525,28 @@ const ViewBookingPage = () => {
 
   return (
     <div className="w-full">
+      <ErrorToast
+        message={toastMessage}
+        visible={toastVisible}
+        onClose={() => setToastVisible(false)}
+        bgColorClass={toastBgClass}
+        messageColorClass={toastMessageColor}
+        borderColorClass={toastBorderClass}
+        closeButtonClass={toastCloseBtnClass}
+        showLabel={toastShowLabel}
+      />
       {/* OUTER CARD */}
       <div className="bg-white rounded-[8px] shadow px-[18px] py-[18px] mb-5 w-full border border-gray-100">
         {/* HEADER */}
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-[18px] font-semibold text-[#020202]">
+              <h1 className="text-[16px] font-semibold text-[#020202]">
                 View Booking <span className="font-semibold">|</span>{" "}
                 <span className="font-semibold">{bookingId}</span>
               </h1>
             </div>
-            <p className="text-[13px] text-gray-500 mt-0.5">
+            <p className="text-[13px] text-gray-500 mt-1">
               View and track booking details here
             </p>
           </div>
@@ -354,10 +659,8 @@ const ViewBookingPage = () => {
                 />
 
                 <div>
-                  <PickupDropCard
+                  <RouteCard
                     city="DEIRA"
-                    pickupPoint="Dubai International Airport"
-                    dropPoint="Dubai International Airport"
                     onChangeRoute={() => {
                       // placeholder: open route change modal later
                       console.log("Change Route clicked");
@@ -374,18 +677,37 @@ const ViewBookingPage = () => {
                   destination={destination}
                   startDate={travelStartDateDisplay}
                   endDate={travelEndDateDisplay}
-                  nightsDaysDisplay={nightsDaysDisplay}
+                  nightsLabel={nightsLabel}
+                  {...(typeof travellersCount === "number"
+                    ? { travellersCount }
+                    : {})}
                   onEdit={() => setIsModifySearchOpen(true)}
                 />
 
                 <SelectedPackageCard
-                  itineraryName="ITINERARY ABC"
+                  itineraryName={
+                    (draft?.formData as any)?.limitlessinfoform
+                      ?.itineraryname || "ITINERARY ABC"
+                  }
                   destination={destination}
                   startDate={travelStartDateDisplay}
                   endDate={travelEndDateDisplay}
                   nightsLabel={typeof nights === "number" ? `${nights}N` : "7N"}
-                  totalNetPrice={12500}
+                  totalNetPrice={Number(
+                    (draft?.formData as any)?.limitlessinfoform?.sellingprice ||
+                      12500,
+                  )}
                 />
+
+                <div className="w-[160px] ml-41">
+                  <Button
+                    text={isSaving ? "Saving..." : "Save & Update"}
+                    bgColor="bg-[#0D4B37]"
+                    width="w-full"
+                    disabled={isSaving || !draft}
+                    onClick={handleSaveAndUpdate}
+                  />
+                </div>
               </div>
             </div>
           ) : (

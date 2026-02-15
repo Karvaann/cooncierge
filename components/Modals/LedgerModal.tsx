@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { CiFilter } from "react-icons/ci";
 import { FiEye } from "react-icons/fi";
 import { HiArrowsUpDown } from "react-icons/hi2";
@@ -14,9 +15,7 @@ import ActionMenu from "../Menus/ActionMenu";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import FilterTrigger from "../FilterTrigger";
 import type { FilterCardOption } from "../FilterCard";
-import AddPaymentSidesheet from "../Sidesheets/AddPaymentSidesheet";
 import CustomIdApi from "@/services/customIdApi";
-import ViewPaymentSidesheet from "../Sidesheets/ViewPaymentSidesheet";
 import ConfirmationModal from "../popups/ConfirmationModal";
 import DeletePaymentModal from "../Modals/DeletePaymentModal";
 import { PiArrowCircleUpRight } from "react-icons/pi";
@@ -26,12 +25,26 @@ import PaymentsApi from "@/services/paymentsApi";
 import DropDown from "../DropDown";
 import { exportPDF, exportXLSX } from "@/utils/exportUtils";
 import { isWithinDateRange } from "@/utils/helper";
-import BookingFormSidesheet from "../BookingFormSidesheet";
 import BookingApiService from "@/services/bookingApi";
 import { getCustomerById } from "@/services/customerApi";
 import { getVendorById } from "@/services/vendorApi";
 import type { BankDto } from "@/services/bankApi";
 import BankApi from "@/services/bankApi";
+
+const AddPaymentSidesheet = dynamic(
+  () => import("../Sidesheets/AddPaymentSidesheet"),
+  { ssr: false, loading: () => null },
+);
+
+const ViewPaymentSidesheet = dynamic(
+  () => import("../Sidesheets/ViewPaymentSidesheet"),
+  { ssr: false, loading: () => null },
+);
+
+const BookingFormSidesheet = dynamic(() => import("../BookingFormSidesheet"), {
+  ssr: false,
+  loading: () => null,
+});
 
 type LedgerStatus = "paid" | "none" | "partial";
 
@@ -76,6 +89,23 @@ const formatMoney = (value: number) => {
   }
 };
 
+const toNumberOrZero = (value: unknown): number => {
+  try {
+    if (value == null) return 0;
+    if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+    const s = String(value).replace(/,/g, "").trim();
+    if (!s) return 0;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+  } catch {
+    return 0;
+  }
+};
+
+const isEmptyScalar = (value: unknown): boolean => {
+  return value == null || String(value).trim() === "";
+};
+
 const LedgerModal: React.FC<LedgerModalProps> = ({
   isOpen,
   onClose,
@@ -96,9 +126,18 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     _id?: string;
     customId?: string;
     amount?: string;
+    amountCurrency?: string;
+    amountRoe?: any;
+    amountInr?: any;
     bankCharges?: string;
+    bankChargesCurrency?: string;
+    bankChargesRoe?: any;
+    bankChargesInr?: any;
     bankChargesNotes?: string;
     cashbackReceived?: string;
+    cashbackReceivedCurrency?: string;
+    cashbackReceivedRoe?: any;
+    cashbackReceivedInr?: any;
     cashbackNotes?: string;
     paymentDate?: string;
     bank?: string;
@@ -664,31 +703,102 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     return date;
   };
 
+  const expandedLedgerEntries = useMemo(() => {
+    const entries = ledgerData?.entries;
+    if (!Array.isArray(entries)) return [];
+    if (!isVendorLedger) return entries;
+
+    const resolveCostPriceRaw = (entry: any) =>
+      entry?.data?.formFields?.costprice ??
+      entry?.data?.formFields?.costPrice ??
+      entry?.data?.costprice ??
+      entry?.data?.costPrice ??
+      "";
+
+    const resolveVendorBasePriceRaw = (entry: any) =>
+      entry?.data?.formFields?.vendorBasePrice ?? entry?.data?.vendorBasePrice;
+
+    const resolveVendorIncentiveRaw = (entry: any) =>
+      entry?.data?.formFields?.vendorIncentiveReceived ??
+      entry?.data?.vendorIncentiveReceived ??
+      entry?.data?.formFields?.commissionPaid ??
+      entry?.data?.commissionPaid;
+
+    return entries.flatMap((entry: any) => {
+      if (!entry || entry.type !== "quotation") return [entry];
+
+      const costPriceRaw = resolveCostPriceRaw(entry);
+      if (!isEmptyScalar(costPriceRaw)) {
+        return [{ ...entry, _displayAmount: toNumberOrZero(costPriceRaw) }];
+      }
+
+      // When backend doesn't provide cost price, show 2 records:
+      // vendor base price + vendor incentive (Supplier Incentive)
+      const basePriceRaw = resolveVendorBasePriceRaw(entry);
+      const incentiveRaw = resolveVendorIncentiveRaw(entry);
+
+      const hasAnyVendorAmounts =
+        !isEmptyScalar(basePriceRaw) || !isEmptyScalar(incentiveRaw);
+      if (!hasAnyVendorAmounts) return [entry];
+
+      const baseRow = {
+        ...entry,
+        _vendorSplit: "base",
+        _displayAmount: toNumberOrZero(basePriceRaw),
+      };
+      const incentiveRow = {
+        ...entry,
+        _vendorSplit: "incentive",
+        _displayIdSubLabel: "Supplier Incentive",
+        _displayAmount: toNumberOrZero(incentiveRaw),
+      };
+
+      return [baseRow, incentiveRow];
+    });
+  }, [ledgerData, isVendorLedger]);
+
   // Format ledger data for export
   const formatLedgerDataForExport = () => {
-    if (!ledgerData?.entries) return [];
+    if (!expandedLedgerEntries?.length) return [];
 
-    return ledgerData.entries.map((entry: any) => ({
-      ID: entry.type === "opening" ? "Opening Balance" : entry.customId || "NA",
-      Date: formatDate(entry?.data?.formFields?.bookingdate || entry.date),
-      Type:
+    return expandedLedgerEntries.map((entry: any) => {
+      const displayAmount =
+        typeof entry?._displayAmount === "number"
+          ? entry._displayAmount
+          : entry.amount;
+      const idLabel =
+        entry.type === "opening"
+          ? "Opening Balance"
+          : entry._displayIdSubLabel
+            ? `${entry.customId || "NA"} - ${entry._displayIdSubLabel}`
+            : entry.customId || "NA";
+
+      const typeLabel =
         entry.type === "payment"
           ? "Payment"
           : entry.type === "opening"
             ? "Opening"
-            : "Booking",
-      Status:
-        entry.type === "opening" || entry.type === "payment"
-          ? "-"
-          : entry.paymentStatus === "none"
-            ? "Pending"
-            : entry.paymentStatus === "partial"
-              ? "Partially Paid"
-              : "Paid",
-      Account: entry.account || "-",
-      Amount: `₹ ${formatMoney(entry.amount)}`,
-      "Closing Balance": `₹ ${formatMoney(entry.closingBalance.amount)}`,
-    }));
+            : entry._vendorSplit === "incentive"
+              ? "Supplier Incentive"
+              : "Booking";
+
+      return {
+        ID: idLabel,
+        Date: formatDate(entry?.data?.formFields?.bookingdate || entry.date),
+        Type: typeLabel,
+        Status:
+          entry.type === "opening" || entry.type === "payment"
+            ? "-"
+            : entry.paymentStatus === "none"
+              ? "Pending"
+              : entry.paymentStatus === "partial"
+                ? "Partially Paid"
+                : "Paid",
+        Account: entry.account || "-",
+        Amount: `₹ ${formatMoney(displayAmount)}`,
+        "Closing Balance": `₹ ${formatMoney(entry.closingBalance.amount)}`,
+      };
+    });
   };
 
   // Handle download based on selected type
@@ -704,9 +814,9 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   };
 
   const filteredEntries = useMemo(() => {
-    if (!ledgerData?.entries) return [];
+    if (!expandedLedgerEntries?.length) return [];
 
-    return ledgerData.entries.filter((entry: any) => {
+    return expandedLedgerEntries.filter((entry: any) => {
       // Pending filter
       if (pendingOnly && entry.paymentStatus !== "none") return false;
 
@@ -749,7 +859,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
       return true;
     });
   }, [
-    ledgerData,
+    expandedLedgerEntries,
     pendingOnly,
     startDate,
     endDate,
@@ -857,8 +967,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         return r.data?.formFields?.bookingdate || r.date;
       })();
       // Determine background color based on row type and ledger type
-      // Customer ledger: payment=green, booking=red
-      // Vendor ledger: payment=red, booking=green (inverted)
+
       const amountBgClass = isVendorLedger
         ? r.type === "payment"
           ? "bg-red-50"
@@ -874,6 +983,9 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           ? "text-green-600"
           : "text-red-500";
 
+      const displayAmount =
+        typeof r?._displayAmount === "number" ? r._displayAmount : r.amount;
+
       return [
         <td
           key={`id-${index}`}
@@ -882,8 +994,15 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           {r.type === "opening" ? (
             "Opening Balance"
           ) : r.type === "quotation" ? (
-            <div className="relative inline-flex items-center justify-center">
-              <span className="peer cursor-default">{r.customId || "NA"}</span>
+            <div className="relative inline-flex flex-col items-center justify-center">
+              <span className="peer cursor-default leading-5">
+                {r.customId || "NA"}
+              </span>
+              {r._displayIdSubLabel ? (
+                <span className="text-[12px] font-[500] text-gray-500 leading-4 mt-1">
+                  {String(r._displayIdSubLabel)}
+                </span>
+              ) : null}
 
               <div
                 className="absolute -top-8 left-1/2 z-50 px-2 py-1 text-[0.75rem] text-white bg-gray-800 rounded-md shadow-lg pointer-events-none -translate-x-1/2 transition-opacity duration-150 ease-in-out opacity-0 invisible whitespace-nowrap peer-hover:opacity-100 peer-hover:visible"
@@ -956,7 +1075,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           key={`amount-${index}`}
           className={`px-4 py-3 text-center text-[14px] ${amountBgClass}`}
         >
-          <span className="font-semibold">₹ {formatMoney(r.amount)}</span>
+          <span className="font-semibold">₹ {formatMoney(displayAmount)}</span>
         </td>,
         <td
           key={`closing-${index}`}
@@ -997,7 +1116,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   }, [filteredEntries, isVendorLedger, dateColumnLabel]);
 
   const handleOpenViewPaymentByRowIndex = (rowIndex: number) => {
-    const row = ledgerData?.entries[rowIndex];
+    const row = filteredEntries?.[rowIndex];
     if (!row) return;
     // Only open view payment sidesheet for payment records
     if (row.type === "payment") {
@@ -1364,68 +1483,74 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
           </div>
 
           {/* Bottom summary buttons */}
-          <div className="mt-4 flex items-center gap-3">
-            <button
-              type="button"
-              onClick={async () => {
-                setPaymentSidesheetMode("create");
-                setPaymentInitial(null);
-                setPaymentSidesheetTitle("Payment Out");
-                try {
-                  const resp: any = await CustomIdApi.generate("paymentOut");
-                  const id =
-                    resp?.customId ||
-                    resp?.data?.customId ||
-                    resp?.id ||
-                    (typeof resp === "string" ? resp : null) ||
-                    null;
-                  setPaymentCustomId(id);
-                } catch (err) {
-                  console.error("Failed to generate custom id:", err);
-                  setPaymentCustomId(null);
-                }
-                setPaymentSidesheetOpen(true);
-              }}
-              className="bg-[#EB382B] hover:bg-[#DC2626] text-white px-4 py-2.5 rounded-md text-[14px] font-semibold"
-            >
-              <span className="flex items-center gap-2">
-                <PiArrowCircleUpRight size={18} height="bold" strokeWidth={4} />
-                You Gave
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={async () => {
-                setPaymentSidesheetMode("create");
-                setPaymentInitial(null);
-                setPaymentSidesheetTitle("Payment In");
-                try {
-                  const resp: any = await CustomIdApi.generate("paymentIn");
-                  const id =
-                    resp?.customId ||
-                    resp?.data?.customId ||
-                    resp?.id ||
-                    (typeof resp === "string" ? resp : null) ||
-                    null;
-                  setPaymentCustomId(id);
-                } catch (err) {
-                  console.error("Failed to generate custom id:", err);
-                  setPaymentCustomId(null);
-                }
-                setPaymentSidesheetOpen(true);
-              }}
-              className="bg-[#4CA640] hover:bg-[#16A34A] text-white px-4 py-2.5 rounded-md text-[14px] font-semibold"
-            >
-              <span className="text-sm flex items-center gap-1">
-                {" "}
-                <PiArrowCircleDownLeft
-                  size={18}
-                  height="bold"
-                  strokeWidth={4}
-                />
-                You Got
-              </span>
-            </button>
+          <div className="sticky bottom-0 z-20 -mx-4 px-4 pt-4 pb-2 bg-white border-t border-gray-100">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  setPaymentSidesheetMode("create");
+                  setPaymentInitial(null);
+                  setPaymentSidesheetTitle("Payment Out");
+                  try {
+                    const resp: any = await CustomIdApi.generate("paymentOut");
+                    const id =
+                      resp?.customId ||
+                      resp?.data?.customId ||
+                      resp?.id ||
+                      (typeof resp === "string" ? resp : null) ||
+                      null;
+                    setPaymentCustomId(id);
+                  } catch (err) {
+                    console.error("Failed to generate custom id:", err);
+                    setPaymentCustomId(null);
+                  }
+                  setPaymentSidesheetOpen(true);
+                }}
+                className="bg-[#EB382B] hover:bg-[#DC2626] text-white px-4 py-2.5 rounded-md text-[14px] font-semibold"
+              >
+                <span className="flex items-center gap-2">
+                  <PiArrowCircleUpRight
+                    size={18}
+                    height="bold"
+                    strokeWidth={4}
+                  />
+                  You Gave
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setPaymentSidesheetMode("create");
+                  setPaymentInitial(null);
+                  setPaymentSidesheetTitle("Payment In");
+                  try {
+                    const resp: any = await CustomIdApi.generate("paymentIn");
+                    const id =
+                      resp?.customId ||
+                      resp?.data?.customId ||
+                      resp?.id ||
+                      (typeof resp === "string" ? resp : null) ||
+                      null;
+                    setPaymentCustomId(id);
+                  } catch (err) {
+                    console.error("Failed to generate custom id:", err);
+                    setPaymentCustomId(null);
+                  }
+                  setPaymentSidesheetOpen(true);
+                }}
+                className="bg-[#4CA640] hover:bg-[#16A34A] text-white px-4 py-2.5 rounded-md text-[14px] font-semibold"
+              >
+                <span className="text-sm flex items-center gap-1">
+                  {" "}
+                  <PiArrowCircleDownLeft
+                    size={18}
+                    height="bold"
+                    strokeWidth={4}
+                  />
+                  You Got
+                </span>
+              </button>
+            </div>
           </div>
         </div>
       </Modal>

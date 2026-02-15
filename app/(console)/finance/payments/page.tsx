@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
+import { TbArrowAutofitRight } from "react-icons/tb";
 import { HiArrowsUpDown } from "react-icons/hi2";
 import { getNextTriSortState, type TriSortState } from "@/utils/sorting";
 import { PiArrowCircleUpRight } from "react-icons/pi";
@@ -17,6 +18,7 @@ import type { FilterCardOption } from "@/components/FilterCard";
 import FilterTrigger from "@/components/FilterTrigger";
 
 import AddPaymentSidesheet from "@/components/Sidesheets/AddPaymentSidesheet";
+import ViewPaymentSidesheet from "@/components/Sidesheets/ViewPaymentSidesheet";
 import ErrorToast from "@/components/ErrorToast";
 import PaymentsApi from "@/services/paymentsApi";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
@@ -83,6 +85,8 @@ type PaymentRow = {
   id?: string | null;
   bankId?: string | null;
   partyType?: "Customer" | "Vendor";
+  // raw API object for full view/edit payloads
+  raw?: any;
 };
 
 // const dummyPayments: PaymentRow[] = [
@@ -215,6 +219,7 @@ const PaymentsPage = () => {
   }, [activeTab, tabOptions]);
 
   const [payments, setPayments] = useState<PaymentRow[]>([]);
+  const [viewPayment, setViewPayment] = useState<any | null>(null);
   const [editingPayment, setEditingPayment] = useState<PaymentRow | null>(null);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<{
@@ -446,6 +451,7 @@ const PaymentsPage = () => {
               ? String(p.bankId._id || p.bankId)
               : null,
           partyType: inferredPartyType,
+          raw: p,
         };
       });
       setPayments(mapped);
@@ -576,6 +582,47 @@ const PaymentsPage = () => {
     amountFilter,
   ]);
 
+  const getActionsForTab = (tab: string, row: PaymentRow) => {
+    const id = row?.id || row?.paymentId || null;
+
+    const baseActions = [
+      {
+        label: "Edit",
+        icon: <FaRegEdit />,
+        color: "text-blue-600",
+        onClick: () => {
+          setEditingPayment(row);
+          setIsAddPaymentOpen(true);
+        },
+      },
+      {
+        label: "Delete",
+        icon: <FaRegTrashAlt />,
+        color: "text-red-600",
+        onClick: () => {
+          setPaymentToDelete({
+            id: row.id || null,
+            customId: row.paymentId || null,
+          });
+          setIsConfirmOpen(true);
+        },
+      },
+    ];
+
+    if (tab === "Deleted") {
+      return [
+        {
+          label: "Recover",
+          icon: <TbArrowAutofitRight />,
+          color: "text-gray-400",
+          onClick: () => console.log("Recover", id),
+        },
+      ];
+    }
+
+    return baseActions;
+  };
+
   const tableData = useMemo<JSX.Element[][]>(() => {
     return visiblePayments.map((payment, index) => {
       const cells: JSX.Element[] = [];
@@ -584,13 +631,37 @@ const PaymentsPage = () => {
           key={`paymentId-${index}`}
           className="px-4 py-3 font-[500] text-center"
         >
-          {payment.paymentId}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setViewPayment(payment.raw || payment);
+            }}
+            className="text-[14px] font-medium text-[#020202] hover:text-[#0D4B37]"
+          >
+            {payment.paymentId}
+          </button>
         </td>,
         <td key={`partyName-${index}`} className="px-4 py-3 text-center">
           {payment.partyName}
         </td>,
         <td key={`linkedBooking-${index}`} className="px-4 py-3 text-center">
-          {payment.linkedBooking}
+          <div className="flex items-center justify-center gap-2">
+            <span>{payment.linkedBooking}</span>
+            {((payment.raw?.allocations && payment.raw.allocations.length) ||
+              0) > 1 && (
+              <button
+                type="button"
+                className="text-[#020202] underline text-[14px] ml-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // placeholder: could open a modal or details view
+                }}
+              >
+                +{payment.raw.allocations.length - 1}
+              </button>
+            )}
+          </div>
         </td>,
         <td key={`amount-${index}`} className="px-4 py-3 text-center">
           <span
@@ -647,29 +718,7 @@ const PaymentsPage = () => {
               👁 View
             </button>
             <ActionMenu
-              actions={[
-                {
-                  label: "Edit",
-                  icon: <FaRegEdit />,
-                  color: "text-blue-600",
-                  onClick: () => {
-                    setEditingPayment(payment);
-                    setIsAddPaymentOpen(true);
-                  },
-                },
-                {
-                  label: "Delete",
-                  icon: <FaRegTrashAlt />,
-                  color: "text-red-600",
-                  onClick: () => {
-                    setPaymentToDelete({
-                      id: payment.id || null,
-                      customId: payment.paymentId || null,
-                    });
-                    setIsConfirmOpen(true);
-                  },
-                },
-              ]}
+              actions={getActionsForTab(activeTab, payment)}
               width="w-22"
             />
           </div>
@@ -678,7 +727,7 @@ const PaymentsPage = () => {
 
       return cells;
     });
-  }, [visiblePayments, isCursorInTable]);
+  }, [visiblePayments, isCursorInTable, activeTab]);
 
   return (
     <>
@@ -946,6 +995,104 @@ const PaymentsPage = () => {
             setToastCloseBtnClass("text-red-400 hover:text-red-600");
             setToastShowLabel(true);
             setToastVisible(true);
+          }}
+        />
+        <ViewPaymentSidesheet
+          isOpen={!!viewPayment}
+          onClose={() => setViewPayment(null)}
+          payment={viewPayment}
+          onDeleted={() => {
+            setViewPayment(null);
+            (async () => {
+              try {
+                await fetchPayments();
+              } catch (e) {
+                console.error("Failed to refresh after delete", e);
+              }
+            })();
+          }}
+          onEdit={(payload: any) => {
+            const bankCandidate =
+              payload?.bank ||
+              payload?.data?.bankId?._id ||
+              payload?.bankId ||
+              payload?.bank?._id;
+
+            const editPayment: PaymentRow = {
+              paymentId: payload?.customId || payload?._id || payload?.id || "",
+              partyName:
+                payload?.partyName ||
+                payload?.data?.partyId?.name ||
+                payload?.party?.name ||
+                "",
+              linkedBooking:
+                (payload?.allocations &&
+                  payload?.allocations[0]?.quotationId?.customId) ||
+                payload?.linkedBooking ||
+                "-",
+              serviceType: payload?.serviceType || payload?.data?.serviceType,
+              amount: Number(payload?.amount || payload?.data?.amount || 0),
+
+              amountCurrency:
+                payload?.amountCurrency || payload?.data?.amountCurrency,
+              amountRoe: payload?.amountRoe || payload?.data?.amountRoe,
+              amountInr: payload?.amountInr || payload?.data?.amountInr,
+
+              bankCharges: payload?.bankCharges || payload?.data?.bankCharges,
+              bankChargesCurrency:
+                payload?.bankChargesCurrency ||
+                payload?.data?.bankChargesCurrency,
+              bankChargesRoe:
+                payload?.bankChargesRoe || payload?.data?.bankChargesRoe,
+              bankChargesInr:
+                payload?.bankChargesInr || payload?.data?.bankChargesInr,
+
+              cashbackReceived:
+                payload?.cashbackReceived || payload?.data?.cashbackReceived,
+              cashbackReceivedCurrency:
+                payload?.cashbackReceivedCurrency ||
+                payload?.data?.cashbackReceivedCurrency,
+              cashbackReceivedRoe:
+                payload?.cashbackReceivedRoe ||
+                payload?.data?.cashbackReceivedRoe,
+              cashbackReceivedInr:
+                payload?.cashbackReceivedInr ||
+                payload?.data?.cashbackReceivedInr,
+
+              amountType: payload?.entryType === "credit" ? "got" : "gave",
+              account: payload?.bank?.name || payload?.account || "Cash",
+              paymentType:
+                payload?.paymentType || payload?.data?.paymentType || "",
+              paymentDateRaw:
+                payload?.paymentDate ||
+                payload?.data?.paymentDate ||
+                payload?.date ||
+                payload?.createdAt ||
+                null,
+              date: payload?.paymentDate
+                ? new Date(payload.paymentDate).toLocaleDateString()
+                : payload?.createdAt
+                  ? new Date(payload.createdAt).toLocaleDateString()
+                  : "",
+              createdAt: payload?.createdAt || new Date().toISOString(),
+              id: payload?._id
+                ? String(payload._id)
+                : payload?.id
+                  ? String(payload.id)
+                  : null,
+              bankId: bankCandidate ? String(bankCandidate) : null,
+              partyType:
+                payload?.partyType ||
+                (payload?.partyId &&
+                (payload.partyId.companyName || payload.partyId.contactPerson)
+                  ? "Vendor"
+                  : "Customer"),
+              raw: payload,
+            };
+
+            setEditingPayment(editPayment);
+            setViewPayment(null);
+            setIsAddPaymentOpen(true);
           }}
         />
         <ConfirmationModal

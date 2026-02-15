@@ -57,6 +57,11 @@ const LimitlessApi = {
 		return data;
 	},
 
+	async deleteLimitless(id: string) {
+		const { data } = await apiClient.delete(`${base}/delete-limitless/${id}`);
+		return data;
+	},
+
 	async getHistoryByCustomer(customerId: string, params?: Record<string, unknown>) {
 		const { data } = await apiClient.get(`${base}/booking-history/customer/${customerId}`, {
 			params,

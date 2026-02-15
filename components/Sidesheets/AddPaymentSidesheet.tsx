@@ -353,16 +353,30 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       });
       setPartyType("Customer");
     } else if (initialVendor) {
+      const iv = initialVendor as any;
+      const primaryName = String(
+        iv.companyName || iv.contactPerson || initialVendor.name || "",
+      ).trim();
       setSelectedVendor({
         _id: initialVendor._id,
-        name: initialVendor.name,
-        alias: initialVendor.customId,
+        customId: initialVendor.customId,
+        // VendorDropDown displays companyName/contactPerson/customId; ensure companyName is never blank
+        companyName: primaryName || String(initialVendor.customId || "").trim(),
+        contactPerson: iv.contactPerson,
+        name: String(iv.name || iv.companyName || primaryName || "").trim(),
+        alias: String(
+          iv.alias || iv.nickname || initialVendor.customId || "",
+        ).trim(),
       });
       setPartyType("Vendor");
     } else if (prefillPartyName) {
       // When only a party name (and optional type) is provided, prefill display
       if (prefillPartyType === "Vendor") {
-        setSelectedVendor({ _id: "", name: prefillPartyName });
+        setSelectedVendor({
+          _id: "",
+          name: prefillPartyName,
+          companyName: prefillPartyName,
+        });
         setPartyType("Vendor");
       } else {
         setSelectedCustomer({ _id: "", name: prefillPartyName });
@@ -390,31 +404,60 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     if (prefillKeyRef.current === prefillKey) return;
     prefillKeyRef.current = prefillKey;
 
-    // Set party type from initialPayment (Customer or Vendor)
-    if (
-      initialPayment.party === "Customer" ||
-      initialPayment.party === "Vendor"
-    ) {
-      setPartyType(initialPayment.party);
+    // Set party type from initialPayment (authoritative in edit mode)
+    const normalizedParty = String((initialPayment as any).party || "")
+      .trim()
+      .toLowerCase();
+    if (normalizedParty === "customer") {
+      setPartyType("Customer");
+      setSelectedVendor(null);
+    } else if (normalizedParty === "vendor") {
+      setPartyType("Vendor");
+      setSelectedCustomer(null);
     }
 
     // Set party selection (customer or vendor) from initialPayment.partyId
     if (initialPayment.partyId && typeof initialPayment.partyId === "object") {
-      if (initialPayment.party === "Customer") {
+      const pid = initialPayment.partyId as any;
+
+      if (normalizedParty === "customer") {
         setSelectedCustomer({
-          _id: (initialPayment.partyId as any)._id || "",
-          name: (initialPayment.partyId as any).name || "",
-          customId: (initialPayment.partyId as any).customId,
+          _id: String(pid._id || ""),
+          name: String(pid.name || pid.customId || "").trim(),
+          customId: pid.customId ? String(pid.customId) : undefined,
         });
-      } else if (initialPayment.party === "Vendor") {
-        setSelectedVendor({
-          _id: (initialPayment.partyId as any)._id || "",
-          name:
-            (initialPayment.partyId as any).companyName ||
-            (initialPayment.partyId as any).name ||
+      } else if (normalizedParty === "vendor") {
+        const primaryName = String(
+          pid.companyName ||
+            pid.contactPerson ||
+            pid.customId ||
+            pid.name ||
             "",
-          companyName: (initialPayment.partyId as any).companyName || "",
-          alias: (initialPayment.partyId as any).customId,
+        ).trim();
+        setSelectedVendor({
+          _id: String(pid._id || ""),
+          customId: pid.customId ? String(pid.customId) : undefined,
+          // VendorDropDown reads companyName/contactPerson/customId for input value
+          companyName: String(
+            pid.companyName || pid.name || primaryName || "",
+          ).trim(),
+          contactPerson: pid.contactPerson,
+          name: String(pid.name || pid.companyName || primaryName || "").trim(),
+          alias: String(pid.alias || pid.nickname || pid.customId || "").trim(),
+        });
+      }
+    } else if (typeof initialPayment.partyId === "string" && prefillPartyName) {
+      // Fallback when backend doesn't populate partyId object but caller provided a name
+      if (normalizedParty === "vendor") {
+        setSelectedVendor({
+          _id: initialPayment.partyId,
+          name: prefillPartyName,
+          companyName: prefillPartyName,
+        });
+      } else if (normalizedParty === "customer") {
+        setSelectedCustomer({
+          _id: initialPayment.partyId,
+          name: prefillPartyName,
         });
       }
     }
@@ -649,6 +692,13 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
     const clamped = Math.max(0, Math.min(valNum, pending, totalAllowed));
 
+    // Notify user when they entered an amount exceeding remaining payment allowed
+    if (valNum > totalAllowed) {
+      showErrorToast(
+        "Entered amount exceeds remaining payment amount; adjusted to allowed maximum.",
+      );
+    }
+
     setPendingDocRows((prev) =>
       prev.map((r, i) =>
         i === index ? { ...r, amountPaying: String(clamped) } : r,
@@ -679,6 +729,11 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
       const totalAllowed = Math.max(Number(amount || 0) - alreadyAllocated, 0);
       const pending = Number(row?.pendingAmount || 0);
       const allocate = Math.max(0, Math.min(pending, totalAllowed));
+      if (pending > totalAllowed) {
+        showErrorToast(
+          "Selected allocation was limited because it would exceed the payment amount.",
+        );
+      }
       setPendingDocRows((prev) =>
         prev.map((r, i) =>
           i === index ? { ...r, amountPaying: String(allocate) } : r,
@@ -730,6 +785,13 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     cashbackReceived,
     cashbackReceivedRoe,
   ]);
+
+  // Clear paymentType when bank is set to cash
+  useEffect(() => {
+    if (String(selectedBank).toLowerCase() === "cash") {
+      setPaymentType("");
+    }
+  }, [selectedBank]);
 
   // Auto-distribute payment amount in auto mode, clear in manual mode
   useEffect(() => {
@@ -1872,7 +1934,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
               </p>
             </div>
 
-            {selectedBank && (
+            {selectedBank && String(selectedBank).toLowerCase() !== "cash" && (
               <div className="mt-4">
                 <label className="block text-[13px] font-medium text-gray-700 mb-2">
                   Payment Type
@@ -1886,7 +1948,11 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                         <button
                           key={type}
                           type="button"
-                          onClick={() => setPaymentType(type as PaymentType)}
+                          onClick={() =>
+                            setPaymentType(
+                              selected ? "" : (type as PaymentType),
+                            )
+                          }
                           className={`px-4 py-2 text-[13px] rounded-full border transition inline-flex items-center gap-3 ${
                             selected
                               ? "bg-[#F9F3FF] border-gray-300 text-gray-800 font-semibold"

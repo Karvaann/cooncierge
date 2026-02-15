@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { validateOtherServiceInfoForm } from "@/services/bookingApi";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineFileUpload } from "react-icons/md";
-import { FiTrash2, FiSearch } from "react-icons/fi";
+import { FiTrash2 } from "react-icons/fi";
 import { IoClose } from "react-icons/io5";
 import { useRef } from "react";
 import StyledDescription from "../StyledDescription";
@@ -24,6 +24,7 @@ interface LimitlessServiceInfoFormData {
   customId?: string;
   bookingdate: string;
   traveldatestart: string;
+  limitlessDestinations?: string[];
   traveldateend: string;
   bookingstatus: "Confirmed" | "Canceled" | "In Progress" | string;
   sellingprice: number | string;
@@ -58,6 +59,7 @@ interface LimitlessServiceInfoFormProps {
   showValidation?: boolean;
   formRef?: React.RefObject<HTMLDivElement | null>;
   onFormDataUpdate: (data: any) => void;
+  onRegisterSubmit?: (submit: () => Promise<any>) => void;
   onAddDocuments?: (files: File[]) => void;
   externalFormData?: ExternalFormData | Record<string, unknown>;
   existingDocuments?: Array<{
@@ -79,6 +81,7 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
   showValidation = true,
   formRef,
   onFormDataUpdate,
+  onRegisterSubmit,
   onAddDocuments,
   externalFormData,
   existingDocuments = [],
@@ -89,7 +92,50 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
       (source as ExternalFormData)?.formFields ??
       (source as ExternalFormData)?.limitlessinfoform ??
       source;
-    return fields as Partial<LimitlessServiceInfoFormData>;
+
+    const raw = (source as any) || {};
+    const f = (fields as any) || {};
+
+    const normalizeStatus = (val: any): string => {
+      const s = String(val || "").trim();
+      if (!s) return "";
+      const lower = s.toLowerCase();
+      if (lower === "confirmed") return "Confirmed";
+      if (lower === "cancelled" || lower === "canceled") return "Canceled";
+      if (lower === "in progress" || lower === "in_progress")
+        return "In Progress";
+      return s;
+    };
+
+    // form-like shape (booking screens often store under formFields/limitlessinfoform)
+    // backend booking shape
+    const merged: Partial<LimitlessServiceInfoFormData> = {
+      ...f,
+      customId: f.customId ?? raw.customId,
+      bookingdate: f.bookingdate ?? raw.bookingDate ?? raw.bookingdate,
+      traveldatestart:
+        f.traveldatestart ?? raw.travelDate ?? raw.traveldatestart,
+      traveldateend: f.traveldateend ?? raw.travelDateEnd ?? raw.traveldateend,
+      bookingstatus: normalizeStatus(
+        f.bookingstatus ?? raw.status ?? raw.bookingstatus,
+      ),
+
+      sellingprice: f.sellingprice ?? raw.totalAmount ?? raw.sellingprice,
+      sellingCurrency: (f.sellingCurrency ??
+        raw.currency ??
+        raw.sellingCurrency) as any,
+      sellingRoe: String(f.sellingRoe ?? raw.roe ?? raw.sellingRoe ?? ""),
+      sellingInr: String(f.sellingInr ?? raw.sellingInr ?? ""),
+      sellingNotes: f.sellingNotes ?? raw.sellingNotes,
+
+      itineraryname: f.itineraryname ?? raw.limitlessTitle ?? raw.itineraryname,
+      description: f.description ?? raw.description,
+      remarks: f.remarks ?? raw.remarks,
+      limitlessDestinations:
+        f.limitlessDestinations ?? raw.limitlessDestinations,
+    };
+
+    return merged;
   }, [externalFormData]);
 
   // Internal form state
@@ -115,8 +161,6 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
   });
 
   const [errors, setErrors] = useState<ValidationErrors>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [isValidating, setIsValidating] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
@@ -142,6 +186,18 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
   const [selectedDestinations, setSelectedDestinations] = useState<Place[]>([
     // optionally preselect one: { id: "dest-1", name: "Paris" }
   ]);
+
+  // Initialize selectedDestinations from external data when provided
+  useEffect(() => {
+    const vals = normalizedExternalData?.limitlessDestinations;
+    if (Array.isArray(vals) && vals.length > 0) {
+      const mapped: Place[] = vals.map((name: any, idx: number) => ({
+        id: `ext-${idx}`,
+        name: String(name),
+      }));
+      setSelectedDestinations(mapped);
+    }
+  }, [normalizedExternalData]);
   const [isDestDropdownOpen, setIsDestDropdownOpen] = useState(false);
   const destDropdownRef = useRef<HTMLDivElement | null>(null);
   const destPanelRef = useRef<HTMLDivElement | null>(null);
@@ -220,6 +276,10 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
 
     return LimitlessApi.createLimitless(formDataPayload);
   }, [attachedFiles, formData, selectedDestinations]);
+
+  useEffect(() => {
+    onRegisterSubmit?.(handleSubmit);
+  }, [handleSubmit, onRegisterSubmit]);
 
   useEffect(() => {
     if (!isDestDropdownOpen) return;
@@ -342,8 +402,13 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
   }, [formData.traveldatestart, formData.traveldateend]);
 
   useEffect(() => {
-    onFormDataUpdate({ limitlessinfoform: formData });
-  }, [formData]);
+    onFormDataUpdate({
+      limitlessinfoform: {
+        ...formData,
+        limitlessDestinations: selectedDestinations.map((d) => d.name),
+      },
+    });
+  }, [formData, selectedDestinations, onFormDataUpdate]);
 
   type FieldRule = {
     required: boolean;
@@ -468,7 +533,6 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
     }
 
     // Mark field touched
-    setTouched((prev) => ({ ...prev, [name]: true }));
   };
 
   // Enhanced blur handler with API validation
@@ -480,8 +544,6 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
         const error = validateField(name, value);
         setErrors((prev) => ({ ...prev, [name]: error }));
       }
-
-      setTouched((prev) => ({ ...prev, [name]: true }));
     },
     [validateField, showValidation],
   );
@@ -591,7 +653,7 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
           />
         </div>
 
-        {/* ================= Limitless INFO ================ */}
+        {/* Limitless INFO */}
         <div className="w-[48vw] border border-gray-200 rounded-[12px] p-3 mt-4">
           <h1 className="text-[0.85rem] font-medium text-gray-800 mb-2">
             Limitless Info
@@ -601,14 +663,14 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
 
           {/* Confirmation number + Title (stacked) */}
           <div className="flex flex-col gap-3 w-full mb-4">
-            {/* Destinations multi-select (replaces confirmation number) */}
+            {/* Destinations multi-select */}
             <div className="flex flex-col w-full">
               <label className="text-[13px] font-medium text-gray-700 mb-1">
                 Destinations
               </label>
               <div className="relative" ref={destDropdownRef}>
                 <div
-                  className="w-[30%] min-h-[44px] border border-gray-300 rounded-md px-3 py-2 flex items-center flex-wrap gap-2 cursor-pointer"
+                  className="w-[320px] min-h-[44px] border border-gray-300 rounded-md px-3 py-2 flex items-center flex-wrap gap-2 cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
                     setIsDestDropdownOpen((v) => {
@@ -619,10 +681,6 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
                     });
                   }}
                 >
-                  <span className="text-gray-400">
-                    <FiSearch />
-                  </span>
-
                   {selectedDestinations.length > 0 ? (
                     selectedDestinations.map((p) => (
                       <span
@@ -645,11 +703,13 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
                     ))
                   ) : (
                     <span className="text-[#9CA3AF] text-[13px]">
-                      Select destinations
+                      Select Destination(s)
                     </span>
                   )}
 
-                  <span className="ml-auto text-gray-400 text-[12px]">▾</span>
+                  <span className="ml-auto flex items-center">
+                    <MdKeyboardArrowDown size={20} className="text-gray-400" />
+                  </span>
                 </div>
 
                 {isDestDropdownOpen &&
