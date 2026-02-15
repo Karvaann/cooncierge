@@ -376,4 +376,56 @@ const isWithinDateRange = (
 };
 export { isWithinDateRange };
 
+/**
+ * Format a number as currency-like string with two decimals.
+ * Defaults to Indian locale if currency not provided.
+ */
+export const formatMoney = (value: number, currency?: string): string => {
+  try {
+    const num = Number(value ?? 0) || 0;
+    const locale = getCurrencyLocale(currency);
+    return num.toLocaleString(locale, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  } catch {
+    return String(value);
+  }
+};
+
+/**
+ * Parse a value to number, returning 0 for invalid inputs.
+ */
+export const toNumberOrZero = (value: unknown): number => {
+  try {
+    if (value == null) return 0;
+    if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+    const s = String(value).replace(/,/g, "").trim();
+    if (!s) return 0;
+    const n = Number(s);
+    return Number.isFinite(n) ? n : 0;
+  } catch {
+    return 0;
+  }
+};
+
+/**
+ * Format a date string into `DD Mon YYYY` using Indian locale.
+ * Returns empty string when input is falsy or invalid.
+ */
+export const formatDate = (dateString?: string | null): string => {
+  if (!dateString) return "";
+  try {
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "";
+  }
+};
+
 

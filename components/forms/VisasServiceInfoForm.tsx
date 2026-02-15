@@ -14,6 +14,7 @@ import CancellationModal, {
   CancellationModalFormState,
 } from "../Modals/CancellationModal";
 import AmountSection, { AmountSectionValue } from "../AmountSection";
+import { getDefaultShowAdvancedPricing } from "@/utils/advancedPricing";
 
 // Type definitions
 interface OtherServiceInfoFormData {
@@ -84,6 +85,11 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     return fields as Partial<OtherServiceInfoFormData>;
   }, [externalFormData]);
 
+  const defaultShowAdvancedPricing = useMemo(
+    () => getDefaultShowAdvancedPricing(normalizedExternalData, isReadOnly),
+    [isReadOnly, normalizedExternalData],
+  );
+
   // Internal form state
   const [formData, setFormData] = useState<OtherServiceInfoFormData>({
     bookingdate: normalizedExternalData?.bookingdate || "",
@@ -96,7 +102,7 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     description: normalizedExternalData?.description || "",
     documents: "",
     remarks: normalizedExternalData?.remarks || "",
-    showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
+    showAdvancedPricing: defaultShowAdvancedPricing,
     vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
     vendorIncentiveReceived: String(
       normalizedExternalData?.vendorIncentiveReceived ?? "",
@@ -110,7 +116,7 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   // Advanced Pricing State
   const [showAdvancedPricing, setShowAdvancedPricing] = useState(
-    Boolean(normalizedExternalData?.showAdvancedPricing),
+    defaultShowAdvancedPricing,
   );
 
   // Vendor payment summary fields
@@ -265,8 +271,13 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   // Sync with external form data when it changes
   useEffect(() => {
     if (!externalFormData || Object.keys(externalFormData).length === 0) return;
+
+    const nextShowAdvancedPricing = getDefaultShowAdvancedPricing(
+      normalizedExternalData,
+      isReadOnly,
+    );
     const nextPricing = {
-      showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
+      showAdvancedPricing: nextShowAdvancedPricing,
       vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
       vendorIncentiveReceived: String(
         normalizedExternalData?.vendorIncentiveReceived ?? "",
@@ -282,7 +293,7 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
       ...normalizedExternalData,
       ...nextPricing,
     }));
-  }, [externalFormData, normalizedExternalData]);
+  }, [externalFormData, isReadOnly, normalizedExternalData]);
 
   useEffect(() => {
     setFormData((prev) => ({

@@ -15,6 +15,7 @@ import CancellationModal, {
   CancellationModalFormState,
 } from "@/components/Modals/CancellationModal";
 import AmountSection from "@/components/AmountSection";
+import { getDefaultShowAdvancedPricing } from "@/utils/advancedPricing";
 
 // Type definitions
 interface OtherServiceInfoFormData {
@@ -105,6 +106,11 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     return fields as Partial<OtherServiceInfoFormData>;
   }, [externalFormData]);
 
+  const defaultShowAdvancedPricing = useMemo(
+    () => getDefaultShowAdvancedPricing(normalizedExternalData, isReadOnly),
+    [isReadOnly, normalizedExternalData],
+  );
+
   // Internal form state
   const [formData, setFormData] = useState<OtherServiceInfoFormData>({
     bookingdate: normalizedExternalData?.bookingdate || "",
@@ -117,10 +123,10 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     description: normalizedExternalData?.description || "",
     documents: "",
     remarks: normalizedExternalData?.remarks || "",
-    showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
+    showAdvancedPricing: defaultShowAdvancedPricing,
     vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
     vendorIncentiveReceived: String(
-      normalizedExternalData?.vendorIncentiveReceived ?? ""
+      normalizedExternalData?.vendorIncentiveReceived ?? "",
     ),
     commissionPaid: String(normalizedExternalData?.commissionPaid ?? ""),
     vendorBaseCurrency: normalizedExternalData?.vendorBaseCurrency || "INR",
@@ -130,10 +136,10 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     vendorIncentiveCurrency:
       normalizedExternalData?.vendorIncentiveCurrency || "INR",
     vendorIncentiveRoe: String(
-      normalizedExternalData?.vendorIncentiveRoe ?? ""
+      normalizedExternalData?.vendorIncentiveRoe ?? "",
     ),
     vendorIncentiveInr: String(
-      normalizedExternalData?.vendorIncentiveInr ?? ""
+      normalizedExternalData?.vendorIncentiveInr ?? "",
     ),
     vendorIncentiveNotes: normalizedExternalData?.vendorIncentiveNotes || "",
     commissionCurrency: normalizedExternalData?.commissionCurrency || "INR",
@@ -157,7 +163,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   // Advanced Pricing State
   const [showAdvancedPricing, setShowAdvancedPricing] = useState(
-    Boolean(normalizedExternalData?.showAdvancedPricing)
+    defaultShowAdvancedPricing,
   );
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -206,12 +212,20 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   // Sync with external form data when it changes
   useEffect(() => {
     if (!externalFormData || Object.keys(externalFormData).length === 0) return;
+
+    const nextShowAdvancedPricing = getDefaultShowAdvancedPricing(
+      normalizedExternalData,
+      isReadOnly,
+    );
+
     setFormData((prev) => ({
       ...prev,
       ...normalizedExternalData,
-      showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
+      showAdvancedPricing: nextShowAdvancedPricing,
     }));
-  }, [externalFormData, normalizedExternalData]);
+
+    setShowAdvancedPricing(nextShowAdvancedPricing);
+  }, [externalFormData, isReadOnly, normalizedExternalData]);
 
   useEffect(() => {
     setFormData((prev) => ({ ...prev, showAdvancedPricing }));
@@ -252,7 +266,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         message: "Invalid email format",
       },
     }),
-    []
+    [],
   );
 
   // Enhanced validation function using API validation
@@ -301,7 +315,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
       return "";
     },
-    [validationRules]
+    [validationRules],
   );
 
   // Validate all fields
@@ -312,7 +326,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     Object.keys(validationRules).forEach((fieldName) => {
       const error = validateField(
         fieldName,
-        formData[fieldName as keyof OtherServiceInfoFormData]
+        formData[fieldName as keyof OtherServiceInfoFormData],
       );
       if (error) {
         newErrors[fieldName] = error;
@@ -326,7 +340,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   // Normal handleChange that only updates local state
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value, type } = e.target;
     const newValue =
@@ -360,7 +374,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
       setTouched((prev) => ({ ...prev, [name]: true }));
     },
-    [validateField, showValidation]
+    [validateField, showValidation],
   );
 
   // Handle form submission
@@ -372,14 +386,17 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         onSubmit?.(formData);
       } else {
         // Mark all fields as touched to show validation errors
-        const allTouched = Object.keys(validationRules).reduce((acc, key) => {
-          acc[key] = true;
-          return acc;
-        }, {} as Record<string, boolean>);
+        const allTouched = Object.keys(validationRules).reduce(
+          (acc, key) => {
+            acc[key] = true;
+            return acc;
+          },
+          {} as Record<string, boolean>,
+        );
         setTouched(allTouched);
       }
     },
-    [formData, validateForm, onSubmit, validationRules]
+    [formData, validateForm, onSubmit, validationRules],
   );
 
   // Enhanced input field component with validation indicators
@@ -422,8 +439,8 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
               hasError
                 ? "border-red-300 focus:ring-red-200"
                 : isValid && touched[name]
-                ? "border-green-300 focus:ring-green-200"
-                : "border-gray-200 focus:ring-blue-200"
+                  ? "border-green-300 focus:ring-green-200"
+                  : "border-gray-200 focus:ring-blue-200"
             }
             ${
               isSubmitting || isValidatingField

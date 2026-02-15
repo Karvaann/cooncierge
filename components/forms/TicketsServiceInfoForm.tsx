@@ -14,6 +14,7 @@ import CancellationModal, {
   CancellationModalFormState,
 } from "@/components/Modals/CancellationModal";
 import AmountSection, { AmountSectionValue } from "@/components/AmountSection";
+import { getDefaultShowAdvancedPricing } from "@/utils/advancedPricing";
 
 // Type definitions
 interface OtherServiceInfoFormData {
@@ -84,6 +85,11 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     return fields as Partial<OtherServiceInfoFormData>;
   }, [externalFormData]);
 
+  const defaultShowAdvancedPricing = useMemo(
+    () => getDefaultShowAdvancedPricing(normalizedExternalData, isReadOnly),
+    [isReadOnly, normalizedExternalData],
+  );
+
   // Internal form state
   const [formData, setFormData] = useState<OtherServiceInfoFormData>({
     bookingdate: normalizedExternalData?.bookingdate || "",
@@ -96,7 +102,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     description: normalizedExternalData?.description || "",
     documents: "",
     remarks: normalizedExternalData?.remarks || "",
-    showAdvancedPricing: Boolean(normalizedExternalData?.showAdvancedPricing),
+    showAdvancedPricing: defaultShowAdvancedPricing,
     vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
     vendorIncentiveReceived: String(
       normalizedExternalData?.vendorIncentiveReceived ?? "",
@@ -110,7 +116,7 @@ const TicketsServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   // Advanced Pricing State
   const [showAdvancedPricing, setShowAdvancedPricing] = useState(
-    Boolean(normalizedExternalData?.showAdvancedPricing),
+    defaultShowAdvancedPricing,
   );
   const [vendorCurrency, setVendorCurrency] = useState("USD");
   const [vendorAmount, setVendorAmount] = useState("");

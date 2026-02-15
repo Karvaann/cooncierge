@@ -18,7 +18,7 @@ import { getUsers } from "@/services/userApi";
 import PaymentsApi from "@/services/paymentsApi";
 import { deleteCustomer, getCustomers } from "@/services/customerApi";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
-import LedgerModal from "@/components/Modals/LedgerModal";
+import LedgerModal from "@/components/Modals/LedgerModal/LedgerModal";
 import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
 import { BookingProvider } from "@/context/BookingContext";
 import { PiArrowCircleUpRight } from "react-icons/pi";
