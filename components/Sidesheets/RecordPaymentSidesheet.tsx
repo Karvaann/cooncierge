@@ -213,6 +213,14 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   const [settleAmountDirty, setSettleAmountDirty] = useState<boolean>(false);
   const [unallocatedPayments, setUnallocatedPayments] = useState<any[]>([]);
 
+  const unallocatedPaymentsKey = useMemo(() => {
+    try {
+      return unallocatedPayments.map((p) => String(p?._id || "")).join("|");
+    } catch {
+      return "";
+    }
+  }, [unallocatedPayments]);
+
   // Party closing balance state
   const [partyClosing, setPartyClosing] = useState<{
     amount: number;
@@ -278,17 +286,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     businessCurrency,
   ]);
 
-  const pendingAmount = useMemo(() => {
-    if (
-      typeof outstandingAmount === "number" &&
-      !Number.isNaN(outstandingAmount)
-    ) {
-      return Math.max(0, outstandingAmount);
-    }
-    return Math.max(0, amountToRecordNumber);
-  }, [outstandingAmount, amountToRecordNumber]);
-
-  // Dummy advance payment amount to match UI while backend support is wired
+  // advance payment amount
   const totalUnallocatedAmount = useMemo(() => {
     return unallocatedPayments.reduce(
       (sum, p) => sum + Number(p.unallocatedAmount || 0),
@@ -651,34 +649,6 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     setPartyType("Customer");
   }, [isOpen]);
 
-  // Fetch ledger (pending amount / balance) when opened with a booking
-  // useEffect(() => {
-  //   const quotationId = booking?._id;
-  //   if (!isOpen || !quotationId) return;
-
-  //   let cancelled = false;
-  //   (async () => {
-  //     setIsLedgerLoading(true);
-  //     try {
-  //       const resp = await PaymentsApi.getQuotationLedger(quotationId);
-  //       const outstanding = Number(resp?.outstandingAmount);
-  //       if (!cancelled) {
-  //         setOutstandingAmount(
-  //           Number.isFinite(outstanding) ? outstanding : null,
-  //         );
-  //       }
-  //     } catch (e) {
-  //       if (!cancelled) setOutstandingAmount(null);
-  //     } finally {
-  //       if (!cancelled) setIsLedgerLoading(false);
-  //     }
-  //   })();
-
-  //   return () => {
-  //     cancelled = true;
-  //   };
-  // }, [isOpen, booking?._id]);
-
   // Fetch unallocated payments when settle checkbox is clicked
   useEffect(() => {
     if (!isOpen || !settleFromAdvance) return;
@@ -789,6 +759,59 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     );
   };
 
+  const autoDistributeSettleAmounts = React.useCallback(
+    (totalAmount: number) => {
+      if (!Number.isFinite(totalAmount) || totalAmount <= 0) {
+        setUnallocatedPayments((prev) => {
+          if (!prev || prev.length === 0) return prev;
+          const hasAny = prev.some((p) => String(p?.settleAmount || "") !== "");
+          if (!hasAny) return prev;
+          return prev.map((p) => ({ ...p, settleAmount: "" }));
+        });
+        return;
+      }
+
+      setUnallocatedPayments((prev) => {
+        if (!prev || prev.length === 0) return prev;
+
+        let remaining = totalAmount;
+        let changed = false;
+
+        const next = prev.map((p) => {
+          const unallocated = Number(p?.unallocatedAmount || 0);
+          const maxAlloc =
+            Number.isFinite(unallocated) && unallocated > 0 ? unallocated : 0;
+          const settle = Math.max(0, Math.min(maxAlloc, remaining));
+          remaining = Math.max(0, remaining - settle);
+
+          const nextSettle = settle > 0 ? String(settle) : "";
+          const prevSettle = String(p?.settleAmount || "");
+          if (prevSettle !== nextSettle) changed = true;
+          return { ...p, settleAmount: nextSettle };
+        });
+
+        return changed ? next : prev;
+      });
+    },
+    [],
+  );
+
+  // Auto-distribute payment amount into "Settle Amount" column
+  useEffect(() => {
+    if (!isOpen || !settleFromAdvance) return;
+    if (settleAmountDirty) return;
+    if (!unallocatedPayments || unallocatedPayments.length === 0) return;
+    autoDistributeSettleAmounts(amountToRecordNumber);
+  }, [
+    isOpen,
+    settleFromAdvance,
+    settleAmountDirty,
+    amountToRecordNumber,
+    unallocatedPaymentsKey,
+    unallocatedPayments?.length,
+    autoDistributeSettleAmounts,
+  ]);
+
   const settleTableData = useMemo(() => {
     return unallocatedPayments.map((payment, idx) => {
       const unallocated = Number(payment.unallocatedAmount || 0);
@@ -817,12 +840,13 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
             <input
               type="text"
               value={payment.settleAmount || ""}
-              onChange={(e) =>
+              onChange={(e) => {
+                setSettleAmountDirty(true);
                 handleSettleAmountChange(
                   payment._id,
                   sanitizeAmountInput(e.target.value),
-                )
-              }
+                );
+              }}
               onBlur={() => {
                 const n = Number(payment.settleAmount || 0);
                 const clamped = Math.min(
@@ -928,7 +952,13 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
           <div className="flex items-start justify-between gap-4">
             <label
               className="flex items-start gap-3 cursor-pointer select-none"
-              onClick={() => setSettleFromAdvance((p) => !p)}
+              onClick={() =>
+                setSettleFromAdvance((p) => {
+                  const next = !p;
+                  if (next) setSettleAmountDirty(false);
+                  return next;
+                })
+              }
             >
               <div className="mt-0.5 w-5 h-5 border border-gray-300 rounded-md flex items-center justify-center bg-white">
                 {settleFromAdvance && (
