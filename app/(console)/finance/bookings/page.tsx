@@ -1101,14 +1101,17 @@ const FinanceBookingsPage = () => {
       </td>,
 
       // ACTIONS COLUMN
-      <td className="px-4 py-3 text-center align-middle h-[3rem]">
+      <td
+        key={`actions-${index}`}
+        className="px-4 py-3 text-center align-middle h-[3rem]"
+      >
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`
-      flex items-center justify-center gap-2
-      transition-all duration-200
-      ${isCursorInTable ? "opacity-0 group-hover:opacity-100" : index === 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"}
-    `}
+          className={`flex items-center justify-center gap-2 transition-all duration-200 ${
+            index === 0 && !isCursorInTable
+              ? "opacity-100 pointer-events-auto"
+              : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+          }`}
         >
           {/* ₹ Button */}
           <button
@@ -1279,8 +1282,9 @@ const FinanceBookingsPage = () => {
             {/* Header row removed: tabs and inline total moved into Filter */}
             <div
               className="p-2 mt-2"
-              onMouseEnter={() => setIsCursorInTable(true)}
-              onMouseLeave={() => setIsCursorInTable(false)}
+              onPointerEnter={() => setIsCursorInTable(true)}
+              onPointerLeave={() => setIsCursorInTable(false)}
+              onPointerCancel={() => setIsCursorInTable(false)}
             >
               {isLoading ? (
                 <TableSkeleton />

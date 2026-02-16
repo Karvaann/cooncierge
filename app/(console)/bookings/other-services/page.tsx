@@ -1093,41 +1093,51 @@ const OSBookingsPage = () => {
         className="px-4 py-3 text-center align-middle h-[3rem] cursor-pointer"
       >
         <div className="flex items-center justify-center">
-          <div className="flex items-center">
-            {(Array.isArray([
-              ...(item as any).secondaryOwner,
-              (item as any).primaryOwner,
-            ])
-              ? [
-                  ...(item as any).secondaryOwner,
-                  (item as any).primaryOwner,
-                ].map((o: any) => o?.name || "--")
-              : []
-            ).map((ownerName: string, i: number) => {
-              // Try to find owner in ownersList (fetched from API)
-              let ownerMeta = ownersList.find((o) => o.full === ownerName);
-
-              // If not found (e.g., for drafts), create a temporary owner object
-              if (!ownerMeta && ownerName && ownerName !== "--") {
-                ownerMeta = {
-                  short: computeInitials(ownerName),
-                  full: ownerName,
-                  color: (colorPalette[i % colorPalette.length] ||
-                    colorPalette[0]) as string,
-                };
-              }
-
-              if (!ownerMeta) return null;
+          {/* PRIMARY OWNER */}
+          {item.primaryOwner?.name &&
+            (() => {
+              const name = item.primaryOwner.name;
+              const ownerMeta = ownersList.find((o) => o.full === name) || {
+                short: computeInitials(name),
+                full: name,
+                color: colorPalette[0] ?? "",
+              };
 
               return (
-                <AvatarTooltip
-                  key={i}
-                  short={ownerMeta.short}
-                  full={ownerMeta.full}
-                  color={ownerMeta.color}
-                />
+                <div className="mr-2">
+                  <AvatarTooltip
+                    short={ownerMeta.short}
+                    full={ownerMeta.full}
+                    color={ownerMeta.color}
+                  />
+                </div>
               );
-            })}
+            })()}
+
+          {/* SECONDARY OWNERS */}
+          <div className="flex items-center">
+            {Array.isArray(item.secondaryOwner) &&
+              item.secondaryOwner.map((o: any, i: number) => {
+                if (!o?.name) return null;
+
+                const ownerMeta = ownersList.find((x) => x.full === o.name) || {
+                  short: computeInitials(o.name),
+                  full: o.name,
+                  color:
+                    colorPalette[(i + 1) % colorPalette.length] ||
+                    colorPalette[0] ||
+                    "",
+                };
+
+                return (
+                  <AvatarTooltip
+                    key={i}
+                    short={ownerMeta.short}
+                    full={ownerMeta.full}
+                    color={ownerMeta.color}
+                  />
+                );
+              })}
           </div>
         </div>
       </td>,

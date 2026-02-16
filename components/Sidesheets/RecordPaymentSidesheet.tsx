@@ -422,6 +422,22 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
         if (partyType === "Customer") {
           // Allocate each customer payment to quotation
           for (const payment of paymentsToAllocate) {
+            // Ensure payment has amountCurrency
+            if (!payment.amountCurrency) {
+              try {
+                await PaymentsApi.updatePayment(payment._id, {
+                  amountCurrency: businessCurrency || "INR",
+                } as any);
+              } catch (err) {
+                console.error(
+                  "Failed to set amountCurrency before allocate",
+                  err,
+                );
+                showError("Failed to prepare payments for allocation");
+                return;
+              }
+            }
+
             await PaymentsApi.allocateCustomerPaymentToQuotation(payment._id, {
               quotationId,
               amount: Number(payment.settleAmount),
@@ -430,10 +446,24 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
         } else if (partyType === "Vendor") {
           // Allocate each vendor payment to quotation
           for (const payment of paymentsToAllocate) {
+            if (!payment.amountCurrency) {
+              try {
+                await PaymentsApi.updatePayment(payment._id, {
+                  amountCurrency: businessCurrency || "INR",
+                } as any);
+              } catch (err) {
+                console.error(
+                  "Failed to set amountCurrency before allocate",
+                  err,
+                );
+                showError("Failed to prepare payments for allocation");
+                return;
+              }
+            }
+
             await PaymentsApi.allocateVendorPaymentToQuotation(payment._id, {
               quotationId,
               amount: Number(payment.settleAmount),
-              // amountCurrency: "INR",
             });
           }
         }

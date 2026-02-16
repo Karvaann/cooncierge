@@ -352,7 +352,7 @@ const FinanceVendorsPage = () => {
             ) : (
               <PiArrowCircleDownLeft className="text-green-600" size={16} />
             )}
-            <span>₹ {vendor.closingBalance.toLocaleString()}</span>
+            <span>₹ {vendor.closingBalance.toLocaleString("en-IN")}</span>
           </span>
         </td>,
         <td
@@ -362,11 +362,9 @@ const FinanceVendorsPage = () => {
           <div
             onClick={(e) => e.stopPropagation()}
             className={`flex items-center justify-center gap-2 transition-all duration-200 ${
-              isCursorInTable
-                ? "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
-                : index === 0
-                  ? "opacity-100 pointer-events-auto"
-                  : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+              index === 0 && !isCursorInTable
+                ? "opacity-100 pointer-events-auto"
+                : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
             }`}
           >
             <button
@@ -451,7 +449,7 @@ const FinanceVendorsPage = () => {
                       You Get
                     </span>
                     <span className="text-[#4CA640] text-[14px] font-semibold">
-                      ₹ {youGetVisibleV.toLocaleString()}
+                      ₹ {youGetVisibleV.toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
@@ -462,7 +460,7 @@ const FinanceVendorsPage = () => {
                       You Give
                     </span>
                     <span className="text-[#C30010] text-[14px] font-semibold">
-                      ₹ {youGiveVisibleV.toLocaleString()}
+                      ₹ {youGiveVisibleV.toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
@@ -478,10 +476,11 @@ const FinanceVendorsPage = () => {
                   onChange={(val) =>
                     setSearchFilter(val as "poc" | "vendorId" | "vendorName")
                   }
-                  buttonClassName="!rounded-l-md !rounded-r-none border bg-gray-50 text-[13px] font-normal text-gray-500"
-                  customWidth="w-37"
+                  buttonClassName="!rounded-l-md !rounded-r-none border bg-gray-50 text-[13px] font-normal text-gray-500 gap-2"
+                  customWidth="w-fit"
                   customHeight="py-2.5"
                   noBorder={false}
+                  menuWidth="w-35"
                 />
               </div>
               <div className="relative flex-1">
@@ -512,13 +511,14 @@ const FinanceVendorsPage = () => {
 
           <div
             className="min-h-[200px] mt-2 px-2"
-            onMouseEnter={() => setIsCursorInTable(true)}
-            onMouseLeave={() => setIsCursorInTable(false)}
+            onPointerEnter={() => setIsCursorInTable(true)}
+            onPointerLeave={() => setIsCursorInTable(false)}
+            onPointerCancel={() => setIsCursorInTable(false)}
           >
             <Table
               data={tableData}
               columns={columns}
-              columnIconMap={columnIconMap}
+              // columnIconMap={columnIconMap}
               categoryName="Vendors"
               enableRowHoverActions={true}
               rowIds={visibleVendors.map((v) => v.vendorId)}

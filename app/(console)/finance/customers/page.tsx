@@ -388,10 +388,10 @@ const FinanceCustomersPage = () => {
           className="px-4 py-3 text-center text-[14px]"
         >
           <span
-            className={`inline-flex items-center justify-center gap-2 font-semibold ${
+            className={`inline-flex items-center justify-center gap-2 font-medium ${
               customer.balanceType === "debit"
-                ? "text-red-600"
-                : "text-green-600"
+                ? "text-[#EB382B]"
+                : "text-[#4CA640]"
             }`}
           >
             {customer.balanceType === "debit" ? (
@@ -399,7 +399,7 @@ const FinanceCustomersPage = () => {
             ) : (
               <PiArrowCircleDownLeft className="text-green-600" size={16} />
             )}
-            <span>₹ {customer.closingBalance.toLocaleString()}</span>
+            <span>₹ {customer.closingBalance.toLocaleString("en-IN")}</span>
           </span>
         </td>,
         <td
@@ -409,11 +409,9 @@ const FinanceCustomersPage = () => {
           <div
             onClick={(e) => e.stopPropagation()}
             className={`flex items-center justify-center gap-2 transition-all duration-200 ${
-              isCursorInTable
-                ? "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
-                : index === 0
-                  ? "opacity-100 pointer-events-auto"
-                  : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+              index === 0 && !isCursorInTable
+                ? "opacity-100 pointer-events-auto"
+                : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
             }`}
           >
             <button
@@ -526,7 +524,7 @@ const FinanceCustomersPage = () => {
                       You Get
                     </span>
                     <span className="text-[#4CA640] text-[14px] font-semibold">
-                      ₹ {youGetVisible.toLocaleString()}
+                      ₹ {youGetVisible.toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
@@ -537,7 +535,7 @@ const FinanceCustomersPage = () => {
                       You Give
                     </span>
                     <span className="text-[#C30010] text-[14px] font-semibold">
-                      ₹ {youGiveVisible.toLocaleString()}
+                      ₹ {youGiveVisible.toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
@@ -555,10 +553,11 @@ const FinanceCustomersPage = () => {
                       val as "owner" | "customerId" | "customerName",
                     )
                   }
-                  buttonClassName="!rounded-l-md !rounded-r-none border bg-gray-50 text-[13px] font-normal text-gray-500"
-                  customWidth="w-37"
+                  buttonClassName="!rounded-l-md !rounded-r-none border bg-gray-50 text-[13px] font-normal text-gray-500 gap-2"
+                  customWidth="w-fit"
                   customHeight="py-2.5"
                   noBorder={false}
+                  menuWidth="w-35"
                 />
               </div>
               <div className="relative flex-1">
@@ -587,13 +586,14 @@ const FinanceCustomersPage = () => {
 
           <div
             className="min-h-[200px] mt-2 px-2"
-            onMouseEnter={() => setIsCursorInTable(true)}
-            onMouseLeave={() => setIsCursorInTable(false)}
+            onPointerEnter={() => setIsCursorInTable(true)}
+            onPointerLeave={() => setIsCursorInTable(false)}
+            onPointerCancel={() => setIsCursorInTable(false)}
           >
             <Table
               data={tableData}
               columns={columns}
-              columnIconMap={columnIconMap}
+              // columnIconMap={columnIconMap}
               categoryName="Customers"
               enableRowHoverActions={true}
               rowIds={visibleCustomers.map((c) => c.customerId)}

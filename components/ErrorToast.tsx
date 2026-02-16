@@ -20,7 +20,7 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
   message,
   visible,
   onClose,
-  autoHideMs = 5000,
+  autoHideMs = 10000,
   bgColorClass = "bg-red-50",
   boldText,
   messageColorClass = "text-red-600",
@@ -39,7 +39,7 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
 
   return createPortal(
     <div
-      className={`fixed top-8 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-2 ${bgColorClass} border ${borderColorClass} px-3 py-1.5 rounded-full shadow-md max-w-[90vw] text-[13px]`}
+      className={`fixed top-8 left-1/2 -translate-x-1/2 z-[1100] flex items-center gap-2 ${bgColorClass} border ${borderColorClass} px-2 py-1 rounded-full shadow-md max-w-[90vw] text-[13px]`}
     >
       <svg
         className={`w-4 h-4 ${
@@ -74,7 +74,7 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
       <button
         type="button"
         onClick={onClose}
-        className={`${closeButtonClass} ml-2 text-lg font-bold`}
+        className={`${closeButtonClass} ml-2 text-sm font-bold`}
       >
         ×
       </button>
