@@ -51,7 +51,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({ actions, width, right }) => {
         className="p-1.5 hover:bg-gray-100 border border-gray-200 rounded-sm transition-colors"
         aria-label="More actions"
       >
-        <PiDotsThreeBold className="w-4 h-4 text-gray-600" />
+        <PiDotsThreeBold className="w-4.5 h-4.5 text-[#414141]" />
       </button>
 
       {isOpen && (

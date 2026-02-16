@@ -134,7 +134,7 @@ export default function DateRangeInput({
   ]);
 
   const [shownDate, setShownDate] = useState<Date>(
-    ranges[0]?.startDate ?? new Date()
+    ranges[0]?.startDate ?? new Date(),
   );
 
   useEffect(() => {
@@ -183,7 +183,7 @@ export default function DateRangeInput({
   const secondMonthDate = new Date(
     firstMonthDate.getFullYear(),
     firstMonthDate.getMonth() + 1,
-    1
+    1,
   );
   const secondMonthLabel = secondMonthDate.toLocaleString("en-GB", {
     month: "long",
@@ -224,7 +224,7 @@ export default function DateRangeInput({
 
   const goPrevMonth = () => {
     setShownDate(
-      (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+      (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1),
     );
 
     const elem = document.getElementsByClassName("rdrPprevButton")[0];
@@ -236,7 +236,7 @@ export default function DateRangeInput({
 
   const goNextMonth = () => {
     setShownDate(
-      (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+      (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1),
     );
 
     const elem = document.getElementsByClassName("rdrNextButton")[0];
@@ -254,7 +254,7 @@ export default function DateRangeInput({
 
       <button
         type="button"
-        className="relative flex items-center min-w-[12rem] w-[17rem] max-h-[2.8rem]  gap-3 border border-gray-300 rounded-sm px-3 py-3 bg-white hover:border-green-200 transition-colors select-none text-[14px]"
+        className="relative flex items-center w-full max-h-[2.8rem] gap-3 border border-gray-300 rounded-sm px-3 py-3 bg-white hover:border-green-200 transition-colors select-none text-[14px]"
         onClick={() => setOpen((prev) => !prev)}
       >
         <span className="text-[#9CA3AF] font-medium">{displayValue.start}</span>

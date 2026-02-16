@@ -24,6 +24,7 @@ import PaymentsApi from "@/services/paymentsApi";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import BankApi from "@/services/bankApi";
 import CustomIdApi from "@/services/customIdApi";
+import { formatServiceType } from "@/utils/helper";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -89,100 +90,44 @@ type PaymentRow = {
   raw?: any;
 };
 
-// const dummyPayments: PaymentRow[] = [
-//   {
-//     paymentId: "PO-ABC01",
-//     partyName: "Anand Mishra",
-//     linkedBooking: "OS42J4D",
-//     amount: 24580,
-//     amountType: "gave",
-//     account: "Bank 1",
-//     date: "10-09-2026, 05:00 AM",
-//     createdAt: "2026-09-10T10:00:00Z",
-//   },
-//   {
-//     paymentId: "PI-ABC02",
-//     partyName: "Deepanshu",
-//     linkedBooking: "OS42J4S",
-//     amount: 24580,
-//     amountType: "got",
-//     account: "Bank 1",
-//     date: "10-21-2026, 09:00 AM",
-//     createdAt: "2026-09-10T10:00:00Z",
-//   },
-//   {
-//     paymentId: "PO-ABC03",
-//     partyName: "Anand Mishra",
-//     linkedBooking: "OS42J4J",
-//     amount: 24580,
-//     amountType: "gave",
-//     account: "Cash",
-//     date: "10-24-2026, 07:00 AM",
-//     createdAt: "2026-09-10T10:00:00Z",
-//   },
-//   {
-//     paymentId: "PI-XBC04",
-//     partyName: "Anand Mishra",
-//     linkedBooking: "OS42J6K",
-//     amount: 24580,
-//     amountType: "got",
-//     account: "Bank 2",
-//     date: "10-14-2026, 08:00 AM",
-//     createdAt: "2026-09-10T10:00:00Z",
-//   },
-//   {
-//     paymentId: "PI-TBC05",
-//     partyName: "Deepanshu",
-//     linkedBooking: "OS42J4J",
-//     amount: 24580,
-//     amountType: "got",
-//     account: "Bank 2",
-//     date: "10-11-2026, 10:00 AM",
-//     createdAt: "2026-09-10T10:00:00Z",
-//   },
-//   {
-//     paymentId: "PI-OBC06",
-//     partyName: "Deepanshu",
-//     linkedBooking: "OS42J4D",
-//     amount: 24580,
-//     amountType: "got",
-//     account: "Bank 1",
-//     date: "10-16-2026, 10:00 AM",
-//     createdAt: "2026-09-10T10:00:00Z",
-//   },
-//   {
-//     paymentId: "PI-IBC07",
-//     partyName: "Anand Mishra",
-//     linkedBooking: "OS42J4J",
-//     amount: 24580,
-//     amountType: "got",
-//     account: "Bank 2",
-//     date: "10-09-2026, 10:00 AM",
-//     createdAt: "2026-09-10T10:00:00Z",
-//   },
-//   {
-//     paymentId: "PO-CBC08",
-//     partyName: "Anand Mishra",
-//     linkedBooking: "OS42J4D",
-//     amount: 24580,
-//     amountType: "gave",
-//     account: "Cash",
-//     date: "10-09-2026, 10:00 AM",
-//     createdAt: "2026-09-10T10:00:00Z",
-//   },
-//   {
-//     paymentId: "PI-ABC09",
-//     partyName: "Deepanshu",
-//     linkedBooking: "OS42J4S",
-//     amount: 24580,
-//     amountType: "got",
-//     account: "Bank 1",
-//     date: "10-09-2026, 10:00 AM",
-//     createdAt: "2026-09-10T10:00:00Z",
-//   },
-// ];
-
 const PaymentsPage = () => {
+  const mapQuotationTypeToServiceType = useCallback(
+    (quotationType: unknown): string | undefined => {
+      const raw = String(quotationType ?? "")
+        .trim()
+        .toLowerCase();
+
+      if (!raw) return undefined;
+
+      // Normalize arbitrary backend quotationType into our UI taxonomy first.
+      const normalizedLabel = formatServiceType(raw);
+
+      // Map normalized label -> FilterTrigger option values.
+      // Keep these in sync with `serviceOptions`.
+      const labelToValue: Record<string, string> = {
+        Flight: "flights",
+        Accommodation: "accommodation",
+        "Travel Insurance": "insurance",
+        Insurance: "insurance",
+        Activity: "activity",
+        Visa: "visas",
+        "Transportation (Land)": "transportation_land",
+        "Transportation (Maritime)": "transportation_maritime",
+        "Car Rental": "transportation_land",
+        Package: "others",
+      };
+
+      if (labelToValue[normalizedLabel]) return labelToValue[normalizedLabel];
+
+      // Fallback for types not covered by `formatServiceType`.
+      if (raw.includes("ticket") || raw.includes("attraction"))
+        return "tickets";
+
+      return "others";
+    },
+    [],
+  );
+
   const tabOptions = useMemo(
     () => ["Approved", "Pending", "Deleted", "Denied"],
     [],
@@ -388,7 +333,9 @@ const PaymentsPage = () => {
           const q = p.allocations[0].quotationId;
           if (q && typeof q === "object") {
             linkedBooking = String(q.customId || q._id || "-");
-            serviceType = String(q.serviceType || q.type || "").toLowerCase();
+            serviceType = mapQuotationTypeToServiceType(
+              q.quotationType || q.serviceType || q.type,
+            );
           }
         }
 
@@ -422,7 +369,7 @@ const PaymentsPage = () => {
           paymentId,
           partyName,
           linkedBooking,
-          serviceType,
+          ...(serviceType ? { serviceType } : {}),
           amount,
 
           amountCurrency: p.amountCurrency || p.amountCurreny || "INR",
@@ -459,7 +406,7 @@ const PaymentsPage = () => {
       console.error("Failed to load payments", err);
       setPayments([]);
     }
-  }, [activeTab]);
+  }, [activeTab, mapQuotationTypeToServiceType]);
 
   useEffect(() => {
     let cancelled = false;
@@ -665,7 +612,7 @@ const PaymentsPage = () => {
         </td>,
         <td key={`amount-${index}`} className="px-4 py-3 text-center">
           <span
-            className={`font-medium ${payment.amountType === "gave" ? "text-red-600" : "text-green-600"} flex items-center justify-center gap-2`}
+            className={`font-medium ${payment.amountType === "gave" ? "text-[#E10A1B]" : "text-[#4CA640]"} flex items-center justify-center gap-2`}
           >
             {payment.amountType === "gave" ? (
               <PiArrowCircleUpRight size={16} className="shrink-0" />
@@ -704,11 +651,9 @@ const PaymentsPage = () => {
           <div
             onClick={(e) => e.stopPropagation()}
             className={`flex items-center justify-center gap-2 transition-all duration-200 ${
-              isCursorInTable
-                ? "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
-                : index === 0
-                  ? "opacity-100 pointer-events-auto"
-                  : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto"
+              index === 0 && !isCursorInTable
+                ? "opacity-100 pointer-events-auto"
+                : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
             }`}
           >
             <button
@@ -896,8 +841,9 @@ const PaymentsPage = () => {
 
         <div
           className="min-h-[200px] mt-2 px-2"
-          onMouseEnter={() => setIsCursorInTable(true)}
-          onMouseLeave={() => setIsCursorInTable(false)}
+          onPointerEnter={() => setIsCursorInTable(true)}
+          onPointerLeave={() => setIsCursorInTable(false)}
+          onPointerCancel={() => setIsCursorInTable(false)}
         >
           <Table
             data={tableData}

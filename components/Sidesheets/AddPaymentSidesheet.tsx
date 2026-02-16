@@ -102,6 +102,11 @@ interface AddPaymentSidesheetProps {
   prefillPartyName?: string | null;
   /** Prefill party type when full customer/vendor object isn't available */
   prefillPartyType?: "Customer" | "Vendor" | null | undefined;
+
+  ledgerClosingBalance?: {
+    balanceType?: "credit" | "debit";
+    amount?: number;
+  } | null;
 }
 
 interface DocumentPreview {
@@ -129,6 +134,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
   prefillPartyName = null,
   prefillPartyType = null,
   initialVendor = null,
+  ledgerClosingBalance = null,
 }) => {
   const prefillKeyRef = React.useRef<string | null>(null);
 
@@ -865,11 +871,10 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     setSelectedVendor(vendor);
   };
 
-  // Calculate Balance (placeholder logic)
-  const balance = useMemo(() => {
-    // TODO: Fetch actual balance from API based on selected customer/vendor
-    return "0.00";
-  }, [selectedCustomer, selectedVendor]);
+  const balanceAmount = useMemo(() => {
+    if (!ledgerClosingBalance?.amount) return 0;
+    return Math.abs(ledgerClosingBalance.amount);
+  }, [ledgerClosingBalance]);
 
   // Handle File Selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1403,11 +1408,22 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
               })()}
 
               {/* Balance Display */}
-              <div className="mt-3 text-right">
-                <span className="text-[13px] text-gray-600">
-                  Balance : ₹ {balance}
-                </span>
-              </div>
+              {ledgerClosingBalance && (
+                <div className="mt-3 text-right">
+                  <span className="text-[13px] font-medium text-gray-600 mr-2">
+                    Balance :
+                  </span>
+                  <span
+                    className={`text-[13px] font-semibold ${
+                      ledgerClosingBalance.balanceType === "credit"
+                        ? "text-green-600"
+                        : "text-red-500"
+                    }`}
+                  >
+                    ₹ {balanceAmount.toLocaleString()}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

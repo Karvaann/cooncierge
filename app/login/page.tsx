@@ -15,7 +15,7 @@ export default function SignIn() {
   const router = useRouter();
   const { isAuthenticated, refreshUser } = useAuth();
   const [mode, setMode] = useState<"signin" | "otp" | "forgot" | "reset">(
-    "signin"
+    "signin",
   );
   const [success, setSuccess] = useState(false);
   const [checked, setChecked] = useState(false);
@@ -26,7 +26,7 @@ export default function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState(
-    "Invalid Email or Password, please retry."
+    "Invalid Email or Password, please retry.",
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOtpSubmitting, setIsOtpSubmitting] = useState(false);
@@ -38,6 +38,10 @@ export default function SignIn() {
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Current password state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
 
   const [otpMessage, setOtpMessage] = useState<{
     text: string;
@@ -95,14 +99,14 @@ export default function SignIn() {
       } catch (error: unknown) {
         const err = error as AxiosError<{ message?: string }>;
         setErrorMessage(
-          err.response?.data?.message || err.message || "Login failed"
+          err.response?.data?.message || err.message || "Login failed",
         );
         setShowError(true);
       } finally {
         setIsSubmitting(false);
       }
     },
-    [email, password, router]
+    [email, password, router],
   );
 
   const handleOtpSubmit = useCallback(async () => {
@@ -150,7 +154,7 @@ export default function SignIn() {
       setErrorMessage(
         err.response?.data?.message ||
           err.message ||
-          "Invalid OTP, please retry."
+          "Invalid OTP, please retry.",
       );
       setShowError(true);
     }
@@ -172,8 +176,7 @@ export default function SignIn() {
     hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial;
   const passwordsMatch =
     newPassword !== "" && newPassword === confirmNewPassword;
-  const canSetNewPassword =
-    allRequirementsMet && passwordsMatch;
+  const canSetNewPassword = allRequirementsMet && passwordsMatch;
 
   const handleSetNewPassword = useCallback(async () => {
     if (!canSetNewPassword) return;
@@ -356,7 +359,7 @@ export default function SignIn() {
         </div>
         {mode === "signin" && (
           <div className="w-[360px]">
-            <h2 className="text-[17px] mt-[18px] mb-[18px] font-[600] text-[#020202]">
+            <h2 className="text-[17px] mt-[18px] ml-[135px] mb-[18px] font-[600] text-[#020202]">
               Welcome!
             </h2>
             <form className="space-y-3 w-full" onSubmit={handleSignIn}>
@@ -393,12 +396,40 @@ export default function SignIn() {
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-[50%] tranlate-y-[-50%] text-gray-500 hover:text-gray-700"
+                    className="absolute right-3 top-[60%] tranlate-y-[-50%] text-gray-500 hover:text-gray-700"
                   >
                     {!showPassword ? (
-                      <FiEyeOff size={14} />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="17"
+                        height="15"
+                        viewBox="0 0 17 15"
+                        fill="none"
+                      >
+                        <path
+                          d="M1.5 0.75L15 14.25M7.188 6.44023C6.90653 6.72149 6.74833 7.10305 6.74819 7.50095C6.74805 7.89886 6.90598 8.28052 7.18725 8.56198C7.46851 8.84344 7.85006 9.00164 8.24797 9.00179C8.64587 9.00193 9.02753 8.84399 9.309 8.56273M6.27225 2.52375C6.91531 2.33979 7.58115 2.24763 8.25 2.25C11.25 2.25 13.7497 3.99975 15.75 7.5C15.1665 8.52075 14.541 9.393 13.8727 10.116M12.2678 11.5117C11.0445 12.3367 9.7065 12.75 8.25 12.75C5.25 12.75 2.75025 11.0002 0.75 7.5C1.77675 5.70375 2.93475 4.36875 4.224 3.49425"
+                          stroke="#818181"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     ) : (
-                      <FiEye size={14} />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="17"
+                        height="14"
+                        viewBox="0 0 17 14"
+                        fill="none"
+                      >
+                        <path
+                          d="M8.25 11.25C5.25 11.25 2.75025 9.50025 0.75 6C2.75025 2.49975 5.25 0.75 8.25 0.75C11.25 0.75 13.7497 2.49975 15.75 6C15.435 6.552 15.1065 7.0605 14.7667 7.52475M10.5 11.25L12 12.75L15 9.75M9.75 6C9.75 6.82843 9.07843 7.5 8.25 7.5C7.42157 7.5 6.75 6.82843 6.75 6C6.75 5.17157 7.42157 4.5 8.25 4.5C9.07843 4.5 9.75 5.17157 9.75 6Z"
+                          stroke="#818181"
+                          strokeWidth={1.5}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     )}
                   </button>
                 </div>
@@ -445,7 +476,7 @@ export default function SignIn() {
                       type="button"
                       onClick={handleForgotPassword}
                       style={{ fontFamily: "Roboto" }}
-                      className="text-right text-[#0D4B37] py-[14px] mt-1 underline font-[400] text-[15px] hover:text-green-900"
+                      className="text-right text-[#0D4B37] py-[14px] mt-1 font-[400] text-[15px] hover:text-green-900 hover:underline transition-all duration-500 ease-in-out"
                     >
                       Forgot Password?
                     </button>
@@ -580,7 +611,7 @@ export default function SignIn() {
                   }}
                 >
                   <div>
-                    <p className="text-[15px] text-justify font-[400] text-[#414141] mb-[18px] mt-[18px]">
+                    <p className="text-[14px] text-justify font-[400] text-[#414141] mb-[18px] mt-[18px]">
                       Don&apos;t worry! Just enter your email and we&apos;ll
                       notify your admin to reset your password.
                     </p>
@@ -661,15 +692,46 @@ export default function SignIn() {
           </div>
         )}
         {mode === "reset" && (
-          <div className="w-[550px] px-[12px]">
-            <div className="flex items-center mt-[8px] mb-2">
+          <div className="w-[550px] px-[4px]">
+            <div className="flex items-center mt-[18px] mb-2">
               <h2 className="w-[100%] text-[17px] text-center font-[600] text-[#020202]">
                 Set a new password
               </h2>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
+              {/* Current Password */}
 
+              <div>
+                <label className="block text-[14px] text-left font-medium text-gray-700 mb-1">
+                  Current Password
+                </label>
+
+                <div className="flex items-center justify-between relative w-full border border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] hover:border-[#AFD7D2] focus-within:ring-1 focus-within:ring-[#AFD7D2]">
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter Password"
+                    autoComplete="current-password"
+                    className="w-full font-[400] text-[15px] outline-none bg-transparent"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword((prev) => !prev)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    {showCurrentPassword ? (
+                      <FiEye size={16} />
+                    ) : (
+                      <FiEyeOff size={16} />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Email (Read Only) */}
               <div>
                 <label className="block text-[14px] text-left font-medium text-gray-700 mb-1">
                   Email
@@ -677,24 +739,24 @@ export default function SignIn() {
                 <input
                   type="email"
                   value={email}
-                  placeholder="Enter Email"
-                  autoComplete="off"
-                  disabled
-                  className="w-full border font-[400] text-[15px] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] hover:border-[#AFD7D2] focus:ring-1 focus:ring-[#AFD7D2] focus:outline-none"
+                  readOnly
+                  className="w-full border font-[400] text-[15px] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] bg-gray-100 text-gray-600 cursor-not-allowed"
                 />
               </div>
 
+              {/* New Password */}
               <div>
                 <label className="block text-[14px] text-left font-medium text-gray-700 mb-1">
                   New Password
                 </label>
-                <div className="flex flex-row items-center justify-between relative w-full border hover:border-[#AFD7D2] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] focus:ring-2 focus:ring-green-400 focus:outline-none">
+
+                <div className="flex items-center justify-between relative w-full border border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] hover:border-[#AFD7D2] focus-within:ring-1 focus-within:ring-[#AFD7D2]">
                   <input
                     type={showNewPassword ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Enter Password"
-                    className="w-full font-[400] text-[15px]"
+                    className="w-full font-[400] text-[15px] outline-none bg-transparent"
                   />
                   <button
                     type="button"
@@ -702,62 +764,53 @@ export default function SignIn() {
                     className="text-gray-500 hover:text-gray-700"
                   >
                     {!showNewPassword ? (
-                      <FiEyeOff size={14} />
+                      <FiEyeOff size={16} />
                     ) : (
-                      <FiEye size={14} />
+                      <FiEye size={16} />
                     )}
                   </button>
                 </div>
+
                 <div className="mt-3 text-[13px] font-[400] text-[#414141]">
                   <p
-                    className={`mb-1 ${
+                    className={
                       hasMinLength ? "text-green-600" : "text-[#818181]"
-                    }`}
+                    }
                   >
                     • Minimum 8 characters
                   </p>
-                  <p
-                    className={`mb-1 ${
-                      hasUpper ? "text-green-600" : "text-[#818181]"
-                    }`}
-                  >
+                  <p className={hasUpper ? "text-green-600" : "text-[#818181]"}>
                     • Minimum 1 uppercase letter
                   </p>
-                  <p
-                    className={`mb-1 ${
-                      hasLower ? "text-green-600" : "text-[#818181]"
-                    }`}
-                  >
+                  <p className={hasLower ? "text-green-600" : "text-[#818181]"}>
                     • Minimum 1 lowercase letter
                   </p>
                   <p
-                    className={`mb-1 ${
-                      hasNumber ? "text-green-600" : "text-[#818181]"
-                    }`}
+                    className={hasNumber ? "text-green-600" : "text-[#818181]"}
                   >
                     • Minimum 1 number
                   </p>
                   <p
-                    className={`mb-1 ${
-                      hasSpecial ? "text-green-600" : "text-[#818181]"
-                    }`}
+                    className={hasSpecial ? "text-green-600" : "text-[#818181]"}
                   >
                     • Minimum 1 special character
                   </p>
                 </div>
               </div>
 
+              {/* Confirm Password */}
               <div>
                 <label className="block text-[14px] text-left font-medium text-gray-700 mb-1">
                   Confirm New Password
                 </label>
-                <div className="flex flex-row items-center justify-between relative w-full border hover:border-[#AFD7D2] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] focus:ring-2 focus:ring-green-400 focus:outline-none">
+
+                <div className="flex items-center justify-between relative w-full border border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] hover:border-[#AFD7D2] focus-within:ring-1 focus-within:ring-[#AFD7D2]">
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
                     placeholder="Re-enter Password"
-                    className="w-full font-[400] text-[15px]"
+                    className="w-full font-[400] text-[15px] outline-none bg-transparent"
                   />
                   <button
                     type="button"
@@ -765,9 +818,9 @@ export default function SignIn() {
                     className="text-gray-500 hover:text-gray-700"
                   >
                     {!showConfirmPassword ? (
-                      <FiEyeOff size={14} />
+                      <FiEyeOff size={16} />
                     ) : (
-                      <FiEye size={14} />
+                      <FiEye size={16} />
                     )}
                   </button>
                 </div>

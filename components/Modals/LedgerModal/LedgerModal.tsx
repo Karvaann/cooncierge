@@ -1253,6 +1253,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         initialVendor={computedInitialVendor}
         disablePartyType={true}
         customId={paymentCustomId}
+        ledgerClosingBalance={ledgerData?.closingBalance}
         onView={() => {
           setPaymentSidesheetOpen(false);
           // keep selectedLedgerRow so view can reference it if needed
