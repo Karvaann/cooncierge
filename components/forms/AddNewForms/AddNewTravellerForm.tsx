@@ -10,6 +10,7 @@ import { getAuthUser } from "@/services/storage/authStorage";
 import Button from "@/components/Button";
 import generateCustomId from "@/utils/helper";
 import PhoneCodeSelect from "@/components/PhoneCodeSelect";
+import DropDown from "@/components/DropDown";
 import { allowOnlyDigitsWithMax, allowOnlyText } from "@/utils/inputValidators";
 import {
   getPhoneNumberMaxLength,
@@ -78,6 +79,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
   const handleClose = onClose || closeAddTraveller;
 
   const [travellerCode, setTravellerCode] = useState("");
+  const [tier, setTier] = useState<string>("");
 
   useEffect(() => {
     if (mode === "create") {
@@ -95,7 +97,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
     const [firstname = "", lastname = ""] = fullName.split(" ");
     const parsedPhone = splitPhoneWithDialCode(
       String(data.phone || data.contactnumber || ""),
-      "+91"
+      "+91",
     );
     setFormData((prev) => ({
       ...prev,
@@ -104,13 +106,14 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
       nickname: data.nickname || data.alias || "",
       contactnumber: allowOnlyDigitsWithMax(
         parsedPhone.number || "",
-        getPhoneNumberMaxLength(parsedPhone.dialCode)
+        getPhoneNumberMaxLength(parsedPhone.dialCode),
       ),
       emailId: data.email || data.emailId || "",
       dateofbirth: data.dateOfBirth || data.dateofbirth || "",
       remarks: data.remarks || "",
     }));
     setPhoneCode(parsedPhone.dialCode || "+91");
+    setTier(data.tier || "");
   }, [data]);
 
   type FieldRule = {
@@ -123,7 +126,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
   // Validation rules
   const contactNumberPattern = useMemo(
     () => new RegExp(`^\\\\d{${phoneMaxLength}}$`),
-    [phoneMaxLength]
+    [phoneMaxLength],
   );
 
   const validationRules: Record<string, FieldRule> = useMemo(
@@ -149,7 +152,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
         message: "Invalid email format",
       },
     }),
-    [contactNumberPattern, phoneMaxLength]
+    [contactNumberPattern, phoneMaxLength],
   );
 
   // Enhanced validation function using API validation
@@ -208,7 +211,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
       return "";
     },
-    [validationRules]
+    [validationRules],
   );
 
   // Validate all fields
@@ -219,7 +222,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
     Object.keys(validationRules).forEach((fieldName) => {
       const error = validateField(
         fieldName,
-        formData[fieldName as keyof TravellerFormData]
+        formData[fieldName as keyof TravellerFormData],
       );
       if (error) {
         newErrors[fieldName] = error;
@@ -233,15 +236,15 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
   // Normal handleChange that only updates local state
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value, type } = e.target;
     const newValue =
       name === "firstname" || name === "lastname" || name === "nickname"
         ? allowOnlyText(value)
         : name === "contactnumber"
-        ? allowOnlyDigitsWithMax(value, phoneMaxLength)
-        : value;
+          ? allowOnlyDigitsWithMax(value, phoneMaxLength)
+          : value;
 
     setFormData((prev) => ({
       ...prev,
@@ -262,7 +265,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
       ...prev,
       contactnumber: allowOnlyDigitsWithMax(
         String(prev.contactnumber || ""),
-        phoneMaxLength
+        phoneMaxLength,
       ),
     }));
   }, [phoneMaxLength]);
@@ -279,7 +282,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
       setTouched((prev) => ({ ...prev, [name]: true }));
     },
-    [validateField, showValidation]
+    [validateField, showValidation],
   );
 
   // Handle date of birth changes coming from SingleCalendar (ISO string)
@@ -317,10 +320,13 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
       if (e) e.preventDefault();
 
       if (!validateForm()) {
-        const allTouched = Object.keys(validationRules).reduce((acc, key) => {
-          acc[key] = true;
-          return acc;
-        }, {} as Record<string, boolean>);
+        const allTouched = Object.keys(validationRules).reduce(
+          (acc, key) => {
+            acc[key] = true;
+            return acc;
+          },
+          {} as Record<string, boolean>,
+        );
         setTouched(allTouched);
         return;
       }
@@ -349,6 +355,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           email: String(formData.emailId || "").trim() || undefined,
           phone: phonePayload || undefined,
           dateOfBirth: formData.dateofbirth || undefined,
+          tier: tier || undefined,
           ownerId,
           customId: travellerCode,
           // remarks is not part of traveller schema in docs; include only if backend accepts it
@@ -356,7 +363,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
         if (!payload.ownerId) {
           console.error(
-            "[AddNewTravellerForm] Missing ownerId. Ensure user is authenticated."
+            "[AddNewTravellerForm] Missing ownerId. Ensure user is authenticated.",
           );
         }
 
@@ -380,6 +387,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           dateofbirth: "",
           remarks: "",
         });
+        setTier("");
       } catch (err: any) {
         const msg =
           err?.response?.data?.message ||
@@ -388,7 +396,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
         console.error(
           "[AddNewTravellerForm] Error creating traveller:",
           msg,
-          err?.response?.data || err
+          err?.response?.data || err,
         );
       } finally {
         setSubmitting(false);
@@ -400,7 +408,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
       setLastAddedTraveller,
       validateForm,
       validationRules,
-    ]
+    ],
   );
 
   // Enhanced input field component with validation indicators
@@ -443,8 +451,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
               hasError
                 ? "border-red-300 focus:ring-red-200"
                 : isValid && touched[name]
-                ? "border-green-300 focus:ring-green-200"
-                : "border-gray-200 focus:ring-blue-200"
+                  ? "border-green-300 focus:ring-green-200"
+                  : "border-gray-200 focus:ring-blue-200"
             }
             ${
               isSubmitting || isValidatingField
@@ -507,8 +515,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
         mode === "view"
           ? "Traveller Details"
           : mode === "edit"
-          ? "Edit Traveller"
-          : "Add Traveller"
+            ? "Edit Traveller"
+            : "Add Traveller"
       }${travellerCode ? " | " + travellerCode : ""}`}
       width="lg2"
       zIndex={1000}
@@ -523,8 +531,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           <h2 className="text-[13px] font-medium mb-2">Basic Details</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
-            <div className="flex flex-col gap-1">
+          <div className="flex flex-col md:flex-row gap-4 mb-2">
+            <div className="flex flex-col gap-1 w-full md:w-1/3">
               <label className="block text-[13px] font-medium text-gray-700">
                 First Name <span className="text-red-500">*</span>
               </label>
@@ -540,7 +548,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
               />
             </div>
 
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 w-full md:w-1/3">
               <label className="block text-[13px] font-medium text-gray-700">
                 Last Name
               </label>
@@ -556,7 +564,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
               />
             </div>
 
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 w-full md:w-1/3">
               <label className="block text-[13px] font-medium text-gray-700">
                 Nickname/Alias
               </label>
@@ -574,8 +582,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           </div>
 
           {/* Second row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex flex-col gap-1">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex flex-col gap-1 w-full md:w-1/3">
               <label className="block text-[13px] font-medium text-gray-700">
                 Contact Number
               </label>
@@ -597,12 +605,12 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   maxLength={phoneMaxLength}
                   placeholder="Enter Contact Number"
                   disabled={readOnly}
-                  className="flex-1  border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  className="flex-1 w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
             </div>
 
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 w-full md:w-1/3">
               <label className="block text-[13px] font-medium text-gray-700">
                 Email ID
               </label>
@@ -618,7 +626,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
               />
             </div>
 
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 w-full md:w-1/3">
               <label className="block text-[13px] font-medium text-gray-700">
                 Date of Birth
               </label>
@@ -639,6 +647,89 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 )}
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* ================= TIER ================ */}
+        <div className=" p-1 -mt-4">
+          <h2 className="text-[13px] font-medium mb-2">Rating</h2>
+
+          <div className="flex flex-col">
+            <DropDown
+              options={[
+                {
+                  value: "tier1",
+                  label: (
+                    <div className="flex items-center gap-2">
+                      <img
+                        src="/icons/tier-1.png"
+                        alt="Tier 1"
+                        className="w-5 h-5"
+                      />
+                      <span className="text-[13px] font-medium">1</span>
+                    </div>
+                  ),
+                },
+                {
+                  value: "tier2",
+                  label: (
+                    <div className="flex items-center gap-2">
+                      <img
+                        src="/icons/tier-2.png"
+                        alt="Tier 2"
+                        className="w-5 h-5"
+                      />
+                      <span className="text-[13px] font-medium">2</span>
+                    </div>
+                  ),
+                },
+                {
+                  value: "tier3",
+                  label: (
+                    <div className="flex items-center gap-2">
+                      <img
+                        src="/icons/tier-3.png"
+                        alt="Tier 3"
+                        className="w-5 h-5"
+                      />
+                      <span className="text-[13px] font-medium">3</span>
+                    </div>
+                  ),
+                },
+                {
+                  value: "tier4",
+                  label: (
+                    <div className="flex items-center gap-2">
+                      <img
+                        src="/icons/tier-4.png"
+                        alt="Tier 4"
+                        className="w-5 h-5"
+                      />
+                      <span className="text-[13px] font-medium">4</span>
+                    </div>
+                  ),
+                },
+                {
+                  value: "tier5",
+                  label: (
+                    <div className="flex items-center gap-2">
+                      <img
+                        src="/icons/tier-5.png"
+                        alt="Tier 5"
+                        className="w-5 h-5"
+                      />
+                      <span className="text-[13px] font-medium">5</span>
+                    </div>
+                  ),
+                },
+              ]}
+              value={tier}
+              onChange={(v) => setTier(v)}
+              disabled={readOnly}
+              customWidth="w-[10rem]"
+              menuWidth="w-[10rem]"
+              className=""
+            />
           </div>
         </div>
 
@@ -701,6 +792,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                         return combined || undefined;
                       })(),
                       dateOfBirth: formData.dateofbirth || undefined,
+                      tier: tier || undefined,
                     };
                     const id = data?._id || data?.id;
                     if (!id) throw new Error("Missing traveller id");
@@ -714,7 +806,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   } catch (err: any) {
                     console.error(
                       "[AddNewTravellerForm] Error updating traveller:",
-                      err?.response?.data?.message || err?.message
+                      err?.response?.data?.message || err?.message,
                     );
                   } finally {
                     setSubmitting(false);
@@ -732,7 +824,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 <Button
                   text="Cancel"
                   onClick={handleClose}
-                  bgColor="bg-gray-200"
+                  className="border border-gray-400"
+                  bgColor="bg-white"
                   textColor="text-gray-700"
                 />
                 <Button

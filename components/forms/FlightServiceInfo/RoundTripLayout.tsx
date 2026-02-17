@@ -9,6 +9,7 @@ import { FiMinusCircle } from "react-icons/fi";
 import SingleCalendar from "@/components/SingleCalendar";
 import DropDown from "@/components/DropDown";
 import { LuSave } from "react-icons/lu";
+import BaggageCounters from "./BaggageCounters";
 
 interface FlightInfoFormData {
   bookingdate: string;
@@ -37,6 +38,11 @@ interface FlightSegment {
     | string;
   pnr?: string;
   preview?: SegmentPreview;
+
+  cabinBaggagePcs?: number | string;
+  cabinBaggageWt?: number | string;
+  checkInBaggagePcs?: number | string;
+  checkInBaggageWt?: number | string;
 }
 
 interface ReturnFlightSegment {
@@ -51,6 +57,11 @@ interface ReturnFlightSegment {
     | string;
   pnr?: string;
   preview?: SegmentPreview;
+
+  cabinBaggagePcs?: number | string;
+  cabinBaggageWt?: number | string;
+  checkInBaggagePcs?: number | string;
+  checkInBaggageWt?: number | string;
 }
 
 interface AviationAirportInfo {
@@ -185,7 +196,7 @@ export default function RoundTripLayout({
 
   const fetchFlightData = async (
     segment: FlightSegment | ReturnFlightSegment,
-    isReturn: boolean = false
+    isReturn: boolean = false,
   ) => {
     try {
       if (!segment.flightnumber) return;
@@ -236,7 +247,7 @@ export default function RoundTripLayout({
         setFormData((prev) => ({
           ...prev,
           returnSegments: prev.returnSegments.map((s) =>
-            s.id === segment.id ? { ...s, preview } : s
+            s.id === segment.id ? { ...s, preview } : s,
           ),
         }));
       } else {
@@ -247,7 +258,7 @@ export default function RoundTripLayout({
         setFormData((prev) => ({
           ...prev,
           segments: prev.segments.map((s) =>
-            s.id === segment.id ? { ...s, preview } : s
+            s.id === segment.id ? { ...s, preview } : s,
           ),
         }));
       }
@@ -291,7 +302,7 @@ export default function RoundTripLayout({
         fetchFlightData(segment, false)
           .then(() => {
             lastFetchedRef.current[segmentId] = String(
-              segment.flightnumber || ""
+              segment.flightnumber || "",
             );
           })
           .catch(() => {})
@@ -341,7 +352,7 @@ export default function RoundTripLayout({
         fetchFlightData(segment, true)
           .then(() => {
             lastFetchedRef.current[segmentId] = String(
-              segment.flightnumber || ""
+              segment.flightnumber || "",
             );
           })
           .catch(() => {})
@@ -408,7 +419,7 @@ export default function RoundTripLayout({
       setFormData({
         ...formData,
         returnSegments: formData.returnSegments.filter(
-          (segment) => segment.id !== id
+          (segment) => segment.id !== id,
         ),
       });
     }
@@ -417,7 +428,7 @@ export default function RoundTripLayout({
   const handleSegmentPnr = (
     idx: number,
     value: string,
-    type: "segments" | "returnSegments"
+    type: "segments" | "returnSegments",
   ) => {
     setFormData((prev) => {
       const updated = [...prev[type]];
@@ -491,7 +502,7 @@ export default function RoundTripLayout({
                           const updatedSegments = formData.segments.map((s) =>
                             s.id === segment.id
                               ? { ...s, flightnumber: e.target.value }
-                              : s
+                              : s,
                           );
                           setFormData({
                             ...formData,
@@ -527,7 +538,9 @@ export default function RoundTripLayout({
                         value={segment.traveldate}
                         onChange={(date) => {
                           const updatedSegments = formData.segments.map((s) =>
-                            s.id === segment.id ? { ...s, traveldate: date } : s
+                            s.id === segment.id
+                              ? { ...s, traveldate: date }
+                              : s,
                           );
                           setFormData({
                             ...formData,
@@ -560,7 +573,7 @@ export default function RoundTripLayout({
                         value={segment.cabinclass}
                         onChange={(val: string) => {
                           const updatedSegments = formData.segments.map((s) =>
-                            s.id === segment.id ? { ...s, cabinclass: val } : s
+                            s.id === segment.id ? { ...s, cabinclass: val } : s,
                           );
                           setFormData({
                             ...formData,
@@ -570,6 +583,23 @@ export default function RoundTripLayout({
                         customWidth="w-[75%]"
                       />
                     </div>
+
+                    {/* Cabin + Check-In baggage counters */}
+                    <BaggageCounters
+                      cabinPcs={segment.cabinBaggagePcs ?? 1}
+                      cabinWt={segment.cabinBaggageWt ?? ""}
+                      checkInPcs={segment.checkInBaggagePcs ?? 1}
+                      checkInWt={segment.checkInBaggageWt ?? ""}
+                      onChange={(patch) => {
+                        const updatedSegments = formData.segments.map((s) =>
+                          s.id === segment.id ? { ...s, ...patch } : s,
+                        );
+                        setFormData({
+                          ...formData,
+                          segments: updatedSegments,
+                        });
+                      }}
+                    />
                   </div>
                 </div>
 
@@ -596,10 +626,10 @@ export default function RoundTripLayout({
                               origin: pv?.origin ?? "",
                               destination: pv?.destination ?? "",
                               departureTime: toTimeInput(
-                                pv?.departureTimeRaw ?? pv?.departureTime
+                                pv?.departureTimeRaw ?? pv?.departureTime,
                               ),
                               arrivalTime: toTimeInput(
-                                pv?.arrivalTimeRaw ?? pv?.arrivalTime
+                                pv?.arrivalTimeRaw ?? pv?.arrivalTime,
                               ),
                               duration: pv?.duration ?? "",
                             },
@@ -759,7 +789,7 @@ export default function RoundTripLayout({
                                         [segment.id!]: {
                                           ...prev[segment.id!],
                                           departureTime: capTimeInput(
-                                            e.target.value
+                                            e.target.value,
                                           ),
                                         },
                                       }))
@@ -784,7 +814,7 @@ export default function RoundTripLayout({
                                         [segment.id!]: {
                                           ...prev[segment.id!],
                                           arrivalTime: capTimeInput(
-                                            e.target.value
+                                            e.target.value,
                                           ),
                                         },
                                       }))
@@ -845,7 +875,7 @@ export default function RoundTripLayout({
                                           60;
                                         const h = Math.floor(diff / 60);
                                         const m = Math.abs(
-                                          Math.floor(diff % 60)
+                                          Math.floor(diff % 60),
                                         );
                                         durationVal = `${h}h ${m}m`;
                                       }
@@ -866,10 +896,10 @@ export default function RoundTripLayout({
                                       arr ?? preview?.arrivalTime ?? "",
                                     departureTimeRaw: dep
                                       ? `${segment.traveldate}T${dep}`
-                                      : preview?.departureTimeRaw ?? "",
+                                      : (preview?.departureTimeRaw ?? ""),
                                     arrivalTimeRaw: arr
                                       ? `${segment.traveldate}T${arr}`
-                                      : preview?.arrivalTimeRaw ?? "",
+                                      : (preview?.arrivalTimeRaw ?? ""),
                                     flightNumber:
                                       d.flightNumber ??
                                       preview?.flightNumber ??
@@ -887,7 +917,7 @@ export default function RoundTripLayout({
                                     segments: prev.segments.map((s) =>
                                       s.id === segment.id
                                         ? { ...s, preview: newPreview }
-                                        : s
+                                        : s,
                                     ),
                                   }));
                                   lastFetchedRef.current[segment.id!] =
@@ -994,7 +1024,7 @@ export default function RoundTripLayout({
                       }
 
                       return (
-                        <div className="flex items-center justify-center h-full bg-gray-50 rounded-md text-gray-500 min-h-[160px]">
+                        <div className="flex items-center justify-center h-full bg-gray-50 rounded-md text-gray-500 min-h-[255px]">
                           <p>Preview data will appear here</p>
                         </div>
                       );
@@ -1058,7 +1088,7 @@ export default function RoundTripLayout({
                             const updated = formData.returnSegments.map((s) =>
                               s.id === segment.id
                                 ? { ...s, flightnumber: e.target.value }
-                                : s
+                                : s,
                             );
                             setFormData({
                               ...formData,
@@ -1083,7 +1113,7 @@ export default function RoundTripLayout({
                               handleSegmentPnr(
                                 index,
                                 e.target.value,
-                                "returnSegments"
+                                "returnSegments",
                               )
                             }
                             className="w-[75%] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
@@ -1100,7 +1130,7 @@ export default function RoundTripLayout({
                             const updated = formData.returnSegments.map((s) =>
                               s.id === segment.id
                                 ? { ...s, traveldate: date }
-                                : s
+                                : s,
                             );
                             setFormData({
                               ...formData,
@@ -1135,7 +1165,7 @@ export default function RoundTripLayout({
                             const updated = formData.returnSegments.map((s) =>
                               s.id === segment.id
                                 ? { ...s, cabinclass: val }
-                                : s
+                                : s,
                             );
                             setFormData({
                               ...formData,
@@ -1145,6 +1175,23 @@ export default function RoundTripLayout({
                           customWidth="w-[75%]"
                         />
                       </div>
+
+                      {/* Cabin + Check-In baggage counters */}
+                      <BaggageCounters
+                        cabinPcs={segment.cabinBaggagePcs ?? 1}
+                        cabinWt={segment.cabinBaggageWt ?? ""}
+                        checkInPcs={segment.checkInBaggagePcs ?? 1}
+                        checkInWt={segment.checkInBaggageWt ?? ""}
+                        onChange={(patch) => {
+                          const updated = formData.returnSegments.map((s) =>
+                            s.id === segment.id ? { ...s, ...patch } : s,
+                          );
+                          setFormData({
+                            ...formData,
+                            returnSegments: updated,
+                          });
+                        }}
+                      />
                     </div>
                   </div>
 
@@ -1171,10 +1218,10 @@ export default function RoundTripLayout({
                                 origin: pv?.origin ?? "",
                                 destination: pv?.destination ?? "",
                                 departureTime: toTimeInput(
-                                  pv?.departureTimeRaw ?? pv?.departureTime
+                                  pv?.departureTimeRaw ?? pv?.departureTime,
                                 ),
                                 arrivalTime: toTimeInput(
-                                  pv?.arrivalTimeRaw ?? pv?.arrivalTime
+                                  pv?.arrivalTimeRaw ?? pv?.arrivalTime,
                                 ),
                                 duration: pv?.duration ?? "",
                               },
@@ -1332,7 +1379,7 @@ export default function RoundTripLayout({
                                           [segment.id!]: {
                                             ...prev[segment.id!],
                                             departureTime: capTimeInput(
-                                              e.target.value
+                                              e.target.value,
                                             ),
                                           },
                                         }))
@@ -1358,7 +1405,7 @@ export default function RoundTripLayout({
                                           [segment.id!]: {
                                             ...prev[segment.id!],
                                             arrivalTime: capTimeInput(
-                                              e.target.value
+                                              e.target.value,
                                             ),
                                           },
                                         }))
@@ -1419,7 +1466,7 @@ export default function RoundTripLayout({
                                             60;
                                           const h = Math.floor(diff / 60);
                                           const m = Math.abs(
-                                            Math.floor(diff % 60)
+                                            Math.floor(diff % 60),
                                           );
                                           durationVal = `${h}h ${m}m`;
                                         }
@@ -1440,10 +1487,10 @@ export default function RoundTripLayout({
                                         arr ?? preview?.arrivalTime ?? "",
                                       departureTimeRaw: dep
                                         ? `${segment.traveldate}T${dep}`
-                                        : preview?.departureTimeRaw ?? "",
+                                        : (preview?.departureTimeRaw ?? ""),
                                       arrivalTimeRaw: arr
                                         ? `${segment.traveldate}T${arr}`
-                                        : preview?.arrivalTimeRaw ?? "",
+                                        : (preview?.arrivalTimeRaw ?? ""),
                                       flightNumber:
                                         d.flightNumber ??
                                         preview?.flightNumber ??
@@ -1462,7 +1509,7 @@ export default function RoundTripLayout({
                                         (s) =>
                                           s.id === segment.id
                                             ? { ...s, preview: newPreview }
-                                            : s
+                                            : s,
                                       ),
                                     }));
                                     lastFetchedRef.current[segment.id!] =
@@ -1564,7 +1611,7 @@ export default function RoundTripLayout({
                         }
 
                         return (
-                          <div className="flex items-center justify-center h-full bg-gray-50 rounded-md text-gray-500 min-h-[160px]">
+                          <div className="flex items-center justify-center h-full bg-gray-50 rounded-md text-gray-500 min-h-[255px]">
                             <p>Preview data will appear here</p>
                           </div>
                         );

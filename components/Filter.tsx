@@ -364,7 +364,7 @@ const Filter: React.FC<FilterProps> = ({
 
       <hr className="mb-2 mt-2 border-t-1 border-[#e4dfdb]" />
 
-      <div className="flex items-end gap-3 mt-4 flex-nowrap w-full">
+      <div className="flex flex-wrap items-end gap-3 mt-4 w-full">
         {/* Service Type */}
         {/* <div>
                 <label className="block text-gray-700 mb-1 text-[0.75rem]">Service Type</label>
@@ -384,7 +384,7 @@ const Filter: React.FC<FilterProps> = ({
 
         {/* Booking Time Period (combined box) */}
         {showBookingDateFilter && (
-          <div className="w-[17%] min-w-0">
+          <div className="w-full sm:w-1/2 md:w-[17%] min-w-0">
             <DateRangeInput
               label={bookingDateLabel}
               startDate={filters.bookingStartDate}
@@ -398,7 +398,7 @@ const Filter: React.FC<FilterProps> = ({
         )}
 
         {showTravelDateFilter && (
-          <div className="w-[17%] min-w-0">
+          <div className="w-full sm:w-1/2 md:w-[17%] min-w-0">
             <DateRangeInput
               label={travelDateLabel}
               startDate={filters.tripStartDate}
@@ -413,7 +413,7 @@ const Filter: React.FC<FilterProps> = ({
 
         {/* Category */}
         {showCategory && (
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 w-full md:w-auto">
             <label className="block text-[#414141] font-medium mb-1.5 text-[14px]">
               Category
             </label>
@@ -433,7 +433,7 @@ const Filter: React.FC<FilterProps> = ({
         {/* Booking Owner */}
 
         {showOwners && (
-          <div className="w-[15%] min-w-0">
+          <div className="w-full sm:w-1/2 md:w-[15%] min-w-0">
             <label className="block text-[#414141] font-medium mb-1.5 text-[14px]">
               Booking Owner
             </label>
@@ -529,7 +529,7 @@ const Filter: React.FC<FilterProps> = ({
         )}
 
         {showBookingType && (
-          <div className="w-[15%] min-w-0">
+          <div className="w-full sm:w-1/2 md:w-[15%] min-w-0">
             <label className="block text-[#414141] font-medium mb-1.5 text-[14px]">
               Booking Type
             </label>
@@ -620,7 +620,7 @@ const Filter: React.FC<FilterProps> = ({
           </div>
         )}
         {/* Search */}
-        <div className="w-[19%] min-w-0 ml-auto">
+        <div className="w-full sm:w-1/2 md:w-[19%] min-w-0 ml-auto">
           <div className="relative">
             <input
               type="text"

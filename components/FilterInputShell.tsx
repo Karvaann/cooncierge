@@ -28,14 +28,14 @@ const FilterInputShell: React.FC<FilterInputShellProps> = ({
       className={`w-full min-h-[2.4rem] -mt-0.5
                  border border-gray-300 hover:border-green-200
                  rounded-sm px-2.5 py-3
-                 flex items-center flex-wrap gap-1 cursor-pointer ${className}`}
+                 flex items-center flex-wrap gap-1 cursor-pointer overflow-hidden ${className}`}
       onClick={onClick}
     >
       {children ? (
         children
       ) : (
         <span
-          className={`${
+          className={`truncate ${
             value ? "text-black" : "text-[#9CA3AF] text-[14px] font-normal"
           }`}
         >

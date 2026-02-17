@@ -495,8 +495,8 @@ export default function SignIn() {
           </div>
         )}
         {mode === "otp" && (
-          <div className="w-[360px] px-[24px] flex flex-col items-center">
-            <div className="flex items-center mt-[18px] w-full">
+          <div className="w-[360px] px-[28px] flex flex-col items-center">
+            <div className="flex items-center mt-[23px] w-full">
               <button
                 type="button"
                 onClick={() => {
@@ -551,7 +551,7 @@ export default function SignIn() {
             <div className="flex w-full justify-between mt-4">
               <div
                 style={{ fontFamily: "Roboto" }}
-                className="text-[#414141] text-[15px] font-[400]"
+                className="text-[#414141] text-[14px] font-[400]"
               >
                 (00:{timer > 9 ? timer : `0${timer}`})
               </div>
@@ -561,7 +561,7 @@ export default function SignIn() {
                   type="button"
                   disabled
                   style={{ fontFamily: "Roboto" }}
-                  className="text-[#0D4B37] text-[15px] font-[400] opacity-60 underline hover:text-[#125E45]"
+                  className="text-[#0D4B37] text-[15px] font-[400] opacity-60 hover:underline hover:text-[#125E45]"
                 >
                   Resend OTP
                 </button>
@@ -639,7 +639,7 @@ export default function SignIn() {
                   )}
                   <button
                     type="submit"
-                    className="w-full h-10 text-[15px] bg-[#0D4B37] text-white py-[10px] rounded-md shadow-xl font-medium hover:text-[17px] hover:bg-[#125E45] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+                    className="w-full h-10 text-[14px] bg-[#0D4B37] text-white py-[10px] rounded-md shadow-xl font-medium hover:text-[17px] hover:bg-[#125E45] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
                     disabled={isSubmitting}
                   >
                     Send
@@ -681,7 +681,7 @@ export default function SignIn() {
                     setSuccess(false);
                     goToResetMode();
                   }}
-                  className="w-full mt-2 h-13 bg-[#0D4B37] text-white py-2 rounded-md font-medium hover:bg-[#125E45]  transition"
+                  className="w-full mt-2 h-13 bg-[#0D4B37] text-white py-2 rounded-md font-medium hover:cursor-pointer hover:text-[16px] hover:bg-[#125E45] transition-all duration-300 ease-in-out"
                 >
                   <span className="transition text-medium duration-700 hover:text-lg">
                     Set a new password
@@ -692,16 +692,15 @@ export default function SignIn() {
           </div>
         )}
         {mode === "reset" && (
-          <div className="w-[550px] px-[4px]">
-            <div className="flex items-center mt-[18px] mb-2">
-              <h2 className="w-[100%] text-[17px] text-center font-[600] text-[#020202]">
+          <div className="w-[550px] px-[0px]">
+            <div className="flex items-center mt-[23px] mb-6">
+              <h2 className="w-[100%] text-[16px] text-center font-[600] text-[#020202]">
                 Set a new password
               </h2>
             </div>
 
             <div className="space-y-4">
               {/* Current Password */}
-
               <div>
                 <label className="block text-[14px] text-left font-medium text-gray-700 mb-1">
                   Current Password
@@ -714,7 +713,7 @@ export default function SignIn() {
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="Enter Password"
                     autoComplete="current-password"
-                    className="w-full font-[400] text-[15px] outline-none bg-transparent"
+                    className="w-full font-[400] text-[14px] outline-none bg-transparent"
                   />
 
                   <button
@@ -723,9 +722,37 @@ export default function SignIn() {
                     className="text-gray-500 hover:text-gray-700"
                   >
                     {showCurrentPassword ? (
-                      <FiEye size={16} />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="17"
+                        height="15"
+                        viewBox="0 0 17 15"
+                        fill="none"
+                      >
+                        <path
+                          d="M1.5 0.75L15 14.25M7.188 6.44023C6.90653 6.72149 6.74833 7.10305 6.74819 7.50095C6.74805 7.89886 6.90598 8.28052 7.18725 8.56198C7.46851 8.84344 7.85006 9.00164 8.24797 9.00179C8.64587 9.00193 9.02753 8.84399 9.309 8.56273M6.27225 2.52375C6.91531 2.33979 7.58115 2.24763 8.25 2.25C11.25 2.25 13.7497 3.99975 15.75 7.5C15.1665 8.52075 14.541 9.393 13.8727 10.116M12.2678 11.5117C11.0445 12.3367 9.7065 12.75 8.25 12.75C5.25 12.75 2.75025 11.0002 0.75 7.5C1.77675 5.70375 2.93475 4.36875 4.224 3.49425"
+                          stroke="#818181"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     ) : (
-                      <FiEyeOff size={16} />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="17"
+                        height="14"
+                        viewBox="0 0 17 14"
+                        fill="none"
+                      >
+                        <path
+                          d="M8.25 11.25C5.25 11.25 2.75025 9.50025 0.75 6C2.75025 2.49975 5.25 0.75 8.25 0.75C11.25 0.75 13.7497 2.49975 15.75 6C15.435 6.552 15.1065 7.0605 14.7667 7.52475M10.5 11.25L12 12.75L15 9.75M9.75 6C9.75 6.82843 9.07843 7.5 8.25 7.5C7.42157 7.5 6.75 6.82843 6.75 6C6.75 5.17157 7.42157 4.5 8.25 4.5C9.07843 4.5 9.75 5.17157 9.75 6Z"
+                          stroke="#818181"
+                          strokeWidth={1.5}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     )}
                   </button>
                 </div>
@@ -740,7 +767,7 @@ export default function SignIn() {
                   type="email"
                   value={email}
                   readOnly
-                  className="w-full border font-[400] text-[15px] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] bg-gray-100 text-gray-600 cursor-not-allowed"
+                  className="w-full border font-[400] text-[14px] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] bg-gray-100 text-gray-600 cursor-not-allowed"
                 />
               </div>
 
@@ -756,7 +783,7 @@ export default function SignIn() {
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Enter Password"
-                    className="w-full font-[400] text-[15px] outline-none bg-transparent"
+                    className="w-full font-[400] text-[14px] outline-none bg-transparent"
                   />
                   <button
                     type="button"
@@ -764,20 +791,48 @@ export default function SignIn() {
                     className="text-gray-500 hover:text-gray-700"
                   >
                     {!showNewPassword ? (
-                      <FiEyeOff size={16} />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="17"
+                        height="15"
+                        viewBox="0 0 17 15"
+                        fill="none"
+                      >
+                        <path
+                          d="M1.5 0.75L15 14.25M7.188 6.44023C6.90653 6.72149 6.74833 7.10305 6.74819 7.50095C6.74805 7.89886 6.90598 8.28052 7.18725 8.56198C7.46851 8.84344 7.85006 9.00164 8.24797 9.00179C8.64587 9.00193 9.02753 8.84399 9.309 8.56273M6.27225 2.52375C6.91531 2.33979 7.58115 2.24763 8.25 2.25C11.25 2.25 13.7497 3.99975 15.75 7.5C15.1665 8.52075 14.541 9.393 13.8727 10.116M12.2678 11.5117C11.0445 12.3367 9.7065 12.75 8.25 12.75C5.25 12.75 2.75025 11.0002 0.75 7.5C1.77675 5.70375 2.93475 4.36875 4.224 3.49425"
+                          stroke="#818181"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     ) : (
-                      <FiEye size={16} />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="17"
+                        height="14"
+                        viewBox="0 0 17 14"
+                        fill="none"
+                      >
+                        <path
+                          d="M8.25 11.25C5.25 11.25 2.75025 9.50025 0.75 6C2.75025 2.49975 5.25 0.75 8.25 0.75C11.25 0.75 13.7497 2.49975 15.75 6C15.435 6.552 15.1065 7.0605 14.7667 7.52475M10.5 11.25L12 12.75L15 9.75M9.75 6C9.75 6.82843 9.07843 7.5 8.25 7.5C7.42157 7.5 6.75 6.82843 6.75 6C6.75 5.17157 7.42157 4.5 8.25 4.5C9.07843 4.5 9.75 5.17157 9.75 6Z"
+                          stroke="#818181"
+                          strokeWidth={1.5}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     )}
                   </button>
                 </div>
 
-                <div className="mt-3 text-[13px] font-[400] text-[#414141]">
+                <div className="mt-3 text-[13px] font-[300] space-y-0.5">
                   <p
                     className={
                       hasMinLength ? "text-green-600" : "text-[#818181]"
                     }
                   >
-                    • Minimum 8 characters
+                    Note: Password should consist of minimum 8 characters
                   </p>
                   <p className={hasUpper ? "text-green-600" : "text-[#818181]"}>
                     • Minimum 1 uppercase letter
@@ -810,7 +865,7 @@ export default function SignIn() {
                     value={confirmNewPassword}
                     onChange={(e) => setConfirmNewPassword(e.target.value)}
                     placeholder="Re-enter Password"
-                    className="w-full font-[400] text-[15px] outline-none bg-transparent"
+                    className="w-full font-[400] text-[14px] outline-none bg-transparent"
                   />
                   <button
                     type="button"
@@ -818,9 +873,37 @@ export default function SignIn() {
                     className="text-gray-500 hover:text-gray-700"
                   >
                     {!showConfirmPassword ? (
-                      <FiEyeOff size={16} />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="17"
+                        height="15"
+                        viewBox="0 0 17 15"
+                        fill="none"
+                      >
+                        <path
+                          d="M1.5 0.75L15 14.25M7.188 6.44023C6.90653 6.72149 6.74833 7.10305 6.74819 7.50095C6.74805 7.89886 6.90598 8.28052 7.18725 8.56198C7.46851 8.84344 7.85006 9.00164 8.24797 9.00179C8.64587 9.00193 9.02753 8.84399 9.309 8.56273M6.27225 2.52375C6.91531 2.33979 7.58115 2.24763 8.25 2.25C11.25 2.25 13.7497 3.99975 15.75 7.5C15.1665 8.52075 14.541 9.393 13.8727 10.116M12.2678 11.5117C11.0445 12.3367 9.7065 12.75 8.25 12.75C5.25 12.75 2.75025 11.0002 0.75 7.5C1.77675 5.70375 2.93475 4.36875 4.224 3.49425"
+                          stroke="#818181"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     ) : (
-                      <FiEye size={16} />
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="17"
+                        height="14"
+                        viewBox="0 0 17 14"
+                        fill="none"
+                      >
+                        <path
+                          d="M8.25 11.25C5.25 11.25 2.75025 9.50025 0.75 6C2.75025 2.49975 5.25 0.75 8.25 0.75C11.25 0.75 13.7497 2.49975 15.75 6C15.435 6.552 15.1065 7.0605 14.7667 7.52475M10.5 11.25L12 12.75L15 9.75M9.75 6C9.75 6.82843 9.07843 7.5 8.25 7.5C7.42157 7.5 6.75 6.82843 6.75 6C6.75 5.17157 7.42157 4.5 8.25 4.5C9.07843 4.5 9.75 5.17157 9.75 6Z"
+                          stroke="#818181"
+                          strokeWidth={1.5}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
                     )}
                   </button>
                 </div>
@@ -840,8 +923,8 @@ export default function SignIn() {
 
               <button
                 onClick={handleSetNewPassword}
-                className="w-full h-10 text-[15px] bg-[#0D4B37] text-white py-[10px] rounded-md shadow-xl font-medium hover:bg-[#125E45] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
-                disabled={!canSetNewPassword || isSubmitting}
+                className="w-full h-10 text-[15px] bg-[#0D4B37] text-white py-[10px] rounded-md shadow-2xl font-medium hover:cursor-pointer hover:text-[16px] hover:bg-[#125E45] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+                // disabled={!canSetNewPassword || isSubmitting}
               >
                 {isSubmitting ? "Setting..." : "Set a new password"}
               </button>

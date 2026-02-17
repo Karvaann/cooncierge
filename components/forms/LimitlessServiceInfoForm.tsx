@@ -669,6 +669,7 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
             requiresRoe={requiresRoe}
             inputClassName="px-3 py-1.5 border border-gray-300 rounded-md text-[13px]"
             useWhiteDropdown={true}
+            notesInputWidth="60%"
           />
         </div>
 
