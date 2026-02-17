@@ -359,13 +359,13 @@ export default function SignIn() {
         </div>
         {mode === "signin" && (
           <div className="w-[360px]">
-            <h2 className="text-[17px] mt-[18px] ml-[135px] mb-[18px] font-[600] text-[#020202]">
+            <h2 className="text-[17px] mt-[20px] ml-[135px] mb-[18px] font-[600] text-[#020202]">
               Welcome!
             </h2>
             <form className="space-y-3 w-full" onSubmit={handleSignIn}>
               {/* Email */}
               <div className="w-full">
-                <label className="block text-[15px] text-left font-medium text-gray-700 mb-1">
+                <label className="block text-[14px] text-left font-[500] text-gray-700 mb-1">
                   Email
                 </label>
                 <input
@@ -375,14 +375,14 @@ export default function SignIn() {
                   placeholder="Enter Email"
                   autoComplete="off"
                   data-lpignore="true"
-                  className="w-full border font-[400] text-[15px] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] hover:border-[#AFD7D2] focus:ring-1 focus:ring-[#AFD7D2] focus:outline-none"
+                  className="w-full border font-[400] text-[14px] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] hover:border-[#AFD7D2] focus:ring-1 focus:ring-[#AFD7D2] focus:outline-none"
                 />
               </div>
 
               {/* Password */}
               <div>
                 <div className="relative">
-                  <label className="block text-[15px] text-left font-medium text-gray-700 mb-1">
+                  <label className="block text-[14px] text-left font-[500] text-gray-700 mb-1">
                     Password
                   </label>
                   <input
@@ -391,12 +391,12 @@ export default function SignIn() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter Password"
                     autoComplete="new-password"
-                    className="w-full border font-[400] text-[15px] hover:border-[#AFD7D2] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] focus:ring-2 focus:ring-green-400 focus:outline-none"
+                    className="w-full border font-[400] text-[14px] hover:border-[#AFD7D2] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] focus:ring-2 focus:ring-green-400 focus:outline-none"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-[60%] tranlate-y-[-50%] text-gray-500 hover:text-gray-700"
+                    className="absolute right-3 top-[60%] tranlate-y-[-50%] text-gray-500 hover:cursor-pointer hover:text-gray-700"
                   >
                     {!showPassword ? (
                       <svg
@@ -434,7 +434,7 @@ export default function SignIn() {
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between mt-4 mb-4">
+                <div className="flex items-center justify-between mt-2.5 mb-4">
                   <div className="flex items-center gap-2 mt-1 mb-1">
                     <input
                       type="checkbox"
@@ -445,7 +445,7 @@ export default function SignIn() {
                     />
                     <label
                       htmlFor="remember"
-                      className="w-4 h-4 border border-[#0D4B37] rounded-sm flex items-center justify-center cursor-pointer peer-checked:bg-[0D4B37]"
+                      className="w-4 h-4 border border-[#E2E1E1] hover:border-[#AFD7D2] rounded-sm flex items-center justify-center cursor-pointer peer-checked:bg-[0D4B37]"
                     >
                       {checked && (
                         <svg
@@ -466,7 +466,7 @@ export default function SignIn() {
                     </label>
                     <span
                       style={{ fontFamily: "Roboto" }}
-                      className="text-[#414141] font-[400] text-[15px] "
+                      className="text-[#414141] font-[400] text-[14px] hover:cursor-pointer"
                     >
                       Remember Me
                     </span>
@@ -476,7 +476,7 @@ export default function SignIn() {
                       type="button"
                       onClick={handleForgotPassword}
                       style={{ fontFamily: "Roboto" }}
-                      className="text-right text-[#0D4B37] py-[14px] mt-1 font-[400] text-[15px] hover:text-green-900 hover:underline transition-all duration-500 ease-in-out"
+                      className="text-right text-[#0D4B37] py-[14px] mt-1 font-[400] text-[14px] hover:text-green-900 hover:cursor-pointer hover:underline transition-all duration-500 ease-in-out"
                     >
                       Forgot Password?
                     </button>
@@ -486,7 +486,7 @@ export default function SignIn() {
 
               <button
                 type="submit"
-                className="w-full h-10 text-[15px] bg-[#0D4B37] text-white py-[10px] rounded-md shadow-xl font-medium hover:text-[16px] hover:bg-[#125E45] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full h-10 text-[15px] bg-[#0D4B37] text-white py-[10px] rounded-md shadow-xl font-medium hover:cursor-pointer hover:text-[16px] hover:bg-[#125E45] transition-all duration-300 ease-in-out disabled:opacity-60 disabled:cursor-not-allowed"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? "Signing In..." : "Sign In"}
@@ -588,7 +588,7 @@ export default function SignIn() {
           <div className="w-[360px]">
             {!success ? (
               <div className="space-y-4">
-                <div className="flex items-center mt-[18px]">
+                <div className="flex items-center mt-[20px]">
                   <button
                     type="button"
                     onClick={() => {
@@ -622,7 +622,7 @@ export default function SignIn() {
                       placeholder="Enter Email"
                       autoComplete="off"
                       data-lpignore="true"
-                      className="w-full mb-[18px] hover:border-[#AFD7D2] border font-[400] text-[15px] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] focus:ring-2 focus:ring-green-400 focus:outline-none"
+                      className="w-full mb-[18px] hover:border-[#AFD7D2] border font-[400] text-[14px] border-[#E2E1E1] rounded-[6px] px-[11px] py-[10px] focus:ring-2 focus:ring-green-400 focus:outline-none"
                     />
                   </div>
 
