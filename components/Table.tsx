@@ -56,6 +56,14 @@ const Table: React.FC<TableProps> = ({
 }) => {
   const [page, setPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
+  const [activeVisibleRowIndex, setActiveVisibleRowIndex] = useState<
+    number | null
+  >(null);
+
+  useEffect(() => {
+    if (!enableRowHoverActions) return;
+    setActiveVisibleRowIndex(null);
+  }, [enableRowHoverActions, page, rowsPerPage, data.length]);
 
   // Memoized calculations
   const totalRows = useMemo(() => data.length, [data.length]);
@@ -226,6 +234,16 @@ const Table: React.FC<TableProps> = ({
                           // If you want handle-only dragging later, we can change this to pass handle props
                           // to a specific cell by cloning the row's first child.
                           {...drag.dragHandleProps}
+                          onPointerEnter={(e) => {
+                            if (!enableRowHoverActions) return;
+                            if (e.pointerType === "touch") return;
+                            setActiveVisibleRowIndex(idx);
+                          }}
+                          onPointerLeave={(e) => {
+                            if (!enableRowHoverActions) return;
+                            if (e.pointerType === "touch") return;
+                            setActiveVisibleRowIndex(null);
+                          }}
                           onClick={() => {
                             if (!onRowClick) return;
                             const globalIndex = (page - 1) * rowsPerPage + idx;
@@ -236,6 +254,13 @@ const Table: React.FC<TableProps> = ({
     hover:bg-gray-100 transition-colors h-[3rem] text-[12px]
     ${onRowClick ? "cursor-pointer" : ""}
     ${enableRowHoverActions ? "group" : ""}
+    ${
+      enableRowHoverActions &&
+      (activeVisibleRowIndex === idx ||
+        (activeVisibleRowIndex === null && idx === 0))
+        ? "row-actions-active"
+        : ""
+    }
   `}
                         >
                           {row}
@@ -272,6 +297,16 @@ const Table: React.FC<TableProps> = ({
                 return (
                   <tr
                     key={`row-${page}-${idx}`}
+                    onPointerEnter={(e) => {
+                      if (!enableRowHoverActions) return;
+                      if (e.pointerType === "touch") return;
+                      setActiveVisibleRowIndex(idx);
+                    }}
+                    onPointerLeave={(e) => {
+                      if (!enableRowHoverActions) return;
+                      if (e.pointerType === "touch") return;
+                      setActiveVisibleRowIndex(null);
+                    }}
                     onClick={() => {
                       if (!onRowClick) return;
                       const globalIndex = (page - 1) * rowsPerPage + idx;
@@ -282,6 +317,13 @@ const Table: React.FC<TableProps> = ({
     hover:bg-gray-100 transition-colors text-[14px]
     ${onRowClick ? "cursor-pointer" : ""}
     ${enableRowHoverActions ? "group" : ""}
+    ${
+      enableRowHoverActions &&
+      (activeVisibleRowIndex === idx ||
+        (activeVisibleRowIndex === null && idx === 0))
+        ? "row-actions-active"
+        : ""
+    }
   `}
                   >
                     {row}

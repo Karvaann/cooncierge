@@ -218,6 +218,7 @@ interface AccommodationInfoFormProps {
   formRef?: React.RefObject<HTMLDivElement | null>;
   onFormDataUpdate: (data: any) => void;
   onAddDocuments?: (files: File[]) => void;
+  onRemoveDocuments?: (files: File[]) => void;
   externalFormData?: ExternalFormData | Record<string, unknown>;
   existingDocuments?: Array<{
     originalName?: string;
@@ -239,6 +240,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   formRef,
   onFormDataUpdate,
   onAddDocuments,
+  onRemoveDocuments,
   externalFormData,
   existingDocuments = [],
 }) => {
@@ -340,6 +342,13 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
 
+  const MAX_DOCUMENTS = 3;
+  const existingDocumentsCount = Array.isArray(existingDocuments)
+    ? existingDocuments.length
+    : 0;
+  const totalDocumentsCount = existingDocumentsCount + attachedFiles.length;
+  const isDocumentLimitReached = totalDocumentsCount >= MAX_DOCUMENTS;
+
   // Villa type controlled by parent: 'entire' or 'shared'
   const [villaType, setVillaType] = useState<"entire" | "shared">("entire");
 
@@ -355,9 +364,17 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
     const selected = Array.from(files);
 
-    setAttachedFiles((prev) => [...prev, ...selected]);
+    const remainingSlots = MAX_DOCUMENTS - totalDocumentsCount;
+    const toAdd = remainingSlots > 0 ? selected.slice(0, remainingSlots) : [];
 
-    onAddDocuments?.(selected);
+    if (toAdd.length === 0) {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    setAttachedFiles((prev) => [...prev, ...toAdd]);
+
+    onAddDocuments?.(toAdd);
 
     // Reset so selecting the same file again is possible
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -365,7 +382,9 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
   // Remove one file
   const handleDeleteFile = (index: number) => {
+    const removed = attachedFiles[index];
     setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
+    if (removed) onRemoveDocuments?.([removed]);
   };
 
   const handleCopyGoogleLink = async () => {
@@ -1397,9 +1416,13 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
           <button
             type="button"
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => {
+              if (isDocumentLimitReached) return;
+              fileInputRef.current?.click();
+            }}
+            disabled={isDocumentLimitReached}
             className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
-                       border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200"
+                       border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
           >
             <MdOutlineFileUpload size={16} /> Attach Files
           </button>

@@ -28,7 +28,7 @@ import DropDown from "@/components/DropDown";
 import { getTravellerById } from "@/services/travellerApi";
 import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerForm";
 import { allowTextAndNumbers } from "@/utils/inputValidators";
-import { read } from "fs";
+import { CiCirclePlus } from "react-icons/ci";
 
 // Type definitions
 interface GeneralInfoFormData {
@@ -239,7 +239,9 @@ interface InputFieldProps {
   min?: number;
   value: string | number;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onBlur: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  onBlur?: (
+    e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => void;
   readOnly?: boolean;
   disabled?: boolean;
   hasError?: boolean;
@@ -1534,152 +1536,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     );
   };
 
-  // Get validation functions from booking context
-  const { validateCustomer, validateVendor } = useBooking();
-
-  // Validation rules
-  const validationRules = useMemo(
-    () => ({
-      // customer: {
-      //   required: true,
-      //   message: "Customer name is required",
-      // },
-      // vendor: {
-      //   required: true,
-      //   message: "Vendor name is required",
-      // },
-
-      adults: {
-        required: true,
-        minLength: 1,
-        message: "At least 1 adult is required",
-      },
-      traveller1: {
-        required: true,
-        minLength: 2,
-        message: "Lead passenger name is required",
-      },
-      // bookingOwner: {
-      //   required: true,
-      //   message: "Booking owner is required",
-      // },
-    }),
-    [],
-  );
-
-  // Enhanced validation function using API validation
-  const validateField = useCallback(
-    (name: string, value: unknown): string => {
-      // Use API validation for comprehensive checks
-      // if (name === "customer" || name === "vendor") {
-      //   const apiErrors = validateGeneralInfo({ [name]: value });
-      //   return apiErrors[name] || "";
-      // }
-
-      const rule = validationRules[name as keyof typeof validationRules];
-      if (!rule) return "";
-
-      if (
-        rule.required &&
-        (!value || (typeof value === "string" && value.trim() === ""))
-      ) {
-        return rule.message;
-      }
-
-      // if (
-      //   rule.minLength &&
-      //   typeof value === "string" &&
-      //   value.length < rule.minLength
-      // ) {
-      //   return rule.message;
-      // }
-
-      // if (
-      //   rule.minLength &&
-      //   typeof value === "number" &&
-      //   value < rule.minLength
-      // ) {
-      //   return rule.message;
-      // }
-
-      return "";
-    },
-    [validationRules],
-  );
-
-  // Customer validation handler
-  // const handleCustomerValidation = useCallback(
-  //   async (customerId: string) => {
-  //     if (!customerId.trim()) return;
-
-  //     setValidatingCustomer(true);
-  //     try {
-  //       const isValid = await validateCustomer(customerId);
-  //       if (!isValid) {
-  //         setErrors((prev) => ({
-  //           ...prev,
-  //           customer: "Customer not found or invalid",
-  //         }));
-  //       } else {
-  //         setErrors((prev) => ({ ...prev, customer: "" }));
-  //       }
-  //     } catch (error) {
-  //       setErrors((prev) => ({
-  //         ...prev,
-  //         customer: "Error validating customer",
-  //       }));
-  //     } finally {
-  //       setValidatingCustomer(false);
-  //     }
-  //   },
-  //   [validateCustomer]
-  // );
-
-  // Vendor validation handler
-  // const handleVendorValidation = useCallback(
-  //   async (vendorId: string) => {
-  //     if (!vendorId.trim()) return;
-
-  //     setValidatingVendor(true);
-  //     try {
-  //       const isValid = await validateVendor(vendorId);
-  //       if (!isValid) {
-  //         setErrors((prev) => ({
-  //           ...prev,
-  //           vendor: "Vendor not found or invalid",
-  //         }));
-  //       } else {
-  //         setErrors((prev) => ({ ...prev, vendor: "" }));
-  //       }
-  //     } catch (error) {
-  //       setErrors((prev) => ({ ...prev, vendor: "Error validating vendor" }));
-  //     } finally {
-  //       setValidatingVendor(false);
-  //     }
-  //   },
-  //   [validateVendor]
-  // );
-
-  // Validate all fields
-  const validateForm = useCallback((): boolean => {
-    const newErrors: ValidationErrors = {};
-    let isValid = true;
-
-    Object.keys(validationRules).forEach((fieldName) => {
-      const error = validateField(
-        fieldName,
-        formData[fieldName as keyof GeneralInfoFormData],
-      );
-      if (error) {
-        newErrors[fieldName] = error;
-        isValid = false;
-      }
-    });
-
-    setErrors(newErrors);
-    return isValid;
-  }, [formData, validateField, validationRules]);
-
   // Handle input changes
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -1697,61 +1553,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     }
     setTouched((prev) => ({ ...prev, [name]: true }));
   };
-
-  // Enhanced blur handler with API validation
-  const handleBlur = useCallback(
-    async (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const { name, value } = e.target;
-
-      if (showValidation) {
-        const error = validateField(name, value);
-        setErrors((prev) => ({ ...prev, [name]: error }));
-
-        // Trigger API validation for customer and vendor
-        // if (name === "customer" && value.trim()) {
-        //   const custId = customerList?.[0]?.id?.trim() ?? "";
-        //   if (custId) {
-        //     await handleCustomerValidation(custId);
-        //   }
-        // } else if (name === "vendor" && value.trim()) {
-        //   if (vendorData.id.trim()) {
-        //     await handleVendorValidation(vendorData.id);
-        //   }
-        // }
-      }
-
-      setTouched((prev) => ({ ...prev, [name]: true }));
-    },
-    [validateField, showValidation, customerList],
-  );
-
-  // Handle form submission
-  const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-
-      if (validateForm()) {
-        onSubmit?.(formData);
-      } else {
-        // Mark all fields as touched to show validation errors
-        const allTouched = Object.keys(validationRules).reduce(
-          (acc, key) => {
-            acc[key] = true;
-            return acc;
-          },
-          {} as Record<string, boolean>,
-        );
-        setTouched(allTouched);
-      }
-    },
-    [formData, validateForm, onSubmit, validationRules],
-  );
-
-  // Memoized traveller count
-  const totalTravellers = useMemo(
-    () => formData.adults + formData.children + formData.infants,
-    [formData.adults, formData.children, formData.infants],
-  );
 
   // Helper to get input field props
   const getInputProps = (
@@ -1775,7 +1576,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     return {
       value,
       onChange: options?.onChange || handleChange,
-      onBlur: handleBlur,
+
       disabled: isSubmitting,
       hasError,
       errorMessage: errors[name],
@@ -2025,196 +1826,198 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         ))}
       </div>
       {/* Vendor Section */}
-      {!hideVendor && <div className="border border-gray-200 rounded-[12px] px-3 py-4">
-        <h2 className="text-[13px]  font-medium mb-2">Vendors</h2>
-        <hr className="mt-1 mb-2 border-t border-gray-200" />
+      {!hideVendor && (
+        <div className="border border-gray-200 rounded-[12px] px-3 py-4">
+          <h2 className="text-[13px]  font-medium mb-2">Vendors</h2>
+          <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-        <label className="block text-[13px] mt-3 font-medium text-gray-700 mb-1">
-          <span className="text-red-500">*</span> Vendor
-        </label>
+          <label className="block text-[13px] mt-3 font-medium text-gray-700 mb-1">
+            <span className="text-red-500">*</span> Vendor
+          </label>
 
-        <div className="flex items-center gap-2">
-          <div className="w-[30rem] relative" ref={vendorRef}>
-            <InputField
-              name="vendor"
-              placeholder="Search by Vendor Name/ID"
-              required
-              className="w-full text-[13px] py-2"
-              value={vendorList[0]?.name ?? ""}
-              onChange={(e) => {
-                const value = allowTextAndNumbers(e.target.value);
+          <div className="flex items-center gap-2">
+            <div className="w-[30rem] relative" ref={vendorRef}>
+              <InputField
+                name="vendor"
+                placeholder="Search by Vendor Name/ID"
+                required
+                className="w-full text-[13px] py-2"
+                value={vendorList[0]?.name ?? ""}
+                onChange={(e) => {
+                  const value = allowTextAndNumbers(e.target.value);
 
-                // Update vendor name only
-                setVendorList([{ id: "", name: value }]);
+                  // Update vendor name only
+                  setVendorList([{ id: "", name: value }]);
 
-                // clear actual vendor ID but keep the name for draft display
-                const newFormData = {
-                  ...formData,
-                  vendor: "",
-                  vendorName: value,
-                };
-                setFormData(newFormData);
+                  // clear actual vendor ID but keep the name for draft display
+                  const newFormData = {
+                    ...formData,
+                    vendor: "",
+                    vendorName: value,
+                  };
+                  setFormData(newFormData);
 
-                const results = runFuzzySearch(allVendors, value, [
-                  "companyName",
-                  "alias",
-                  "tier",
-                  "id",
-                ]);
-                if (value.trim() === "") {
-                  setVendorResults([]);
-                  setShowVendorDropdown(false);
+                  const results = runFuzzySearch(allVendors, value, [
+                    "companyName",
+                    "alias",
+                    "tier",
+                    "id",
+                  ]);
+                  if (value.trim() === "") {
+                    setVendorResults([]);
+                    setShowVendorDropdown(false);
 
-                  return;
-                }
-                setVendorResults(results);
-
-                setShowVendorDropdown(results.length > 0);
-              }}
-              onBlur={handleBlur}
-              readOnly={!!vendorList?.[0]?.id}
-              selectedDisplay={(() => {
-                const selectedId = vendorList?.[0]?.id ?? "";
-                if (!selectedId) return null;
-                const selected = vendorsById.get(selectedId);
-                if (!selected) return null;
-                const rating = getTierRating(selected.tier);
-                const alias = getAlias(selected) || "-";
-                const primary =
-                  selected.companyName || selected.contactPerson || "";
-                return (
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-1 min-w-0">
-                      <p className="font-normal text-[13px] text-gray-900 truncate">
-                        {primary}
-                      </p>
-                      <span className="text-gray-300">|</span>
-                      <p className="text-[13px] text-gray-600 truncate">
-                        {alias}
-                      </p>
-                      <span className="text-gray-300">|</span>
-                      <p className="text-[13px] text-gray-600 truncate">
-                        {selected.customId || "-"}
-                      </p>
-                    </div>
-
-                    {rating !== null ? (
-                      <div className="flex items-center gap-1 shrink-0">
-                        <img
-                          src={`/icons/tier-${rating}.png`}
-                          alt={`Tier ${rating}`}
-                          className="w-4 h-4 object-contain"
-                        />
-                        <span className="text-[0.75rem] font-semibold text-gray-700">
-                          {rating}
-                        </span>
-                      </div>
-                    ) : null}
-                  </div>
-                );
-              })()}
-            />
-
-            {showVendorDropdown && vendorResults.length > 0 && (
-              <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-                {vendorResults.map((v) => {
-                  // derive rating only if tier present
-                  let rating: number | null = null;
-                  try {
-                    if (v?.tier) {
-                      if (typeof v.tier === "string") {
-                        const m = v.tier.match(/\d+/);
-                        if (m) rating = Number(m[0]);
-                      } else if (typeof v.tier === "number") {
-                        rating = Math.round(v.tier);
-                      }
-                    }
-                  } catch (e) {
-                    rating = null;
+                    return;
                   }
-                  if (rating !== null)
-                    rating = Math.min(Math.max(rating, 1), 5);
-                  const alias = (v as any)?.alias || (v as any)?.nickname || "";
+                  setVendorResults(results);
 
+                  setShowVendorDropdown(results.length > 0);
+                }}
+                readOnly={!!vendorList?.[0]?.id}
+                selectedDisplay={(() => {
+                  const selectedId = vendorList?.[0]?.id ?? "";
+                  if (!selectedId) return null;
+                  const selected = vendorsById.get(selectedId);
+                  if (!selected) return null;
+                  const rating = getTierRating(selected.tier);
+                  const alias = getAlias(selected) || "-";
+                  const primary =
+                    selected.companyName || selected.contactPerson || "";
                   return (
-                    <div
-                      key={v._id}
-                      className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
-                      onClick={() => {
-                        setShowVendorDropdown(false);
-                        setVendorList([
-                          {
-                            id: v._id,
-                            name: v.companyName ?? v.contactPerson ?? "",
-                          },
-                        ]);
-                        const newFormData = {
-                          ...formData,
-                          vendor: v._id,
-                          vendorName: v.name ?? v.contactPerson ?? "",
-                        };
-                        setFormData(newFormData);
-                        setVendorResults([]);
-                      }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1">
-                          <p className="font-normal text-[13px] text-gray-900">
-                            {v.companyName || v.contactPerson}
-                          </p>
-                          <span className="text-gray-300">|</span>
-                          <p className="text-[13px] text-gray-600 truncate">
-                            {alias || "-"}
-                          </p>
-                          <span className="text-gray-300">|</span>
-                          <p className="text-[13px] text-gray-600 truncate">
-                            {v.customId || "-"}
-                          </p>
-                        </div>
-
-                        {rating !== null ? (
-                          <div className="flex items-center gap-1">
-                            <img
-                              src={`/icons/tier-${rating}.png`}
-                              alt={`Tier ${rating}`}
-                              className="w-4 h-4 object-contain"
-                            />
-                            <span className="text-[0.75rem] font-semibold text-gray-700">
-                              {rating}
-                            </span>
-                          </div>
-                        ) : null}
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <p className="font-normal text-[13px] text-gray-900 truncate">
+                          {primary}
+                        </p>
+                        <span className="text-gray-300">|</span>
+                        <p className="text-[13px] text-gray-600 truncate">
+                          {alias}
+                        </p>
+                        <span className="text-gray-300">|</span>
+                        <p className="text-[13px] text-gray-600 truncate">
+                          {selected.customId || "-"}
+                        </p>
                       </div>
+
+                      {rating !== null ? (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <img
+                            src={`/icons/tier-${rating}.png`}
+                            alt={`Tier ${rating}`}
+                            className="w-4 h-4 object-contain"
+                          />
+                          <span className="text-[0.75rem] font-semibold text-gray-700">
+                            {rating}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
                   );
-                })}
-                {/* Staple option removed */}
-              </div>
-            )}
-          </div>
+                })()}
+              />
 
-          <RightSideIcons
-            fieldName="vendor"
-            value={vendorList[0]?.name ?? ""}
-            overrideSetter={(val) => {
-              if (val.trim() === "") {
-                setVendorList([{ id: "", name: "" }]);
-                setFormData((prev) => ({
-                  ...prev,
-                  vendor: "",
-                  vendorName: "",
-                }));
-                setVendorResults([]);
-                setShowVendorDropdown(false);
-                return;
-              }
-              setVendorList([{ id: "", name: val }]);
-            }}
-            onClickPlus={openAddVendor}
-            onClickView={() => handleViewVendor()}
-          />
+              {showVendorDropdown && vendorResults.length > 0 && (
+                <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+                  {vendorResults.map((v) => {
+                    // derive rating only if tier present
+                    let rating: number | null = null;
+                    try {
+                      if (v?.tier) {
+                        if (typeof v.tier === "string") {
+                          const m = v.tier.match(/\d+/);
+                          if (m) rating = Number(m[0]);
+                        } else if (typeof v.tier === "number") {
+                          rating = Math.round(v.tier);
+                        }
+                      }
+                    } catch (e) {
+                      rating = null;
+                    }
+                    if (rating !== null)
+                      rating = Math.min(Math.max(rating, 1), 5);
+                    const alias =
+                      (v as any)?.alias || (v as any)?.nickname || "";
+
+                    return (
+                      <div
+                        key={v._id}
+                        className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
+                        onClick={() => {
+                          setShowVendorDropdown(false);
+                          setVendorList([
+                            {
+                              id: v._id,
+                              name: v.companyName ?? v.contactPerson ?? "",
+                            },
+                          ]);
+                          const newFormData = {
+                            ...formData,
+                            vendor: v._id,
+                            vendorName: v.name ?? v.contactPerson ?? "",
+                          };
+                          setFormData(newFormData);
+                          setVendorResults([]);
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1">
+                            <p className="font-normal text-[13px] text-gray-900">
+                              {v.companyName || v.contactPerson}
+                            </p>
+                            <span className="text-gray-300">|</span>
+                            <p className="text-[13px] text-gray-600 truncate">
+                              {alias || "-"}
+                            </p>
+                            <span className="text-gray-300">|</span>
+                            <p className="text-[13px] text-gray-600 truncate">
+                              {v.customId || "-"}
+                            </p>
+                          </div>
+
+                          {rating !== null ? (
+                            <div className="flex items-center gap-1">
+                              <img
+                                src={`/icons/tier-${rating}.png`}
+                                alt={`Tier ${rating}`}
+                                className="w-4 h-4 object-contain"
+                              />
+                              <span className="text-[0.75rem] font-semibold text-gray-700">
+                                {rating}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {/* Staple option removed */}
+                </div>
+              )}
+            </div>
+
+            <RightSideIcons
+              fieldName="vendor"
+              value={vendorList[0]?.name ?? ""}
+              overrideSetter={(val) => {
+                if (val.trim() === "") {
+                  setVendorList([{ id: "", name: "" }]);
+                  setFormData((prev) => ({
+                    ...prev,
+                    vendor: "",
+                    vendorName: "",
+                  }));
+                  setVendorResults([]);
+                  setShowVendorDropdown(false);
+                  return;
+                }
+                setVendorList([{ id: "", name: val }]);
+              }}
+              onClickPlus={openAddVendor}
+              onClickView={() => handleViewVendor()}
+            />
+          </div>
         </div>
-      </div>}
+      )}
 
       {/* Travellers Counter Section */}
       <div className="border border-gray-200 rounded-xl p-3">
@@ -2470,16 +2273,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
           {formData.infantTravellers.map((trav, index) => (
             <div key={index} className="mb-6">
-              {/* LABEL and AGE DROPDOWN IN ONE ROW */}
-              <div className="flex items-center justify-between pr-65 mb-1">
-                {/* Children label only for first row */}
+              <div className="w-[30rem] flex items-center justify-between mb-2">
                 <label className="text-[13px] font-medium text-gray-700">
-                  <span className="text-red-500">*</span>{" "}
-                  {/* {index === 0 ? "Children" : ""} */}
-                  Children
+                  {index === 0 && <span className="text-red-500">*</span>} Child{" "}
+                  {index + 1}
                 </label>
 
-                {/* Select age dropdown */}
                 <DropDown
                   options={Array.from({ length: 18 }, (_, i) => ({
                     value: String(i),
@@ -2495,8 +2294,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       return { ...prev, childAges: ages };
                     });
                   }}
-                  className="mb-2"
                   customWidth="w-[8rem]"
+                  className="mt-1"
                 />
               </div>
 
@@ -2719,7 +2518,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               setPrimaryOwnerResults(results);
               setShowPrimaryOwnerDropdown(results.length > 0);
             }}
-            onBlur={handleBlur}
           />
           {showPrimaryOwnerDropdown && primaryOwnerResults.length > 0 && (
             <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
@@ -2752,14 +2550,17 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               type="button"
               onClick={() => !isReadOnly && setShowSecondaryOwnerField(true)}
               disabled={isReadOnly}
-              className={`w-[59%] flex items-center justify-center gap-2 bg-gray-100 text-gray-700 text-[13px] py-2 rounded-md border border-gray-200 ${
+              className={`flex items-center gap-2 text-[13px] text-gray-600 ${
                 isReadOnly
                   ? "opacity-50 cursor-not-allowed"
-                  : "hover:bg-gray-200"
+                  : "hover:text-gray-800"
               }`}
             >
-              <GoPlus size={14} />
-              Add Secondary Owner
+              <CiCirclePlus size={20} className="text-[#818181]" />
+              <span className="-ml-1 text-[12px] text-[#818181] ">
+                {" "}
+                Add Secondary User{" "}
+              </span>
             </button>
           ) : (
             <>
@@ -2978,7 +2779,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           rows={5}
           value={formData.remarks}
           onChange={handleChange}
-          onBlur={handleBlur}
           placeholder="Enter Your Remarks Here"
           disabled={isSubmitting}
           className={`
