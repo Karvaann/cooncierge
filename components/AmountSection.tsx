@@ -1189,6 +1189,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                   onToggleNotes={() => setShowCostNotesFlag((s) => !s)}
                   businessCurrency={businessCurrency}
                   requiresRoe={requiresRoe}
+                  notesInputWidth="60%"
+                  amountInputWidth="30%"
                 />
               </div>
 
@@ -1243,6 +1245,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                   onToggleNotes={() => setShowSellingNotesFlag((s) => !s)}
                   businessCurrency={businessCurrency}
                   requiresRoe={requiresRoe}
+                  notesInputWidth="60%"
+                  amountInputWidth="30%"
                 />
               </div>
 
@@ -1561,6 +1565,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                             }}
                             businessCurrency={businessCurrency}
                             requiresRoe={requiresRoe}
+                            amountInputWidth="40%"
                           />
                         </div>
                       ) : (
@@ -1645,6 +1650,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                           }
                           businessCurrency={businessCurrency}
                           requiresRoe={requiresRoe}
+                          amountInputWidth="40%"
                         />
                       </div>
                     </div>

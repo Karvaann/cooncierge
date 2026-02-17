@@ -10,6 +10,7 @@ import { MdOutlineEdit } from "react-icons/md";
 import SingleCalendar from "@/components/SingleCalendar";
 import DropDown from "@/components/DropDown";
 import { LuSave } from "react-icons/lu";
+import BaggageCounters from "./BaggageCounters";
 
 interface FlightInfoFormData {
   bookingdate: string;
@@ -38,6 +39,11 @@ interface FlightSegment {
     | "First Class"
     | string;
   preview?: SegmentPreview;
+
+  cabinBaggagePcs?: number | string;
+  cabinBaggageWt?: number | string;
+  checkInBaggagePcs?: number | string;
+  checkInBaggageWt?: number | string;
 }
 
 interface ReturnFlightSegment {
@@ -50,6 +56,11 @@ interface ReturnFlightSegment {
     | "Business"
     | "First Class"
     | string;
+
+  cabinBaggagePcs?: number | string;
+  cabinBaggageWt?: number | string;
+  checkInBaggagePcs?: number | string;
+  checkInBaggageWt?: number | string;
 }
 
 interface AviationAirportInfo {
@@ -175,7 +186,7 @@ export default function OneWayLayout({
   // Utility: calculate layover between two DateTime strings
   const calculateLayover = (
     arrival: string | undefined,
-    nextDeparture: string | undefined
+    nextDeparture: string | undefined,
   ) => {
     if (!arrival || !nextDeparture) return null;
 
@@ -208,7 +219,7 @@ export default function OneWayLayout({
   const getFlightEndpoint = (
     flightNumber: string,
     date: string,
-    API_KEY: string
+    API_KEY: string,
   ): string => {
     // Free tier
     return `https://api.aviationstack.com/v1/flights?access_key=${API_KEY}&flight_iata=${flightNumber}`;
@@ -225,7 +236,7 @@ export default function OneWayLayout({
       const endpoint = getFlightEndpoint(
         String(segment.flightnumber),
         segment.traveldate,
-        API_KEY
+        API_KEY,
       );
 
       const res = await fetch(endpoint);
@@ -268,7 +279,7 @@ export default function OneWayLayout({
       setFormData((prev) => ({
         ...prev,
         segments: prev.segments.map((s) =>
-          s.id === segment.id ? { ...s, preview } : s
+          s.id === segment.id ? { ...s, preview } : s,
         ),
       }));
       // mark that this flight number has been fetched for this segment
@@ -295,7 +306,7 @@ export default function OneWayLayout({
             : {
                 ...s,
                 id: Date.now().toString() + Math.random().toString(36).slice(2),
-              }
+              },
         ),
       }));
       return; // wait for re-render with ids
@@ -332,7 +343,7 @@ export default function OneWayLayout({
           .then(() => {
             // mark that fetched this flight number (if still present)
             lastFetchedRef.current[segmentId] = String(
-              segment.flightnumber || ""
+              segment.flightnumber || "",
             );
           })
           .catch(() => {
@@ -437,7 +448,7 @@ export default function OneWayLayout({
                       const updatedSegments = formData.segments.map((s) =>
                         s.id === segment.id
                           ? { ...s, flightnumber: e.target.value }
-                          : s
+                          : s,
                       );
                       setFormData({ ...formData, segments: updatedSegments });
                       // clear recorded fetched number so new input will trigger a fetch
@@ -480,7 +491,7 @@ export default function OneWayLayout({
                     value={segment.cabinclass}
                     onChange={(val: string) => {
                       const updated = formData.segments.map((s) =>
-                        s.id === segment.id ? { ...s, cabinclass: val } : s
+                        s.id === segment.id ? { ...s, cabinclass: val } : s,
                       );
                       setFormData({ ...formData, segments: updated });
                     }}
@@ -488,6 +499,20 @@ export default function OneWayLayout({
                     className="mt-1"
                   />
                 </div>
+
+                {/* Cabin + Check-In baggage counters */}
+                <BaggageCounters
+                  cabinPcs={segment.cabinBaggagePcs ?? 1}
+                  cabinWt={segment.cabinBaggageWt ?? ""}
+                  checkInPcs={segment.checkInBaggagePcs ?? 1}
+                  checkInWt={segment.checkInBaggageWt ?? ""}
+                  onChange={(patch) => {
+                    const updated = formData.segments.map((s) =>
+                      s.id === segment.id ? { ...s, ...patch } : s,
+                    );
+                    setFormData({ ...formData, segments: updated });
+                  }}
+                />
               </div>
             </div>
 
@@ -504,7 +529,7 @@ export default function OneWayLayout({
 
                 const layover = calculateLayover(
                   current?.arrivalTimeRaw, // store raw ISO timestamp
-                  next?.departureTimeRaw
+                  next?.departureTimeRaw,
                 );
 
                 if (!layover) return null;
@@ -558,10 +583,10 @@ export default function OneWayLayout({
                           destination: pv?.destination ?? "",
                           // set time inputs in HH:MM format
                           departureTime: toTimeInput(
-                            pv?.departureTimeRaw ?? pv?.departureTime
+                            pv?.departureTimeRaw ?? pv?.departureTime,
                           ),
                           arrivalTime: toTimeInput(
-                            pv?.arrivalTimeRaw ?? pv?.arrivalTime
+                            pv?.arrivalTimeRaw ?? pv?.arrivalTime,
                           ),
                           duration: pv?.duration ?? "",
                         },
@@ -724,7 +749,7 @@ export default function OneWayLayout({
                                       [segment.id!]: {
                                         ...prev[segment.id!],
                                         departureTime: capTimeInput(
-                                          e.target.value
+                                          e.target.value,
                                         ),
                                       },
                                     }))
@@ -749,7 +774,7 @@ export default function OneWayLayout({
                                       [segment.id!]: {
                                         ...prev[segment.id!],
                                         arrivalTime: capTimeInput(
-                                          e.target.value
+                                          e.target.value,
                                         ),
                                       },
                                     }))
@@ -829,10 +854,10 @@ export default function OneWayLayout({
                                     arr ?? preview?.arrivalTime ?? "",
                                   departureTimeRaw: dep
                                     ? `${segment.traveldate}T${dep}`
-                                    : preview?.departureTimeRaw ?? "",
+                                    : (preview?.departureTimeRaw ?? ""),
                                   arrivalTimeRaw: arr
                                     ? `${segment.traveldate}T${arr}`
-                                    : preview?.arrivalTimeRaw ?? "",
+                                    : (preview?.arrivalTimeRaw ?? ""),
                                   flightNumber:
                                     d.flightNumber ??
                                     preview?.flightNumber ??
@@ -851,7 +876,7 @@ export default function OneWayLayout({
                                   segments: prev.segments.map((s) =>
                                     s.id === segment.id
                                       ? { ...s, preview: newPreview }
-                                      : s
+                                      : s,
                                   ),
                                 }));
                                 // mark saved preview as fetched for this flight number
@@ -962,7 +987,7 @@ export default function OneWayLayout({
                     }
 
                     return (
-                      <div className="flex items-center justify-center h-full bg-gray-50 rounded-md text-gray-500 min-h-[160px]">
+                      <div className="flex items-center justify-center h-full bg-gray-50 rounded-md text-gray-500 min-h-[255px]">
                         <p>Preview data will appear here</p>
                       </div>
                     );

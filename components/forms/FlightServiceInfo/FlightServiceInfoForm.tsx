@@ -81,6 +81,11 @@ interface FlightSegment {
     | "First Class"
     | string;
   pnr?: string;
+
+  cabinBaggagePcs?: number | string;
+  cabinBaggageWt?: number | string;
+  checkInBaggagePcs?: number | string;
+  checkInBaggageWt?: number | string;
 }
 
 interface ReturnFlightSegment {
@@ -94,6 +99,11 @@ interface ReturnFlightSegment {
     | "First Class"
     | string;
   pnr?: string;
+
+  cabinBaggagePcs?: number | string;
+  cabinBaggageWt?: number | string;
+  checkInBaggagePcs?: number | string;
+  checkInBaggageWt?: number | string;
 }
 
 interface ValidationErrors {
@@ -190,6 +200,10 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         ? normalizedExternalData.segments.map((seg, idx) => ({
             id: seg.id ?? `seg-${idx}`,
             ...seg,
+            cabinBaggagePcs: (seg as any).cabinBaggagePcs ?? 1,
+            cabinBaggageWt: (seg as any).cabinBaggageWt ?? "",
+            checkInBaggagePcs: (seg as any).checkInBaggagePcs ?? 1,
+            checkInBaggageWt: (seg as any).checkInBaggageWt ?? "",
           }))
         : [
             {
@@ -197,6 +211,10 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
               flightnumber: "",
               traveldate: "",
               cabinclass: "",
+              cabinBaggagePcs: 1,
+              cabinBaggageWt: "",
+              checkInBaggagePcs: 1,
+              checkInBaggageWt: "",
             },
           ],
     returnSegments:
@@ -205,6 +223,10 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         ? normalizedExternalData.returnSegments.map((seg, idx) => ({
             id: seg.id ?? `return-${idx + 1}`,
             ...seg,
+            cabinBaggagePcs: (seg as any).cabinBaggagePcs ?? 1,
+            cabinBaggageWt: (seg as any).cabinBaggageWt ?? "",
+            checkInBaggagePcs: (seg as any).checkInBaggagePcs ?? 1,
+            checkInBaggageWt: (seg as any).checkInBaggageWt ?? "",
           }))
         : [
             {
@@ -212,6 +234,10 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
               flightnumber: "",
               traveldate: "",
               cabinclass: "",
+              cabinBaggagePcs: 1,
+              cabinBaggageWt: "",
+              checkInBaggagePcs: 1,
+              checkInBaggageWt: "",
             },
           ],
     pnrEnabled:
@@ -365,6 +391,10 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
           ? normalizedExternalData.segments.map((seg, idx) => ({
               id: seg.id ?? `seg-${idx}`,
               ...seg,
+              cabinBaggagePcs: (seg as any).cabinBaggagePcs ?? 1,
+              cabinBaggageWt: (seg as any).cabinBaggageWt ?? "",
+              checkInBaggagePcs: (seg as any).checkInBaggagePcs ?? 1,
+              checkInBaggageWt: (seg as any).checkInBaggageWt ?? "",
             }))
           : prev.segments,
       returnSegments:
@@ -373,6 +403,10 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
           ? normalizedExternalData.returnSegments.map((seg, idx) => ({
               id: seg.id ?? `return-${idx + 1}`,
               ...seg,
+              cabinBaggagePcs: (seg as any).cabinBaggagePcs ?? 1,
+              cabinBaggageWt: (seg as any).cabinBaggageWt ?? "",
+              checkInBaggagePcs: (seg as any).checkInBaggagePcs ?? 1,
+              checkInBaggageWt: (seg as any).checkInBaggageWt ?? "",
             }))
           : prev.returnSegments,
       pnrEnabled: normalizedExternalData.pnrEnabled ?? prev.pnrEnabled ?? true,

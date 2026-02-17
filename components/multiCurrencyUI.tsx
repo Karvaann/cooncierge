@@ -39,6 +39,11 @@ type MultiCurrencyInputProps = {
   // Optional: Override the input element class for notes
   inputClassName?: string;
 
+  // Optional: direct width for the notes input
+  notesInputWidth?: string;
+
+  // Optional: direct width for the amount input
+  amountInputWidth?: string;
   // Optional: Use white background for currency dropdown instead of gray
   useWhiteDropdown?: boolean;
 };
@@ -47,13 +52,13 @@ const groupBase =
   "flex items-center border border-gray-200 rounded-md overflow-hidden bg-white";
 
 const groupInput =
-  "h-[34px] px-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 outline-none flex-1";
+  "h-[34px] px-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 outline-none";
 
 const addonLabel =
   "h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center";
 
 const noteBtn =
-  "w-9 h-9 rounded-md bg-[#FFF2D6] hover:bg-[#FFE8B7] transition flex items-center justify-center";
+  "w-9 h-9 rounded-md border border-gray-200 hover:bg-[#FFE8B7] transition flex items-center justify-center";
 
 const inputBase =
   "w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-green-600";
@@ -79,8 +84,14 @@ export default function MultiCurrencyInput({
   requiresRoe,
   inputClassName,
   useWhiteDropdown = true,
+  notesInputWidth,
+  amountInputWidth,
 }: MultiCurrencyInputProps) {
   const showRoeFields = requiresRoe(currency, businessCurrency);
+
+  const gridTemplate = showRoeFields
+    ? `${amountInputWidth ?? "220px"} 90px 120px 44px`
+    : `${amountInputWidth ?? "380px"} 44px`;
 
   const computedInr = useMemo(() => {
     if (!showRoeFields) return "";
@@ -108,11 +119,8 @@ export default function MultiCurrencyInput({
   return (
     <>
       <div
-        className={`grid ${
-          showRoeFields
-            ? "grid-cols-[220px_160px_170px_44px]"
-            : "grid-cols-[380px_44px]"
-        } gap-3 items-center`}
+        className={`grid gap-3 items-center`}
+        style={{ gridTemplateColumns: gridTemplate }}
       >
         {/* Currency + Amount */}
         <div className={groupBase}>
@@ -131,7 +139,7 @@ export default function MultiCurrencyInput({
             className={groupSelectWhite}
           />
           <input
-            className={groupInput}
+            className={`${groupInput} flex-1`}
             type="text"
             placeholder={amountPlaceholder}
             value={amount}
@@ -147,7 +155,7 @@ export default function MultiCurrencyInput({
               <input
                 value={roe}
                 onChange={(e) => onRoeChange(e.target.value)}
-                className={groupInput}
+                className={`${groupInput} flex-1`}
                 placeholder=""
               />
             </div>
@@ -186,6 +194,7 @@ export default function MultiCurrencyInput({
             onChange={(e) => onNotesChange(e.target.value)}
             className={inputClassName || inputBase}
             placeholder={notesPlaceholder}
+            style={notesInputWidth ? { width: notesInputWidth } : undefined}
           />
         </div>
       )}

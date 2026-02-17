@@ -7,6 +7,7 @@ import { FiMinusCircle } from "react-icons/fi";
 import SingleCalendar from "@/components/SingleCalendar";
 import DropDown from "@/components/DropDown";
 import { LuSave } from "react-icons/lu";
+import BaggageCounters from "./BaggageCounters";
 
 interface FlightInfoFormData {
   bookingdate: string;
@@ -36,6 +37,11 @@ interface FlightSegment {
   pnr?: string;
   preview?: SegmentPreview;
   tripId?: number;
+
+  cabinBaggagePcs?: number | string;
+  cabinBaggageWt?: number | string;
+  checkInBaggagePcs?: number | string;
+  checkInBaggageWt?: number | string;
 }
 
 interface ReturnFlightSegment {
@@ -625,6 +631,23 @@ export default function MultiCityLayout({
                           customWidth="w-[75%]"
                         />
                       </div>
+
+                      {/* Cabin + Check-In baggage counters */}
+                      <BaggageCounters
+                        cabinPcs={segment.cabinBaggagePcs ?? 1}
+                        cabinWt={segment.cabinBaggageWt ?? ""}
+                        checkInPcs={segment.checkInBaggagePcs ?? 1}
+                        checkInWt={segment.checkInBaggageWt ?? ""}
+                        onChange={(patch) => {
+                          const updatedSegments = formData.segments.map((s) =>
+                            s.id === segment.id ? { ...s, ...patch } : s,
+                          );
+                          setFormData({
+                            ...formData,
+                            segments: updatedSegments,
+                          });
+                        }}
+                      />
                     </div>
                   </div>
 
@@ -1056,7 +1079,7 @@ export default function MultiCityLayout({
                         }
 
                         return (
-                          <div className="flex items-center justify-center h-full bg-gray-50 rounded-md text-gray-500 min-h-[160px]">
+                          <div className="flex items-center justify-center h-full bg-gray-50 rounded-md text-gray-500 min-h-[255px]">
                             <p>Preview data will appear here</p>
                           </div>
                         );

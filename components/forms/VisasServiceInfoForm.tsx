@@ -15,6 +15,7 @@ import CancellationModal, {
 } from "../Modals/CancellationModal";
 import AmountSection, { AmountSectionValue } from "../AmountSection";
 import { getDefaultShowAdvancedPricing } from "@/utils/advancedPricing";
+import { allowUppercaseAlphanumeric6 } from "@/utils/inputValidators";
 
 // Type definitions
 interface OtherServiceInfoFormData {
@@ -441,10 +442,15 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value, type } = e.target;
-    const processedValue =
-      type === "number" && value !== "" ? Number(value) : value;
+    const newValue =
+      name === "confirmationNumber"
+        ? allowUppercaseAlphanumeric6(value)
+        : value;
 
-    setFormData((prev) => ({ ...prev, [name]: processedValue }));
+    setFormData((prev) => ({
+      ...prev,
+      [name]: newValue,
+    }));
 
     // Clear error when user types
     if (errors[name as keyof OtherServiceInfoFormData]) {
@@ -681,7 +687,7 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   name="confirmationNumber"
                   value={formData.confirmationNumber}
                   onChange={handleChange}
-                  placeholder="Abc12345"
+                  placeholder="Enter Confirmation Number"
                   className="w-[30%] px-3 py-1.5 border border-gray-300 rounded-md text-[13px] focus:outline-none focus:ring-1 hover:border-green-300"
                 />
               </div>
