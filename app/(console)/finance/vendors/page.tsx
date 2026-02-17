@@ -246,7 +246,6 @@ const FinanceVendorsPage = () => {
   >("poc");
 
   const [effectiveSearch, setEffectiveSearch] = useState("");
-  const [isCursorInTable, setIsCursorInTable] = useState(false);
 
   // Filter options for dropdown
   const filterOptions = useMemo(
@@ -361,11 +360,7 @@ const FinanceVendorsPage = () => {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className={`flex items-center justify-center gap-2 transition-all duration-200 ${
-              index === 0 && !isCursorInTable
-                ? "opacity-100 pointer-events-auto"
-                : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
-            }`}
+            className="flex items-center justify-center gap-2 transition-all duration-200 opacity-0 pointer-events-none group-[.row-actions-active]:opacity-100 group-[.row-actions-active]:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
           >
             <button
               type="button"
@@ -417,7 +412,7 @@ const FinanceVendorsPage = () => {
 
       return cells;
     });
-  }, [visibleVendors, isCursorInTable]);
+  }, [visibleVendors]);
 
   // Recompute totals based on currently visible (filtered) vendors
   const totalsForVisibleVendors = useMemo(() => {
@@ -509,12 +504,7 @@ const FinanceVendorsPage = () => {
 
           <div className="border-t border-gray-200 mb-4 mt-3"></div>
 
-          <div
-            className="min-h-[200px] mt-2 px-2"
-            onPointerEnter={() => setIsCursorInTable(true)}
-            onPointerLeave={() => setIsCursorInTable(false)}
-            onPointerCancel={() => setIsCursorInTable(false)}
-          >
+          <div className="min-h-[200px] mt-2 px-2">
             <Table
               data={tableData}
               columns={columns}

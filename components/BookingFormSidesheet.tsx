@@ -323,7 +323,24 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   >([]);
 
   const addBookingDocuments = (files: File[]) => {
-    setBookingDocuments((prev) => [...prev, ...files]);
+    const MAX_DOCS = 3;
+    setBookingDocuments((prev) => {
+      const existingCount = Array.isArray(existingBookingDocuments)
+        ? existingBookingDocuments.length
+        : 0;
+      const remainingSlots = MAX_DOCS - existingCount - prev.length;
+      if (remainingSlots <= 0) return prev;
+      return [
+        ...prev,
+        ...(Array.isArray(files) ? files.slice(0, remainingSlots) : []),
+      ];
+    });
+  };
+
+  const removeBookingDocuments = (filesToRemove: File[]) => {
+    if (!Array.isArray(filesToRemove) || filesToRemove.length === 0) return;
+    const toRemove = new Set(filesToRemove);
+    setBookingDocuments((prev) => prev.filter((file) => !toRemove.has(file)));
   };
 
   const [customerCode, setCustomerCode] = useState("");
@@ -1120,6 +1137,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                     selectedService || initialData?.quotationType
                   }
                   onAddDocuments={addBookingDocuments}
+                  onRemoveDocuments={removeBookingDocuments}
                   existingDocuments={existingBookingDocuments}
                 />
               </div>

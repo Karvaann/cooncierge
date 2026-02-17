@@ -250,7 +250,6 @@ const FinanceBookingsPage = () => {
     key: null,
     direction: "none",
   });
-  const [isCursorInTable, setIsCursorInTable] = useState(false);
   // Owners list built dynamically from quotations data
   const [ownersList, setOwnersList] = useState<Owner[]>([]);
 
@@ -1107,11 +1106,7 @@ const FinanceBookingsPage = () => {
       >
         <div
           onClick={(e) => e.stopPropagation()}
-          className={`flex items-center justify-center gap-2 transition-all duration-200 ${
-            index === 0 && !isCursorInTable
-              ? "opacity-100 pointer-events-auto"
-              : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
-          }`}
+          className="flex items-center justify-center gap-2 transition-all duration-200 opacity-0 pointer-events-none group-[.row-actions-active]:opacity-100 group-[.row-actions-active]:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
         >
           {/* ₹ Button */}
           <button
@@ -1133,7 +1128,7 @@ const FinanceBookingsPage = () => {
       </td>,
     ]);
     return rows;
-  }, [sortedQuotationsForTable, ownersList, isCursorInTable]);
+  }, [sortedQuotationsForTable, ownersList]);
 
   // Helper functions
 
@@ -1280,12 +1275,7 @@ const FinanceBookingsPage = () => {
 
           <div className="bg-white rounded-2xl shadow mt-4 pt-5 pb-3 px-3 relative">
             {/* Header row removed: tabs and inline total moved into Filter */}
-            <div
-              className="p-2 mt-2"
-              onPointerEnter={() => setIsCursorInTable(true)}
-              onPointerLeave={() => setIsCursorInTable(false)}
-              onPointerCancel={() => setIsCursorInTable(false)}
-            >
+            <div className="p-2 mt-2">
               {isLoading ? (
                 <TableSkeleton />
               ) : (

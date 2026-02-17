@@ -16,7 +16,7 @@ import { CiSearch } from "react-icons/ci";
 import FilterInputShell from "./FilterInputShell";
 import SelectBookingOwnerModal from "./Modals/SelectBookingOwnerModal";
 
-interface FilterOption {
+export interface FilterOption {
   id?: string;
   _id?: string;
   value?: string;
@@ -24,7 +24,7 @@ interface FilterOption {
   label?: string;
 }
 
-interface FilterState {
+export interface FilterState {
   serviceType: string;
   status: string;
   owner: string | string[];
@@ -39,7 +39,7 @@ interface FilterState {
   secondaryOwners?: string[];
 }
 
-interface FilterProps {
+export interface FilterProps {
   onFilterChange?: (filters: FilterState) => void;
   onSearchChange?: (value: string) => void;
   serviceTypes?: FilterOption[];

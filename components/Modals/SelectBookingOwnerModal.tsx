@@ -398,7 +398,14 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Select Booking Owners"
+      headerLeft={
+        <div className="relative w-full">
+          <h2 className="text-black text-[1rem] md:text-[1.15rem] font-semibold leading-snug m-0">
+            Select Booking Owners
+          </h2>
+          <div className="absolute top-8 left-[-8] right-[-570] z-10 border-b border-gray-300" />
+        </div>
+      }
       customWidth="max-w-4xl"
       className="w-[52rem]"
     >
@@ -815,14 +822,14 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
               icon={<RiRefreshLine size={18} />}
               bgColor="bg-white"
               textColor="text-[#414141]"
-              className="border border-[#414141] hover:bg-gray-200 font-semibold px-6 py-2.5"
+              className="border border-[#414141] hover:bg-gray-200 font-semibold px-4 py-1.5"
             />
             <Button
               text="Apply"
               onClick={handleApply}
               bgColor="bg-[#0D4B37]"
               textColor="text-white"
-              className="border border-[#0D4B37] hover:bg-[#125E45] font-semibold px-6 py-2.5"
+              className="border border-[#0D4B37] hover:bg-[#125E45] font-semibold px-4 py-1.5"
             />
           </div>
         </div>

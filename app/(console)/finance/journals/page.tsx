@@ -5,6 +5,7 @@ import { useMemo, useState, useLayoutEffect, useRef } from "react";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
+import type { FilterState } from "@/components/Filter";
 import type { JSX } from "react";
 import { CiFilter } from "react-icons/ci";
 import { TbArrowsUpDown } from "react-icons/tb";
@@ -43,20 +44,7 @@ type JournalRow = {
   status: JournalStatus;
 };
 
-type JournalFilterState = {
-  serviceType: string;
-  status: string;
-  owner: string | string[];
-  bookingType: string;
-  category?: string;
-  search: string;
-  bookingStartDate: string;
-  bookingEndDate: string;
-  tripStartDate: string;
-  tripEndDate: string;
-  primaryOwner?: string;
-  secondaryOwners?: string[];
-};
+type JournalFilterState = FilterState;
 
 const columns: string[] = [
   "Balance",
@@ -308,9 +296,7 @@ const FinanceJournalsPage = () => {
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className={`flex items-center justify-center gap-2 transition-all duration-200 ${
-              index === 0 ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-            }`}
+            className="flex items-center justify-center gap-2 transition-all duration-200 opacity-0 pointer-events-none group-[.row-actions-active]:opacity-100 group-[.row-actions-active]:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
           >
             <button
               type="button"
