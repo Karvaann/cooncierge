@@ -12,6 +12,7 @@ import { FaStore } from "react-icons/fa";
 import { MdOutlineEdit } from "react-icons/md";
 import { CiFilter } from "react-icons/ci";
 import type { JSX } from "react";
+import { getStoredCurrencySymbol } from "@/utils/helper";
 
 const BookingFormSidesheet = dynamic(
   () => import("@/components/BookingFormSidesheet"),
@@ -250,7 +251,7 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
       key={`${item._id}-amount`}
       className="px-2 py-2 text-center text-[0.75rem]"
     >
-      ₹ {item.totalAmount || item.amount || "0"}
+      {getStoredCurrencySymbol()} {item.totalAmount || item.amount || "0"}
     </td>,
     <td
       key={`${item._id}-action`}

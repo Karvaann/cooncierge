@@ -2,7 +2,6 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { validateFlightInfoForm } from "@/services/bookingApi";
-import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { useRef } from "react";
 import { FiTrash2 } from "react-icons/fi";
@@ -263,7 +262,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 
   const [isCancellationModalOpen, setIsCancellationModalOpen] =
     useState<boolean>(false);
-  const [pendingPrevBookingStatus, setPendingPrevBookingStatus] =
+  const [, setPendingPrevBookingStatus] =
     useState<string>("");
 
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -741,8 +740,6 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
       </div>
     );
   };
-
-  const today = new Date().toISOString().split("T")[0];
 
   const cancellationModalInitialValues: Partial<CancellationModalFormState> = {
     // Seed from current sidesheet state so opening the modal mirrors filled data

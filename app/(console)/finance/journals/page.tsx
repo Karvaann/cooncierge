@@ -14,6 +14,10 @@ import { LuFileText } from "react-icons/lu";
 import { MdOutlineEdit } from "react-icons/md";
 import { FaRegTrashAlt } from "react-icons/fa";
 import { getNextTriSortState, type TriSortState } from "@/utils/sorting";
+import {
+  formatNumberByStoredCurrency,
+  getStoredCurrencySymbol,
+} from "@/utils/helper";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -261,7 +265,7 @@ const FinanceJournalsPage = () => {
           key={`bal-${j.id}`}
           className={`px-4 py-3 text-center font-semibold align-middle h-[3rem] ${amountClass}`}
         >
-          ₹ {absAmount.toLocaleString("en-IN")}
+          {getStoredCurrencySymbol()} {formatNumberByStoredCurrency(absAmount)}
         </td>,
         <td
           key={`name-${j.id}`}

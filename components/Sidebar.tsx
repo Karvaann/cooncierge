@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { MdKeyboardArrowUp } from "react-icons/md";
 import { menuItems } from "@/components/navigation/menuItems";
-import { getAuthUser } from "@/services/storage/authStorage";
 import { useAuth } from "@/context/AuthContext";
 
 interface SidebarProps {
@@ -37,15 +36,16 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   }, [setIsOpen]);
 
   return (
-    <div
+    <aside
       className="flex"
       onMouseEnter={() => setIsOpen(true)}
       onMouseLeave={() => setIsOpen(false)}
+      aria-label="Primary navigation"
     >
       <div
         ref={sidebarRef}
-        className={`fixed top-0 left-0 h-screen text-white border-r border-gray-700 transition-all transform duration-500 ease-in-out z-50 pt-5 ${
-          isOpen ? "w-48" : "w-13"
+        className={`fixed left-0 top-0 z-50 h-screen border-r border-gray-700 pt-5 text-white transition-[width] duration-300 ease-out ${
+          isOpen ? "w-48" : "w-[52px]"
         }`}
         style={{
           background:
@@ -74,7 +74,8 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           )}
         </div>
 
-        <ul className="mt-6 space-y-1">
+        <nav aria-label="Sidebar">
+          <ul className="mt-6 space-y-1">
           {(() => {
             // const user = getAuthUser() as any;
             // const showApprovals =
@@ -186,8 +187,9 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
               );
             });
           })()}
-        </ul>
+          </ul>
+        </nav>
       </div>
-    </div>
+    </aside>
   );
 }

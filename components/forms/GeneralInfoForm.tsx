@@ -18,14 +18,11 @@ import { useBooking } from "@/context/BookingContext";
 import Fuse from "fuse.js";
 import { getCustomers, getCustomerById } from "@/services/customerApi";
 import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
-import { getVendorById } from "@/services/vendorApi";
+import { getVendorById, getVendors } from "@/services/vendorApi";
 import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
-import { getVendors } from "@/services/vendorApi";
-import { getTeams } from "@/services/teamsApi";
 import { getUsers } from "@/services/userApi";
-import { getTravellers } from "@/services/travellerApi";
+import { getTravellers, getTravellerById } from "@/services/travellerApi";
 import DropDown from "@/components/DropDown";
-import { getTravellerById } from "@/services/travellerApi";
 import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerForm";
 import { allowTextAndNumbers } from "@/utils/inputValidators";
 import { CiCirclePlus } from "react-icons/ci";
@@ -283,7 +280,7 @@ const InputField: React.FC<InputFieldProps> = ({
         readOnly={readOnly}
         disabled={disabled || isValidating}
         className={`
-          w-full border rounded-md px-3 py-2 pr-10 text-[0.75rem]  transition-colors hover:border-green-400 
+          w-full border rounded-md px-3 py-2 pr-10 placeholder:text-[12px] text-[12px]  transition-colors hover:border-green-400 
           ${
             hasError
               ? "border-red-300 focus:ring-red-200"
@@ -551,10 +548,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     { id: string; name: string }[]
   >([{ id: "", name: "" }]);
 
-  const [infantTravellerList, setInfantTravellerList] = useState<
-    { id: string; name: string }[]
-  >([{ id: "", name: "" }]);
-
   // const [vendorData, setVendorData] = useState<{ id: string; name: string }>({
   //   id: "",
   //   name: "",
@@ -595,9 +588,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     height: number;
   } | null>(null);
 
-  const fileRef = useRef<HTMLInputElement | null>(null);
-  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
-
   // Track which traveller input is showing dropdown: { type: 'adultTravellers' | 'infantTravellers', index: number } | null
   const [activeTravellerDropdown, setActiveTravellerDropdown] = useState<{
     type: "adultTravellers" | "infantTravellers";
@@ -621,15 +611,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       })),
     );
   }, [formData.adultTravellers, formData.adultTravellerIds]);
-
-  useEffect(() => {
-    setInfantTravellerList(
-      (formData.infantTravellers || []).map((name, idx) => ({
-        id: formData.infantTravellerIds?.[idx] ?? "",
-        name: name || "",
-      })),
-    );
-  }, [formData.infantTravellers, formData.infantTravellerIds]);
 
   // View customer sidesheet state
   const [isViewCustomerOpen, setIsViewCustomerOpen] = useState(false);
@@ -810,12 +791,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
     setViewTravellerData(traveller || null);
     setIsViewTravellerOpen(true);
-  };
-
-  const handleDeleteFile = (index: number) => {
-    const newFiles = [...attachedFiles];
-    newFiles.splice(index, 1);
-    setAttachedFiles(newFiles);
   };
 
   // Fetch all customers, vendors, Teamss on mount
@@ -1357,12 +1332,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         updated[index] = { id: id ?? "", name: value };
         return updated;
       });
-    } else {
-      setInfantTravellerList((prev) => {
-        const updated = [...prev];
-        updated[index] = { id: id ?? "", name: value };
-        return updated;
-      });
     }
 
     setFormData((prev) => {
@@ -1587,7 +1556,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   return (
     <form
       ref={formRef}
-      className={`space-y-4 p-4 ${
+      className={`space-y-4 px-[10px] py-[28px] ${
         isReadOnly
           ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-200 [&_select]:!bg-gray-200"
           : ""
@@ -1596,14 +1565,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     >
       {/* Customer Section */}
       <div className="border border-gray-200 rounded-[12px] p-3">
-        <h2 className="text-[0.75rem] font-medium mb-2">Billed To</h2>
+        <h2 className="text-[12px] text-[#020202] font-[400] mb-2">Billed To</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
 
         {customerList.map((customer, index) => (
-          <div key={index} className="mb-4">
-            <div className="flex items-center gap-2 mt-3">
-              <label className="text-[0.75rem] font-medium text-gray-700">
-                <span className="text-red-500">*</span> Customer
+          <div key={index} className="">
+            <div className="flex items-center gap-1 mt-3">
+              <label className="text-[12px] font-[400] text-[#414141]">
+                <span className="text-[#FF3B30]">*</span> Customer
               </label>
 
               {index > 0 && (
@@ -1828,11 +1797,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       {/* Vendor Section */}
       {!hideVendor && (
         <div className="border border-gray-200 rounded-[12px] px-3 py-4">
-          <h2 className="text-[13px]  font-medium mb-2">Vendors</h2>
+          <h2 className="text-[12px] text-[#020202] font-[400] mb-2">Vendor</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-          <label className="block text-[13px] mt-3 font-medium text-gray-700 mb-1">
-            <span className="text-red-500">*</span> Vendor
+
+          <label className="text-[12px] font-[400] text-[#414141]">
+            <span className="text-[#FF3B30]">*</span> Vendor
           </label>
 
           <div className="flex items-center gap-2">
@@ -2021,15 +1991,18 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
       {/* Travellers Counter Section */}
       <div className="border border-gray-200 rounded-xl p-3">
-        <h2 className="text-[13px]  font-medium mb-1">Travellers</h2>
+        <h2 className="text-[12px] text-[#020202] font-[500] mb-1">Travellers</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-        <div className="flex gap-6 mb-4 mt-3 ">
-          <div className="flex flex-col items-center">
-            <label className="block text-xs text-black mb-1">Adults</label>
-            <div className="flex items-center border border-black rounded-lg px-2 py-1">
+        <div className="flex gap-6 mb-5 mt-3">
+          <div className="flex flex-col">
+            <label className="block text-[12px] font-[500] text-[#414141] mb-1">
+              Adults
+            </label>
+            <div className="w-[5rem] flex items-center justify-between border border-[1.5px] border-black rounded-lg px-2 py-1">
               <button
                 type="button"
+                disabled={isReadOnly || isSubmitting}
                 onClick={() =>
                   setFormData((prev) => ({
                     ...prev,
@@ -2039,44 +2012,65 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         : Math.max(1, prev.adults - 1), // otherwise → min 1
                   }))
                 }
-                className="px-1 text-lg font-semibold"
+                className={`text-lg font-semibold ${
+                  isReadOnly || isSubmitting
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
               >
                 <FiMinus size={12} />
               </button>
-              <span className="px-2 text-[13px] ">{formData.adults}</span>
+              <span className="text-[13px] ">{formData.adults}</span>
               <button
                 type="button"
+                disabled={isReadOnly || isSubmitting}
                 onClick={() =>
                   setFormData({ ...formData, adults: formData.adults + 1 })
                 }
-                className="px-1 text-lg font-semibold"
+                className={`text-lg font-semibold ${
+                  isReadOnly || isSubmitting
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
               >
                 <GoPlus size={12} />
               </button>
             </div>
           </div>
-          <div className="flex flex-col items-center">
-            <label className="block text-xs text-black mb-1">Children</label>
-            <div className="flex items-center border border-black rounded-lg px-2 py-1">
+          <div className="flex flex-col">
+            <label className="block text-[12px] font-[500] text-[#414141] mb-1">
+              Children
+            </label>
+            <div className="w-[5rem] flex items-center justify-between border border-[1.5px] border-black rounded-lg px-2 py-1">
               <button
                 type="button"
+                disabled={isReadOnly || isSubmitting}
                 onClick={() =>
                   setFormData({
                     ...formData,
                     infants: Math.max(0, formData.infants - 1),
                   })
                 }
-                className="px-1 text-lg font-semibold"
+                className={`text-lg font-semibold ${
+                  isReadOnly || isSubmitting
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
               >
                 <FiMinus size={12} />
               </button>
-              <span className="px-2 text-[13px] ">{formData.infants}</span>
+              <span className="text-[13px] ">{formData.infants}</span>
               <button
                 type="button"
+                disabled={isReadOnly || isSubmitting}
                 onClick={() =>
                   setFormData({ ...formData, infants: formData.infants + 1 })
                 }
-                className="px-1 text-lg font-semibold"
+                className={`text-lg font-semibold ${
+                  isReadOnly || isSubmitting
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
               >
                 <GoPlus size={12} />
               </button>
@@ -2085,198 +2079,202 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         </div>
 
         {/* Traveller Details */}
-        <div className="mt-4 space-y-4">
-          {formData.adults > 0 && (
-            <label className="block text-[13px] mt-3 font-medium text-gray-700 mb-1">
-              <span className="text-red-500">*</span> Adult
-            </label>
-          )}
+        <div className="mt-4 space-y-2">
+          {adultTravellerList.map((_, index) => (
+            <div key={index} className="mb-6">
+              <label className="block w-[30rem] text-[12px] font-[400] text-[#414141] mb-2">
+                <span className="text-red-500">*</span>
+                {`Adult ${index + 1}${index === 0 ? " (Lead Pax)" : ""}`}
+              </label>
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-[30rem] relative"
+                  ref={(el) => {
+                    travellerRefs.current.set(`adult-${index}`, el);
+                  }}
+                >
+                  <InputField
+                    name="adultTravellers"
+                    placeholder="Search by Traveller Name/ID"
+                    required
+                    type="text"
+                    {...getInputProps("adultTravellers", {
+                      value: formData.adultTravellers[index] ?? "",
+                      onChange: (e) => {
+                        const value = allowTextAndNumbers(e.target.value);
 
-          {adultTravellerList.map((trav, index) => (
-            <div key={index} className="flex items-center gap-2 my-2">
-              <div
-                className="w-[30rem] relative"
-                ref={(el) => {
-                  travellerRefs.current.set(`adult-${index}`, el);
-                }}
-              >
-                <InputField
-                  name="adultTravellers"
-                  placeholder={`Adult ${index + 1}`}
-                  required={index === 0}
-                  type="text"
-                  {...getInputProps("adultTravellers", {
-                    value: formData.adultTravellers[index] ?? "",
-                    onChange: (e) => {
-                      const value = allowTextAndNumbers(e.target.value);
+                        updateTraveller("adultTravellers", index, value);
 
-                      updateTraveller("adultTravellers", index, value);
-
-                      const results = runFuzzySearch(allTravellers, value, [
-                        "name",
-                        "id",
-                      ]);
-                      if (value.trim() === "") {
-                        setTravellerResults([]);
-                        setActiveTravellerDropdown(null);
-                        return;
-                      }
-                      setTravellerResults(results);
-                      if (results.length > 0) {
-                        setActiveTravellerDropdown({
-                          type: "adultTravellers",
-                          index,
-                        });
-                      } else {
-                        setActiveTravellerDropdown(null);
-                        setTravellerResults([]);
-                      }
-                    },
-                    skipValidation: true,
-                  })}
-                  readOnly={!!formData.adultTravellerIds?.[index]}
-                  selectedDisplay={(() => {
-                    const selectedId =
-                      formData.adultTravellerIds?.[index] ?? "";
-                    if (!selectedId) return null;
-                    const selected = travellersById.get(selectedId);
-                    if (!selected) return null;
-                    const rating = getTierRating(selected.tier);
-                    return (
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-1 min-w-0">
-                          <p className="font-normal text-[13px] text-gray-900 truncate">
-                            {selected.name}
-                          </p>
-                          <span className="text-gray-300">|</span>
-                          <p className="text-[13px] text-gray-600 truncate">
-                            {selected.customId}
-                          </p>
-                        </div>
-
-                        {rating !== null ? (
-                          <div className="flex items-center gap-1 shrink-0">
-                            <img
-                              src={`/icons/tier-${rating}.png`}
-                              alt={`Tier ${rating}`}
-                              className="w-4 h-4 object-contain"
-                            />
-                            <span className="text-[13px] font-semibold text-gray-700">
-                              {rating}
-                            </span>
+                        const results = runFuzzySearch(allTravellers, value, [
+                          "name",
+                          "id",
+                        ]);
+                        if (value.trim() === "") {
+                          setTravellerResults([]);
+                          setActiveTravellerDropdown(null);
+                          return;
+                        }
+                        setTravellerResults(results);
+                        if (results.length > 0) {
+                          setActiveTravellerDropdown({
+                            type: "adultTravellers",
+                            index,
+                          });
+                        } else {
+                          setActiveTravellerDropdown(null);
+                          setTravellerResults([]);
+                        }
+                      },
+                      skipValidation: true,
+                    })}
+                    readOnly={!!formData.adultTravellerIds?.[index]}
+                    selectedDisplay={(() => {
+                      const selectedId =
+                        formData.adultTravellerIds?.[index] ?? "";
+                      if (!selectedId) return null;
+                      const selected = travellersById.get(selectedId);
+                      if (!selected) return null;
+                      const rating = getTierRating(selected.tier);
+                      return (
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <p className="font-normal text-[13px] text-gray-900 truncate">
+                              {selected.name}
+                            </p>
+                            <span className="text-gray-300">|</span>
+                            <p className="text-[13px] text-gray-600 truncate">
+                              {selected.customId}
+                            </p>
                           </div>
-                        ) : null}
-                      </div>
-                    );
-                  })()}
-                />
 
-                {/* Traveller Dropdown */}
-                {activeTravellerDropdown?.type === "adultTravellers" &&
-                  activeTravellerDropdown?.index === index &&
-                  travellerResults.length > 0 && (
-                    <div className="absolute bg-white border border-gray-200 rounded-md w-full mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-                      {travellerResults.map((t: TravellerDataType) => (
+                          {rating !== null ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <img
+                                src={`/icons/tier-${rating}.png`}
+                                alt={`Tier ${rating}`}
+                                className="w-4 h-4 object-contain"
+                              />
+                              <span className="text-[13px] font-semibold text-gray-700">
+                                {rating}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
+                  />
+
+                  {/* Traveller Dropdown */}
+                  {activeTravellerDropdown?.type === "adultTravellers" &&
+                    activeTravellerDropdown?.index === index &&
+                    travellerResults.length > 0 && (
+                      <div className="absolute bg-white border border-gray-200 rounded-md w-full mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+                        {travellerResults.map((t: TravellerDataType) => (
+                          <div
+                            key={t._id}
+                            className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
+                            onClick={() => {
+                              updateTraveller(
+                                "adultTravellers",
+                                index,
+                                getTravellerDisplayName(t),
+                                t._id,
+                              );
+                              setActiveTravellerDropdown(null);
+                              setTravellerResults([]);
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1">
+                                <p className="font-normal text-[13px] text-gray-900">
+                                  {t.name}
+                                </p>
+                                <span className="text-gray-300">|</span>
+                                <p className="text-[13px] text-gray-600 truncate">
+                                  {t.customId}
+                                </p>
+                              </div>
+
+                              {/* show rating only when available */}
+                              {(() => {
+                                let rating: number | null = null;
+                                try {
+                                  if (t?.tier) {
+                                    if (typeof t.tier === "string") {
+                                      const m = t.tier.match(/\d+/);
+                                      if (m) rating = Number(m[0]);
+                                    } else if (typeof t.tier === "number") {
+                                      rating = Math.round(t.tier);
+                                    }
+                                  }
+                                } catch (e) {
+                                  rating = null;
+                                }
+                                if (rating !== null) {
+                                  rating = Math.min(Math.max(rating, 1), 5);
+                                  return (
+                                    <div className="flex items-center gap-1">
+                                      <img
+                                        src={`/icons/tier-${rating}.png`}
+                                        alt={`Tier ${rating}`}
+                                        className="w-4 h-4 object-contain"
+                                      />
+                                      <span className="text-[13px] font-semibold text-gray-700">
+                                        {rating}
+                                      </span>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
+                          </div>
+                        ))}
+                        {/* Staple option */}
                         <div
-                          key={t._id}
-                          className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
+                          className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
                           onClick={() => {
+                            // Set this traveller to TBA (To Be Announced)
                             updateTraveller(
                               "adultTravellers",
                               index,
-                              getTravellerDisplayName(t),
-                              t._id,
+                              "TBA",
                             );
                             setActiveTravellerDropdown(null);
                             setTravellerResults([]);
                           }}
                         >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-1">
-                              <p className="font-normal text-[13px] text-gray-900">
-                                {t.name}
-                              </p>
-                              <span className="text-gray-300">|</span>
-                              <p className="text-[13px] text-gray-600 truncate">
-                                {t.customId}
-                              </p>
-                            </div>
-
-                            {/* show rating only when available */}
-                            {(() => {
-                              let rating: number | null = null;
-                              try {
-                                if (t?.tier) {
-                                  if (typeof t.tier === "string") {
-                                    const m = t.tier.match(/\d+/);
-                                    if (m) rating = Number(m[0]);
-                                  } else if (typeof t.tier === "number") {
-                                    rating = Math.round(t.tier);
-                                  }
-                                }
-                              } catch (e) {
-                                rating = null;
-                              }
-                              if (rating !== null) {
-                                rating = Math.min(Math.max(rating, 1), 5);
-                                return (
-                                  <div className="flex items-center gap-1">
-                                    <img
-                                      src={`/icons/tier-${rating}.png`}
-                                      alt={`Tier ${rating}`}
-                                      className="w-4 h-4 object-contain"
-                                    />
-                                    <span className="text-[13px] font-semibold text-gray-700">
-                                      {rating}
-                                    </span>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            })()}
-                          </div>
+                          <p className="font-medium text-[13px] text-gray-700">
+                            Don&apos;t have the name? Enter TBA
+                          </p>
                         </div>
-                      ))}
-                      {/* Staple option */}
-                      <div
-                        className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
-                        onClick={() => {
-                          // Set this traveller to TBA (To Be Announced)
-                          updateTraveller("adultTravellers", index, "TBA");
-                          setActiveTravellerDropdown(null);
-                          setTravellerResults([]);
-                        }}
-                      >
-                        <p className="font-medium text-[13px] text-gray-700">
-                          Don&apos;t have the name? Enter TBA
-                        </p>
                       </div>
-                    </div>
-                  )}
-              </div>
+                    )}
+                </div>
 
-              <RightSideIcons
-                fieldName="adultTravellers"
-                value={formData.adultTravellers[index] ?? ""}
-                overrideSetter={(val) =>
-                  updateTraveller("adultTravellers", index, val)
-                }
-                onClickPlus={() =>
-                  openAddTraveller({ type: "adultTravellers", index })
-                }
-                onClickView={() =>
-                  handleViewTraveller("adultTravellers", index)
-                }
-              />
+                <RightSideIcons
+                  fieldName="adultTravellers"
+                  value={formData.adultTravellers[index] ?? ""}
+                  overrideSetter={(val) =>
+                    updateTraveller("adultTravellers", index, val)
+                  }
+                  onClickPlus={() =>
+                    openAddTraveller({ type: "adultTravellers", index })
+                  }
+                  onClickView={() =>
+                    handleViewTraveller("adultTravellers", index)
+                  }
+                />
+              </div>
             </div>
           ))}
 
           {formData.infantTravellers.map((trav, index) => (
             <div key={index} className="mb-6">
               <div className="w-[30rem] flex items-center justify-between mb-2">
-                <label className="text-[13px] font-medium text-gray-700">
-                  {index === 0 && <span className="text-red-500">*</span>} Child{" "}
-                  {index + 1}
+                <label className=" text-[12px] font-[400] text-[#414141]">
+                  <span className="text-red-500">*</span>
+                  {`Child ${index + 1}`}
                 </label>
 
                 <DropDown
@@ -2294,7 +2292,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       return { ...prev, childAges: ages };
                     });
                   }}
-                  customWidth="w-[8rem]"
+                  customWidth="w-[14rem]"
                   className="mt-1"
                 />
               </div>
@@ -2309,8 +2307,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 >
                   <InputField
                     name="infantTravellers"
-                    placeholder={`Child ${index + 1}`}
-                    required={index === 0}
+                    placeholder="Search by Traveller Name/ID"
+                    required
                     {...getInputProps("infantTravellers", {
                       value: trav,
                       onChange: (e) => {
@@ -2492,9 +2490,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             placeholder="Search by Name/Username/ID"
             required
             className="mt-1 text-[13px] py-2"
+            readOnly={isReadOnly}
+            disabled={isReadOnly || isSubmitting}
             // show the NAME from ownerList
             value={ownerList[0]?.name || ""}
             onChange={(e) => {
+              if (isReadOnly) return;
               const value = allowTextAndNumbers(e.target.value);
               // show typed text, clear ID until selection
               setOwnerList([{ id: "", name: value }]);
@@ -2519,7 +2520,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               setShowPrimaryOwnerDropdown(results.length > 0);
             }}
           />
-          {showPrimaryOwnerDropdown && primaryOwnerResults.length > 0 && (
+          {!isReadOnly &&
+            showPrimaryOwnerDropdown &&
+            primaryOwnerResults.length > 0 && (
             <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
               {primaryOwnerResults.map((t: TeamDataType) => (
                 <div

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { TbClipboardText } from "react-icons/tb";
 import LogsUI from "@/components/LogsUI";
 import dynamic from "next/dynamic";
@@ -15,6 +15,7 @@ import { FaRegTrashAlt } from "react-icons/fa";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import { BookingApiService } from "@/services/bookingApi";
 import SidesheetSkeleton from "@/components/skeletons/SidesheetSkeleton";
+import SlidingTabs from "@/components/organisms/navigation/SlidingTabs";
 
 const BookingFormSidesheet = dynamic(
   () => import("@/components/BookingFormSidesheet"),
@@ -344,10 +345,6 @@ const FlightsViewBookingPage = () => {
   const [activeTab, setActiveTab] =
     useState<(typeof tabOptions)[number]>("Booking Info");
 
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const tabsContainerRef = useRef<HTMLDivElement | null>(null);
-  const [indicatorStyle, setIndicatorStyle] = useState({ width: 0, left: 0 });
-
   const [isLoadingQuotation, setIsLoadingQuotation] = useState(false);
   const [quotationError, setQuotationError] = useState<string | null>(null);
   const [quotation, setQuotation] = useState<Quotation | null>(null);
@@ -645,26 +642,6 @@ const FlightsViewBookingPage = () => {
     [],
   );
 
-  useEffect(() => {
-    const updateIndicator = () => {
-      const activeIndex = tabOptions.indexOf(activeTab);
-      const activeEl = tabRefs.current[activeIndex];
-      const container = tabsContainerRef.current;
-      if (!activeEl || !container) return;
-
-      const activeRect = activeEl.getBoundingClientRect();
-      const containerRect = container.getBoundingClientRect();
-      setIndicatorStyle({
-        width: activeRect.width,
-        left: activeRect.left - containerRect.left,
-      });
-    };
-
-    updateIndicator();
-    window.addEventListener("resize", updateIndicator);
-    return () => window.removeEventListener("resize", updateIndicator);
-  }, [activeTab, tabOptions]);
-
   return (
     <div className="w-full">
       <div className="bg-white rounded-[8px] shadow px-[18px] py-[18px] mb-5 w-full border border-gray-100">
@@ -706,41 +683,13 @@ const FlightsViewBookingPage = () => {
 
         {/* TABS + ACTIONS ROW */}
         <div className="flex items-center justify-between gap-4">
-          <div
-            className="flex items-center bg-[#F3F3F3] gap-[20px] rounded-[10px] relative p-1"
-            ref={tabsContainerRef}
-          >
-            <div
-              className="absolute h-[calc(100%-0.60rem)] bg-[#0D4B37] rounded-[8px]
-						 shadow-sm transition-all duration-300 ease-in-out
-						 top-1/2 -translate-y-1/2"
-              style={{
-                width:
-                  indicatorStyle.width > 0
-                    ? `${indicatorStyle.width}px`
-                    : `calc((100% - 1.25rem) / ${tabOptions.length})`,
-                left: `${indicatorStyle.left}px`,
-              }}
-            />
-
-            {tabOptions.map((tab, idx) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`relative z-10 px-[14px] py-[6px] rounded-[8px] text-[14px] font-medium transition-colors duration-300 flex-1 whitespace-nowrap ${
-                  activeTab === tab
-                    ? "text-white"
-                    : "text-[#818181] hover:text-gray-900"
-                }`}
-                ref={(el) => {
-                  tabRefs.current[idx] = el;
-                }}
-                type="button"
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
+          <SlidingTabs
+            tabs={tabOptions}
+            activeTab={activeTab}
+            onChange={setActiveTab}
+            containerClassName="gap-[20px]"
+            tabClassName="px-[14px] whitespace-nowrap"
+          />
 
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">

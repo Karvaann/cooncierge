@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { getStoredCurrencySymbol } from "@/utils/helper";
 
 // Type definitions
 interface Service {
@@ -331,7 +332,8 @@ const ServiceInfoForm: React.FC<ServiceInfoFormProps> = ({
       {/* Budget */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">
-          Budget (₹) <span className="text-red-500">*</span>
+          {`Budget (${getStoredCurrencySymbol()})`}{" "}
+          <span className="text-red-500">*</span>
         </label>
         <InputField
           name="budget"

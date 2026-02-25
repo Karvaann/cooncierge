@@ -8,23 +8,21 @@ import { BookingApiService } from "@/services/bookingApi";
 import { CustomIdApi } from "@/services/customIdApi";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
-import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
-// import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import SidesheetSkeleton from "@/components/skeletons/SidesheetSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import type { JSX } from "react";
-import { formatServiceType } from "@/utils/helper";
+import {
+  formatServiceType,
+  formatNumberByStoredCurrency,
+  getStoredCurrencySymbol,
+} from "@/utils/helper";
 import { FaRegTrashAlt } from "react-icons/fa";
 import { MdOutlineEdit } from "react-icons/md";
-import { TbArrowAutofitRight } from "react-icons/tb";
-import { FiCopy } from "react-icons/fi";
 import { CiFilter } from "react-icons/ci";
-// import FilterTrigger from "@/components/FilterTrigger";
 import { TbArrowsUpDown } from "react-icons/tb";
 import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
-import { MdOutlineDirectionsCarFilled } from "react-icons/md";
 import TaskButton from "@/components/TaskButton";
 import RecordPaymentSidesheet from "@/components/Sidesheets/RecordPaymentSidesheet";
 import ErrorToast from "@/components/ErrorToast";
@@ -40,20 +38,11 @@ const Filter = dynamic(() => import("@/components/Filter"), {
   ssr: false,
 });
 
-// const SummaryCards = dynamic(() => import("@/components/SummaryCards"), {
-//   loading: () => <SummaryCardsSkeleton />,
-//   ssr: false,
-// });
-
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
   ssr: false,
 });
 
-const SummaryCards = dynamic(() => import("@/components/SummaryCards"), {
-  loading: () => <SummaryCardsSkeleton />,
-  ssr: false,
-});
 
 const BookingFormSidesheet = dynamic(
   () => import("@/components/BookingFormSidesheet"),
@@ -128,23 +117,6 @@ interface QuotationData {
   updatedAt: string;
 }
 
-// interface SummaryData {
-//   total: {
-//     amount: string;
-//     change: string;
-//     isPositive: boolean;
-//   };
-//   youGive: {
-//     amount: string;
-//     change: string;
-//     isPositive: boolean;
-//   };
-//   youGet: {
-//     amount: string;
-//     change: string;
-//     isPositive: boolean;
-//   };
-// }
 
 interface Owner {
   short: string;
@@ -152,8 +124,6 @@ interface Owner {
   color: string;
 }
 
-// column icons will be created inside the component so they can reference
-// runtime values (service options / FilterTrigger callbacks).
 
 const getStatusBadgeClass = (status: string): string => {
   switch (status) {
@@ -244,7 +214,6 @@ const FinanceBookingsPage = () => {
   const [drafts, setDrafts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
 
   const [sortState, setSortState] = useState<TriSortState<string>>({
     key: null,
@@ -393,51 +362,7 @@ const FinanceBookingsPage = () => {
           return false;
       }
 
-      /*
-      // Service type filter (supports string or array values)
-      if (filters.serviceType) {
-        const selected = Array.isArray(filters.serviceType)
-          ? filters.serviceType
-          : [filters.serviceType];
-        if (selected.length) {
-          const qt = (q.quotationType || "").toLowerCase().trim();
-          const mapToFilterValue = (t: string) => {
-            if (["flight", "flights", "travel"].includes(t)) return "flights";
-            if (["hotel", "accommodation"].includes(t)) return "accommodation";
-            if (
-              [
-                "car",
-                "land",
-                "transportation",
-                "transport-land",
-                "land-transport",
-                "land_transportation",
-              ].includes(t)
-            )
-              return "transportation_land";
-            if (["maritime", "transport-maritime"].includes(t))
-              return "transportation_maritime";
-            if (["package"].includes(t)) return "package";
-            if (["activity", "activities"].includes(t)) return "activity";
-            if (["insurance", "travel insurance"].includes(t))
-              return "insurance";
-            if (["visa", "visas"].includes(t)) return "visas";
-            if (["ticket", "tickets"].includes(t)) return "tickets";
-            return "others";
-          };
-
-          const qVal = mapToFilterValue(qt);
-          const matches = selected.some(
-            (s) =>
-              String(s).toLowerCase() === qVal ||
-              String(s).toLowerCase() === qt,
-          );
-          if (!matches) return false;
-        }
-      }
-      */
-
-      // if we're using advanced search (primary + secondary owners)
+      
       const selectedPrimaryOwners: string[] = Array.isArray(
         filters.primaryOwner,
       )
@@ -910,28 +835,6 @@ const FinanceBookingsPage = () => {
     return result;
   }, [filteredQuotations, drafts]) as any[];
 
-  const summaryData = useMemo(() => {
-    const youGiveValue = finalQuotations.reduce((sum, item) => {
-      const val = Number(item.vendorRemainingAmount) || 0;
-      return sum + (isNaN(val) ? 0 : val);
-    }, 0);
-    const youGetValue = finalQuotations.reduce((sum, item) => {
-      const val =
-        Number(item.totalAmount) || Number(item.customerRemainingAmount) || 0;
-      return sum + (isNaN(val) ? 0 : val);
-    }, 0);
-
-    const totalValue = Math.abs(youGiveValue - youGetValue);
-
-    const fmt = (n: number) => `₹ ${n.toLocaleString("en-IN")}`;
-
-    return {
-      total: { amount: fmt(totalValue), change: "", isPositive: true },
-      youGive: { amount: fmt(youGiveValue), change: "", isPositive: false },
-      youGet: { amount: fmt(youGetValue), change: "", isPositive: true },
-    };
-  }, [finalQuotations]);
-
   // Use shared timestamp extractor from utils/sorting.ts
 
   const sortedQuotationsForTable = useMemo(() => {
@@ -962,7 +865,6 @@ const FinanceBookingsPage = () => {
     return withIndex.map((x) => x.item);
   }, [finalQuotations, sortState.direction, sortState.key]);
 
-  // Convert quotations to table data
   const tableData = useMemo<JSX.Element[][]>(() => {
     const rows = sortedQuotationsForTable.map((item, index) => [
       <td
@@ -1026,9 +928,9 @@ const FinanceBookingsPage = () => {
         className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
       >
         {item.totalAmount
-          ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
+          ? `${getStoredCurrencySymbol()} ${formatNumberByStoredCurrency(item.totalAmount)}`
           : item.formFields?.budget
-            ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
+            ? `${getStoredCurrencySymbol()} ${formatNumberByStoredCurrency(item.formFields.budget)}`
             : "--"}
       </td>,
       <td
@@ -1108,7 +1010,7 @@ const FinanceBookingsPage = () => {
           onClick={(e) => e.stopPropagation()}
           className="flex items-center justify-center gap-2 transition-all duration-200 opacity-0 pointer-events-none group-[.row-actions-active]:opacity-100 group-[.row-actions-active]:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
         >
-          {/* ₹ Button */}
+          {/* Currency Button */}
           <button
             className="w-8 h-8 rounded-md bg-blue-100 text-blue-700
                  flex items-center justify-center hover:bg-blue-200"
@@ -1117,7 +1019,7 @@ const FinanceBookingsPage = () => {
               setIsRecordPaymentOpen(true);
             }}
           >
-            ₹
+            {getStoredCurrencySymbol()}
           </button>
 
           <ActionMenu
@@ -1129,8 +1031,6 @@ const FinanceBookingsPage = () => {
     ]);
     return rows;
   }, [sortedQuotationsForTable, ownersList]);
-
-  // Helper functions
 
   const filterOptions = useMemo(
     () => ({
@@ -1149,23 +1049,6 @@ const FinanceBookingsPage = () => {
     }),
     [ownersList],
   );
-
-  /*
-  const serviceOptions = useMemo(
-    () => [
-      { value: "flights", label: "Flights" },
-      { value: "accommodation", label: "Accommodation" },
-      { value: "insurance", label: "Travel Insurance" },
-      { value: "activity", label: "Activity" },
-      { value: "visas", label: "Visas" },
-      { value: "tickets", label: "Ticket (attraction)" },
-      { value: "others", label: "Others" },
-      { value: "transportation_land", label: "Transportation (Land)" },
-      { value: "transportation_maritime", label: "Transportation (Maritime)" },
-    ],
-    [],
-  );
-  */
 
   const statusFilterOptions = useMemo<FilterCardOption[]>(
     () => [
@@ -1214,27 +1097,6 @@ const FinanceBookingsPage = () => {
   return (
     <div className="bg-gray-50">
       <div className="bg-gray-50">
-        {/* <div className="flex justify-between items-center gap-4 p-6 w-full mx-[10px] mt-[-20px]"> */}
-        {/* Draft count and sync button */}
-        {/* <div className="flex items-center gap-4">
-          {drafts.length > 0 && (
-            <div className="text-sm text-gray-600">
-              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
-                {drafts.length} Draft{drafts.length !== 1 ? "s" : ""}
-              </span>
-            </div>
-          )}
-          <button
-            onClick={syncDrafts}
-            className="text-sm text-gray-600 hover:text-gray-800 transition"
-            type="button"
-            title="Sync drafts with backend"
-          >
-            🔄 Sync
-          </button>
-        </div> */}
-        {/* </div> */}
-
         <div className="min-h-screen">
           <ErrorToast
             visible={toastVisible}
@@ -1246,18 +1108,6 @@ const FinanceBookingsPage = () => {
             closeButtonClass={toastCloseBtnClass}
             showLabel={toastShowLabel}
           />
-          {/* {!error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <strong>Error:</strong> {error}
-            <button
-              onClick={loadQuotations}
-              className="ml-4 text-sm underline hover:no-underline"
-              type="button"
-            >
-              Retry
-            </button>
-          </div>
-        )} */}
 
           <Filter
             onFilterChange={handleFilterChange}
@@ -1270,8 +1120,6 @@ const FinanceBookingsPage = () => {
             showBookingType={true}
             allowAdvanceOwnerSearch={true}
           />
-
-          <SummaryCards data={summaryData} />
 
           <div className="bg-white rounded-2xl shadow mt-4 pt-5 pb-3 px-3 relative">
             {/* Header row removed: tabs and inline total moved into Filter */}

@@ -442,7 +442,8 @@ input[type="time"]::-webkit-datetime-edit-ampm-field {
 
 /* Ensure placeholder text color is consistent and not wrapped with extra UI */
 :where(input::placeholder, textarea::placeholder) {
-  color: #9ca3af;
+  color: #9CA3AF;
+  font-weight: 400;
   opacity: 1; /* keep visibility across browsers */
 }
 

@@ -4,6 +4,7 @@ import React from "react";
 import { FiEye } from "react-icons/fi";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import ActionMenu from "@/components/Menus/ActionMenu";
+import { getStoredCurrencySymbol } from "@/utils/helper";
 
 type LedgerStatus = "paid" | "none" | "partial";
 
@@ -293,12 +294,12 @@ const LedgerRow: React.FC<Props> = ({
       </td>
 
       <td className={`px-4 py-3 text-center text-[14px] ${amountBgClass}`}>
-        <span className="font-semibold">₹ {formatMoney(displayAmount)}</span>
+        <span className="font-semibold">{getStoredCurrencySymbol()} {formatMoney(displayAmount)}</span>
       </td>
 
       <td className={`px-4 py-3 text-center text-[14px] ${amountBgClass}`}>
         <span className={`${amountTextClass} font-semibold`}>
-          ₹ {formatMoney(r.closingBalance.amount)}
+          {getStoredCurrencySymbol()} {formatMoney(r.closingBalance.amount)}
         </span>
       </td>
 

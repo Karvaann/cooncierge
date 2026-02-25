@@ -3,6 +3,7 @@
 import type { AxiosError } from 'axios';
 import apiClient from '@/services/apiClient';
 import { getAuthUser } from '@/services/storage/authStorage';
+import { getStoredCurrencySymbol } from "@/utils/helper";
 
 // Type definitions
 interface Service {
@@ -442,7 +443,7 @@ export const validateServiceInfo = (data: Partial<ServiceInfo>, service?: Servic
   }
 
   if (data.budget && data.budget > 10000000) {
-    errors.budget = 'Budget cannot exceed ₹1,00,00,000';
+    errors.budget = `Budget cannot exceed ${getStoredCurrencySymbol()}1,00,00,000`;
   }
 
   return errors;

@@ -14,7 +14,6 @@ import ErrorToast from "./ErrorToast";
 import { BookingProvider, useBooking } from "@/context/BookingContext";
 import { useLimitlessDraft } from "@/context/LimitlessDraftContext";
 import { BookingApiService } from "@/services/bookingApi";
-import apiClient from "@/services/apiClient";
 import SideSheet from "@/components/SideSheet";
 import GeneralInfoForm from "./forms/GeneralInfoForm";
 import AddCustomerSideSheet from "./Sidesheets/AddCustomerSideSheet";
@@ -295,10 +294,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const [apiErrorMessage, setApiErrorMessage] = useState<string>("");
   const [showApiErrorToast, setShowApiErrorToast] = useState<boolean>(false);
   const [isDirty, setIsDirty] = useState(false);
-  const { isAddCustomerOpen, isAddVendorOpen, isAddTravellerOpen } =
-    useBooking();
+  const { isAddCustomerOpen, isAddVendorOpen } = useBooking();
   const { closeAddCustomer, closeAddVendor } = useBooking();
-  const { submitBooking, saveDraft } = useBooking();
 
   // refs for form data collection
   const generalFormRef = useRef<HTMLFormElement | null>(null);
@@ -306,6 +303,23 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const addCustomerFormRef = useRef<HTMLFormElement | null>(null);
   const addVendorFormRef = useRef<HTMLFormElement | null>(null);
   const addTravellerFormRef = useRef<HTMLFormElement | null>(null);
+
+  const resetManagedForms = useCallback(() => {
+    const refs = [
+      generalFormRef,
+      serviceFormRef,
+      addCustomerFormRef,
+      addVendorFormRef,
+      addTravellerFormRef,
+    ];
+    refs.forEach((ref) => {
+      try {
+        ref.current?.reset?.();
+      } catch {
+        // no-op
+      }
+    });
+  }, []);
 
   // Collect all documents from all forms
   const [bookingDocuments, setBookingDocuments] = useState<File[]>([]);
@@ -429,21 +443,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     if (!isOpen) return;
 
     // Reset DOM form values (if forms use native <form> refs)
-    try {
-      generalFormRef.current?.reset?.();
-    } catch (_) {}
-    try {
-      serviceFormRef.current?.reset?.();
-    } catch (_) {}
-    try {
-      addCustomerFormRef.current?.reset?.();
-    } catch (_) {}
-    try {
-      addVendorFormRef.current?.reset?.();
-    } catch (_) {}
-    try {
-      addTravellerFormRef.current?.reset?.();
-    } catch (_) {}
+    resetManagedForms();
 
     if (initialData && Object.keys(initialData).length > 0) {
       setFormData(initialData);
@@ -467,7 +467,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
     // snapshot initial state for dirty-checking
     initialSnapshotRef.current = stableStringify(initialData ?? {});
-  }, [initialData, isOpen]);
+  }, [initialData, isOpen, resetManagedForms]);
 
   // Cleanup when sidesheet is closed to ensure no stale data persists
   useEffect(() => {
@@ -480,22 +480,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     setCustomerCode("");
     setBookingCode("");
     setVendorCode("");
-    try {
-      generalFormRef.current?.reset?.();
-    } catch (_) {}
-    try {
-      serviceFormRef.current?.reset?.();
-    } catch (_) {}
-    try {
-      addCustomerFormRef.current?.reset?.();
-    } catch (_) {}
-    try {
-      addVendorFormRef.current?.reset?.();
-    } catch (_) {}
-    try {
-      addTravellerFormRef.current?.reset?.();
-    } catch (_) {}
-  }, [isOpen]);
+    resetManagedForms();
+  }, [isOpen, resetManagedForms]);
 
   useEffect(() => {
     if (!isOpen || isDirty) return;
@@ -996,7 +982,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         <button
           key={tab.id}
           className={`
-          px-4 py-1.5 text-[0.75rem] font-medium transition-colors relative
+          px-4 py-1.5 text-[12px] font-[400] transition-colors relative
           ${
             activeTab === tab.id
               ? "text-[#0D4B37]"
@@ -1056,13 +1042,13 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     if (!selectedService) return <span>Booking Form</span>;
     return (
       <div className="flex items-center">
-        <span className="text-[16px] font-semibold">
+        <span className="text-[16px] text-[#020202] font-[500]">
           {selectedService.title}
         </span>
         {bookingCode ? (
           <>
-            <span className="mx-2 w-px h-4 bg-gray-200" aria-hidden />
-            <span className="font-mono text-[16px] text-black">
+            <span className="mx-[7px] w-px h-4 bg-gray-200" aria-hidden />
+            <span className="font-mono text-[18px] font-[500] text-[#020202]">
               {bookingCode}
             </span>
           </>
@@ -1089,7 +1075,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           <div className="flex flex-col h-full">
             {/* Tabs - Fixed at top */}
             <div
-              className="absolute top-0 left-0 right-0 z-10 -ml-1 -mt-1 flex w-full space-x-0 px-4 bg-white"
+              className="absolute top-0 left-0 right-0 z-10 pt-[16px] mb-[16px] flex w-full space-x-0 bg-white"
               role="tablist"
             >
               {tabButtons}
@@ -1099,7 +1085,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
             <div className="absolute top-6.5 left-6 right-8 z-10 border-b border-gray-200"></div>
 
             {/* Tab Content - Scrollable with padding for fixed header and footer */}
-            <div className="flex-1 overflow-y-auto pt-7 pb-24" role="tabpanel">
+            <div className="overflow-y-auto mt-[18px] pt-7 pb-8" role="tabpanel">
               {/* dont unmount General Info */}
               <div
                 style={{ display: activeTab === "general" ? "block" : "none" }}

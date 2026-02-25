@@ -254,12 +254,12 @@ export default function DateRangeInput({
 
       <button
         type="button"
-        className="relative flex items-center w-full max-h-[2.8rem] gap-3 border border-gray-300 rounded-sm px-3 py-3 bg-white hover:border-green-200 transition-colors select-none text-[14px]"
+        className="relative flex items-center gap-2 justify-between w-full max-h-[2.8rem] border border-gray-300 rounded-sm px-[12px] py-[9px] bg-white hover:border-green-200 transition-colors select-none text-[14px]"
         onClick={() => setOpen((prev) => !prev)}
       >
-        <span className="text-[#9CA3AF] font-medium">{displayValue.start}</span>
-        <span className="text-gray-400 mx-1">→</span>
-        <span className="text-[#9CA3AF] font-medium flex-1 text-left">
+        <span className="text-[#9CA3AF]">{displayValue.start}</span>
+        <span className="text-gray-400">→</span>
+        <span className="text-[#9CA3AF]">
           {displayValue.end}
         </span>
         {startDate && endDate ? (
@@ -270,7 +270,7 @@ export default function DateRangeInput({
               e.stopPropagation();
               clearDates();
             }}
-            className="text-[#9CA3AF] -mt-1 hover:text-gray-600 rounded-sm cursor-pointer"
+            className="text-[#9CA3AF] hover:text-gray-600 rounded-sm cursor-pointer"
           >
             {/* simple X SVG */}
             <svg
@@ -288,7 +288,7 @@ export default function DateRangeInput({
             </svg>
           </span>
         ) : (
-          <span className="text-gray-400 -mt-1">
+          <span className="text-gray-400">
             <FaRegCalendar />
           </span>
         )}

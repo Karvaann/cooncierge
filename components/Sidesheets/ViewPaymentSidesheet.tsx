@@ -5,6 +5,7 @@ import SideSheet from "@/components/SideSheet";
 import { FaRegFolder } from "react-icons/fa";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
 import DeletePaymentModal from "@/components/Modals/DeletePaymentModal";
+import { getStoredCurrencySymbol } from "@/utils/helper";
 
 type ViewPaymentTab = "settled" | "history";
 
@@ -140,7 +141,7 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
       <div className="px-6 pb-8">
         <div className="mt-2 flex items-center justify-end">
           <div className="text-[12px] font-medium text-red-500">
-            Outstanding: ₹ {formatMoney(outstandingAmount)}
+            Outstanding: {getStoredCurrencySymbol()} {formatMoney(outstandingAmount)}
           </div>
         </div>
 
@@ -152,7 +153,7 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
                   Amount
                 </div>
                 <div className="mt-1 text-[13px] font-semibold text-gray-900">
-                  ₹ {formatMoney(amount)}
+                  {getStoredCurrencySymbol()} {formatMoney(amount)}
                 </div>
               </div>
 
@@ -299,7 +300,7 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
                     Date
                   </th>
                   <th className="px-4 py-3 text-right text-[12px] font-semibold text-gray-600">
-                    Amount (₹)
+                    Amount (${getStoredCurrencySymbol()})
                   </th>
                 </tr>
               </thead>
@@ -323,7 +324,7 @@ const ViewPaymentSidesheet: React.FC<ViewPaymentSidesheetProps> = ({
                         )}
                       </td>
                       <td className="px-4 py-3 text-right text-[13px] text-gray-700">
-                        ₹ {formatMoney(row.amount || 0)}
+                        {getStoredCurrencySymbol()} {formatMoney(row.amount || 0)}
                       </td>
                     </tr>
                   ))

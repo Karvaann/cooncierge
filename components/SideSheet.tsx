@@ -134,6 +134,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
         <div
           className={`
           absolute top-0 h-full bg-white shadow-xl
+          px-[14px] pt-[14px]
           transition-transform duration-300 ease-in-out rounded-l-[24px]
  overflow-hidden
           ${positionClasses[position].container}
@@ -149,7 +150,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
           onMouseDown={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-2 py-2">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 mt-1 flex-1">
               {showCloseButton && (
                 <button
@@ -157,24 +158,14 @@ const SideSheet: React.FC<SideSheetProps> = ({
                   className="text-gray-500 hover:text-gray-600 transition-colors p-2 rounded-full hover:bg-gray-100"
                   aria-label="Close side sheet"
                 >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
+                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none">
+                    <path d="M5.30265 4.11676L9.42137 9.72748e-05L10.6053 1.18343L6.48657 5.3001L10.6053 9.41676L9.42137 10.6001L5.30265 6.48343L1.18392 10.6001L0 9.41676L4.11872 5.3001L0 1.18343L1.18392 9.72748e-05L5.30265 4.11676Z" fill="#818181"/>
                   </svg>
                 </button>
               )}
               <h2
                 id="sidesheet-title"
-                className="text-[1rem] -ml-1 font-semibold text-gray-900"
+                className="text-[1rem] font-semibold text-gray-900"
               >
                 {title}
               </h2>
@@ -195,7 +186,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
           </div>
 
           {/* Content */}
-          <div className="overflow-y-auto h-[calc(100%-64px)] bg-white">
+          <div className="overflow-y-auto h-[calc(100%-54px)] bg-white">
             {children}
           </div>
         </div>

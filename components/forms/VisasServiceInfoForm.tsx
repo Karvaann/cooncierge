@@ -2,7 +2,6 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { validateOtherServiceInfoForm } from "@/services/bookingApi";
-import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
 import { useRef } from "react";
@@ -13,7 +12,7 @@ import { FaRegFolder } from "react-icons/fa";
 import CancellationModal, {
   CancellationModalFormState,
 } from "../Modals/CancellationModal";
-import AmountSection, { AmountSectionValue } from "../AmountSection";
+import AmountSection from "../AmountSection";
 import { getDefaultShowAdvancedPricing } from "@/utils/advancedPricing";
 import { allowUppercaseAlphanumeric6 } from "@/utils/inputValidators";
 
@@ -593,8 +592,6 @@ const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
       </div>
     );
   };
-
-  const today = new Date().toISOString().split("T")[0];
 
   return (
     <>

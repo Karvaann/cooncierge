@@ -191,23 +191,72 @@ export const getCurrencySymbol = (currency?: string): string => {
 };
 
 /**
+ * Reads business currency from localStorage user payload.
+ * Supports both string and object-shaped business/businessId values.
+ */
+export const getStoredBusinessCurrency = (): string | null => {
+  if (typeof window === "undefined") return null;
+  try {
+    const storedUser = window.localStorage.getItem("user");
+    if (!storedUser) return null;
+    const user = JSON.parse(storedUser as string);
+
+    const business =
+      user?.business ??
+      (user?.businessId && typeof user.businessId !== "string"
+        ? user.businessId
+        : null);
+
+    const rawCurrency =
+      business?.currency ??
+      (user?.businessId && typeof user.businessId === "object"
+        ? user.businessId.currency
+        : null) ??
+      user?.currency ??
+      null;
+
+    return rawCurrency ? String(rawCurrency).toUpperCase() : null;
+  } catch {
+    return null;
+  }
+};
+
+export const getStoredCurrencySymbol = (): string => {
+  return getCurrencySymbol(getStoredBusinessCurrency() || "INR");
+};
+
+/**
  * Returns a locale string suitable for formatting numbers for the given currency.
  */
 export const getCurrencyLocale = (currency?: string): string => {
-  if (!currency) return "en-IN";
+  if (!currency) return getStoredCurrencyLocale();
   const c = String(currency).trim().toUpperCase();
-  switch (c) {
-    case "USD":
-    case "USDT":
-      return "en-US";
-    case "EUR":
-      return "de-DE";
-    case "GBP":
-      return "en-GB";
-    case "INR":
-    default:
-      return "en-IN";
+  return c === "INR" ? "en-IN" : "en-US";
+};
+
+export const getStoredCurrencyLocale = (): string => {
+  const currency = getStoredBusinessCurrency() || "INR";
+  return getCurrencyLocale(currency);
+};
+
+export const formatNumberByCurrency = (
+  value: number,
+  currency?: string,
+  options?: Intl.NumberFormatOptions,
+): string => {
+  try {
+    const num = Number(value ?? 0) || 0;
+    return num.toLocaleString(getCurrencyLocale(currency), options);
+  } catch {
+    return String(value);
   }
+};
+
+export const formatNumberByStoredCurrency = (
+  value: number,
+  options?: Intl.NumberFormatOptions,
+): string => {
+  return formatNumberByCurrency(value, getStoredBusinessCurrency() || "INR", options);
 };
 
 /**
@@ -427,5 +476,3 @@ export const formatDate = (dateString?: string | null): string => {
     return "";
   }
 };
-
-

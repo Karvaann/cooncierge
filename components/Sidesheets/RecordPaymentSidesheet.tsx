@@ -9,7 +9,6 @@ import AddBankSidesheet, {
   type BankPayload,
 } from "@/components/Sidesheets/AddBankSidesheet";
 import BankApi from "@/services/bankApi";
-import ErrorToast from "@/components/ErrorToast";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FaRegFolder } from "react-icons/fa";
 import { FiPlusCircle, FiTrash2 } from "react-icons/fi";
@@ -19,6 +18,11 @@ import Button from "@/components/Button";
 import MultiCurrencyInput from "@/components/multiCurrencyUI";
 import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
 import { useAuth } from "@/context/AuthContext";
+import {
+  formatNumberByCurrency,
+  formatNumberByStoredCurrency,
+  getStoredCurrencySymbol,
+} from "@/utils/helper";
 
 type BookingLike = {
   _id: string;
@@ -51,7 +55,7 @@ type DocumentPreview = {
 };
 
 const formatMoney = (n: number) =>
-  n.toLocaleString("en-IN", {
+  formatNumberByStoredCurrency(n, {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -96,11 +100,6 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
 }) => {
   const bookingLabel = booking?.customId || booking?._id || "";
 
-  // Ledger state (to show pending/balance similar to screenshot)
-  const [outstandingAmount, setOutstandingAmount] = useState<number | null>(
-    null,
-  );
-  const [isLedgerLoading, setIsLedgerLoading] = useState(false);
 
   // Payment Type State
   type PaymentType = "CARD" | "UPI" | "IMPS" | "NEFT" | "RTGS" | "CHEQUE";
@@ -167,29 +166,12 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
   const [cashbackNotes, setCashbackNotes] = useState<string>("");
   const [showCashbackNotes, setShowCashbackNotes] = useState<boolean>(false);
 
-  // Toast state
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastBgClass, setToastBgClass] = useState("bg-red-50");
-  const [toastMessageColor, setToastMessageColor] = useState("text-red-600");
-  const [toastBorderClass, setToastBorderClass] = useState("border-red-200");
-  const [toastCloseBtnClass, setToastCloseBtnClass] = useState(
-    "text-red-400 hover:text-red-600",
-  );
-  const [toastShowLabel, setToastShowLabel] = useState(true);
 
   const showError = (msg: string) => {
     if (typeof onError === "function") {
       onError(msg);
       return;
     }
-    setToastMessage(String(msg));
-    setToastBgClass("bg-red-50");
-    setToastMessageColor("text-red-600");
-    setToastBorderClass("border-red-200");
-    setToastCloseBtnClass("text-red-400 hover:text-red-600");
-    setToastShowLabel(true);
-    setToastVisible(true);
   };
 
   const showSuccess = (msg: string) => {
@@ -197,13 +179,6 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
       onSuccess(msg);
       return;
     }
-    setToastMessage(String(msg));
-    setToastBgClass("bg-green-50");
-    setToastMessageColor("text-green-800");
-    setToastBorderClass("border-green-200");
-    setToastCloseBtnClass("text-green-600 hover:text-green-800");
-    setToastShowLabel(false);
-    setToastVisible(true);
   };
 
   // Advance settle UI
@@ -254,7 +229,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     if (!isFinite(a) || !isFinite(r) || a === 0 || r === 0) return "";
     const product = a * r;
     const hasFraction = Math.abs(product - Math.round(product)) > 1e-9;
-    return product.toLocaleString("en-US", {
+    return formatNumberByCurrency(product, "INR", {
       minimumFractionDigits: hasFraction ? 2 : 0,
       maximumFractionDigits: 2,
     });
@@ -423,6 +398,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
           // Allocate each customer payment to quotation
           for (const payment of paymentsToAllocate) {
             // Ensure payment has amountCurrency
+            console.log("payment", payment, payment.amountCurrency, !payment.amountCurrency);
             if (!payment.amountCurrency) {
               try {
                 await PaymentsApi.updatePayment(payment._id, {
@@ -675,7 +651,6 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     setPaymentDetailsOpen(true);
     setSettleAmount("");
     setSettleAmountDirty(false);
-    setOutstandingAmount(null);
     setPartyType("Customer");
   }, [isOpen]);
 
@@ -773,12 +748,12 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
 
   const balanceText = useMemo(() => {
     if (isPartyClosingLoading) return "Balance : …";
-    if (!partyClosing) return "Balance : ₹ --";
+    if (!partyClosing) return `Balance : ${getStoredCurrencySymbol()} --`;
     const amt = formatMoney(Math.max(0, partyClosing.amount));
     // show negative sign when balance type is credit
     return partyClosing.balanceType === "credit"
-      ? `Balance : ₹ -${amt}`
-      : `Balance : ₹ ${amt}`;
+      ? `Balance : ${getStoredCurrencySymbol()} -${amt}`
+      : `Balance : ${getStoredCurrencySymbol()} ${amt}`;
   }, [isPartyClosingLoading, partyClosing]);
 
   const handleSettleAmountChange = (paymentId: string, value: string) => {
@@ -840,6 +815,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
     unallocatedPaymentsKey,
     unallocatedPayments?.length,
     autoDistributeSettleAmounts,
+    unallocatedPayments
   ]);
 
   const settleTableData = useMemo(() => {
@@ -856,16 +832,16 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
         </td>,
         <td key={`a-${idx}`} className="px-4 py-3 text-center text-[13px]">
           <div className="text-gray-900 font-medium">
-            ₹ {formatMoney(unallocated)}
+            {getStoredCurrencySymbol()} {formatMoney(unallocated)}
           </div>
           <div className="mt-1 text-[12px] text-orange-500 font-medium">
-            Remaining : ₹ {formatMoney(remaining)}
+            Remaining : {getStoredCurrencySymbol()} {formatMoney(remaining)}
           </div>
         </td>,
         <td key={`s-${idx}`} className="px-4 py-3 text-center">
           <div className="inline-flex items-center border border-gray-200 rounded-md overflow-hidden bg-white">
             <span className="px-3 py-1.5 text-[13px] text-gray-500 bg-gray-50 border-r border-gray-200">
-              ₹
+              {getStoredCurrencySymbol()}
             </span>
             <input
               type="text"
@@ -1031,17 +1007,22 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
                     Amount Pending
                   </span>
                   <span className="text-[13px] font-semibold text-gray-900">
-                    ₹ {formatMoney(totalUnallocatedAmount)}
+                    {getStoredCurrencySymbol()} {formatMoney(totalUnallocatedAmount)}
                   </span>
                 </div>
 
                 <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-x-auto max-w-full">
                   <Table
-                    columns={["Payment", "Amount (₹)", "Settle Amount (₹)"]}
+                    columns={[
+                      "Payment",
+                      `Amount (${getStoredCurrencySymbol()})`,
+                      `Settle Amount (${getStoredCurrencySymbol()})`,
+                    ]}
                     headerAlign={{
                       Payment: "center",
-                      "Amount (₹)": "center",
-                      "Settle Amount (₹)": "center",
+                      [`Amount (${getStoredCurrencySymbol()})`]: "center",
+                      [`Settle Amount (${getStoredCurrencySymbol()})`]:
+                        "center",
                     }}
                     // show rows-per-page control and default to 2 rows
                     maxRowsPerPageOptions={[2, 5, 10, 25]}
@@ -1052,7 +1033,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
                 </div>
 
                 <div className="mt-2 text-right text-[12px] text-gray-500">
-                  Remaining after settle: ₹ {formatMoney(remainingAfterSettle)}
+                  Remaining after settle: {getStoredCurrencySymbol()} {formatMoney(remainingAfterSettle)}
                 </div>
               </div>
             </>

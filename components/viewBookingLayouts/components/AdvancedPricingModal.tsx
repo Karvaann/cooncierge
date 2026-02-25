@@ -7,6 +7,7 @@ import Modal from "@/components/Modal";
 import { useAuth } from "@/context/AuthContext";
 import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
 import type { AmountSectionValue } from "@/components/AmountSection";
+import { getStoredCurrencySymbol } from "@/utils/helper";
 
 type Props = {
   value: AmountSectionValue;
@@ -240,7 +241,9 @@ export default function AdvancedPricingModal({
             </div>
             <div className="p-4">
               <div className="w-fit rounded-md px-3 py-1 bg-[#EEF6FF] text-[0.9rem] font-semibold text-[#126ACB]">
-                {businessCurrency === "INR" ? "₹ " : ""}
+                {businessCurrency === "INR"
+                  ? `${getStoredCurrencySymbol()} `
+                  : ""}
                 {derivedCostPrice || "0.00"}
               </div>
             </div>

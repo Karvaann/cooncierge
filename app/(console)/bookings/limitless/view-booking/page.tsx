@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { TbClipboardText } from "react-icons/tb";
 import { HiOutlineDotsHorizontal } from "react-icons/hi";
 import LogsUI from "@/components/LogsUI";
@@ -15,6 +15,7 @@ import ViewBookingLayoutTabs from "@/components/viewBookingLayouts/ViewBookingLa
 import ModifySearchModal from "@/components/Modals/ModifySearchModal";
 import Button from "@/components/Button";
 import ErrorToast from "@/components/ErrorToast";
+import SlidingTabs from "@/components/organisms/navigation/SlidingTabs";
 import { useLimitlessDraft } from "@/context/LimitlessDraftContext";
 import LimitlessApi from "@/services/limitlessApi";
 import { useAuth } from "@/context/AuthContext";
@@ -170,10 +171,6 @@ const ViewBookingPage = () => {
   const tabOptions = useMemo(() => ["Booking Info", "Booking Log"], []);
   const [activeTab, setActiveTab] =
     useState<(typeof tabOptions)[number]>("Booking Info");
-
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const tabsContainerRef = useRef<HTMLDivElement | null>(null);
-  const [indicatorStyle, setIndicatorStyle] = useState({ width: 0, left: 0 });
 
   const router = useRouter();
 
@@ -503,26 +500,6 @@ const ViewBookingPage = () => {
     [],
   );
 
-  useEffect(() => {
-    const updateIndicator = () => {
-      const activeIndex = tabOptions.indexOf(activeTab);
-      const activeEl = tabRefs.current[activeIndex];
-      const container = tabsContainerRef.current;
-      if (!activeEl || !container) return;
-
-      const activeRect = activeEl.getBoundingClientRect();
-      const containerRect = container.getBoundingClientRect();
-      setIndicatorStyle({
-        width: activeRect.width,
-        left: activeRect.left - containerRect.left,
-      });
-    };
-
-    updateIndicator();
-    window.addEventListener("resize", updateIndicator);
-    return () => window.removeEventListener("resize", updateIndicator);
-  }, [activeTab, tabOptions]);
-
   return (
     <div className="w-full">
       <ErrorToast
@@ -565,41 +542,13 @@ const ViewBookingPage = () => {
         {/* TABS + ACTIONS ROW */}
         <div className="flex items-center justify-between gap-4">
           {/* Tabs */}
-          <div
-            className="flex items-center bg-[#F3F3F3] gap-[20px] rounded-[10px] relative p-1"
-            ref={tabsContainerRef}
-          >
-            <div
-              className="absolute h-[calc(100%-0.60rem)] bg-[#0D4B37] rounded-[8px]
-							 shadow-sm transition-all duration-300 ease-in-out
-							 top-1/2 -translate-y-1/2"
-              style={{
-                width:
-                  indicatorStyle.width > 0
-                    ? `${indicatorStyle.width}px`
-                    : `calc((100% - 1.25rem) / ${tabOptions.length})`,
-                left: `${indicatorStyle.left}px`,
-              }}
-            />
-
-            {tabOptions.map((tab, idx) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`relative z-10 px-[14px] py-[6px] rounded-[8px] text-[14px] font-medium transition-colors duration-300 flex-1 whitespace-nowrap ${
-                  activeTab === tab
-                    ? "text-white"
-                    : "text-[#818181] hover:text-gray-900"
-                }`}
-                ref={(el) => {
-                  tabRefs.current[idx] = el;
-                }}
-                type="button"
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
+          <SlidingTabs
+            tabs={tabOptions}
+            activeTab={activeTab}
+            onChange={setActiveTab}
+            containerClassName="gap-[20px]"
+            tabClassName="px-[14px] whitespace-nowrap"
+          />
 
           {/* Right actions */}
           <div className="flex items-center gap-3">

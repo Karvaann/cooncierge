@@ -10,6 +10,7 @@ import { allowOnlyNumbers } from "@/utils/inputValidators";
 import { useAuth } from "@/context/AuthContext";
 import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
 import MultiCurrencyInput from "../multiCurrencyUI";
+import { getStoredCurrencySymbol } from "@/utils/helper";
 
 type Currency = "USD" | "INR";
 
@@ -1478,7 +1479,7 @@ export default function CancellationModal({
               Old Cost Price
             </div>
             <div className="border border-gray-200 w-[116px] font-medium rounded-md px-3 py-2 text-[14px] text-[#818181] bg-[#F9F9F9]">
-              ₹ {formatCurrency(oldCostPrice)}
+              {getStoredCurrencySymbol()} {formatCurrency(oldCostPrice)}
             </div>
           </div>
 
@@ -1489,7 +1490,7 @@ export default function CancellationModal({
               Old Selling Price
             </div>
             <div className="border border-gray-200 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
-              ₹ {formatCurrency(oldSellingPrice)}
+              {getStoredCurrencySymbol()} {formatCurrency(oldSellingPrice)}
             </div>
           </div>
 
@@ -1500,7 +1501,7 @@ export default function CancellationModal({
               Net
             </div>
             <div className="border border-gray-200 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
-              ₹ {formatCurrency(oldNet)}
+              {getStoredCurrencySymbol()} {formatCurrency(oldNet)}
             </div>
           </div>
 
@@ -1522,7 +1523,7 @@ export default function CancellationModal({
               New Cost Price
             </div>
             <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
-              ₹ {formatCurrency(newCostPrice)}
+              {getStoredCurrencySymbol()} {formatCurrency(newCostPrice)}
             </div>
           </div>
 
@@ -1533,7 +1534,7 @@ export default function CancellationModal({
               New Selling Price
             </div>
             <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
-              ₹ {formatCurrency(newSellingPrice)}
+              {getStoredCurrencySymbol()} {formatCurrency(newSellingPrice)}
             </div>
           </div>
 
@@ -1544,7 +1545,7 @@ export default function CancellationModal({
               Net
             </div>
             <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
-              ₹ {formatCurrency(newNet)}
+              {getStoredCurrencySymbol()} {formatCurrency(newNet)}
             </div>
           </div>
 
