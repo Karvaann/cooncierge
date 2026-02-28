@@ -860,6 +860,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 placeholder="Booking Status"
                 value={formData.bookingstatus}
                 onChange={handleBookingStatusChange}
+
               />
             </div>
           </div>
@@ -907,7 +908,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
             {/* Check-in / Check-out Section */}
             <div className="flex items-end justify-between mb-3">
-              <div className="flex items-end gap-0">
+              <div className="flex items-end gap-1">
                 {/* Check-In Date */}
                 <SingleCalendar
                   label="Check-In Date"
@@ -929,7 +930,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 {/* Check-In Time */}
                 <div>
                   <label className="block text-[0.65rem] font-medium text-gray-700 mb-1">
-                    Check-In Time
+                    Time
                   </label>
                   <input
                     type="text"
@@ -998,13 +999,13 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     }}
                     placeholder="HH:MM"
                     maxLength={5}
-                    className="w-[60%] px-2 py-1.5 border border-gray-300 rounded-md text-[0.65rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                    className="w-[60%] px-2 py-1 border border-gray-300 rounded-md text-[13px] text-gray-700 hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                   />
                 </div>
               </div>
 
               {/* Right side: Check-Out Date and Time */}
-              <div className="flex items-end gap-0 ml-62">
+              <div className="flex items-end gap-1 ml-62">
                 {/* Check-Out Date */}
                 <SingleCalendar
                   label="Check-Out Date"
@@ -1026,7 +1027,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 {/* Check-Out Time */}
                 <div>
                   <label className="block text-[0.65rem] font-medium text-gray-700 mb-1">
-                    Check-Out Time
+                    Time
                   </label>
                   <input
                     type="text"
@@ -1095,7 +1096,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     }}
                     placeholder="HH:MM"
                     maxLength={5}
-                    className="w-[60%] px-2 py-1.5 border border-gray-300 rounded-md text-[0.65rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                    className="w-[60%] px-2 py-1 border border-gray-300 rounded-md text-[13px] text-gray-700 hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                   />
                 </div>
               </div>
@@ -1338,18 +1339,21 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 <HotelLayout
                   segments={formData.segments}
                   onSegmentsChange={handleSegmentsChange}
+                  isReadOnly={isReadOnly}
                 />
               )}
               {formData.accommodationType === "Resort" && (
                 <HotelLayout
                   segments={formData.segments}
                   onSegmentsChange={handleSegmentsChange}
+                  isReadOnly={isReadOnly}
                 />
               )}
               {formData.accommodationType === "Hostel" && (
                 <HotelLayout
                   segments={formData.segments}
                   onSegmentsChange={handleSegmentsChange}
+                  isReadOnly={isReadOnly}
                 />
               )}
               {formData.accommodationType === "Villa" &&
@@ -1358,6 +1362,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     segments={formData.segments}
                     onSegmentsChange={handleSegmentsChange}
                     villaType={villaType}
+                    isReadOnly={isReadOnly}
                   />
                 )}
               <div className="-mt-1 space-y-3">
@@ -1434,12 +1439,12 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
               existingDocuments.map((doc, i) => (
                 <div
                   key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
-                  className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
+                  onClick={() => doc.url && window.open(doc.url, "_blank")}
+                  className="flex items-center justify-between"
                 >
                   <button
                     type="button"
-                    onClick={() => doc.url && window.open(doc.url, "_blank")}
-                    className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+                    className="text-blue-700 cursor-pointer border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
                     title="Click to view document"
                   >
                     <FaRegFolder className="text-blue-500 w-3 h-3" />

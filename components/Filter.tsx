@@ -10,11 +10,11 @@ import React, {
 import { createPortal } from "react-dom";
 import { RiRefreshLine } from "react-icons/ri";
 import { IoClose } from "react-icons/io5";
-import DateRangeInput from "./DateRangeInput";
 import Button from "./Button";
 import { CiSearch } from "react-icons/ci";
 import FilterInputShell from "./FilterInputShell";
 import SelectBookingOwnerModal from "./Modals/SelectBookingOwnerModal";
+import DateRangeInputBeta from "./DateRangeInputBeta";
 
 export interface FilterOption {
   id?: string;
@@ -365,10 +365,10 @@ const Filter: React.FC<FilterProps> = ({
       <hr className="mb-2 mt-2 border-t-1 border-[#e4dfdb]" />
 
       <div className="flex justify-between items-end mt-4 w-full">
-        <div className="flex w-3/5 items-center gap-2">
+        <div className="grid grid-cols-3 w-3/6 items-center gap-2">
           {showBookingDateFilter && (
           <div className="w-full min-w-0">
-            <DateRangeInput
+            <DateRangeInputBeta
               label={bookingDateLabel}
               startDate={filters.bookingStartDate}
               endDate={filters.bookingEndDate}
@@ -382,7 +382,7 @@ const Filter: React.FC<FilterProps> = ({
 
         {showTravelDateFilter && (
           <div className="w-full min-w-0">
-            <DateRangeInput
+            <DateRangeInputBeta
               label={travelDateLabel}
               startDate={filters.tripStartDate}
               endDate={filters.tripEndDate}
@@ -414,7 +414,7 @@ const Filter: React.FC<FilterProps> = ({
 
         {showOwners && (
           <div className="w-full  min-w-0">
-            <label className="block text-[#414141] font-medium mb-1.5 text-[14px]">
+            <label className="block text-[#414141] font-medium mb-1 text-[14px]">
               Booking Owner
             </label>
 
@@ -469,7 +469,6 @@ const Filter: React.FC<FilterProps> = ({
               <SelectBookingOwnerModal
                 isOpen={ownerModalOpen}
                 onClose={() => setOwnerModalOpen(false)}
-                owners={owners}
                 initialSelectedOwners={selectedOwners}
                 initialPrimaryOwners={
                   Array.isArray(filters.primaryOwner)

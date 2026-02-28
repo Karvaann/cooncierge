@@ -14,6 +14,7 @@ import { RiRefreshLine } from "react-icons/ri";
 import Modal from "@/components/Modal";
 import Button from "@/components/Button";
 import FilterInputShell from "@/components/FilterInputShell";
+import { getUsers } from "@/services/userApi";
 
 export interface BookingOwnerOption {
   id?: string;
@@ -26,7 +27,6 @@ export interface BookingOwnerOption {
 interface SelectBookingOwnerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  owners: BookingOwnerOption[];
   initialSelectedOwners?: string[];
   onApply: (selectedOwners: string[]) => void;
   onApplyAdvanced?: (primary: string[], secondary: string[]) => void;
@@ -38,7 +38,6 @@ interface SelectBookingOwnerModalProps {
 const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
   isOpen,
   onClose,
-  owners,
   initialSelectedOwners = [],
   onApply,
   onApplyAdvanced,
@@ -91,14 +90,73 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
     width: number;
     height: number;
   } | null>(null);
+  const [ownersData, setOwnersData] = useState<BookingOwnerOption[]>([]);
+  const [isLoadingOwners, setIsLoadingOwners] = useState(false);
 
   const ownersList = useMemo(
     () =>
-      (owners || []).map(
+      (ownersData || []).map(
         (o: any) => o.label || o.name || o.value || String(o),
       ) as string[],
-    [owners],
+    [ownersData],
   );
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let isActive = true;
+
+    const loadUsers = async () => {
+      try {
+        setIsLoadingOwners(true);
+        const response = await getUsers();
+        const rawUsers = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.data)
+            ? response.data
+            : Array.isArray(response?.users)
+              ? response.users
+              : Array.isArray(response?.output)
+                ? response.output
+                : [];
+
+        const normalizedUsers = rawUsers
+          .map((user: any) => {
+            const name =
+              user?.label ||
+              user?.name ||
+              [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+              user?.value ||
+              "";
+
+            return {
+              _id: user?._id || user?.id,
+              label: String(name).trim(),
+            };
+          })
+          .filter((user: BookingOwnerOption) => user.label);
+
+        if (isActive) {
+          setOwnersData(normalizedUsers);
+        }
+      } catch (error) {
+        console.error("Failed to load booking owners:", error);
+        if (isActive) {
+          setOwnersData([]);
+        }
+      } finally {
+        if (isActive) {
+          setIsLoadingOwners(false);
+        }
+      }
+    };
+
+    loadUsers();
+
+    return () => {
+      isActive = false;
+    };
+  }, [isOpen]);
 
   const filteredOwnersList = useMemo(
     () =>
@@ -184,6 +242,21 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
     setSecondaryOwners((prev) =>
       prev.includes(name) ? prev.filter((p) => p !== name) : [...prev, name],
     );
+  }, []);
+
+  const selectSingleOwner = useCallback((name: string) => {
+    setSelectedOwners([name]);
+    setDropdownOpen(false);
+  }, []);
+
+  const selectSinglePrimaryOwner = useCallback((name: string) => {
+    setPrimaryOwners([name]);
+    setPrimaryDropdownOpen(false);
+  }, []);
+
+  const selectSingleSecondaryOwner = useCallback((name: string) => {
+    setSecondaryOwners([name]);
+    setSecondaryDropdownOpen(false);
   }, []);
 
   const handleReset = useCallback(() => {
@@ -412,33 +485,37 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
       <div className="w-full">
         {/* Advance Search Checkbox */}
         {showAdvanceSearch && (
-          <div className="mb-4 flex items-center justify-end">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <div
-                className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center cursor-pointer"
-                onClick={() => setIsAdvanceSearchEnabled((prev) => !prev)}
-              >
-                {isAdvanceSearchEnabled && (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="12"
-                    height="11"
-                    viewBox="0 0 12 11"
-                    fill="none"
-                  >
-                    <path
-                      d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                      stroke="#0D4B37"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                )}
+            <div className={`mb-4 flex w-full ${isAdvanceSearchEnabled ? "justify-end" : "justify-between"} items-center gap-2 cursor-pointer`}>
+             {!isAdvanceSearchEnabled && <div className="text-[14px] text-[#6B7280] font-medium">
+                {`(${selectedOwners.length}) Owner(s) Selected`}
+              </div>}
+              <div className="flex flex-row items-center gap-2">
+                <div
+                  className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center cursor-pointer"
+                  onClick={() => setIsAdvanceSearchEnabled((prev) => !prev)}
+                >
+                  {isAdvanceSearchEnabled && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="12"
+                      height="11"
+                      viewBox="0 0 12 11"
+                      fill="none"
+                    >
+                      <path
+                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                        stroke="#0D4B37"
+                        strokeWidth="1.5"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  )}
+                </div>
+                <span className="text-[14px] text-[#414141] font-medium">
+                  Advance Search
+                </span>
+
               </div>
-              <span className="text-[14px] text-[#414141] font-medium">
-                Advance Search
-              </span>
-            </label>
           </div>
         )}
 
@@ -485,7 +562,11 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                     }}
                     className="bg-white border border-gray-200 rounded-md shadow-xl max-h-60 overflow-y-auto"
                   >
-                    {filteredOwnersList.length === 0 ? (
+                    {isLoadingOwners ? (
+                      <div className="px-3 py-2 text-gray-500 text-[0.85rem]">
+                        Loading owners...
+                      </div>
+                    ) : filteredOwnersList.length === 0 ? (
                       <div className="px-3 py-2 text-gray-500 text-[0.85rem]">
                         No owners found
                       </div>
@@ -494,15 +575,21 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                         const checked = selectedOwners.includes(owner);
 
                         return (
-                          <label
+                          <div
                             key={owner}
                             className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
                             onClick={(e) => {
                               e.stopPropagation();
-                              toggleOwner(owner);
+                              selectSingleOwner(owner);
                             }}
                           >
-                            <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
+                            <div
+                              className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleOwner(owner);
+                              }}
+                            >
                               {checked && (
                                 <svg
                                   xmlns="http://www.w3.org/2000/svg"
@@ -523,7 +610,7 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                             <span className="text-black text-[14px]">
                               {owner}
                             </span>
-                          </label>
+                          </div>
                         );
                       })
                     )}
@@ -560,8 +647,11 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
             <div className="grid grid-cols-2 gap-6">
               {/* Primary Owner(s) */}
               <div>
-                <h3 className="text-[16px] font-medium text-[#1F2937] mb-3">
-                  Primary Owner(s)
+                <h3 className="text-[16px] flex flex-row justify-between items-center font-medium text-[#1F2937] mb-3">
+                  <div>Primary Owner(s)</div>
+                  <div className="text-[12px] text-[#6B7280]">
+                    ({primaryOwners.length}) Owner(s) Selected
+                  </div>
                 </h3>
                 <div className="relative" ref={primaryDropdownRef}>
                   <FilterInputShell
@@ -606,7 +696,11 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                         }}
                         className="bg-white border border-gray-200 rounded-md shadow-xl max-h-60 overflow-y-auto"
                       >
-                        {filteredPrimaryList.length === 0 ? (
+                        {isLoadingOwners ? (
+                          <div className="px-3 py-2 text-gray-500 text-[0.85rem]">
+                            Loading owners...
+                          </div>
+                        ) : filteredPrimaryList.length === 0 ? (
                           <div className="px-3 py-2 text-gray-500 text-[0.85rem]">
                             No owners found
                           </div>
@@ -615,15 +709,21 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                             const checked = primaryOwners.includes(owner);
 
                             return (
-                              <label
+                              <div
                                 key={owner}
                                 className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  togglePrimaryOwner(owner);
+                                  selectSinglePrimaryOwner(owner);
                                 }}
                               >
-                                <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
+                                <div
+                                  className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    togglePrimaryOwner(owner);
+                                  }}
+                                >
                                   {checked && (
                                     <svg
                                       xmlns="http://www.w3.org/2000/svg"
@@ -644,7 +744,7 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                                 <span className="text-black text-[14px]">
                                   {owner}
                                 </span>
-                              </label>
+                              </div>
                             );
                           })
                         )}
@@ -674,17 +774,16 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                     </span>
                   ))}
                 </div>
-
-                {/* Primary Count */}
-                <div className="mt-3 text-[14px] text-[#6B7280]">
-                  ({primaryOwners.length}) Owner Selected
-                </div>
+                
               </div>
 
               {/* Secondary Owner(s) */}
               <div>
-                <h3 className="text-[16px] font-medium text-[#1F2937] mb-3">
-                  Secondary Owner(s)
+                <h3 className="text-[16px] flex flex-row justify-between items-center font-medium text-[#1F2937] mb-3">
+                  <div>Secondary Owner(s)</div>
+                  <div className="text-[12px] text-[#6B7280]">
+                    ({secondaryOwners.length}) Owner(s) Selected
+                  </div>
                 </h3>
                 <div className="relative" ref={secondaryDropdownRef}>
                   <FilterInputShell
@@ -729,7 +828,11 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                         }}
                         className="bg-white border border-gray-200 rounded-md shadow-xl max-h-60 overflow-y-auto"
                       >
-                        {filteredSecondaryList.length === 0 ? (
+                        {isLoadingOwners ? (
+                          <div className="px-3 py-2 text-gray-500 text-[0.85rem]">
+                            Loading owners...
+                          </div>
+                        ) : filteredSecondaryList.length === 0 ? (
                           <div className="px-3 py-2 text-gray-500 text-[0.85rem]">
                             No owners found
                           </div>
@@ -738,15 +841,21 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                             const checked = secondaryOwners.includes(owner);
 
                             return (
-                              <label
+                              <div
                                 key={owner}
                                 className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  toggleSecondaryOwner(owner);
+                                  selectSingleSecondaryOwner(owner);
                                 }}
                               >
-                                <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
+                                <div
+                                  className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleSecondaryOwner(owner);
+                                  }}
+                                >
                                   {checked && (
                                     <svg
                                       xmlns="http://www.w3.org/2000/svg"
@@ -767,7 +876,7 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                                 <span className="text-black text-[14px]">
                                   {owner}
                                 </span>
-                              </label>
+                              </div>
                             );
                           })
                         )}
@@ -797,11 +906,7 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                     </span>
                   ))}
                 </div>
-
-                {/* Secondary Count */}
-                <div className="mt-3 text-[14px] text-[#6B7280]">
-                  ({secondaryOwners.length}) Owners Selected
-                </div>
+          
               </div>
             </div>
           </>
@@ -809,11 +914,6 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
 
         {/* Bottom bar */}
         <div className="mt-8 flex items-center justify-between">
-          <div className="text-[14px] text-[#6B7280] font-medium">
-            {!isAdvanceSearchEnabled
-              ? `(${selectedOwners.length}) Owners Selected`
-              : `(${primaryOwners.length + secondaryOwners.length}) Owners Selected`}
-          </div>
 
           <div className="flex items-center gap-3">
             <Button

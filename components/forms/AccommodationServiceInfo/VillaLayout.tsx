@@ -12,12 +12,14 @@ interface VillaLayoutProps {
   segments: RoomSegment[];
   onSegmentsChange: (segments: RoomSegment[]) => void;
   villaType?: "entire" | "shared";
+  isReadOnly?: boolean;
 }
 
 const VillaLayout: React.FC<VillaLayoutProps> = ({
   segments,
   onSegmentsChange,
   villaType,
+  isReadOnly = false,
 }) => {
   const [numRooms, setNumRooms] = useState(segments.length);
   const [roomcount, setRoomcount] = useState(0);
@@ -214,6 +216,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                           id={`villa-copy-checkbox`}
                           className="hidden peer"
                           checked={copyToOthers}
+                          disabled={isReadOnly}
                           onChange={(e) => {
                             const checked = e.target.checked;
                             setCopyToOthers(checked);
@@ -236,8 +239,10 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
 
                         <label
                           htmlFor={`villa-copy-checkbox`}
-                          className="w-3.5 h-3.5 border border-gray-400 rounded-[4px] 
-                 flex items-center justify-center cursor-pointer"
+                          className={`w-3.5 h-3.5 border border-gray-400 rounded-[4px] 
+                 flex items-center justify-center ${
+                   isReadOnly ? "cursor-not-allowed bg-gray-100" : "cursor-pointer"
+                 }`}
                         >
                           {copyToOthers && (
                             <svg

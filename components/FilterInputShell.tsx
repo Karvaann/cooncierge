@@ -27,8 +27,8 @@ const FilterInputShell: React.FC<FilterInputShellProps> = ({
     <div
       className={`w-full
                  border border-gray-300 hover:border-green-200
-                 rounded-sm px-[12px] py-[9px]
-                 flex items-center flex-wrap gap-1 cursor-pointer overflow-hidden ${className}`}
+                 rounded-sm px-[12px]  min-h-[40px]
+                 flex items-center flex-nowrap gap-1 cursor-pointer overflow-hidden ${className}`}
       onClick={onClick}
     >
       {children ? (

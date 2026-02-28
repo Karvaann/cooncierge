@@ -3,7 +3,6 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { FiSearch } from "react-icons/fi";
 import type { JSX } from "react";
-import DateRangeInput from "@/components/DateRangeInput";
 import dynamic from "next/dynamic";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
@@ -31,6 +30,7 @@ import {
 } from "@/utils/helper";
 import SlidingTabs from "@/components/organisms/navigation/SlidingTabs";
 import { MdOutlineRemoveRedEye } from "react-icons/md";
+import DateRangeInputBeta from "@/components/DateRangeInputBeta";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -762,7 +762,7 @@ const PaymentsPage = () => {
         {/* Date range + Search row */}
         <div className="flex items-center justify-between mb-4 px-2 gap-4">
           <div className="flex items-center gap-4">
-            <DateRangeInput
+            <DateRangeInputBeta
               startDate={startDate}
               endDate={endDate}
               onChange={(s, e) => {

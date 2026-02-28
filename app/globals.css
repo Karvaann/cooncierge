@@ -90,7 +90,7 @@ body {
 }
 
 .date-range-popover .rdrMonth {
-  flex: 1 1 0;
+  flex: 1 1;
   min-width: 0;
   box-sizing: border-box;
 }
@@ -98,7 +98,7 @@ body {
 
 .date-range-popover .rdrMonth {
   padding: 0 12px 12px;
-  margin-right: 12px;
+  margin-right: 0;
   height: auto;
 }
 
@@ -203,8 +203,6 @@ body {
 }
 
 .calendar-shared-header button {
-  width: 28px;
-  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -212,11 +210,6 @@ body {
   border: none;
   color: #6b7280;
   cursor: pointer;
-}
-
-.calendar-shared-header button:hover {
-  border-radius: 6px;
-  padding: 1px;
 }
 
 

@@ -14,11 +14,13 @@ interface RoomSegment {
 interface HotelLayoutProps {
   segments: RoomSegment[];
   onSegmentsChange: (segments: RoomSegment[]) => void;
+  isReadOnly?: boolean;
 }
 
 const HotelLayout: React.FC<HotelLayoutProps> = ({
   segments,
   onSegmentsChange,
+  isReadOnly = false,
 }) => {
   const [numRooms, setNumRooms] = useState(segments.length);
   const [copyToOthers, setCopyToOthers] = useState(false);
@@ -208,6 +210,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                       id={`copy-rooms-checkbox`}
                       className="hidden peer"
                       checked={copyToOthers}
+                      disabled={isReadOnly}
                       onChange={(e) => {
                         const checked = e.target.checked;
                         setCopyToOthers(checked);
@@ -232,7 +235,9 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                     <label
                       htmlFor={`copy-rooms-checkbox`}
                       className={`w-3.5 h-3.5 border border-gray-400 rounded-[4px] 
-        flex items-center justify-center cursor-pointer transition`}
+        flex items-center justify-center transition ${
+          isReadOnly ? "cursor-not-allowed bg-gray-100" : "cursor-pointer"
+        }`}
                     >
                       {copyToOthers && (
                         <svg

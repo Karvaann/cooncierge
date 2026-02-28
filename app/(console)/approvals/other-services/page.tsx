@@ -983,7 +983,6 @@ const OSBookingsPage = () => {
             createOpen={isCreateOpen}
             setCreateOpen={setIsCreateOpen}
             onCreateClick={handleCreateRequested}
-            showBookingType={true}
           />
 
           <div className="bg-white rounded-2xl shadow mt-4 pt-5 pb-3 px-3 relative">

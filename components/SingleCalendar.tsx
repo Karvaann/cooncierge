@@ -501,14 +501,7 @@ export default function SingleCalendar({
       )}
 
       <div
-        className={`relative ${
-          customWidth || "w-[12rem]"
-        } border border-gray-300 rounded-md px-2 py-1 ${
-          readOnly
-            ? "bg-gray-100 cursor-default border-gray-200"
-            : "bg-white hover:border-green-400"
-        } transition-colors`}
-        onClick={(e) => e.stopPropagation()}
+        className="relative"
       >
         <input
           type="text"
@@ -532,12 +525,14 @@ export default function SingleCalendar({
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          className={
-            inputClassName ||
-            (readOnly
-              ? "w-full pr-7 text-[13px] text-gray-700 bg-gray-100 cursor-default"
-              : "w-full pr-7 text-[13px] text-gray-700 outline-none bg-transparent")
-          }
+          className={`relative ${
+              customWidth || "w-[12rem]" || inputClassName
+            } border border-gray-300 rounded-md ${
+              (readOnly
+              ? "bg-gray-100 cursor-default border-gray-200 w-full px-2 py-1 pr-7 text-[13px] text-gray-700 bg-gray-100 cursor-default"
+              : "bg-white hover:border-green-400 w-full pr-7 px-2 py-1 text-[13px] text-gray-700 outline-none bg-transparent")
+            } transition-colors`}
+        onClick={(e) => e.stopPropagation()}
         />
 
         {!readOnly && showCalendarIcon && (

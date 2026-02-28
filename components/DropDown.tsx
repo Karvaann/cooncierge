@@ -33,6 +33,7 @@ interface DropdownProps {
   noButtonRadius?: boolean;
   iconOnly?: boolean;
   disabled?: boolean;
+  readOnly?: boolean;
   menuCentered?: boolean;
   searchable?: boolean;
   searchPlaceholder?: string;
@@ -56,6 +57,7 @@ const DropDown: React.FC<DropdownProps> = ({
   noButtonRadius = false,
   iconOnly = false,
   disabled = false,
+  readOnly = false,
   menuCentered = false,
   searchable = false,
   searchPlaceholder = "Type to filter...",
@@ -189,7 +191,7 @@ const DropDown: React.FC<DropdownProps> = ({
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (disabled) return;
+    if (disabled || readOnly) return;
     setIsOpen(!isOpen);
   };
 
@@ -210,6 +212,12 @@ const DropDown: React.FC<DropdownProps> = ({
     if (!isOpen) setSearchQuery("");
   }, [isOpen]);
 
+  useEffect(() => {
+    if (readOnly && isOpen) {
+      setIsOpen(false);
+    }
+  }, [isOpen, readOnly]);
+
   const inputWidthClass = customWidth ? customWidth : "w-[12rem]";
   const menuWidthClass = menuWidth ? menuWidth : inputWidthClass;
   return (
@@ -218,13 +226,15 @@ const DropDown: React.FC<DropdownProps> = ({
       <button
         type="button"
         onClick={handleToggle}
-        disabled={disabled}
-        aria-disabled={disabled}
+        disabled={disabled || readOnly}
+        aria-disabled={disabled || readOnly}
         aria-label={iconOnly ? placeholder : undefined}
         className={`${inputWidthClass} ${
           customHeight ? customHeight : "py-1.5"
         } flex items-center justify-between px-2 ${
-          disabled ? "bg-gray-100 cursor-not-allowed text-gray-600" : "bg-white"
+          readOnly
+            ? "bg-gray-100 cursor-not-allowed text-gray-600"
+            : "bg-white"
         } ${noButtonRadius ? "" : "rounded-md"} ${
           noBorder ? "" : "border border-gray-300"
         } hover:border-green-300 transition-colors text-left text-[13px] focus:outline-none ${focusRingClass} ${buttonClassName}`}
@@ -255,6 +265,7 @@ const DropDown: React.FC<DropdownProps> = ({
       {/* Dropdown Menu */}
       {isOpen &&
         !disabled &&
+        !readOnly &&
         menuPos &&
         (typeof document !== "undefined" && document.body
           ? createPortal(

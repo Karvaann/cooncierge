@@ -9,13 +9,10 @@ import {
   useRef,
   useLayoutEffect,
 } from "react";
-import { BookingApiService, DraftManager } from "@/services/bookingApi";
+import { BookingApiService } from "@/services/bookingApi";
 import { CustomIdApi } from "@/services/customIdApi";
-import type { DraftBooking } from "@/services/bookingApi";
-import apiClient from "@/services/apiClient";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
-// import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ModalSkeleton from "@/components/skeletons/ModalSkeleton";
 import SidesheetSkeleton from "@/components/skeletons/SidesheetSkeleton";
@@ -48,11 +45,6 @@ const Filter = dynamic(() => import("@/components/Filter"), {
   ssr: false,
 });
 
-// const SummaryCards = dynamic(() => import("@/components/SummaryCards"), {
-//   loading: () => <SummaryCardsSkeleton />,
-//   ssr: false,
-// });
-
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
   ssr: false,
@@ -73,8 +65,6 @@ const BookingFormSidesheet = dynamic(
     ssr: false,
   },
 );
-
-type BookingStatus = "Confirmed" | "draft" | "Cancelled";
 
 type BookingService = {
   id: string;
@@ -177,11 +167,11 @@ interface Owner {
 
 const columnIconMap: Record<string, JSX.Element> = {
   "Travel Date": (
-    <TbArrowsUpDown className="inline w-3 h-3 text-[#818181] stroke-[2]" />
+    <TbArrowsUpDown className="inline w-3 h-3 text-[#818181] hover:text-green-600 stroke-[2]" />
   ),
-  Service: <CiFilter className="inline w-3 h-3 text-[#818181] stroke-[2]" />,
+  Service: <CiFilter className="inline w-3 h-3 text-[#818181] hover:text-green-600  stroke-[2]" />,
   "Booking Status": (
-    <CiFilter className="inline w-3 h-3 text-[#818181] stroke-[2]" />
+    <CiFilter className="inline w-3 h-3 text-[#818181] hover:text-green-600  stroke-[2]" />
   ),
 };
 
@@ -221,13 +211,13 @@ const OSBookingsPage = () => {
 
   const isBookingMaker = Boolean(user?.isBookingMaker);
 
-  let tabOptions;
-
-  if (isBookingMaker) {
-    tabOptions = ["Approved", "Pending", "Drafts", "Denied", "Deleted"];
-  } else {
-    tabOptions = ["Bookings", "Drafts", "Deleted"];
-  }
+  const tabOptions = useMemo(
+    () =>
+      isBookingMaker
+        ? ["Approved", "Pending", "Drafts", "Denied", "Deleted"]
+        : ["Bookings", "Drafts", "Deleted"],
+    [isBookingMaker],
+  );
 
   const [activeTab, setActiveTab] = useState("Bookings");
 
@@ -240,17 +230,65 @@ const OSBookingsPage = () => {
 
   const tabContainerRef = useRef<HTMLDivElement | null>(null);
   const [indicator, setIndicator] = useState({ left: 0, width: 0 });
+  const [tabMetrics, setTabMetrics] = useState<
+    Array<{ tab: string; left: number; width: number; center: number }>
+  >([]);
+  const [dragIndicator, setDragIndicator] = useState<{
+    left: number;
+    width: number;
+  } | null>(null);
+  const dragOffsetRef = useRef(0);
+  const [isDraggingIndicator, setIsDraggingIndicator] = useState(false);
 
   useLayoutEffect(() => {
     const update = () => {
       const container = tabContainerRef.current;
       if (!container) return;
+      const shrinkPx = 5;
+      const nextMetrics = tabOptions
+        .map((tab) => {
+          const btn = container.querySelector(
+            `[data-tab="${tab}"]`,
+          ) as HTMLElement | null;
+          if (!btn) return null;
+
+          const left = btn.offsetLeft + Math.round(shrinkPx / 2);
+          const width = Math.max(0, btn.offsetWidth - shrinkPx);
+
+          return {
+            tab,
+            left,
+            width,
+            center: left + width / 2,
+          };
+        })
+        .filter(Boolean) as Array<{
+        tab: string;
+        left: number;
+        width: number;
+        center: number;
+      }>;
+
+      setTabMetrics((prev) => {
+        if (
+          prev.length === nextMetrics.length &&
+          prev.every(
+            (item, index) =>
+              item.tab === nextMetrics[index]?.tab &&
+              item.left === nextMetrics[index]?.left &&
+              item.width === nextMetrics[index]?.width &&
+              item.center === nextMetrics[index]?.center,
+          )
+        ) {
+          return prev;
+        }
+
+        return nextMetrics;
+      });
       const activeBtn = container.querySelector(
         `[data-tab="${activeTab}"]`,
       ) as HTMLElement | null;
       if (!activeBtn) return;
-      // Use offsetLeft/offsetWidth so measurement is relative to container and ignores container padding
-      const shrinkPx = 5;
       const left = activeBtn.offsetLeft + Math.round(shrinkPx / 2);
       const width = Math.max(0, activeBtn.offsetWidth - shrinkPx);
       setIndicator({ left, width });
@@ -259,7 +297,55 @@ const OSBookingsPage = () => {
     update();
     window.addEventListener("resize", update);
     return () => window.removeEventListener("resize", update);
-  }, [activeTab]);
+  }, [activeTab, tabOptions]);
+
+  useEffect(() => {
+    if (!isDraggingIndicator) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const container = tabContainerRef.current;
+      if (!container) return;
+
+      const rect = container.getBoundingClientRect();
+      const width = dragIndicator?.width ?? indicator.width;
+      const minLeft = 0;
+      const maxLeft = Math.max(0, rect.width - width);
+      const nextLeft = Math.min(
+        maxLeft,
+        Math.max(minLeft, event.clientX - rect.left - dragOffsetRef.current),
+      );
+
+      setDragIndicator({ left: nextLeft, width });
+    };
+
+    const handlePointerUp = () => {
+      setIsDraggingIndicator(false);
+
+      if (!dragIndicator || tabMetrics.length === 0) {
+        setDragIndicator(null);
+        return;
+      }
+
+      const dragCenter = dragIndicator.left + dragIndicator.width / 2;
+      const closestTab = tabMetrics.reduce((closest, metric) => {
+        return Math.abs(metric.center - dragCenter) <
+          Math.abs(closest.center - dragCenter)
+          ? metric
+          : closest;
+      }, tabMetrics[0]!);
+
+      setActiveTab(closestTab.tab);
+      setDragIndicator(null);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [dragIndicator, indicator.width, isDraggingIndicator, tabMetrics]);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
@@ -1213,6 +1299,7 @@ const OSBookingsPage = () => {
             createOpen={isCreateOpen}
             setCreateOpen={setIsCreateOpen}
             onCreateClick={handleCreateRequested}
+            allowAdvanceOwnerSearch={true}
           />
 
           <div className="bg-white rounded-2xl shadow mt-4 pt-5 pb-3 px-3 relative">
@@ -1225,10 +1312,24 @@ const OSBookingsPage = () => {
               >
                 {/* Sliding background indicator sized to active button */}
                 <div
-                  className="absolute h-[calc(100%-0.5rem)] bg-[#0D4B37] rounded-xl shadow-sm transition-all duration-300 ease-in-out top-1"
+                  className={`absolute h-[calc(100%-0.5rem)] bg-[#0D4B37] rounded-xl shadow-sm top-1 cursor-grab ${
+                    isDraggingIndicator
+                      ? "transition-none cursor-grabbing"
+                      : "transition-all duration-300 ease-in-out"
+                  }`}
                   style={{
-                    left: `${indicator.left}px`,
-                    width: `${indicator.width}px`,
+                    left: `${(dragIndicator ?? indicator).left}px`,
+                    width: `${(dragIndicator ?? indicator).width}px`,
+                  }}
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    const currentIndicator = dragIndicator ?? indicator;
+                    dragOffsetRef.current =
+                      event.clientX -
+                      (tabContainerRef.current?.getBoundingClientRect().left ?? 0) -
+                      currentIndicator.left;
+                    setDragIndicator(currentIndicator);
+                    setIsDraggingIndicator(true);
                   }}
                 />
 
@@ -1265,6 +1366,10 @@ const OSBookingsPage = () => {
                   data={tableData}
                   columns={columns}
                   columnIconMap={columnIconMap}
+                  columnWidthClassMap={{
+                    Tasks: "w-[6.5rem]",
+                    Actions: "w-[5.5rem]",
+                  }}
                   onSort={handleSort}
                   categoryName="Bookings"
                   headerAlign={{ "Booking ID": "center" }}

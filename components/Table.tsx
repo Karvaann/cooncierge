@@ -10,6 +10,7 @@ interface TableProps {
   initialRowsPerPage?: number;
   maxRowsPerPageOptions?: number[];
   columnIconMap?: Record<string, React.ReactNode>;
+  columnWidthClassMap?: Record<string, string>;
   headerAlign?: Record<string, "left" | "center" | "right">;
   onSort?: (column: string) => void;
   hideRowsPerPage?: boolean;
@@ -36,6 +37,7 @@ const Table: React.FC<TableProps> = ({
   initialRowsPerPage = 10,
   maxRowsPerPageOptions = [2, 5, 10, 25, 50],
   columnIconMap,
+  columnWidthClassMap = {},
   onSort,
   hideRowsPerPage,
   showCheckboxColumn = false,
@@ -146,12 +148,12 @@ const Table: React.FC<TableProps> = ({
     <>
       <div className="overflow-visible rounded-xl border border-gray-100">
         <table
-          style={{ tableLayout: "auto" }}
+          style={{ tableLayout: "fixed" }}
           className="w-full text-sm rounded-xl overflow-hidden"
         >
           <thead>
             <tr
-              className={`rounded-t-xl text-[14px] ${headerRowTextClassName} ${
+              className={`rounded-t-xl text-[14px] select-none ${headerRowTextClassName} ${
                 headerClassName || "bg-[#F3F3F3]"
               }`}
             >
@@ -174,7 +176,10 @@ const Table: React.FC<TableProps> = ({
                       onSort(col);
                     }
                   }}
-                  className={`px-[18px] py-[12px] ${headerCellTextClassName} font-[600] leading-4 tracking-[0.6px] text-[13px]
+                  className={`px-[18px] py-[12px] ${headerCellTextClassName} font-[600] leading-4 tracking-[0.6px] text-[13px] ${
+                    columnWidthClassMap[col] || ""
+                  }
+          select-none
           ${
             col === "Rating" ||
             col === "Date Modified" ||
@@ -195,7 +200,7 @@ const Table: React.FC<TableProps> = ({
                         : headerAlign?.[col] === "right"
                           ? "justify-end"
                           : "justify-center"
-                    }`}
+                    } select-none`}
                   >
                     <span
                       className={`truncate ${

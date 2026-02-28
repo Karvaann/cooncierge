@@ -7,7 +7,6 @@ import { HiArrowsUpDown } from "react-icons/hi2";
 import { IoChevronDownOutline } from "react-icons/io5";
 import { LuRefreshCcw } from "react-icons/lu";
 import Modal from "../../Modal";
-import DateRangeInput from "../../DateRangeInput";
 import Table from "../../Table";
 import FilterTrigger from "../../FilterTrigger";
 import type { FilterCardOption } from "../../FilterCard";
@@ -32,6 +31,7 @@ import {
   usePaymentCustomId,
 } from "./components/LedgerModalApiHooks";
 import LedgerRow from "./components/LedgerRow";
+import DateRangeInputBeta from "@/components/DateRangeInputBeta";
 
 const AddPaymentSidesheet = dynamic(
   () => import("../../Sidesheets/AddPaymentSidesheet"),
@@ -1110,7 +1110,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
 
             {/* Filters row */}
             <div className="mt-4 flex items-center justify-between gap-4 flex-wrap">
-              <DateRangeInput
+              <DateRangeInputBeta
                 startDate={startDate}
                 endDate={endDate}
                 onChange={(s, e) => {

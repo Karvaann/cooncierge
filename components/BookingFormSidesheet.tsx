@@ -1091,7 +1091,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                 style={{ display: activeTab === "general" ? "block" : "none" }}
                 className={isReadOnly ? "opacity-90" : ""}
               >
-                <GeneralInfoForm
+                {isOpen && <GeneralInfoForm
                   key={`general-${quotationId || "new"}-${formInstanceId}`}
                   initialFormData={initialData || {}}
                   onFormDataUpdate={handleFormDataUpdate}
@@ -1099,7 +1099,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   isReadOnly={isReadOnly}
                   formRef={generalFormRef as React.RefObject<HTMLFormElement>}
                   hideVendor={hideVendor}
-                />
+                />}
               </div>
 
               {/* Always mount Service Info */}

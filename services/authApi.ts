@@ -5,7 +5,6 @@ import {
   setAuthToken,
   setAuthUser,
 } from "@/services/storage/authStorage";
-import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { SetStateAction } from "react";
 
 export interface LoginRequest {
@@ -106,7 +105,6 @@ export const AuthApi = {
 
   async verifyTwoFa(
     payload: VerifyTwoFaRequest,
-    router: AppRouterInstance,
     setMode?: React.Dispatch<SetStateAction<LoginMode>>
   ): Promise<VerifyTwoFaResponse> {
     const { data } = await apiClient.post<VerifyTwoFaResponse>(
@@ -122,8 +120,6 @@ export const AuthApi = {
         if (data.user) {
           setAuthUser(data.user);
         }
-        window.location.reload();
-        router.push("/bookings/other-services")
       }
     }
 

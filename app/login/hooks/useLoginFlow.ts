@@ -153,7 +153,15 @@ export function useLoginFlow() {
     setIsOtpSubmitting(true);
 
     try {
-      await AuthApi.verifyTwoFa({ email, twoFACode: otp }, router, setMode);
+      const response = await AuthApi.verifyTwoFa(
+        { email, twoFACode: otp },
+        setMode,
+      );
+
+      if (response.token && !response.user?.resetPasswordRequired) {
+        await refreshUser();
+        router.replace("/bookings/other-services");
+      }
     } catch (error: unknown) {
       const err = error as AxiosError<{ message?: string }>;
       setOtpMessage({
