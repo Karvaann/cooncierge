@@ -11,8 +11,6 @@ import {
 } from "react";
 import { BookingApiService, DraftManager } from "@/services/bookingApi";
 import { CustomIdApi } from "@/services/customIdApi";
-import type { DraftBooking } from "@/services/bookingApi";
-import apiClient from "@/services/apiClient";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
 // import SummaryCardsSkeleton from "@/components/skeletons/SummaryCardsSkeleton";
