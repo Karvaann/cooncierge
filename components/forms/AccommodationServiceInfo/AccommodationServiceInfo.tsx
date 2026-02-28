@@ -354,7 +354,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
   const [isCancellationModalOpen, setIsCancellationModalOpen] =
     useState<boolean>(false);
-  const [pendingPrevBookingStatus, setPendingPrevBookingStatus] =
+  const [, setPendingPrevBookingStatus] =
     useState<string>("");
 
   // Handle selecting multiple files

@@ -28,6 +28,11 @@ import AddBankSidesheet, {
 import PaymentsApi from "@/services/paymentsApi";
 import { FiPlusCircle } from "react-icons/fi";
 import DeletePaymentModal from "@/components/Modals/DeletePaymentModal";
+import {
+  formatNumberByCurrency,
+  formatNumberByStoredCurrency,
+  getStoredCurrencySymbol,
+} from "@/utils/helper";
 
 type PendingDocRow = {
   bookingId: string;
@@ -258,7 +263,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
     if (!isFinite(a) || !isFinite(r) || a === 0 || r === 0) return "";
     const product = a * r;
     const hasFraction = Math.abs(product - Math.round(product)) > 1e-9;
-    return product.toLocaleString("en-US", {
+    return formatNumberByCurrency(product, "INR", {
       minimumFractionDigits: hasFraction ? 2 : 0,
       maximumFractionDigits: 2,
     });
@@ -852,7 +857,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
 
   const formatMoney = (value: number) => {
     try {
-      return value.toLocaleString(undefined, {
+      return formatNumberByStoredCurrency(value, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       });
@@ -1420,7 +1425,8 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                         : "text-red-500"
                     }`}
                   >
-                    ₹ {balanceAmount.toLocaleString()}
+                    {getStoredCurrencySymbol()}{" "}
+                    {formatNumberByStoredCurrency(balanceAmount)}
                   </span>
                 </div>
               )}
@@ -1506,7 +1512,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                               Settlement Amount
                             </span>
                             <span className="text-[13px] font-semibold text-green-600">
-                              ₹ {formatMoney(settlementAmount)}
+                              {getStoredCurrencySymbol()} {formatMoney(settlementAmount)}
                             </span>
                           </div>
 
@@ -1515,7 +1521,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                               Remaining Amount
                             </span>
                             <span className="text-[13px] font-semibold text-red-600">
-                              ₹ {formatMoney(remainingAmount)}
+                              {getStoredCurrencySymbol()} {formatMoney(remainingAmount)}
                             </span>
                           </div>
                         </div>
@@ -1527,14 +1533,15 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                               "Booking Date",
                               "Total Amount (Paid)",
                               "Pending Amount",
-                              "Amount Paying (₹)",
+                              `Amount Paying (${getStoredCurrencySymbol()})`,
                             ]}
                             headerAlign={{
                               "Booking ID": "center",
                               "Booking Date": "center",
                               "Total Amount (Paid)": "center",
                               "Pending Amount": "center",
-                              "Amount Paying (₹)": "center",
+                              [`Amount Paying (${getStoredCurrencySymbol()})`]:
+                                "center",
                             }}
                             hideRowsPerPage
                             hideEntriesText
@@ -1563,17 +1570,25 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                                   className="px-4 py-3 text-center text-[13px]"
                                 >
                                   <span className="text-gray-900">
-                                    ₹ {row.totalAmount.toLocaleString()}
+                                    {getStoredCurrencySymbol()}{" "}
+                                    {formatNumberByStoredCurrency(
+                                      row.totalAmount,
+                                    )}
                                   </span>{" "}
                                   <span className="text-green-600">
-                                    (₹ {row.paidAmount.toLocaleString()})
+                                    ({getStoredCurrencySymbol()}{" "}
+                                    {formatNumberByStoredCurrency(row.paidAmount)}
+                                    )
                                   </span>
                                 </td>,
                                 <td
                                   key={`pending-${idx}`}
                                   className="px-4 py-3 text-center text-[13px]"
                                 >
-                                  ₹ {row.pendingAmount.toLocaleString()}
+                                  {getStoredCurrencySymbol()}{" "}
+                                  {formatNumberByStoredCurrency(
+                                    row.pendingAmount,
+                                  )}
                                 </td>,
                                 <td
                                   key={`paying-${idx}`}
@@ -1581,7 +1596,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                                 >
                                   <div className="w-32 mx-auto px-2 py-1 text-[13px] text-center border border-gray-300 rounded bg-gray-50 text-gray-700">
                                     {payingAmount > 0
-                                      ? `₹ ${payingAmount.toLocaleString()}`
+                                      ? `${getStoredCurrencySymbol()} ${formatNumberByStoredCurrency(payingAmount)}`
                                       : "-"}
                                   </div>
                                 </td>,
@@ -1609,7 +1624,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                               "Booking Date",
                               "Total Amount (Paid)",
                               "Pending Amount",
-                              "Amount Paying (₹)",
+                              `Amount Paying (${getStoredCurrencySymbol()})`,
                             ]}
                             headerAlign={{
                               Select: "center",
@@ -1617,7 +1632,8 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                               "Booking Date": "center",
                               "Total Amount (Paid)": "center",
                               "Pending Amount": "center",
-                              "Amount Paying (₹)": "center",
+                              [`Amount Paying (${getStoredCurrencySymbol()})`]:
+                                "center",
                             }}
                             hideRowsPerPage
                             hideEntriesText
@@ -1659,17 +1675,25 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                                   className="px-4 py-3 text-center text-[13px]"
                                 >
                                   <span className="text-gray-900">
-                                    ₹ {row.totalAmount.toLocaleString()}
+                                    {getStoredCurrencySymbol()}{" "}
+                                    {formatNumberByStoredCurrency(
+                                      row.totalAmount,
+                                    )}
                                   </span>{" "}
                                   <span className="text-green-600">
-                                    (₹ {row.paidAmount.toLocaleString()})
+                                    ({getStoredCurrencySymbol()}{" "}
+                                    {formatNumberByStoredCurrency(row.paidAmount)}
+                                    )
                                   </span>
                                 </td>,
                                 <td
                                   key={`pending-${idx}`}
                                   className="px-4 py-3 text-center text-[13px]"
                                 >
-                                  ₹ {row.pendingAmount.toLocaleString()}
+                                  {getStoredCurrencySymbol()}{" "}
+                                  {formatNumberByStoredCurrency(
+                                    row.pendingAmount,
+                                  )}
                                 </td>,
                                 <td
                                   key={`paying-${idx}`}

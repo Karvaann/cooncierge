@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import ConsoleShell from "@/components/ConsoleShell";
 import RoutePrefetcher from "@/components/RoutePrefetcher";
 import Header from "@/components/Header";
+import ConsoleMainSurface from "@/components/templates/ConsoleMainSurface";
 import { useAuth } from "@/context/AuthContext";
 
 interface ConsoleLayoutProps {
@@ -26,19 +27,17 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
   }, [isAuthenticated, isLoading, router]);
 
   if (isLoading || !isAuthenticated) {
-    return <div className="min-h-screen w-full bg-slate-100" />;
+    return <div className="min-h-screen w-full bg-slate-100" aria-busy="true" />;
   }
 
   if (hideShell) {
     return (
-      <div className="min-h-screen w-full bg-slate-100">
+      <div className="min-h-screen w-full bg-slate-100 text-slate-900">
         <RoutePrefetcher />
         <Header isOpen={false} />
-
-        {/* 🔥 FULL WIDTH WRAPPER */}
-        <main className="w-full min-h-[calc(100vh-64px)] bg-slate-100">
+        <ConsoleMainSurface>
           {children}
-        </main>
+        </ConsoleMainSurface>
       </div>
     );
   }

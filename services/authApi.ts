@@ -1,9 +1,12 @@
+import { LoginMode } from "@/app/login/types";
 import apiClient from "@/services/apiClient";
 import {
   clearAuthStorage,
   setAuthToken,
   setAuthUser,
 } from "@/services/storage/authStorage";
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { SetStateAction } from "react";
 
 export interface LoginRequest {
   email: string;
@@ -103,7 +106,8 @@ export const AuthApi = {
 
   async verifyTwoFa(
     payload: VerifyTwoFaRequest,
-    setMode?: React.Dispatch<React.SetStateAction<string>>
+    router: AppRouterInstance,
+    setMode?: React.Dispatch<SetStateAction<LoginMode>>
   ): Promise<VerifyTwoFaResponse> {
     const { data } = await apiClient.post<VerifyTwoFaResponse>(
       AUTH_ROUTES.verifyTwoFa,
@@ -118,6 +122,8 @@ export const AuthApi = {
         if (data.user) {
           setAuthUser(data.user);
         }
+        window.location.reload();
+        router.push("/bookings/other-services")
       }
     }
 
@@ -142,14 +148,7 @@ export const AuthApi = {
   },
 
   async resetPassword(payload: { email: string; newPassword: string }): Promise<void> {
-    await apiClient.post(AUTH_ROUTES.resetPassword, payload)
-      .then(() => {
-        console.log("Password reset successful");
-        window.location.reload();
-      })
-      .catch((error) => {
-        console.error("Password reset failed:", error);
-      });
+    await apiClient.post(AUTH_ROUTES.resetPassword, payload);
   },
 
   async getBusinessRoles(): Promise<{ success?: boolean; output?: any[] }>

@@ -8,7 +8,6 @@ import React, {
   useRef,
 } from "react";
 import { GoSignOut } from "react-icons/go";
-import { IoMdArrowDropdown } from "react-icons/io";
 import { IoHomeOutline, IoPersonOutline } from "react-icons/io5";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
@@ -116,7 +115,7 @@ const HEADER_MAP: Record<HeaderMapKey, string> = {
   "/bookings/limitless/view-booking": "Bookings - Limitless",
 } as const;
 
-const Header: React.FC<HeaderProps> = ({ isOpen }) => {
+const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen }) => {
   const [isDropDownOpen, setIsDropDownOpen] = useState<boolean>(false);
   const [isRaiseRequestModalOpen, setIsRaiseRequestModalOpen] =
     useState<boolean>(false);
@@ -205,16 +204,6 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
     return HEADER_MAP[pathname as HeaderMapKey] || "Dashboard";
   }, [pathname]);
 
-  // Memoized inline styles for performance
-  const headerStyle = useMemo(
-    () => ({
-      transition: "margin-left 0.5s ease-in-out",
-      zIndex: 30,
-      // height: "fit-content",
-    }),
-    [isOpen],
-  );
-
   const dropdownClasses = useMemo(
     () =>
       `absolute right-0 top-full mt-4 -mr-3 w-70 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden transition-all duration-300 ease-in-out ${
@@ -230,12 +219,12 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
 
   return (
     <>
-      <div style={headerStyle}>
+      <header className="sticky top-0 z-30">
         {/* Header Main Row */}
-        <div className="flex justify-between items-center px-5 py-1 border-b border-gray-200 bg-white">
+        <div className="flex items-center justify-between border-b border-gray-200 bg-white px-5 py-1">
           {/* Left: Page Title */}
           <div>
-            <h1 className="font-[Poppins] font-semibold text-[17px] leading-[1.75rem] tracking-normal align-middle">
+            <h1 className="text-[17px] font-semibold leading-[1.75rem] tracking-normal">
               {headerTitle}
             </h1>
           </div>
@@ -245,6 +234,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
             {/* Notification Bell with red dot */}
             <div className="relative">
               <button
+                type="button"
                 className="text-gray-500 hover:text-[#114958] transition-colors mt-1"
                 aria-label="Notifications"
               >
@@ -274,6 +264,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
               ref={menuRef}
             >
               <button
+                type="button"
                 onClick={toggleDropdown}
                 className="flex items-center gap-1 text-gray-700 font-medium text-[0.75rem] hover:text-[#114958] transition-colors"
                 aria-expanded={isDropDownOpen}
@@ -353,7 +344,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen }) => {
           isOpen={isRaiseRequestModalOpen}
           onClose={closeRaiseRequestModal}
         />
-      </div>
+      </header>
     </>
   );
 };

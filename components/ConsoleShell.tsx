@@ -1,10 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import SidebarSkeleton from "@/components/skeletons/SidebarSkeleton";
 import HeaderSkeleton from "@/components/skeletons/HeaderSkeleton";
 import RoutePrefetcher from "@/components/RoutePrefetcher";
+import ConsoleMainSurface from "@/components/templates/ConsoleMainSurface";
 
 const Sidebar = dynamic(() => import("@/components/Sidebar"), {
   loading: () => <SidebarSkeleton />,
@@ -23,26 +24,19 @@ interface ConsoleShellProps {
 export default function ConsoleShell({ children }: ConsoleShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const mainStyle = useMemo(
-    () => ({
-      transition: "margin-left 0.5s ease-in-out",
-      minHeight: "100vh",
-    }),
-    [isSidebarOpen]
-  );
-
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-100 text-slate-900">
       <RoutePrefetcher />
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      <div className="ml-[3.125vw]">
+      <div
+        className={`min-h-screen transition-[padding-left] duration-300 ease-out ${
+          isSidebarOpen ? "pl-48" : "pl-[52px]"
+        }`}
+      >
         <Header isOpen={isSidebarOpen} />
-        <main
-          style={mainStyle}
-          className="pt-1 pb-10 pr-6 pl-5 bg-slate-100 min-h-screen"
-        >
+        <ConsoleMainSurface>
           {children}
-        </main>
+        </ConsoleMainSurface>
       </div>
     </div>
   );

@@ -10,7 +10,11 @@ import Modal from "@/components/Modal";
 import Table from "@/components/Table";
 import CustomCheckbox from "@/components/CustomCheckbox";
 import AvatarTooltip from "@/components/AvatarToolTip";
-import { formatServiceType } from "@/utils/helper";
+import {
+  formatNumberByStoredCurrency,
+  formatServiceType,
+  getStoredCurrencySymbol,
+} from "@/utils/helper";
 import { BookingApiService } from "@/services/bookingApi";
 
 type QuotationRow = {
@@ -372,9 +376,9 @@ export default function LinkBookingModal({
           className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem]"
         >
           {typeof item.totalAmount === "number" && item.totalAmount
-            ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
+            ? `${getStoredCurrencySymbol()} ${formatNumberByStoredCurrency(item.totalAmount)}`
             : item.formFields?.budget
-              ? `₹ ${Number(item.formFields.budget).toLocaleString("en-IN")}`
+              ? `${getStoredCurrencySymbol()} ${formatNumberByStoredCurrency(Number(item.formFields.budget))}`
               : "--"}
         </td>,
         <td

@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useState, useEffect } from "react";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import { FiSearch } from "react-icons/fi";
@@ -35,6 +35,7 @@ import { MdHistory } from "react-icons/md";
 import { getBookingHistoryByCustomer } from "@/services/customerApi";
 import Image from "next/image";
 import CustomIdApi from "@/services/customIdApi";
+import SlidingTabs from "@/components/organisms/navigation/SlidingTabs";
 import {
   getNextTriSortState,
   type TriSortState,
@@ -114,12 +115,6 @@ const CustomerDirectory = () => {
   const [travellerMode, setTravellerMode] = useState<
     "create" | "edit" | "view"
   >("view");
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const tabsContainerRef = useRef<HTMLDivElement | null>(null);
-  const [indicatorStyle, setIndicatorStyle] = useState({
-    width: 0,
-    left: 0,
-  });
   const [selectedTravellerRow, setSelectedTravellerRow] = useState<any | null>(
     null
   );
@@ -385,31 +380,6 @@ const CustomerDirectory = () => {
   useEffect(() => {
     fetchData();
   }, [activeTab]);
-
-  useEffect(() => {
-    const updateIndicator = () => {
-      const activeIndex = tabOptions.indexOf(activeTab);
-      const activeEl = tabRefs.current[activeIndex];
-      const container = tabsContainerRef.current;
-
-      if (activeEl && container) {
-        const { width, left } = activeEl.getBoundingClientRect();
-        const containerLeft = container.getBoundingClientRect().left;
-
-        setIndicatorStyle({
-          width,
-          left: left - containerLeft,
-        });
-      }
-    };
-
-    updateIndicator();
-    window.addEventListener("resize", updateIndicator);
-
-    return () => {
-      window.removeEventListener("resize", updateIndicator);
-    };
-  }, [activeTab, tabOptions]);
 
   const activeCustomersAction = (row) => [
     {
@@ -720,40 +690,11 @@ const CustomerDirectory = () => {
     <div className="bg-white rounded-[8px] shadow px-[18px] py-[18px] mb-5 w-full">
       <div className="flex items-center justify-between rounded-[8px]">
         {/*  Tabs */}
-        <div
-          className="flex items-center bg-[#F3F3F3] gap-[36px] rounded-[10px] relative p-1"
-          ref={tabsContainerRef}
-        >
-          <div
-            className="absolute h-[calc(100%-0.60rem)] bg-[#0D4B37] rounded-[8px]
-             shadow-sm transition-all duration-300 ease-in-out
-             top-1/2 -translate-y-1/2"
-            style={{
-              width:
-                indicatorStyle.width > 0
-                  ? `${indicatorStyle.width}px`
-                  : `calc((100% - 3.25rem) / ${tabOptions.length})`,
-              left: `${indicatorStyle.left}px`,
-            }}
-          />
-
-          {tabOptions.map((tab, idx) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`relative z-10 px-[12px] py-[6px]  rounded-[8px] text-[14px] font-medium transition-colors duration-300 flex-1 ${
-                activeTab === tab
-                  ? "text-white"
-                  : "text-[#818181] hover:text-gray-900"
-              }`}
-              ref={(el) => {
-                tabRefs.current[idx] = el;
-              }}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
+        <SlidingTabs
+          tabs={tabOptions}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+        />
 
         {/*  Total Count + Add Button */}
         <div className="flex items-center gap-2">

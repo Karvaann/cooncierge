@@ -7,6 +7,7 @@ import Table from "@/components/Table";
 import { BookingProvider, useBooking } from "@/context/BookingContext";
 import BookingFormModal from "@/components/BookingFormModal";
 import BookingFormSidesheet from "@/components/BookingFormSidesheet";
+import { getStoredCurrencySymbol } from "@/utils/helper";
 
 // Type definitions
 interface OSTableRowData {
@@ -22,6 +23,7 @@ interface OSTableRowData {
 
 // Other Services content component
 const OSSalesContent: React.FC = () => {
+  const currencySymbol = getStoredCurrencySymbol();
   const {
     state,
     openModal,
@@ -49,7 +51,7 @@ const OSSalesContent: React.FC = () => {
       travelDate: "10-10-2025",
       service: "🎭 Event Planning",
       bookingStatus: "Successful",
-      amount: "₹ 85,000",
+      amount: `${currencySymbol} 85,000`,
       voucher: "📄",
       tasks: 4,
     },
@@ -59,7 +61,7 @@ const OSSalesContent: React.FC = () => {
       travelDate: "18-10-2025",
       service: "📸 Photography",
       bookingStatus: "Pending",
-      amount: "₹ 25,000",
+      amount: `${currencySymbol} 25,000`,
       voucher: "📄",
       tasks: 2,
     },
@@ -69,7 +71,7 @@ const OSSalesContent: React.FC = () => {
       travelDate: "22-10-2025",
       service: "🍽️ Catering",
       bookingStatus: "Successful",
-      amount: "₹ 45,500",
+      amount: `${currencySymbol} 45,500`,
       voucher: "📄",
       tasks: 3,
     },
@@ -79,7 +81,7 @@ const OSSalesContent: React.FC = () => {
       travelDate: "28-10-2025",
       service: "🎵 Entertainment",
       bookingStatus: "Failed",
-      amount: "₹ 35,000",
+      amount: `${currencySymbol} 35,000`,
       voucher: "📄",
       tasks: 1,
     },
@@ -89,11 +91,11 @@ const OSSalesContent: React.FC = () => {
       travelDate: "05-11-2025",
       service: "🚌 Transportation",
       bookingStatus: "Successful",
-      amount: "₹ 18,750",
+      amount: `${currencySymbol} 18,750`,
       voucher: "📄",
       tasks: 2,
     },
-  ], []);
+  ], [currencySymbol]);
 
   // Helper function to get status badge styling
   const getStatusBadgeClass = (status: OSTableRowData['bookingStatus']): string => {

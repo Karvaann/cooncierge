@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import { RiExchangeDollarLine } from "react-icons/ri";
 import { FaArrowCircleLeft, FaRegArrowAltCircleRight } from "react-icons/fa";
+import { getStoredCurrencySymbol } from "@/utils/helper";
 
 // Type definitions
 interface SummaryData {
@@ -28,26 +29,27 @@ interface SummaryCardsProps {
 }
 
 const SummaryCards: React.FC<SummaryCardsProps> = ({ data }) => {
+  const currencySymbol = getStoredCurrencySymbol();
   // Default data with proper typing
   const defaultData: SummaryData = useMemo(
     () => ({
       total: {
-        amount: "₹ 12,45,890",
+        amount: `${currencySymbol} 12,45,890`,
         change: "+8.5% from last month",
         isPositive: true,
       },
       youGive: {
-        amount: "₹ 8,45,620",
+        amount: `${currencySymbol} 8,45,620`,
         change: "-3.2% from last month",
         isPositive: false,
       },
       youGet: {
-        amount: "₹ 4,00,270",
+        amount: `${currencySymbol} 4,00,270`,
         change: "+12.3% from last month",
         isPositive: true,
       },
     }),
-    []
+    [currencySymbol]
   );
 
   const summaryData = data || defaultData;

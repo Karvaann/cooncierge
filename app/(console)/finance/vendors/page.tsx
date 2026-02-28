@@ -29,6 +29,10 @@ import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import { deleteVendor } from "@/services/vendorApi";
 import { BookingProvider } from "@/context/BookingContext";
 import { MdOutlineRemoveRedEye } from "react-icons/md";
+import {
+  formatNumberByStoredCurrency,
+  getStoredCurrencySymbol,
+} from "@/utils/helper";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -351,7 +355,10 @@ const FinanceVendorsPage = () => {
             ) : (
               <PiArrowCircleDownLeft className="text-green-600" size={16} />
             )}
-            <span>₹ {vendor.closingBalance.toLocaleString("en-IN")}</span>
+            <span>
+              {getStoredCurrencySymbol()}{" "}
+              {formatNumberByStoredCurrency(vendor.closingBalance)}
+            </span>
           </span>
         </td>,
         <td
@@ -444,7 +451,8 @@ const FinanceVendorsPage = () => {
                       You Get
                     </span>
                     <span className="text-[#4CA640] text-[14px] font-semibold">
-                      ₹ {youGetVisibleV.toLocaleString("en-IN")}
+                      {getStoredCurrencySymbol()}{" "}
+                      {formatNumberByStoredCurrency(youGetVisibleV)}
                     </span>
                   </div>
                 </div>
@@ -455,7 +463,8 @@ const FinanceVendorsPage = () => {
                       You Give
                     </span>
                     <span className="text-[#C30010] text-[14px] font-semibold">
-                      ₹ {youGiveVisibleV.toLocaleString("en-IN")}
+                      {getStoredCurrencySymbol()}{" "}
+                      {formatNumberByStoredCurrency(youGiveVisibleV)}
                     </span>
                   </div>
                 </div>

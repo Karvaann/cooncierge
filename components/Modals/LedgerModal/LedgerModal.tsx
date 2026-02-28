@@ -23,6 +23,7 @@ import {
   formatDate,
   formatMoney,
   toNumberOrZero,
+  getStoredCurrencySymbol,
 } from "@/utils/helper";
 import {
   useLedgerBanks,
@@ -704,8 +705,8 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                 ? "Partially Paid"
                 : "Paid",
         Account: entry.account || "-",
-        Amount: `₹ ${formatMoney(displayAmount)}`,
-        "Closing Balance": `₹ ${formatMoney(entry.closingBalance.amount)}`,
+        Amount: `${getStoredCurrencySymbol()} ${formatMoney(displayAmount)}`,
+        "Closing Balance": `${getStoredCurrencySymbol()} ${formatMoney(entry.closingBalance.amount)}`,
       };
     });
   };
@@ -1034,7 +1035,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                           : "text-red-500"
                       }`}
                     >
-                      ₹{" "}
+                      {getStoredCurrencySymbol()} {" "}
                       {formatMoney(
                         Math.abs(ledgerData?.closingBalance?.amount),
                       )}

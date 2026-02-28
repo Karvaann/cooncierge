@@ -5,5 +5,9 @@ interface LoginLayoutProps {
 }
 
 export default function LoginLayout({ children }: LoginLayoutProps) {
-  return <main className="flex-1">{children}</main>;
+  return (
+    <main id="main-content" className="flex-1" role="main">
+      {children}
+    </main>
+  );
 }

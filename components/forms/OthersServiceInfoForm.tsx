@@ -2,7 +2,6 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
 import { validateOtherServiceInfoForm } from "@/services/bookingApi";
-import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
 import { useRef } from "react";
@@ -180,7 +179,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   const [isCancellationModalOpen, setIsCancellationModalOpen] =
     useState<boolean>(false);
-  const [pendingPrevBookingStatus, setPendingPrevBookingStatus] =
+  const [, setPendingPrevBookingStatus] =
     useState<string>("");
 
   // Handle selecting multiple files

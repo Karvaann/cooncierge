@@ -7,6 +7,7 @@ import Table from "@/components/Table";
 import { BookingProvider, useBooking } from "@/context/BookingContext";
 import BookingFormModal from "@/components/BookingFormModal";
 import BookingFormSidesheet from "@/components/BookingFormSidesheet";
+import { getStoredCurrencySymbol } from "@/utils/helper";
 
 // Type definitions
 interface TableRowData {
@@ -22,6 +23,7 @@ interface TableRowData {
 
 // Sales page content component
 const LimitlessSalesContent: React.FC = () => {
+  const currencySymbol = getStoredCurrencySymbol();
   const {
     state,
     openModal,
@@ -49,7 +51,7 @@ const LimitlessSalesContent: React.FC = () => {
       travelDate: "12-09-2025",
       service: "✈️ Flight",
       bookingStatus: "Successful",
-      amount: "₹ 24,580",
+      amount: `${currencySymbol} 24,580`,
       voucher: "📄",
       tasks: 3,
     },
@@ -59,7 +61,7 @@ const LimitlessSalesContent: React.FC = () => {
       travelDate: "15-09-2025",
       service: "🏨 Hotel",
       bookingStatus: "Pending",
-      amount: "₹ 18,200",
+      amount: `${currencySymbol} 18,200`,
       voucher: "📄",
       tasks: 2,
     },
@@ -69,7 +71,7 @@ const LimitlessSalesContent: React.FC = () => {
       travelDate: "20-09-2025",
       service: "🚗 Car Rental",
       bookingStatus: "Successful",
-      amount: "₹ 12,500",
+      amount: `${currencySymbol} 12,500`,
       voucher: "📄",
       tasks: 1,
     },
@@ -79,7 +81,7 @@ const LimitlessSalesContent: React.FC = () => {
       travelDate: "25-09-2025",
       service: "🎫 Package",
       bookingStatus: "Failed",
-      amount: "₹ 45,000",
+      amount: `${currencySymbol} 45,000`,
       voucher: "📄",
       tasks: 5,
     },
@@ -89,11 +91,11 @@ const LimitlessSalesContent: React.FC = () => {
       travelDate: "30-09-2025",
       service: "✈️ Flight",
       bookingStatus: "Successful",
-      amount: "₹ 32,100",
+      amount: `${currencySymbol} 32,100`,
       voucher: "📄",
       tasks: 2,
     },
-  ], []);
+  ], [currencySymbol]);
 
   // Helper function to get status badge styling
   const getStatusBadgeClass = (status: TableRowData['bookingStatus']): string => {

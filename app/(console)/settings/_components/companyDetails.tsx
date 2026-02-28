@@ -71,6 +71,7 @@ export default function CompanyDetails() {
           (user?.businessId && typeof user.businessId !== "string"
             ? user.businessId
             : null);
+        console.log("business", business);
         if (business) {
           setLogoUrl(
             business.profileImage?.url ||
@@ -82,9 +83,9 @@ export default function CompanyDetails() {
           setCompanyPhone(business.phone || "");
           setCompanyEmail(business.email || "");
           setWebsite(business.website || "");
-          setCurrency(
-            (business.settings && business.settings.defaultCurrency) || "INR"
-          );
+          if (business.currency) {
+            setCurrency(business.currency)
+          }
         }
       } catch (e) {
         // ignore
@@ -107,9 +108,9 @@ export default function CompanyDetails() {
           setCompanyPhone(business.phone || "");
           setCompanyEmail(business.email || "");
           setWebsite(business.website || "");
-          setCurrency(
-            (business.settings && business.settings.defaultCurrency) || "INR"
-          );
+          if (business.currency) {
+            setCurrency(business.currency)
+          }
         }
       } catch (e) {
         // ignore fetch errors
@@ -205,7 +206,7 @@ export default function CompanyDetails() {
         phone: companyPhone,
         email: companyEmail,
         website: website,
-        settings: { defaultCurrency: currency },
+        currency,
       } as any;
 
       const res = await AuthApi.updateCompanyDetails(payload);
@@ -441,6 +442,7 @@ export default function CompanyDetails() {
               onChange={(v) => setCurrency(v)}
               customWidth="w-full"
               customHeight="px-5 py-3 h-10"
+              disabled
             />
           </div>
         </div>

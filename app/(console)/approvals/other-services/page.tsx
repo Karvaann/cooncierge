@@ -18,7 +18,11 @@ import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ModalSkeleton from "@/components/skeletons/ModalSkeleton";
 import SidesheetSkeleton from "@/components/skeletons/SidesheetSkeleton";
 import type { JSX } from "react";
-import { formatServiceType } from "@/utils/helper";
+import {
+  formatServiceType,
+  formatNumberByStoredCurrency,
+  getStoredCurrencySymbol,
+} from "@/utils/helper";
 import { FiCheck, FiX } from "react-icons/fi";
 import { CiFilter } from "react-icons/ci";
 import { TbArrowsUpDown } from "react-icons/tb";
@@ -800,9 +804,9 @@ const OSBookingsPage = () => {
           className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem]"
         >
           {item.totalAmount
-            ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
+            ? `${getStoredCurrencySymbol()} ${formatNumberByStoredCurrency(item.totalAmount)}`
             : item.formFields?.budget
-            ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
+            ? `${getStoredCurrencySymbol()} ${formatNumberByStoredCurrency(item.formFields.budget)}`
             : "--"}
         </td>,
         <td

@@ -3,6 +3,7 @@
 import React, { useMemo, useState } from "react";
 import { FiChevronDown, FiDownload } from "react-icons/fi";
 import { IoCalendarClearOutline, IoLocationSharp } from "react-icons/io5";
+import { getStoredCurrencySymbol } from "@/utils/helper";
 
 type BreakdownRow = {
   label: string;
@@ -38,7 +39,7 @@ const SelectedPackageCard = ({
   nightsLabel = "7N",
   totalNetPrice = 12500,
   breakdown,
-  currencySymbol = "₹",
+  currencySymbol = getStoredCurrencySymbol(),
   onDownloadPdf,
 }: Props) => {
   const [isBreakdownOpen, setIsBreakdownOpen] = useState(false);

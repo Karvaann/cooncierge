@@ -27,6 +27,10 @@ import {
   allowNoSpecialCharacters,
   allowOnlyText,
 } from "@/utils/inputValidators";
+import {
+  formatNumberByStoredCurrency,
+  getStoredCurrencySymbol,
+} from "@/utils/helper";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -398,7 +402,10 @@ const FinanceCustomersPage = () => {
             ) : (
               <PiArrowCircleDownLeft className="text-green-600" size={16} />
             )}
-            <span>₹ {customer.closingBalance.toLocaleString("en-IN")}</span>
+            <span>
+              {getStoredCurrencySymbol()}{" "}
+              {formatNumberByStoredCurrency(customer.closingBalance)}
+            </span>
           </span>
         </td>,
         <td
@@ -519,7 +526,8 @@ const FinanceCustomersPage = () => {
                       You Get
                     </span>
                     <span className="text-[#4CA640] text-[14px] font-semibold">
-                      ₹ {youGetVisible.toLocaleString("en-IN")}
+                      {getStoredCurrencySymbol()}{" "}
+                      {formatNumberByStoredCurrency(youGetVisible)}
                     </span>
                   </div>
                 </div>
@@ -530,7 +538,8 @@ const FinanceCustomersPage = () => {
                       You Give
                     </span>
                     <span className="text-[#C30010] text-[14px] font-semibold">
-                      ₹ {youGiveVisible.toLocaleString("en-IN")}
+                      {getStoredCurrencySymbol()}{" "}
+                      {formatNumberByStoredCurrency(youGiveVisible)}
                     </span>
                   </div>
                 </div>

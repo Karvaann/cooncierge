@@ -19,7 +19,11 @@ import ModalSkeleton from "@/components/skeletons/ModalSkeleton";
 import SidesheetSkeleton from "@/components/skeletons/SidesheetSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import type { JSX } from "react";
-import { formatServiceType } from "@/utils/helper";
+import {
+  formatServiceType,
+  formatNumberByStoredCurrency,
+  getStoredCurrencySymbol,
+} from "@/utils/helper";
 import { FaRegTrashAlt } from "react-icons/fa";
 import { MdOutlineEdit } from "react-icons/md";
 import { TbArrowAutofitRight } from "react-icons/tb";
@@ -129,6 +133,8 @@ interface QuotationData {
   status: string;
   createdAt: string;
   updatedAt: string;
+  adultTravelers?: Array<{ name?: string; email?: string; phone?: string }>;
+  childTravelers?: Array<{ name?: string; email?: string; phone?: string }>;
 }
 
 // interface SummaryData {
@@ -169,11 +175,11 @@ interface Owner {
 
 const columnIconMap: Record<string, JSX.Element> = {
   "Travel Date": (
-    <TbArrowsUpDown className="inline w-3 h-3 text-white stroke-[1.5]" />
+    <TbArrowsUpDown className="inline w-3 h-3 text-[#818181] stroke-[2]" />
   ),
-  Service: <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />,
+  Service: <CiFilter className="inline w-3 h-3 text-[#818181] stroke-[2]" />,
   "Booking Status": (
-    <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
+    <CiFilter className="inline w-3 h-3 text-[#818181] stroke-[2]" />
   ),
 };
 
@@ -1036,7 +1042,7 @@ const OSBookingsPage = () => {
         onClick={() => handleViewBooking(item)}
         className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
       >
-        {item.customerId?.name || item.formFields?.customer || "--"}
+        {item.adultTravelers?.[0]?.name || item.customerId?.name || item.formFields?.customer || "--"}
       </td>,
       <td
         key={`date-${index}`}
@@ -1080,9 +1086,9 @@ const OSBookingsPage = () => {
         className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
       >
         {item.totalAmount
-          ? `₹ ${item.totalAmount.toLocaleString("en-IN")}`
+          ? `${getStoredCurrencySymbol()} ${formatNumberByStoredCurrency(item.totalAmount)}`
           : item.formFields?.budget
-            ? `₹ ${item.formFields.budget.toLocaleString("en-IN")}`
+            ? `${getStoredCurrencySymbol()} ${formatNumberByStoredCurrency(item.formFields.budget)}`
             : "--"}
       </td>,
       <td
@@ -1195,41 +1201,7 @@ const OSBookingsPage = () => {
   return (
     <div className="bg-gray-50">
       <div className="bg-gray-50">
-        {/* <div className="flex justify-between items-center gap-4 p-6 w-full mx-[10px] mt-[-20px]"> */}
-        {/* Draft count and sync button */}
-        {/* <div className="flex items-center gap-4">
-          {drafts.length > 0 && (
-            <div className="text-sm text-gray-600">
-              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
-                {drafts.length} Draft{drafts.length !== 1 ? "s" : ""}
-              </span>
-            </div>
-          )}
-          <button
-            onClick={syncDrafts}
-            className="text-sm text-gray-600 hover:text-gray-800 transition"
-            type="button"
-            title="Sync drafts with backend"
-          >
-            🔄 Sync
-          </button>
-        </div> */}
-        {/* </div> */}
-
         <div className="min-h-screen">
-          {/* {!error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <strong>Error:</strong> {error}
-            <button
-              onClick={loadQuotations}
-              className="ml-4 text-sm underline hover:no-underline"
-              type="button"
-            >
-              Retry
-            </button>
-          </div>
-        )} */}
-
           <Filter
             onFilterChange={handleFilterChange}
             onSearchChange={(value) => setSearchValue(value)}

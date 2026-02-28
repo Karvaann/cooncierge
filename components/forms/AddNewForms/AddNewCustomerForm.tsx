@@ -9,6 +9,7 @@ import SideSheet from "@/components/SideSheet";
 import { useBooking } from "@/context/BookingContext";
 import { FiTrash2 } from "react-icons/fi";
 import { useRef } from "react";
+import { getStoredCurrencySymbol } from "@/utils/helper";
 // Type definitions
 interface CustomerFormData {
   firstname: string;
@@ -608,7 +609,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
 
           <div className="relative">
             <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-blue-500">
-              <span className="text-gray-500 mr-2 text-[0.75rem]">₹</span>
+              <span className="text-gray-500 mr-2 text-[0.75rem]">{getStoredCurrencySymbol()}</span>
               <input
                 type="text"
                 value={balanceAmount}
@@ -624,11 +625,11 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
             <div className="absolute right-3 top-2 text-sm font-medium">
               {balanceType === "debit" ? (
                 <span className="text-red-500 text-[0.75rem]">
-                  Customer pays you ₹{balanceAmount || ""}
+                  Customer pays you {getStoredCurrencySymbol()} {balanceAmount || ""}
                 </span>
               ) : (
                 <span className="text-green-500 text-[0.75rem]">
-                  You pay the customer ₹{balanceAmount || ""}
+                  You pay the customer {getStoredCurrencySymbol()} {balanceAmount || ""}
                 </span>
               )}
             </div>

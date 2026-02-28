@@ -45,7 +45,7 @@ const Table: React.FC<TableProps> = ({
   droppableId = "table-droppable",
   headerClassName = "",
   headerRowTextClassName = "text-white",
-  headerCellTextClassName = "text-gray-200",
+  headerCellTextClassName = "text-[#818181]",
   categoryName = "",
   sortableHeaderHoverClass = "",
   hideEntriesText = false,
@@ -151,8 +151,8 @@ const Table: React.FC<TableProps> = ({
         >
           <thead>
             <tr
-              className={`rounded-t-xl ${headerRowTextClassName} ${
-                headerClassName || "bg-[#0D4B37]"
+              className={`rounded-t-xl text-[14px] ${headerRowTextClassName} ${
+                headerClassName || "bg-[#F3F3F3]"
               }`}
             >
               {showCheckboxColumn && (
@@ -174,7 +174,7 @@ const Table: React.FC<TableProps> = ({
                       onSort(col);
                     }
                   }}
-                  className={`px-[18px] py-[12px] ${headerCellTextClassName} font-[500] leading-4 tracking-[0.6px] text-[12px]
+                  className={`px-[18px] py-[12px] ${headerCellTextClassName} font-[600] leading-4 tracking-[0.6px] text-[13px]
           ${
             col === "Rating" ||
             col === "Date Modified" ||

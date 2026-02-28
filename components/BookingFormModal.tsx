@@ -52,22 +52,6 @@ const ServiceCard: React.FC<ServiceCardProps> = React.memo(
       return <div className="w-full aspect-[4/3]" />; // Invisible spacer
     }
 
-    // Service icons mapping
-    const serviceIcons = {
-      Flights: "✈️",
-      Accommodation: "🏨",
-      "Land Transportation": "🚗",
-      "Transportation (Land)": "🚗",
-      "Transportation (Maritime)": "🚢",
-      Activity: "🎯",
-      "Tickets (Attraction)": "🎫",
-      "Travel Insurance": "🛡️",
-      Visas: "📋",
-    };
-
-    const icon =
-      serviceIcons[service.title as keyof typeof serviceIcons] || "📋";
-
     return (
       <div
         className={`

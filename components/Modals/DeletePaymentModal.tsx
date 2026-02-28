@@ -5,6 +5,7 @@ import { useState } from "react";
 import Modal from "@/components/Modal";
 import { FiTrash2 } from "react-icons/fi";
 import PaymentsApi from "@/services/paymentsApi";
+import { getStoredCurrencySymbol } from "@/utils/helper";
 
 interface DeletePaymentModalProps {
   isOpen: boolean;
@@ -136,7 +137,7 @@ const DeletePaymentModal: React.FC<DeletePaymentModalProps> = ({
                     Amount
                   </td>
                   <td className="px-4 py-3 text-[13px] text-gray-900 font-semibold">
-                    ₹ {formatMoney(amount)}
+                    {getStoredCurrencySymbol()} {formatMoney(amount)}
                   </td>
                 </tr>
               </tbody>
