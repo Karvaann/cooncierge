@@ -487,7 +487,7 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
         {showAdvanceSearch && (
             <div className={`mb-4 flex w-full ${isAdvanceSearchEnabled ? "justify-end" : "justify-between"} items-center gap-2 cursor-pointer`}>
              {!isAdvanceSearchEnabled && <div className="text-[14px] text-[#6B7280] font-medium">
-                {`(${selectedOwners.length}) Owner(s) Selected`}
+                {`${selectedOwners.length} Owner(s) Selected`}
               </div>}
               <div className="flex flex-row items-center gap-2">
                 <div
@@ -650,7 +650,7 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                 <h3 className="text-[16px] flex flex-row justify-between items-center font-medium text-[#1F2937] mb-3">
                   <div>Primary Owner(s)</div>
                   <div className="text-[12px] text-[#6B7280]">
-                    ({primaryOwners.length}) Owner(s) Selected
+                    {primaryOwners.length} Owner(s) Selected
                   </div>
                 </h3>
                 <div className="relative" ref={primaryDropdownRef}>
@@ -782,7 +782,7 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
                 <h3 className="text-[16px] flex flex-row justify-between items-center font-medium text-[#1F2937] mb-3">
                   <div>Secondary Owner(s)</div>
                   <div className="text-[12px] text-[#6B7280]">
-                    ({secondaryOwners.length}) Owner(s) Selected
+                    {secondaryOwners.length} Owner(s) Selected
                   </div>
                 </h3>
                 <div className="relative" ref={secondaryDropdownRef}>

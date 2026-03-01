@@ -838,9 +838,9 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         ref={formRef}
         onSubmit={(e) => e.preventDefault()}
       >
-        <div className="px-2 py-1">
+        <div className="px-0 py-1">
           {/* Booking and Travel Date */}
-          <div className="flex flex-wrap items-end justify-between mb-3 px-5 -mx-5">
+          <div className="flex flex-wrap items-end justify-between mb-3">
             {/* Left section: Booking + Travel Date */}
             <div className="flex items-end flex-wrap gap-2">
               {/* Booking Date */}

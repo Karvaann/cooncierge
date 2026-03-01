@@ -403,7 +403,7 @@ const Filter: React.FC<FilterProps> = ({
 
             <div className="relative">
               <FilterInputShell
-                placeholder="Select Owner"
+                placeholder="Search / Select Owner"
                 onClick={(e) => {
                   e.stopPropagation();
                   setOwnerModalOpen(true);
@@ -444,7 +444,7 @@ const Filter: React.FC<FilterProps> = ({
                   </>
                 ) : (
                   <span className="text-[#9CA3AF] text-[14px] flex items-center flex-1">
-                    Select Owner
+                    Search / Select Owner
                   </span>
                 )}
               </FilterInputShell>
@@ -614,12 +614,12 @@ const Filter: React.FC<FilterProps> = ({
           {/* Reset */}
           <div className="">
             <Button
-              text="Reset"
+              text=""
               onClick={handleReset}
               icon={<RiRefreshLine size={18} />}
-              bgColor="bg-white"
-              textColor="text-[#414141]"
-              className="border border-[#414141] hover:bg-gray-200 font-semibold"
+              bgColor="bg-[#414141]"
+              textColor="text-white"
+              className="border border-[#414141] py-[11px] font-semibold"
             />
           </div>
         </div>

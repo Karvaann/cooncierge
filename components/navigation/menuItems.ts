@@ -38,26 +38,17 @@ export const menuItems: MenuItem[] = [
   {
     label: "Operations",
     icon: TbBrandNetbeans,
-    subMenu: [
-      { label: "Limitless", href: "/operations/limitless" },
-      { label: "Other Services", href: "/operations/other-services" },
-    ],
+    href: "/operations",
   },
   {
-    label: "Bookings",
+    label: "My Bookings",
     icon: TbLuggage,
-    subMenu: [
-      { label: "Limitless", href: "/bookings/limitless" },
-      { label: "Other Services", href: "/bookings/other-services" },
-    ],
+    href: "/bookings",
   },
   {
     label: "Approvals",
     icon: IoMdCheckboxOutline,
-    subMenu: [
-      { label: "Limitless", href: "/approvals/limitless" },
-      { label: "Other Services", href: "/approvals/other-services" },
-    ],
+    href: "/approvals",
   },
   {
     label: "Finance",
