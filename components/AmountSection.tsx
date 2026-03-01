@@ -173,14 +173,16 @@ const AmountSection: React.FC<AmountSectionProps> = ({
     };
 
   return (
-    <div className="mb-4 border border-gray-200 rounded-lg w-[48vw] p-3">
+    <div className="mb-4 border border-gray-200 rounded-lg w-full p-3">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[13px] font-medium text-gray-700">Amount</h3>
 
         {!(isCancelled && !editableCancelled) && (
           <label
             className={`flex items-center gap-2 ${
-              isReadOnly || isSubmitting ? "cursor-not-allowed" : "cursor-pointer"
+              isReadOnly || isSubmitting
+                ? "cursor-not-allowed"
+                : "cursor-pointer"
             }`}
           >
             <input
@@ -1068,7 +1070,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     Old Cost Price
                   </div>
                   <div className="border border-gray-200 w-[116px] font-medium rounded-md px-3 py-2 text-[14px] text-[#818181] bg-[#F9F9F9]">
-                    {getStoredCurrencySymbol()} {cancellationForm.summary.oldCost}
+                    {getStoredCurrencySymbol()}{" "}
+                    {cancellationForm.summary.oldCost}
                   </div>
                 </div>
 
@@ -1079,7 +1082,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     Old Selling Price
                   </div>
                   <div className="border border-gray-200 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
-                    {getStoredCurrencySymbol()} {cancellationForm.summary.oldSelling}
+                    {getStoredCurrencySymbol()}{" "}
+                    {cancellationForm.summary.oldSelling}
                   </div>
                 </div>
 
@@ -1090,7 +1094,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     Net
                   </div>
                   <div className="border border-gray-200 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
-                    {getStoredCurrencySymbol()} {cancellationForm.summary.oldNet}
+                    {getStoredCurrencySymbol()}{" "}
+                    {cancellationForm.summary.oldNet}
                   </div>
                 </div>
 
@@ -1112,7 +1117,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     New Cost Price
                   </div>
                   <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
-                    {getStoredCurrencySymbol()} {cancellationForm.summary.newCost}
+                    {getStoredCurrencySymbol()}{" "}
+                    {cancellationForm.summary.newCost}
                   </div>
                 </div>
 
@@ -1123,7 +1129,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     New Selling Price
                   </div>
                   <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
-                    {getStoredCurrencySymbol()} {cancellationForm.summary.newSelling}
+                    {getStoredCurrencySymbol()}{" "}
+                    {cancellationForm.summary.newSelling}
                   </div>
                 </div>
 
@@ -1134,7 +1141,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     Net
                   </div>
                   <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
-                    {getStoredCurrencySymbol()} {cancellationForm.summary.newNet}
+                    {getStoredCurrencySymbol()}{" "}
+                    {cancellationForm.summary.newNet}
                   </div>
                 </div>
 
@@ -1299,7 +1307,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                         Old Cost Price
                       </div>
                       <div className="border border-gray-200 w-[116px] font-medium rounded-md px-3 py-2 text-[14px] text-[#818181] bg-[#F9F9F9]">
-                        {getStoredCurrencySymbol()} {cancellationForm.summary.oldCost}
+                        {getStoredCurrencySymbol()}{" "}
+                        {cancellationForm.summary.oldCost}
                       </div>
                     </div>
 
@@ -1310,7 +1319,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                         Old Selling Price
                       </div>
                       <div className="border border-gray-200 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
-                        {getStoredCurrencySymbol()} {cancellationForm.summary.oldSelling}
+                        {getStoredCurrencySymbol()}{" "}
+                        {cancellationForm.summary.oldSelling}
                       </div>
                     </div>
 
@@ -1321,7 +1331,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                         Net
                       </div>
                       <div className="border border-gray-200 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
-                        {getStoredCurrencySymbol()} {cancellationForm.summary.oldNet}
+                        {getStoredCurrencySymbol()}{" "}
+                        {cancellationForm.summary.oldNet}
                       </div>
                     </div>
 
@@ -1343,7 +1354,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                         New Cost Price
                       </div>
                       <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
-                        {getStoredCurrencySymbol()} {cancellationForm.summary.newCost}
+                        {getStoredCurrencySymbol()}{" "}
+                        {cancellationForm.summary.newCost}
                       </div>
                     </div>
 
@@ -1354,7 +1366,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                         New Selling Price
                       </div>
                       <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
-                        {getStoredCurrencySymbol()} {cancellationForm.summary.newSelling}
+                        {getStoredCurrencySymbol()}{" "}
+                        {cancellationForm.summary.newSelling}
                       </div>
                     </div>
 
@@ -1365,7 +1378,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                         Net
                       </div>
                       <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
-                        {getStoredCurrencySymbol()} {cancellationForm.summary.newNet}
+                        {getStoredCurrencySymbol()}{" "}
+                        {cancellationForm.summary.newNet}
                       </div>
                     </div>
 

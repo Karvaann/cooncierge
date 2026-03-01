@@ -321,9 +321,9 @@ const Filter: React.FC<FilterProps> = ({
   );
 
   return (
-    <div className="bg-white rounded-xl border border-[1px] border-[#E5E7EB] pt-[14px] pb-[20px] px-[14px] w-full relative">
+    <div className="bg-white rounded-xl border border-[#E5E7EB] pt-[14px] pb-[20px] px-[14px] w-full relative">
       <div className="flex justify-between items-center mb-1">
-        <h2 className="text-[16px] font-[500] text-[#1F2937]">Filters</h2>
+        <h2 className="text-[16px] font-[600] text-[#1F2937]">Filters</h2>
         {showCreateButton ? (
           <Button
             text={createButtonText}
@@ -348,239 +348,241 @@ const Filter: React.FC<FilterProps> = ({
       <hr className="mb-2 mt-2 border-t-1 border-[#e4dfdb]" />
 
       <div className="flex justify-between items-end mt-4 w-full">
-        <div className="grid grid-cols-4 w-4/6 items-center gap-2">
+        <div className="grid grid-cols-4 w-4/6 items-center gap-3">
           {showBookingDateFilter && (
-          <div className="w-full min-w-0">
-            <DateRangeInputBeta
-              label={bookingDateLabel}
-              startDate={filters.bookingStartDate}
-              endDate={filters.bookingEndDate}
-              onChange={(start, end) => {
-                updateFilter("bookingStartDate", start);
-                updateFilter("bookingEndDate", end);
-              }}
-            />
-          </div>
-        )}
-
-        {showTravelDateFilter && (
-          <div className="w-full min-w-0">
-            <DateRangeInputBeta
-              label={travelDateLabel}
-              startDate={filters.tripStartDate}
-              endDate={filters.tripEndDate}
-              onChange={(start, end) => {
-                updateFilter("tripStartDate", start);
-                updateFilter("tripEndDate", end);
-              }}
-            />
-          </div>
-        )}
-
-        {showCategory && (
-          <div className="w-full  min-w-0">
-            <label className="block text-[#414141] font-medium mb-1.5 text-[14px]">
-              Category
-            </label>
-            <div className="relative">
-              <select
-                value={filters.category || ""}
-                onChange={(e) => updateFilter("category", e.target.value)}
-                className="w-full border border-gray-300 hover:border-green-300 text-[14px] font-normal rounded-md px-3 py-2.5 text-gray-700 bg-white"
-              >
-                <option value="">Select Category</option>
-                {categoryOptions}
-              </select>
-            </div>
-          </div>
-        )}
-
-        {showOwners && (
-          <div className="w-full  min-w-0">
-            <label className="block text-[#414141] font-medium mb-1 text-[14px]">
-              Booking Owner
-            </label>
-
-            <div className="relative">
-              <FilterInputShell
-                placeholder="Select Owner"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setOwnerModalOpen(true);
+            <div className="w-full min-w-0">
+              <DateRangeInputBeta
+                label={bookingDateLabel}
+                startDate={filters.bookingStartDate}
+                endDate={filters.bookingEndDate}
+                onChange={(start, end) => {
+                  updateFilter("bookingStartDate", start);
+                  updateFilter("bookingEndDate", end);
                 }}
-              >
-                {selectedOwners.length > 0 ? (
-                  <>
-                    <span
-                      key={selectedOwners[0]}
-                      className="flex items-center gap-1 bg-white border border-[#CCD0DB] text-black px-2 py-0.5 rounded-full text-[12px]"
-                    >
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (selectedOwners[0]) removeOwner(selectedOwners[0]);
-                        }}
-                        className="py-1"
-                      >
-                        <IoClose size={16} className="text-[#818181]" />
-                      </button>
-                      {selectedOwners[0]}
-                    </span>
-
-                    {selectedOwners.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOwnerModalOpen(true);
-                        }}
-                        className="text-[#114958] underline text-[14px] ml-2"
-                        aria-label="Show more owners"
-                      >
-                        + {selectedOwners.length - 1}
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-[#9CA3AF] text-[14px] flex items-center flex-1">
-                    Select Owner
-                  </span>
-                )}
-              </FilterInputShell>
-
-              <SelectBookingOwnerModal
-                isOpen={ownerModalOpen}
-                onClose={() => setOwnerModalOpen(false)}
-                initialSelectedOwners={selectedOwners}
-                initialPrimaryOwners={
-                  Array.isArray(filters.primaryOwner)
-                    ? filters.primaryOwner
-                    : typeof filters.primaryOwner === "string" &&
-                        filters.primaryOwner
-                      ? [filters.primaryOwner]
-                      : []
-                }
-                initialSecondaryOwners={filters.secondaryOwners || []}
-                onApply={(next) => {
-                  setSelectedOwners(next);
-                  updateFilter("owner", next);
-                  updateFilter("primaryOwner", "");
-                  updateFilter("secondaryOwners", []);
-                }}
-                onApplyAdvanced={(primary, secondary) => {
-                  // Combine for display in pills
-                  const combined = [...new Set([...primary, ...secondary])];
-                  setSelectedOwners(combined);
-                  // Store separately for filtering logic
-                  updateFilter(
-                    "primaryOwner",
-                    primary.length === 0
-                      ? ""
-                      : primary.length === 1
-                        ? (primary[0] ?? "")
-                        : primary,
-                  );
-                  updateFilter("secondaryOwners", secondary);
-                  updateFilter("owner", ""); // Clear regular owner when using advanced
-                }}
-                showAdvanceSearch={allowAdvanceOwnerSearch}
               />
             </div>
-          </div>
-        )}
+          )}
 
-        {showBookingType && (
-          <div className="w-full min-w-0">
-            <label className="block text-[#414141] font-medium mb-1.5 text-[14px]">
-              Booking Type
-            </label>
-
-            <div className="relative" ref={bookingTypeRef}>
-              <FilterInputShell
-                placeholder="Select Booking Type"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const rect = bookingTypeRef.current?.getBoundingClientRect();
-                  if (rect) {
-                    setBookingTypePos({
-                      left: rect.left,
-                      top: rect.top,
-                      width: rect.width,
-                      height: rect.height,
-                    });
-                  }
-                  setBookingTypeOpen((prev) => !prev);
+          {showTravelDateFilter && (
+            <div className="w-full min-w-0">
+              <DateRangeInputBeta
+                label={travelDateLabel}
+                startDate={filters.tripStartDate}
+                endDate={filters.tripEndDate}
+                onChange={(start, end) => {
+                  updateFilter("tripStartDate", start);
+                  updateFilter("tripEndDate", end);
                 }}
-                suffixIcon={
-                  bookingTypeLabel ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        updateFilter("bookingType" as any, "");
-                        setBookingTypeOpen(false);
-                      }}
-                      className="ml-auto text-[#818181] hover:text-[#5f5f5f]"
-                      aria-label="Clear booking type"
-                    >
-                      <IoClose size={18} />
-                    </button>
-                  ) : null
-                }
-              >
-                {bookingTypeLabel ? (
-                  <span className="text-black text-[14px]">
-                    {bookingTypeLabel}
-                  </span>
-                ) : (
-                  <span className="text-[#9CA3AF] text-[14px] flex items-center flex-1">
-                    Select Booking Type
-                  </span>
-                )}
-              </FilterInputShell>
+              />
+            </div>
+          )}
 
-              {bookingTypeOpen &&
-                bookingTypePos &&
-                createPortal(
-                  <div
-                    ref={bookingTypePortalRef}
-                    style={{
-                      position: "fixed",
-                      left: bookingTypePos.left,
-                      top: bookingTypePos.top + bookingTypePos.height + 6,
-                      width: bookingTypePos.width,
-                      zIndex: 9999,
-                      minHeight: 32,
-                    }}
-                    className="bg-white border border-gray-200 rounded-md shadow-xl max-h-48 overflow-y-auto"
-                  >
-                    {[
-                      { value: "os", label: "OS" },
-                      { value: "limitless", label: "Limitless" },
-                    ].map((opt) => (
-                      <label
-                        key={opt.value}
-                        className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
+          {showCategory && (
+            <div className="w-full  min-w-0">
+              <label className="block text-[#414141] font-medium mb-1.5 text-[14px]">
+                Category
+              </label>
+              <div className="relative">
+                <select
+                  value={filters.category || ""}
+                  onChange={(e) => updateFilter("category", e.target.value)}
+                  className="w-full border border-gray-300 hover:border-green-300 text-[14px] font-normal rounded-md px-3 py-2.5 text-gray-700 bg-white"
+                >
+                  <option value="">Select Category</option>
+                  {categoryOptions}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {showOwners && (
+            <div className="w-full  min-w-0">
+              <label className="block text-[#414141] font-medium mb-1 text-[14px]">
+                Booking Owner
+              </label>
+
+              <div className="relative">
+                <FilterInputShell
+                  placeholder="Select Owner"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOwnerModalOpen(true);
+                  }}
+                >
+                  {selectedOwners.length > 0 ? (
+                    <>
+                      <span
+                        key={selectedOwners[0]}
+                        className="flex items-center gap-1 bg-white border border-[#CCD0DB] text-black px-2 py-0.5 rounded-full text-[12px]"
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (selectedOwners[0])
+                              removeOwner(selectedOwners[0]);
+                          }}
+                          className="py-1"
+                        >
+                          <IoClose size={16} className="text-[#818181]" />
+                        </button>
+                        {selectedOwners[0]}
+                      </span>
+
+                      {selectedOwners.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOwnerModalOpen(true);
+                          }}
+                          className="text-[#114958] underline text-[14px] ml-2"
+                          aria-label="Show more owners"
+                        >
+                          + {selectedOwners.length - 1}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-[#9CA3AF] text-[14px] flex items-center flex-1">
+                      Select Owner
+                    </span>
+                  )}
+                </FilterInputShell>
+
+                <SelectBookingOwnerModal
+                  isOpen={ownerModalOpen}
+                  onClose={() => setOwnerModalOpen(false)}
+                  initialSelectedOwners={selectedOwners}
+                  initialPrimaryOwners={
+                    Array.isArray(filters.primaryOwner)
+                      ? filters.primaryOwner
+                      : typeof filters.primaryOwner === "string" &&
+                          filters.primaryOwner
+                        ? [filters.primaryOwner]
+                        : []
+                  }
+                  initialSecondaryOwners={filters.secondaryOwners || []}
+                  onApply={(next) => {
+                    setSelectedOwners(next);
+                    updateFilter("owner", next);
+                    updateFilter("primaryOwner", "");
+                    updateFilter("secondaryOwners", []);
+                  }}
+                  onApplyAdvanced={(primary, secondary) => {
+                    // Combine for display in pills
+                    const combined = [...new Set([...primary, ...secondary])];
+                    setSelectedOwners(combined);
+                    // Store separately for filtering logic
+                    updateFilter(
+                      "primaryOwner",
+                      primary.length === 0
+                        ? ""
+                        : primary.length === 1
+                          ? (primary[0] ?? "")
+                          : primary,
+                    );
+                    updateFilter("secondaryOwners", secondary);
+                    updateFilter("owner", ""); // Clear regular owner when using advanced
+                  }}
+                  showAdvanceSearch={allowAdvanceOwnerSearch}
+                />
+              </div>
+            </div>
+          )}
+
+          {showBookingType && (
+            <div className="w-full min-w-0">
+              <label className="block text-[#414141] font-medium mb-1.5 text-[14px]">
+                Booking Type
+              </label>
+
+              <div className="relative" ref={bookingTypeRef}>
+                <FilterInputShell
+                  placeholder="Select Booking Type"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const rect =
+                      bookingTypeRef.current?.getBoundingClientRect();
+                    if (rect) {
+                      setBookingTypePos({
+                        left: rect.left,
+                        top: rect.top,
+                        width: rect.width,
+                        height: rect.height,
+                      });
+                    }
+                    setBookingTypeOpen((prev) => !prev);
+                  }}
+                  suffixIcon={
+                    bookingTypeLabel ? (
+                      <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          updateFilter("bookingType" as any, opt.value);
+                          updateFilter("bookingType" as any, "");
                           setBookingTypeOpen(false);
                         }}
+                        className="ml-auto text-[#818181] hover:text-[#5f5f5f]"
+                        aria-label="Clear booking type"
                       >
-                        <span className="text-black text-[14px]">
-                          {opt.label}
-                        </span>
-                      </label>
-                    ))}
-                  </div>,
-                  typeof document !== "undefined"
-                    ? document.body
-                    : (null as any),
-                )}
+                        <IoClose size={18} />
+                      </button>
+                    ) : null
+                  }
+                >
+                  {bookingTypeLabel ? (
+                    <span className="text-black text-[14px]">
+                      {bookingTypeLabel}
+                    </span>
+                  ) : (
+                    <span className="text-[#9CA3AF] text-[14px] flex items-center flex-1">
+                      Select Booking Type
+                    </span>
+                  )}
+                </FilterInputShell>
+
+                {bookingTypeOpen &&
+                  bookingTypePos &&
+                  createPortal(
+                    <div
+                      ref={bookingTypePortalRef}
+                      style={{
+                        position: "fixed",
+                        left: bookingTypePos.left,
+                        top: bookingTypePos.top + bookingTypePos.height + 6,
+                        width: bookingTypePos.width,
+                        zIndex: 9999,
+                        minHeight: 32,
+                      }}
+                      className="bg-white border border-gray-200 rounded-md shadow-xl max-h-48 overflow-y-auto"
+                    >
+                      {[
+                        { value: "os", label: "OS" },
+                        { value: "limitless", label: "Limitless" },
+                      ].map((opt) => (
+                        <label
+                          key={opt.value}
+                          className="flex items-center gap-2 px-2 py-2 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            updateFilter("bookingType" as any, opt.value);
+                            setBookingTypeOpen(false);
+                          }}
+                        >
+                          <span className="text-black text-[14px]">
+                            {opt.label}
+                          </span>
+                        </label>
+                      ))}
+                    </div>,
+                    typeof document !== "undefined"
+                      ? document.body
+                      : (null as any),
+                  )}
+              </div>
             </div>
-          </div>
-        )}
+          )}
         </div>
         <div className="flex w-2/7 items-center gap-3">
           {/* Search */}

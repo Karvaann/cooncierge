@@ -169,7 +169,9 @@ const columnIconMap: Record<string, JSX.Element> = {
   "Travel Date": (
     <TbArrowsUpDown className="inline w-3 h-3 text-[#818181] hover:text-green-600 stroke-[2]" />
   ),
-  Service: <CiFilter className="inline w-3 h-3 text-[#818181] hover:text-green-600  stroke-[2]" />,
+  Service: (
+    <CiFilter className="inline w-3 h-3 text-[#818181] hover:text-green-600  stroke-[2]" />
+  ),
   "Booking Status": (
     <CiFilter className="inline w-3 h-3 text-[#818181] hover:text-green-600  stroke-[2]" />
   ),
@@ -1130,7 +1132,10 @@ const OSBookingsPage = () => {
         onClick={() => handleViewBooking(item)}
         className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
       >
-        {item.adultTravelers?.[0]?.name || item.customerId?.name || item.formFields?.customer || "--"}
+        {item.adultTravelers?.[0]?.name ||
+          item.customerId?.name ||
+          item.formFields?.customer ||
+          "--"}
       </td>,
       <td
         key={`date-${index}`}
@@ -1289,7 +1294,7 @@ const OSBookingsPage = () => {
   return (
     <div className="px-[20px] pb-[24px] bg-[#F3F3F3]">
       <div className="bg-[#F3F3F3]">
-        <div className="min-h-screen">
+        <div className="min-h-screen mt-1">
           <Filter
             onFilterChange={handleFilterChange}
             onSearchChange={(value) => setSearchValue(value)}
@@ -1302,7 +1307,7 @@ const OSBookingsPage = () => {
             allowAdvanceOwnerSearch={true}
           />
 
-          <div className="bg-white rounded-2xl border border-[1px] border-[#E5E7EB] mt-4 pt-5 pb-3 px-3 relative">
+          <div className="bg-white rounded-2xl border border-[#E5E7EB] mt-4 pt-5 pb-3 px-3 relative">
             {/* Tabs and Total Count Row */}
             <div className="flex w-full justify-between items-center mb-2">
               <div
@@ -1326,7 +1331,8 @@ const OSBookingsPage = () => {
                     const currentIndicator = dragIndicator ?? indicator;
                     dragOffsetRef.current =
                       event.clientX -
-                      (tabContainerRef.current?.getBoundingClientRect().left ?? 0) -
+                      (tabContainerRef.current?.getBoundingClientRect().left ??
+                        0) -
                       currentIndicator.left;
                     setDragIndicator(currentIndicator);
                     setIsDraggingIndicator(true);

@@ -417,7 +417,7 @@ export default function OneWayLayout({
             className="grid grid-cols-1 lg:grid-cols-2 gap-1"
           >
             {/* Flight Segment */}
-            <div className="border border-gray-200 rounded-lg w-[98%] p-3">
+            <div className="border border-gray-200 rounded-lg w-full p-3">
               <div className="flex items-center justify-between mb-3">
                 <h4 className="text-[0.85rem] font-semibold text-gray-800">
                   Flight Segment {index + 1}
@@ -559,7 +559,7 @@ export default function OneWayLayout({
               })()}
 
             {/* Preview Section */}
-            <div className="border border-dotted border-gray-200 w-[98%] rounded-lg p-3">
+            <div className="border border-dotted border-gray-200 w-full rounded-lg p-3">
               {/* Heading and edit icon (hidden while editing) */}
               {!editing[segment.id!] && (
                 <div className="flex items-center justify-between mb-2">

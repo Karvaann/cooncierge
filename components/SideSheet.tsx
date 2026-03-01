@@ -158,8 +158,17 @@ const SideSheet: React.FC<SideSheetProps> = ({
                   className="text-gray-500 hover:text-gray-600 transition-colors p-2 rounded-full hover:bg-gray-100"
                   aria-label="Close side sheet"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 11 11" fill="none">
-                    <path d="M5.30265 4.11676L9.42137 9.72748e-05L10.6053 1.18343L6.48657 5.3001L10.6053 9.41676L9.42137 10.6001L5.30265 6.48343L1.18392 10.6001L0 9.41676L4.11872 5.3001L0 1.18343L1.18392 9.72748e-05L5.30265 4.11676Z" fill="#818181"/>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="11"
+                    height="11"
+                    viewBox="0 0 11 11"
+                    fill="none"
+                  >
+                    <path
+                      d="M5.30265 4.11676L9.42137 9.72748e-05L10.6053 1.18343L6.48657 5.3001L10.6053 9.41676L9.42137 10.6001L5.30265 6.48343L1.18392 10.6001L0 9.41676L4.11872 5.3001L0 1.18343L1.18392 9.72748e-05L5.30265 4.11676Z"
+                      fill="#818181"
+                    />
                   </svg>
                 </button>
               )}

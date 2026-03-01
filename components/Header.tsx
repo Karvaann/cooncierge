@@ -170,7 +170,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen }) => {
       return ["bookings", "view-booking"].map((piece, index) => (
         <span key={`${piece}-${index}`} className="flex items-center">
           <span className="text-gray-400 text-[12px] mx-1">/</span>
-          <span className="text-[#114958] text-[10px] mr-1">
+          <span className="text-[#114958] text-[12px] mr-1">
             {PIECE_MAP[piece as PieceMapKey] || piece}
           </span>
         </span>
@@ -224,7 +224,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen }) => {
         <div className="flex items-center justify-between border-b border-gray-200 bg-white px-5 py-1">
           {/* Left: Page Title */}
           <div>
-            <h1 className="text-[17px] font-semibold leading-[1.75rem] tracking-normal">
+            <h1 className="text-[18px] mt-1 font-[600] leading-[1.75rem] tracking-normal">
               {headerTitle}
             </h1>
           </div>
@@ -334,8 +334,22 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen }) => {
 
         {/* Breadcrumb Row */}
         {pathname !== "/settings" && (
-          <div className="flex items-center px-5 py-1 bg-gray-100">
-            <IoHomeOutline className="w-[14px] h-5 mr-2 text-[#114958]" />
+          <div className="flex items-center px-5 py-2 bg-gray-100">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="15"
+              height="15"
+              viewBox="0 0 18 18"
+              fill="none"
+            >
+              <path
+                d="M6.75 15.75V11.25C6.75 10.8522 6.90804 10.4706 7.18934 10.1893C7.47064 9.90804 7.85218 9.75 8.25 9.75H9.75C10.1478 9.75 10.5294 9.90804 10.8107 10.1893C11.092 10.4706 11.25 10.8522 11.25 11.25V15.75M3.75 9H2.25L9 2.25L15.75 9H14.25V14.25C14.25 14.6478 14.092 15.0294 13.8107 15.3107C13.5294 15.592 13.1478 15.75 12.75 15.75H5.25C4.85218 15.75 4.47064 15.592 4.18934 15.3107C3.90804 15.0294 3.75 14.6478 3.75 14.25V9Z"
+                stroke="#114958"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
             {breadcrumbElements}
           </div>
         )}

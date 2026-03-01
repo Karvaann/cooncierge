@@ -354,8 +354,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
   const [isCancellationModalOpen, setIsCancellationModalOpen] =
     useState<boolean>(false);
-  const [, setPendingPrevBookingStatus] =
-    useState<string>("");
+  const [, setPendingPrevBookingStatus] = useState<string>("");
 
   // Handle selecting multiple files
   const handleFileChange = () => {
@@ -860,7 +859,6 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 placeholder="Booking Status"
                 value={formData.bookingstatus}
                 onChange={handleBookingStatusChange}
-
               />
             </div>
           </div>
@@ -1444,7 +1442,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 >
                   <button
                     type="button"
-                    className="text-blue-700 cursor-pointer border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+                    className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
                     title="Click to view document"
                   >
                     <FaRegFolder className="text-blue-500 w-3 h-3" />

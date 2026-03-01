@@ -982,7 +982,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         <button
           key={tab.id}
           className={`
-          px-4 py-1.5 text-[12px] font-[400] transition-colors relative
+          px-4 py-1.5 text-[12px] font-[500] transition-colors relative
           ${
             activeTab === tab.id
               ? "text-[#0D4B37]"
@@ -1006,49 +1006,18 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     [tabs, activeTab, handleTabClick],
   );
 
-  // Memoized active tab content
-  // const activeTabContent = useMemo(() => {
-  //   const activeTabConfig = tabs.find((tab) => tab.id === activeTab);
-  //   if (!activeTabConfig) return null;
-
-  //   const Component = activeTabConfig.component;
-
-  //   const commonProps = {
-  //     formData,
-  //     onFormDataUpdate: handleFormDataUpdate,
-  //     onSubmit: handleFormSubmit,
-  //     selectedService,
-  //     isSubmitting,
-  //   };
-
-  //   return (
-  //     <Component
-  //       {...commonProps}
-  //       formRef={activeTab === "general" ? generalFormRef : serviceFormRef}
-  //     />
-  //   );
-  // }, [
-  //   activeTab,
-  //   tabs,
-  //   formData,
-  //   handleFormDataUpdate,
-  //   handleFormSubmit,
-  //   selectedService,
-  //   isSubmitting,
-  // ]);
-
   // Memoized title (returns JSX to allow styled divider)
   const title = useMemo(() => {
     if (!selectedService) return <span>Booking Form</span>;
     return (
       <div className="flex items-center">
-        <span className="text-[16px] text-[#020202] font-[500]">
+        <span className="text-[16px] text-[#020202] font-[600]">
           {selectedService.title}
         </span>
         {bookingCode ? (
           <>
             <span className="mx-[7px] w-px h-4 bg-gray-200" aria-hidden />
-            <span className="font-mono text-[18px] font-[500] text-[#020202]">
+            <span className="font-mono text-[16px] font-[600] text-[#020202]">
               {bookingCode}
             </span>
           </>
@@ -1082,24 +1051,29 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
             </div>
 
             {/* Divider line below tabs */}
-            <div className="absolute top-6.5 left-6 right-8 z-10 border-b border-gray-200"></div>
+            <div className="absolute top-11.5 left-3 right-8 z-10 border-b border-gray-200"></div>
 
             {/* Tab Content - Scrollable with padding for fixed header and footer */}
-            <div className="overflow-y-auto mt-[18px] pt-7 pb-8" role="tabpanel">
+            <div
+              className="overflow-y-auto mt-[18px] pt-7 pb-8"
+              role="tabpanel"
+            >
               {/* dont unmount General Info */}
               <div
                 style={{ display: activeTab === "general" ? "block" : "none" }}
                 className={isReadOnly ? "opacity-90" : ""}
               >
-                {isOpen && <GeneralInfoForm
-                  key={`general-${quotationId || "new"}-${formInstanceId}`}
-                  initialFormData={initialData || {}}
-                  onFormDataUpdate={handleFormDataUpdate}
-                  isSubmitting={isSubmitting || isReadOnly}
-                  isReadOnly={isReadOnly}
-                  formRef={generalFormRef as React.RefObject<HTMLFormElement>}
-                  hideVendor={hideVendor}
-                />}
+                {isOpen && (
+                  <GeneralInfoForm
+                    key={`general-${quotationId || "new"}-${formInstanceId}`}
+                    initialFormData={initialData || {}}
+                    onFormDataUpdate={handleFormDataUpdate}
+                    isSubmitting={isSubmitting || isReadOnly}
+                    isReadOnly={isReadOnly}
+                    formRef={generalFormRef as React.RefObject<HTMLFormElement>}
+                    hideVendor={hideVendor}
+                  />
+                )}
               </div>
 
               {/* Always mount Service Info */}

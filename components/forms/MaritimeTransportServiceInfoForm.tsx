@@ -178,8 +178,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
   const [isCancellationModalOpen, setIsCancellationModalOpen] =
     useState<boolean>(false);
-  const [, setPendingPrevBookingStatus] =
-    useState<string>("");
+  const [, setPendingPrevBookingStatus] = useState<string>("");
 
   // Handle selecting multiple files
   const handleFileChange = () => {
@@ -408,101 +407,6 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     [formData, validateForm, onSubmit, validationRules],
   );
 
-  // Enhanced input field component with validation indicators
-  const InputField: React.FC<{
-    name: keyof OtherServiceInfoFormData;
-    id?: string;
-    type?: string;
-    placeholder?: string;
-    required?: boolean;
-    className?: string;
-    min?: number;
-  }> = ({
-    name,
-    type = "text",
-    placeholder,
-    required,
-    className = "",
-    min,
-  }) => {
-    const isValidatingField = name === "bookingdate" && isValidating;
-    const hasError = errors[name] && touched[name];
-    const hasValue = formData[name] && String(formData[name]).trim();
-    const isValid = hasValue && !hasError && !isValidatingField;
-
-    return (
-      <div className="relative">
-        <input
-          type={type}
-          name={name}
-          value={type === "file" ? undefined : String(formData[name] ?? "")}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          placeholder={placeholder}
-          required={required}
-          min={min}
-          disabled={isSubmitting || isValidatingField}
-          className={`
-            w-full border rounded-md px-3 py-2 pr-10 text-sm transition-colors
-            ${
-              hasError
-                ? "border-red-300 focus:ring-red-200"
-                : isValid && touched[name]
-                  ? "border-green-300 focus:ring-green-200"
-                  : "border-gray-200 focus:ring-blue-200"
-            }
-            ${
-              isSubmitting || isValidatingField
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }
-            ${className}
-          `}
-        />
-
-        {/* Validation indicator */}
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-          {isValidatingField && (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
-          )}
-          {!isValidatingField && isValid && touched[name] && (
-            <svg
-              className="h-4 w-4 text-green-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          )}
-          {!isValidatingField && hasError && (
-            <svg
-              className="h-4 w-4 text-red-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          )}
-        </div>
-
-        {hasError && (
-          <p className="text-red-500 text-xs mt-1">{errors[name]}</p>
-        )}
-      </div>
-    );
-  };
   const cancellationModalInitialValues: CancellationModalFormState = {
     cancellationDate: "",
     showAdvancedPricing: showAdvancedPricing,
@@ -571,7 +475,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
   return (
     <>
       <div
-        className={`space-y-4 p-4 -mt-1 ${
+        className={`space-y-4 py-4 px-0 -mt-1 overflow-x-hidden ${
           isReadOnly
             ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-200 [&_select]:!bg-gray-200"
             : ""
@@ -580,7 +484,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
       >
         <div className="px-2 py-1">
           {/* Booking and Travel Date */}
-          <div className="flex flex-wrap items-end justify-between mb-3 px-5 -mx-5">
+          <div className="flex flex-wrap items-end justify-between mb-3">
             {/* Left section: Booking + Travel Date */}
             <div className="flex items-end flex-wrap gap-2">
               {/* Booking Date */}
@@ -639,7 +543,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
           />
 
           {/* ================= TRANSPORT (MARITIME) INFO ================ */}
-          <div className="w-[48vw] border border-gray-200 rounded-[12px] p-3 mt-4">
+          <div className="w-full border border-gray-200 rounded-[12px] p-3 mt-4">
             <h1 className="text-[0.85rem] font-medium text-gray-800 mb-2">
               Transportation (Maritime) Info
             </h1>
@@ -691,7 +595,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         </div>
 
         {/* ID PROOFS */}
-        <div className=" w-[98%] ml-2 border border-gray-200 rounded-[12px] p-3">
+        <div className="w-[98%] mx-auto border border-gray-200 rounded-[12px] p-3">
           <h2 className="text-[13px] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
@@ -768,7 +672,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         </div>
 
         {/* Remarks Section */}
-        <div className="border border-gray-200 w-[48vw] ml-2.5 rounded-[12px] p-3 mt-4">
+        <div className="border border-gray-200 w-[98%] mx-auto rounded-[12px] p-3 mt-4">
           <label className="block text-[13px] font-medium text-gray-700">
             Remarks
           </label>
