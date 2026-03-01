@@ -1287,8 +1287,8 @@ const OSBookingsPage = () => {
   };
 
   return (
-    <div className="bg-gray-50">
-      <div className="bg-gray-50">
+    <div className="px-[20px] pb-[24px] bg-[#F3F3F3]">
+      <div className="bg-[#F3F3F3]">
         <div className="min-h-screen">
           <Filter
             onFilterChange={handleFilterChange}
@@ -1302,7 +1302,7 @@ const OSBookingsPage = () => {
             allowAdvanceOwnerSearch={true}
           />
 
-          <div className="bg-white rounded-2xl shadow mt-4 pt-5 pb-3 px-3 relative">
+          <div className="bg-white rounded-2xl border border-[1px] border-[#E5E7EB] mt-4 pt-5 pb-3 px-3 relative">
             {/* Tabs and Total Count Row */}
             <div className="flex w-full justify-between items-center mb-2">
               <div
@@ -1338,10 +1338,10 @@ const OSBookingsPage = () => {
                     key={tab}
                     data-tab={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`relative z-10 py-1 px-4 rounded-lg text-[14px] font-medium transition-colors duration-300 text-center ${
+                    className={`relative z-10 py-1 px-4 rounded-lg text-[13px] font-medium transition-colors duration-300 text-center ${
                       activeTab === tab
                         ? "text-white"
-                        : "text-[#818181] hover:text-gray-900 font-semibold"
+                        : "text-[#818181] hover:text-gray-900 font-[500]"
                     }`}
                   >
                     {tab}
@@ -1367,8 +1367,8 @@ const OSBookingsPage = () => {
                   columns={columns}
                   columnIconMap={columnIconMap}
                   columnWidthClassMap={{
-                    Tasks: "w-[6.5rem]",
-                    Actions: "w-[5.5rem]",
+                    Tasks: "w-[7.5rem]",
+                    Actions: "w-[7.5rem]",
                   }}
                   onSort={handleSort}
                   categoryName="Bookings"

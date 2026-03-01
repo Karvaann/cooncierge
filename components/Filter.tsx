@@ -292,10 +292,6 @@ const Filter: React.FC<FilterProps> = ({
     onSearchChange?.("");
   }, [onSearchChange]);
 
-  const handleApply = useCallback(() => {
-    onFilterChange?.(filters);
-  }, [filters, onFilterChange]);
-
   const callbackFilters = useMemo(
     () => ({ ...filters, search: effectiveSearch }),
     [filters, effectiveSearch],
@@ -319,28 +315,15 @@ const Filter: React.FC<FilterProps> = ({
     [],
   );
 
-  const serviceTypeOptions = useMemo(
-    () => renderOptions(serviceTypes),
-    [serviceTypes, renderOptions],
-  );
-  const statusOptions = useMemo(
-    () => renderOptions(statuses),
-    [statuses, renderOptions],
-  );
-  const ownerOptions = useMemo(
-    () => renderOptions(owners),
-    [owners, renderOptions],
-  );
-
   const categoryOptions = useMemo(
     () => renderOptions(categories),
     [categories, renderOptions],
   );
 
   return (
-    <div className="bg-white rounded-xl shadow pt-4.5 pb-4.5 px-4 w-full relative">
+    <div className="bg-white rounded-xl border border-[1px] border-[#E5E7EB] pt-[14px] pb-[20px] px-[14px] w-full relative">
       <div className="flex justify-between items-center mb-1">
-        <h2 className="text-[1rem] font-semibold text-[#1F2937]">Filters</h2>
+        <h2 className="text-[16px] font-[500] text-[#1F2937]">Filters</h2>
         {showCreateButton ? (
           <Button
             text={createButtonText}
@@ -430,7 +413,7 @@ const Filter: React.FC<FilterProps> = ({
                   <>
                     <span
                       key={selectedOwners[0]}
-                      className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[12px]"
+                      className="flex items-center gap-1 bg-white border border-[#CCD0DB] text-black px-2 py-0.5 rounded-full text-[12px]"
                     >
                       <button
                         type="button"

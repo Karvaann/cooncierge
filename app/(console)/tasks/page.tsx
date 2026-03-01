@@ -258,7 +258,7 @@ const DashboardContent: React.FC = () => {
           completed: false,
         },
         {
-          title: "Bookings - OS",
+          title: "My Bookings - OS",
           subtitle: "Customer Follow-up",
           time: "15:30",
           code: "BK-OS77",
@@ -266,7 +266,7 @@ const DashboardContent: React.FC = () => {
           completed: false,
         },
         {
-          title: "Bookings - OS",
+          title: "My Bookings - OS",
           subtitle: "Customer Follow-up",
           time: "15:30",
           code: "BK-OS77",
