@@ -937,42 +937,9 @@ const OSBookingsPage = () => {
   }, [activeTab]);
 
   return (
-    <div className="bg-gray-50">
-      <div className="bg-gray-50">
-        {/* <div className="flex justify-between items-center gap-4 p-6 w-full mx-[10px] mt-[-20px]"> */}
-        {/* Draft count and sync button */}
-        {/* <div className="flex items-center gap-4">
-          {drafts.length > 0 && (
-            <div className="text-sm text-gray-600">
-              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs">
-                {drafts.length} Draft{drafts.length !== 1 ? "s" : ""}
-              </span>
-            </div>
-          )}
-          <button
-            onClick={syncDrafts}
-            className="text-sm text-gray-600 hover:text-gray-800 transition"
-            type="button"
-            title="Sync drafts with backend"
-          >
-            🔄 Sync
-          </button>
-        </div> */}
-        {/* </div> */}
-
+    <div className="px-[20px] pb-[24px] bg-[#F3F3F3]">
+      <div className="bg-[#F3F3F3]">
         <div className="min-h-screen">
-          {/* {!error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-            <strong>Error:</strong> {error}
-            <button
-              onClick={loadQuotations}
-              className="ml-4 text-sm underline hover:no-underline"
-              type="button"
-            >
-              Retry
-            </button>
-          </div>
-        )} */}
 
           <Filter
             onFilterChange={handleFilterChange}
@@ -1006,10 +973,10 @@ const OSBookingsPage = () => {
                     key={tab}
                     data-tab={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`relative z-10 py-1 px-4 rounded-lg text-[14px] font-medium transition-colors duration-300 text-center ${
+                    className={`relative z-10 py-1 px-4 rounded-lg text-[13px] font-medium transition-colors duration-300 text-center ${
                       activeTab === tab
                         ? "text-white"
-                        : "text-[#818181] hover:text-gray-900 font-semibold"
+                        : "text-[#818181] hover:text-gray-900 font-[500]"
                     }`}
                   >
                     {tab}

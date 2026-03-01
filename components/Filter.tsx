@@ -348,7 +348,7 @@ const Filter: React.FC<FilterProps> = ({
       <hr className="mb-2 mt-2 border-t-1 border-[#e4dfdb]" />
 
       <div className="flex justify-between items-end mt-4 w-full">
-        <div className="grid grid-cols-3 w-3/6 items-center gap-2">
+        <div className="grid grid-cols-4 w-4/6 items-center gap-2">
           {showBookingDateFilter && (
           <div className="w-full min-w-0">
             <DateRangeInputBeta
@@ -582,7 +582,7 @@ const Filter: React.FC<FilterProps> = ({
           </div>
         )}
         </div>
-        <div className="flex w-2/6 items-center gap-3">
+        <div className="flex w-2/7 items-center gap-3">
           {/* Search */}
           <div className="w-full min-w-0">
             <div className="relative">

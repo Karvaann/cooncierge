@@ -1095,8 +1095,8 @@ const FinanceBookingsPage = () => {
   };
 
   return (
-    <div className="bg-gray-50">
-      <div className="bg-gray-50">
+    <div className="px-[20px] pb-[24px] bg-[#F3F3F3]">
+      <div className="bg-[#F3F3F3]">
         <div className="min-h-screen">
           <ErrorToast
             visible={toastVisible}
