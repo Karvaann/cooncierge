@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { createPortal } from "react-dom";
 import SideSheet from "../SideSheet";
 import SingleCalendar from "../SingleCalendar";
 import { createCustomer } from "@/services/customerApi";
@@ -9,7 +8,6 @@ import { getAuthUser } from "@/services/storage/authStorage";
 import { updateCustomer } from "@/services/customerApi";
 import { useBooking } from "@/context/BookingContext";
 import { FaRegFolder } from "react-icons/fa";
-import { CiCirclePlus } from "react-icons/ci";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
 import { LuSave } from "react-icons/lu";
@@ -115,7 +113,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   // Validation helpers / UI state for required fields
   const nameRef = useRef<HTMLInputElement | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [invalidField, setInvalidField] = useState<"name" | null>(null);
+  const [invalidField, setInvalidField] = useState<"name" | "email" | null>(
+    null,
+  );
   const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [customerCode, setCustomerCode] = useState("");
@@ -495,7 +495,22 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       showErrorToast("Please enter full name to proceed");
 
       setInvalidField("name");
+      setTimeout(() => {
+        nameRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        nameRef.current?.focus();
+      }, 100);
+      return;
+    }
 
+    // validate email
+
+    if (!formData.email || String(formData.email).trim() === "") {
+      showErrorToast("Please enter email to proceed");
+
+      setInvalidField("email");
       setTimeout(() => {
         nameRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -572,6 +587,20 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       showErrorToast("Please enter full name to proceed");
       setInvalidField("name");
 
+      setTimeout(() => {
+        nameRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        });
+        nameRef.current?.focus();
+      }, 100);
+      return;
+    }
+
+    if (!formData.email || String(formData.email).trim() === "") {
+      showErrorToast("Please enter email to proceed");
+
+      setInvalidField("email");
       setTimeout(() => {
         nameRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -979,7 +1008,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
               <div className="relative">
                 <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-green-400">
-                  <span className="text-gray-500 mr-2 text-[13px]">{getStoredCurrencySymbol()}</span>
+                  <span className="text-gray-500 mr-2 text-[13px]">
+                    {getStoredCurrencySymbol()}
+                  </span>
                   <input
                     type="text"
                     value={balanceAmount}
@@ -1004,11 +1035,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 <div className="absolute right-3 top-2 text-sm font-medium">
                   {balanceType === "debit" ? (
                     <span className=" text-green-500 text-[13px]">
-                      Customer pays you {getStoredCurrencySymbol()} {balanceAmount || ""}
+                      Customer pays you {getStoredCurrencySymbol()}{" "}
+                      {balanceAmount || ""}
                     </span>
                   ) : (
                     <span className="text-red-500 text-[13px]">
-                      You pay the customer {getStoredCurrencySymbol()} {balanceAmount || ""}
+                      You pay the customer {getStoredCurrencySymbol()}{" "}
+                      {balanceAmount || ""}
                     </span>
                   )}
                 </div>
