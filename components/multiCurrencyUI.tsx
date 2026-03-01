@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { TbNotes } from "react-icons/tb";
 import DropDown from "./DropDown";
+import NotesButtonToolTip from "./NotesButtonToolTip";
 
 type Currency = "USD" | "INR";
 
@@ -56,9 +56,6 @@ const groupInput =
 
 const addonLabel =
   "h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center";
-
-const noteBtn =
-  "w-9 h-9 rounded-md border border-gray-200 hover:bg-[#FFE8B7] transition flex items-center justify-center";
 
 const inputBase =
   "w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-green-600";
@@ -173,14 +170,7 @@ export default function MultiCurrencyInput({
         )}
 
         {/* Notes toggle button */}
-        <button
-          type="button"
-          className={noteBtn}
-          aria-label="Add notes"
-          onClick={onToggleNotes}
-        >
-          <TbNotes size={16} className="text-[#F59E0B]" />
-        </button>
+        <NotesButtonToolTip onClick={onToggleNotes} />
       </div>
 
       {/* Notes input (conditional) */}

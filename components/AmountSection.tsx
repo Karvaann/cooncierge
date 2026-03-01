@@ -146,32 +146,6 @@ const AmountSection: React.FC<AmountSectionProps> = ({
     v.commissionInr,
   ]);
 
-  const handlePriceChange =
-    (field: "costprice" | "sellingprice") =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const raw = e.target.value;
-      const sanitized = sanitizeNumeric(raw);
-      const next: any = { ...v, [field]: sanitized };
-
-      if (field === "costprice") {
-        if (requiresRoe(v.costCurrency, businessCurrency)) {
-          next.costInr = computeInr(sanitized, v.costRoe ?? "");
-        } else {
-          next.costInr = "";
-        }
-      }
-
-      if (field === "sellingprice") {
-        if (requiresRoe(v.sellingCurrency, businessCurrency)) {
-          next.sellingInr = computeInr(sanitized, v.sellingRoe ?? "");
-        } else {
-          next.sellingInr = "";
-        }
-      }
-
-      onChange(next);
-    };
-
   return (
     <div className="mb-4 border border-gray-200 rounded-lg w-full p-3">
       <div className="flex items-center justify-between mb-3">
@@ -1400,7 +1374,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
           ) : (
             /* Advanced Pricing Component */
             <div className="space-y-3">
-              <h4 className="text-[13px] font-medium text-gray-700 mb-3">
+              <h4 className="text-[13px] font-[500] text-[#414141] mb-3">
                 Vendor Payment Summary
               </h4>
 
@@ -1609,7 +1583,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 ))}
               </div>
 
-              <h4 className="text-[0.8rem] font-semibold text-gray-700">
+              <h4 className="text-[0.8rem] font-[500] text-[#414141]">
                 Customer Revenue Summary
               </h4>
 

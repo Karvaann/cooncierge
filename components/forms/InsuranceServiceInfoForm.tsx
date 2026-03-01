@@ -663,14 +663,14 @@ const InsuranceServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         initialValues={cancellationModalInitialValues}
       />
       <div
-        className={`space-y-4 py-4 px-0 -mt-1 overflow-x-hidden ${
+        className={`space-y-4 py-4 px-4 -mt-1 overflow-x-hidden ${
           isReadOnly
             ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-200 [&_select]:!bg-gray-200"
             : ""
         }`}
         ref={formRef as any}
       >
-        <div className="px-2 py-1">
+        <div className="px-0 py-1">
           {/* Booking and Travel Date */}
           {/* Booking and Travel Date */}
           <div className="flex flex-wrap items-end justify-between mb-3">

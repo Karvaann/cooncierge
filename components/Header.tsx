@@ -45,8 +45,8 @@ type PieceMapKey =
 type HeaderMapKey =
   | "/sales/limitless"
   | "/sales/other-services"
-  | "/bookings/limitless"
-  | "/bookings/other-services"
+  | "/bookings"
+  | "/bookings"
   | "/operations/limitless"
   | "/operations/other-services"
   | "/finance/bookings"
@@ -92,8 +92,7 @@ const PIECE_MAP: Record<PieceMapKey, string> = {
 const HEADER_MAP: Record<HeaderMapKey, string> = {
   "/sales/limitless": "Sales - Limitless",
   "/sales/other-services": "Sales - OS",
-  "/bookings/limitless": "My Bookings - Limitless",
-  "/bookings/other-services": "My Bookings - OS",
+  "/bookings": "My Bookings",
   "/bookings/other-services/view-booking/flights": "My Bookings - OS",
   "/bookings/other-services/view-booking/accommodation": "My Bookings - OS",
   "/operations/limitless": "Operations - Limitless",

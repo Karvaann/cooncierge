@@ -812,16 +812,16 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
         initialValues={cancellationModalInitialValues}
       />
       <div
-        className={`space-y-4 p-4 -mt-1 ${
+        className={`space-y-4 px-4 py-4 -mt-1 overflow-x-hidden ${
           isReadOnly
-            ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-200 [&_select]:!bg-gray-200"
+            ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-300 [&_select]:!bg-gray-200"
             : ""
         }`}
         ref={formRef as any}
       >
-        <div className="px-2 py-1">
+        <div className="px-0 py-1">
           {/* Booking and Travel Date */}
-          <div className="flex flex-wrap items-end justify-between gap-y-2 mb-3 px-5 -mx-5">
+          <div className="flex flex-wrap items-end justify-between gap-y-2 mb-3">
             {/* Left section: Booking + Travel Date */}
             <div className="flex flex-wrap items-end gap-2">
               {/* Booking Date */}
@@ -1404,7 +1404,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
         </div>
 
         {/* ID PROOFS */}
-        <div className="w-[98%] ml-2 border border-gray-200 rounded-[12px] p-3">
+        <div className="w-full border border-gray-200 rounded-[12px] p-3">
           <h2 className="text-[13px] font-medium mb-2">Documents</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
@@ -1437,11 +1437,11 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
               existingDocuments.map((doc, i) => (
                 <div
                   key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
-                  onClick={() => doc.url && window.open(doc.url, "_blank")}
-                  className="flex items-center justify-between"
+                  className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
                 >
                   <button
                     type="button"
+                    onClick={() => doc.url && window.open(doc.url, "_blank")}
                     className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
                     title="Click to view document"
                   >
@@ -1480,7 +1480,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
         </div>
 
         {/* Remarks Section */}
-        <div className="border border-gray-200 w-[98%] ml-2.5 rounded-[12px] p-3 mt-4">
+        <div className="border border-gray-200 w-full rounded-[12px] p-3 mt-4">
           <label className="block text-[13px] font-medium text-gray-700">
             Remarks
           </label>
@@ -1498,17 +1498,6 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             }`}
           />
         </div>
-
-        {/* Submit Button */}
-        {/* <div className="flex justify-end mt-3">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-5 py-1.5 bg-[#114958] text-[0.8rem] text-white rounded-md hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? "Saving..." : "Save"}
-          </button>
-        </div> */}
       </div>
     </>
   );

@@ -246,6 +246,7 @@ interface InputFieldProps {
   isValidating?: boolean;
   isValid?: boolean;
   selectedDisplay?: React.ReactNode;
+  isViewMode?: boolean;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
@@ -263,7 +264,7 @@ const InputField: React.FC<InputFieldProps> = ({
   hasError = false,
   errorMessage,
   isValidating = false,
-  isValid = false,
+  isViewMode = false,
   selectedDisplay,
 }) => {
   return (
@@ -287,7 +288,13 @@ const InputField: React.FC<InputFieldProps> = ({
               : "border-gray-200 focus:ring-green-400"
           }
 
-          ${disabled || isValidating ? "opacity-50 cursor-not-allowed" : ""}
+          ${
+            disabled
+              ? "bg-gray-200 cursor-not-allowed"
+              : readOnly
+                ? "bg-white cursor-default"
+                : "bg-white"
+          }
           ${selectedDisplay ? "text-transparent caret-transparent" : ""}
           ${className}
         `}
@@ -1556,16 +1563,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   return (
     <form
       ref={formRef}
-      className={`space-y-4 px-[10px] py-[28px] ${
-        isReadOnly
-          ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-200 [&_select]:!bg-gray-200"
-          : ""
-      }`}
+      className="space-y-4 px-[10px] py-[28px]"
       onSubmit={(e) => e.preventDefault()}
     >
       {/* Customer Section */}
       <div className="border border-gray-200 rounded-[12px] p-3">
-        <h2 className="text-[12px] text-[#020202] font-[400] mb-2">Billed To</h2>
+        <h2 className="text-[12px] text-[#020202] font-[400] mb-2">
+          Billed To
+        </h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
 
         {customerList.map((customer, index) => (
@@ -1649,7 +1654,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       }
                     },
                   })}
-                  readOnly={!!customer?.id}
+                  readOnly={!!customer?.id || isReadOnly}
+                  disabled={isReadOnly || isSubmitting}
                   selectedDisplay={(() => {
                     const selected = customer?.id
                       ? customersById.get(customer.id)
@@ -1800,7 +1806,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           <h2 className="text-[12px] text-[#020202] font-[400] mb-2">Vendor</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-
           <label className="text-[12px] font-[400] text-[#414141]">
             <span className="text-[#FF3B30]">*</span> Vendor
           </label>
@@ -1843,7 +1848,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                   setShowVendorDropdown(results.length > 0);
                 }}
-                readOnly={!!vendorList?.[0]?.id}
+                readOnly={!!vendorList?.[0]?.id || isReadOnly}
+                disabled={isReadOnly || isSubmitting}
                 selectedDisplay={(() => {
                   const selectedId = vendorList?.[0]?.id ?? "";
                   if (!selectedId) return null;
@@ -1991,7 +1997,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
       {/* Travellers Counter Section */}
       <div className="border border-gray-200 rounded-xl p-3">
-        <h2 className="text-[12px] text-[#020202] font-[500] mb-1">Travellers</h2>
+        <h2 className="text-[12px] text-[#020202] font-[500] mb-1">
+          Travellers
+        </h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
 
         <div className="flex gap-6 mb-5 mt-3">
@@ -1999,7 +2007,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             <label className="block text-[12px] font-[500] text-[#414141] mb-1">
               Adults
             </label>
-            <div className="w-[5rem] flex items-center justify-between border border-[1.5px] border-black rounded-lg px-2 py-1">
+            <div className="w-[5rem] flex items-center justify-between border border-black rounded-lg px-2 py-1">
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
@@ -2041,7 +2049,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             <label className="block text-[12px] font-[500] text-[#414141] mb-1">
               Children
             </label>
-            <div className="w-[5rem] flex items-center justify-between border border-[1.5px] border-black rounded-lg px-2 py-1">
+            <div className="w-[5rem] flex items-center justify-between border border-black rounded-lg px-2 py-1">
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
@@ -2235,11 +2243,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
                           onClick={() => {
                             // Set this traveller to TBA (To Be Announced)
-                            updateTraveller(
-                              "adultTravellers",
-                              index,
-                              "TBA",
-                            );
+                            updateTraveller("adultTravellers", index, "TBA");
                             setActiveTravellerDropdown(null);
                             setTravellerResults([]);
                           }}
@@ -2523,28 +2527,28 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           {!isReadOnly &&
             showPrimaryOwnerDropdown &&
             primaryOwnerResults.length > 0 && (
-            <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-              {primaryOwnerResults.map((t: TeamDataType) => (
-                <div
-                  key={t._id}
-                  className="p-2 cursor-pointer hover:bg-gray-100"
-                  onClick={() => {
-                    setOwnerList([{ id: t._id, name: t.name }]); // Save both ID and name
-                    const newFormData = {
-                      ...formData,
-                      bookingOwner: t._id,
-                      ownerName: t.name,
-                    };
-                    setFormData(newFormData);
-                    setPrimaryOwnerResults([]);
-                    setShowPrimaryOwnerDropdown(false);
-                  }}
-                >
-                  <p className="font-medium text-[13px]">{t.name}</p>
-                </div>
-              ))}
-            </div>
-          )}
+              <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+                {primaryOwnerResults.map((t: TeamDataType) => (
+                  <div
+                    key={t._id}
+                    className="p-2 cursor-pointer hover:bg-gray-100"
+                    onClick={() => {
+                      setOwnerList([{ id: t._id, name: t.name }]); // Save both ID and name
+                      const newFormData = {
+                        ...formData,
+                        bookingOwner: t._id,
+                        ownerName: t.name,
+                      };
+                      setFormData(newFormData);
+                      setPrimaryOwnerResults([]);
+                      setShowPrimaryOwnerDropdown(false);
+                    }}
+                  >
+                    <p className="font-medium text-[13px]">{t.name}</p>
+                  </div>
+                ))}
+              </div>
+            )}
         </div>
 
         <div className="mt-3">
@@ -2602,7 +2606,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 <div
                   className={`w-full min-h-[1.5rem] text-[12px] -mt-0.5 border border-gray-200 rounded-md px-2.5 py-2 flex items-center flex-wrap gap-1 ${
                     isReadOnly
-                      ? "bg-gray-100 text-gray-700 cursor-not-allowed"
+                      ? "bg-gray-200 text-gray-700 cursor-not-allowed"
                       : "hover:border-green-200 cursor-pointer"
                   }`}
                   onClick={(e) => {
@@ -2784,10 +2788,15 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           onChange={handleChange}
           placeholder="Enter Your Remarks Here"
           disabled={isSubmitting}
+          readOnly={isReadOnly}
           className={`
             w-full border border-gray-200 rounded-md px-3 py-2 text-[13px]  mt-2 transition-colors
             focus:ring focus:ring-blue-200
-            ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}
+            ${
+              isReadOnly || isSubmitting
+                ? "bg-gray-200 cursor-not-allowed"
+                : "bg-white"
+            }
           `}
         />
       </div>

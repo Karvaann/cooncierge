@@ -471,7 +471,7 @@ const LandTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         }`}
         ref={formRef as any}
       >
-        <div className="py-1">
+        <div className="px-0 py-1">
           {/* Booking and Travel Date */}
           <div className="flex flex-wrap items-end justify-between mb-3">
             {/* Left section: Booking + Travel Date */}

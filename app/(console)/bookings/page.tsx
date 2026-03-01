@@ -101,6 +101,7 @@ interface QuotationData {
   quotationType: string;
   channel: string;
   partyId: string;
+  taskCount: number;
   customerId: {
     _id: string;
     name: string;
@@ -1246,7 +1247,7 @@ const OSBookingsPage = () => {
           className="flex justify-center"
           onClick={(e) => e.stopPropagation()}
         >
-          <TaskButton count={0} bookingId={item._id} />
+          <TaskButton count={item.taskCount} bookingId={item._id} />
         </div>
       </td>,
 
@@ -1305,6 +1306,7 @@ const OSBookingsPage = () => {
             setCreateOpen={setIsCreateOpen}
             onCreateClick={handleCreateRequested}
             allowAdvanceOwnerSearch={true}
+            showBookingType={true}
           />
 
           <div className="bg-white rounded-2xl border border-[#E5E7EB] mt-4 pt-5 pb-3 px-3 relative">

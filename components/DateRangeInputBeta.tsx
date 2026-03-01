@@ -135,7 +135,7 @@ const toDate = (value?: string) => {
 };
 
 const formatDisplayDate = (value: Date | null) =>
-  value ? format(value, "dd-MM-yyyy") : "";
+  value ? format(value, "dd MMM yyyy") : "";
 
 const toIsoBoundary = (value: Date | null) =>
   value ? startOfDay(value).toISOString() : "";
@@ -180,22 +180,22 @@ const getDayButtonClasses = ({
   isInRange: boolean;
 }) => {
   if (isRangeStart && isRangeEnd) {
-    return "h-[16px] bg-[#525252] text-white rounded-md";
+    return "h-[24px] bg-[#525252] text-white rounded-md";
   }
 
   if (isRangeStart) {
-    return "h-[16px] bg-[#525252] text-white rounded-l-md";
+    return "h-[24px] bg-[#525252] text-white rounded-l-md";
   }
 
   if (isRangeEnd) {
-    return "h-[16px] bg-[#525252] text-white rounded-r-md";
+    return "h-[24px] bg-[#525252] text-white rounded-r-md";
   }
 
   if (isInRange) {
-    return "h-[16px] bg-[#E7E7E7] text-[#333333] rounded-none";
+    return "h-[24px] bg-[#E7E7E7] text-[#333333] rounded-none";
   }
 
-  return "h-[16px] text-[#111827] hover:bg-gray-50 rounded-md";
+  return "h-[24px] text-[#111827] hover:bg-gray-50 rounded-md";
 };
 
 function CalendarMonth({
@@ -247,7 +247,7 @@ function CalendarMonth({
               type="button"
               onClick={() => onSelectDate(normalizedDate)}
               onMouseEnter={() => onHoverDate(normalizedDate)}
-              className={`relative h-7 w-full px-0 text-[12px] transition-colors ${
+              className={`relative h-9 w-full px-0 text-[14px] transition-colors ${
                 isCurrentMonth ? "" : "text-gray-300"
               }`}
             >
@@ -454,9 +454,9 @@ export default function DateRangeInputBeta({
         className="relative flex items-center gap-2 justify-between w-full max-h-[2.8rem] border border-gray-300 rounded-sm px-[12px] py-[9px] bg-white hover:border-green-200 transition-colors select-none text-[14px]"
         onClick={() => setOpen((prev) => !prev)}
       >
-        <span className="text-[#9CA3AF]">{displayValue.start}</span>
-        <span className="text-gray-400">→</span>
-        <span className="text-[#9CA3AF]">{displayValue.end}</span>
+        <span className={displayValue.start === "Start Date" ? "text-[#9CA3AF]" : "text-[#020202]"}>{displayValue.start}</span>
+        <span className="text-[#818181]">→</span>
+        <span className={displayValue.end === "End Date" ? "text-[#9CA3AF]" : "text-[#020202]"}>{displayValue.end}</span>
         {startDate && endDate ? (
           <span
             role="button"
@@ -465,7 +465,7 @@ export default function DateRangeInputBeta({
               event.stopPropagation();
               clearDates();
             }}
-            className="text-[#9CA3AF] hover:text-gray-600 rounded-sm cursor-pointer"
+            className="text-[#818181] hover:text-gray-600 rounded-sm cursor-pointer"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -489,7 +489,7 @@ export default function DateRangeInputBeta({
       </button>
 
       {open && (
-        <div className="absolute mt-2 z-50 rounded-md bg-white border border-gray-200 p-2 w-[500px] min-h-[240px] date-range-popover">
+        <div className="absolute mt-2 z-50 rounded-md bg-white border border-gray-200 p-2 w-[700px] min-h-[240px] date-range-popover">
           <div className="flex gap-0">
             <div className="presets-column h-fit w-26 border-r border-gray-200 p-2 space-y-1">
               {presetRanges.map((preset) => (

@@ -733,7 +733,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
       />
 
       <form
-        className={`space-y-4 py-4 px-2 -mt-1 overflow-x-hidden ${
+        className={`space-y-4 py-4 px-4 -mt-1 overflow-x-hidden ${
           isReadOnly
             ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-200 [&_select]:!bg-gray-200"
             : ""
@@ -741,7 +741,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         ref={formRef}
         onSubmit={(e) => e.preventDefault()}
       >
-        <div className="py-1">
+        <div className="px-0 py-1">
           {/* Booking and Travel Date */}
           <div className="flex flex-wrap items-end justify-between mb-3">
             {/* Left section: Booking + Travel Date */}

@@ -856,7 +856,7 @@ const OSBookingsPage = () => {
           className="px-4 py-3 text-center align-middle h-[3rem]"
         >
           <div className="flex justify-center">
-            <TaskButton count={0} bookingId={item._id} />
+            <TaskButton count={item.tasksCount} bookingId={item._id} />
           </div>
         </td>
         )

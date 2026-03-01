@@ -40,7 +40,7 @@ const TaskButton = ({ count, bookingId }: TaskButtonProps) => {
         if (!cancelled) setLoading(false);
       }
     };
-    fetch();
+    // fetch();
     return () => {
       cancelled = true;
     };
