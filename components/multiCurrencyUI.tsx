@@ -3,7 +3,7 @@
 import React, { useMemo } from "react";
 import DropDown from "./DropDown";
 import NotesButtonToolTip from "./NotesButtonToolTip";
-
+import { CURRENCIES } from "../utils/currencies";
 type Currency = "USD" | "INR";
 
 type MultiCurrencyInputProps = {
@@ -46,6 +46,7 @@ type MultiCurrencyInputProps = {
   amountInputWidth?: string;
   // Optional: Use white background for currency dropdown instead of gray
   useWhiteDropdown?: boolean;
+  readOnly?: boolean;
 };
 
 const groupBase =
@@ -55,7 +56,7 @@ const groupInput =
   "h-[34px] px-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 outline-none";
 
 const addonLabel =
-  "h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center";
+  "h-[34px] px-2 text-[0.72rem] text-gray-600 border-r border-gray-200 flex items-center";
 
 const inputBase =
   "w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-green-600";
@@ -83,6 +84,7 @@ export default function MultiCurrencyInput({
   useWhiteDropdown = true,
   notesInputWidth,
   amountInputWidth,
+  readOnly = false,
 }: MultiCurrencyInputProps) {
   const showRoeFields = requiresRoe(currency, businessCurrency);
 
@@ -122,25 +124,31 @@ export default function MultiCurrencyInput({
         {/* Currency + Amount */}
         <div className={groupBase}>
           <DropDown
-            options={[
-              { value: "INR", label: "INR" },
-              { value: "USD", label: "USD" },
-            ]}
+            options={CURRENCIES.map((c) => ({
+              value: c.value,
+              label: `${c.value} – ${c.label}`,
+              buttonLabel: c.value,
+              searchLabel: `${c.value} ${c.label} ${c.symbol}`,
+            }))}
             value={currency}
             onChange={(val) => onCurrencyChange(val as Currency)}
             customWidth="w-[64px]"
+            menuWidth="w-[220px]"
             noBorder={true}
             noButtonRadius={true}
             focusRingClass=""
-            buttonClassName={`${useWhiteDropdown ? "bg-white" : "bg-gray-50"} text-[0.78rem] text-gray-700 px-2 h-[34px]`}
+            buttonClassName={` text-[0.78rem] text-gray-700 px-2 h-[34px]`}
             className={groupSelectWhite}
+            typeable
+            readOnly={readOnly}
           />
           <input
-            className={`${groupInput} flex-1`}
+            className={`${groupInput} flex-1${readOnly ? "cursor-not-allowed" : ""}`}
             type="text"
             placeholder={amountPlaceholder}
             value={amount}
             onChange={(e) => onAmountChange(e.target.value)}
+            readOnly={readOnly}
           />
         </div>
 
@@ -152,8 +160,9 @@ export default function MultiCurrencyInput({
               <input
                 value={roe}
                 onChange={(e) => onRoeChange(e.target.value)}
-                className={`${groupInput} flex-1`}
+                className={`${groupInput} flex-1${readOnly ? "cursor-not-allowed" : ""}`}
                 placeholder=""
+                readOnly={readOnly}
               />
             </div>
 
@@ -182,9 +191,10 @@ export default function MultiCurrencyInput({
           <input
             value={notes}
             onChange={(e) => onNotesChange(e.target.value)}
-            className={inputClassName || inputBase}
+            className={`${inputClassName || inputBase}${readOnly ? "cursor-not-allowed" : ""}`}
             placeholder={notesPlaceholder}
             style={notesInputWidth ? { width: notesInputWidth } : undefined}
+            readOnly={readOnly}
           />
         </div>
       )}

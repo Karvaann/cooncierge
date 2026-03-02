@@ -1257,6 +1257,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           textColor="text-white"
                           width="w-auto"
                           type="button"
+                          className="mr-4"
                           disabled={isSubmitting || !quotationId}
                         />
                       )}

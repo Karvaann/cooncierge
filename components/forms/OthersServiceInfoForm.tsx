@@ -451,7 +451,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
           min={min}
           disabled={isSubmitting || isValidatingField}
           className={`
-            w-full border rounded-md px-3 py-2 pr-10 text-sm transition-colors
+            w-full border rounded-md px-3 py-2 pr-10 text-sm text-[#020202] transition-colors
             ${
               hasError
                 ? "border-red-300 focus:ring-red-200"
@@ -623,6 +623,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 placeholder="Booking Status"
                 value={formData.bookingstatus}
                 onChange={handleBookingStatusChange}
+                readOnly={isReadOnly}
               />
             </div>
           </div>
@@ -643,7 +644,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
           {/* ================= Others INFO ================ */}
           <div className="w-full border border-gray-200 rounded-[12px] p-3 mt-4">
-            <h1 className="text-[0.85rem] font-medium text-gray-800 mb-2">
+            <h1 className="text-[0.85rem] font-[500] text-[#414141] mb-2">
               Others Info
             </h1>
 
@@ -653,7 +654,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
             <div className="flex flex-col gap-3 w-full mb-4">
               {/* Confirmation number */}
               <div className="flex flex-col w-full">
-                <label className="text-[13px] font-medium text-gray-700 mb-1">
+                <label className="text-[13px] font-[500] text-[#414141] mb-1">
                   Confirmation number
                 </label>
                 <input
@@ -662,13 +663,13 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   value={formData.confirmationNumber}
                   onChange={handleChange}
                   placeholder="Enter Confirmation Number"
-                  className="w-[30%] px-3 py-1.5 border border-gray-300 rounded-md text-[13px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-[30%] px-3 py-1.5 border border-gray-300 rounded-md text-[13px] text-[#020202] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
               {/* Title */}
               <div className="flex flex-col w-full">
-                <label className="text-[13px] font-medium text-gray-700 mb-1">
+                <label className="text-[13px] font-[500] text-[#414141] mb-1">
                   Title
                 </label>
                 <input
@@ -677,7 +678,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="Title …"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[13px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-[99%] px-3 py-1.5 border border-gray-300 rounded-md text-[13px] text-[#020202] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -689,14 +690,15 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
               onChange={(val) =>
                 setFormData((prev) => ({ ...prev, description: val }))
               }
+              readOnly={isReadOnly}
             />
           </div>
         </div>
 
         {/* ID PROOFS */}
         <div className="w-full border border-gray-200 rounded-[12px] p-3">
-          <h2 className="text-[13px] font-medium mb-2">Documents</h2>
-          <hr className="mt-1 mb-2 border-t border-gray-200" />
+          <h2 className="text-[13px] font-[500] mb-2">Documents</h2>
+          <hr className="mt-1 mb-3 border-t border-gray-200" />
 
           <input
             type="file"
@@ -713,29 +715,29 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
               if (isDocumentLimitReached) return;
               fileInputRef.current?.click();
             }}
-            disabled={isDocumentLimitReached}
-            className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
-                                                                                       border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+            disabled={isDocumentLimitReached || isReadOnly}
+            className="px-3 py-1 flex gap-1 bg-white text-[#126ACB] border 
+                              border-[#126ACB] rounded-md text-[12px] hover:cursor-pointer font-[600] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
           >
-            <MdOutlineFileUpload size={16} /> Attach Files
+            <MdOutlineFileUpload size={18} /> Attach Files
           </button>
 
           {/* PREVIEW FILES */}
-          <div className="mt-2 flex flex-col gap-2">
+          <div className="mt-1 flex flex-col gap-2">
             {Array.isArray(existingDocuments) &&
               existingDocuments.length > 0 &&
               existingDocuments.map((doc, i) => (
                 <div
                   key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
+                  onClick={() => doc.url && window.open(doc.url, "_blank")}
                   className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
                 >
                   <button
                     type="button"
-                    onClick={() => doc.url && window.open(doc.url, "_blank")}
-                    className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+                    className="text-[#126ACB]  p-1.5 -ml-2 rounded-md bg-[#126ACB0D] text-[13px] truncate flex items-center gap-2 hover:cursor-pointer  transition-colors cursor-pointer"
                     title="Click to view document"
                   >
-                    <FaRegFolder className="text-blue-500 w-3 h-3" />
+                    <FaRegFolder className="text-[#126ACB] w-3 h-3" />
                     {doc.originalName || doc.fileName}
                   </button>
                 </div>
@@ -744,13 +746,11 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
             {attachedFiles.map((file, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between w-full 
-                                               bg-white rounded-md 
-                                               px-3 py-2 hover:bg-gray-50 transition"
+                className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
               >
                 {/* File Name */}
-                <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
-                  <FaRegFolder className="text-blue-500 w-3 h-3" />
+                <span className="text-[#126ACB]  p-1.5 -ml-2 rounded-md bg-[#126ACB0D] text-[13px] truncate flex items-center gap-2">
+                  <FaRegFolder className="text-[#126ACB] w-3 h-3" />
                   {file.name}
                 </span>
 
@@ -758,7 +758,7 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 <button
                   type="button"
                   onClick={() => handleDeleteFile(i)}
-                  className="text-red-500 hover:text-red-700"
+                  className="text-[#EB382B] hover:cursor-pointer"
                 >
                   <FiTrash2 size={16} />
                 </button>
@@ -766,14 +766,14 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
             ))}
           </div>
 
-          <div className="text-red-600 text-[0.65rem]">
-            Note: A maximum of 3 documents can be uploaded.
+          <div className="text-[#EB382B] font-[500] text-[0.65rem]">
+            Note: Maximum of 3 files can be uploaded
           </div>
         </div>
 
         {/* Remarks Section */}
         <div className="border border-gray-200 w-full rounded-[12px] p-3 mt-4">
-          <label className="block text-[13px] font-medium text-gray-700">
+          <label className="block text-[13px] font-[500] text-[#414141]">
             Remarks
           </label>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -785,8 +785,8 @@ const OthersServiceInfoForm: React.FC<OtherInfoFormProps> = ({
             onBlur={handleBlur}
             placeholder="Enter Your Remarks Here"
             disabled={isSubmitting}
-            className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[13px] mt-1 transition-colors focus:ring focus:ring-blue-200 ${
-              isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+            className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[13px] text-[#020202] mt-1 transition-colors focus:ring focus:ring-blue-200 ${
+              isSubmitting ? "bg-gray-200 cursor-not-allowed" : ""
             }`}
           />
         </div>

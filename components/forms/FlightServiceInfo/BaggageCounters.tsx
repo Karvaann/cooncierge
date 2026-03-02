@@ -98,8 +98,8 @@ export default function BaggageCounters({
   return (
     <div className="pt-1">
       <div className="flex items-center justify-between">
-        <span className="text-[0.75rem] font-medium text-gray-600">Cabin</span>
-        <span className="text-[0.75rem] font-medium text-gray-600">
+        <span className="text-[0.75rem] font-[500] text-[#414141]">Cabin</span>
+        <span className="text-[0.75rem] mr-28 font-[500] text-[#414141]">
           Check-In
         </span>
       </div>

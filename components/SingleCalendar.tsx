@@ -488,6 +488,9 @@ export default function SingleCalendar({
     </div>
   );
 
+  // compute width class: prefer `customWidth`, then `inputClassName`, then default
+  const widthClass = customWidth || inputClassName || "w-[12rem]";
+
   return (
     <div className="relative" ref={ref}>
       {label && (
@@ -500,9 +503,7 @@ export default function SingleCalendar({
         </label>
       )}
 
-      <div
-        className="relative"
-      >
+      <div className="relative">
         <input
           type="text"
           value={inputValue}
@@ -525,14 +526,12 @@ export default function SingleCalendar({
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          className={`relative ${
-              customWidth || "w-[12rem]" || inputClassName
-            } border border-gray-300 rounded-md ${
-              (readOnly
-              ? "bg-gray-100 cursor-default border-gray-200 w-full px-2 py-1 pr-7 text-[13px] text-gray-700 bg-gray-100 cursor-default"
-              : "bg-white hover:border-green-400 w-full pr-7 px-2 py-1 text-[13px] text-gray-700 outline-none bg-transparent")
-            } transition-colors`}
-        onClick={(e) => e.stopPropagation()}
+          className={`relative ${widthClass} border border-gray-300 rounded-md ${
+            readOnly
+              ? "px-2 py-1 pr-7 text-[13px] text-gray-700 bg-gray-200 cursor-default"
+              : "hover:border-green-400 pr-7 px-2 py-1 text-[13px] text-gray-700 outline-none bg-transparent"
+          } transition-colors`}
+          onClick={(e) => e.stopPropagation()}
         />
 
         {!readOnly && showCalendarIcon && (

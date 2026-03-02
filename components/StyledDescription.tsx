@@ -34,6 +34,9 @@ export default function StyledDescription({
     ul: false,
     ol: false,
   });
+  const [isEmpty, setIsEmpty] = useState(
+    !value || value.trim() === "" || value === "<br>",
+  );
 
   const LIST_BASE_CLASS = "text-black pl-4";
   const getListClassName = (type: "ul" | "ol") =>
@@ -56,11 +59,12 @@ export default function StyledDescription({
     const editor = editorRef.current;
     if (!editor) return;
 
+    const newContent = value || "";
     // Avoid cursor jump if content is already same
-    if (editor.innerHTML !== value) {
-      editor.innerHTML = value || "Type here...";
-      editor.style.color = value ? "#374151" : "#9ca3af";
+    if (editor.innerHTML !== newContent) {
+      editor.innerHTML = newContent;
     }
+    setIsEmpty(!value || value.trim() === "" || value === "<br>");
   }, [value]);
 
   const handleEditorInput = () => {
@@ -68,14 +72,12 @@ export default function StyledDescription({
     if (!editor) return;
 
     const html = editor.innerHTML;
+    const text = editor.textContent?.trim() || "";
+    const editorIsEmpty =
+      text === "" || html === "<br>" || html === "<div><br></div>";
+    setIsEmpty(editorIsEmpty);
 
-    // Ignore placeholder
-    if (editor.textContent === "Type here...") {
-      onChange?.("");
-      return;
-    }
-
-    onChange?.(html);
+    onChange?.(editorIsEmpty ? "" : html);
   };
 
   const rangeIntersectsNode = (range: Range, node: Node): boolean => {
@@ -283,48 +285,8 @@ export default function StyledDescription({
     updateActiveFormats();
   };
 
-  useEffect(() => {
-    // Remove placeholder on focus if empty
-    const editor = editorRef.current;
-
-    const handleFocus = (): void => {
-      if (editor && editor.textContent === "Type here...") {
-        editor.textContent = "";
-      }
-    };
-
-    const handleBlur = (): void => {
-      if (editor && editor.textContent?.trim() === "") {
-        editor.textContent = "Type here...";
-        editor.style.color = "#9ca3af";
-      }
-    };
-
-    const handleInput = (): void => {
-      if (editor && editor.textContent?.trim() !== "") {
-        editor.style.color = "#374151";
-      }
-    };
-
-    editor?.addEventListener("focus", handleFocus);
-    editor?.addEventListener("blur", handleBlur);
-    editor?.addEventListener("input", handleInput);
-
-    return () => {
-      editor?.removeEventListener("focus", handleFocus);
-      editor?.removeEventListener("blur", handleBlur);
-      editor?.removeEventListener("input", handleInput);
-    };
-  }, []);
-
   const execCommand = (command: string, value?: string): void => {
     const editor = editorRef.current;
-
-    // Clear placeholder if present
-    if (editor && editor.textContent === "Type here...") {
-      editor.textContent = "";
-      editor.style.color = "#374151";
-    }
 
     document.execCommand(command, false, value);
     editor?.focus();
@@ -334,12 +296,6 @@ export default function StyledDescription({
   const insertList = (type: "ul" | "ol") => {
     const editor = editorRef.current;
     if (!editor) return;
-
-    // Clear placeholder if present
-    if (editor.textContent === "Type here...") {
-      editor.textContent = "";
-      editor.style.color = "#374151";
-    }
 
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
@@ -538,73 +494,83 @@ export default function StyledDescription({
         className={`${boxWidth} mt-1 bg-white rounded-md border border-gray-200`}
       >
         {/* Toolbar */}
-        <div className="flex items-center gap-2 px-2 py-1">
-          <button
-            type="button"
-            onClick={() => handleButtonClick("bold")}
-            className={`px-2 py-1 text-[0.75rem] font-semibold rounded hover:bg-gray-100 transition-colors ${
-              activeFormats.bold ? "bg-gray-100" : ""
-            }`}
-            title="Bold"
-          >
-            Bold
-          </button>
-          <button
-            type="button"
-            onClick={() => handleButtonClick("italic")}
-            className={`px-2 py-1 text-[0.75rem] italic rounded hover:bg-gray-100 transition-colors ${
-              activeFormats.italic ? "bg-gray-100" : ""
-            }`}
-            title="Italic"
-          >
-            Italic
-          </button>
-          <button
-            type="button"
-            onClick={() => handleButtonClick("underline")}
-            className={`px-2 py-1 text-[0.75rem] underline rounded hover:bg-gray-100 transition-colors ${
-              activeFormats.underline ? "bg-gray-100" : ""
-            }`}
-            title="Underline"
-          >
-            Underline
-          </button>
-          <button
-            type="button"
-            onClick={() => insertList("ul")}
-            className={`px-2 py-1 text-[0.75rem] rounded hover:bg-gray-100 transition-colors ${
-              activeFormats.ul ? "bg-gray-100" : ""
-            }`}
-            title="Unordered List"
-          >
-            UL
-          </button>
-          <button
-            type="button"
-            onClick={() => insertList("ol")}
-            className={`px-2 py-1 text-[0.75rem] rounded hover:bg-gray-100 transition-colors ${
-              activeFormats.ol ? "bg-gray-100" : ""
-            }`}
-            title="Ordered List"
-          >
-            OL
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="flex items-center gap-2 px-2 py-1">
+            <button
+              type="button"
+              onClick={() => handleButtonClick("bold")}
+              className={`px-2 py-1 text-[0.75rem] font-semibold rounded hover:bg-gray-100 transition-colors ${
+                activeFormats.bold ? "bg-gray-100" : ""
+              }`}
+              title="Bold"
+            >
+              Bold
+            </button>
+            <button
+              type="button"
+              onClick={() => handleButtonClick("italic")}
+              className={`px-2 py-1 text-[0.75rem] italic rounded hover:bg-gray-100 transition-colors ${
+                activeFormats.italic ? "bg-gray-100" : ""
+              }`}
+              title="Italic"
+            >
+              Italic
+            </button>
+            <button
+              type="button"
+              onClick={() => handleButtonClick("underline")}
+              className={`px-2 py-1 text-[0.75rem] underline rounded hover:bg-gray-100 transition-colors ${
+                activeFormats.underline ? "bg-gray-100" : ""
+              }`}
+              title="Underline"
+            >
+              Underline
+            </button>
+            <button
+              type="button"
+              onClick={() => insertList("ul")}
+              className={`px-2 py-1 text-[0.75rem] rounded hover:bg-gray-100 transition-colors ${
+                activeFormats.ul ? "bg-gray-100" : ""
+              }`}
+              title="Unordered List"
+            >
+              UL
+            </button>
+            <button
+              type="button"
+              onClick={() => insertList("ol")}
+              className={`px-2 py-1 text-[0.75rem] rounded hover:bg-gray-100 transition-colors ${
+                activeFormats.ol ? "bg-gray-100" : ""
+              }`}
+              title="Ordered List"
+            >
+              OL
+            </button>
+          </div>
+        )}
 
-        <hr className="mb-1 mr-2 ml-2 -mt-1 border-t border-gray-200" />
+        {!readOnly && (
+          <hr className="mb-1 mr-2 ml-2 -mt-1 border-t border-gray-200" />
+        )}
 
         {/* Editor Area */}
-        <div
-          ref={editorRef}
-          contentEditable={!readOnly}
-          className="px-3 py-2 min-h-[80px] text-[13px] outline-none focus:ring-0"
-          style={{ color: "#9ca3af" }}
-          onInput={handleEditorInput}
-          onMouseUp={updateActiveFormats}
-          onKeyUp={updateActiveFormats}
-          onSelect={updateActiveFormats}
-          suppressContentEditableWarning
-        ></div>
+        <div className="relative">
+          {isEmpty && (
+            <div className="absolute top-0 left-0 px-3 py-2 text-[13px] text-gray-400 pointer-events-none select-none">
+              Type here...
+            </div>
+          )}
+          <div
+            ref={editorRef}
+            contentEditable={!readOnly}
+            className={`px-3 py-2 min-h-[80px] text-[13px] text-gray-700 outline-none focus:ring-0 ${readOnly ? "bg-gray-200 cursor-not-allowed" : ""}`}
+            onInput={handleEditorInput}
+            onMouseUp={updateActiveFormats}
+            onKeyUp={updateActiveFormats}
+            onSelect={updateActiveFormats}
+            suppressContentEditableWarning
+          ></div>
+        </div>
       </div>
     </>
   );

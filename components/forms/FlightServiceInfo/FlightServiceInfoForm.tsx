@@ -735,7 +735,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
       <form
         className={`space-y-4 py-4 px-4 -mt-1 overflow-x-hidden ${
           isReadOnly
-            ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-200 [&_select]:!bg-gray-200"
+            ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-300 [&_select]:!bg-gray-200"
             : ""
         }`}
         ref={formRef}
@@ -818,7 +818,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 
           {/* Flight Info */}
           <div className="mb-4 w-full border border-gray-200 rounded-md p-3 mt-4">
-            <h2 className="text-[13px] font-medium text-gray-700 mb-2">
+            <h2 className="text-[13px] font-[500] text-gray-700 mb-2">
               Flight Info
             </h2>
 
@@ -827,7 +827,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             {/* PNR and Toggle */}
             <div className="flex items-end gap-8 mb-3 ml-2">
               <div>
-                <label className="block text-[0.7rem] font-medium text-gray-700 mb-1">
+                <label className="block text-[0.7rem] font-[500] text-gray-700 mb-1">
                   PNR
                 </label>
                 <input
@@ -886,11 +886,11 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                     onClick={() =>
                       setFormData((prev) => ({ ...prev, flightType: type }))
                     }
-                    className={`px-3 py-1.5 text-[0.7rem] font-medium transition-colors rounded-lg
+                    className={`px-3 py-1.5 text-[0.7rem] font-[500] transition-colors rounded-lg
         ${
           formData.flightType === type
-            ? "bg-[#E8F9F7] text-green-700 font-semibold border border-green-700"
-            : "bg-transparent text-gray-700"
+            ? "bg-[#E8F9F7] text-[#0D4B37] font-[600] border border-[#0D4B37]"
+            : "bg-transparent text-[#414141]"
         }`}
                   >
                     {type}
@@ -916,8 +916,8 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 
         {/* ID PROOFS */}
         <div className="w-full border border-gray-200 rounded-[12px] p-3">
-          <h2 className="text-[13px] font-medium mb-2">Documents</h2>
-          <hr className="mt-1 mb-2 border-t border-gray-200" />
+          <h2 className="text-[13px] font-[500] mb-2">Documents</h2>
+          <hr className="mt-1 mb-3 border-t border-gray-200" />
 
           <input
             type="file"
@@ -934,29 +934,29 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
               if (isDocumentLimitReached) return;
               fileInputRef.current?.click();
             }}
-            disabled={isDocumentLimitReached}
-            className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
-                               border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+            disabled={isDocumentLimitReached || isReadOnly}
+            className="px-3 py-1 flex gap-1 bg-white text-[#126ACB] border 
+                              border-[#126ACB] rounded-md text-[12px] hover:cursor-pointer font-[600] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
           >
-            <MdOutlineFileUpload size={16} /> Attach Files
+            <MdOutlineFileUpload size={18} /> Attach Files
           </button>
 
           {/* PREVIEW FILES */}
-          <div className="mt-2 flex flex-col gap-2">
+          <div className="mt-1 flex flex-col gap-2">
             {Array.isArray(existingDocuments) &&
               existingDocuments.length > 0 &&
               existingDocuments.map((doc, i) => (
                 <div
                   key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
+                  onClick={() => doc.url && window.open(doc.url, "_blank")}
                   className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
                 >
                   <button
                     type="button"
-                    onClick={() => doc.url && window.open(doc.url, "_blank")}
-                    className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+                    className="text-[#126ACB]  p-1.5 -ml-2 rounded-md bg-[#126ACB0D] text-[13px] truncate flex items-center gap-2 hover:cursor-pointer  transition-colors cursor-pointer"
                     title="Click to view document"
                   >
-                    <FaRegFolder className="text-blue-500 w-3 h-3" />
+                    <FaRegFolder className="text-[#126ACB] w-3 h-3" />
                     {doc.originalName || doc.fileName}
                   </button>
                 </div>
@@ -965,13 +965,11 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             {attachedFiles.map((file, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between w-full 
-                           bg-white rounded-md 
-                           px-3 py-2 hover:bg-gray-50 transition"
+                className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
               >
                 {/* File Name */}
-                <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
-                  <FaRegFolder className="text-blue-500 w-3 h-3" />
+                <span className="text-[#126ACB]  p-1.5 -ml-2 rounded-md bg-[#126ACB0D] text-[13px] truncate flex items-center gap-2">
+                  <FaRegFolder className="text-[#126ACB] w-3 h-3" />
                   {file.name}
                 </span>
 
@@ -979,7 +977,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                 <button
                   type="button"
                   onClick={() => handleDeleteFile(i)}
-                  className="text-red-500 hover:text-red-700"
+                  className="text-[#EB382B] hover:cursor-pointer"
                 >
                   <FiTrash2 size={16} />
                 </button>
@@ -987,7 +985,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             ))}
           </div>
 
-          <div className="text-red-600 text-[0.65rem]">
+          <div className="text-[#EB382B] font-[500] text-[0.65rem]">
             Note: Maximum of 3 files can be uploaded
           </div>
         </div>
@@ -1006,7 +1004,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 
         {/* Remarks Section */}
         <div className="border border-gray-200 w-full rounded-[12px] p-3 mt-4">
-          <label className="block text-[13px] font-medium text-gray-700">
+          <label className="block text-[13px] font-[500] text-[#414141]">
             Remarks
           </label>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -1023,17 +1021,6 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             }`}
           />
         </div>
-
-        {/* Submit Button
-        <div className="flex justify-end mt-3">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-5 py-1.5 bg-[#114958] text-[0.8rem] text-white rounded-md hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? "Saving..." : "Save"}
-          </button>
-        </div> */}
       </form>
     </>
   );

@@ -437,7 +437,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       value: user._id,
       label: (
         <div className="flex flex-col">
-          <span className="text-[13px] font-medium">
+          <span className="text-[13px] font-[500]">
             {user.name || "Unnamed User"}
           </span>
           {user.email && (
@@ -649,54 +649,15 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
           noValidate
         >
           <div className="space-y-6 p-4 overflow-y-auto flex-1 pb-16">
-            {/* Error Alert Popup (reuse login style) */}
-            {/* {mounted &&
-            showError &&
-            createPortal(
-              <div className="fixed top-8 left-1/2 transform -translate-x-1/2 z-[1100] flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 px-2 py-1 rounded-full shadow-md max-w-[90vw] text-[0.65rem]">
-                <svg
-                  className="w-4 h-4 text-red-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    fill="none"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 8v4m0 4h.01"
-                  />
-                </svg>
-                <span className="font-semibold">Error :</span>
-                <span className="">{errorMessage}</span>
-                <button
-                  type="button"
-                  className="ml-2 text-red-400 hover:text-red-600 text-lg font-bold"
-                  aria-label="Close alert"
-                  onClick={() => setShowError(false)}
-                >
-                  ×
-                </button>
-              </div>,
-              document.body
-            )} */}
             {/* ================= BASIC DETAILS ================ */}
             <div className="border border-gray-200 rounded-[12px] p-3 -mt-2">
-              <h2 className="text-[13px] font-medium mb-2">Basic Details</h2>
+              <h2 className="text-[13px] font-[500] mb-2">Basic Details</h2>
               <hr className="mt-1 mb-2 border-t border-gray-200" />
 
               {/* Row 1: Full Name */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                 <div className="flex flex-col gap-1 md:col-span-2">
-                  <label className="block text-[13px] font-medium text-gray-700">
+                  <label className="block text-[13px] font-[500] text-[#414141]">
                     Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -707,7 +668,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={handleChange}
                     placeholder="Enter Full Name"
                     disabled={readOnly}
-                    className={`w-full rounded-md px-3 py-2 text-[13px] focus:outline-none hover:border-green-400 focus:ring-green-400 focus:ring-1 disabled:bg-gray-100 disabled:text-gray-700 ${
+                    className={`w-full rounded-md px-3 py-2 text-[13px] focus:outline-none hover:border-green-400 focus:ring-green-400 focus:ring-1 disabled:bg-gray-200 disabled:text-[#020202] ${
                       invalidField === "name"
                         ? "border border-red-300 focus:ring-red-200"
                         : "border border-gray-300"
@@ -719,7 +680,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               {/* Row 2: Alias + Phone */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                 <div className="flex flex-col gap-1">
-                  <label className="block text-[13px] font-medium text-gray-700">
+                  <label className="block text-[13px] font-[500] text-[#414141]">
                     Nickname/Alias
                   </label>
                   <input
@@ -729,11 +690,11 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={handleChange}
                     placeholder="Enter Nickname/Alias"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-200 disabled:text-[#020202]"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="block text-[13px] font-medium text-gray-700">
+                  <label className="block text-[13px] font-[500] text-[#414141]">
                     Contact Number
                   </label>
                   <div className="flex items-center">
@@ -754,7 +715,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       maxLength={phoneMaxLength}
                       placeholder="Enter Contact Number"
                       disabled={readOnly}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-200 disabled:text-[#020202]"
                     />
                   </div>
                 </div>
@@ -763,7 +724,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               {/* Row 3: Email + DOB */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="block text-[13px] font-medium text-gray-700">
+                  <label className="block text-[13px] font-[500] text-[#414141]">
                     Email ID
                   </label>
                   <input
@@ -773,7 +734,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={handleChange}
                     placeholder="Enter Email ID"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-200 disabled:text-[#020202]"
                   />
                 </div>
                 <div className="flex flex-col gap-1 w-full">
@@ -784,7 +745,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       setFormData((prev) => ({ ...prev, dateOfBirth: iso }))
                     }
                     placeholder="DD-MM-YYYY"
-                    customWidth="w-full mt-1.5 py-2"
+                    customWidth="w-full mt-0.5 py-2"
                     showCalendarIcon={true}
                     readOnly={readOnly}
                     maxDate={new Date().toISOString()}
@@ -795,7 +756,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
             {/* ================= COMPANY DETAILS ================ */}
             <div className="border border-gray-200 rounded-[12px] p-3">
-              <h2 className="text-[13px] font-medium mb-2">
+              <h2 className="text-[13px] font-[500] mb-2">
                 Company Details (Optional)
               </h2>
               <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -803,7 +764,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               <div className="flex gap-6">
                 {/* GSTIN */}
                 <div className="flex flex-col w-[18rem] relative">
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                  <label className="block text-[13px] font-[500] text-[#414141] mb-1">
                     GSTIN
                   </label>
                   <input
@@ -813,13 +774,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={handleChange}
                     placeholder="Please Provide Your GST No."
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] pr-16 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] pr-16 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-200 disabled:text-[#020202]"
                   />
                 </div>
 
                 {/* Company Name */}
                 <div className="flex flex-col w-[20rem]">
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                  <label className="block text-[13px] font-[500] text-[#414141] mb-1">
                     Company Name
                   </label>
                   <input
@@ -829,7 +790,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={handleChange}
                     placeholder="Enter Company Name"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-200 disabled:text-[#020202]"
                   />
                 </div>
               </div>
@@ -837,7 +798,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
             {/* ================= DOCUMENTS ================ */}
             <div className="border border-gray-200 rounded-[12px] p-3">
-              <h2 className="text-[13px] font-medium mb-2">Documents</h2>
+              <h2 className="text-[13px] font-[500] mb-2">Documents</h2>
               <hr className="mt-1 mb-2 border-t border-gray-200" />
 
               <input
@@ -854,8 +815,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 disabled={readOnly || attachedFiles.length >= 3}
-                className={`px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
-               border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200 ${
+                className={`px-3 py-1 flex gap-1 bg-white text-[#126ACB] border 
+               border-[#126ACB] rounded-md font-[600] text-[13px] hover:cursor-pointer ${
                  readOnly || attachedFiles.length >= 3
                    ? "opacity-50 cursor-not-allowed hover:bg-white"
                    : ""
@@ -876,7 +837,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     <button
                       type="button"
                       onClick={() => doc.url && window.open(doc.url, "_blank")}
-                      className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+                      className="text-[#126ACB]  p-1.5 -ml-2 rounded-md bg-[#126ACB0D]  text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
                       title="Click to view document"
                     >
                       <FaRegFolder className="text-blue-500 w-3 h-3" />
@@ -887,7 +848,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       <button
                         type="button"
                         onClick={() => handleDeleteExistingDocument(i)}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-red-500 hover:cursor-pointer"
                       >
                         <FiTrash2 size={16} />
                       </button>
@@ -903,8 +864,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                  px-3 py-2 hover:bg-gray-50 transition"
                   >
                     {/* File Name */}
-                    <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
-                      <FaRegFolder className="text-blue-500 w-3 h-3" />
+                    <span className="text-[#126ACB]  p-1.5 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
+                      <FaRegFolder className="text-[#126ACB] w-3 h-3" />
                       {file.name}
                     </span>
 
@@ -913,7 +874,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       <button
                         type="button"
                         onClick={() => handleDeleteFile(i)}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-[#EB382B] hover:cursor-pointer"
                       >
                         <FiTrash2 size={16} />
                       </button>
@@ -922,14 +883,14 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 ))}
               </div>
 
-              <div className="text-red-600 text-[0.65rem]">
+              <div className="text-[#EB382B] font-[500] text-[0.65rem]">
                 Note: Maximum of 3 files can be uploaded
               </div>
             </div>
 
             {/* ================= BILLING ADDRESS ================ */}
             <div className="border border-gray-200 rounded-[12px] p-3">
-              <label className="block text-[13px] font-medium text-gray-700 mb-1">
+              <label className="block text-[13px] font-[500] text-[#414141] mb-1">
                 Billing Address
               </label>
               <hr className="mt-1 mb-3 border-t border-gray-200" />
@@ -941,12 +902,12 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 }
                 placeholder="Enter Billing Address"
                 disabled={readOnly}
-                className="w-full border border-gray-300 hover:border-green-400 focus:ring-green-400 rounded-md px-3 py-2 text-[13px] disabled:bg-gray-100 disabled:text-gray-700"
+                className="w-full border border-gray-300 hover:border-green-400 focus:ring-green-400 rounded-md px-3 py-2 text-[13px] disabled:bg-gray-200 disabled:text-[#020202]"
               />
             </div>
             {/* ================= OPENING BALANCE ================ */}
             <div className="border border-gray-200 rounded-[12px] p-3">
-              <h2 className="text-[13px] font-medium mb-2">Opening Balance</h2>
+              <h2 className="text-[13px] font-[500] mb-2">Opening Balance</h2>
               <hr className="mt-1 mb-3 border-t border-gray-200" />
 
               <div className="flex items-center gap-6 mb-3">
@@ -957,10 +918,10 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     value="debit"
                     checked={balanceType === "debit"}
                     onChange={() => setBalanceType("debit")}
-                    className="w-3 h-3 text-red-600"
+                    className="w-3 h-3 text-[#126ACB]"
                     disabled={readOnly}
                   />
-                  <span className="text-gray-700">Debit</span>
+                  <span className="text-[#414141]">Debit</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer text-[13px]">
@@ -970,16 +931,22 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     value="credit"
                     checked={balanceType === "credit"}
                     onChange={() => setBalanceType("credit")}
-                    className="w-3 h-3 text-red-600"
+                    className="w-3 h-3 text-[#126ACB]"
                     disabled={readOnly}
                   />
-                  <span className="text-gray-700">Credit</span>
+                  <span className="text-[#414141]">Credit</span>
                 </label>
               </div>
 
               <div className="relative">
-                <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-green-400">
-                  <span className="text-gray-500 mr-2 text-[13px]">{getStoredCurrencySymbol()}</span>
+                <div
+                  className={`flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-green-400 ${
+                    readOnly ? "bg-gray-200" : "bg-white"
+                  }`}
+                >
+                  <span className="text-gray-500 mr-2 text-[13px]">
+                    {getStoredCurrencySymbol()}
+                  </span>
                   <input
                     type="text"
                     value={balanceAmount}
@@ -998,17 +965,19 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                         : "Enter Credit Amount"
                     }
                     disabled={readOnly}
-                    className="flex-1 outline-none text-gray-700 text-[13px] disabled:bg-gray-100 disabled:text-gray-700"
+                    className="flex-1 outline-none text-[#414141] text-[13px] disabled:bg-gray-200 disabled:text-[#020202]"
                   />
                 </div>
-                <div className="absolute right-3 top-2 text-sm font-medium">
+                <div className="absolute right-3 top-2">
                   {balanceType === "debit" ? (
-                    <span className=" text-green-500 text-[13px]">
-                      Customer pays you {getStoredCurrencySymbol()} {balanceAmount || ""}
+                    <span className=" text-[#4CA640] text-[13px]">
+                      Customer pays you {getStoredCurrencySymbol()}{" "}
+                      {balanceAmount || ""}
                     </span>
                   ) : (
-                    <span className="text-red-500 text-[13px]">
-                      You pay the customer {getStoredCurrencySymbol()} {balanceAmount || ""}
+                    <span className="text-[#EB382B] text-[13px]">
+                      You pay the customer {getStoredCurrencySymbol()}{" "}
+                      {balanceAmount || ""}
                     </span>
                   )}
                 </div>
@@ -1017,7 +986,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
             {/* ================= TIER ================ */}
             <div className=" p-1 -mt-4">
-              <h2 className="text-[13px] font-medium mb-2">Rating</h2>
+              <h2 className="text-[13px] font-[500] mb-2">Rating</h2>
 
               <div className="flex flex-col">
                 <DropDown
@@ -1031,7 +1000,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                             alt="Tier 1"
                             className="w-5 h-5"
                           />
-                          <span className="text-[13px] font-medium">1</span>
+                          <span className="text-[13px] font-[500]">1</span>
                         </div>
                       ),
                     },
@@ -1044,7 +1013,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                             alt="Tier 2"
                             className="w-5 h-5"
                           />
-                          <span className="text-[13px] font-medium">2</span>
+                          <span className="text-[13px] font-[500]">2</span>
                         </div>
                       ),
                     },
@@ -1057,7 +1026,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                             alt="Tier 3"
                             className="w-5 h-5"
                           />
-                          <span className="text-[13px] font-medium">3</span>
+                          <span className="text-[13px] font-[500]">3</span>
                         </div>
                       ),
                     },
@@ -1070,7 +1039,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                             alt="Tier 4"
                             className="w-5 h-5"
                           />
-                          <span className="text-[13px] font-medium">4</span>
+                          <span className="text-[13px] font-[500]">4</span>
                         </div>
                       ),
                     },
@@ -1083,7 +1052,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                             alt="Tier 5"
                             className="w-5 h-5"
                           />
-                          <span className="text-[13px] font-medium">5</span>
+                          <span className="text-[13px] font-[500]">5</span>
                         </div>
                       ),
                     },
@@ -1094,14 +1063,14 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   customWidth="w-[10rem]"
                   menuWidth="w-[10rem]"
                   className=""
-                  // readOnly={readOnly}
+                  readOnly={readOnly}
                 />
               </div>
             </div>
 
             {/* ================= OWNER ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3 -mt-2">
-              <label className="block text-[13px] font-medium text-gray-700 mb-1">
+            <div className="-mt-3 ml-1">
+              <label className="block text-[13px] font-[500] text-[#414141] mb-1">
                 Owner
               </label>
 
@@ -1111,7 +1080,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   placeholder={
                     loadingUsers ? "Loading users..." : "Search by Name"
                   }
-                  className="w-full border rounded-md px-3 py-2 text-[13px] focus:outline-none hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  className="w-[72%] border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none hover:border-green-400 focus:ring-green-400 disabled:bg-gray-200 disabled:text-[#020202]"
                   value={ownerListDisplay[0]?.name || ""}
                   onChange={(e) => {
                     const value = String(e.target.value || "");
@@ -1150,7 +1119,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                           setShowOwnerDropdown(false);
                         }}
                       >
-                        <p className="font-medium text-[13px]">
+                        <p className="font-[500] text-[13px]">
                           {u.name || "Unnamed User"}
                         </p>
                       </div>
@@ -1162,7 +1131,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
             {/* Remarks */}
             <div className="border border-gray-200 rounded-xl p-3 -mt-2">
-              <label className="block text-[13px]  font-medium text-gray-700">
+              <label className="block text-[13px]  font-[500] text-[#414141]">
                 Remarks
               </label>
               <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -1176,7 +1145,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 className={`
             w-full border border-gray-200 rounded-md px-3 py-2 text-[13px]  mt-2 transition-colors
             focus:ring hover:border-green-400 focus:ring-green-400
-            disabled:bg-gray-100 disabled:text-gray-700
+            disabled:bg-gray-200 disabled:text-[#020202]
           `}
               />
             </div>
@@ -1190,7 +1159,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   text="Close"
                   onClick={onCancel}
                   bgColor="bg-white"
-                  textColor="text-gray-700"
+                  textColor="text-[#414141]"
                   className="border border-gray-300 hover:bg-gray-100"
                 />
               ) : (
@@ -1199,7 +1168,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     text="Cancel"
                     onClick={onCancel}
                     bgColor="bg-white"
-                    textColor="text-gray-700"
+                    textColor="text-[#414141]"
                     className="border border-gray-300 hover:bg-gray-100"
                   />
 

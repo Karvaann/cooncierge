@@ -814,7 +814,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
       <div
         className={`space-y-4 px-4 py-4 -mt-1 overflow-x-hidden ${
           isReadOnly
-            ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-300 [&_select]:!bg-gray-200"
+            ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-200 [&_select]:!bg-gray-200"
             : ""
         }`}
         ref={formRef as any}
@@ -837,6 +837,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   }))
                 }
                 placeholder="DD-MM-YYYY"
+                showCalendarIcon={false}
               />
 
               {/* Travel Date */}
@@ -859,6 +860,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 placeholder="Booking Status"
                 value={formData.bookingstatus}
                 onChange={handleBookingStatusChange}
+                readOnly={isReadOnly}
               />
             </div>
           </div>
@@ -879,14 +881,14 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
           />
 
           <div className="w-full border border-gray-200 rounded-[12px] p-3 mt-4">
-            <h1 className="text-[13px] font-medium text-gray-700 mb-2">
+            <h1 className="text-[13px] font-[500] text-gray-700 mb-2">
               Accommodation Info
             </h1>
             <hr className="mt-1 mb-2 border-t border-gray-200" />
 
             {/* Confirmation Number */}
             <div className="mb-3">
-              <label className="block text-[13px] font-medium text-gray-700 mb-1">
+              <label className="block text-[13px] font-[500] text-gray-700 mb-1">
                 Confirmation Number
               </label>
               <input
@@ -900,7 +902,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   }))
                 }
                 placeholder="Enter Confirmation Number"
-                className="w-[18rem] px-3 py-1.5 border border-gray-300 rounded-md text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                className="w-[200px] px-3 py-1.5 border border-gray-300 rounded-md text-[12px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
               />
             </div>
 
@@ -919,7 +921,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   }
                   placeholder="DD-MM-YYYY"
                   customWidth="w-[95%]"
-                  labelClassName="block text-gray-700 mb-1 text-[0.65rem] font-medium"
+                  labelClassName="block text-gray-700 mb-1 text-[0.65rem] font-[500]"
                   inputClassName="flex-1 text-[0.65rem] text-gray-700 outline-none bg-transparent"
                   showCalendarIcon={false}
                   minDate={formData.traveldate}
@@ -927,7 +929,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
                 {/* Check-In Time */}
                 <div>
-                  <label className="block text-[0.65rem] font-medium text-gray-700 mb-1">
+                  <label className="block text-[0.65rem] font-[500] text-gray-700 mb-1">
                     Time
                   </label>
                   <input
@@ -1003,7 +1005,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
               </div>
 
               {/* Right side: Check-Out Date and Time */}
-              <div className="flex items-end gap-1 ml-62">
+              <div className="flex items-end gap-1 ml-72 -mr-12">
                 {/* Check-Out Date */}
                 <SingleCalendar
                   label="Check-Out Date"
@@ -1017,14 +1019,14 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   placeholder="DD-MM-YYYY"
                   minDate={formData.checkindate}
                   customWidth="w-[95%]"
-                  labelClassName="block text-gray-700 mb-1 text-[0.65rem] font-medium"
+                  labelClassName="block text-gray-700 mb-1 text-[0.65rem] font-[500]"
                   inputClassName="flex-1 text-[0.65rem] text-gray-700 outline-none bg-transparent"
                   showCalendarIcon={false}
                 />
 
                 {/* Check-Out Time */}
                 <div>
-                  <label className="block text-[0.65rem] font-medium text-gray-700 mb-1">
+                  <label className="block text-[0.65rem] font-[500] text-gray-700 mb-1">
                     Time
                   </label>
                   <input
@@ -1103,7 +1105,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             {/* Pax & Meal Plan */}
             <div className="flex items-end gap-3 mb-3">
               <div>
-                <label className="block text-[0.65rem] font-medium text-gray-700 mb-1">
+                <label className="block text-[0.65rem] font-[500] text-gray-700 mb-1">
                   Pax
                 </label>
                 <input
@@ -1118,7 +1120,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
               </div>
 
               <div>
-                <label className="block text-[0.65rem] font-medium text-gray-700 mb-1">
+                <label className="block text-[0.65rem] font-[500] text-gray-700 mb-1">
                   Meal Plan
                 </label>
                 <DropDown
@@ -1137,13 +1139,14 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     }))
                   }
                   customWidth="w-[9rem]"
+                  readOnly={isReadOnly}
                 />
               </div>
             </div>
 
             {/* Accommodation Type Section */}
             <div className="border border-gray-200 rounded-[12px] p-3 mt-3">
-              <label className="block text-[13px] font-medium text-gray-700 mb-1">
+              <label className="block text-[13px] font-[500] text-gray-700 mb-1">
                 Select Accommodation Type
               </label>
               <div className="flex items-center justify-between mb-2">
@@ -1165,6 +1168,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                       if (val !== "Villa") setVillaType("entire");
                     }}
                     customWidth="w-full"
+                    readOnly={isReadOnly}
                   />
                 </div>
 
@@ -1180,7 +1184,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                         onChange={() => setVillaType("entire")}
                         className="w-3 h-3 accent-blue-600"
                       />
-                      <span className="text-[13px] text-gray-700 font-medium">
+                      <span className="text-[13px] text-gray-700 font-[500]">
                         Entire Villa
                       </span>
                     </label>
@@ -1194,7 +1198,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                         onChange={() => setVillaType("shared")}
                         className="w-3 h-3 accent-blue-600"
                       />
-                      <span className="text-[13px] text-gray-700 font-medium">
+                      <span className="text-[13px] text-gray-700 font-[500]">
                         Shared Villa
                       </span>
                     </label>
@@ -1208,7 +1212,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 <>
                   <div className="flex gap-2 mt-2 items-end">
                     <div className="w-[30%]">
-                      <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                      <label className="block text-[13px] font-[500] text-gray-700 mb-1">
                         {formData.accommodationType} Name
                       </label>
                       <input
@@ -1226,7 +1230,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     </div>
 
                     <div className="w-[70%]">
-                      <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                      <label className="block text-[13px] font-[500] text-gray-700 mb-1">
                         {formData.accommodationType} Address
                       </label>
                       <input
@@ -1247,7 +1251,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   </div>
 
                   <div className="mt-2">
-                    <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                    <label className="block text-[13px] font-[500] text-gray-700 mb-1">
                       Google Maps Link
                     </label>
 
@@ -1278,7 +1282,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     {formData.accommodationType === "Villa" &&
                       villaType === "entire" && (
                         <div className="mt-3">
-                          <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                          <label className="block text-[13px] font-[500] text-gray-700 mb-1">
                             Total Rooms
                           </label>
 
@@ -1370,6 +1374,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   onChange={(val) =>
                     setFormData((prev) => ({ ...prev, addOns: val }))
                   }
+                  readOnly={isReadOnly}
                 />
                 <StyledDescription
                   label="Special Requests"
@@ -1377,6 +1382,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   onChange={(val) =>
                     setFormData((prev) => ({ ...prev, specialRequests: val }))
                   }
+                  readOnly={isReadOnly}
                 />
                 <StyledDescription
                   label="Important Information"
@@ -1387,6 +1393,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                       importantInformation: val,
                     }))
                   }
+                  readOnly={isReadOnly}
                 />
                 <StyledDescription
                   label="Cancellation Policy"
@@ -1397,6 +1404,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                       cancellationPolicy: val,
                     }))
                   }
+                  readOnly={isReadOnly}
                 />
               </div>
             </div>
@@ -1405,8 +1413,8 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
         {/* ID PROOFS */}
         <div className="w-full border border-gray-200 rounded-[12px] p-3">
-          <h2 className="text-[13px] font-medium mb-2">Documents</h2>
-          <hr className="mt-1 mb-2 border-t border-gray-200" />
+          <h2 className="text-[13px] font-[500] mb-2">Documents</h2>
+          <hr className="mt-1 mb-3 border-t border-gray-200" />
 
           <input
             type="file"
@@ -1423,29 +1431,29 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
               if (isDocumentLimitReached) return;
               fileInputRef.current?.click();
             }}
-            disabled={isDocumentLimitReached}
-            className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
-                       border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+            disabled={isDocumentLimitReached || isReadOnly}
+            className="px-3 py-1 flex gap-1 bg-white text-[#126ACB] border 
+                       border-[#126ACB] rounded-md text-[12px] hover:cursor-pointer font-[600] disabled:opacity-50 disabled:cursor-not-allowed "
           >
-            <MdOutlineFileUpload size={16} /> Attach Files
+            <MdOutlineFileUpload size={18} /> Attach Files
           </button>
 
           {/* PREVIEW FILES */}
-          <div className="mt-2 flex flex-col gap-2">
+          <div className="mt-1 flex flex-col gap-2">
             {Array.isArray(existingDocuments) &&
               existingDocuments.length > 0 &&
               existingDocuments.map((doc, i) => (
                 <div
                   key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
+                  onClick={() => doc.url && window.open(doc.url, "_blank")}
                   className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
                 >
                   <button
                     type="button"
-                    onClick={() => doc.url && window.open(doc.url, "_blank")}
-                    className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+                    className="text-[#126ACB]  p-1.5 -ml-2 rounded-md bg-[#126ACB0D] text-[13px] truncate flex items-center gap-2 hover:cursor-pointer  transition-colors cursor-pointer"
                     title="Click to view document"
                   >
-                    <FaRegFolder className="text-blue-500 w-3 h-3" />
+                    <FaRegFolder className="text-[#126ACB] w-3 h-3" />
                     {doc.originalName || doc.fileName}
                   </button>
                 </div>
@@ -1457,8 +1465,8 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
               >
                 {/* File Name */}
-                <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
-                  <FaRegFolder className="text-blue-500 w-3 h-3" />
+                <span className="text-[#126ACB]  p-1.5 -ml-2 rounded-md bg-[#126ACB0D] text-[13px] truncate flex items-center gap-2">
+                  <FaRegFolder className="text-[#126ACB] w-3 h-3" />
                   {file.name}
                 </span>
 
@@ -1466,7 +1474,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 <button
                   type="button"
                   onClick={() => handleDeleteFile(i)}
-                  className="text-red-500 hover:text-red-700"
+                  className="text-[#EB382B] hover:cursor-pointer"
                 >
                   <FiTrash2 size={16} />
                 </button>
@@ -1474,14 +1482,14 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             ))}
           </div>
 
-          <div className="text-red-600 text-[0.65rem]">
+          <div className="text-[#EB382B] font-[500] text-[0.65rem]">
             Note: Maximum of 3 files can be uploaded
           </div>
         </div>
 
         {/* Remarks Section */}
         <div className="border border-gray-200 w-full rounded-[12px] p-3 mt-4">
-          <label className="block text-[13px] font-medium text-gray-700">
+          <label className="block text-[13px] font-[500] text-gray-700">
             Remarks
           </label>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -1494,7 +1502,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             placeholder="Enter Your Remarks Here"
             disabled={isSubmitting}
             className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[13px] mt-1 transition-colors hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 ${
-              isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+              isSubmitting ? "bg-gray-200 cursor-not-allowed" : ""
             }`}
           />
         </div>

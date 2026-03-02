@@ -488,6 +488,8 @@ export default function RoundTripLayout({
                     )}
                   </div>
 
+                  <hr className="mb-2 -mt-1 border-t border-gray-200" />
+
                   <div className="grid grid-cols-1 gap-3">
                     {/* Flight Number */}
                     <div>

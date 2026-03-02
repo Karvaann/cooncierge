@@ -417,30 +417,6 @@ export default function MultiCityLayout({
     }));
   };
 
-  // const addReturnSegment = () => {
-  //   const newSegment: FlightSegment = {
-  //     id: `return-${Date.now()}`,
-  //     flightnumber: "",
-  //     traveldate: "",
-  //     cabinclass: "",
-  //   };
-  //   setFormData({
-  //     ...formData,
-  //     returnSegments: [...formData.returnSegments, newSegment],
-  //   });
-  // };
-
-  // const removeReturnSegment = (id: string) => {
-  //   if (formData.returnSegments.length > 0) {
-  //     setFormData({
-  //       ...formData,
-  //       returnSegments: formData.returnSegments.filter(
-  //         (segment) => segment.id !== id
-  //       ),
-  //     });
-  //   }
-  // };
-
   const handleSegmentPnr = (
     segmentId: string,
     value: string,
@@ -493,13 +469,6 @@ export default function MultiCityLayout({
             )}
           </div>
 
-          {/* Onwards Section */}
-          {/* <div className="mb-4">
-            <span className="font-medium text-gray-600">
-              Onwards ({getTotalDuration(segmentPreview)})
-            </span>
-          </div> */}
-
           <div className="space-y-4">
             {(() => {
               const segs = getSegmentsForTrip(tripIndex, tripId);
@@ -523,6 +492,8 @@ export default function MultiCityLayout({
                         </button>
                       )}
                     </div>
+
+                    <hr className="mb-2 -mt-1 border-t border-gray-200" />
 
                     <div className="grid grid-cols-1 gap-3">
                       {/* Flight Number */}

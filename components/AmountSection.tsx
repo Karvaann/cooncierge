@@ -172,7 +172,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
             />
             <label
               htmlFor={checkboxId}
-              className={`w-4 h-4 -mt-1 border border-gray-300 rounded-sm flex items-center justify-center peer-checked:bg-green-600 ${
+              className={`w-4 h-4 -mt-1 border border-gray-300 rounded-[4px] flex items-center justify-center peer-checked:bg-[#0D4B37] ${
                 isReadOnly || isSubmitting
                   ? "cursor-not-allowed opacity-60"
                   : "cursor-pointer"
@@ -196,8 +196,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
               )}
             </label>
             <span
-              className={`text-[13px] ${
-                isReadOnly || isSubmitting ? "text-gray-400" : "text-gray-700"
+              className={`text-[13px] font-[500] ${
+                isReadOnly || isSubmitting ? "text-gray-400" : "text-[#414141]"
               }`}
             >
               Show Advanced Pricing
@@ -1037,7 +1037,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
 
           {/* Saved summary cards for cancelled saved data */}
           {cancellationForm?.summary && (
-            <div className="mt-4 space-y-2 px-1">
+            <div className="mt-4 mb-3 space-y-2 px-3">
               <div className="flex items-center gap-2">
                 <div>
                   <div className="text-[13px] font-semibold text-gray-600 mb-1">
@@ -1090,7 +1090,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                   <div className="text-[13px] font-semibold text-[#818181] mb-1">
                     New Cost Price
                   </div>
-                  <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
+                  <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#126ACB] bg-blue-50">
                     {getStoredCurrencySymbol()}{" "}
                     {cancellationForm.summary.newCost}
                   </div>
@@ -1102,7 +1102,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                   <div className="text-[13px] font-semibold text-[#818181] mb-1">
                     New Selling Price
                   </div>
-                  <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
+                  <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#126ACB] bg-blue-50">
                     {getStoredCurrencySymbol()}{" "}
                     {cancellationForm.summary.newSelling}
                   </div>
@@ -1114,7 +1114,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                   <div className="text-[13px] font-semibold text-[#818181] mb-1">
                     Net
                   </div>
-                  <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
+                  <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#126ACB] bg-blue-50">
                     {getStoredCurrencySymbol()}{" "}
                     {cancellationForm.summary.newNet}
                   </div>
@@ -1190,6 +1190,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                   requiresRoe={requiresRoe}
                   notesInputWidth="60%"
                   amountInputWidth="30%"
+                  readOnly={!!isReadOnly || !!isSubmitting}
                 />
               </div>
 
@@ -1246,21 +1247,24 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                   requiresRoe={requiresRoe}
                   notesInputWidth="60%"
                   amountInputWidth="30%"
+                  readOnly={!!isReadOnly || !!isSubmitting}
                 />
               </div>
 
+              <hr className="mb-2 mt-3 border-t border-gray-200" />
+
               {/* NET */}
               <div className="w-fit rounded-lg p-1 mt-1 bg-white">
-                <span className="text-[13px] font-medium text-gray-700 block mb-2">
+                <span className="text-[13px] font-medium text-[#414141] block mb-2">
                   Net
                 </span>
 
                 <div className="flex items-center gap-3">
                   <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[13px] font-medium rounded-md">
-                    {`INR ${Number(v.sellingprice) - Number(v.costprice)}`}
+                    {`₹ ${(Number(v.sellingprice) - Number(v.costprice)).toFixed(2)}`}
                   </span>
 
-                  <span className="text-[13px] text-gray-700 font-medium">
+                  <span className="text-[13px] text-[#414141] font-[600]">
                     {v.costprice && v.sellingprice
                       ? `${(
                           ((Number(v.sellingprice) - Number(v.costprice)) /
@@ -1327,7 +1331,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <div className="text-[13px] font-semibold text-[#818181] mb-1">
                         New Cost Price
                       </div>
-                      <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
+                      <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#126ACB] bg-blue-50">
                         {getStoredCurrencySymbol()}{" "}
                         {cancellationForm.summary.newCost}
                       </div>
@@ -1339,7 +1343,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <div className="text-[13px] font-semibold text-[#818181] mb-1">
                         New Selling Price
                       </div>
-                      <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
+                      <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#126ACB] bg-blue-50">
                         {getStoredCurrencySymbol()}{" "}
                         {cancellationForm.summary.newSelling}
                       </div>
@@ -1351,7 +1355,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <div className="text-[13px] font-semibold text-[#818181] mb-1">
                         Net
                       </div>
-                      <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
+                      <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#126ACB] bg-blue-50">
                         {getStoredCurrencySymbol()}{" "}
                         {cancellationForm.summary.newNet}
                       </div>
@@ -1571,10 +1575,11 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                             businessCurrency={businessCurrency}
                             requiresRoe={requiresRoe}
                             amountInputWidth="40%"
+                            readOnly={!!isReadOnly || !!isSubmitting}
                           />
                         </div>
                       ) : (
-                        <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">
+                        <div className="px-3 py-2 text-[#126ACB] bg-[#126ACB0D] rounded-[6px] font-[500] text-[0.9rem]">
                           {`${getStoredCurrencySymbol()} ${derivedCostPrice.toFixed(2)}`}
                         </div>
                       )}
@@ -1595,10 +1600,6 @@ const AmountSection: React.FC<AmountSectionProps> = ({
 
                   <div className="col-span-8 flex flex-col gap-2 py-3 px-4 bg-white">
                     <div className="flex items-center gap-3">
-                      <div className="text-gray-600 text-[0.85rem] font-medium">
-                        {getStoredCurrencySymbol()}
-                      </div>
-
                       <div className="flex-1">
                         <MultiCurrencyInput
                           currency={
@@ -1656,6 +1657,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                           businessCurrency={businessCurrency}
                           requiresRoe={requiresRoe}
                           amountInputWidth="40%"
+                          readOnly={!!isReadOnly || !!isSubmitting}
                         />
                       </div>
                     </div>
@@ -1669,8 +1671,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 </span>
 
                 <div className="flex items-center gap-3">
-                  <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[13px] font-medium rounded-md">
-                    {`INR ${(
+                  <span className="px-2 py-1 bg-blue-50 text-[#126ACB] text-[13px] font-medium rounded-md">
+                    {`₹ ${(
                       (Number(v.sellingprice) || 0) - derivedCostPrice
                     ).toFixed(2)}`}
                   </span>

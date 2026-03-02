@@ -426,102 +426,6 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
     [formData, validateForm, onSubmit, validationRules],
   );
 
-  // Enhanced input field component with validation indicators
-  const InputField: React.FC<{
-    name: keyof OtherServiceInfoFormData;
-    id?: string;
-    type?: string;
-    placeholder?: string;
-    required?: boolean;
-    className?: string;
-    min?: number;
-  }> = ({
-    name,
-    type = "text",
-    placeholder,
-    required,
-    className = "",
-    min,
-  }) => {
-    const isValidatingField = name === "bookingdate" && isValidating;
-    const hasError = errors[name] && touched[name];
-    const hasValue = formData[name] && String(formData[name]).trim();
-    const isValid = hasValue && !hasError && !isValidatingField;
-
-    return (
-      <div className="relative">
-        <input
-          type={type}
-          name={name}
-          value={type === "file" ? undefined : String(formData[name] ?? "")}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          placeholder={placeholder}
-          required={required}
-          min={min}
-          disabled={isSubmitting || isValidatingField}
-          className={`
-            w-full border rounded-md px-3 py-2 pr-10 text-sm transition-colors
-            ${
-              hasError
-                ? "border-red-300 focus:ring-red-200"
-                : isValid && touched[name]
-                  ? "border-green-300 focus:ring-green-200"
-                  : "border-gray-200 hover:border-green-400 focus:ring-green-300"
-            }
-            ${
-              isSubmitting || isValidatingField
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }
-            ${className}
-          `}
-        />
-
-        {/* Validation indicator */}
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-          {isValidatingField && (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
-          )}
-          {!isValidatingField && isValid && touched[name] && (
-            <svg
-              className="h-4 w-4 text-green-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          )}
-          {!isValidatingField && hasError && (
-            <svg
-              className="h-4 w-4 text-red-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          )}
-        </div>
-
-        {hasError && (
-          <p className="text-red-500 text-xs mt-1">{errors[name]}</p>
-        )}
-      </div>
-    );
-  };
-
   const cancellationModalInitialValues: Partial<CancellationModalFormState> = {
     vendorBasePrice: String(formData.vendorBasePrice ?? ""),
     vendorBaseCurrency: (formData.vendorBaseCurrency as "INR" | "USD") || "INR",
@@ -610,6 +514,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 placeholder="Booking Status"
                 value={formData.bookingstatus}
                 onChange={handleBookingStatusChange}
+                readOnly={isReadOnly}
               />
             </div>
           </div>
@@ -630,7 +535,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
           {/* ================= Activity INFO ================ */}
           <div className="w-full border border-gray-200 rounded-[12px] p-3 mt-4">
-            <h1 className="text-[0.85rem] font-medium text-gray-800 mb-2">
+            <h1 className="text-[0.85rem] font-medium text-[#414141] mb-2">
               Activity Info
             </h1>
 
@@ -640,7 +545,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
             <div className="flex flex-col gap-3 w-full mb-4">
               {/* Confirmation number */}
               <div className="flex flex-col w-[30%]">
-                <label className="text-[0.75rem] font-medium text-gray-700 mb-1">
+                <label className="text-[0.75rem] font-medium text-[#414141] mb-1">
                   Confirmation number
                 </label>
                 <input
@@ -655,7 +560,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
 
               {/* Title (stacked under confirmation) */}
               <div className="flex flex-col w-full">
-                <label className="text-[0.75rem] font-medium text-gray-700 mb-1">
+                <label className="text-[0.75rem] font-medium text-[#414141] mb-1">
                   Title
                 </label>
                 <input
@@ -664,7 +569,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="Title …"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
+                  className="w-[99%] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                 />
               </div>
             </div>
@@ -676,14 +581,15 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
               onChange={(val) =>
                 setFormData((prev) => ({ ...prev, description: val }))
               }
+              readOnly={isReadOnly}
             />
           </div>
         </div>
 
         {/* ID PROOFS */}
         <div className="w-full border border-gray-200 rounded-[12px] p-3">
-          <h2 className="text-[0.75rem] font-medium mb-2">Documents</h2>
-          <hr className="mt-1 mb-2 border-t border-gray-200" />
+          <h2 className="text-[13px] font-medium mb-2">Documents</h2>
+          <hr className="mt-1 mb-3 border-t border-gray-200" />
 
           <input
             type="file"
@@ -700,43 +606,42 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
               if (isDocumentLimitReached) return;
               fileInputRef.current?.click();
             }}
-            disabled={isDocumentLimitReached}
-            className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
-                                       border-[#126ACB] rounded-md text-[0.75rem] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+            disabled={isDocumentLimitReached || isReadOnly}
+            className="px-3 py-1 flex gap-1 bg-white text-[#126ACB] border 
+                               border-[#126ACB] rounded-md text-[12px] hover:cursor-pointer font-[600] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
           >
-            <MdOutlineFileUpload size={16} /> Attach Files
+            <MdOutlineFileUpload size={18} /> Attach Files
           </button>
 
           {/* PREVIEW FILES */}
-          <div className="mt-2 flex flex-col gap-2">
+          <div className="mt-1 flex flex-col gap-2">
             {Array.isArray(existingDocuments) &&
               existingDocuments.length > 0 &&
               existingDocuments.map((doc, i) => (
                 <div
                   key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
+                  onClick={() => doc.url && window.open(doc.url, "_blank")}
                   className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
                 >
                   <button
                     type="button"
-                    onClick={() => doc.url && window.open(doc.url, "_blank")}
-                    className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+                    className="text-[#126ACB]  p-1.5 -ml-2 rounded-md bg-[#126ACB0D] text-[13px] truncate flex items-center gap-2 hover:cursor-pointer  transition-colors cursor-pointer"
                     title="Click to view document"
                   >
-                    <FaRegFolder className="text-blue-500 w-3 h-3" />
+                    <FaRegFolder className="text-[#126ACB] w-3 h-3" />
                     {doc.originalName || doc.fileName}
                   </button>
                 </div>
               ))}
+
             {attachedFiles.map((file, i) => (
               <div
                 key={i}
-                className="flex items-center justify-between w-full 
-                                               bg-white rounded-md 
-                                               px-3 py-2 hover:bg-gray-50 transition"
+                className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
               >
                 {/* File Name */}
-                <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[0.75rem] truncate flex items-center gap-2">
-                  <FaRegFolder className="text-blue-500 w-3 h-3" />
+                <span className="text-[#126ACB]  p-1.5 -ml-2 rounded-md bg-[#126ACB0D] text-[13px] truncate flex items-center gap-2">
+                  <FaRegFolder className="text-[#126ACB] w-3 h-3" />
                   {file.name}
                 </span>
 
@@ -744,7 +649,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 <button
                   type="button"
                   onClick={() => handleDeleteFile(i)}
-                  className="text-red-500 hover:text-red-700"
+                  className="text-[#EB382B] hover:cursor-pointer"
                 >
                   <FiTrash2 size={16} />
                 </button>
@@ -752,14 +657,14 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
             ))}
           </div>
 
-          <div className="text-red-600 text-[0.65rem]">
-            Max 3 documents (5MB each)
+          <div className="text-[#EB382B] font-[500] text-[0.65rem]">
+            Note: Maximum of 3 files can be uploaded
           </div>
         </div>
 
         {/* Remarks Section */}
         <div className="border border-gray-200 w-full rounded-[12px] p-3 mt-4">
-          <label className="block text-[0.75rem] font-medium text-gray-700">
+          <label className="block text-[0.75rem] font-medium text-[#414141]">
             Remarks
           </label>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -772,21 +677,10 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
             placeholder="Enter Your Remarks Here"
             disabled={isSubmitting}
             className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[0.75rem] mt-1 transition-colors hover:border-green-400 focus:ring focus:ring-green-300 ${
-              isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+              isSubmitting ? "bg-gray-200 cursor-not-allowed" : ""
             }`}
           />
         </div>
-
-        {/* Submit Button */}
-        {/* <div className="flex justify-end mt-3">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-5 py-1.5 bg-[#114958] text-[0.8rem] text-white rounded-md hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? "Saving..." : "Save"}
-          </button>
-        </div> */}
       </div>
 
       <CancellationModal

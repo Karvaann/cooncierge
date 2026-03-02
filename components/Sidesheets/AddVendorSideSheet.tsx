@@ -86,10 +86,6 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 }) => {
   const { updateGeneralInfo, setLastAddedVendor } = useBooking();
   const readOnly = mode === "view";
-  const [name, setName] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [phone, setPhone] = useState<string>("");
-  const [company, setcompany] = useState<string>("");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [existingDocuments, setExistingDocuments] = useState<
@@ -467,56 +463,16 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
           noValidate
         >
           <div className="space-y-6 p-4 overflow-y-auto flex-1 pb-16">
-            {/* Error Alert Popup (reuse customer toast style) */}
-            {/* {mounted &&
-            showError &&
-            createPortal(
-              <div className="fixed top-8 left-1/2 transform -translate-x-1/2 z-[1100] flex items-center gap-2 bg-red-50 border border-red-200 text-red-600 px-2 py-1 rounded-full shadow-md max-w-[90vw] text-[0.65rem]">
-                <svg
-                  className="w-4 h-4 text-red-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    fill="none"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M12 8v4m0 4h.01"
-                  />
-                </svg>
-                <span className="font-semibold">Error :</span>
-                <span className="">{errorMessage}</span>
-                <button
-                  type="button"
-                  className="ml-2 text-red-400 hover:text-red-600 text-lg font-bold"
-                  aria-label="Close alert"
-                  onClick={() => setShowError(false)}
-                >
-                  ×
-                </button>
-              </div>,
-              document.body
-            )} */}
-
             {/* ================= BASIC DETAILS ================ */}
             <div className="border border-gray-200 rounded-[12px] p-3 -mt-2">
-              <h2 className="text-[13px] font-medium mb-2">Basic Details</h2>
+              <h2 className="text-[13px] font-[500] mb-2">Basic Details</h2>
               <hr className="mt-1 mb-2 border-t border-gray-200" />
 
               {/* Row 1 */}
               {/* Company Name - FULL WIDTH */}
               <div className="flex flex-col gap-1 mb-3">
-                <label className="block text-[13px] font-medium text-gray-700">
-                  Company Name <span className="text-red-500">*</span>
+                <label className="block text-[13px] font-[500] text-[#414141]">
+                  Company Name <span className="text-[#FF3B30]">*</span>
                 </label>
                 <input
                   ref={companyRef}
@@ -531,10 +487,10 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   }}
                   placeholder="Enter Company Name"
                   disabled={readOnly}
-                  className={`w-full rounded-md px-3 py-2 text-[13px] hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
+                  className={`w-full rounded-md px-3 py-2 text-[13px] hover:border-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202] ${
                     invalidField === "company"
                       ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
-                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
+                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
                   }`}
                 />
               </div>
@@ -543,7 +499,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               {/* Contact Number + Company Email */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                 <div className="flex flex-col gap-1">
-                  <label className="block text-[13px] font-medium text-gray-700">
+                  <label className="block text-[13px] font-[500] text-[#414141]">
                     Contact Number
                   </label>
                   <div className="flex items-center">
@@ -573,13 +529,13 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       maxLength={phoneMaxLength}
                       placeholder="Enter Contact Number"
                       disabled={readOnly}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] text-[#414141] focus:outline-none focus:ring-1 hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
                     />
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className="block text-[13px] font-medium text-gray-700">
+                  <label className="block text-[13px] font-[500] text-[#414141]">
                     Company Email ID
                   </label>
                   <input
@@ -590,7 +546,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     }
                     placeholder="Enter Email ID"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
                   />
                 </div>
               </div>
@@ -601,7 +557,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
             {/* ================= POC DETAILS (Optional) ================ */}
             <div className="border border-gray-200 rounded-[12px] p-3">
-              <h2 className="text-[13px] font-medium mb-2">
+              <h2 className="text-[13px] font-[500] mb-2">
                 POC Details (Optional)
               </h2>
               <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -609,8 +565,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               {/* Row 1 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                 <div className="flex flex-col gap-1 md:col-span-2">
-                  <label className="block text-[13px] font-medium text-gray-700">
-                    Contact Person <span className="text-red-500">*</span>
+                  <label className="block text-[13px] font-[500] text-[#414141]">
+                    Contact Person <span className="text-[#FF3B30]">*</span>
                   </label>
                   <input
                     ref={contactNameRef}
@@ -629,10 +585,10 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     }}
                     placeholder="Enter Contact Person Name"
                     disabled={readOnly}
-                    className={`w-full rounded-md px-3 py-2 text-[13px] hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
+                    className={`w-full rounded-md px-3 py-2 text-[13px] hover:border-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202] ${
                       invalidField === "contactPerson"
                         ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
-                        : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
+                        : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
                     }`}
                   />
                 </div>
@@ -641,7 +597,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               {/* Row 2 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                 <div className="flex flex-col gap-1">
-                  <label className="block text-[13px] font-medium text-gray-700">
+                  <label className="block text-[13px] font-[500] text-[#414141]">
                     Nickname/Alias
                   </label>
                   <input
@@ -656,11 +612,11 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     }
                     placeholder="Enter Nickname/Alias"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 hover:border-green-400 focus:ring-green-400 rounded-md px-3 py-2 text-[13px] disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 hover:border-[#C6AEDE] focus:ring-[#C6AEDE] rounded-md px-3 py-2 text-[13px] disabled:bg-gray-200 disabled:text-[#020202]"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="block text-[13px] font-medium text-gray-700">
+                  <label className="block text-[13px] font-[500] text-[#414141]">
                     Contact Number
                   </label>
                   <div className="flex items-center">
@@ -689,7 +645,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       }
                       maxLength={phoneMaxLength}
                       disabled={readOnly}
-                      className="w-full h-[2rem] border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                      className="w-full h-[2rem] border border-gray-300 rounded-md px-3 py-2 text-[13px] text-[#414141] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE] hover:border-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
                     />
                   </div>
                 </div>
@@ -698,7 +654,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               {/* Row 3 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                 <div className="flex flex-col gap-1">
-                  <label className="block text-[13px] font-medium text-gray-700">
+                  <label className="block text-[13px] font-[500] text-[#414141]">
                     Email ID
                   </label>
                   <input
@@ -709,7 +665,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       setFormData({ ...formData, email: e.target.value })
                     }
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
                   />
                 </div>
                 <div className="flex flex-col gap-1 w-full">
@@ -720,7 +676,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       setFormData((prev) => ({ ...prev, dateOfBirth: iso }))
                     }
                     placeholder="DD-MM-YYYY"
-                    customWidth="w-full mt-1.5 py-2"
+                    customWidth="w-full mt-0.5 py-2"
                     showCalendarIcon={true}
                     readOnly={readOnly}
                     maxDate={new Date().toISOString()}
@@ -734,7 +690,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
             {/* ================= BILLING ADDRESS ================ */}
             <div className="border border-gray-200 rounded-[12px] p-3">
-              <label className="block text-[13px] font-medium text-gray-700 mb-1">
+              <label className="block text-[13px] font-[500] text-[#414141] mb-1">
                 Billing Address
               </label>
               <hr className="mt-1 mb-3 border-t border-gray-200" />
@@ -750,108 +706,105 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 }
                 placeholder="Enter Billing Address"
                 disabled={readOnly}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700 resize-none"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202] resize-none"
               />
             </div>
 
             {/* ================= DOCUMENTS ================ */}
             <div className="border border-gray-200 rounded-[12px] p-3">
-              <h2 className="text-[13px] font-medium mb-2">Documents</h2>
+              <h2 className="text-[13px] font-[500] mb-2">Documents</h2>
               <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-              <div className="flex flex-col gap-3 mt-2 items-start">
-                <input
-                  type="file"
-                  ref={fileRef}
-                  className="hidden"
-                  onChange={handleFileChange}
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  disabled={readOnly || attachedFiles.length >= 3}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileRef.current?.click()}
-                  disabled={readOnly || attachedFiles.length >= 3}
-                  className={`px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200 ${
-                    readOnly || attachedFiles.length >= 3
-                      ? "opacity-50 cursor-not-allowed hover:bg-white"
-                      : ""
-                  }`}
-                >
-                  <MdOutlineFileUpload size={16} /> Attach Files
-                </button>
+              <input
+                type="file"
+                ref={fileRef}
+                className="hidden"
+                onChange={handleFileChange}
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt"
+                multiple
+                disabled={readOnly || attachedFiles.length >= 3}
+              />
 
-                {/* PREVIEW FILES */}
-                <div className="-mt-2 flex flex-col gap-2 w-full">
-                  {existingDocuments.map((doc, i) => (
-                    <div
-                      key={`${
-                        doc.key || doc.fileName || doc.originalName
-                      }-${i}`}
-                      className="flex items-center justify-between w-full 
-                               bg-white rounded-md 
-                               px-3 py-2 hover:bg-gray-50 transition"
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={readOnly || attachedFiles.length >= 3}
+                className={`px-3 py-1 flex gap-1 bg-white text-[#126ACB] border 
+                           border-[#126ACB] rounded-md font-[600] text-[13px] hover:cursor-pointer ${
+                             readOnly || attachedFiles.length >= 3
+                               ? "opacity-50 cursor-not-allowed hover:bg-white"
+                               : ""
+                           }`}
+              >
+                <MdOutlineFileUpload size={16} /> Attach Files
+              </button>
+
+              {/* PREVIEW FILES */}
+              <div className="mt-2 flex flex-col gap-2">
+                {existingDocuments.map((doc, i) => (
+                  <div
+                    key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
+                    className="flex items-center justify-between w-full 
+                             bg-white rounded-md 
+                             px-3 py-2 hover:bg-gray-50 transition"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => doc.url && window.open(doc.url, "_blank")}
+                      className="text-[#126ACB]  p-1.5 -ml-2 rounded-md bg-[#126ACB0D]  text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+                      title="Click to view document"
                     >
+                      <FaRegFolder className="text-[#126ACB] w-3 h-3" />
+                      {doc.originalName || doc.fileName}
+                    </button>
+
+                    {!readOnly && mode === "edit" ? (
                       <button
                         type="button"
-                        onClick={() =>
-                          doc.url && window.open(doc.url, "_blank")
-                        }
-                        className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
-                        title="Click to view document"
+                        onClick={() => handleDeleteExistingDocument(i)}
+                        className="text-[#FF3B30] hover:cursor-pointer"
                       >
-                        <FaRegFolder className="text-blue-500 w-3 h-3" />
-                        {doc.originalName || doc.fileName}
+                        <FiTrash2 size={16} />
                       </button>
+                    ) : null}
+                  </div>
+                ))}
 
-                      {!readOnly && mode === "edit" ? (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteExistingDocument(i)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <FiTrash2 size={16} />
-                        </button>
-                      ) : null}
-                    </div>
-                  ))}
+                {attachedFiles.map((file, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between w-full 
+                             bg-white rounded-md 
+                             px-3 py-2 hover:bg-gray-50 transition"
+                  >
+                    {/* File Name */}
+                    <span className="text-[#126ACB]  p-1.5 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
+                      <FaRegFolder className="text-[#126ACB] w-3 h-3" />
+                      {file.name}
+                    </span>
 
-                  {attachedFiles.map((file, i) => (
-                    <div
-                      key={i}
-                      className="flex items-center justify-between w-full 
-                               bg-white rounded-md 
-                               px-3 py-2 hover:bg-gray-50 transition"
-                    >
-                      {/* File Name */}
-                      <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
-                        <FaRegFolder className="text-blue-500 w-3 h-3" />
-                        {file.name}
-                      </span>
+                    {/* Delete Icon */}
+                    {!readOnly ? (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteFile(i)}
+                        className="text-[#EB382B] hover:cursor-pointer"
+                      >
+                        <FiTrash2 size={16} />
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
 
-                      {/* Delete Icon */}
-                      {!readOnly ? (
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteFile(i)}
-                          className="text-red-500 hover:text-red-700"
-                        >
-                          <FiTrash2 size={16} />
-                        </button>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="text-red-600 text-[0.65rem] -mt-3">
-                  Note: Maximum of 3 files can be uploaded
-                </div>
+              <div className="text-[#EB382B] font-[500] text-[0.65rem]">
+                Note: Maximum of 3 files can be uploaded
               </div>
             </div>
 
             {/* ================= OPENING BALANCE ================ */}
             <div className="border border-gray-200 rounded-[12px] p-3">
-              <h2 className="text-[13px] font-medium mb-2">Opening Balance</h2>
+              <h2 className="text-[13px] font-[500] mb-2">Opening Balance</h2>
               <hr className="mt-1 mb-3 border-t border-gray-200" />
 
               <div className="flex items-center gap-6 mb-3">
@@ -862,10 +815,10 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     value="debit"
                     checked={balanceType === "debit"}
                     onChange={() => setBalanceType("debit")}
-                    className="w-3 h-3 text-red-600"
+                    className="w-3 h-3 text-[#126ACB]"
                     disabled={readOnly}
                   />
-                  <span className="text-gray-700">Debit</span>
+                  <span className="text-[#414141]">Debit</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer text-[13px]">
@@ -875,16 +828,22 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     value="credit"
                     checked={balanceType === "credit"}
                     onChange={() => setBalanceType("credit")}
-                    className="w-3 h-3 text-red-600"
+                    className="w-3 h-3 text-[#126ACB]"
                     disabled={readOnly}
                   />
-                  <span className="text-gray-700">Credit</span>
+                  <span className="text-[#414141]">Credit</span>
                 </label>
               </div>
 
               <div className="relative">
-                <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-green-400">
-                  <span className="text-gray-500 mr-2 text-[13px]">{getStoredCurrencySymbol()}</span>
+                <div
+                  className={`flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-[#C6AEDE] ${
+                    readOnly ? "bg-gray-200" : "bg-white"
+                  }`}
+                >
+                  <span className="text-gray-500 mr-2 text-[13px]">
+                    {getStoredCurrencySymbol()}
+                  </span>
                   <input
                     type="text"
                     value={balanceAmount}
@@ -905,17 +864,19 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                         : "Enter Credit Amount"
                     }
                     disabled={readOnly}
-                    className="flex-1 outline-none text-gray-700 text-[13px] hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="flex-1 outline-none text-[#414141] text-[13px] hover:border-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
                   />
                 </div>
-                <div className="absolute right-3 top-2 text-sm font-medium">
+                <div className="absolute right-3 top-2 font-[500]">
                   {balanceType === "debit" ? (
                     <span className=" text-green-500 text-[13px]">
-                      Customer pays you {getStoredCurrencySymbol()} {balanceAmount || ""}
+                      Customer pays you {getStoredCurrencySymbol()}{" "}
+                      {balanceAmount || ""}
                     </span>
                   ) : (
-                    <span className=" text-red-500 text-[13px]">
-                      You pay the customer {getStoredCurrencySymbol()} {balanceAmount || ""}
+                    <span className=" text-[#FF3B30] text-[13px]">
+                      You pay the customer {getStoredCurrencySymbol()}{" "}
+                      {balanceAmount || ""}
                     </span>
                   )}
                 </div>
@@ -924,7 +885,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
             {/* ================= TIER ================ */}
             <div className=" p-1 -mt-4">
-              <h2 className="text-[13px] font-medium mb-2">Rating</h2>
+              <h2 className="text-[13px] font-[500] mb-2">Rating</h2>
 
               <div className="flex flex-col">
                 <DropDown
@@ -938,7 +899,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                             alt="Tier 1"
                             className="w-5 h-5"
                           />
-                          <span className="text-[13px] font-medium">1</span>
+                          <span className="text-[13px] font-[500]">1</span>
                         </div>
                       ),
                     },
@@ -951,7 +912,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                             alt="Tier 2"
                             className="w-5 h-5"
                           />
-                          <span className="text-[13px] font-medium">2</span>
+                          <span className="text-[13px] font-[500]">2</span>
                         </div>
                       ),
                     },
@@ -964,7 +925,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                             alt="Tier 3"
                             className="w-5 h-5"
                           />
-                          <span className="text-[13px] font-medium">3</span>
+                          <span className="text-[13px] font-[500]">3</span>
                         </div>
                       ),
                     },
@@ -977,7 +938,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                             alt="Tier 4"
                             className="w-5 h-5"
                           />
-                          <span className="text-[13px] font-medium">4</span>
+                          <span className="text-[13px] font-[500]">4</span>
                         </div>
                       ),
                     },
@@ -990,7 +951,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                             alt="Tier 5"
                             className="w-5 h-5"
                           />
-                          <span className="text-[13px] font-medium">5</span>
+                          <span className="text-[13px] font-[500]">5</span>
                         </div>
                       ),
                     },
@@ -1001,14 +962,14 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   customWidth="w-[10rem]"
                   menuWidth="w-[10rem]"
                   className=""
-                  // readOnly={readOnly}
+                  readOnly={readOnly}
                 />
               </div>
             </div>
 
             {/* Remarks */}
             <div className="border border-gray-200 rounded-xl p-3 -mt-2">
-              <label className="block text-[13px]  font-medium text-gray-700">
+              <label className="block text-[13px]  font-[500] text-[#414141]">
                 Remarks
               </label>
               <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -1022,7 +983,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 placeholder="Enter Your Remarks Here"
                 className={`
             w-full border border-gray-200 rounded-md px-3 py-2 text-[13px]  mt-2 transition-colors
-            focus:ring focus:ring-green-400 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700
+            focus:ring focus:ring-[#C6AEDE] hover:border-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]
           `}
                 disabled={readOnly}
               />
@@ -1036,8 +997,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 <Button
                   text="Close"
                   onClick={onCancel}
-                  bgColor="bg-gray-200"
-                  textColor="text-gray-700"
+                  bgColor="bg-white border border-gray-200"
+                  textColor="text-[#414141]"
                 />
               ) : mode === "edit" ? (
                 <Button

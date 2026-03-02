@@ -26,6 +26,7 @@ import DropDown from "@/components/DropDown";
 import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerForm";
 import { allowTextAndNumbers } from "@/utils/inputValidators";
 import { CiCirclePlus } from "react-icons/ci";
+import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 
 // Type definitions
 interface GeneralInfoFormData {
@@ -281,11 +282,11 @@ const InputField: React.FC<InputFieldProps> = ({
         readOnly={readOnly}
         disabled={disabled || isValidating}
         className={`
-          w-full border rounded-md px-3 py-2 pr-10 placeholder:text-[12px] text-[12px]  transition-colors hover:border-green-400 
+          w-full border rounded-md px-3 py-2 pr-10 placeholder:text-[12px] text-[12px]  transition-colors hover:border-[#C6AEDE] 
           ${
             hasError
               ? "border-red-300 focus:ring-red-200"
-              : "border-gray-200 focus:ring-green-400"
+              : "border-gray-200 focus:ring-[#C6AEDE]"
           }
 
           ${
@@ -560,6 +561,15 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   //   name: "",
   // });
 
+  // Loading state for initial data fetch
+  const [isLoadingLists, setIsLoadingLists] = useState(true);
+
+  // presence of incoming externalFormData is edit mode
+  const hasInitialData = useMemo(
+    () => Boolean(externalFormData && Object.keys(externalFormData).length > 0),
+    [externalFormData],
+  );
+
   // Search data states
   const [allCustomers, setAllCustomers] = useState<CustomerDataType[]>([]);
   const [allVendors, setAllVendors] = useState<VendorDataType[]>([]);
@@ -803,6 +813,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Fetch all customers, vendors, Teamss on mount
   useEffect(() => {
     const fetchLists = async () => {
+      setIsLoadingLists(true);
       try {
         const [cRes, travellerRes, vRes, tRes] = await Promise.all([
           getCustomers({ isDeleted: false }),
@@ -817,6 +828,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         setAllTravellers(travellerRes || []);
       } catch (err) {
         // console.error("[GeneralInfoForm] Failed loading lists", err);
+      } finally {
+        setIsLoadingLists(false);
       }
     };
 
@@ -1563,12 +1576,16 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   return (
     <form
       ref={formRef}
-      className="space-y-4 px-[10px] py-[28px]"
+      className="space-y-4 px-[10px] py-[28px] relative"
       onSubmit={(e) => e.preventDefault()}
     >
+      {isLoadingLists && (isReadOnly || hasInitialData) && (
+        <LoadingSpinner overlay size="lg" message="Loading form data..." />
+      )}
+
       {/* Customer Section */}
       <div className="border border-gray-200 rounded-[12px] p-3">
-        <h2 className="text-[12px] text-[#020202] font-[400] mb-2">
+        <h2 className="text-[12px] text-[#020202] font-[500] mb-2">
           Billed To
         </h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -1576,7 +1593,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         {customerList.map((customer, index) => (
           <div key={index} className="">
             <div className="flex items-center gap-1 mt-3">
-              <label className="text-[12px] font-[400] text-[#414141]">
+              <label className="text-[12px] font-[500] text-[#414141]">
                 <span className="text-[#FF3B30]">*</span> Customer
               </label>
 
@@ -1666,15 +1683,15 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     return (
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-1 min-w-0">
-                          <p className="font-medium text-[13px] text-gray-900 truncate">
+                          <p className="font-[500] text-[13px] text-[#020202] truncate">
                             {selected.name}
                           </p>
                           <span className="text-gray-300">|</span>
-                          <p className="text-[13px] text-gray-600 truncate">
+                          <p className="text-[13px] font-[400] text-[#414141] truncate">
                             {alias}
                           </p>
                           <span className="text-gray-300">|</span>
-                          <p className="text-[13px] text-gray-600 truncate">
+                          <p className="text-[13px] font-[400] text-[#414141] truncate">
                             {selected.customId}
                           </p>
                         </div>
@@ -1685,7 +1702,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             alt={`Tier ${rating}`}
                             className="w-4 h-4 object-contain"
                           />
-                          <span className="text-[13px] font-semibold text-gray-700">
+                          <span className="text-[13px] font-[600] text-[#020202]">
                             {rating}
                           </span>
                         </div>
@@ -1740,15 +1757,15 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-1">
-                                <p className="font-medium text-[13px] text-gray-900">
+                                <p className="font-[400] text-[13px] text-[#020202]">
                                   {cust.name}
                                 </p>
                                 <span className="text-gray-300">|</span>
-                                <p className="text-[13px] text-gray-600 truncate">
+                                <p className="text-[13px] font-[400] text-[#414141] truncate">
                                   {alias || "-"}
                                 </p>
                                 <span className="text-gray-300">|</span>
-                                <p className="text-[13px] text-gray-600 truncate">
+                                <p className="text-[13px] font-[400] text-[#414141] truncate">
                                   {cust.customId}
                                 </p>
                               </div>
@@ -1759,7 +1776,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                   alt={`Tier ${rating}`}
                                   className="w-4 h-4 object-contain"
                                 />
-                                <span className="text-[13px] font-semibold text-gray-700">
+                                <span className="text-[13px] font-[600] text-[#020202]">
                                   {rating}
                                 </span>
                               </div>
@@ -1803,10 +1820,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       {/* Vendor Section */}
       {!hideVendor && (
         <div className="border border-gray-200 rounded-[12px] px-3 py-4">
-          <h2 className="text-[12px] text-[#020202] font-[400] mb-2">Vendor</h2>
+          <h2 className="text-[12px] text-[#020202] font-[500] mb-2">Vendor</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-          <label className="text-[12px] font-[400] text-[#414141]">
+          <label className="text-[12px] font-[500] text-[#414141]">
             <span className="text-[#FF3B30]">*</span> Vendor
           </label>
 
@@ -1862,15 +1879,15 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   return (
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-1 min-w-0">
-                        <p className="font-normal text-[13px] text-gray-900 truncate">
+                        <p className="font-[400] text-[13px] text-[#020202] truncate">
                           {primary}
                         </p>
                         <span className="text-gray-300">|</span>
-                        <p className="text-[13px] text-gray-600 truncate">
+                        <p className="text-[13px] font-[400] text-[#414141] truncate">
                           {alias}
                         </p>
                         <span className="text-gray-300">|</span>
-                        <p className="text-[13px] text-gray-600 truncate">
+                        <p className="text-[13px] font-[400] text-[#414141] truncate">
                           {selected.customId || "-"}
                         </p>
                       </div>
@@ -1882,7 +1899,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             alt={`Tier ${rating}`}
                             className="w-4 h-4 object-contain"
                           />
-                          <span className="text-[0.75rem] font-semibold text-gray-700">
+                          <span className="text-[0.75rem] font-[600] text-[#020202]">
                             {rating}
                           </span>
                         </div>
@@ -1937,15 +1954,15 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1">
-                            <p className="font-normal text-[13px] text-gray-900">
+                            <p className="font-[400] text-[13px] text-[#020202] truncate">
                               {v.companyName || v.contactPerson}
                             </p>
                             <span className="text-gray-300">|</span>
-                            <p className="text-[13px] text-gray-600 truncate">
+                            <p className="text-[13px] font-[400] text-[#414141] truncate">
                               {alias || "-"}
                             </p>
                             <span className="text-gray-300">|</span>
-                            <p className="text-[13px] text-gray-600 truncate">
+                            <p className="text-[13px] font-[400] text-[#414141] truncate">
                               {v.customId || "-"}
                             </p>
                           </div>
@@ -1957,7 +1974,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                 alt={`Tier ${rating}`}
                                 className="w-4 h-4 object-contain"
                               />
-                              <span className="text-[0.75rem] font-semibold text-gray-700">
+                              <span className="text-[0.75rem] font-[600] text-[#020202]">
                                 {rating}
                               </span>
                             </div>
@@ -2020,7 +2037,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         : Math.max(1, prev.adults - 1), // otherwise → min 1
                   }))
                 }
-                className={`text-lg font-semibold ${
+                className={`text-lg font-[600] ${
                   isReadOnly || isSubmitting
                     ? "opacity-50 cursor-not-allowed"
                     : ""
@@ -2035,7 +2052,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 onClick={() =>
                   setFormData({ ...formData, adults: formData.adults + 1 })
                 }
-                className={`text-lg font-semibold ${
+                className={`text-lg font-[600] ${
                   isReadOnly || isSubmitting
                     ? "opacity-50 cursor-not-allowed"
                     : ""
@@ -2059,7 +2076,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     infants: Math.max(0, formData.infants - 1),
                   })
                 }
-                className={`text-lg font-semibold ${
+                className={`text-lg font-[600] ${
                   isReadOnly || isSubmitting
                     ? "opacity-50 cursor-not-allowed"
                     : ""
@@ -2074,7 +2091,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 onClick={() =>
                   setFormData({ ...formData, infants: formData.infants + 1 })
                 }
-                className={`text-lg font-semibold ${
+                className={`text-lg font-[600] ${
                   isReadOnly || isSubmitting
                     ? "opacity-50 cursor-not-allowed"
                     : ""
@@ -2091,7 +2108,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           {adultTravellerList.map((_, index) => (
             <div key={index} className="mb-6">
               <label className="block w-[30rem] text-[12px] font-[400] text-[#414141] mb-2">
-                <span className="text-red-500">*</span>
+                <span className="text-[#FF3B30)]">*</span>
                 {`Adult ${index + 1}${index === 0 ? " (Lead Pax)" : ""}`}
               </label>
               <div className="flex items-center gap-2">
@@ -2146,11 +2163,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       return (
                         <div className="flex items-center justify-between w-full">
                           <div className="flex items-center gap-1 min-w-0">
-                            <p className="font-normal text-[13px] text-gray-900 truncate">
+                            <p className="font-[400] text-[13px] text-[#020202] truncate">
                               {selected.name}
                             </p>
                             <span className="text-gray-300">|</span>
-                            <p className="text-[13px] text-gray-600 truncate">
+                            <p className="text-[13px] font-[400] text-[#414141] truncate">
                               {selected.customId}
                             </p>
                           </div>
@@ -2162,7 +2179,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                 alt={`Tier ${rating}`}
                                 className="w-4 h-4 object-contain"
                               />
-                              <span className="text-[13px] font-semibold text-gray-700">
+                              <span className="text-[13px] font-[600] text-[#020202]">
                                 {rating}
                               </span>
                             </div>
@@ -2194,11 +2211,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-1">
-                                <p className="font-normal text-[13px] text-gray-900">
+                                <p className="font-normal text-[13px] text-[#020202] truncate">
                                   {t.name}
                                 </p>
                                 <span className="text-gray-300">|</span>
-                                <p className="text-[13px] text-gray-600 truncate">
+                                <p className="text-[13px] font-[400] text-[#414141] truncate">
                                   {t.customId}
                                 </p>
                               </div>
@@ -2227,7 +2244,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                         alt={`Tier ${rating}`}
                                         className="w-4 h-4 object-contain"
                                       />
-                                      <span className="text-[13px] font-semibold text-gray-700">
+                                      <span className="text-[13px] font-[600] text-[#020202]">
                                         {rating}
                                       </span>
                                     </div>
@@ -2248,7 +2265,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             setTravellerResults([]);
                           }}
                         >
-                          <p className="font-medium text-[13px] text-gray-700">
+                          <p className="font-[500] text-[13px] text-[#020202]">
                             Don&apos;t have the name? Enter TBA
                           </p>
                         </div>
@@ -2274,10 +2291,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           ))}
 
           {formData.infantTravellers.map((trav, index) => (
-            <div key={index} className="mb-6">
+            <div key={index} className="mb-4">
               <div className="w-[30rem] flex items-center justify-between mb-2">
                 <label className=" text-[12px] font-[400] text-[#414141]">
-                  <span className="text-red-500">*</span>
+                  <span className="text-[#FF3B30]">*</span>
                   {`Child ${index + 1}`}
                 </label>
 
@@ -2296,8 +2313,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       return { ...prev, childAges: ages };
                     });
                   }}
-                  customWidth="w-[14rem]"
-                  className="mt-1"
+                  customWidth="w-[9rem]"
+                  className=""
                 />
               </div>
 
@@ -2358,7 +2375,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                               {selected.name}
                             </p>
                             <span className="text-gray-300">|</span>
-                            <p className="text-[13px] text-gray-600 truncate">
+                            <p className="text-[13px] font-[400] text-[#414141] truncate">
                               {selected.customId}
                             </p>
                           </div>
@@ -2370,7 +2387,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                 alt={`Tier ${rating}`}
                                 className="w-4 h-4 object-contain"
                               />
-                              <span className="text-[13px] font-semibold text-gray-700">
+                              <span className="text-[13px] font-[600] text-[#020202]">
                                 {rating}
                               </span>
                             </div>
@@ -2419,11 +2436,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1">
-                                  <p className="font-normal text-[13px] text-gray-900">
+                                  <p className="font-normal text-[13px] text-[#020202] truncate">
                                     {t.name}
                                   </p>
                                   <span className="text-gray-300">|</span>
-                                  <p className="text-[13px] text-gray-600 truncate">
+                                  <p className="text-[13px] font-[400] text-[#414141] truncate">
                                     {t.customId}
                                   </p>
                                 </div>
@@ -2435,7 +2452,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                       alt={`Tier ${rating}`}
                                       className="w-4 h-4 object-contain"
                                     />
-                                    <span className="text-[13px] font-semibold text-gray-700">
+                                    <span className="text-[13px] font-[600] text-[#020202]">
                                       {rating}
                                     </span>
                                   </div>
@@ -2454,7 +2471,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             setTravellerResults([]);
                           }}
                         >
-                          <p className="font-medium text-[13px] text-gray-700">
+                          <p className="font-[500] text-[13px] text-[#020202]">
                             Don&apos;t have the name? Enter TBA
                           </p>
                         </div>
@@ -2483,10 +2500,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
       {/* Booking Owner */}
       <div className="border border-gray-200 rounded-xl p-3">
-        <h2 className="text-[13px] font-medium mb-2">Booking Owner</h2>
+        <h2 className="text-[13px] font-[500] mb-2">Booking Owner</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
-        <label className="block text-[13px] font-medium text-gray-700 mb-1">
-          <span className="text-red-500">*</span> Primary
+        <label className="block text-[13px] font-[500] text-[#414141] mb-1">
+          <span className="text-[#FF3B30]">*</span> Primary
         </label>
         <div className="w-[59%] relative" ref={teamsPrimaryRef}>
           <InputField
@@ -2544,7 +2561,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       setShowPrimaryOwnerDropdown(false);
                     }}
                   >
-                    <p className="font-medium text-[13px]">{t.name}</p>
+                    <p className="font-[500] text-[13px]">{t.name}</p>
                   </div>
                 ))}
               </div>
@@ -2557,14 +2574,30 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               type="button"
               onClick={() => !isReadOnly && setShowSecondaryOwnerField(true)}
               disabled={isReadOnly}
-              className={`flex items-center gap-2 text-[13px] text-gray-600 ${
+              className={`flex items-center gap-2 text-[13px] font-[400] text-[#414141] ${
                 isReadOnly
                   ? "opacity-50 cursor-not-allowed"
-                  : "hover:text-gray-800"
+                  : "hover:text-[#414141]"
               }`}
             >
-              <CiCirclePlus size={20} className="text-[#818181]" />
-              <span className="-ml-1 text-[12px] text-[#818181] ">
+              <div className="border border-[#818181] rounded-full px-0.5 py-0.5 -mt-0.5  flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="13"
+                  height="13"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                >
+                  <path
+                    d="M6.59672 2.74805V10.4415M2.75 6.59477H10.4434"
+                    stroke="#818181"
+                    strokeWidth="1.31888"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <span className="-ml-1 text-[11px] font-[500] text-[#818181] ">
                 {" "}
                 Add Secondary User{" "}
               </span>
@@ -2572,7 +2605,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           ) : (
             <>
               <div className="flex items-center gap-2 mb-1">
-                <label className="block text-[13px] font-medium text-gray-700">
+                <label className="block text-[13px] font-[500] text-[#414141]">
                   <span className="text-red-500">*</span> Secondary
                 </label>
                 <button
@@ -2606,8 +2639,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 <div
                   className={`w-full min-h-[1.5rem] text-[12px] -mt-0.5 border border-gray-200 rounded-md px-2.5 py-2 flex items-center flex-wrap gap-1 ${
                     isReadOnly
-                      ? "bg-gray-200 text-gray-700 cursor-not-allowed"
-                      : "hover:border-green-200 cursor-pointer"
+                      ? "bg-gray-200 text-[#020202] cursor-not-allowed"
+                      : "hover:border-[#C6AEDE] cursor-pointer"
                   }`}
                   onClick={(e) => {
                     if (isReadOnly) return;
@@ -2777,7 +2810,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
       {/* Remarks */}
       <div className="border border-gray-200 rounded-xl p-3">
-        <label className="block text-[13px]  font-medium text-gray-700">
+        <label className="block text-[13px]  font-[500] text-[#414141]">
           Remarks
         </label>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
