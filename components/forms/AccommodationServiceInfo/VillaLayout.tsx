@@ -91,7 +91,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
   const updateSegment = (
     index: number,
     field: keyof RoomSegment,
-    value: string
+    value: string,
   ) => {
     const newSegments: RoomSegment[] = segments.map((seg, idx) => {
       if (idx === index) {
@@ -122,7 +122,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
   const updatePaxCount = (
     roomId: string,
     field: "adults" | "children",
-    increment: boolean
+    increment: boolean,
   ) => {
     setPaxData((prev) => {
       const current = prev[roomId] || { adults: 0, children: 0, infant: 0 };
@@ -142,7 +142,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
 
   return (
     <>
-      <label className="block text-[0.8rem] font-medium text-gray-700 mb-1 mt-3">
+      <label className="block text-[0.8rem] font-[500] text-[#414141] mb-1 mt-3">
         Total Rooms
       </label>
 
@@ -150,7 +150,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
         <div className="w-full max-w-6xl mx-auto p-3 mt-2">
           {/* Room Counter */}
           <div className="mb-3">
-            <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+            <label className="block text-[0.75rem] font-[500] text-[#414141] mb-1">
               No. of Rooms
             </label>
             <div className="flex items-center gap-2">
@@ -200,13 +200,10 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
               };
 
               return (
-                <div
-                  key={roomId}
-                  className="bg-[#F9F9F9] p-3 rounded-md border border-gray-200"
-                >
+                <div key={roomId} className="bg-[#F9F9F9] p-3.5 rounded-md">
                   {/* Room Header */}
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-[0.8rem] font-medium text-gray-800">
+                    <h3 className="text-[0.8rem] font-[500] text-gray-800">
                       Room {index + 1}
                     </h3>
                     {index === 0 && (
@@ -241,7 +238,9 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                           htmlFor={`villa-copy-checkbox`}
                           className={`w-3.5 h-3.5 border border-gray-400 rounded-[4px] 
                  flex items-center justify-center ${
-                   isReadOnly ? "cursor-not-allowed bg-gray-100" : "cursor-pointer"
+                   isReadOnly
+                     ? "cursor-not-allowed bg-gray-100"
+                     : "cursor-pointer"
                  }`}
                         >
                           {copyToOthers && (
@@ -271,7 +270,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
 
                   {/* Room Category */}
                   <div className="mb-2">
-                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                    <label className="block text-[0.75rem] font-[500] text-[#414141] mb-1">
                       Room Category
                     </label>
                     <input
@@ -281,13 +280,13 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                         updateSegment(index, "roomCategory", e.target.value)
                       }
                       placeholder="Super Deluxe"
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
 
                   {/* Bed Type */}
                   <div className="mb-2">
-                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                    <label className="block text-[0.75rem] font-[500] text-[#414141] mb-1">
                       Bed Type
                     </label>
                     <input
@@ -297,13 +296,13 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                         updateSegment(index, "bedType", e.target.value)
                       }
                       placeholder="King Size Bed"
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
 
                   {/* Pax Section */}
                   <div className="mb-1">
-                    <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                    <label className="block text-[0.75rem] font-[500] text-[#414141] mb-1">
                       Pax
                     </label>
                     <div className="border-b border-gray-300 mb-2 -mt-1"></div>

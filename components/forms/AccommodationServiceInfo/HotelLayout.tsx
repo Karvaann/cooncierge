@@ -96,7 +96,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
   const updateSegment = (
     index: number,
     field: keyof RoomSegment,
-    value: string
+    value: string,
   ) => {
     const newSegments: RoomSegment[] = segments.map((seg, idx) => {
       if (idx === index) {
@@ -127,7 +127,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
   const updatePaxCount = (
     roomId: string,
     field: "adults" | "children" | "infant",
-    increment: boolean
+    increment: boolean,
   ) => {
     setPaxData((prev) => {
       const current = prev[roomId] || { adults: 0, children: 0, infant: 0 };
@@ -150,12 +150,12 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
     <div className="w-full max-w-6xl mx-auto p-3">
       {/* Room Counter */}
       <div className="mb-3">
-        <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+        <label className="block text-[0.75rem] font-[500] text-[#414141] mb-1">
           Rooms
         </label>
 
         <div className="flex items-center">
-          <div className="flex border border-gray-300 rounded-md overflow-hidden">
+          <div className="flex border border-gray-300 rounded-sm overflow-hidden">
             <input
               type="number"
               value={numRooms}
@@ -194,13 +194,10 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
           const pax = paxData[roomId] || { adults: 1, children: 0, infant: 0 };
 
           return (
-            <div
-              key={roomId}
-              className="bg-[#F9F9F9] p-3 rounded-md border border-gray-200"
-            >
+            <div key={roomId} className="bg-[#F9F9F9] p-3.5 rounded-sm">
               {/* Room Header */}
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-[0.8rem] font-medium text-gray-800">
+                <h3 className="text-[0.8rem] font-[500] text-gray-800">
                   Room {index + 1}
                 </h3>
                 {index === 0 && (
@@ -267,7 +264,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
 
               {/* Room Category */}
               <div className="mb-2">
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                <label className="block text-[0.75rem] font-[500] text-[#414141] mb-1">
                   Room Category
                 </label>
                 <input
@@ -277,17 +274,17 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                     updateSegment(
                       index,
                       "roomCategory",
-                      allowOnlyText(e.target.value)
+                      allowOnlyText(e.target.value),
                     )
                   }
                   placeholder="Enter Room Category"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                 />
               </div>
 
               {/* Bed Type */}
               <div className="mb-2">
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-1">
+                <label className="block text-[0.75rem] font-[500] text-[#414141] mb-1">
                   Bed Type
                 </label>
                 <input
@@ -297,27 +294,27 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                     updateSegment(
                       index,
                       "bedType",
-                      allowOnlyText(e.target.value)
+                      allowOnlyText(e.target.value),
                     )
                   }
                   placeholder="Enter Bed Type"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                 />
               </div>
 
               {/* Pax Section */}
               <div className="mb-1">
-                <label className="block text-[0.75rem] font-medium text-gray-700 mb-2">
+                <label className="block text-[0.75rem] font-[500] text-[#414141] mb-2">
                   Pax
                 </label>
                 <div className="border-b border-gray-300 mb-2 -mt-1"></div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1">
                   {/* Adults */}
                   <div>
                     <label className="block text-xs text-black mb-1">
                       Adults
                     </label>
-                    <div className="flex items-center border border-black rounded-lg px-2 py-1 w-[78px]">
+                    <div className="flex items-center border border-black rounded-md px-2 py-1 w-[78px]">
                       <button
                         type="button"
                         onClick={() =>
@@ -331,7 +328,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                               cur.children && cur.children >= 1 ? 0 : 1;
                             const nextAdults = Math.max(
                               minAdults,
-                              cur.adults - 1
+                              cur.adults - 1,
                             );
                             return {
                               ...prev,
@@ -339,7 +336,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                             };
                           })
                         }
-                        className="px-1 text-lg font-semibold"
+                        className="px-1 text-lg font-[600] "
                       >
                         <FiMinus size={12} />
                       </button>
@@ -361,7 +358,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                             };
                           })
                         }
-                        className="px-1 text-lg font-semibold"
+                        className="px-1 text-lg font-[600]"
                       >
                         <GoPlus size={12} />
                       </button>
@@ -369,11 +366,11 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                   </div>
 
                   {/* Children */}
-                  <div className="flex flex-col">
+                  <div className="flex flex-col -ml-5">
                     <label className="block text-xs text-black mb-1">
                       Children
                     </label>
-                    <div className="flex items-center border border-black rounded-lg px-2 py-1 w-[78px]">
+                    <div className="flex items-center border border-black rounded-md px-2 py-1 w-[78px]">
                       <button
                         type="button"
                         onClick={() =>
@@ -390,7 +387,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                             };
                           })
                         }
-                        className="px-1 text-lg font-semibold"
+                        className="px-1 text-lg font-[600]"
                       >
                         <FiMinus size={12} />
                       </button>
@@ -414,7 +411,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                             };
                           })
                         }
-                        className="px-1 text-lg font-semibold"
+                        className="px-1 text-lg font-[600]"
                       >
                         <GoPlus size={12} />
                       </button>

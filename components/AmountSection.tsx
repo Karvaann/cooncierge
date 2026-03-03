@@ -1382,7 +1382,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 Vendor Payment Summary
               </h4>
 
-              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+              <div className="border border-[#E2E1E1]  overflow-hidden bg-white">
                 {[
                   { label: "Vendor Base Price", key: "price" },
                   { label: "Vendor Incentive Received", key: "received" },
@@ -1391,9 +1391,9 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 ].map((item, index) => (
                   <div
                     key={index}
-                    className="grid grid-cols-12 border-b last:border-b-0 border-gray-200"
+                    className="grid grid-cols-12 border-b last:border-b-0 border-[#E2E1E1]"
                   >
-                    <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
+                    <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] border-r border-[#E2E1E1] text-[0.8rem] text-gray-700 font-medium py-5">
                       {item.label}
                     </div>
                     <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
@@ -1574,7 +1574,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                             }}
                             businessCurrency={businessCurrency}
                             requiresRoe={requiresRoe}
-                            amountInputWidth="40%"
+                            amountInputWidth="44%"
                             readOnly={!!isReadOnly || !!isSubmitting}
                           />
                         </div>
@@ -1592,9 +1592,9 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 Customer Revenue Summary
               </h4>
 
-              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+              <div className="border border-[#E2E1E1] overflow-hidden bg-white">
                 <div className="grid grid-cols-12">
-                  <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
+                  <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] border-r border-[#E2E1E1] text-[0.8rem] text-gray-700 font-medium py-5">
                     Selling Price
                   </div>
 

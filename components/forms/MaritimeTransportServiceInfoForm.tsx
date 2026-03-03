@@ -501,6 +501,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 }
                 placeholder="DD-MM-YYYY"
                 showCalendarIcon={false}
+                inputClassName="rounded-sm"
               />
 
               {/* Travel Date */}
@@ -512,8 +513,10 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 }
                 placeholder="DD-MM-YYYY"
                 minDate={formData.bookingdate}
+                minTypeable={formData.bookingdate}
                 showCalendarIcon={false}
                 readOnly={!formData.bookingdate}
+                inputClassName="rounded-sm"
               />
             </div>
 
@@ -525,6 +528,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 value={formData.bookingstatus}
                 onChange={handleBookingStatusChange}
                 readOnly={isReadOnly}
+                className="rounded-sm"
               />
             </div>
           </div>
@@ -564,7 +568,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   value={formData.confirmationNumber}
                   onChange={handleChange}
                   placeholder="Enter Confirmation Number"
-                  className="w-[30%] px-3 py-1.5 border border-gray-300 rounded-md text-[13px] text-[#020202] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-[35%] px-3 py-1.5 border border-gray-300 rounded-sm text-[13px] text-[#020202] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
@@ -578,8 +582,8 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
-                  placeholder="Title …"
-                  className="w-[99%] px-3 py-1.5 border border-gray-300 rounded-md text-[13px] text-[#020202] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  placeholder="Enter Title"
+                  className="w-[99%] px-3 py-1.5 border border-gray-300 rounded-sm text-[13px] text-[#020202] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
             </div>

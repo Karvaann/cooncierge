@@ -22,6 +22,9 @@ type Props = {
   showCalendarIcon?: boolean; // Whether to show the calendar icon (default: true)
   readOnly?: boolean; // When true, input is disabled and calendar cannot be opened
   popupMaxHeight?: string; // Tailwind max-height class for calendar popup (e.g. 'max-h-44')
+  minTypeable?: string; // ISO string – typed dates before this are rejected and input is cleared
+  /** Override all input styling with a single Tailwind class string. When provided, replaces the default padding, text size, color, border, rounding, hover, and background classes. */
+  inputStyleClass?: string;
 };
 
 export default function SingleCalendar({
@@ -38,6 +41,8 @@ export default function SingleCalendar({
   readOnly = false,
   popupMaxHeight,
   maxDate,
+  minTypeable,
+  inputStyleClass,
   ...props
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -275,9 +280,23 @@ export default function SingleCalendar({
     if (val.length === 10) {
       const parsedDate = parseInputDate(val);
       if (parsedDate) {
+        // Reject typed dates before minTypeable (actively clear input)
+        if (minTypeable) {
+          const minT = new Date(minTypeable);
+          minT.setHours(0, 0, 0, 0);
+          const typed = new Date(parsedDate);
+          typed.setHours(0, 0, 0, 0);
+          if (typed < minT) {
+            setInputValue("");
+            onChange("");
+            return;
+          }
+        }
+
         // ensure parsed date is allowed (not after maxDate / not before minDate / not disabled past)
         if (!isDateAllowed(parsedDate)) {
-          // do not accept invalid range; leave input for blur to reset
+          setInputValue("");
+          onChange("");
           return;
         }
 
@@ -294,17 +313,42 @@ export default function SingleCalendar({
   };
 
   const handleInputBlur = () => {
-    // Preserve whatever the user typed. If it's a complete valid date (DD-MM-YYYY)
-    // and within allowed range, apply it. Otherwise keep the typed value.
+    // If invalid, clear the input
     if (inputValue.length === 10) {
       const parsed = parseInputDate(inputValue);
-      if (parsed && isDateAllowed(parsed)) {
-        onChange(parsed.toISOString());
-        setCurrentMonth(new Date(parsed.getFullYear(), parsed.getMonth(), 1));
-        setOpen(false);
-        setShowMonthPicker(false);
-        setShowYearPicker(false);
+      if (parsed) {
+        // Reject dates before minTypeable
+        if (minTypeable) {
+          const minT = new Date(minTypeable);
+          minT.setHours(0, 0, 0, 0);
+          const typed = new Date(parsed);
+          typed.setHours(0, 0, 0, 0);
+          if (typed < minT) {
+            setInputValue("");
+            onChange("");
+            return;
+          }
+        }
+
+        if (isDateAllowed(parsed)) {
+          onChange(parsed.toISOString());
+          setCurrentMonth(new Date(parsed.getFullYear(), parsed.getMonth(), 1));
+          setOpen(false);
+          setShowMonthPicker(false);
+          setShowYearPicker(false);
+        } else {
+          setInputValue("");
+          onChange("");
+        }
+      } else {
+        // Incomplete/invalid format — clear
+        setInputValue("");
+        onChange("");
       }
+    } else if (inputValue.length > 0) {
+      // Partially typed date on blur — clear it
+      setInputValue("");
+      onChange("");
     }
   };
 
@@ -526,10 +570,14 @@ export default function SingleCalendar({
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          className={`relative ${widthClass} border border-gray-300 rounded-md ${
-            readOnly
-              ? "px-2 py-1 pr-7 text-[13px] text-gray-700 bg-gray-200 cursor-default"
-              : "hover:border-green-400 pr-7 px-2 py-1 text-[13px] text-gray-700 outline-none bg-transparent"
+          className={`relative ${widthClass} ${
+            inputStyleClass
+              ? `${inputStyleClass} ${readOnly ? "cursor-default" : "outline-none"} pr-7`
+              : `border border-gray-300 rounded-md ${
+                  readOnly
+                    ? "px-2 py-1 pr-7 text-[13px] text-gray-700 bg-gray-200 cursor-default"
+                    : "hover:border-green-400 pr-7 px-2 py-1 text-[13px] text-gray-700 outline-none bg-transparent"
+                }`
           } transition-colors`}
           onClick={(e) => e.stopPropagation()}
         />

@@ -20,7 +20,7 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
   message,
   visible,
   onClose,
-  autoHideMs = 10000,
+  autoHideMs = 5000,
   bgColorClass = "bg-red-50",
   boldText,
   messageColorClass = "text-red-600",

@@ -492,6 +492,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 }
                 placeholder="DD-MM-YYYY"
                 showCalendarIcon={false}
+                inputClassName="rounded-sm"
               />
 
               {/* Travel Date */}
@@ -503,7 +504,9 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 }
                 placeholder="DD-MM-YYYY"
                 minDate={formData.bookingdate}
+                minTypeable={formData.bookingdate}
                 readOnly={!formData.bookingdate}
+                inputClassName="rounded-sm"
               />
             </div>
 
@@ -515,6 +518,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 value={formData.bookingstatus}
                 onChange={handleBookingStatusChange}
                 readOnly={isReadOnly}
+                className="rounded-sm"
               />
             </div>
           </div>
@@ -544,7 +548,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
             {/* Confirmation number + Title (stacked) */}
             <div className="flex flex-col gap-3 w-full mb-4">
               {/* Confirmation number */}
-              <div className="flex flex-col w-[30%]">
+              <div className="flex flex-col w-[35%]">
                 <label className="text-[0.75rem] font-medium text-[#414141] mb-1">
                   Confirmation number
                 </label>
@@ -554,7 +558,7 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   value={formData.confirmationNumber}
                   onChange={handleChange}
                   placeholder="Enter Confirmation Number"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                 />
               </div>
 
@@ -568,8 +572,8 @@ const ActivityServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   name="title"
                   value={formData.title}
                   onChange={handleChange}
-                  placeholder="Title …"
-                  className="w-[99%] px-3 py-1.5 border border-gray-300 rounded-md text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
+                  placeholder="Enter Title"
+                  className="w-[99%] px-3 py-1.5 border border-gray-300 rounded-sm text-[0.75rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
                 />
               </div>
             </div>

@@ -731,6 +731,34 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     return bookingDataTemp;
   }
 
+  /**
+   * Validate advanced-pricing fields when the checkbox is on.
+   */
+  const validateAdvancedPricing = useCallback(
+    (formValues: Record<string, any>): string => {
+      // Find the *infoform key (flightinfoform, accommodationinfoform, etc.)
+      const infoFormKey = Object.keys(formValues).find((k) =>
+        k.toLowerCase().endsWith("infoform"),
+      );
+      const infoForm = infoFormKey ? formValues[infoFormKey] : null;
+      if (!infoForm || typeof infoForm !== "object") return "";
+      if (!infoForm.showAdvancedPricing) return "";
+
+      const isEmpty = (v: unknown) =>
+        v === undefined || v === null || String(v).trim() === "";
+
+      if (isEmpty(infoForm.vendorBasePrice))
+        return "Vendor Base Price is required when Advanced Pricing is enabled";
+      if (isEmpty(infoForm.vendorIncentiveReceived))
+        return "Vendor Incentive Received is required when Advanced Pricing is enabled";
+      if (isEmpty(infoForm.commissionPaid))
+        return "Commission Paid is required when Advanced Pricing is enabled";
+
+      return "";
+    },
+    [],
+  );
+
   const handleDraftSubmit = useCallback(async () => {
     setIsSubmitting(true);
 
@@ -757,6 +785,15 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       alert(
         "Please select a service or set a service type before saving a draft",
       );
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Validate advanced pricing fields before saving draft
+    const advPricingError = validateAdvancedPricing(formValues);
+    if (advPricingError) {
+      setApiErrorMessage(advPricingError);
+      setShowApiErrorToast(true);
       setIsSubmitting(false);
       return;
     }
@@ -837,6 +874,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     onClose,
     bookingDocuments,
     onBookingSaved,
+    validateAdvancedPricing,
   ]);
 
   const handleSubmit = useCallback(async () => {
@@ -864,6 +902,15 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         alert(
           "Please select a service or set a service type before submitting",
         );
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate advanced pricing fields before submitting
+      const advPricingError = validateAdvancedPricing(formValues);
+      if (advPricingError) {
+        setApiErrorMessage(advPricingError);
+        setShowApiErrorToast(true);
         setIsSubmitting(false);
         return;
       }
@@ -945,6 +992,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     isEditingExisting,
     quotationId,
     onBookingSaved,
+    validateAdvancedPricing,
   ]);
 
   // Optimized tab click handler

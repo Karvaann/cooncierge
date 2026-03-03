@@ -608,6 +608,7 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
               }
               placeholder="DD-MM-YYYY"
               minDate={formData.bookingdate}
+              minTypeable={formData.bookingdate}
               showCalendarIcon={false}
               readOnly={!formData.bookingdate}
             />
@@ -622,6 +623,7 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
                 }
                 placeholder="DD-MM-YYYY"
                 minDate={formData.traveldatestart || formData.bookingdate}
+                minTypeable={formData.traveldatestart || formData.bookingdate}
                 showCalendarIcon={false}
                 readOnly={!formData.traveldatestart}
               />

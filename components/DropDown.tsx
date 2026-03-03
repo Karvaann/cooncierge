@@ -43,6 +43,8 @@ interface DropdownProps {
   typeable?: boolean;
   /** When true, skip the default bg-gray-200 background applied on disabled / readOnly state */
   noDisabledBg?: boolean;
+  /** Custom className applied to each option item in the dropdown menu */
+  optionClassName?: string;
 }
 
 /* ── Fuzzy-match: every query char must appear in order in the target ── */
@@ -81,6 +83,7 @@ const DropDown: React.FC<DropdownProps> = ({
   footerAction,
   typeable = false,
   noDisabledBg = false,
+  optionClassName = "",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(value || "");
@@ -454,7 +457,7 @@ const DropDown: React.FC<DropdownProps> = ({
                       typeable && idx === highlightIdx
                         ? "bg-green-50 text-black"
                         : "text-black hover:bg-gray-50"
-                    }`}
+                    } ${optionClassName}`}
                   >
                     {option.label}
                   </button>

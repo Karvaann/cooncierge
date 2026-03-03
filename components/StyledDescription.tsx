@@ -23,7 +23,7 @@ export default function StyledDescription({
   value,
   onChange,
   readOnly = false,
-  labelSize = "text-[0.75rem]",
+  labelSize = "text-[12px]",
   boxWidth = "w-[99%]",
 }: StyledDescriptionProps): JSX.Element {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -488,7 +488,7 @@ export default function StyledDescription({
     <>
       {/* Header */}
       <div className="px-0 py-2 -mb-1">
-        <h3 className={`${labelSize} font-medium text-gray-700`}>{label}</h3>
+        <h3 className={`${labelSize} font-[500] text-[#414141]`}>{label}</h3>
       </div>
       <div
         className={`${boxWidth} mt-1 bg-white rounded-md border border-gray-200`}
@@ -563,7 +563,7 @@ export default function StyledDescription({
           <div
             ref={editorRef}
             contentEditable={!readOnly}
-            className={`px-3 py-2 min-h-[80px] text-[13px] text-gray-700 outline-none focus:ring-0 ${readOnly ? "bg-gray-200 cursor-not-allowed" : ""}`}
+            className={`px-3 py-1 min-h-[48px] text-[13px] text-gray-700 outline-none focus:ring-0 ${readOnly ? "bg-gray-200 cursor-not-allowed" : ""}`}
             onInput={handleEditorInput}
             onMouseUp={updateActiveFormats}
             onKeyUp={updateActiveFormats}

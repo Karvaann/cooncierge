@@ -531,8 +531,9 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           <h2 className="text-[13px] font-medium mb-2">Basic Details</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-          <div className="flex flex-col md:flex-row gap-4 mb-2">
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
+            {/* Row 1: First Name | Last Name */}
+            <div className="flex flex-col gap-1 w-full">
               <label className="block text-[13px] font-medium text-[#414141]">
                 First Name <span className="text-red-500">*</span>
               </label>
@@ -548,7 +549,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
               />
             </div>
 
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
+            <div className="flex flex-col gap-1 w-full">
               <label className="block text-[13px] font-medium text-[#414141]">
                 Last Name
               </label>
@@ -564,7 +565,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
               />
             </div>
 
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
+            {/* Row 2: Nickname/Alias | Contact Number */}
+            <div className="flex flex-col gap-1 w-full">
               <label className="block text-[13px] font-medium text-[#414141]">
                 Nickname/Alias
               </label>
@@ -579,11 +581,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-200 disabled:text-[#020202]"
               />
             </div>
-          </div>
 
-          {/* Second row */}
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
+            <div className="flex flex-col gap-1 w-full">
               <label className="block text-[13px] font-medium text-[#414141]">
                 Contact Number
               </label>
@@ -610,23 +609,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
               </div>
             </div>
 
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
-              <label className="block text-[13px] font-medium text-[#414141]">
-                Email ID
-              </label>
-              <input
-                name="emailId"
-                value={formData.emailId}
-                onChange={handleChange}
-                type="email"
-                placeholder="Enter Email ID"
-                required
-                disabled={readOnly}
-                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-200 disabled:text-[#020202]"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
+            {/* Row 3: Date of Birth | Email ID */}
+            <div className="flex flex-col gap-1 w-full">
               <label className="block text-[13px] font-medium text-[#414141]">
                 Date of Birth
               </label>
@@ -647,6 +631,22 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 )}
               </div>
             </div>
+
+            <div className="flex flex-col gap-1 w-full">
+              <label className="block text-[13px] font-medium text-[#414141]">
+                Email ID
+              </label>
+              <input
+                name="emailId"
+                value={formData.emailId}
+                onChange={handleChange}
+                type="email"
+                placeholder="Enter Email ID"
+                required
+                disabled={readOnly}
+                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-200 disabled:text-[#020202]"
+              />
+            </div>
           </div>
         </div>
 
@@ -662,7 +662,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   label: (
                     <div className="flex items-center gap-2">
                       <img
-                        src="/icons/tier-1.png"
+                        src="/icons/tier-icons/tier-1.svg"
                         alt="Tier 1"
                         className="w-5 h-5"
                       />
@@ -675,7 +675,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   label: (
                     <div className="flex items-center gap-2">
                       <img
-                        src="/icons/tier-2.png"
+                        src="/icons/tier-icons/tier-2.svg"
                         alt="Tier 2"
                         className="w-5 h-5"
                       />
@@ -688,7 +688,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   label: (
                     <div className="flex items-center gap-2">
                       <img
-                        src="/icons/tier-3.png"
+                        src="/icons/tier-icons/tier-3.svg"
                         alt="Tier 3"
                         className="w-5 h-5"
                       />
@@ -701,7 +701,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   label: (
                     <div className="flex items-center gap-2">
                       <img
-                        src="/icons/tier-4.png"
+                        src="/icons/tier-icons/tier-4.svg"
                         alt="Tier 4"
                         className="w-5 h-5"
                       />
@@ -714,7 +714,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   label: (
                     <div className="flex items-center gap-2">
                       <img
-                        src="/icons/tier-5.png"
+                        src="/icons/tier-icons/tier-5.svg"
                         alt="Tier 5"
                         className="w-5 h-5"
                       />

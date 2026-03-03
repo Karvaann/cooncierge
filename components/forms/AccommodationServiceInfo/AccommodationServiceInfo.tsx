@@ -849,6 +849,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 }
                 placeholder="DD-MM-YYYY"
                 minDate={formData.bookingdate}
+                minTypeable={formData.bookingdate}
                 readOnly={!formData.bookingdate}
               />
             </div>
@@ -901,7 +902,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     confirmationNumber: allowTextAndNumbers(e.target.value),
                   }))
                 }
-                placeholder="Enter Confirmation Number"
+                placeholder="Enter Confirmation No."
                 className="w-[200px] px-3 py-1.5 border border-gray-300 rounded-md text-[12px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
               />
             </div>
@@ -920,16 +921,18 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     }))
                   }
                   placeholder="DD-MM-YYYY"
-                  customWidth="w-[95%]"
-                  labelClassName="block text-gray-700 mb-1 text-[0.65rem] font-[500]"
-                  inputClassName="flex-1 text-[0.65rem] text-gray-700 outline-none bg-transparent"
+                  customWidth="w-[98%]"
+                  labelClassName="block text-[#414141] mb-1 text-[12px] font-[500]"
+                  inputClassName="flex-1 text-[0.65rem] text-[#020202] outline-none bg-transparent"
                   showCalendarIcon={false}
                   minDate={formData.traveldate}
+                  minTypeable={formData.traveldate}
+                  inputStyleClass="py-1.5 text-[12px] border border-gray-300 rounded-sm px-2 h-[34px]"
                 />
 
                 {/* Check-In Time */}
                 <div>
-                  <label className="block text-[0.65rem] font-[500] text-gray-700 mb-1">
+                  <label className="block text-[12px] font-[500] text-[#414141] mb-1">
                     Time
                   </label>
                   <input
@@ -999,7 +1002,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     }}
                     placeholder="HH:MM"
                     maxLength={5}
-                    className="w-[60%] px-2 py-1 border border-gray-300 rounded-md text-[13px] text-gray-700 hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                    className="w-[62%] px-2 py-1.5 border border-gray-300 rounded-sm text-[13px] text-gray-700 hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                   />
                 </div>
               </div>
@@ -1018,15 +1021,17 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   }
                   placeholder="DD-MM-YYYY"
                   minDate={formData.checkindate}
-                  customWidth="w-[95%]"
-                  labelClassName="block text-gray-700 mb-1 text-[0.65rem] font-[500]"
-                  inputClassName="flex-1 text-[0.65rem] text-gray-700 outline-none bg-transparent"
+                  customWidth="w-[98%]"
+                  labelClassName="block text-[#414141] mb-1 text-[12px] font-[500]"
+                  inputClassName="flex-1 text-[0.65rem] text-[#020202] outline-none bg-transparent"
                   showCalendarIcon={false}
+                  minTypeable={formData.checkindate}
+                  inputStyleClass="py-1.5 text-[12px] border border-gray-300 rounded-sm px-2 h-[33px]"
                 />
 
                 {/* Check-Out Time */}
                 <div>
-                  <label className="block text-[0.65rem] font-[500] text-gray-700 mb-1">
+                  <label className="block text-[12px] font-[500] text-[#414141] mb-1">
                     Time
                   </label>
                   <input
@@ -1096,7 +1101,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     }}
                     placeholder="HH:MM"
                     maxLength={5}
-                    className="w-[60%] px-2 py-1 border border-gray-300 rounded-md text-[13px] text-gray-700 hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                    className="w-[62%] px-2 py-1.5 border border-gray-300 rounded-sm text-[13px] text-gray-700 hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                   />
                 </div>
               </div>
@@ -1105,7 +1110,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             {/* Pax & Meal Plan */}
             <div className="flex items-end gap-3 mb-3">
               <div>
-                <label className="block text-[0.65rem] font-[500] text-gray-700 mb-1">
+                <label className="block text-[12px] font-[500] text-gray-700 mb-1">
                   Pax
                 </label>
                 <input
@@ -1115,13 +1120,13 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     setFormData((prev) => ({ ...prev, pax: e.target.value }))
                   }
                   placeholder="0"
-                  className="w-[8rem] px-2 py-1.5 border border-gray-300 rounded-md text-[0.65rem] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                  className="w-[8rem] px-2 py-1.5 border border-gray-300 rounded-sm text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                 />
               </div>
 
               <div>
-                <label className="block text-[0.65rem] font-[500] text-gray-700 mb-1">
-                  Meal Plan
+                <label className="block text-[12px] font-[500] text-gray-700 mb-1">
+                  Select Meal Plan
                 </label>
                 <DropDown
                   options={[
@@ -1130,7 +1135,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     { value: "MAPAI", label: "MAPAI" },
                     { value: "APAI", label: "APAI" },
                   ]}
-                  placeholder="Select Plan"
+                  placeholder="Select Meal Plan"
                   value={formData.mealPlan}
                   onChange={(value) =>
                     setFormData((prev) => ({
@@ -1138,8 +1143,10 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                       mealPlan: value,
                     }))
                   }
-                  customWidth="w-[9rem]"
+                  customWidth="w-[12rem]"
                   readOnly={isReadOnly}
+                  optionClassName="font-[400]"
+                  className="h-[34px] rounded-sm"
                 />
               </div>
             </div>
@@ -1169,6 +1176,8 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     }}
                     customWidth="w-full"
                     readOnly={isReadOnly}
+                    optionClassName="font-[400]"
+                    className="rounded-sm"
                   />
                 </div>
 
@@ -1225,7 +1234,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                           }))
                         }
                         placeholder={`Enter ${formData.accommodationType} Name`}
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                       />
                     </div>
 
@@ -1245,7 +1254,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                           }))
                         }
                         placeholder={`Enter ${formData.accommodationType} Address`}
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                       />
                     </div>
                   </div>
@@ -1266,15 +1275,30 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                           }))
                         }
                         placeholder="Paste Google Maps Link"
-                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-l-md text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-l-sm text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                       />
 
                       <button
                         type="button"
                         onClick={handleCopyGoogleLink}
-                        className="px-4 py-1.5 flex items-center gap-1 bg-[#126ACB] text-white rounded-r-md text-[13px] hover:bg-blue-700 border border-[#126ACB]"
+                        className="px-4 py-1.5 flex font-[600] items-center gap-2 bg-[#126ACB] text-white rounded-r-sm text-[13px] hover:bg-blue-700 border border-[#126ACB]"
                       >
-                        <FaRegCopy size={16} /> Copy Link
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="14"
+                          height="14"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                        >
+                          <path
+                            d="M5.27664 8.27665C5.52105 8.5261 5.81278 8.72427 6.13474 8.85956C6.4567 8.99485 6.80241 9.06453 7.15164 9.06453C7.50087 9.06453 7.84659 8.99485 8.16855 8.85956C8.49051 8.72427 8.78223 8.5261 9.02664 8.27665L12.0266 5.27665C12.5239 4.77937 12.8033 4.10491 12.8033 3.40165C12.8033 2.69839 12.5239 2.02393 12.0266 1.52665C11.5294 1.02937 10.8549 0.75 10.1516 0.75C9.44838 0.75 8.77392 1.02937 8.27664 1.52665L7.90164 1.90165M8.27665 5.27671C8.03224 5.02726 7.74051 4.82909 7.41856 4.6938C7.0966 4.55852 6.75088 4.48883 6.40165 4.48883C6.05242 4.48883 5.7067 4.55852 5.38475 4.6938C5.06279 4.82909 4.77106 5.02726 4.52665 5.27671L1.52665 8.27671C1.02937 8.77399 0.75 9.44845 0.75 10.1517C0.75 10.855 1.02937 11.5294 1.52665 12.0267C2.02393 12.524 2.69839 12.8034 3.40165 12.8034C4.10491 12.8034 4.77937 12.524 5.27665 12.0267L5.65165 11.6517"
+                            stroke="white"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>{" "}
+                        Copy Link
                       </button>
                     </div>
 

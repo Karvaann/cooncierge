@@ -404,7 +404,7 @@ export default function OneWayLayout({
     <div className="text-[0.75rem] ml-2.5 text-gray-700">
       {/* Onwards label */}
       <div className="mb-3">
-        <span className="font-medium text-gray-600">
+        <span className="font-[500] text-[#414141] text-[13px]">
           Onwards ({getTotalDuration(segmentPreview)})
         </span>
       </div>
@@ -419,7 +419,7 @@ export default function OneWayLayout({
             {/* Flight Segment */}
             <div className="border border-gray-200 rounded-lg w-full p-3">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-[0.85rem] font-semibold text-gray-800">
+                <h4 className="text-[0.85rem] font-[500] text-gray-800">
                   Flight Segment {index + 1}
                 </h4>
                 {formData.segments.length > 1 && (
@@ -437,7 +437,7 @@ export default function OneWayLayout({
               <div className="grid grid-cols-1 gap-4">
                 {/* Flight Number */}
                 <div>
-                  <label className="block mb-1 font-medium text-gray-600">
+                  <label className="block mb-1 font-[500] text-gray-600">
                     Flight Number
                   </label>
                   <input
@@ -477,7 +477,7 @@ export default function OneWayLayout({
 
                 {/* Cabin Class */}
                 <div>
-                  <label className="block mb-1 font-medium text-gray-600">
+                  <label className="block mb-1 font-[500] text-gray-600">
                     Cabin Class
                   </label>
                   <DropDown
@@ -497,6 +497,7 @@ export default function OneWayLayout({
                     }}
                     customWidth="w-[75%]"
                     className="mt-1"
+                    optionClassName="font-[400] text-[#020202]"
                   />
                 </div>
 
@@ -535,7 +536,7 @@ export default function OneWayLayout({
                 if (!layover) return null;
 
                 return (
-                  <div className="flex items-center justify-center gap-2 py-2 text-gray-700 font-medium">
+                  <div className="flex items-center justify-center gap-2 py-2 text-gray-700 font-[500]">
                     {/* Airplane and dashed divider */}
                     <div className="flex items-center gap-2">
                       <MdAirplanemodeActive
@@ -909,7 +910,7 @@ export default function OneWayLayout({
                         <>
                           {/* Airline Header */}
                           <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 mb-3 flex items-center gap-2">
-                            <span className="font-medium text-gray-800">
+                            <span className="font-[500] text-gray-800">
                               {preview.airline}
                             </span>
                           </div>
@@ -947,7 +948,7 @@ export default function OneWayLayout({
 
                               <div className="flex flex-col items-center text-gray-500 text-[0.6rem]">
                                 <div className="w-[1px] h-8 border-l-2 border-dotted border-gray-300 mb-1"></div>
-                                <div className="text-[0.75rem] font-medium text-gray-700">
+                                <div className="text-[0.75rem] font-[500] text-gray-700">
                                   ✈
                                 </div>
                                 <div className="w-[0.0625rem] h-8 border-l-2 border-dotted border-gray-300 mt-1"></div>
@@ -1001,7 +1002,7 @@ export default function OneWayLayout({
         {/* Add Segment Button */}
         <button
           onClick={addSegment}
-          className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-[#126ACB] text-white text-[0.75rem] font-medium rounded-md hover:bg-blue-700 transition"
+          className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-[#126ACB] text-white text-[0.75rem] font-[500] rounded-md hover:bg-blue-700 transition"
         >
           <CiCirclePlus size={16} />
           Add Segment

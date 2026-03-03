@@ -261,11 +261,11 @@ const VendorDropDown: React.FC<VendorDropDownProps> = ({
               {displayOverlay.rating !== null ? (
                 <div className="flex items-center gap-1 shrink-0">
                   <img
-                    src={`/icons/tier-${displayOverlay.rating}.png`}
+                    src={`/icons/tier-icons/tier-${displayOverlay.rating}.svg`}
                     alt={`Tier ${displayOverlay.rating}`}
                     className="w-4 h-4 object-contain"
                   />
-                  <span className="text-[13px] font-semibold text-gray-700">
+                  <span className="text-[13px] font-[600] text-gray-700">
                     {displayOverlay.rating}
                   </span>
                 </div>
@@ -327,11 +327,11 @@ const VendorDropDown: React.FC<VendorDropDownProps> = ({
                   {rating !== null ? (
                     <div className="flex items-center gap-1 shrink-0">
                       <img
-                        src={`/icons/tier-${rating}.png`}
+                        src={`/icons/tier-icons/tier-${rating}.svg`}
                         alt={`Tier ${rating}`}
                         className="w-4 h-4 object-contain"
                       />
-                      <span className="text-[0.75rem] font-semibold text-gray-700">
+                      <span className="text-[0.75rem] font-[600] text-gray-700">
                         {rating}
                       </span>
                     </div>

@@ -282,7 +282,7 @@ const InputField: React.FC<InputFieldProps> = ({
         readOnly={readOnly}
         disabled={disabled || isValidating}
         className={`
-          w-full border rounded-md px-3 py-2 pr-10 placeholder:text-[12px] text-[12px]  transition-colors hover:border-[#C6AEDE] 
+          w-full border rounded-md px-3 py-2 ${selectedDisplay ? "" : "pr-10"} placeholder:text-[12px] placeholder:text-gray-400 text-[12px] transition-[border-color] duration-150 hover:border-[#C6AEDE] 
           ${
             hasError
               ? "border-red-300 focus:ring-red-200"
@@ -302,32 +302,19 @@ const InputField: React.FC<InputFieldProps> = ({
       />
 
       {selectedDisplay && (
-        <div className="absolute inset-0 flex items-center px-3 pr-10 pointer-events-none">
+        <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
           {selectedDisplay}
         </div>
       )}
 
       {/* Validation indicator */}
       <div className="absolute inset-y-0 right-0 flex items-center pr-3 gap-1 translate-y-[1px]">
-        <CiSearch size={18} className="text-gray-400" />
+        {!selectedDisplay && (
+          <CiSearch size={16} className="text-[#818181]" strokeWidth={1} />
+        )}
         {isValidating && (
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
         )}
-        {/* {!isValidating && isValid && (
-          <svg
-            className="h-4 w-4 text-green-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
-        )} */}
         {!isValidating && hasError && (
           <svg
             className="h-4 w-4 text-red-500"
@@ -1609,7 +1596,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             </div>
 
             <div className="flex items-center mt-1 w-full">
-              <div className="w-[30rem] relative" ref={customerRef}>
+              <div className="w-[60%] relative" ref={customerRef}>
                 <InputField
                   name="customer"
                   placeholder="Search by Customer Name/ID"
@@ -1683,7 +1670,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     return (
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-1 min-w-0">
-                          <p className="font-[500] text-[13px] text-[#020202] truncate">
+                          <p className="font-[400] text-[13px] text-[#020202] truncate">
                             {selected.name}
                           </p>
                           <span className="text-gray-300">|</span>
@@ -1698,11 +1685,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                         <div className="flex items-center gap-1 shrink-0">
                           <img
-                            src={`/icons/tier-${rating}.png`}
+                            src={`/icons/tier-icons/tier-${rating}.svg`}
                             alt={`Tier ${rating}`}
                             className="w-4 h-4 object-contain"
                           />
-                          <span className="text-[13px] font-[600] text-[#020202]">
+                          <span className="text-[13px] font-[600] mt-1 text-[#020202]">
                             {rating}
                           </span>
                         </div>
@@ -1714,7 +1701,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 {activeCustomerIndex === index &&
                   showCustomerDropdown &&
                   customerResults.length > 0 && (
-                    <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] max-h-60 mt-1 overflow-y-auto shadow-md z-50">
+                    <div className="absolute bg-white border border-gray-200 rounded-md w-[100%] max-h-60 mt-1 overflow-y-auto shadow-md z-50">
                       {customerResults.map((cust) => {
                         // derive numeric rating (1-5) from cust.tier if available
                         let rating = 4;
@@ -1756,8 +1743,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             }}
                           >
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1">
-                                <p className="font-[400] text-[13px] text-[#020202]">
+                              <div className="flex items-center gap-1 min-w-0">
+                                <p className="font-[400] text-[13px] text-[#020202] truncate">
                                   {cust.name}
                                 </p>
                                 <span className="text-gray-300">|</span>
@@ -1772,11 +1759,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                               <div className="flex items-center gap-1">
                                 <img
-                                  src={`/icons/tier-${rating}.png`}
+                                  src={`/icons/tier-icons/tier-${rating}.svg`}
                                   alt={`Tier ${rating}`}
                                   className="w-4 h-4 object-contain"
                                 />
-                                <span className="text-[13px] font-[600] text-[#020202]">
+                                <span className="text-[13px] font-[600] mt-1 text-[#020202]">
                                   {rating}
                                 </span>
                               </div>
@@ -1828,7 +1815,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           </label>
 
           <div className="flex items-center gap-2">
-            <div className="w-[30rem] relative" ref={vendorRef}>
+            <div className="w-[60%] relative" ref={vendorRef}>
               <InputField
                 name="vendor"
                 placeholder="Search by Vendor Name/ID"
@@ -1895,11 +1882,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       {rating !== null ? (
                         <div className="flex items-center gap-1 shrink-0">
                           <img
-                            src={`/icons/tier-${rating}.png`}
+                            src={`/icons/tier-icons/tier-${rating}.svg`}
                             alt={`Tier ${rating}`}
                             className="w-4 h-4 object-contain"
                           />
-                          <span className="text-[0.75rem] font-[600] text-[#020202]">
+                          <span className="text-[0.75rem] mt-1 font-[600] text-[#020202]">
                             {rating}
                           </span>
                         </div>
@@ -1910,7 +1897,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               />
 
               {showVendorDropdown && vendorResults.length > 0 && (
-                <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+                <div className="absolute bg-white border border-gray-200 rounded-md w-[100%] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
                   {vendorResults.map((v) => {
                     // derive rating only if tier present
                     let rating: number | null = null;
@@ -1970,11 +1957,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           {rating !== null ? (
                             <div className="flex items-center gap-1">
                               <img
-                                src={`/icons/tier-${rating}.png`}
+                                src={`/icons/tier-icons/tier-${rating}.svg`}
                                 alt={`Tier ${rating}`}
                                 className="w-4 h-4 object-contain"
                               />
-                              <span className="text-[0.75rem] font-[600] text-[#020202]">
+                              <span className="text-[0.75rem] mt-1 font-[600] text-[#020202]">
                                 {rating}
                               </span>
                             </div>
@@ -2021,10 +2008,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
         <div className="flex gap-6 mb-5 mt-3">
           <div className="flex flex-col">
-            <label className="block text-[12px] font-[500] text-[#414141] mb-1">
+            <label className="block text-[12px] font-[500] ml-5 text-[#414141] mb-1">
               Adults
             </label>
-            <div className="w-[5rem] flex items-center justify-between border border-black rounded-lg px-2 py-1">
+            <div className="w-[5rem] flex items-center justify-between border border-black rounded-md px-2 py-1">
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
@@ -2063,10 +2050,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             </div>
           </div>
           <div className="flex flex-col">
-            <label className="block text-[12px] font-[500] text-[#414141] mb-1">
+            <label className="block text-[12px] ml-4 font-[500] text-[#414141] mb-1">
               Children
             </label>
-            <div className="w-[5rem] flex items-center justify-between border border-black rounded-lg px-2 py-1">
+            <div className="w-[5rem] flex items-center justify-between border border-black rounded-md px-2 py-1">
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
@@ -2107,11 +2094,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         <div className="mt-4 space-y-2">
           {adultTravellerList.map((_, index) => (
             <div key={index} className="mb-6">
-              <label className="block w-[30rem] text-[12px] font-[400] text-[#414141] mb-2">
-                <span className="text-[#FF3B30)]">*</span>
+              <label className="block w-[60%] text-[12px] font-[400] text-[#414141] mb-1">
+                <span className="text-[#FF3B30]">*</span>
                 {`Adult ${index + 1}${index === 0 ? " (Lead Pax)" : ""}`}
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <div
                   className="w-[30rem] relative"
                   ref={(el) => {
@@ -2175,7 +2162,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           {rating !== null ? (
                             <div className="flex items-center gap-1 shrink-0">
                               <img
-                                src={`/icons/tier-${rating}.png`}
+                                src={`/icons/tier-icons/tier-${rating}.svg`}
                                 alt={`Tier ${rating}`}
                                 className="w-4 h-4 object-contain"
                               />
@@ -2240,7 +2227,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                   return (
                                     <div className="flex items-center gap-1">
                                       <img
-                                        src={`/icons/tier-${rating}.png`}
+                                        src={`/icons/tier-icons/tier-${rating}.svg`}
                                         alt={`Tier ${rating}`}
                                         className="w-4 h-4 object-contain"
                                       />
@@ -2259,13 +2246,13 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         <div
                           className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
                           onClick={() => {
-                            // Set this traveller to TBA (To Be Announced)
+                            // Set this traveller to TBA
                             updateTraveller("adultTravellers", index, "TBA");
                             setActiveTravellerDropdown(null);
                             setTravellerResults([]);
                           }}
                         >
-                          <p className="font-[500] text-[13px] text-[#020202]">
+                          <p className="font-[500] text-center text-[13px] text-[#818181]">
                             Don&apos;t have the name? Enter TBA
                           </p>
                         </div>
@@ -2383,7 +2370,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           {rating !== null ? (
                             <div className="flex items-center gap-1 shrink-0">
                               <img
-                                src={`/icons/tier-${rating}.png`}
+                                src={`/icons/tier-icons/tier-${rating}.svg`}
                                 alt={`Tier ${rating}`}
                                 className="w-4 h-4 object-contain"
                               />
@@ -2448,7 +2435,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                 {rating !== null ? (
                                   <div className="flex items-center gap-1">
                                     <img
-                                      src={`/icons/tier-${rating}.png`}
+                                      src={`/icons/tier-icons/tier-${rating}.svg`}
                                       alt={`Tier ${rating}`}
                                       className="w-4 h-4 object-contain"
                                     />
@@ -2471,7 +2458,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             setTravellerResults([]);
                           }}
                         >
-                          <p className="font-[500] text-[13px] text-[#020202]">
+                          <p className="font-[500] text-center text-[13px] text-[#818181]">
                             Don&apos;t have the name? Enter TBA
                           </p>
                         </div>
@@ -2505,7 +2492,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         <label className="block text-[13px] font-[500] text-[#414141] mb-1">
           <span className="text-[#FF3B30]">*</span> Primary
         </label>
-        <div className="w-[59%] relative" ref={teamsPrimaryRef}>
+        <div className="w-[60%] relative" ref={teamsPrimaryRef}>
           <InputField
             name="bookingOwner"
             placeholder="Search by Name/Username/ID"
@@ -2580,18 +2567,19 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   : "hover:text-[#414141]"
               }`}
             >
-              <div className="border border-[#818181] rounded-full px-0.5 py-0.5 -mt-0.5  flex items-center justify-center">
+              <div className="border border-[#818181] rounded-full p-0.5 flex items-center justify-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="13"
-                  height="13"
-                  viewBox="0 0 14 14"
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
                   fill="none"
+                  aria-hidden="true"
                 >
                   <path
-                    d="M6.59672 2.74805V10.4415M2.75 6.59477H10.4434"
+                    d="M12 5v14M5 12h14"
                     stroke="#818181"
-                    strokeWidth="1.31888"
+                    strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                   />

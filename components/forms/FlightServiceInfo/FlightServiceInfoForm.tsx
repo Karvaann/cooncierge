@@ -773,11 +773,12 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                 }
                 placeholder="DD-MM-YYYY"
                 minDate={formData.bookingdate}
+                minTypeable={formData.bookingdate}
                 readOnly={!formData.bookingdate}
                 customWidth="w-[10rem]"
               />
 
-              {/* ✅ Cancellation Date (READ ONLY) */}
+              {/*  Cancellation Date */}
               {formData.bookingstatus?.toLowerCase() === "cancelled" &&
                 formData.cancellationForm?.cancellationDate && (
                   <SingleCalendar
@@ -890,7 +891,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         ${
           formData.flightType === type
             ? "bg-[#E8F9F7] text-[#0D4B37] font-[600] border border-[#0D4B37]"
-            : "bg-transparent text-[#414141]"
+            : "bg-transparent text-[#414141] font-[400]"
         }`}
                   >
                     {type}

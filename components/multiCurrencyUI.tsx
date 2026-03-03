@@ -132,7 +132,7 @@ export default function MultiCurrencyInput({
             }))}
             value={currency}
             onChange={(val) => onCurrencyChange(val as Currency)}
-            customWidth="w-[64px]"
+            customWidth="w-[60px]"
             menuWidth="w-[220px]"
             noBorder={true}
             noButtonRadius={true}
@@ -182,10 +182,10 @@ export default function MultiCurrencyInput({
         <NotesButtonToolTip onClick={onToggleNotes} />
       </div>
 
-      {/* Notes input (conditional) */}
+      {/* Notes input */}
       {showNotes && (
         <div className="mt-3">
-          <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
+          <label className="block text-[0.78rem] font-[500] text-gray-700 mb-1">
             Notes
           </label>
           <input

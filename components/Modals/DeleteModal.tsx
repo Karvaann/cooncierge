@@ -123,7 +123,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         status: mapStatusForModal(q.status),
         amount: q.totalAmount != null ? String(q.totalAmount) : "0",
       })),
-    [mapStatusForModal, formatDMY]
+    [mapStatusForModal, formatDMY],
   );
 
   const handleOpenBookingHistory = useCallback(
@@ -181,16 +181,16 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         setIsHistoryOpen(true);
       }
     },
-    [entity, mapQuotationsToModal]
+    [entity, mapQuotationsToModal],
   );
 
   const deletableItems = useMemo(
     () => (items || []).filter((i) => i.isDeletable !== false),
-    [items]
+    [items],
   );
   const nonDeletableItems = useMemo(
     () => (items || []).filter((i) => i.isDeletable === false),
-    [items]
+    [items],
   );
 
   const performDeletion = useCallback(async () => {
@@ -239,7 +239,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
 
     const rating = Math.min(Math.max(Math.round(ratingRaw), 1), 5);
 
-    const tierIcon = `/icons/tier-${rating}.png`;
+    const tierIcon = `/icons/tier-icons/tier-${rating}.svg`;
 
     return (
       <div className="flex items-center gap-2 justify-center">
@@ -563,7 +563,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
   }, [sortedItems, entity]);
   const nonDeletableIds = useMemo(
     () => nonDeletableItems.map((c) => c.id),
-    [nonDeletableItems]
+    [nonDeletableItems],
   );
 
   return (
@@ -575,10 +575,10 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           entity === "customer"
             ? "Delete Customers"
             : entity === "vendor"
-            ? "Delete Vendors"
-            : entity === "traveller"
-            ? "Delete Travellers"
-            : "Delete Team Members"
+              ? "Delete Vendors"
+              : entity === "traveller"
+                ? "Delete Travellers"
+                : "Delete Team Members"
         }
         customWidth="w-[60vw]"
         customeHeight="h-fit"
@@ -607,10 +607,10 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
                   entity === "customer"
                     ? "customers"
                     : entity === "vendor"
-                    ? "vendors"
-                    : entity === "traveller"
-                    ? "travellers"
-                    : "teams"
+                      ? "vendors"
+                      : entity === "traveller"
+                        ? "travellers"
+                        : "teams"
                 }
               />
             </div>
@@ -679,10 +679,10 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
                 entity === "customer"
                   ? "customers"
                   : entity === "vendor"
-                  ? "vendors"
-                  : entity === "traveller"
-                  ? "travellers"
-                  : "teams"
+                    ? "vendors"
+                    : entity === "traveller"
+                      ? "travellers"
+                      : "teams"
               }
             />
           </div>
@@ -699,7 +699,7 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
               : `The following ${entity}${
                   nonDeletableItems.length > 1 ? "s" : ""
                 } cannot be deleted: ${nonDeletableIds.join(
-                  ", "
+                  ", ",
                 )}. Proceed to remove the rest?`
           }
           confirmText={
