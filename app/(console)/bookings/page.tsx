@@ -904,6 +904,8 @@ const OSBookingsPage = () => {
       });
 
       // open sidesheet only after id was fetched and state set
+      // show in view mode so fields remain disabled and user can only Save
+      setSideSheetMode("view");
       setIsSideSheetOpen(true);
     } catch (err) {
       console.error("Error duplicating quotation:", err);

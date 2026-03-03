@@ -411,6 +411,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   );
   const isReadOnly = readOnlyOverride ?? mode === "view";
 
+  //  show the Save button while keeping fields read-only
+  const isDuplicateView =
+    mode === "view" && !quotationId && Boolean(bookingCode || bookingCodeProp);
+
   // Each time the sidesheet opens, increment the instance id so
   // GeneralInfoForm / ServiceInfoForm (and nested modals) get a fresh mount.
   useEffect(() => {
@@ -1152,8 +1156,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
             </div>
 
             {/* Footer Actions - kept outside the scrollable area so it remains fixed at the bottom */}
-            <div className="border-t border-gray-200 p-4 bg-white">
-              <div className="flex justify-between">
+            <div className="border-t border-gray-200 px-4 py-2 bg-white">
+              <div className="flex justify-between mt-1 -mb-1">
                 {/* LEFT SIDE BUTTONS */}
                 <div>
                   {activeTab === "service" && (
@@ -1270,7 +1274,21 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                         />
                       )}
 
-                      {isReadOnly ? (
+                      {isDuplicateView ? (
+                        <Button
+                          text={"Save"}
+                          onClick={() => handleSubmit()}
+                          icon={<LuSave size={16} />}
+                          bgColor="bg-[#0D4B37]"
+                          textColor="text-white"
+                          width="w-auto"
+                          type="button"
+                          className="mr-4"
+                          disabled={
+                            isSubmitting || !(bookingCode || bookingCodeProp)
+                          }
+                        />
+                      ) : isReadOnly ? (
                         <Button
                           text="Edit"
                           onClick={() => {
@@ -1306,7 +1324,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                           width="w-auto"
                           type="button"
                           className="mr-4"
-                          disabled={isSubmitting || !quotationId}
+                          disabled={
+                            isSubmitting || (!quotationId && !bookingCode)
+                          }
                         />
                       )}
                     </>

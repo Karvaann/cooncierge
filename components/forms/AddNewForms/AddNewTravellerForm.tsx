@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import SingleCalendar from "@/components/SingleCalendar";
 import { validateTravellerForm } from "@/services/bookingApi";
 import SideSheet from "@/components/SideSheet";
@@ -12,6 +18,8 @@ import generateCustomId from "@/utils/helper";
 import PhoneCodeSelect from "@/components/PhoneCodeSelect";
 import DropDown from "@/components/DropDown";
 import { allowOnlyDigitsWithMax, allowOnlyText } from "@/utils/inputValidators";
+import ErrorToast from "@/components/ErrorToast";
+import { validateFirstName, validateEmailFormat } from "@/utils/formValidators";
 import {
   getPhoneNumberMaxLength,
   splitPhoneWithDialCode,
@@ -80,6 +88,9 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
   const [travellerCode, setTravellerCode] = useState("");
   const [tier, setTier] = useState<string>("");
+  const nameRef = useRef<HTMLInputElement | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     if (mode === "create") {
@@ -89,6 +100,11 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
       setTravellerCode(data?.customId || data?._id || "");
     }
   }, [mode, data]);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
   // Prefill when data provided
   useEffect(() => {
@@ -319,6 +335,28 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
     async (e?: React.FormEvent) => {
       if (e) e.preventDefault();
 
+      // First-name validation using shared validator
+      const firstErr = validateFirstName(formData.firstname);
+      if (firstErr) {
+        setError(firstErr);
+        setTouched((prev) => ({ ...(prev || {}), firstname: true }));
+        setTimeout(() => {
+          nameRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+          nameRef.current?.focus();
+        }, 100);
+        return;
+      }
+
+      // Email validation using shared validator
+      const emailErr = validateEmailFormat(formData.emailId);
+      if (emailErr) {
+        setError(emailErr);
+        return;
+      }
+
       if (!validateForm()) {
         const allTouched = Object.keys(validationRules).reduce(
           (acc, key) => {
@@ -541,6 +579,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 type="text"
                 value={formData.firstname}
                 onChange={handleChange}
+                ref={nameRef}
                 name="firstname"
                 placeholder="Enter First Name"
                 required
@@ -830,6 +869,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 />
                 <Button
                   type="submit"
+                  onClick={handleSubmit}
                   text={isSubmitting || submitting ? "Saving..." : "Save"}
                   icon={<LuSave className="mr-1" />}
                   disabled={isSubmitting || submitting}
@@ -842,6 +882,13 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           )}
         </div>
       </form>
+      {mounted && (
+        <ErrorToast
+          message={error || ""}
+          visible={!!error}
+          onClose={() => setError(null)}
+        />
+      )}
     </SideSheet>
   );
 };

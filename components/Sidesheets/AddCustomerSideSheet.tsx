@@ -26,6 +26,7 @@ import {
   allowTextAndNumbers,
 } from "@/utils/inputValidators";
 import { isValidEmail } from "@/utils/inputValidators";
+import { validateFullName, validateEmailFormat } from "@/utils/formValidators";
 import {
   getPhoneNumberMaxLength,
   splitPhoneWithDialCode,
@@ -491,11 +492,10 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Validate required fields: if missing, show toast and focus the field
-    if (!formData.name || String(formData.name).trim() === "") {
-      showErrorToast("Please enter full name to proceed");
-
+    const nameErr = validateFullName(formData.name);
+    if (nameErr) {
+      showErrorToast(nameErr);
       setInvalidField("name");
-
       setTimeout(() => {
         nameRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -511,8 +511,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
     try {
       // Validate email format if provided
-      if (formData.email && !isValidEmail(String(formData.email))) {
-        showErrorToast("Email format is invalid");
+      const emailErr = validateEmailFormat(formData.email);
+      if (emailErr) {
+        showErrorToast(emailErr);
         return;
       }
       // Build FormData
@@ -568,10 +569,10 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
   const handleUpdateCustomer = async () => {
     // Validate required fields before update
-    if (!formData.name || String(formData.name).trim() === "") {
-      showErrorToast("Please enter full name to proceed");
+    const nameErr2 = validateFullName(formData.name);
+    if (nameErr2) {
+      showErrorToast(nameErr2);
       setInvalidField("name");
-
       setTimeout(() => {
         nameRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -590,8 +591,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       }
 
       // Validate email format if provided
-      if (formData.email && !isValidEmail(String(formData.email))) {
-        showErrorToast("Email format is invalid");
+      const emailErr2 = validateEmailFormat(formData.email);
+      if (emailErr2) {
+        showErrorToast(emailErr2);
         return;
       }
 

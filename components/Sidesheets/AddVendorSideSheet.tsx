@@ -29,6 +29,7 @@ import {
   allowOnlyNumbers,
   isValidEmail,
 } from "@/utils/inputValidators";
+import { validateFullName, validateEmailFormat } from "@/utils/formValidators";
 import { all } from "axios";
 import {
   getPhoneNumberMaxLength,
@@ -273,7 +274,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Validate company name and poc first name
+    // Validate company name and contact person
     if (!formData.companyName || String(formData.companyName).trim() === "") {
       showErrorToast("Please enter company name to proceed");
       setInvalidField("company");
@@ -287,13 +288,11 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       }, 100);
       return;
     }
-    if (
-      !formData.contactPerson ||
-      String(formData.contactPerson).trim() === ""
-    ) {
-      showErrorToast("Please enter contact person name to proceed");
-      setInvalidField("contactPerson");
 
+    const contactErr = validateFullName(formData.contactPerson);
+    if (contactErr) {
+      showErrorToast(contactErr);
+      setInvalidField("contactPerson");
       setTimeout(() => {
         contactNameRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -304,8 +303,9 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       return;
     }
     // Validate email format if provided
-    if (formData.email && !isValidEmail(String(formData.email))) {
-      showErrorToast("Email format is invalid");
+    const emailErr = validateEmailFormat(formData.email);
+    if (emailErr) {
+      showErrorToast(emailErr);
       return;
     }
     const user = getAuthUser() as any;
@@ -365,7 +365,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   };
 
   const handleUpdateVendor = async () => {
-    // Validate company name and poc first name before update
+    // Validate company name and contact person before update
     if (!formData.companyName || String(formData.companyName).trim() === "") {
       showErrorToast("Please enter company name to proceed");
       setInvalidField("company");
@@ -379,13 +379,11 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       }, 100);
       return;
     }
-    if (
-      !formData.contactPerson ||
-      String(formData.contactPerson).trim() === ""
-    ) {
-      showErrorToast("Please enter contact person name to proceed");
-      setInvalidField("contactPerson");
 
+    const contactErr2 = validateFullName(formData.contactPerson);
+    if (contactErr2) {
+      showErrorToast(contactErr2);
+      setInvalidField("contactPerson");
       setTimeout(() => {
         contactNameRef.current?.scrollIntoView({
           behavior: "smooth",
@@ -404,8 +402,9 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       }
 
       // Validate email format if provided
-      if (formData.email && !isValidEmail(String(formData.email))) {
-        showErrorToast("Email format is invalid");
+      const emailErr2 = validateEmailFormat(formData.email);
+      if (emailErr2) {
+        showErrorToast(emailErr2);
         return;
       }
 
