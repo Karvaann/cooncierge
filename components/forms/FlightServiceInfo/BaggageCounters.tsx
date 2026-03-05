@@ -53,9 +53,9 @@ export default function BaggageCounters({
             type="text"
             value={String(pcs)}
             readOnly
-            className="w-5 text-center text-[0.75rem] bg-transparent outline-none"
+            className="w-5 text-center text-[0.75rem] bg-transparent placeholder:text-[#9CA3AF] outline-none"
           />
-          <div className="flex flex-col border border-black rounded-sm overflow-hidden">
+          <div className="flex flex-col border border-[#020202] rounded-tr-md rounded-br-md overflow-hidden">
             <button
               type="button"
               onClick={(e) => {
@@ -63,7 +63,7 @@ export default function BaggageCounters({
                 e.stopPropagation();
                 onInc();
               }}
-              className="p-0.5 border-b border-black"
+              className="p-0.5 h-[16px] bg-[#F9F9F9] border-b border-[#020202]"
             >
               <MdKeyboardArrowUp size={14} />
             </button>
@@ -74,23 +74,23 @@ export default function BaggageCounters({
                 e.stopPropagation();
                 onDec();
               }}
-              className="p-0.5"
+              className="p-0.5 bg-[#F9F9F9]"
             >
               <MdKeyboardArrowDown size={14} />
             </button>
           </div>
         </div>
 
-        <span className="text-[0.75rem] font-medium text-gray-700">Pcs</span>
+        <span className="text-[0.75rem] font-[400] text-[#020202]">Pcs</span>
 
         <input
           type="text"
           value={wt == null ? "" : String(wt)}
           onChange={(e) => onWtChange(e.target.value)}
           placeholder="Wt."
-          className="w-10 px-2 py-1 border border-gray-300 rounded-md text-[0.75rem] outline-none"
+          className="w-10 px-2 py-1 border border-gray-300 rounded-md text-[0.75rem] placeholder:text-[#9CA3AF] outline-none"
         />
-        <span className="text-[0.75rem] font-medium text-gray-700">Kgs</span>
+        <span className="text-[0.75rem] font-[400] text-[#020202]">Kgs</span>
       </div>
     );
   };

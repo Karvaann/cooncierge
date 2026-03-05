@@ -818,12 +818,12 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
           />
 
           {/* Flight Info */}
-          <div className="mb-4 w-full border border-gray-200 rounded-md p-3 mt-4">
-            <h2 className="text-[13px] font-[500] text-gray-700 mb-2">
+          <div className="mb-4 w-full border border-[#E2E1E1] rounded-md p-3 mt-4">
+            <h2 className="text-[13px] font-[500] text-[#020202] mb-2">
               Flight Info
             </h2>
 
-            <hr className="-mt-1 mb-2 border-t border-gray-200" />
+            <hr className="-mt-1 mb-2 border-t border-[#E2E1E1]" />
 
             {/* PNR and Toggle */}
             <div className="flex items-end gap-8 mb-3 ml-2">
@@ -844,7 +844,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                     setFormData((prev) => ({ ...prev, PNR: sanitizedValue }));
                   }}
                   placeholder="Enter PNR"
-                  className="w-[12rem] px-2 py-1.5 border border-gray-300 rounded-md text-[13px]
+                  className="w-[12rem] px-2 py-1.5 border border-gray-300 rounded-md text-[13px] placeholder:text-[#9CA3AF]
                     focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-400 focus:border-transparent"
                 />
               </div>
@@ -879,7 +879,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             </div>
 
             {/* Flight Type Tabs */}
-            <div className="inline-flex mb-3 ml-2 rounded-lg border border-gray-200">
+            <div className="inline-flex mb-3 ml-2 rounded-lg border border-[#E2E1E1]">
               {(["One Way", "Round Trip", "Multi-City"] as const).map(
                 (type) => (
                   <button
@@ -887,10 +887,10 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                     onClick={() =>
                       setFormData((prev) => ({ ...prev, flightType: type }))
                     }
-                    className={`px-3 py-1.5 text-[0.7rem] font-[500] transition-colors rounded-lg
+                    className={`px-3.5 py-1.5 text-[0.7rem] font-[500] transition-colors rounded-lg
         ${
           formData.flightType === type
-            ? "bg-[#E8F9F7] text-[#0D4B37] font-[600] border border-[#0D4B37]"
+            ? "bg-[#E8F9F7] text-[#0D4B37] font-[500] border border-[#0D4B37]"
             : "bg-transparent text-[#414141] font-[400]"
         }`}
                   >
@@ -916,9 +916,9 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         </div>
 
         {/* ID PROOFS */}
-        <div className="w-full border border-gray-200 rounded-[12px] p-3">
+        <div className="w-full border border-[#E2E1E1] rounded-[12px] p-3">
           <h2 className="text-[13px] font-[500] mb-2">Documents</h2>
-          <hr className="mt-1 mb-3 border-t border-gray-200" />
+          <hr className="mt-1 mb-3 border-t border-[#E2E1E1]" />
 
           <input
             type="file"
@@ -950,7 +950,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                 <div
                   key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
                   onClick={() => doc.url && window.open(doc.url, "_blank")}
-                  className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
+                  className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:cursor-pointer transition"
                 >
                   <button
                     type="button"
@@ -1004,11 +1004,11 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         </div>
 
         {/* Remarks Section */}
-        <div className="border border-gray-200 w-full rounded-[12px] p-3 mt-4">
-          <label className="block text-[13px] font-[500] text-[#414141]">
+        <div className="border border-[#E2E1E1] w-full rounded-[12px] p-3 mt-4">
+          <label className="block text-[13px] font-[500] text-[#020202]">
             Remarks
           </label>
-          <hr className="mt-1 mb-2 border-t border-gray-200" />
+          <hr className="mt-1 mb-2 border-t border-[#E2E1E1]" />
           <textarea
             name="remarks"
             rows={4}
@@ -1017,7 +1017,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             onBlur={handleBlur}
             placeholder="Enter Your Remarks Here"
             disabled={isSubmitting}
-            className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[13px] mt-1 transition-colors hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 ${
+            className={`w-full border border-[#E2E1E1] rounded-md px-2 py-1.5 text-[13px] mt-1 transition-colors hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 ${
               isSubmitting ? "opacity-50 cursor-not-allowed" : ""
             }`}
           />

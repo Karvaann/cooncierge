@@ -147,7 +147,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
   ]);
 
   return (
-    <div className="mb-4 border border-gray-200 rounded-lg w-full p-3">
+    <div className="mb-4 border border-[#E2E1E1] rounded-lg w-full p-3">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[13px] font-medium text-gray-700">Amount</h3>
 
@@ -206,19 +206,19 @@ const AmountSection: React.FC<AmountSectionProps> = ({
         )}
       </div>
 
-      <hr className="mb-3 -mt-1 border-t border-gray-200" />
+      <hr className="mb-3 -mt-1 border-t border-[#E2E1E1]" />
 
       {/* CANCELLATION MODAL SAVED DATA VIEW (read-only) */}
       {isCancelled && !editableCancelled ? (
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
+        <div className="border border-[#E2E1E1] rounded-lg overflow-hidden">
           {!showAdvancedPricing ? (
             <div>
               {/* COST PRICE */}
               <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
                   Cost Price
                 </div>
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-[#E2E1E1]">
                   <div
                     className={`grid ${
                       requiresRoe(
@@ -230,7 +230,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     } gap-3 items-center`}
                   >
                     <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
+                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-[#E2E1E1] flex items-center justify-center min-w-[64px]">
                         {cancellationForm?.costCurrency || "INR"}
                       </div>
                       <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
@@ -244,7 +244,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
+                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-[#E2E1E1] flex items-center">
                             ROE
                           </span>
                           <input
@@ -256,8 +256,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                           />
                         </div>
 
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
+                        <div className="flex items-center border border-[#E2E1E1] rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
+                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-[#E2E1E1] bg-[#FFF7E7]">
                             INR
                           </span>
                           <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
@@ -273,7 +273,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
                         Notes
                       </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
+                      <div className="w-full border border-[#E2E1E1] rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
                         {cancellationForm?.costNotes}
                       </div>
                     </div>
@@ -283,10 +283,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
 
               {/* COST REFUND RECEIVED */}
               <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
                   Refund Received
                 </div>
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-[#E2E1E1]">
                   <div
                     className={`grid ${
                       requiresRoe(
@@ -298,7 +298,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     } gap-3 items-center`}
                   >
                     <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
+                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-[#E2E1E1] flex items-center justify-center min-w-[64px]">
                         {cancellationForm?.costRefundCurrency || "INR"}
                       </div>
                       <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
@@ -312,7 +312,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
+                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-[#E2E1E1] flex items-center">
                             ROE
                           </span>
                           <input
@@ -324,8 +324,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                           />
                         </div>
 
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
+                        <div className="flex items-center border border-[#E2E1E1] rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
+                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-[#E2E1E1] bg-[#FFF7E7]">
                             INR
                           </span>
                           <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
@@ -341,7 +341,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
                         Notes
                       </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
+                      <div className="w-full border border-[#E2E1E1] rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
                         {cancellationForm?.costRefundNotes}
                       </div>
                     </div>
@@ -351,10 +351,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
 
               {/* SELLING PRICE */}
               <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
                   Selling Price
                 </div>
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-[#E2E1E1]">
                   <div
                     className={`grid ${
                       requiresRoe(
@@ -366,7 +366,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     } gap-3 items-center`}
                   >
                     <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
+                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-[#E2E1E1] flex items-center justify-center min-w-[64px]">
                         {cancellationForm?.sellingCurrency || "INR"}
                       </div>
                       <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
@@ -380,7 +380,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
+                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-[#E2E1E1] flex items-center">
                             ROE
                           </span>
                           <input
@@ -392,8 +392,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                           />
                         </div>
 
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
+                        <div className="flex items-center border border-[#E2E1E1] rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
+                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-[#E2E1E1] bg-[#FFF7E7]">
                             INR
                           </span>
                           <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
@@ -409,7 +409,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
                         Notes
                       </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
+                      <div className="w-full border border-[#E2E1E1] rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
                         {cancellationForm?.sellingNotes}
                       </div>
                     </div>
@@ -419,7 +419,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
 
               {/* SELLING REFUND RECEIVED */}
               <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
                   Refund Received
                 </div>
                 <div className="p-4">
@@ -434,7 +434,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     } gap-3 items-center`}
                   >
                     <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
+                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-[#E2E1E1] flex items-center justify-center min-w-[64px]">
                         {cancellationForm?.sellingRefundCurrency || "INR"}
                       </div>
                       <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
@@ -448,7 +448,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
+                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-[#E2E1E1] flex items-center">
                             ROE
                           </span>
                           <input
@@ -460,8 +460,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                           />
                         </div>
 
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
+                        <div className="flex items-center border border-[#E2E1E1] rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
+                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-[#E2E1E1] bg-[#FFF7E7]">
                             INR
                           </span>
                           <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
@@ -477,7 +477,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
                         Notes
                       </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
+                      <div className="w-full border border-[#E2E1E1] rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
                         {cancellationForm?.sellingRefundNotes}
                       </div>
                     </div>
@@ -489,10 +489,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
             <>
               {/* ADVANCED PRICING VIEW - VENDOR BASE PRICE */}
               <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
                   Vendor Base Price
                 </div>
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-[#E2E1E1]">
                   <div
                     className={`grid ${
                       requiresRoe(
@@ -504,7 +504,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     } gap-3 items-center`}
                   >
                     <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
+                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-[#E2E1E1] flex items-center justify-center min-w-[64px]">
                         {cancellationForm?.vendorBaseCurrency || "INR"}
                       </div>
                       <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
@@ -518,7 +518,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
+                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-[#E2E1E1] flex items-center">
                             ROE
                           </span>
                           <input
@@ -530,8 +530,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                           />
                         </div>
 
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
+                        <div className="flex items-center border border-[#E2E1E1] rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
+                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-[#E2E1E1] bg-[#FFF7E7]">
                             INR
                           </span>
                           <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
@@ -547,7 +547,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
                         Notes
                       </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
+                      <div className="w-full border border-[#E2E1E1] rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
                         {cancellationForm?.vendorBaseNotes}
                       </div>
                     </div>
@@ -557,10 +557,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
 
               {/* VENDOR INVOICE REFUND RECEIVED */}
               <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
                   Refund Received
                 </div>
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-[#E2E1E1]">
                   <div
                     className={`grid ${
                       requiresRoe(
@@ -572,7 +572,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     } gap-3 items-center`}
                   >
                     <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
+                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-[#E2E1E1] flex items-center justify-center min-w-[64px]">
                         {cancellationForm?.vendorInvoiceRefundCurrency || "INR"}
                       </div>
                       <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
@@ -586,7 +586,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
+                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-[#E2E1E1] flex items-center">
                             ROE
                           </span>
                           <input
@@ -600,8 +600,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                           />
                         </div>
 
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
+                        <div className="flex items-center border border-[#E2E1E1] rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
+                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-[#E2E1E1] bg-[#FFF7E7]">
                             INR
                           </span>
                           <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
@@ -617,7 +617,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
                         Notes
                       </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
+                      <div className="w-full border border-[#E2E1E1] rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
                         {cancellationForm?.vendorInvoiceRefundNotes}
                       </div>
                     </div>
@@ -627,10 +627,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
 
               {/* SUPPLIER INCENTIVE RECEIVED */}
               <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
                   Supplier Incentive Received
                 </div>
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-[#E2E1E1]">
                   <div
                     className={`grid ${
                       requiresRoe(
@@ -642,7 +642,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     } gap-3 items-center`}
                   >
                     <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
+                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-[#E2E1E1] flex items-center justify-center min-w-[64px]">
                         {cancellationForm?.vendorIncentiveCurrency || "INR"}
                       </div>
                       <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
@@ -656,7 +656,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
+                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-[#E2E1E1] flex items-center">
                             ROE
                           </span>
                           <input
@@ -668,8 +668,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                           />
                         </div>
 
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
+                        <div className="flex items-center border border-[#E2E1E1] rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
+                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-[#E2E1E1] bg-[#FFF7E7]">
                             INR
                           </span>
                           <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
@@ -685,7 +685,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
                         Notes
                       </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
+                      <div className="w-full border border-[#E2E1E1] rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
                         {cancellationForm?.vendorIncentiveNotes}
                       </div>
                     </div>
@@ -695,10 +695,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
 
               {/* CHARGEBACK */}
               <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
                   Chargeback
                 </div>
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-[#E2E1E1]">
                   <div
                     className={`grid ${
                       requiresRoe(
@@ -710,7 +710,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     } gap-3 items-center`}
                   >
                     <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
+                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-[#E2E1E1] flex items-center justify-center min-w-[64px]">
                         {cancellationForm?.chargebackCurrency || "INR"}
                       </div>
                       <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
@@ -724,7 +724,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
+                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-[#E2E1E1] flex items-center">
                             ROE
                           </span>
                           <input
@@ -736,8 +736,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                           />
                         </div>
 
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
+                        <div className="flex items-center border border-[#E2E1E1] rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
+                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-[#E2E1E1] bg-[#FFF7E7]">
                             INR
                           </span>
                           <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
@@ -753,7 +753,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
                         Notes
                       </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
+                      <div className="w-full border border-[#E2E1E1] rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
                         {cancellationForm?.chargebackNotes}
                       </div>
                     </div>
@@ -763,10 +763,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
 
               {/* COMMISSION PAYOUT */}
               <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
                   Commission Payout
                 </div>
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-[#E2E1E1]">
                   <div
                     className={`grid ${
                       requiresRoe(
@@ -778,7 +778,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     } gap-3 items-center`}
                   >
                     <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
+                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-[#E2E1E1] flex items-center justify-center min-w-[64px]">
                         {cancellationForm?.commissionCurrency || "INR"}
                       </div>
                       <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
@@ -792,7 +792,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
+                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-[#E2E1E1] flex items-center">
                             ROE
                           </span>
                           <input
@@ -804,8 +804,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                           />
                         </div>
 
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
+                        <div className="flex items-center border border-[#E2E1E1] rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
+                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-[#E2E1E1] bg-[#FFF7E7]">
                             INR
                           </span>
                           <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
@@ -821,7 +821,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
                         Notes
                       </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
+                      <div className="w-full border border-[#E2E1E1] rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
                         {cancellationForm?.commissionNotes}
                       </div>
                     </div>
@@ -831,10 +831,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
 
               {/* COMMISSION REFUND */}
               <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
                   Refund Received
                 </div>
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-[#E2E1E1]">
                   <div
                     className={`grid ${
                       requiresRoe(
@@ -846,7 +846,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     } gap-3 items-center`}
                   >
                     <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
+                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-[#E2E1E1] flex items-center justify-center min-w-[64px]">
                         {cancellationForm?.commissionRefundCurrency || "INR"}
                       </div>
                       <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
@@ -860,7 +860,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
+                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-[#E2E1E1] flex items-center">
                             ROE
                           </span>
                           <input
@@ -872,8 +872,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                           />
                         </div>
 
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
+                        <div className="flex items-center border border-[#E2E1E1] rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
+                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-[#E2E1E1] bg-[#FFF7E7]">
                             INR
                           </span>
                           <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
@@ -889,7 +889,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
                         Notes
                       </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
+                      <div className="w-full border border-[#E2E1E1] rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
                         {cancellationForm?.commissionRefundNotes}
                       </div>
                     </div>
@@ -899,10 +899,10 @@ const AmountSection: React.FC<AmountSectionProps> = ({
 
               {/* SELLING PRICE */}
               <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
                   Selling Price
                 </div>
-                <div className="p-4 border-b border-gray-200">
+                <div className="p-4 border-b border-[#E2E1E1]">
                   <div
                     className={`grid ${
                       requiresRoe(
@@ -914,7 +914,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     } gap-3 items-center`}
                   >
                     <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
+                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-[#E2E1E1] flex items-center justify-center min-w-[64px]">
                         {cancellationForm?.sellingCurrency || "INR"}
                       </div>
                       <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
@@ -928,7 +928,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
+                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-[#E2E1E1] flex items-center">
                             ROE
                           </span>
                           <input
@@ -940,8 +940,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                           />
                         </div>
 
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
+                        <div className="flex items-center border border-[#E2E1E1] rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
+                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-[#E2E1E1] bg-[#FFF7E7]">
                             INR
                           </span>
                           <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
@@ -957,7 +957,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
                         Notes
                       </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
+                      <div className="w-full border border-[#E2E1E1] rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
                         {cancellationForm?.sellingNotes}
                       </div>
                     </div>
@@ -967,7 +967,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
 
               {/* SELLING REFUND RECEIVED */}
               <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
                   Refund Received
                 </div>
                 <div className="p-4">
@@ -982,7 +982,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     } gap-3 items-center`}
                   >
                     <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
+                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-[#E2E1E1] flex items-center justify-center min-w-[64px]">
                         {cancellationForm?.sellingRefundCurrency || "INR"}
                       </div>
                       <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
@@ -996,7 +996,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     ) && (
                       <>
                         <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
+                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-[#E2E1E1] flex items-center">
                             ROE
                           </span>
                           <input
@@ -1008,8 +1008,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                           />
                         </div>
 
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
+                        <div className="flex items-center border border-[#E2E1E1] rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
+                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-[#E2E1E1] bg-[#FFF7E7]">
                             INR
                           </span>
                           <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
@@ -1025,7 +1025,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
                         Notes
                       </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
+                      <div className="w-full border border-[#E2E1E1] rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
                         {cancellationForm?.sellingRefundNotes}
                       </div>
                     </div>
@@ -1043,7 +1043,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                   <div className="text-[13px] font-semibold text-gray-600 mb-1">
                     Old Cost Price
                   </div>
-                  <div className="border border-gray-200 w-[116px] font-medium rounded-md px-3 py-2 text-[14px] text-[#818181] bg-[#F9F9F9]">
+                  <div className="border border-[#E2E1E1] w-[116px] font-medium rounded-md px-3 py-2 text-[14px] text-[#818181] bg-[#F9F9F9]">
                     {getStoredCurrencySymbol()}{" "}
                     {cancellationForm.summary.oldCost}
                   </div>
@@ -1055,7 +1055,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                   <div className="text-[13px] font-semibold text-gray-600 mb-1">
                     Old Selling Price
                   </div>
-                  <div className="border border-gray-200 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
+                  <div className="border border-[#E2E1E1] w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
                     {getStoredCurrencySymbol()}{" "}
                     {cancellationForm.summary.oldSelling}
                   </div>
@@ -1067,7 +1067,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                   <div className="text-[13px] font-semibold text-[#818181] mb-1">
                     Net
                   </div>
-                  <div className="border border-gray-200 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
+                  <div className="border border-[#E2E1E1] w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
                     {getStoredCurrencySymbol()}{" "}
                     {cancellationForm.summary.oldNet}
                   </div>
@@ -1251,7 +1251,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 />
               </div>
 
-              <hr className="mb-2 mt-3 border-t border-gray-200" />
+              <hr className="mb-2 mt-3 border-t border-[#E2E1E1]" />
 
               {/* NET */}
               <div className="w-fit rounded-lg p-1 mt-1 bg-white">
@@ -1260,7 +1260,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 </span>
 
                 <div className="flex items-center gap-3">
-                  <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[13px] font-medium rounded-md">
+                  <span className="px-2 py-1 bg-[#126ACB0D] text-[#126ACB] text-[13px] font-medium rounded-md">
                     {`₹ ${(Number(v.sellingprice) - Number(v.costprice)).toFixed(2)}`}
                   </span>
 
@@ -1284,7 +1284,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <div className="text-[13px] font-semibold text-gray-600 mb-1">
                         Old Cost Price
                       </div>
-                      <div className="border border-gray-200 w-[116px] font-medium rounded-md px-3 py-2 text-[14px] text-[#818181] bg-[#F9F9F9]">
+                      <div className="border border-[#E2E1E1] w-[116px] font-medium rounded-md px-3 py-2 text-[14px] text-[#818181] bg-[#F9F9F9]">
                         {getStoredCurrencySymbol()}{" "}
                         {cancellationForm.summary.oldCost}
                       </div>
@@ -1296,7 +1296,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <div className="text-[13px] font-semibold text-gray-600 mb-1">
                         Old Selling Price
                       </div>
-                      <div className="border border-gray-200 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
+                      <div className="border border-[#E2E1E1] w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
                         {getStoredCurrencySymbol()}{" "}
                         {cancellationForm.summary.oldSelling}
                       </div>
@@ -1308,7 +1308,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                       <div className="text-[13px] font-semibold text-[#818181] mb-1">
                         Net
                       </div>
-                      <div className="border border-gray-200 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
+                      <div className="border border-[#E2E1E1] w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
                         {getStoredCurrencySymbol()}{" "}
                         {cancellationForm.summary.oldNet}
                       </div>
@@ -1382,7 +1382,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 Vendor Payment Summary
               </h4>
 
-              <div className="border border-[#E2E1E1]  overflow-hidden bg-white">
+              <div className="border border-[#E2E1E1] mb-4 overflow-hidden bg-white">
                 {[
                   { label: "Vendor Base Price", key: "price" },
                   { label: "Vendor Incentive Received", key: "received" },
@@ -1588,11 +1588,11 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 ))}
               </div>
 
-              <h4 className="text-[0.8rem] font-[500] text-[#414141]">
+              <h4 className="text-[0.8rem] font-[500] text-[#414141] ">
                 Customer Revenue Summary
               </h4>
 
-              <div className="border border-[#E2E1E1] overflow-hidden bg-white">
+              <div className="border border-[#E2E1E1] -mt-1 overflow-hidden bg-white">
                 <div className="grid grid-cols-12">
                   <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] border-r border-[#E2E1E1] text-[0.8rem] text-gray-700 font-medium py-5">
                     Selling Price
@@ -1666,18 +1666,18 @@ const AmountSection: React.FC<AmountSectionProps> = ({
               </div>
 
               <div className="w-fit rounded-lg p-1 mt-1 bg-white">
-                <span className="text-[13px] font-medium text-gray-700 block mb-2">
+                <span className="text-[13px] font-[500] text-[#414141] block mb-2">
                   Net
                 </span>
 
                 <div className="flex items-center gap-3">
-                  <span className="px-2 py-1 bg-blue-50 text-[#126ACB] text-[13px] font-medium rounded-md">
+                  <span className="px-2 py-1 bg-[#126ACB0D] text-[#126ACB] text-[13px] font-[600] rounded-md">
                     {`₹ ${(
                       (Number(v.sellingprice) || 0) - derivedCostPrice
                     ).toFixed(2)}`}
                   </span>
 
-                  <span className="text-[13px] text-gray-700 font-medium">
+                  <span className="text-[13px] text-[#414141] font-[500]">
                     {derivedCostPrice > 0 && v.sellingprice
                       ? `${(
                           (((Number(v.sellingprice) || 0) - derivedCostPrice) /

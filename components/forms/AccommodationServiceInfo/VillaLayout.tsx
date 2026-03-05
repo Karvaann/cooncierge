@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineKeyboardArrowUp } from "react-icons/md";
+import CustomCheckbox from "@/components/CustomCheckbox";
 
 interface RoomSegment {
   id?: string | null;
@@ -13,6 +14,10 @@ interface VillaLayoutProps {
   onSegmentsChange: (segments: RoomSegment[]) => void;
   villaType?: "entire" | "shared";
   isReadOnly?: boolean;
+  totalRooms: number;
+  onTotalRoomsChange: (count: number) => void;
+  showRoomCategories: boolean;
+  onShowRoomCategoriesChange: (checked: boolean) => void;
 }
 
 const VillaLayout: React.FC<VillaLayoutProps> = ({
@@ -20,6 +25,10 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
   onSegmentsChange,
   villaType,
   isReadOnly = false,
+  totalRooms,
+  onTotalRoomsChange,
+  showRoomCategories,
+  onShowRoomCategoriesChange,
 }) => {
   const [numRooms, setNumRooms] = useState(segments.length);
   const [roomcount, setRoomcount] = useState(0);
@@ -142,45 +151,41 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
 
   return (
     <>
-      <label className="block text-[0.8rem] font-[500] text-[#414141] mb-1 mt-3">
-        Total Rooms
-      </label>
-
-      {villaType === "shared" && (
-        <div className="w-full max-w-6xl mx-auto p-3 mt-2">
-          {/* Room Counter */}
-          <div className="mb-3">
+      <div className="w-full max-w-6xl mx-auto p-3 mt-2">
+        {/* Counters Row - Total Rooms always, No. of Rooms for shared */}
+        <div className="flex items-end gap-6 mb-3">
+          {/* Total Rooms Counter */}
+          <div>
             <label className="block text-[0.75rem] font-[500] text-[#414141] mb-1">
-              No. of Rooms
+              Total Rooms
             </label>
             <div className="flex items-center gap-2">
               <div className="flex border border-gray-300 rounded-md overflow-hidden">
                 <input
                   type="number"
-                  value={numRooms}
+                  value={totalRooms}
                   onChange={(e) =>
-                    handleRoomCountChange(parseInt(e.target.value) || 1)
+                    onTotalRoomsChange(
+                      Math.max(1, parseInt(e.target.value) || 1),
+                    )
                   }
                   min="1"
-                  className="w-[2.2rem] px-1 py-1.5 text-[0.75rem] text-center 
-               border-none focus:outline-none bg-white"
+                  className="w-[2.2rem] px-1 py-1.5 text-[0.75rem] text-center placeholder:text-[#9CA3AF] border-none focus:outline-none bg-white"
                 />
-
-                <div className="flex flex-col border-l border-black">
+                <div className="flex flex-col">
                   <button
                     type="button"
-                    onClick={() => handleRoomCountChange(numRooms + 1)}
-                    className="px-[5px] py-[2px] rounded-tr-md text-[0.65rem] 
-                 hover:bg-gray-100 border border-black border-b-0"
+                    onClick={() => onTotalRoomsChange(totalRooms + 1)}
+                    className="px-[5px] py-[2px] rounded-tr-md bg-[#F9F9F9] text-[0.65rem] border border-[#020202] border-b-0"
                   >
                     <MdOutlineKeyboardArrowUp size={16} />
                   </button>
-
                   <button
                     type="button"
-                    onClick={() => handleRoomCountChange(numRooms - 1)}
-                    className="px-[5px] py-[2px] rounded-br-md text-[0.65rem] 
-                 hover:bg-gray-100 border border-black"
+                    onClick={() =>
+                      onTotalRoomsChange(Math.max(1, totalRooms - 1))
+                    }
+                    className="px-[5px] py-[2px] rounded-br-md bg-[#F9F9F9] text-[0.65rem] border border-[#020202]"
                   >
                     <MdKeyboardArrowDown size={16} />
                   </button>
@@ -189,7 +194,68 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
             </div>
           </div>
 
-          {/* Room Segments */}
+          {/* No. of Rooms Counter - only for shared villa */}
+          {villaType === "shared" && (
+            <div>
+              <label className="block text-[0.75rem] font-[500] text-[#414141] mb-1">
+                No. of Rooms
+              </label>
+              <div className="flex items-center gap-2">
+                <div className="flex border border-gray-300 rounded-md overflow-hidden">
+                  <input
+                    type="number"
+                    value={numRooms}
+                    onChange={(e) => {
+                      const val = Math.max(1, parseInt(e.target.value) || 1);
+                      handleRoomCountChange(Math.min(val, totalRooms));
+                    }}
+                    min="1"
+                    max={totalRooms}
+                    className="w-[2.2rem] px-1 py-1.5 text-[0.75rem] text-center placeholder:text-[#9CA3AF] border-none focus:outline-none bg-white"
+                  />
+                  <div className="flex flex-col border-[#020202]">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleRoomCountChange(
+                          Math.min(numRooms + 1, totalRooms),
+                        )
+                      }
+                      className="px-[5px] py-[2px] rounded-tr-md bg-[#F9F9F9] text-[0.65rem] border border-[#020202] border-b-0"
+                    >
+                      <MdOutlineKeyboardArrowUp size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleRoomCountChange(Math.max(1, numRooms - 1))
+                      }
+                      className="px-[5px] py-[2px] rounded-br-md bg-[#F9F9F9] text-[0.65rem] border border-[#020202]"
+                    >
+                      <MdKeyboardArrowDown size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Add Room Categories checkbox */}
+          <div className="ml-auto flex items-end pb-0.5">
+            {villaType === "shared" && (
+              <CustomCheckbox
+                id="add-room-categories"
+                checked={showRoomCategories}
+                onCheckedChange={onShowRoomCategoriesChange}
+                label="Add Room Categories"
+                labelClassName="text-[0.75rem] text-[#414141] font-[500]"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Room Segments */}
+        {villaType === "shared" && showRoomCategories && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {segments.map((segment, index) => {
               const roomId = segment.id || `room-${index + 1}`;
@@ -280,7 +346,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                         updateSegment(index, "roomCategory", e.target.value)
                       }
                       placeholder="Super Deluxe"
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[0.75rem] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
 
@@ -296,7 +362,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                         updateSegment(index, "bedType", e.target.value)
                       }
                       placeholder="King Size Bed"
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[0.75rem] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                   </div>
 
@@ -309,11 +375,11 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                     <div className="grid grid-cols-2 gap-0">
                       {/* Adults */}
                       <div>
-                        <label className="block text-[0.65rem] text-black mb-1">
+                        <label className="block text-xs ml-5 font-[500] text-[#414141] mb-1">
                           Adults
                         </label>
 
-                        <div className="flex items-center border border-black rounded-lg px-1 py-1 w-[72px]">
+                        <div className="flex items-center border border-[#020202] rounded-md px-2 w-[78px]">
                           <button
                             type="button"
                             onClick={() =>
@@ -367,12 +433,12 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                       </div>
 
                       {/* Children */}
-                      <div className="p-0 -ml-[4px]">
-                        <label className="block text-[0.65rem] text-black mb-1">
+                      <div className="p-0 -ml-18">
+                        <label className="block ml-3 text-[0.65rem] font-[500] text-[#414141] mb-1">
                           Children
                         </label>
 
-                        <div className="flex items-center border border-black rounded-lg px-1 py-1 w-[72px]">
+                        <div className="flex items-center border border-[#020202] rounded-md px-2 w-[78px]">
                           <button
                             type="button"
                             onClick={() =>
@@ -430,8 +496,8 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
               );
             })}
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </>
   );
 };

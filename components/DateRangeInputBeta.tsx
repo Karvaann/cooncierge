@@ -140,6 +140,20 @@ const formatDisplayDate = (value: Date | null) =>
 const toIsoBoundary = (value: Date | null) =>
   value ? startOfDay(value).toISOString() : "";
 
+const getMatchingPresetLabel = (start: Date | null, end: Date | null) => {
+  if (!start || !end) return null;
+
+  const match = presetRanges.find((preset) => {
+    const presetValue = preset.getValue();
+    return (
+      isSameDay(start, presetValue.startDate) &&
+      isSameDay(end, presetValue.endDate)
+    );
+  });
+
+  return match?.label ?? null;
+};
+
 const buildMonthDays = (month: Date) => {
   const firstOfMonth = startOfMonth(month);
   const lastOfMonth = lastDayOfMonth(month);
@@ -180,22 +194,22 @@ const getDayButtonClasses = ({
   isInRange: boolean;
 }) => {
   if (isRangeStart && isRangeEnd) {
-    return "h-[24px] bg-[#525252] text-white rounded-md";
+    return "h-9 bg-[#7135AD] text-white rounded-md";
   }
 
   if (isRangeStart) {
-    return "h-[24px] bg-[#525252] text-white rounded-l-md";
+    return "h-9 bg-[#7135AD] text-white rounded-md";
   }
 
   if (isRangeEnd) {
-    return "h-[24px] bg-[#525252] text-white rounded-r-md";
+    return "h-9 bg-[#7135AD] text-white rounded-md";
   }
 
   if (isInRange) {
-    return "h-[24px] bg-[#E7E7E7] text-[#333333] rounded-none";
+    return "h-9 bg-[#7135AD12] text-[#333333] rounded-none";
   }
 
-  return "h-[24px] text-[#111827] hover:bg-gray-50 rounded-md";
+  return "h-9 text-[#111827] hover:bg-gray-50 rounded-md";
 };
 
 function CalendarMonth({
@@ -332,13 +346,44 @@ export default function DateRangeInputBeta({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const displayValue = useMemo(
-    () => ({
-      start: formatDisplayDate(parsedStart) || "Start Date",
-      end: formatDisplayDate(parsedEnd) || "End Date",
-    }),
-    [parsedEnd, parsedStart],
-  );
+  const displayValue = useMemo(() => {
+    const presetLabel = getMatchingPresetLabel(parsedStart, parsedEnd);
+
+    if (presetLabel) {
+      return {
+        variant: "single" as const,
+        primaryText: presetLabel,
+      };
+    }
+
+    if (parsedStart && parsedEnd && isSameDay(parsedStart, parsedEnd)) {
+      return {
+        variant: "single" as const,
+        primaryText: formatDisplayDate(parsedStart),
+      };
+    }
+
+    if (parsedStart && parsedEnd) {
+      return {
+        variant: "range" as const,
+        startText: formatDisplayDate(parsedStart),
+        endText: formatDisplayDate(parsedEnd),
+      };
+    }
+
+    if (parsedStart) {
+      return {
+        variant: "single" as const,
+        primaryText: formatDisplayDate(parsedStart),
+      };
+    }
+
+    return {
+      variant: "placeholder" as const,
+      startText: "Start Date",
+      endText: "End Date",
+    };
+  }, [parsedEnd, parsedStart]);
 
   const firstMonthDate = shownDate;
   const secondMonthDate = addMonths(firstMonthDate, 1);
@@ -359,6 +404,11 @@ export default function DateRangeInputBeta({
 
     return range;
   }, [hoverDate, isSelectingEnd, range]);
+
+  const activePresetLabel = useMemo(
+    () => getMatchingPresetLabel(range.startDate, range.endDate),
+    [range.endDate, range.startDate],
+  );
 
   const commitRange = (next: RangeValue) => {
     setRange(next);
@@ -445,18 +495,40 @@ export default function DateRangeInputBeta({
 
   return (
     <div className="relative date-range-custom" ref={ref}>
-      <label className="block text-gray-700 mb-1 text-[14px] font-medium">
+      <label className="block text-gray-700 mb-1 text-[14px] font-[400]">
         {label}
       </label>
 
       <button
         type="button"
-        className="relative flex items-center gap-2 justify-between w-full max-h-[2.8rem] border border-gray-300 rounded-sm px-[12px] py-[9px] bg-white hover:border-green-200 transition-colors select-none text-[14px]"
+        className="relative flex h-[44px] items-center gap-1 font-[300] justify-between w-full border border-[#E2E1E1] rounded-[14px] px-[9px] bg-white hover:border-green-200 transition-colors select-none text-[14px]"
         onClick={() => setOpen((prev) => !prev)}
       >
-        <span className={displayValue.start === "Start Date" ? "text-[#9CA3AF]" : "text-[#020202]"}>{displayValue.start}</span>
-        <span className="text-[#818181]">→</span>
-        <span className={displayValue.end === "End Date" ? "text-[#9CA3AF]" : "text-[#020202]"}>{displayValue.end}</span>
+        {displayValue.variant === "placeholder" ? (
+          <>
+            <span className="min-w-0 truncate text-[#9CA3AF]">
+              {displayValue.startText}
+            </span>
+            <span className="shrink-0 text-[#818181]">→</span>
+            <span className="min-w-0 truncate text-[#9CA3AF]">
+              {displayValue.endText}
+            </span>
+          </>
+        ) : displayValue.variant === "range" ? (
+          <>
+            <span className="min-w-0 truncate text-[#020202]">
+              {displayValue.startText}
+            </span>
+            <span className="shrink-0 text-[#818181]">→</span>
+            <span className="min-w-0 truncate text-[#020202]">
+              {displayValue.endText}
+            </span>
+          </>
+        ) : (
+          <span className="min-w-0 truncate text-[#020202]">
+            {displayValue.primaryText}
+          </span>
+        )}
         {startDate && endDate ? (
           <span
             role="button"
@@ -491,17 +563,26 @@ export default function DateRangeInputBeta({
       {open && (
         <div className="absolute mt-2 z-50 rounded-md bg-white border border-gray-200 p-2 w-[700px] min-h-[240px] date-range-popover">
           <div className="flex gap-0">
-            <div className="presets-column h-fit w-26 border-r border-gray-200 p-2 space-y-1">
-              {presetRanges.map((preset) => (
+            <div className="presets-column h-fit flex flex-col items-center gap-1 w-26 border-r border-gray-200 p-2 space-y-1">
+              {presetRanges.map((preset) => {
+                const isActive = activePresetLabel === preset.label;
+
+                return (
                 <button
                   key={preset.label}
                   type="button"
                   onClick={() => applyPreset(preset.getValue)}
-                  className="block w-full text-left text-[0.70rem] text-gray-800 hover:bg-gray-50 py-2 px-2 rounded transition-colors"
+                  style={{textAlign: 'center', width: 'fit-content'}}
+                  className={`block rounded-xl py-2 px-2 text-left text-[0.70rem] transition-colors ${
+                    isActive
+                      ? "bg-[#7135AD] text-[#FFF]"
+                      : "text-gray-800 hover:bg-gray-50"
+                  }`}
                 >
                   {preset.label}
                 </button>
-              ))}
+                );
+              })}
             </div>
 
             <div className="flex-1 p-2 overflow-x-hidden">

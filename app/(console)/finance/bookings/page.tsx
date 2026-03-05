@@ -76,6 +76,7 @@ type FilterPayload = {
   status: string;
   owner: string | string[];
   search: string;
+  searchBy: string;
   bookingStartDate: string;
   bookingEndDate: string;
   tripStartDate: string;
@@ -201,6 +202,7 @@ const FinanceBookingsPage = () => {
     status: "",
     owner: "",
     search: "",
+    searchBy: "customerId",
     bookingStartDate: "",
     bookingEndDate: "",
     tripStartDate: "",
@@ -326,15 +328,21 @@ const FinanceBookingsPage = () => {
     return quotations.filter((q, idx) => {
       if (filters.search.trim()) {
         const s = filters.search.toLowerCase();
-        const formattedServiceType = formatServiceType(
-          q.quotationType || "",
-        ).toLowerCase();
+        const ownerNames = ([] as Array<{ name?: string }>).concat(
+          q.secondaryOwner || [],
+          q.primaryOwner ? [q.primaryOwner] : [],
+          q.owner || [],
+        )
+          .map((owner) => owner?.name || "")
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
         const matchesSearch =
-          (q.customId || "").toLowerCase().includes(s) ||
-          formattedServiceType.includes(s) ||
-          (q.quotationType || "").toLowerCase().includes(s) ||
-          (q.customerId?.name || "").toLowerCase().includes(s) ||
-          (q.formFields.traveller1 || "").toLowerCase().includes(s);
+          filters.searchBy === "customerName"
+            ? ((q.customerId?.name || q.formFields.customer || "").toLowerCase().includes(s))
+            : filters.searchBy === "owner"
+              ? ownerNames.includes(s)
+              : (q.customerId?._id || "").toLowerCase().includes(s);
         if (!matchesSearch) return false;
       }
 
@@ -817,7 +825,30 @@ const FinanceBookingsPage = () => {
 
   // Combine filtered quotations and backend drafts to show all bookings
   const finalQuotations = useMemo(() => {
-    const normalizedDrafts = drafts.map(normalizeDraft);
+    const normalizedDrafts = drafts
+      .map(normalizeDraft)
+      .filter((draft: any) => {
+        if (!filters.search.trim()) return true;
+        const s = filters.search.toLowerCase();
+        const ownerNames = ([] as Array<{ name?: string }>).concat(
+          draft.owner || [],
+          draft.secondaryOwner || [],
+          draft.primaryOwner ? [draft.primaryOwner] : [],
+        )
+          .map((owner) => owner?.name || "")
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+        const customerName = (
+          draft.customerId?.name ||
+          draft.formFields?.customer ||
+          ""
+        ).toLowerCase();
+
+        if (filters.searchBy === "customerName") return customerName.includes(s);
+        if (filters.searchBy === "owner") return ownerNames.includes(s);
+        return (draft.customerId?._id || "").toLowerCase().includes(s);
+      });
 
     const combined = [...filteredQuotations, ...normalizedDrafts];
 
@@ -833,7 +864,7 @@ const FinanceBookingsPage = () => {
     }
 
     return result;
-  }, [filteredQuotations, drafts]) as any[];
+  }, [drafts, filteredQuotations, filters.search, filters.searchBy]) as any[];
 
   // Use shared timestamp extractor from utils/sorting.ts
 
@@ -1115,6 +1146,23 @@ const FinanceBookingsPage = () => {
             serviceTypes={filterOptions.serviceTypes}
             statuses={filterOptions.statuses}
             owners={filterOptions.owners}
+            searchOptions={[
+              {
+                value: "customerId",
+                label: "Customer ID",
+                placeholder: "Search by Customer ID",
+              },
+              {
+                value: "customerName",
+                label: "Customer Name",
+                placeholder: "Search by Customer Name",
+              },
+              {
+                value: "owner",
+                label: "Owner",
+                placeholder: "Search by Owner",
+              },
+            ]}
             showCreateButton={false}
             totalCount={finalQuotations.length}
             showBookingType={true}

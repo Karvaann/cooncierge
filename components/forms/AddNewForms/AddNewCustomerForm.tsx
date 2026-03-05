@@ -119,7 +119,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
         message: "Invalid email format",
       },
     }),
-    []
+    [],
   );
 
   // Enhanced validation function using API validation
@@ -170,7 +170,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
 
       return "";
     },
-    [validationRules]
+    [validationRules],
   );
 
   // Validate all fields
@@ -181,7 +181,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
     Object.keys(validationRules).forEach((fieldName) => {
       const error = validateField(
         fieldName,
-        formData[fieldName as keyof CustomerFormData]
+        formData[fieldName as keyof CustomerFormData],
       );
       if (error) {
         newErrors[fieldName] = error;
@@ -195,7 +195,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
 
   // Normal handleChange that only updates local state
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { name, value, type } = e.target;
     const processedValue =
@@ -224,7 +224,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
 
       setTouched((prev) => ({ ...prev, [name]: true }));
     },
-    [validateField, showValidation]
+    [validateField, showValidation],
   );
 
   // Handle form submission
@@ -236,14 +236,17 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
         onSubmit?.(formData);
       } else {
         // Mark all fields as touched to show validation errors
-        const allTouched = Object.keys(validationRules).reduce((acc, key) => {
-          acc[key] = true;
-          return acc;
-        }, {} as Record<string, boolean>);
+        const allTouched = Object.keys(validationRules).reduce(
+          (acc, key) => {
+            acc[key] = true;
+            return acc;
+          },
+          {} as Record<string, boolean>,
+        );
         setTouched(allTouched);
       }
     },
-    [formData, validateForm, onSubmit, validationRules]
+    [formData, validateForm, onSubmit, validationRules],
   );
 
   // Enhanced input field component with validation indicators
@@ -281,13 +284,13 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
           min={min}
           disabled={isSubmitting || isValidatingField}
           className={`
-            w-full border rounded-md px-3 py-2 pr-10 text-sm transition-colors
+            w-full border rounded-md px-3 py-2 pr-10 text-sm placeholder:text-[#9CA3AF] transition-colors
             ${
               hasError
                 ? "border-red-300 focus:ring-red-200"
                 : isValid && touched[name]
-                ? "border-green-300 focus:ring-green-200"
-                : "border-gray-200 focus:ring-blue-200"
+                  ? "border-green-300 focus:ring-green-200"
+                  : "border-gray-200 focus:ring-blue-200"
             }
             ${
               isSubmitting || isValidatingField
@@ -371,7 +374,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
                 onChange={handleChange}
                 placeholder="Enter First Name"
                 required
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
@@ -386,7 +389,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
                 onChange={handleChange}
                 placeholder="Enter Last Name"
                 required
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
@@ -401,7 +404,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
                 onChange={handleChange}
                 placeholder="Enter Nickname/Alias"
                 required
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -476,7 +479,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
                   value={formData.gstin}
                   onChange={handleChange}
                   placeholder="Please Provide Your GST No."
-                  className="w-[18rem] text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-[18rem] text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
 
                 {/* <button
@@ -502,7 +505,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
                 onChange={handleChange}
                 name="companyname"
                 placeholder="Enter Company Name"
-                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className="w-full text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -609,7 +612,9 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
 
           <div className="relative">
             <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-2 focus-within:ring-blue-500">
-              <span className="text-gray-500 mr-2 text-[0.75rem]">{getStoredCurrencySymbol()}</span>
+              <span className="text-gray-500 mr-2 text-[0.75rem]">
+                {getStoredCurrencySymbol()}
+              </span>
               <input
                 type="text"
                 value={balanceAmount}
@@ -619,17 +624,19 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
                     ? "Enter Debit Amount"
                     : "Enter Credit Amount"
                 }
-                className="flex-1 outline-none text-gray-700 w-full px-0 text-[0.75rem]"
+                className="flex-1 outline-none text-gray-700 w-full px-0 text-[0.75rem] placeholder:text-[#9CA3AF]"
               />
             </div>
             <div className="absolute right-3 top-2 text-sm font-medium">
               {balanceType === "debit" ? (
                 <span className="text-red-500 text-[0.75rem]">
-                  Customer pays you {getStoredCurrencySymbol()} {balanceAmount || ""}
+                  Customer pays you {getStoredCurrencySymbol()}{" "}
+                  {balanceAmount || ""}
                 </span>
               ) : (
                 <span className="text-green-500 text-[0.75rem]">
-                  You pay the customer {getStoredCurrencySymbol()} {balanceAmount || ""}
+                  You pay the customer {getStoredCurrencySymbol()}{" "}
+                  {balanceAmount || ""}
                 </span>
               )}
             </div>
@@ -651,7 +658,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
             onBlur={handleBlur}
             placeholder="Enter Your Remarks Here"
             disabled={isSubmitting}
-            className={`w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem] mt-2 transition-colors focus:ring focus:ring-blue-200 ${
+            className={`w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem] mt-2 placeholder:text-[#9CA3AF] transition-colors focus:ring focus:ring-blue-200 ${
               isSubmitting ? "opacity-50 cursor-not-allowed" : ""
             }`}
           />

@@ -282,7 +282,7 @@ const InputField: React.FC<InputFieldProps> = ({
         readOnly={readOnly}
         disabled={disabled || isValidating}
         className={`
-          w-full border rounded-md px-3 py-2 ${selectedDisplay ? "" : "pr-10"} placeholder:text-[12px] placeholder:text-gray-400 text-[12px] transition-[border-color] duration-150 hover:border-[#C6AEDE] 
+          w-full border rounded-md px-3 py-2 ${selectedDisplay ? "" : "pr-10"} placeholder:text-[12px] placeholder:text-[#9CA3AF] font-[400] text-[12px] transition-[border-color] duration-150 hover:border-[#C6AEDE] 
           ${
             hasError
               ? "border-red-300 focus:ring-red-200"
@@ -1687,9 +1687,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           <img
                             src={`/icons/tier-icons/tier-${rating}.svg`}
                             alt={`Tier ${rating}`}
-                            className="w-4 h-4 object-contain"
+                            className="w-4 h-4 object-contain inline-block align-middle"
                           />
-                          <span className="text-[13px] font-[600] mt-1 text-[#020202]">
+                          <span className="text-[13px] font-[600] text-[#020202] leading-none inline-flex items-center justify-center">
                             {rating}
                           </span>
                         </div>
@@ -1761,9 +1761,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                 <img
                                   src={`/icons/tier-icons/tier-${rating}.svg`}
                                   alt={`Tier ${rating}`}
-                                  className="w-4 h-4 object-contain"
+                                  className="w-4 h-4 object-contain inline-block align-middle"
                                 />
-                                <span className="text-[13px] font-[600] mt-1 text-[#020202]">
+                                <span className="text-[13px] font-[600] leading-none inline-flex items-center justify-center text-[#020202]">
                                   {rating}
                                 </span>
                               </div>
@@ -1884,9 +1884,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           <img
                             src={`/icons/tier-icons/tier-${rating}.svg`}
                             alt={`Tier ${rating}`}
-                            className="w-4 h-4 object-contain"
+                            className="w-4 h-4 object-contain inline-block align-middle"
                           />
-                          <span className="text-[0.75rem] mt-1 font-[600] text-[#020202]">
+                          <span className="text-[0.75rem] font-[600] text-[#020202] leading-none inline-flex items-center">
                             {rating}
                           </span>
                         </div>
@@ -1959,9 +1959,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                               <img
                                 src={`/icons/tier-icons/tier-${rating}.svg`}
                                 alt={`Tier ${rating}`}
-                                className="w-4 h-4 object-contain"
+                                className="w-4 h-4 object-contain inline-block align-middle"
                               />
-                              <span className="text-[0.75rem] mt-1 font-[600] text-[#020202]">
+                              <span className="text-[0.75rem] font-[600] text-[#020202] leading-none inline-flex items-center">
                                 {rating}
                               </span>
                             </div>
@@ -2489,13 +2489,13 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       <div className="border border-gray-200 rounded-xl p-3">
         <h2 className="text-[13px] font-[500] mb-2">Booking Owner</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
-        <label className="block text-[13px] font-[500] text-[#414141] mb-1">
+        <label className="block text-[13px] font-[500] text-[#414141]">
           <span className="text-[#FF3B30]">*</span> Primary
         </label>
         <div className="w-[60%] relative" ref={teamsPrimaryRef}>
           <InputField
             name="bookingOwner"
-            placeholder="Search by Name/Username/ID"
+            placeholder="Search by User's Name"
             required
             className="mt-1 text-[13px] py-2"
             readOnly={isReadOnly}
@@ -2798,7 +2798,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
       {/* Remarks */}
       <div className="border border-gray-200 rounded-xl p-3">
-        <label className="block text-[13px]  font-[500] text-[#414141]">
+        <label className="block text-[13px] font-[500] text-[#020202]">
           Remarks
         </label>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
@@ -2811,7 +2811,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           disabled={isSubmitting}
           readOnly={isReadOnly}
           className={`
-            w-full border border-gray-200 rounded-md px-3 py-2 text-[13px]  mt-2 transition-colors
+            w-full border border-gray-200 rounded-md px-3 py-2 text-[13px] text-[#020202] placeholder:text-[#9CA3AF] mt-2 transition-colors
             focus:ring focus:ring-blue-200
             ${
               isReadOnly || isSubmitting

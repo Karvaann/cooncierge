@@ -155,7 +155,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
         </label>
 
         <div className="flex items-center">
-          <div className="flex border border-gray-300 rounded-sm overflow-hidden">
+          <div className="flex border border-[#E2E1E1] rounded-md overflow-hidden">
             <input
               type="number"
               value={numRooms}
@@ -163,14 +163,14 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                 handleRoomCountChange(parseInt(e.target.value) || 1)
               }
               min="1"
-              className="w-[2.5rem] px-1 py-[1px] text-[0.75rem] text-center 
+              className="w-[2.5rem] px-1 py-[1px] text-[0.75rem] text-center placeholder:text-[#9CA3AF]
                    border-none focus:outline-none bg-white"
             />
-            <div className="flex flex-col border-l border-black">
+            <div className="flex flex-col border-[#020202]">
               <button
                 type="button"
                 onClick={() => handleRoomCountChange(numRooms + 1)}
-                className="px-[5px] py-[1px] rounded-tr-md text-[0.65rem] hover:bg-gray-100 border border-black"
+                className="px-[5px] py-[1px] rounded-tr-md text-[0.65rem] bg-[#F9F9F9] border border-[#020202]"
               >
                 <MdOutlineKeyboardArrowUp size={16} />
               </button>
@@ -178,7 +178,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
               <button
                 type="button"
                 onClick={() => handleRoomCountChange(numRooms - 1)}
-                className="px-[5px] py-[1px] rounded-br-md text-[0.65rem] hover:bg-gray-100 border border-black"
+                className="px-[5px] py-[1px] rounded-br-md text-[0.65rem] bg-[#F9F9F9] border border-[#020202]"
               >
                 <MdKeyboardArrowDown size={16} />
               </button>
@@ -278,7 +278,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                     )
                   }
                   placeholder="Enter Room Category"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[0.75rem] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                 />
               </div>
 
@@ -298,7 +298,7 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                     )
                   }
                   placeholder="Enter Bed Type"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[0.75rem] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[0.75rem] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                 />
               </div>
 
@@ -311,10 +311,10 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                 <div className="grid grid-cols-3 gap-1">
                   {/* Adults */}
                   <div>
-                    <label className="block text-xs text-black mb-1">
+                    <label className="block text-xs font-[500] ml-5 text-[#414141] mb-1">
                       Adults
                     </label>
-                    <div className="flex items-center border border-black rounded-md px-2 py-1 w-[78px]">
+                    <div className="flex items-center border border-[#020202] rounded-md px-2 py-1 w-[78px]">
                       <button
                         type="button"
                         onClick={() =>
@@ -367,10 +367,10 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
 
                   {/* Children */}
                   <div className="flex flex-col -ml-5">
-                    <label className="block text-xs text-black mb-1">
+                    <label className="block text-xs font-[500] ml-3 text-[#414141] mb-1">
                       Children
                     </label>
-                    <div className="flex items-center border border-black rounded-md px-2 py-1 w-[78px]">
+                    <div className="flex items-center border border-[#020202] rounded-md px-2 py-1 w-[78px]">
                       <button
                         type="button"
                         onClick={() =>

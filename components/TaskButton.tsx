@@ -24,22 +24,22 @@ const TaskButton = ({ count, bookingId }: TaskButtonProps) => {
     }
 
     let cancelled = false;
-    const fetch = async () => {
-      try {
-        setLoading(true);
-        const resp = await getLogsByBookingId(bookingId);
-        const logs = Array.isArray(resp?.logs) ? resp.logs : [];
-        // Only treat logs with recognized priority as tasks
-        const taskLogs = logs.filter((l: any) =>
-          ["High", "Medium", "Low"].includes(l?.priority)
-        );
-        if (!cancelled) setTasksCount(taskLogs.length);
-      } catch (e) {
-        if (!cancelled) setTasksCount(0);
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    };
+    // const fetch = async () => {
+    //   try {
+    //     setLoading(true);
+    //     const resp = await getLogsByBookingId(bookingId);
+    //     const logs = Array.isArray(resp?.logs) ? resp.logs : [];
+    //     // Only treat logs with recognized priority as tasks
+    //     const taskLogs = logs.filter((l: any) =>
+    //       ["High", "Medium", "Low"].includes(l?.priority)
+    //     );
+    //     if (!cancelled) setTasksCount(taskLogs.length);
+    //   } catch (e) {
+    //     if (!cancelled) setTasksCount(0);
+    //   } finally {
+    //     if (!cancelled) setLoading(false);
+    //   }
+    // };
     // fetch();
     return () => {
       cancelled = true;
@@ -51,7 +51,7 @@ const TaskButton = ({ count, bookingId }: TaskButtonProps) => {
   };
 
   return (
-    <div className="relative flex items-center justify-center">
+    <div className="group relative flex items-center justify-center">
       <button
         onClick={handleOpenModal}
         className="p-1.5 border border-gray-300 rounded-sm bg-white hover:bg-gray-100 transition-colors"
@@ -59,7 +59,7 @@ const TaskButton = ({ count, bookingId }: TaskButtonProps) => {
       >
         <TbClipboardText className="w-4 h-4 text-[#854D0E]" />
       </button>
-      <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[0.65rem] font-semibold rounded-full w-5 h-5 flex items-center justify-center shadow">
+      <span className="absolute -top-2 -right-2 bg-[#FFF] text-[#EB382B] transition-all duration-300 ease-in-out group-hover:bg-[#EB382B] group-hover:text-white text-[8px] font-semibold rounded-full w-[18px] h-[18px] flex items-center justify-center shadow">
         {loading ? "" : tasksCount}
       </span>
       <DayWiseTaskModal

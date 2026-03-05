@@ -44,7 +44,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({ actions, width, right }) => {
   return (
     <div
       ref={containerRef}
-      className="relative flex items-center justify-center z-10"
+      className="relative flex items-center justify-center"
     >
       <button
         onClick={() => setIsOpen(!isOpen)}

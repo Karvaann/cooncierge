@@ -56,7 +56,7 @@ const groupInput =
   "h-[34px] px-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 outline-none";
 
 const addonLabel =
-  "h-[34px] px-2 text-[0.72rem] text-gray-600 border-r border-gray-200 flex items-center";
+  "h-[34px] px-2 text-[0.72rem] font-[500] bg-[#F9F9F9] text-[#414141] border-r border-gray-200 flex items-center";
 
 const inputBase =
   "w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-green-600";
@@ -89,7 +89,7 @@ export default function MultiCurrencyInput({
   const showRoeFields = requiresRoe(currency, businessCurrency);
 
   const gridTemplate = showRoeFields
-    ? `${amountInputWidth ?? "220px"} 90px 120px 44px`
+    ? `${amountInputWidth ?? "220px"} 90px 250px`
     : `${amountInputWidth ?? "380px"} 44px`;
 
   const computedInr = useMemo(() => {
@@ -166,20 +166,29 @@ export default function MultiCurrencyInput({
               />
             </div>
 
-            {/* INR field (read-only) */}
-            <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-              <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                INR
-              </span>
-              <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                {computedInr || ""}
+            {/* INR field + Notes*/}
+            <div className="flex items-center gap-3">
+              <div className="flex w-fit items-center border border-gray-200 rounded-md bg-[#F6F2E8] overflow-hidden h-[34px]">
+                <span className="px-2 text-[0.78rem] text-[#414141] bg-[#F6F2E8]">
+                  INR
+                </span>
+                <div className="flex-1 px-2 text-[0.78rem] text-[#414141] bg-[#F6F2E8]">
+                  {computedInr || "0"}
+                </div>
+              </div>
+              <div>
+                <NotesButtonToolTip onClick={onToggleNotes} />
               </div>
             </div>
           </>
         )}
 
-        {/* Notes toggle button */}
-        <NotesButtonToolTip onClick={onToggleNotes} />
+        {/* Notes button for non-ROE layout */}
+        {!showRoeFields && (
+          <div className="">
+            <NotesButtonToolTip onClick={onToggleNotes} />
+          </div>
+        )}
       </div>
 
       {/* Notes input */}

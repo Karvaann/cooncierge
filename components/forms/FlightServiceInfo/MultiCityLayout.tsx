@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { CiCirclePlus } from "react-icons/ci";
 import { MdOutlineEdit } from "react-icons/md";
 import { FiMinusCircle } from "react-icons/fi";
 import SingleCalendar from "@/components/SingleCalendar";
@@ -452,7 +451,7 @@ export default function MultiCityLayout({
   return (
     <div className="space-y-6 text-[0.75rem] text-gray-700">
       {trips.map((tripId, tripIndex) => (
-        <div key={tripId} className="border border-gray-200 rounded-lg p-3">
+        <div key={tripId} className="border border-[#E2E1E1] rounded-lg p-3">
           {/* Trip Header */}
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-[0.85rem] gap-1 font-semibold text-gray-800">
@@ -462,7 +461,7 @@ export default function MultiCityLayout({
             {trips.length > 1 && (
               <button
                 onClick={() => removeTrip(tripId)}
-                className="text-gray-400 hover:text-red-600"
+                className="text-gray-400 hover:cursor-pointer"
               >
                 <FiMinusCircle size={18} />
               </button>
@@ -478,7 +477,7 @@ export default function MultiCityLayout({
                   className="grid grid-cols-1 lg:grid-cols-2 gap-3"
                 >
                   {/* Flight Segment */}
-                  <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="border border-[#E2E1E1] rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="text-[0.8rem] font-semibold text-gray-800">
                         Flight Segment {segIdx + 1}
@@ -493,7 +492,7 @@ export default function MultiCityLayout({
                       )}
                     </div>
 
-                    <hr className="mb-2 -mt-1 border-t border-gray-200" />
+                    <hr className="mb-2 -mt-1 border-t border-[#E2E1E1]" />
 
                     <div className="grid grid-cols-1 gap-3">
                       {/* Flight Number */}
@@ -623,7 +622,7 @@ export default function MultiCityLayout({
                   </div>
 
                   {/* Preview Section */}
-                  <div className="border border-dotted border-gray-200 rounded-lg p-3">
+                  <div className="border border-dotted border-[#E2E1E1] rounded-lg p-3">
                     {/* Heading and edit icon */}
                     {!editing[segment.id!] && (
                       <div className="flex items-center justify-between mb-2">
@@ -662,7 +661,7 @@ export default function MultiCityLayout({
                     )}
 
                     {!editing[segment.id!] && (
-                      <hr className="mb-3 border-t border-gray-200" />
+                      <hr className="mb-3 border-t border-[#E2E1E1]" />
                     )}
 
                     <div className="bg-white rounded-md p-3 min-h-[180px]">
@@ -691,7 +690,7 @@ export default function MultiCityLayout({
                                         },
                                       }))
                                     }
-                                    className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                    className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                   />
                                 </div>
 
@@ -716,7 +715,7 @@ export default function MultiCityLayout({
                                           },
                                         }))
                                       }
-                                      className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                     />
                                   </div>
 
@@ -739,7 +738,7 @@ export default function MultiCityLayout({
                                           },
                                         }))
                                       }
-                                      className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                     />
                                   </div>
                                 </div>
@@ -763,7 +762,7 @@ export default function MultiCityLayout({
                                           },
                                         }))
                                       }
-                                      className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                     />
                                   </div>
 
@@ -787,7 +786,7 @@ export default function MultiCityLayout({
                                           },
                                         }))
                                       }
-                                      className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                     />
                                   </div>
                                 </div>
@@ -815,7 +814,7 @@ export default function MultiCityLayout({
                                           },
                                         }))
                                       }
-                                      className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                     />
                                   </div>
 
@@ -841,7 +840,7 @@ export default function MultiCityLayout({
                                           },
                                         }))
                                       }
-                                      className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                     />
                                   </div>
                                 </div>
@@ -862,7 +861,7 @@ export default function MultiCityLayout({
                                       return copy;
                                     });
                                   }}
-                                  className="px-3 py-1.5 bg-white border border-gray-200 rounded-md text-[0.75rem] text-gray-700 hover:bg-gray-50"
+                                  className="px-3 py-1.5 bg-white border border-[#E2E1E1] rounded-md text-[0.75rem] text-gray-700 hover:bg-gray-50"
                                 >
                                   Cancel
                                 </button>
@@ -959,7 +958,7 @@ export default function MultiCityLayout({
                                       return copy;
                                     });
                                   }}
-                                  className="px-3 py-1.5 flex items-center gap-1 bg-[#0D4B37] text-white rounded-md text-[0.75rem] hover:bg-green-700"
+                                  className="px-3 py-1.5 flex items-center gap-1 bg-[#0D4B37] text-white rounded-md text-[0.75rem] hover:cursor-pointer"
                                 >
                                   <LuSave size={16} />
                                   Save
@@ -1064,9 +1063,25 @@ export default function MultiCityLayout({
             {/* Add Segment */}
             <button
               onClick={() => addSegment(tripId)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#126ACB] text-white rounded-md text-[0.75rem] hover:bg-blue-700 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#126ACB] font-[500] text-white rounded-md text-[0.75rem] hover:cursor-pointer transition"
             >
-              <CiCirclePlus size={16} />
+              <div className="border rounded-full border-[#fff] px-0.5 py-0.5 flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                >
+                  <path
+                    d="M6.59672 2.74805V10.4415M2.75 6.59477H10.4434"
+                    stroke="white"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
               Add Segment
             </button>
           </div>
@@ -1076,9 +1091,25 @@ export default function MultiCityLayout({
       {/* Add Trip Button */}
       <button
         onClick={addTrip}
-        className="flex items-center gap-1.5 px-4 py-2 bg-[#126ACB] text-white text-[0.75rem] font-medium rounded-md hover:bg-blue-700 transition"
+        className="flex items-center gap-1.5 px-4 py-2 bg-[#126ACB] text-white text-[0.75rem] font-[500] rounded-md hover:cursor-pointer transition"
       >
-        <CiCirclePlus size={16} />
+        <div className="border rounded-full border-[#fff] px-0.5 py-0.5 flex items-center justify-center">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="10"
+            height="10"
+            viewBox="0 0 14 14"
+            fill="none"
+          >
+            <path
+              d="M6.59672 2.74805V10.4415M2.75 6.59477H10.4434"
+              stroke="white"
+              strokeWidth="1.7"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
         Add Trip
       </button>
     </div>

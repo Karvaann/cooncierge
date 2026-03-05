@@ -1,9 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-
-import { CiCirclePlus } from "react-icons/ci";
-import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineEdit } from "react-icons/md";
 import { FiMinusCircle } from "react-icons/fi";
 import SingleCalendar from "@/components/SingleCalendar";
@@ -460,12 +457,12 @@ export default function RoundTripLayout({
       {/* Onwards Section */}
       <div>
         <div className="mb-3">
-          <span className="font-medium text-gray-600">
+          <span className="font-[500] text-gray-600">
             Onwards ({getTotalDuration(segmentPreview)})
           </span>
         </div>
 
-        <div className="border border-gray-200 p-4 rounded-lg">
+        <div className="border border-[#E2E1E1] p-4 rounded-lg">
           <div className="space-y-4">
             {formData.segments.map((segment, index) => (
               <div
@@ -473,27 +470,27 @@ export default function RoundTripLayout({
                 className="grid grid-cols-1 lg:grid-cols-2 gap-3"
               >
                 {/* Flight Segment */}
-                <div className="border border-gray-200 rounded-lg px-3 py-5">
+                <div className="border border-[#E2E1E1] rounded-lg px-3 py-5">
                   <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-[0.85rem] font-semibold text-gray-800">
+                    <h4 className="text-[0.85rem] font-[600] text-gray-800">
                       Flight Segment {index + 1}
                     </h4>
                     {formData.segments.length > 1 && (
                       <button
                         onClick={() => removeSegment(segment.id!)}
-                        className="text-gray-400 hover:text-red-500"
+                        className="text-gray-400 hover:cursor-pointer"
                       >
                         <FiMinusCircle size={16} />
                       </button>
                     )}
                   </div>
 
-                  <hr className="mb-2 -mt-1 border-t border-gray-200" />
+                  <hr className="mb-2 -mt-1 border-t border-[#E2E1E1]" />
 
                   <div className="grid grid-cols-1 gap-3">
                     {/* Flight Number */}
                     <div>
-                      <label className="block mb-1 font-medium text-gray-600">
+                      <label className="block mb-1 font-[500] text-gray-600">
                         Flight Number
                       </label>
                       <input
@@ -518,7 +515,7 @@ export default function RoundTripLayout({
                     {/* PNR (toggle off) */}
                     {!formData.pnrEnabled && (
                       <div>
-                        <label className="block mb-1 font-medium text-gray-600">
+                        <label className="block mb-1 font-[500] text-gray-600">
                           PNR
                         </label>
                         <input
@@ -558,7 +555,7 @@ export default function RoundTripLayout({
 
                     {/* Cabin Class */}
                     <div>
-                      <label className="block mb-1 font-medium text-gray-600">
+                      <label className="block mb-1 font-[500] text-gray-600">
                         Cabin Class
                       </label>
                       <DropDown
@@ -606,11 +603,11 @@ export default function RoundTripLayout({
                 </div>
 
                 {/* Preview Section */}
-                <div className="border border-dotted border-gray-200 rounded-lg p-3">
+                <div className="border border-dotted border-[#E2E1E1] rounded-lg p-3">
                   {/* Heading + edit icon (hidden while editing) */}
                   {!editing[segment.id!] && (
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-[0.85rem] font-semibold text-gray-800">
+                      <h4 className="text-[0.85rem] font-[600] text-gray-800">
                         Preview
                       </h4>
                       <button
@@ -645,7 +642,7 @@ export default function RoundTripLayout({
                   )}
 
                   {!editing[segment.id!] && (
-                    <hr className="mb-3 border-t border-gray-200" />
+                    <hr className="mb-3 border-t border-[#E2E1E1]" />
                   )}
 
                   <div className="bg-white rounded-md p-3 min-h-[180px]">
@@ -674,7 +671,7 @@ export default function RoundTripLayout({
                                       },
                                     }))
                                   }
-                                  className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                  className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                 />
                               </div>
 
@@ -699,7 +696,7 @@ export default function RoundTripLayout({
                                         },
                                       }))
                                     }
-                                    className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                    className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                   />
                                 </div>
 
@@ -722,7 +719,7 @@ export default function RoundTripLayout({
                                         },
                                       }))
                                     }
-                                    className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                    className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                   />
                                 </div>
                               </div>
@@ -744,7 +741,7 @@ export default function RoundTripLayout({
                                         },
                                       }))
                                     }
-                                    className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                    className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                   />
                                 </div>
 
@@ -768,7 +765,7 @@ export default function RoundTripLayout({
                                         },
                                       }))
                                     }
-                                    className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                    className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                   />
                                 </div>
                               </div>
@@ -796,7 +793,7 @@ export default function RoundTripLayout({
                                         },
                                       }))
                                     }
-                                    className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                    className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                   />
                                 </div>
 
@@ -821,7 +818,7 @@ export default function RoundTripLayout({
                                         },
                                       }))
                                     }
-                                    className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                    className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                   />
                                 </div>
                               </div>
@@ -842,7 +839,7 @@ export default function RoundTripLayout({
                                     return copy;
                                   });
                                 }}
-                                className="px-3 py-1.5 bg-white border border-gray-200 rounded-md text-[0.75rem] text-gray-700 hover:bg-gray-50"
+                                className="px-3 py-1.5 bg-white border border-[#E2E1E1] rounded-md text-[0.75rem] text-gray-700 hover:bg-gray-50"
                               >
                                 Cancel
                               </button>
@@ -949,7 +946,7 @@ export default function RoundTripLayout({
                         return (
                           <>
                             <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 mb-3 flex items-center gap-2">
-                              <span className="font-medium text-gray-800">
+                              <span className="font-[500] text-gray-800">
                                 {preview.airline}
                               </span>
                             </div>
@@ -960,7 +957,7 @@ export default function RoundTripLayout({
                                   <div className="text-gray-500 text-[0.6rem] mb-0.5">
                                     Origin
                                   </div>
-                                  <div className="font-semibold text-gray-900">
+                                  <div className="font-[600] text-gray-900">
                                     {truncateIfLong(preview.origin)}
                                   </div>
                                 </div>
@@ -968,7 +965,7 @@ export default function RoundTripLayout({
                                   <div className="text-gray-500 text-[0.6rem] mb-0.5">
                                     STD
                                   </div>
-                                  <div className="font-semibold text-gray-900">
+                                  <div className="font-[600] text-gray-900">
                                     {preview.departureTime}
                                   </div>
                                 </div>
@@ -979,14 +976,14 @@ export default function RoundTripLayout({
                                   <div className="text-gray-500 text-[0.6rem] mb-0.5">
                                     Flight Number
                                   </div>
-                                  <div className="font-semibold text-gray-900">
+                                  <div className="font-[600] text-gray-900">
                                     {preview.flightNumber}
                                   </div>
                                 </div>
 
                                 <div className="flex flex-col items-center text-gray-500 text-[0.6rem]">
                                   <div className="w-[1px] h-8 border-l-2 border-dotted border-gray-300 mb-1"></div>
-                                  <div className="text-[0.75rem] font-medium text-gray-700">
+                                  <div className="text-[0.75rem] font-[500] text-gray-700">
                                     ✈
                                   </div>
                                   <div className="w-[0.0625rem] h-8 border-l-2 border-dotted border-gray-300 mt-1"></div>
@@ -996,7 +993,7 @@ export default function RoundTripLayout({
                                   <div className="text-gray-500 text-[0.6rem] mb-0.5">
                                     Duration
                                   </div>
-                                  <div className="font-semibold text-gray-900">
+                                  <div className="font-[600] text-gray-900">
                                     {preview.duration}
                                   </div>
                                 </div>
@@ -1007,7 +1004,7 @@ export default function RoundTripLayout({
                                   <div className="text-gray-500 text-[0.6rem] mb-0.5">
                                     Destination
                                   </div>
-                                  <div className="font-semibold text-gray-900">
+                                  <div className="font-[600] text-gray-900">
                                     {truncateIfLong(preview.destination)}
                                   </div>
                                 </div>
@@ -1015,7 +1012,7 @@ export default function RoundTripLayout({
                                   <div className="text-gray-500 text-[0.6rem] mb-0.5">
                                     STA
                                   </div>
-                                  <div className="font-semibold text-gray-900">
+                                  <div className="font-[600] text-gray-900">
                                     {preview.arrivalTime}
                                   </div>
                                 </div>
@@ -1039,9 +1036,25 @@ export default function RoundTripLayout({
             {/* Add Segment */}
             <button
               onClick={addSegment}
-              className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-[#126ACB] text-white text-[0.75rem] rounded-md hover:bg-blue-700 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-[#126ACB] text-white text-[0.75rem] rounded-md hover:cursor-pointer transition"
             >
-              <CiCirclePlus size={16} />
+              <div className="border rounded-full border-[#fff] px-0.5 py-0.5 flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                >
+                  <path
+                    d="M6.59672 2.74805V10.4415M2.75 6.59477H10.4434"
+                    stroke="white"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
               Add Segment
             </button>
           </div>
@@ -1049,7 +1062,7 @@ export default function RoundTripLayout({
           {/* Return Section */}
           <div>
             <div className="mb-3 mt-3">
-              <span className="font-medium text-gray-600">
+              <span className="font-[500] text-gray-600">
                 Return ({getTotalDuration(returnSegmentPreview)})
               </span>
             </div>
@@ -1061,9 +1074,9 @@ export default function RoundTripLayout({
                   className="grid grid-cols-1 lg:grid-cols-2 gap-3"
                 >
                   {/* Return Segment */}
-                  <div className="border border-gray-200 rounded-lg px-3 py-5">
+                  <div className="border border-[#E2E1E1] rounded-lg px-3 py-5">
                     <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-[0.85rem] font-semibold text-gray-800">
+                      <h4 className="text-[0.85rem] font-[600] text-gray-800">
                         Flight Segment {index + 1}
                       </h4>
                       {formData.returnSegments.length > 1 && (
@@ -1079,7 +1092,7 @@ export default function RoundTripLayout({
                     <div className="grid grid-cols-1 gap-3">
                       {/* Flight Number */}
                       <div>
-                        <label className="block mb-1 font-medium text-gray-600">
+                        <label className="block mb-1 font-[500] text-gray-600">
                           Flight Number
                         </label>
                         <input
@@ -1104,7 +1117,7 @@ export default function RoundTripLayout({
                       {/* PNR */}
                       {!formData.pnrEnabled && (
                         <div>
-                          <label className="block mb-1 font-medium text-gray-600">
+                          <label className="block mb-1 font-[500] text-gray-600">
                             PNR
                           </label>
                           <input
@@ -1148,7 +1161,7 @@ export default function RoundTripLayout({
 
                       {/* Cabin Class */}
                       <div>
-                        <label className="block mb-1 font-medium text-gray-600">
+                        <label className="block mb-1 font-[500] text-gray-600">
                           Cabin Class
                         </label>
                         <DropDown
@@ -1198,10 +1211,10 @@ export default function RoundTripLayout({
                   </div>
 
                   {/* Return Preview */}
-                  <div className="border border-dotted border-gray-200 rounded-lg p-3">
+                  <div className="border border-dotted border-[#E2E1E1] rounded-lg p-3">
                     {!editing[segment.id!] && (
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-[0.85rem] font-semibold text-gray-800">
+                        <h4 className="text-[0.85rem] font-[600] text-gray-800">
                           Preview
                         </h4>
                         <button
@@ -1262,7 +1275,7 @@ export default function RoundTripLayout({
                                         },
                                       }))
                                     }
-                                    className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                    className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                   />
                                 </div>
 
@@ -1287,7 +1300,7 @@ export default function RoundTripLayout({
                                           },
                                         }))
                                       }
-                                      className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                     />
                                   </div>
 
@@ -1310,7 +1323,7 @@ export default function RoundTripLayout({
                                           },
                                         }))
                                       }
-                                      className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                     />
                                   </div>
                                 </div>
@@ -1334,7 +1347,7 @@ export default function RoundTripLayout({
                                           },
                                         }))
                                       }
-                                      className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                     />
                                   </div>
 
@@ -1358,7 +1371,7 @@ export default function RoundTripLayout({
                                           },
                                         }))
                                       }
-                                      className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                     />
                                   </div>
                                 </div>
@@ -1386,7 +1399,7 @@ export default function RoundTripLayout({
                                           },
                                         }))
                                       }
-                                      className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                     />
                                   </div>
 
@@ -1412,7 +1425,7 @@ export default function RoundTripLayout({
                                           },
                                         }))
                                       }
-                                      className="w-full px-2 py-1 border border-gray-200 rounded-md text-[0.7rem] bg-white"
+                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
                                     />
                                   </div>
                                 </div>
@@ -1432,7 +1445,7 @@ export default function RoundTripLayout({
                                       return copy;
                                     });
                                   }}
-                                  className="px-3 py-1.5 bg-white border border-gray-200 rounded-md text-[0.75rem] text-gray-700 hover:bg-gray-50"
+                                  className="px-3 py-1.5 bg-white border border-[#E2E1E1] rounded-md text-[0.75rem] text-gray-700 hover:bg-gray-50"
                                 >
                                   Cancel
                                 </button>
@@ -1527,7 +1540,7 @@ export default function RoundTripLayout({
                                       return copy;
                                     });
                                   }}
-                                  className="px-3 py-1.5 flex items-center gap-1 bg-[#0D4B37] text-white rounded-md text-[0.75rem] hover:bg-green-700"
+                                  className="px-3 py-1.5 flex items-center gap-1 bg-[#0D4B37] text-white rounded-md text-[0.75rem] hover:bg-cursor-pointer"
                                 >
                                   <LuSave size={16} />
                                   Save
@@ -1541,7 +1554,7 @@ export default function RoundTripLayout({
                           return (
                             <>
                               <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 mb-3 flex items-center gap-2">
-                                <span className="font-medium text-gray-800">
+                                <span className="font-[500] text-gray-800">
                                   {preview.airline}
                                 </span>
                               </div>
@@ -1551,7 +1564,7 @@ export default function RoundTripLayout({
                                     <div className="text-gray-500 text-[0.6rem] mb-0.5">
                                       Origin
                                     </div>
-                                    <div className="font-semibold text-gray-900">
+                                    <div className="font-[600] text-gray-900">
                                       {truncateIfLong(preview.origin)}
                                     </div>
                                   </div>
@@ -1559,7 +1572,7 @@ export default function RoundTripLayout({
                                     <div className="text-gray-500 text-[0.6rem] mb-0.5">
                                       STD
                                     </div>
-                                    <div className="font-semibold text-gray-900">
+                                    <div className="font-[600] text-gray-900">
                                       {preview.departureTime}
                                     </div>
                                   </div>
@@ -1569,13 +1582,13 @@ export default function RoundTripLayout({
                                     <div className="text-gray-500 text-[0.6rem] mb-0.5">
                                       Flight Number
                                     </div>
-                                    <div className="font-semibold text-gray-900">
+                                    <div className="font-[600] text-gray-900">
                                       {preview.flightNumber}
                                     </div>
                                   </div>
                                   <div className="flex flex-col items-center text-gray-500 text-[0.6rem]">
                                     <div className="w-[1px] h-8 border-l-2 border-dotted border-gray-300 mb-1"></div>
-                                    <div className="text-[0.75rem] font-medium text-gray-700">
+                                    <div className="text-[0.75rem] font-[500] text-gray-700">
                                       ✈
                                     </div>
                                     <div className="w-[0.0625rem] h-8 border-l-2 border-dotted border-gray-300 mt-1"></div>
@@ -1584,7 +1597,7 @@ export default function RoundTripLayout({
                                     <div className="text-gray-500 text-[0.6rem] mb-0.5">
                                       Duration
                                     </div>
-                                    <div className="font-semibold text-gray-900">
+                                    <div className="font-[600] text-gray-900">
                                       {preview.duration}
                                     </div>
                                   </div>
@@ -1594,7 +1607,7 @@ export default function RoundTripLayout({
                                     <div className="text-gray-500 text-[0.6rem] mb-0.5">
                                       Destination
                                     </div>
-                                    <div className="font-semibold text-gray-900">
+                                    <div className="font-[600] text-gray-900">
                                       {truncateIfLong(preview.destination)}
                                     </div>
                                   </div>
@@ -1602,7 +1615,7 @@ export default function RoundTripLayout({
                                     <div className="text-gray-500 text-[0.6rem] mb-0.5">
                                       STA
                                     </div>
-                                    <div className="font-semibold text-gray-900">
+                                    <div className="font-[600] text-gray-900">
                                       {preview.arrivalTime}
                                     </div>
                                   </div>
@@ -1626,9 +1639,25 @@ export default function RoundTripLayout({
             {/* Add Return Segment */}
             <button
               onClick={addReturnSegment}
-              className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-[#126ACB] text-white text-[0.75rem] rounded-md hover:bg-blue-700 transition"
+              className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-[#126ACB] text-white text-[0.75rem] rounded-md hover:cursor-pointer transition"
             >
-              <CiCirclePlus size={16} />
+              <div className="border rounded-full border-[#fff] px-0.5 py-0.5 flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                >
+                  <path
+                    d="M6.59672 2.74805V10.4415M2.75 6.59477H10.4434"
+                    stroke="white"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
               Add Segment
             </button>
           </div>

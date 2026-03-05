@@ -6,8 +6,6 @@ import {
   useState,
   useEffect,
   useCallback,
-  useRef,
-  useLayoutEffect,
 } from "react";
 import { BookingApiService } from "@/services/bookingApi";
 import { CustomIdApi } from "@/services/customIdApi";
@@ -29,6 +27,7 @@ import { TbArrowsUpDown } from "react-icons/tb";
 import Image from "next/image";
 import AvatarTooltip from "@/components/AvatarToolTip";
 import TaskButton from "@/components/TaskButton";
+import TableTabs from "@/components/TableTabs";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -80,6 +79,7 @@ type FilterPayload = {
   status: string;
   owner: string | string[];
   search: string;
+  searchBy: string;
   bookingStartDate: string;
   bookingEndDate: string;
   tripStartDate: string;
@@ -175,29 +175,6 @@ const OSBookingsPage = () => {
   const tabOptions = ["Approved", "Pending"];
   const [activeTab, setActiveTab] = useState("Approved");
 
-  const tabContainerRef = useRef<HTMLDivElement | null>(null);
-  const [indicator, setIndicator] = useState({ left: 0, width: 0 });
-
-  useLayoutEffect(() => {
-    const update = () => {
-      const container = tabContainerRef.current;
-      if (!container) return;
-      const activeBtn = container.querySelector(
-        `[data-tab="${activeTab}"]`
-      ) as HTMLElement | null;
-      if (!activeBtn) return;
-      // Use offsetLeft/offsetWidth so measurement is relative to container and ignores container padding
-      const shrinkPx = 5;
-      const left = activeBtn.offsetLeft + Math.round(shrinkPx / 2);
-      const width = Math.max(0, activeBtn.offsetWidth - shrinkPx);
-      setIndicator({ left, width });
-    };
-
-    update();
-    window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
-  }, [activeTab]);
-
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
   const [isApproveDenyOpen, setIsApproveDenyOpen] = useState(false);
@@ -212,6 +189,7 @@ const OSBookingsPage = () => {
     status: "",
     owner: "",
     search: "",
+    searchBy: "customerId",
     bookingStartDate: "",
     bookingEndDate: "",
     tripStartDate: "",
@@ -307,15 +285,21 @@ const OSBookingsPage = () => {
     return quotations.filter((q, idx) => {
       if (filters.search.trim()) {
         const s = filters.search.toLowerCase();
-        const formattedServiceType = formatServiceType(
-          q.quotationType || ""
-        ).toLowerCase();
+        const ownerNames = ([] as Array<{ name?: string }>).concat(
+          q.owner || [],
+          q.secondaryOwner || [],
+          q.primaryOwner ? [q.primaryOwner] : [],
+        )
+          .map((owner) => owner?.name || "")
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
         const matchesSearch =
-          (q.customId || "").toLowerCase().includes(s) ||
-          formattedServiceType.includes(s) ||
-          (q.quotationType || "").toLowerCase().includes(s) ||
-          (q.customerId?.name || "").toLowerCase().includes(s) ||
-          (q.formFields.traveller1 || "").toLowerCase().includes(s);
+          filters.searchBy === "customerName"
+            ? ((q.customerId?.name || q.formFields.customer || "").toLowerCase().includes(s))
+            : filters.searchBy === "owner"
+              ? ownerNames.includes(s)
+              : (q.customerId?._id || "").toLowerCase().includes(s);
         if (!matchesSearch) return false;
       }
 
@@ -708,20 +692,25 @@ const OSBookingsPage = () => {
       // Apply search filter to drafts
       if (filters.search.trim()) {
         const s = filters.search.toLowerCase();
-        return normalizedDrafts.filter((draft: any, index: number) => {
-          const formattedServiceType = formatServiceType(
-            draft.quotationType || ""
+        return normalizedDrafts.filter((draft: any) => {
+          const ownerNames = ([] as Array<{ name?: string }>).concat(
+            draft.owner || [],
+            draft.secondaryOwner || [],
+            draft.primaryOwner ? [draft.primaryOwner] : [],
+          )
+            .map((owner) => owner?.name || "")
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          const customerName = (
+            draft.customerId?.name ||
+            draft.formFields?.customer ||
+            ""
           ).toLowerCase();
-          const draftId = draft.customId || `Draft-${index + 1}`;
-          const customerName =
-            draft.customerId?.name || draft.formFields?.customer || "";
 
-          return (
-            draftId.toLowerCase().includes(s) ||
-            formattedServiceType.includes(s) ||
-            (draft.quotationType || "").toLowerCase().includes(s) ||
-            customerName.toLowerCase().includes(s)
-          );
+          if (filters.searchBy === "customerName") return customerName.includes(s);
+          if (filters.searchBy === "owner") return ownerNames.includes(s);
+          return (draft.customerId?._id || "").toLowerCase().includes(s);
         });
       }
 
@@ -741,7 +730,7 @@ const OSBookingsPage = () => {
           return true;
       }
     });
-  }, [activeTab, filteredQuotations]) as any[];
+  }, [activeTab, drafts, filteredQuotations, filters.search, filters.searchBy]) as any[];
 
   // Convert quotations to table data
   const tableData = useMemo<JSX.Element[][]>(() => {
@@ -947,6 +936,23 @@ const OSBookingsPage = () => {
             serviceTypes={filterOptions.serviceTypes}
             statuses={filterOptions.statuses}
             owners={filterOptions.owners}
+            searchOptions={[
+              {
+                value: "customerId",
+                label: "Customer ID",
+                placeholder: "Search by Customer ID",
+              },
+              {
+                value: "customerName",
+                label: "Customer Name",
+                placeholder: "Search by Customer Name",
+              },
+              {
+                value: "owner",
+                label: "Owner",
+                placeholder: "Search by Owner",
+              },
+            ]}
             createOpen={isCreateOpen}
             setCreateOpen={setIsCreateOpen}
             onCreateClick={handleCreateRequested}
@@ -954,45 +960,13 @@ const OSBookingsPage = () => {
 
           <div className="bg-white rounded-2xl shadow mt-4 pt-5 pb-3 px-3 relative">
             {/* Tabs and Total Count Row */}
-            <div className="flex w-full justify-between items-center mb-2">
-              <div
-                ref={tabContainerRef}
-                className="flex w-[14.3rem] ml-2 items-center bg-[#F3F3F3] rounded-xl relative py-1.5 gap-8.5"
-              >
-                {/* Sliding background indicator sized to active button */}
-                <div
-                  className="absolute h-[calc(100%-0.5rem)] bg-[#0D4B37] rounded-xl shadow-sm transition-all duration-300 ease-in-out top-1"
-                  style={{
-                    left: `${indicator.left}px`,
-                    width: `${indicator.width}px`,
-                  }}
-                />
-
-                {tabOptions.map((tab) => (
-                  <button
-                    key={tab}
-                    data-tab={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`relative z-10 py-1 px-4 rounded-lg text-[13px] font-medium transition-colors duration-300 text-center ${
-                      activeTab === tab
-                        ? "text-white"
-                        : "text-[#818181] hover:text-gray-900 font-[500]"
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
-                <span className="text-gray-600 text-[14px] font-medium">
-                  Total
-                </span>
-                <span className="bg-gray-100 text-black font-semibold text-[14px] px-2 mr-1 rounded-lg shadow-sm">
-                  {finalQuotations.length}
-                </span>
-              </div>
-            </div>
+            <TableTabs
+              tabs={tabOptions}
+              activeTab={activeTab}
+              onChange={setActiveTab}
+              totalCount={finalQuotations.length}
+              tabsClassName="w-[14.3rem]"
+            />
             <div className="p-2 mt-2">
               {isLoading ? (
                 <TableSkeleton />

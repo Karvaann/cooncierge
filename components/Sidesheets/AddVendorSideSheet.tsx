@@ -463,9 +463,9 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         >
           <div className="space-y-6 p-4 overflow-y-auto flex-1 pb-16">
             {/* ================= BASIC DETAILS ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3 -mt-2">
+            <div className="border border-[#E2E1E1] rounded-[12px] p-3 -mt-2">
               <h2 className="text-[13px] font-[500] mb-2">Basic Details</h2>
-              <hr className="mt-1 mb-2 border-t border-gray-200" />
+              <hr className="mt-1 mb-2 border-t border-[#E2E1E1]" />
 
               {/* Row 1 */}
               {/* Company Name - FULL WIDTH */}
@@ -486,7 +486,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   }}
                   placeholder="Enter Company Name"
                   disabled={readOnly}
-                  className={`w-full rounded-md px-3 py-2 text-[13px] hover:border-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202] ${
+                  className={`w-full rounded-md px-3 py-2 text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202] ${
                     invalidField === "company"
                       ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
                       : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
@@ -528,7 +528,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       maxLength={phoneMaxLength}
                       placeholder="Enter Contact Number"
                       disabled={readOnly}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] text-[#414141] focus:outline-none focus:ring-1 hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] placeholder:text-[#9CA3AF] text-[#414141] focus:outline-none focus:ring-1 hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
                     />
                   </div>
                 </div>
@@ -545,7 +545,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     }
                     placeholder="Enter Email ID"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
                   />
                 </div>
               </div>
@@ -555,11 +555,11 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
             </div>
 
             {/* ================= POC DETAILS (Optional) ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3">
+            <div className="border border-[#E2E1E1] rounded-[12px] p-3">
               <h2 className="text-[13px] font-[500] mb-2">
                 POC Details (Optional)
               </h2>
-              <hr className="mt-1 mb-2 border-t border-gray-200" />
+              <hr className="mt-1 mb-2 border-t border-[#E2E1E1]" />
 
               {/* Row 1 */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
@@ -584,7 +584,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     }}
                     placeholder="Enter Contact Person Name"
                     disabled={readOnly}
-                    className={`w-full rounded-md px-3 py-2 text-[13px] hover:border-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202] ${
+                    className={`w-full rounded-md px-3 py-2 text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202] ${
                       invalidField === "contactPerson"
                         ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
                         : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
@@ -611,7 +611,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     }
                     placeholder="Enter Nickname/Alias"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 hover:border-[#C6AEDE] focus:ring-[#C6AEDE] rounded-md px-3 py-2 text-[13px] disabled:bg-gray-200 disabled:text-[#020202]"
+                    className="w-full border border-gray-300 hover:border-[#C6AEDE] focus:ring-[#C6AEDE] rounded-md px-3 py-2 text-[13px] placeholder:text-[#9CA3AF] disabled:bg-gray-200 disabled:text-[#020202]"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -644,7 +644,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       }
                       maxLength={phoneMaxLength}
                       disabled={readOnly}
-                      className="w-full h-[2rem] border border-gray-300 rounded-md px-3 py-2 text-[13px] text-[#414141] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE] hover:border-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
+                      className="w-full h-[2rem] border border-gray-300 rounded-md px-3 py-2 text-[13px] placeholder:text-[#9CA3AF] text-[#414141] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE] hover:border-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
                     />
                   </div>
                 </div>
@@ -664,7 +664,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       setFormData({ ...formData, email: e.target.value })
                     }
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
                   />
                 </div>
                 <div className="flex flex-col gap-1 w-full">
@@ -688,9 +688,9 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
             </div>
 
             {/* ================= DOCUMENTS ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3">
+            <div className="border border-[#E2E1E1] rounded-[12px] p-3">
               <h2 className="text-[13px] font-[500] mb-2">Documents</h2>
-              <hr className="mt-1 mb-2 border-t border-gray-200" />
+              <hr className="mt-1 mb-2 border-t border-[#E2E1E1]" />
 
               <input
                 type="file"
@@ -723,7 +723,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
                     className="flex items-center justify-between w-full 
                              bg-white rounded-md 
-                             px-3 py-2 hover:bg-gray-50 transition"
+                             px-3 py-2 hover:cursor-pointer transition"
                   >
                     <button
                       type="button"
@@ -780,11 +780,11 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
             </div>
 
             {/* ================= BILLING ADDRESS ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3">
+            <div className="border border-[#E2E1E1] rounded-[12px] p-3">
               <label className="block text-[13px] font-[500] text-[#414141] mb-1">
                 Billing Address
               </label>
-              <hr className="mt-1 mb-3 border-t border-gray-200" />
+              <hr className="mt-1 mb-3 border-t border-[#E2E1E1]" />
               <textarea
                 name="address"
                 rows={3}
@@ -797,14 +797,14 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 }
                 placeholder="Enter Billing Address"
                 disabled={readOnly}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202] resize-none"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202] resize-none"
               />
             </div>
 
             {/* ================= OPENING BALANCE ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3">
+            <div className="border border-[#E2E1E1] rounded-[12px] p-3">
               <h2 className="text-[13px] font-[500] mb-2">Opening Balance</h2>
-              <hr className="mt-1 mb-3 border-t border-gray-200" />
+              <hr className="mt-1 mb-3 border-t border-[#E2E1E1]" />
 
               <div className="flex items-center gap-6 mb-3">
                 <label className="flex items-center gap-2 cursor-pointer text-[13px]">
@@ -968,11 +968,11 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
             </div>
 
             {/* Remarks */}
-            <div className="border border-gray-200 rounded-xl p-3 -mt-2">
-              <label className="block text-[13px]  font-[500] text-[#414141]">
+            <div className="border border-[#E2E1E1] rounded-xl p-3 -mt-2">
+              <label className="block text-[13px]  font-[500] text-[#020202]">
                 Remarks
               </label>
-              <hr className="mt-1 mb-2 border-t border-gray-200" />
+              <hr className="mt-1 mb-2 border-t border-[#E2E1E1]" />
               <textarea
                 name="remarks"
                 rows={5}
@@ -982,7 +982,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                 }
                 placeholder="Enter Your Remarks Here"
                 className={`
-            w-full border border-gray-200 rounded-md px-3 py-2 text-[13px]  mt-2 transition-colors
+            w-full border border-[#E2E1E1] rounded-md px-3 py-2 text-[13px] placeholder:text-[#9CA3AF] mt-2 transition-colors
             focus:ring focus:ring-[#C6AEDE] hover:border-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]
           `}
                 disabled={readOnly}
@@ -991,13 +991,13 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
             {/* ================= ACTION BUTTONS ================ */}
           </div>
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 py-2 px-3 z-30">
+          <div className="sticky bottom-0 bg-white border-t border-[#E2E1E1] py-2 px-3 z-30">
             <div className="flex justify-end gap-2">
               {mode === "view" ? (
                 <Button
                   text="Close"
                   onClick={onCancel}
-                  bgColor="bg-white border border-gray-200"
+                  bgColor="bg-white border border-[#E2E1E1]"
                   textColor="text-[#414141]"
                 />
               ) : mode === "edit" ? (

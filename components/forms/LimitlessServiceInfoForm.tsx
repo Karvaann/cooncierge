@@ -631,7 +631,7 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
               {nightsDaysDisplay && (
                 <div
                   title="Nights / Days"
-                  className="ml-2 mt-4 inline-flex items-center px-3 py-1.5 rounded-md bg-white text-sm font-[600] text-[#414141] border border-gray-200 shadow-sm"
+                  className="ml-2 mt-4 inline-flex items-center px-3 py-1.5 rounded-md bg-white text-sm font-[600] text-[#414141] border border-[#E2E1E1] shadow-sm"
                 >
                   {nightsDaysDisplay}
                 </div>
@@ -641,11 +641,11 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
         </div>
 
         {/* Selling Price Section (uses shared MultiCurrencyInput) */}
-        <div className="w-full border border-gray-200 rounded-[12px] p-3 mt-4">
+        <div className="w-full border border-[#E2E1E1] rounded-[12px] p-3 mt-4">
           <h2 className="text-[0.85rem] font-[500] text-[#414141] mb-2">
             Selling Price
           </h2>
-          <hr className="mt-1 mb-3 border-t border-gray-200" />
+          <hr className="mt-1 mb-3 border-t border-[#E2E1E1]" />
 
           <MultiCurrencyInput
             currency={(formData.sellingCurrency as "INR" | "USD") || "INR"}
@@ -677,12 +677,12 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
         </div>
 
         {/* Limitless INFO */}
-        <div className="w-full border border-gray-200 rounded-[12px] p-3 mt-4">
+        <div className="w-full border border-[#E2E1E1] rounded-[12px] p-3 mt-4">
           <h1 className="text-[0.85rem] font-[500] text-[#414141] mb-2">
             Limitless Info
           </h1>
 
-          <hr className="mt-1 mb-3 border-t border-gray-200" />
+          <hr className="mt-1 mb-3 border-t border-[#E2E1E1]" />
 
           {/* Confirmation number + Title (stacked) */}
           <div className="flex flex-col gap-3 w-full mb-4">
@@ -708,7 +708,7 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
                     selectedDestinations.map((p) => (
                       <span
                         key={p.id}
-                        className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[12px]"
+                        className="flex items-center gap-1 bg-white border border-[#E2E1E1] text-black px-2 py-0.5 rounded-full text-[12px]"
                       >
                         <button
                           type="button"
@@ -745,7 +745,7 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
                         left: destDropdownPos.left,
                         width: destDropdownPos.width,
                       }}
-                      className="absolute bg-white border border-gray-200 rounded-[10px] shadow-xl max-h-52 overflow-y-auto z-[9999]"
+                      className="absolute bg-white border border-[#E2E1E1] rounded-[10px] shadow-xl max-h-52 overflow-y-auto z-[9999]"
                     >
                       {demoPlaces.map((place) => {
                         const checked = selectedDestinations.some(
@@ -802,7 +802,7 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
                 value={formData.itineraryname}
                 onChange={handleChange}
                 placeholder="Enter itinerary name…"
-                className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[13px] text-[#020202] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
+                className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[13px] text-[#020202] placeholder:text-[#9CA3AF] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-300"
               />
             </div>
           </div>
@@ -820,9 +820,9 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
       </div>
 
       {/* ID PROOFS */}
-      <div className="w-full border border-gray-200 rounded-[12px] p-3">
+      <div className="w-full border border-[#E2E1E1] rounded-[12px] p-3">
         <h2 className="text-[13px] font-[500] mb-2">Documents</h2>
-        <hr className="mt-1 mb-3 border-t border-gray-200" />
+        <hr className="mt-1 mb-3 border-t border-[#E2E1E1]" />
 
         <input
           type="file"
@@ -854,7 +854,7 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
               <div
                 key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
                 onClick={() => doc.url && window.open(doc.url, "_blank")}
-                className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
+                className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:cursor-pointer transition"
               >
                 <button
                   type="button"
@@ -896,11 +896,11 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
       </div>
 
       {/* Remarks Section */}
-      <div className="border border-gray-200 w-full rounded-[12px] p-3 mt-4">
+      <div className="border border-[#E2E1E1] w-full rounded-[12px] p-3 mt-4">
         <label className="block text-[13px] font-[500] text-[#414141]">
           Remarks
         </label>
-        <hr className="mt-1 mb-2 border-t border-gray-200" />
+        <hr className="mt-1 mb-2 border-t border-[#E2E1E1]" />
         <textarea
           name="remarks"
           rows={4}
@@ -909,7 +909,7 @@ const LimitlessServiceInfoForm: React.FC<LimitlessServiceInfoFormProps> = ({
           onBlur={handleBlur}
           placeholder="Enter Your Remarks Here"
           disabled={isSubmitting}
-          className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[13px] text-[#020202] mt-1 transition-colors hover:border-green-400 focus:ring focus:ring-green-300 ${
+          className={`w-full border border-[#E2E1E1] rounded-md px-2 py-1.5 text-[13px] text-[#020202] mt-1 transition-colors hover:border-green-400 focus:ring focus:ring-green-300 ${
             isSubmitting ? "bg-gray-200 cursor-not-allowed" : ""
           }`}
         />

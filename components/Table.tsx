@@ -1,6 +1,11 @@
 "use client";
 
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, {
+  useState,
+  useMemo,
+  useCallback,
+  useEffect,
+} from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import DropDown from "./DropDown";
 // Type definitions
@@ -79,13 +84,6 @@ const Table: React.FC<TableProps> = ({
     [data, page, rowsPerPage],
   );
 
-  // Memoized empty rows for consistent table height
-  const emptyRows = useMemo(
-    () =>
-      Array.from({ length: Math.max(0, rowsPerPage - paginatedRows.length) }),
-    [rowsPerPage, paginatedRows.length],
-  );
-
   // Memoized pagination buttons
   const paginationButtons = useMemo(
     () =>
@@ -144,84 +142,89 @@ const Table: React.FC<TableProps> = ({
     }
   }, [page, rowsPerPage, onPaginationChange]);
 
-  return (
-    <>
-      <div className="overflow-visible rounded-xl border border-gray-100">
-        <table
-          style={{ tableLayout: "fixed" }}
-          className="w-full text-sm rounded-xl overflow-hidden"
-        >
-          <thead>
-            <tr
-              className={`rounded-t-xl text-[14px] select-none ${headerRowTextClassName} ${
-                headerClassName || "bg-[#F3F3F3]"
-              }`}
-            >
-              {showCheckboxColumn && (
-                <th className="px-3 py-2 w-[3rem]">{headerCheckbox}</th>
-              )}
-              {columns.map((col, index) => (
-                <th
-                  key={`${col}-${index}`}
-                  onClick={() => {
-                    if (!onSort) return;
+  const renderHeaderCells = () =>
+    columns.map((col, index) => (
+      <th
+        key={`${col}-${index}`}
+        onClick={() => {
+          if (!onSort) return;
 
-                    if (
-                      col === "Rating" ||
-                      col === "Date Modified" ||
-                      col === "Date Created" ||
-                      col === "Travel Date" ||
-                      col === "Joining Date"
-                    ) {
-                      onSort(col);
-                    }
-                  }}
-                  className={`px-[18px] py-[12px] ${headerCellTextClassName} font-[600] leading-4 tracking-[0.6px] text-[13px] ${
-                    columnWidthClassMap[col] || ""
-                  }
-          select-none
-          ${
+          if (
             col === "Rating" ||
             col === "Date Modified" ||
             col === "Date Created" ||
             col === "Travel Date" ||
             col === "Joining Date"
-              ? `cursor-pointer hover:${
-                  sortableHeaderHoverClass || "bg-[#0f5a43]"
-                }`
-              : ""
+          ) {
+            onSort(col);
           }
-        `}
+        }}
+        className={`sticky top-0 z-10 px-[18px] py-[18px] ${headerCellTextClassName} font-[500] leading-4 tracking-[0.6px] text-[13px] ${
+          columnWidthClassMap[col] || ""
+        }
+        ${headerClassName || "bg-[#F3F3F3]"}
+        select-none
+        ${
+          col === "Rating" ||
+          col === "Date Modified" ||
+          col === "Date Created" ||
+          col === "Travel Date" ||
+          col === "Joining Date"
+            ? `cursor-pointer hover:${sortableHeaderHoverClass || "bg-[#0f5a43]"}`
+            : ""
+        }`}
+      >
+        <div
+          className={`flex items-center gap-2 ${
+            headerAlign?.[col] === "left"
+              ? "justify-start"
+              : headerAlign?.[col] === "right"
+                ? "justify-end"
+                : "justify-center"
+          } select-none`}
+        >
+          <span
+            className={`truncate ${
+              headerAlign?.[col] === "left"
+                ? "text-left"
+                : headerAlign?.[col] === "right"
+                  ? "text-right"
+                  : "text-center"
+            }`}
+          >
+            {col}
+          </span>
+          {columnIconMap?.[col]}
+        </div>
+      </th>
+    ));
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-gray-100">
+        <table
+          style={{ tableLayout: "fixed" }}
+          className="w-full table-fixed text-sm"
+        >
+          <thead>
+            <tr
+              className={`rounded-t-xl text-[14px] z-9999 select-none ${headerRowTextClassName} ${
+                headerClassName || "bg-[#F3F3F3]"
+              }`}
+            >
+              {showCheckboxColumn && (
+                <th
+                  className={`sticky top-0 z-10 w-[3rem] px-3 py-3 ${
+                    headerClassName || "bg-[#F3F3F3]"
+                  }`}
                 >
-                  <div
-                    className={`flex items-center gap-2 ${
-                      headerAlign?.[col] === "left"
-                        ? "justify-start"
-                        : headerAlign?.[col] === "right"
-                          ? "justify-end"
-                          : "justify-center"
-                    } select-none`}
-                  >
-                    <span
-                      className={`truncate ${
-                        headerAlign?.[col] === "left"
-                          ? "text-left"
-                          : headerAlign?.[col] === "right"
-                            ? "text-right"
-                            : "text-center"
-                      }`}
-                    >
-                      {col}
-                    </span>
-                    {columnIconMap?.[col]}
-                  </div>
+                  {headerCheckbox}
                 </th>
-              ))}
+              )}
+              {renderHeaderCells()}
             </tr>
           </thead>
-          {/* BODY: conditional Droppable/Draggable rendering */}
           {enableDragAndDrop ? (
-            // If DnD enabled, render Droppable + Draggable rows
             <Droppable droppableId={droppableId}>
               {(provided) => (
                 <tbody ref={provided.innerRef} {...provided.droppableProps}>
@@ -273,24 +276,6 @@ const Table: React.FC<TableProps> = ({
                       )}
                     </Draggable>
                   ))}
-
-                  {/* Fill empty rows to keep table height consistent */}
-                  {emptyRows.map((_, idx) => (
-                    <tr
-                      key={`empty-${idx}`}
-                      className={`${
-                        (paginatedRows.length + idx) % 2 === 0
-                          ? "bg-white"
-                          : "bg-gray-50"
-                      } h-[1.5rem] text-[14px]`}
-                    >
-                      <td
-                        className="px-4 py-2"
-                        colSpan={columns.length + (showCheckboxColumn ? 1 : 0)}
-                      ></td>
-                    </tr>
-                  ))}
-
                   {provided.placeholder}
                 </tbody>
               )}
@@ -335,23 +320,6 @@ const Table: React.FC<TableProps> = ({
                   </tr>
                 );
               })}
-
-              {/* Fill empty rows to keep table height consistent */}
-              {emptyRows.map((_, idx) => (
-                <tr
-                  key={`empty-${idx}`}
-                  className={`${
-                    (paginatedRows.length + idx) % 2 === 0
-                      ? "bg-white"
-                      : "bg-gray-50"
-                  } h-[3rem] text-[14px]`}
-                >
-                  <td
-                    className="px-4 py-2"
-                    colSpan={columns.length + (showCheckboxColumn ? 1 : 0)}
-                  ></td>
-                </tr>
-              ))}
             </tbody>
           )}
         </table>
@@ -359,7 +327,7 @@ const Table: React.FC<TableProps> = ({
 
       {/* Pagination Controls */}
       <div
-        className={`flex items-center justify-between mt-4 flex-wrap gap-4 ${
+        className={`mt-4 flex shrink-0 items-center justify-between gap-4 flex-wrap ${
           hideRowsPerPage ? "justify-between" : ""
         }`}
       >
@@ -406,7 +374,7 @@ const Table: React.FC<TableProps> = ({
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

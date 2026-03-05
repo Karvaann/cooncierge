@@ -137,13 +137,13 @@ const InputField: React.FC<InputFieldProps> = ({
         min={min}
         disabled={disabled || isValidating}
         className={`
-          w-full border rounded-md px-3 py-2 pr-10 text-[0.75rem]  transition-colors
+          w-full border rounded-md px-3 py-2 pr-10 text-[0.75rem] placeholder:text-[#9CA3AF] transition-colors
           ${
             hasError
               ? "border-red-300 focus:ring-red-200"
               : isValid
                 ? "border-green-300 focus:ring-green-200"
-                : "border-gray-200 focus:ring-blue-200"
+                : "border-[#E2E1E1] focus:ring-blue-200"
           }
           ${disabled || isValidating ? "opacity-50 cursor-not-allowed" : ""}
           ${className}
@@ -351,6 +351,8 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
 
   // Villa type controlled by parent: 'entire' or 'shared'
   const [villaType, setVillaType] = useState<"entire" | "shared">("entire");
+  const [showRoomCategories, setShowRoomCategories] = useState(false);
+  const [villaTotalRooms, setVillaTotalRooms] = useState(1);
 
   const [isCancellationModalOpen, setIsCancellationModalOpen] =
     useState<boolean>(false);
@@ -881,11 +883,11 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             isSubmitting={isSubmitting}
           />
 
-          <div className="w-full border border-gray-200 rounded-[12px] p-3 mt-4">
+          <div className="w-full border border-[#E2E1E1] rounded-[12px] p-3 mt-4">
             <h1 className="text-[13px] font-[500] text-gray-700 mb-2">
               Accommodation Info
             </h1>
-            <hr className="mt-1 mb-2 border-t border-gray-200" />
+            <hr className="mt-1 mb-2 border-t border-[#E2E1E1]" />
 
             {/* Confirmation Number */}
             <div className="mb-3">
@@ -903,7 +905,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   }))
                 }
                 placeholder="Enter Confirmation No."
-                className="w-[200px] px-3 py-1.5 border border-gray-300 rounded-md text-[12px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                className="w-[200px] px-3 py-1.5 border border-gray-300 rounded-md text-[12px] placeholder:text-[#9CA3AF] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
               />
             </div>
 
@@ -923,7 +925,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   placeholder="DD-MM-YYYY"
                   customWidth="w-[98%]"
                   labelClassName="block text-[#414141] mb-1 text-[12px] font-[500]"
-                  inputClassName="flex-1 text-[0.65rem] text-[#020202] outline-none bg-transparent"
+                  inputClassName="flex-1 text-[0.65rem] text-[#020202] font-[400] outline-none bg-transparent"
                   showCalendarIcon={false}
                   minDate={formData.traveldate}
                   minTypeable={formData.traveldate}
@@ -1002,7 +1004,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     }}
                     placeholder="HH:MM"
                     maxLength={5}
-                    className="w-[62%] px-2 py-1.5 border border-gray-300 rounded-sm text-[13px] text-gray-700 hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                    className="w-[62%] px-2 py-1.5 border border-gray-300 rounded-sm text-[13px] font-[400] text-[#020202] placeholder:text-[#9CA3AF] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                   />
                 </div>
               </div>
@@ -1023,7 +1025,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   minDate={formData.checkindate}
                   customWidth="w-[98%]"
                   labelClassName="block text-[#414141] mb-1 text-[12px] font-[500]"
-                  inputClassName="flex-1 text-[0.65rem] text-[#020202] outline-none bg-transparent"
+                  inputClassName="flex-1 text-[0.65rem] text-[#020202] font-[400] outline-none bg-transparent"
                   showCalendarIcon={false}
                   minTypeable={formData.checkindate}
                   inputStyleClass="py-1.5 text-[12px] border border-gray-300 rounded-sm px-2 h-[33px]"
@@ -1101,7 +1103,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     }}
                     placeholder="HH:MM"
                     maxLength={5}
-                    className="w-[62%] px-2 py-1.5 border border-gray-300 rounded-sm text-[13px] text-gray-700 hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                    className="w-[62%] px-2 py-1.5 border border-gray-300 rounded-sm text-[13px] font-[400] text-[#020202] placeholder:text-[#9CA3AF] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                   />
                 </div>
               </div>
@@ -1110,7 +1112,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             {/* Pax & Meal Plan */}
             <div className="flex items-end gap-3 mb-3">
               <div>
-                <label className="block text-[12px] font-[500] text-gray-700 mb-1">
+                <label className="block text-[12px] font-[500] text-[#414141] mb-1">
                   Pax
                 </label>
                 <input
@@ -1120,12 +1122,12 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                     setFormData((prev) => ({ ...prev, pax: e.target.value }))
                   }
                   placeholder="0"
-                  className="w-[8rem] px-2 py-1.5 border border-gray-300 rounded-sm text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                  className="w-[8rem] px-2 py-1.5 border border-gray-300 rounded-sm text-[13px] placeholder:text-[#9CA3AF] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                 />
               </div>
 
               <div>
-                <label className="block text-[12px] font-[500] text-gray-700 mb-1">
+                <label className="block text-[12px] font-[500] text-[#414141] mb-1">
                   Select Meal Plan
                 </label>
                 <DropDown
@@ -1152,7 +1154,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             </div>
 
             {/* Accommodation Type Section */}
-            <div className="border border-gray-200 rounded-[12px] p-3 mt-3">
+            <div className="border border-[#E2E1E1] rounded-[12px] p-3 mt-3">
               <label className="block text-[13px] font-[500] text-gray-700 mb-1">
                 Select Accommodation Type
               </label>
@@ -1234,7 +1236,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                           }))
                         }
                         placeholder={`Enter ${formData.accommodationType} Name`}
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[13px] placeholder:text-[#9CA3AF] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                       />
                     </div>
 
@@ -1254,7 +1256,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                           }))
                         }
                         placeholder={`Enter ${formData.accommodationType} Address`}
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-sm text-[13px] placeholder:text-[#9CA3AF] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                       />
                     </div>
                   </div>
@@ -1275,7 +1277,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                           }))
                         }
                         placeholder="Paste Google Maps Link"
-                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-l-sm text-[13px] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-l-sm text-[13px] placeholder:text-[#9CA3AF] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
                       />
 
                       <button
@@ -1301,61 +1303,6 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                         Copy Link
                       </button>
                     </div>
-
-                    {/* Total Rooms counter shown for Entire Villa */}
-                    {formData.accommodationType === "Villa" &&
-                      villaType === "entire" && (
-                        <div className="mt-3">
-                          <label className="block text-[13px] font-[500] text-gray-700 mb-1">
-                            Total Rooms
-                          </label>
-
-                          <div className="flex items-center gap-2">
-                            <div className="flex border border-gray-300 rounded-md overflow-hidden">
-                              <input
-                                type="number"
-                                value={formData.segments?.length || 0}
-                                onChange={(e) =>
-                                  handleVillaRoomCountChange(
-                                    parseInt(e.target.value) || 1,
-                                  )
-                                }
-                                min="1"
-                                className="w-[2.2rem] px-1 py-1.5 text-[13px] text-center border-none focus:outline-none bg-white"
-                              />
-
-                              <div className="flex flex-col border-l border-black">
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleVillaRoomCountChange(
-                                      (formData.segments?.length || 0) + 1,
-                                    )
-                                  }
-                                  className="px-[5px] py-[2px] rounded-tr-md text-[0.65rem] hover:bg-gray-100 border border-black border-b-0"
-                                >
-                                  <MdOutlineKeyboardArrowUp size={16} />
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() =>
-                                    handleVillaRoomCountChange(
-                                      Math.max(
-                                        1,
-                                        (formData.segments?.length || 1) - 1,
-                                      ),
-                                    )
-                                  }
-                                  className="px-[5px] py-[2px] rounded-br-md text-[0.65rem] hover:bg-gray-100 border border-black"
-                                >
-                                  <MdKeyboardArrowDown size={16} />
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
                   </div>
                 </>
               )}
@@ -1382,15 +1329,18 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   isReadOnly={isReadOnly}
                 />
               )}
-              {formData.accommodationType === "Villa" &&
-                villaType === "shared" && (
-                  <VillaLayout
-                    segments={formData.segments}
-                    onSegmentsChange={handleSegmentsChange}
-                    villaType={villaType}
-                    isReadOnly={isReadOnly}
-                  />
-                )}
+              {formData.accommodationType === "Villa" && (
+                <VillaLayout
+                  segments={formData.segments}
+                  onSegmentsChange={handleSegmentsChange}
+                  villaType={villaType}
+                  isReadOnly={isReadOnly}
+                  totalRooms={villaTotalRooms}
+                  onTotalRoomsChange={setVillaTotalRooms}
+                  showRoomCategories={showRoomCategories}
+                  onShowRoomCategoriesChange={setShowRoomCategories}
+                />
+              )}
               <div className="-mt-1 space-y-3">
                 <StyledDescription
                   label="Add Ons"
@@ -1436,9 +1386,9 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
         </div>
 
         {/* ID PROOFS */}
-        <div className="w-full border border-gray-200 rounded-[12px] p-3">
+        <div className="w-full border border-[#E2E1E1] rounded-[12px] p-3">
           <h2 className="text-[13px] font-[500] mb-2">Documents</h2>
-          <hr className="mt-1 mb-3 border-t border-gray-200" />
+          <hr className="mt-1 mb-3 border-t border-[#E2E1E1]" />
 
           <input
             type="file"
@@ -1470,7 +1420,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                 <div
                   key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
                   onClick={() => doc.url && window.open(doc.url, "_blank")}
-                  className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
+                  className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:cursor-pointer transition"
                 >
                   <button
                     type="button"
@@ -1512,11 +1462,11 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
         </div>
 
         {/* Remarks Section */}
-        <div className="border border-gray-200 w-full rounded-[12px] p-3 mt-4">
-          <label className="block text-[13px] font-[500] text-gray-700">
+        <div className="border border-[#E2E1E1] w-full rounded-[12px] p-3 mt-4">
+          <label className="block text-[13px] font-[500] text-[#020202]">
             Remarks
           </label>
-          <hr className="mt-1 mb-2 border-t border-gray-200" />
+          <hr className="mt-1 mb-2 border-t border-[#E2E1E1]" />
           <textarea
             name="remarks"
             rows={4}
@@ -1525,8 +1475,8 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
             onBlur={handleBlur}
             placeholder="Enter Your Remarks Here"
             disabled={isSubmitting}
-            className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[13px] mt-1 transition-colors hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 ${
-              isSubmitting ? "bg-gray-200 cursor-not-allowed" : ""
+            className={`w-full border border-[#E2E1E1] rounded-md px-2 py-1.5 text-[13px] mt-1 placeholder:text-[#9CA3AF] transition-colors hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400 ${
+              isSubmitting ? "bg-[#E2E1E1] cursor-not-allowed" : ""
             }`}
           />
         </div>

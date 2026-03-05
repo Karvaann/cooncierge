@@ -25,15 +25,15 @@ export default function ConsoleShell({ children }: ConsoleShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900">
+    <div className="min-h-screen bg-[#F9F9F9] text-slate-900">
       <RoutePrefetcher />
       <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
       <div
         className={`min-h-screen transition-[padding-left] duration-300 ease-out ${
-          isSidebarOpen ? "pl-48" : "pl-[52px]"
+          isSidebarOpen ? "pl-48" : "pl-[74px]"
         }`}
       >
-        <Header isOpen={isSidebarOpen} />
+        <Header isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
         <ConsoleMainSurface>
           {children}
         </ConsoleMainSurface>

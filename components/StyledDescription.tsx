@@ -556,7 +556,7 @@ export default function StyledDescription({
         {/* Editor Area */}
         <div className="relative">
           {isEmpty && (
-            <div className="absolute top-0 left-0 px-3 py-2 text-[13px] text-gray-400 pointer-events-none select-none">
+            <div className="absolute top-0 left-0 px-3 py-2 text-[13px] font-[400] text-[#9CA3AF] pointer-events-none select-none">
               Type here...
             </div>
           )}

@@ -548,12 +548,12 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
           />
 
           {/* ================= TRANSPORT (MARITIME) INFO ================ */}
-          <div className="w-full border border-gray-200 rounded-[12px] p-3 mt-4">
-            <h1 className="text-[0.85rem] font-[500] text-[#414141] mb-2">
+          <div className="w-full border border-[#E2E1E1] rounded-[12px] p-3 mt-4">
+            <h1 className="text-[12px] font-[500] text-[#020202] mb-2">
               Transportation (Maritime) Info
             </h1>
 
-            <hr className="mt-1 mb-3 border-t border-gray-200" />
+            <hr className="mt-1 mb-3 border-t border-[#E2E1E1]" />
 
             {/* Confirmation number + Title (stacked) */}
             <div className="flex flex-col gap-3 w-full mb-4">
@@ -568,7 +568,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   value={formData.confirmationNumber}
                   onChange={handleChange}
                   placeholder="Enter Confirmation Number"
-                  className="w-[35%] px-3 py-1.5 border border-gray-300 rounded-sm text-[13px] text-[#020202] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-[35%] px-3 py-1.5 border border-gray-300 rounded-sm text-[13px] text-[#020202] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
 
@@ -583,7 +583,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="Enter Title"
-                  className="w-[99%] px-3 py-1.5 border border-gray-300 rounded-sm text-[13px] text-[#020202] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-[99%] px-3 py-1.5 border border-gray-300 rounded-sm text-[13px] text-[#020202] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -601,9 +601,9 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         </div>
 
         {/* ID PROOFS */}
-        <div className="w-full border border-gray-200 rounded-[12px] p-3">
+        <div className="w-full border border-[#E2E1E1] rounded-[12px] p-3">
           <h2 className="text-[13px] font-[500] mb-2">Documents</h2>
-          <hr className="mt-1 mb-3 border-t border-gray-200" />
+          <hr className="mt-1 mb-3 border-t border-[#E2E1E1]" />
 
           <input
             type="file"
@@ -635,7 +635,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
                 <div
                   key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
                   onClick={() => doc.url && window.open(doc.url, "_blank")}
-                  className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
+                  className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:cursor-pointer transition"
                 >
                   <button
                     type="button"
@@ -677,11 +677,11 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
         </div>
 
         {/* Remarks Section */}
-        <div className="border border-gray-200 w-full rounded-[12px] p-3 mt-4">
-          <label className="block text-[13px] font-[500] text-[#414141]">
+        <div className="border border-[#E2E1E1] w-full rounded-[12px] p-3 mt-4">
+          <label className="block text-[13px] font-[500] text-[#020202]">
             Remarks
           </label>
-          <hr className="mt-1 mb-2 border-t border-gray-200" />
+          <hr className="mt-1 mb-2 border-t border-[#E2E1E1]" />
           <textarea
             name="remarks"
             rows={4}
@@ -690,7 +690,7 @@ const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
             onBlur={handleBlur}
             placeholder="Enter Your Remarks Here"
             disabled={isSubmitting}
-            className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[13px] text-[#020202] mt-1 transition-colors focus:ring focus:ring-blue-200 ${
+            className={`w-full border border-[#E2E1E1] rounded-md px-2 py-1.5 text-[13px] text-[#020202] mt-1 transition-colors focus:ring focus:ring-blue-200 ${
               isSubmitting ? "bg-gray-200 cursor-not-allowed" : ""
             }`}
           />

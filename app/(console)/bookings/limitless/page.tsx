@@ -82,6 +82,7 @@ type FilterPayload = {
   status: string;
   owner: string | string[];
   search: string;
+  searchBy: string;
   bookingStartDate: string;
   bookingEndDate: string;
   tripStartDate: string;
@@ -264,6 +265,7 @@ const LimitlessBookingsPage = () => {
     status: "",
     owner: "",
     search: "",
+    searchBy: "customerId",
     bookingStartDate: "",
     bookingEndDate: "",
     tripStartDate: "",
@@ -375,14 +377,20 @@ const LimitlessBookingsPage = () => {
     return bookings.filter((q, idx) => {
       if (filters.search.trim()) {
         const s = filters.search.toLowerCase();
-
-        const destination = (q.limitlessDestinations || []).join(", ");
-        const title = q.limitlessTitle || "";
+        const ownerNames = ([] as Array<{ name?: string }>).concat(
+          q.secondaryOwner || [],
+          q.primaryOwner ? [q.primaryOwner] : [],
+        )
+          .map((owner) => owner?.name || "")
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
         const matchesSearch =
-          (q.customId || "").toLowerCase().includes(s) ||
-          (q.customerId?.name || "").toLowerCase().includes(s) ||
-          destination.toLowerCase().includes(s) ||
-          title.toLowerCase().includes(s);
+          filters.searchBy === "customerName"
+            ? (q.customerId?.name || "").toLowerCase().includes(s)
+            : filters.searchBy === "owner"
+              ? ownerNames.includes(s)
+              : (q.customerId?._id || "").toLowerCase().includes(s);
         if (!matchesSearch) return false;
       }
 
@@ -1007,6 +1015,23 @@ const LimitlessBookingsPage = () => {
             serviceTypes={filterOptions.serviceTypes}
             statuses={filterOptions.statuses}
             owners={filterOptions.owners}
+            searchOptions={[
+              {
+                value: "customerId",
+                label: "Customer ID",
+                placeholder: "Search by Customer ID",
+              },
+              {
+                value: "customerName",
+                label: "Customer Name",
+                placeholder: "Search by Customer Name",
+              },
+              {
+                value: "owner",
+                label: "Owner",
+                placeholder: "Search by Owner",
+              },
+            ]}
             createOpen={isCreateOpen}
             setCreateOpen={setIsCreateOpen}
             onCreateClick={handleCreateRequested}

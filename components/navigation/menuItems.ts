@@ -1,8 +1,6 @@
 import type { IconType } from "react-icons";
 import { LuLayoutDashboard } from "react-icons/lu";
-import { GoPeople } from "react-icons/go";
 import { TbGraph, TbLuggage, TbBrandNetbeans } from "react-icons/tb";
-import { LuClipboardList } from "react-icons/lu";
 import { PiCurrencyCircleDollar } from "react-icons/pi";
 import { RiContactsBook3Line } from "react-icons/ri";
 import { IoSettingsOutline } from "react-icons/io5";
