@@ -8,18 +8,21 @@ import React, {
   useRef,
 } from "react";
 import { GoSignOut } from "react-icons/go";
-import { IoHomeOutline, IoPersonOutline } from "react-icons/io5";
+import { IoPersonOutline } from "react-icons/io5";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { HiOutlineHandRaised } from "react-icons/hi2";
 import { SlSettings } from "react-icons/sl";
+import { CiSearch } from "react-icons/ci";
 import RaiseRequestModal from "./Modals/RaiseRequestModal";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { useAuth } from "@/context/AuthContext";
+import Image from "next/image";
 
 // Type definitions
 interface HeaderProps {
   isOpen: boolean;
+  setIsOpen: (isOpen: boolean) => void;
 }
 
 type PieceMapKey =
@@ -89,32 +92,7 @@ const PIECE_MAP: Record<PieceMapKey, string> = {
   approvals: "Approvals",
 } as const;
 
-const HEADER_MAP: Record<HeaderMapKey, string> = {
-  "/sales/limitless": "Sales - Limitless",
-  "/sales/other-services": "Sales - OS",
-  "/bookings": "My Bookings",
-  "/bookings/other-services/view-booking/flights": "My Bookings - OS",
-  "/bookings/other-services/view-booking/accommodation": "My Bookings - OS",
-  "/operations/limitless": "Operations - Limitless",
-  "/operations/other-services": "Operations - OS",
-  "/finance/bookings": "Finance - Bookings",
-  "/finance/payments": "Finance - Payments",
-  "/finance/customers": "Finance - Customers",
-  "/finance/vendors": "Finance - Vendors",
-  "/leads": "Leads",
-  "/tasks": "Tasks",
-  "/directory/vendors": "Directory - Vendors",
-  "/directory/customers": "Directory - Customers",
-  "/directory/team": "Directory - Team",
-  "/dashboard": "Dashboard",
-  "/ProfileSettings": "Profile Settings",
-  "/ProfileSettings/UserProfile": "User Profile",
-  "/settings": "Settings",
-  "/approvals": "Approvals",
-  "/bookings/limitless/view-booking": "Bookings - Limitless",
-} as const;
-
-const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen }) => {
+const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen, setIsOpen }) => {
   const [isDropDownOpen, setIsDropDownOpen] = useState<boolean>(false);
   const [isRaiseRequestModalOpen, setIsRaiseRequestModalOpen] =
     useState<boolean>(false);
@@ -167,12 +145,12 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen }) => {
       bookingsIndex < viewBookingIndex
     ) {
       return ["bookings", "view-booking"].map((piece, index) => (
-        <span key={`${piece}-${index}`} className="flex items-center">
-          <span className="text-gray-400 text-[12px] mx-1">/</span>
-          <span className="text-[#114958] text-[10px] mr-1">
+        <div key={`${piece}-${index}`} className="flex gap-[5px] items-center">
+          <div className="text-[#414141] text-[14px] mx-1">/</div>
+          <div className="text-[#7135AD] text-[14px] mr-1">
             {PIECE_MAP[piece as PieceMapKey] || piece}
-          </span>
-        </span>
+          </div>
+        </div>
       ));
     }
 
@@ -189,19 +167,19 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen }) => {
     });
 
     return filteredPieces.map((piece, index) => (
-      <span key={`${piece}-${index}`} className="flex items-center">
-        <span className="text-gray-400 text-[12px] mx-1">/</span>
-        <span className="text-[#114958] text-[10px] mr-1">
+      <div key={`${piece}-${index}`} className="flex gap-[5px] items-baseline">
+        <div className="text-[#414141] text-[14px] mx-1">/</div>
+        <div className="text-[#7135AD] text-[14px] mr-1">
           {PIECE_MAP[piece as PieceMapKey] || piece}
-        </span>
-      </span>
+        </div>
+      </div>
     ));
   }, [pathname]);
 
   // Memoized header title
-  const headerTitle = useMemo(() => {
-    return HEADER_MAP[pathname as HeaderMapKey] || "Dashboard";
-  }, [pathname]);
+  // const headerTitle = useMemo(() => {
+  //   return HEADER_MAP[pathname as HeaderMapKey] || "Dashboard";
+  // }, [pathname]);
 
   const dropdownClasses = useMemo(
     () =>
@@ -220,16 +198,40 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen }) => {
     <>
       <header className="sticky top-0 z-30">
         {/* Header Main Row */}
-        <div className="flex items-center justify-between border-b border-gray-200 bg-white px-5 py-1">
-          {/* Left: Page Title */}
-          <div>
-            <h1 className="text-[17px] font-semibold leading-[1.75rem] tracking-normal">
-              {headerTitle}
-            </h1>
+        <div className="flex items-center justify-between px-7 py-8">
+
+          <div className="flex items-center gap-[22px]">
+            <div onClick={() => setIsOpen(!_isOpen)}>
+              <Image width={18} height={18} src="/icons/header/menu.svg" alt="menu" />
+            </div>
+            {pathname !== "/settings" && (
+              <div className="flex gap-[3px] items-center">
+                <Image width={22} height={22} src="/icons/header/home.svg" alt="Home" />
+                {breadcrumbElements}
+              </div>
+            )}
+          </div>
+
+          {/* Here the text box will come   */}
+          <div className="mx-10 hidden flex-1 items-center justify-center xl:flex">
+            <div className="flex w-full px-[13px] py-[8px] max-w-[420px] items-center rounded-[14px] border border-[#F0F0F0] bg-white shadow-[0_2px_8px_0_rgba(0,0,0,0.06)]">
+              <Image src="/icons/header/search.svg" alt="search" width={20} height={20} className="text-[#9CA3AF]" />
+              <input
+                type="text"
+                placeholder="Search or type command..."
+                className="ml-[13px] min-w-0 flex-1 bg-transparent text-[14px] font-[400] text-[#9CA3AF] outline-none placeholder:text-[#9CA3AF]"
+              />
+              <div className="ml-4 flex items-center gap-3 text-[#98A1B2]">
+                <div className="flex h-[34px] w-[34px] items-center justify-center rounded-[10px] border border-[#E8E8E8] bg-[#FAFAFA] text-[18px] font-[400] leading-none">
+                  ⌘
+                </div>
+                <span className="text-[16px] font-[400] leading-none">K</span>
+              </div>
+            </div>
           </div>
 
           {/* Right: Notification, Profile Avatar, Profile Settings */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-[22px]">
             {/* Notification Bell with red dot */}
             <div className="relative">
               <button
@@ -237,20 +239,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen }) => {
                 className="text-gray-500 hover:text-[#114958] transition-colors mt-1"
                 aria-label="Notifications"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                  className="w-6 h-6"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                  />
-                </svg>
+                <Image width={22} height={22} src="/icons/header/notification.svg" alt="notofication" />
                 <span className="absolute top-1 right-0.5 block w-2 h-2 bg-red-500 rounded-full"></span>
               </button>
             </div>
@@ -265,14 +254,21 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen }) => {
               <button
                 type="button"
                 onClick={toggleDropdown}
-                className="flex items-center gap-1 text-gray-700 font-medium text-[0.75rem] hover:text-[#114958] transition-colors"
+                className="flex items-center gap-3 text-gray-700 font-medium text-[0.75rem] hover:text-[#114958] transition-colors"
                 aria-expanded={isDropDownOpen}
                 aria-haspopup="true"
               >
-                <div className="w-6 h-6 rounded-full bg-[#0D4B37] flex items-center justify-center">
-                  <IoPersonOutline className="text-white w-3.5 h-3.5" />
+                <div className="w-6 h-6 rounded-full bg-[#7135AD] flex items-center justify-center">
+                  <IoPersonOutline className="text-white w-5 h-5" />
                 </div>
-                <MdKeyboardArrowDown className="text-gray-700 w-3.5 h-3.5" />
+                <div>
+                  <div className="text-gray-900 text-[14px] text-left font-medium">
+                    {user?.name || "User Name"}
+                  </div>
+                  <div className="text-[21x] text-left text-gray-500">
+                    {user?.designation || "Member"}
+                  </div>
+                </div>
               </button>
 
               {/* Dropdown menu */}
@@ -332,12 +328,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen }) => {
         </div>
 
         {/* Breadcrumb Row */}
-        {pathname !== "/settings" && (
-          <div className="flex items-center px-5 py-1 bg-gray-100">
-            <IoHomeOutline className="w-[14px] h-5 mr-2 text-[#114958]" />
-            {breadcrumbElements}
-          </div>
-        )}
+        
 
         <RaiseRequestModal
           isOpen={isRaiseRequestModalOpen}

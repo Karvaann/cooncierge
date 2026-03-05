@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { MdKeyboardArrowUp } from "react-icons/md";
 import { menuItems } from "@/components/navigation/menuItems";
@@ -17,6 +18,126 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const [openSubMenuIndex, setOpenSubMenuIndex] = useState<number | null>(null);
   const sidebarRef = useRef<HTMLDivElement | null>(null);
   const { user } = useAuth();
+  const pathname = usePathname();
+
+  let itemsToRender = menuItems;
+
+  if (!user?.isBookingChecker) {
+    itemsToRender = itemsToRender.filter((it) => it.label !== "Approvals");
+  }
+
+  const settingsItem = itemsToRender.find((item) => item.label === "Settings");
+  const primaryItems = itemsToRender.filter((item) => item.label !== "Settings");
+
+  const renderMenuItem = (item: (typeof menuItems)[number], index: number) => {
+    const isRouteSelected = item.href
+      ? pathname === item.href || pathname.startsWith(`${item.href}/`)
+      : (item.subMenu ?? []).some(
+          (sub) => pathname === sub.href || pathname.startsWith(`${sub.href}/`),
+        );
+    const isExpanded = openSubMenuIndex === index;
+    const isActive = isExpanded || isRouteSelected;
+    const showArrow = isOpen && Boolean(item.subMenu);
+    const commonItemClasses = "flex items-center gap-3 px-4 h-8";
+    const labelClassName =
+      "text-[13px] transition-transform duration-300 group-hover:translate-x-1";
+
+    return (
+      <li
+        key={item.label}
+        className={`relative group px-[3px] py-[8px] flex flex-col font-[400] items-center justify-center rounded-[16px] ${
+          isRouteSelected
+            ? "bg-gradient-to-r from-[#3E1466] to-[#110919] text-white"
+            : isExpanded || hoveredIndex === index
+              ? "bg-gradient-to-r from-[#585D7D] to-[#43527A] text-white"
+              : "text-[#9CA3AF]"
+        } shadow-[0_2px_8px_0_rgba(92,44,138,0.25)]`}
+        style={{
+          transition: "background 0.3s",
+        }}
+        onMouseEnter={() => setHoveredIndex(index)}
+        onMouseLeave={() => setHoveredIndex(null)}
+      >
+        {item.subMenu ? (
+          <button
+            type="button"
+            className={`${commonItemClasses} w-full text-left`}
+            onClick={() => setOpenSubMenuIndex(isActive ? null : index)}
+          >
+            <item.icon className="w-4 h-4" />
+            {isOpen && <span className={labelClassName}>{item.label}</span>}
+            {showArrow && (
+              <MdKeyboardArrowUp
+                size={16}
+                className={`ml-auto transform transition-transform duration-300 text-gray-100 ${
+                  !isActive ? "rotate-90" : "rotate-180"
+                }`}
+              />
+            )}
+          </button>
+        ) : item.href ? (
+          <Link
+            prefetch
+            href={item.href}
+            className={`${commonItemClasses} block w-full`}
+          >
+            <item.icon className="w-4 h-4" />
+            {isOpen && <span className={labelClassName}>{item.label}</span>}
+          </Link>
+        ) : (
+          <button
+            type="button"
+            className={`${commonItemClasses} w-full text-left font-[400] cursor-default`}
+            disabled
+          >
+            <item.icon className="w-4 h-4" />
+            {isOpen && <span className={labelClassName}>{item.label}</span>}
+          </button>
+        )}
+        {!isOpen && hoveredIndex === index && (
+          <div className="pointer-events-none absolute left-[calc(100%+12px)] top-1/2 z-[70] -translate-y-1/2">
+            <div className="relative rounded-[14px] bg-[#2F343D] px-5 py-3 text-[14px] font-[600] text-white shadow-[0_18px_40px_rgba(0,0,0,0.25)]">
+              <span className="whitespace-nowrap">{item.label}</span>
+              <span className="absolute left-0 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[4px] bg-[#2F343D]" />
+            </div>
+          </div>
+        )}
+        {item.subMenu && isOpen && (
+          <ul
+            className={`relative pl-4 border-l flex flex-col gap-2 mt-1 border-l-[rgba(235,215,255,0.40)] transition-all duration-300 ease-in-out overflow-hidden ${
+              isActive ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+            }`}
+            style={{
+              transition: "background 0.3s",
+            }}
+          >
+            {item.subMenu.map((sub) => (
+              <li key={sub.href}>
+                {(() => {
+                  const isSubRouteSelected =
+                    pathname === sub.href || pathname.startsWith(`${sub.href}/`);
+
+                  return (
+                <Link
+                  prefetch
+                  href={sub.href}
+                  className={`block rounded px-2 text-left font-[400] text-[12px] leading-[19px] transition-all duration-300 cursor-pointer ${
+                    isSubRouteSelected
+                      ? "translate-x-1 text-[#D8B2FF]"
+                      : "text-white hover:translate-x-1 hover:text-[#D8B2FF]"
+                  }`}
+                >
+                  {sub.label}
+                </Link>
+                  );
+                })()}
+              </li>
+            ))}
+          </ul>
+        )}
+      </li>
+    );
+  };
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -38,156 +159,45 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   return (
     <aside
       className="flex"
-      onMouseEnter={() => setIsOpen(true)}
-      onMouseLeave={() => setIsOpen(false)}
       aria-label="Primary navigation"
     >
       <div
         ref={sidebarRef}
-        className={`fixed left-0 top-0 z-50 h-screen border-r border-gray-700 pt-5 text-white transition-[width] duration-300 ease-out ${
-          isOpen ? "w-48" : "w-[52px]"
+        className={`fixed m-3 left-0 rounded-[33px] bg-[#110919] top-0 z-50 flex h-[95vh] flex-col shadow-[0_2px_8px_0_rgba(0,0,0,0.06)] pt-5 text-white transition-[width] duration-300 ease-out ${
+          isOpen ? "w-48" : "w-[68px]"
         }`}
-        style={{
-          background:
-            "linear-gradient(175.12deg, #0D4B37 27.08%, #63BB9E 153.71%)",
-        }}
       >
-        <div className="flex justify-center items-center w-full gap-3">
+        <div className="flex justify-center items-center w-full">
           {isOpen ? (
             <Image
-              src="/logo/cooncierge-wordmark.svg"
+              src="/icons/sidebar/cooncierge-full.svg"
               alt="Cooncierge wordmark"
               width={120}
               height={28}
-              className="h-[28px] w-auto"
+              className="h-[66px] w-auto"
               priority
             />
           ) : (
             <Image
-              src="/logo/cooncierge-logo-icon.svg"
+              src="/icons/sidebar/cooncierge.svg"
               alt="Cooncierge logo"
-              width={28}
-              height={28}
-              className="h-[28px] w-[28px]"
+              width={84}
+              height={68}
+              className="h-[64px] w-[120px]"
               priority
             />
           )}
         </div>
 
-        <nav aria-label="Sidebar">
-          <ul className="mt-6 space-y-1">
-          {(() => {
-            // const user = getAuthUser() as any;
-            // const showApprovals =
-            //   user?.isBookingChecker === true ||
-            //   user?.isBookingChecker === "true";
-            // const itemsToRender = menuItems.filter((it) => {
-            //   if (it.href === "/approvals") return showApprovals;
-            //   return true;
-            // });
-
-            let itemsToRender = menuItems;
-
-            if (!user?.isBookingChecker) {
-              itemsToRender = itemsToRender.filter(
-                (it) => it.label !== "Approvals",
-              );
-            }
-
-            return itemsToRender.map((item, index) => {
-              const isActive = openSubMenuIndex === index;
-              const showArrow = isOpen && Boolean(item.subMenu);
-              const commonItemClasses =
-                "flex items-center gap-3 px-4 h-8 transition-colors";
-
-              return (
-                <li
-                  key={item.label}
-                  className={`relative group ${isActive ? "bg-[#387a64]" : ""}`}
-                  style={{
-                    background:
-                      isActive || hoveredIndex === index
-                        ? "#387a64"
-                        : undefined,
-                    transition: "background 0.3s",
-                  }}
-                  onMouseEnter={() => setHoveredIndex(index)}
-                  onMouseLeave={() => setHoveredIndex(null)}
-                >
-                  {item.subMenu ? (
-                    <button
-                      type="button"
-                      className={`${commonItemClasses} w-full text-left text-white`}
-                      onClick={() =>
-                        setOpenSubMenuIndex(isActive ? null : index)
-                      }
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {isOpen && (
-                        <span className="text-[14px]">{item.label}</span>
-                      )}
-                      {showArrow && (
-                        <MdKeyboardArrowUp
-                          size={16}
-                          className={`ml-auto transform transition-transform duration-300 text-gray-100 ${
-                            isActive ? "" : "rotate-180"
-                          }`}
-                        />
-                      )}
-                    </button>
-                  ) : item.href ? (
-                    <Link
-                      prefetch
-                      href={item.href}
-                      className={`${commonItemClasses} text-white block w-full`}
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {isOpen && (
-                        <span className="text-[14px]">{item.label}</span>
-                      )}
-                    </Link>
-                  ) : (
-                    <button
-                      type="button"
-                      className={`${commonItemClasses} w-full text-left text-white/70 cursor-default`}
-                      disabled
-                    >
-                      <item.icon className="w-4 h-4" />
-                      {isOpen && (
-                        <span className="text-[14px]">{item.label}</span>
-                      )}
-                    </button>
-                  )}
-                  {item.subMenu && isOpen && (
-                    <ul
-                      className={`relative pl-8 mt-0 transition-all duration-300 ease-in-out overflow-hidden ${
-                        isActive ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
-                      }`}
-                      style={{
-                        background: isActive ? "#387a64" : undefined,
-                        borderRadius: "0.5rem",
-                        transition: "background 0.3s",
-                      }}
-                    >
-                      {item.subMenu.map((sub) => (
-                        <li key={sub.href}>
-                          <div className="absolute left-7 top-2 bottom-2 w-[1px] bg-white"></div>
-                          <Link
-                            prefetch
-                            href={sub.href}
-                            className="block text-left text-[12px] py-1 px-2 rounded text-white cursor-pointer"
-                          >
-                            {sub.label}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-              );
-            });
-          })()}
+        <nav aria-label="Sidebar" className="mt-0 flex min-h-0 flex-1 flex-col justify-between">
+          <ul className="p-[8px] space-y-1">
+            {primaryItems.map((item, index) => renderMenuItem(item, index))}
           </ul>
+          {settingsItem ? (
+            <ul className="p-[8px] pt-0">
+              {renderMenuItem(settingsItem, primaryItems.length)}
+            </ul>
+          ) : null}
         </nav>
       </div>
     </aside>

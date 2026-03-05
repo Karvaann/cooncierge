@@ -2,7 +2,6 @@
 
 import React from "react";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
-import { IoClose } from "react-icons/io5";
 
 interface FilterInputShellProps {
   value?: string;
@@ -26,8 +25,8 @@ const FilterInputShell: React.FC<FilterInputShellProps> = ({
   return (
     <div
       className={`w-full
-                 border border-gray-300 hover:border-green-200
-                 rounded-sm px-[12px]  min-h-[40px]
+                 border border-[#E2E1E1] hover:border-green-200
+                 rounded-[14px] px-[12px] h-[44px]
                  flex items-center flex-nowrap gap-1 cursor-pointer overflow-hidden ${className}`}
       onClick={onClick}
     >
