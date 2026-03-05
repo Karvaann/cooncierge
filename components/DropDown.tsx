@@ -317,19 +317,7 @@ const DropDown: React.FC<DropdownProps> = ({
               setIsOpen(true);
             }}
             onKeyDown={(e) => {
-              if (e.key === "ArrowDown") {
-                e.preventDefault();
-                setHighlightIdx((i) =>
-                  Math.min(i + 1, filteredOptions.length - 1),
-                );
-              } else if (e.key === "ArrowUp") {
-                e.preventDefault();
-                setHighlightIdx((i) => Math.max(i - 1, 0));
-              } else if (e.key === "Enter") {
-                e.preventDefault();
-                if (filteredOptions[highlightIdx])
-                  handleSelect(filteredOptions[highlightIdx].value);
-              } else if (e.key === "Escape") {
+              if (e.key === "Escape") {
                 setIsOpen(false);
                 typeableInputRef.current?.blur();
               }

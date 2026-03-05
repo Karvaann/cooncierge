@@ -62,7 +62,7 @@ const inputBase =
   "w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-green-600";
 
 const groupSelectWhite =
-  "h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center";
+  "h-[34px] px-0 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 ";
 
 export default function MultiCurrencyInput({
   currency,
@@ -137,7 +137,7 @@ export default function MultiCurrencyInput({
             noBorder={true}
             noButtonRadius={true}
             focusRingClass=""
-            buttonClassName={` text-[0.78rem] text-gray-700 px-2 h-[34px]`}
+            buttonClassName={` text-[0.78rem] text-gray-700 h-[34px]`}
             className={groupSelectWhite}
             typeable
             readOnly={readOnly}

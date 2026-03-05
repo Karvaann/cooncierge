@@ -896,8 +896,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 Billing Address
               </label>
               <hr className="mt-1 mb-3 border-t border-gray-200" />
-              <input
+              <textarea
                 name="address"
+                rows={3}
                 value={formData.address}
                 onChange={(e) =>
                   setFormData({ ...formData, address: e.target.value })
@@ -1063,6 +1064,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   onChange={(v) => setTier(v)}
                   disabled={readOnly}
                   customWidth="w-[10rem]"
+                  placeholder="Select Rating"
                   menuWidth="w-[10rem]"
                   className=""
                   readOnly={readOnly}

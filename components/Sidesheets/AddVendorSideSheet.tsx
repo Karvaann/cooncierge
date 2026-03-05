@@ -687,28 +687,6 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               <div className="flex flex-col gap-1 w-[22.3rem]"></div>
             </div>
 
-            {/* ================= BILLING ADDRESS ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3">
-              <label className="block text-[13px] font-[500] text-[#414141] mb-1">
-                Billing Address
-              </label>
-              <hr className="mt-1 mb-3 border-t border-gray-200" />
-              <textarea
-                name="address"
-                rows={3}
-                value={formData.address}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    address: e.target.value,
-                  }))
-                }
-                placeholder="Enter Billing Address"
-                disabled={readOnly}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202] resize-none"
-              />
-            </div>
-
             {/* ================= DOCUMENTS ================ */}
             <div className="border border-gray-200 rounded-[12px] p-3">
               <h2 className="text-[13px] font-[500] mb-2">Documents</h2>
@@ -799,6 +777,28 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               <div className="text-[#EB382B] font-[500] text-[0.65rem]">
                 Note: Maximum of 3 files can be uploaded
               </div>
+            </div>
+
+            {/* ================= BILLING ADDRESS ================ */}
+            <div className="border border-gray-200 rounded-[12px] p-3">
+              <label className="block text-[13px] font-[500] text-[#414141] mb-1">
+                Billing Address
+              </label>
+              <hr className="mt-1 mb-3 border-t border-gray-200" />
+              <textarea
+                name="address"
+                rows={3}
+                value={formData.address}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    address: e.target.value,
+                  }))
+                }
+                placeholder="Enter Billing Address"
+                disabled={readOnly}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202] resize-none"
+              />
             </div>
 
             {/* ================= OPENING BALANCE ================ */}
@@ -960,6 +960,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   disabled={readOnly}
                   customWidth="w-[10rem]"
                   menuWidth="w-[10rem]"
+                  placeholder="Select Rating"
                   className=""
                   readOnly={readOnly}
                 />
