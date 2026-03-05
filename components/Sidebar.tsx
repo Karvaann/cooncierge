@@ -47,11 +47,11 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
         key={item.label}
         className={`relative group px-[3px] py-[8px] flex flex-col font-[400] items-center justify-center rounded-[16px] ${
           isRouteSelected
-            ? "bg-gradient-to-r from-[#3E1466] to-[#110919] text-white"
+            ? "bg-gradient-to-r from-[#3E1466] to-[#110919] text-white shadow-[0_2px_8px_0_rgba(92,44,138,0.25)]"
             : isExpanded || hoveredIndex === index
               ? "bg-gradient-to-r from-[#585D7D] to-[#43527A] text-white"
               : "text-[#9CA3AF]"
-        } shadow-[0_2px_8px_0_rgba(92,44,138,0.25)]`}
+        }`}
         style={{
           transition: "background 0.3s",
         }}
