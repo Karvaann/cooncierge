@@ -1300,7 +1300,7 @@ const OSBookingsPage = () => {
               draggableIndicator={true}
             />
 
-            <button onClick={() => setIsCreateOpen(true)} className="text-white text-[14px] font-[500] bg-[#7135AD] rounded-[14px] px-[14px] py-[7px]">
+            <button onClick={() => handleCreateRequested()} className="text-white text-[14px] font-[500] bg-[#7135AD] rounded-[14px] px-[14px] py-[7px]">
               + Create
             </button>
 
@@ -1397,15 +1397,15 @@ const OSBookingsPage = () => {
                 </div>
               </div>
 
-              <div className="grid min-h-0 flex-1 grid-cols-5 gap-5 overflow-auto p-5">
+              <div className="grid grid-cols-5 gap-5 overflow-y-scroll p-5">
                 {timelineBuckets.map((bucket, index) => {
                   return (
                     <div
                       key={bucket.date.toISOString()}
-                      className="flex-col overflow-hidden rounded-[16px] bg-[#FAFAFA] shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                      className="flex h-[260px] min-h-0 flex-col overflow-hidden rounded-[16px] bg-[#FAFAFA] shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
                     >
                       <div
-                        className="shrink-0 border-[0.5px] border-[#E2E1E1] bg-gradient-to-r from-[#F6ECFF] to-[#FDFAFF]  p-[12px] text-[#7135AD]"
+                        className="shrink-0 border-[0.5px] border-[#E2E1E1] bg-gradient-to-r from-[#F6ECFF] to-[#FDFAFF]  p-[10px] text-[#7135AD]"
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3">
@@ -1433,7 +1433,7 @@ const OSBookingsPage = () => {
                         </div>
                       </div>
 
-                      <div className="h-[120px] flex-1 space-y-[12px] overflow-y-scroll p-[12px]">
+                      <div className="h-[236px] space-y-[12px] overflow-y-auto p-[12px]">
                         {bucket.bookings.length > 0 ? (
                           bucket.bookings.map((item, bookingIndex) => {
                             const bookingDate = getBookingTimelineDate(item);
