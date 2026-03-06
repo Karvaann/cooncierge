@@ -6,7 +6,7 @@ import { TbNotes } from "react-icons/tb";
 import { useAuth } from "@/context/AuthContext";
 import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
 import MultiCurrencyInput from "@/components/multiCurrencyUI";
-import { getStoredCurrencySymbol } from "@/utils/helper";
+import { getStoredCurrencySymbol, formatIndianNumber } from "@/utils/helper";
 
 export type AmountSectionValue = {
   costprice?: string;
@@ -75,6 +75,8 @@ const computeInr = (amountStr?: string | number, roeStr?: string | number) => {
     maximumFractionDigits: 2,
   });
 };
+
+// moved formatIndianNumber to utils/helper.ts
 
 const AmountSection: React.FC<AmountSectionProps> = ({
   value,
@@ -1261,7 +1263,9 @@ const AmountSection: React.FC<AmountSectionProps> = ({
 
                 <div className="flex items-center gap-3">
                   <span className="px-2 py-1 bg-[#126ACB0D] text-[#126ACB] text-[13px] font-medium rounded-md">
-                    {`₹ ${(Number(v.sellingprice) - Number(v.costprice)).toFixed(2)}`}
+                    {`${getStoredCurrencySymbol()} ${formatIndianNumber(
+                      Number(v.sellingprice) - Number(v.costprice) || 0,
+                    )}`}
                   </span>
 
                   <span className="text-[13px] text-[#414141] font-[600]">
@@ -1580,7 +1584,9 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                         </div>
                       ) : (
                         <div className="px-3 py-2 text-[#126ACB] bg-[#126ACB0D] rounded-[6px] font-[500] text-[0.9rem]">
-                          {`${getStoredCurrencySymbol()} ${derivedCostPrice.toFixed(2)}`}
+                          {`${getStoredCurrencySymbol()} ${formatIndianNumber(
+                            derivedCostPrice,
+                          )}`}
                         </div>
                       )}
                     </div>
@@ -1672,9 +1678,9 @@ const AmountSection: React.FC<AmountSectionProps> = ({
 
                 <div className="flex items-center gap-3">
                   <span className="px-2 py-1 bg-[#126ACB0D] text-[#126ACB] text-[13px] font-[600] rounded-md">
-                    {`₹ ${(
-                      (Number(v.sellingprice) || 0) - derivedCostPrice
-                    ).toFixed(2)}`}
+                    {`${getStoredCurrencySymbol()} ${formatIndianNumber(
+                      (Number(v.sellingprice) || 0) - derivedCostPrice,
+                    )}`}
                   </span>
 
                   <span className="text-[13px] text-[#414141] font-[500]">

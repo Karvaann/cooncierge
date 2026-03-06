@@ -557,7 +557,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       if (created?._id) {
         // Update booking general info and notify listeners
         updateGeneralInfo({ customer: created._id });
-        setLastAddedCustomer({ id: created._id, name: created.name || "" });
+        setLastAddedCustomer({
+          id: created._id,
+          name: created.name || "",
+          alias: created.alias || "",
+          customId: created.customId || customerCode || "",
+          tier: created.tier || tier || "",
+        });
         onSuccess?.();
       }
 

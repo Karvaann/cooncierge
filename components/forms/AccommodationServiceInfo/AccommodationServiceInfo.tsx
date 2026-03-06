@@ -220,6 +220,7 @@ interface AccommodationInfoFormProps {
   onAddDocuments?: (files: File[]) => void;
   onRemoveDocuments?: (files: File[]) => void;
   externalFormData?: ExternalFormData | Record<string, unknown>;
+  generalInfoData?: Record<string, any>;
   existingDocuments?: Array<{
     originalName?: string;
     fileName?: string;
@@ -242,6 +243,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   onAddDocuments,
   onRemoveDocuments,
   externalFormData,
+  generalInfoData,
   existingDocuments = [],
 }) => {
   const normalizedExternalData = useMemo(() => {
@@ -447,6 +449,28 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
     setShowAdvancedPricing(nextShowAdvancedPricing);
   }, [externalFormData, isReadOnly, normalizedExternalData]);
 
+  // Auto-compute pax from general info
+  useEffect(() => {
+    if (!generalInfoData) return;
+
+    const adults = Number(generalInfoData.adults) || 0;
+    const children = Number(generalInfoData.children) || 0;
+    const infants = Number(generalInfoData.infants) || 0;
+    // const hasCustomer = Boolean(generalInfoData.customer);
+    const totalPax = adults + children + infants;
+
+    if (totalPax > 0) {
+      setFormData((prev) =>
+        prev.pax === totalPax ? prev : { ...prev, pax: totalPax },
+      );
+    }
+  }, [
+    generalInfoData?.adults,
+    generalInfoData?.children,
+    generalInfoData?.infants,
+    generalInfoData?.customer,
+  ]);
+
   useEffect(() => {
     setFormData((prev) => ({ ...prev, showAdvancedPricing }));
   }, [showAdvancedPricing]);
@@ -458,7 +482,6 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
   const options = [
     { value: "confirmed", label: "Confirmed" },
     { value: "cancelled", label: "Cancelled" },
-    // { value: "", label: "Booking Status" },
   ];
 
   const handleBookingStatusChange = (value: string) => {
@@ -1313,6 +1336,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   segments={formData.segments}
                   onSegmentsChange={handleSegmentsChange}
                   isReadOnly={isReadOnly}
+                  totalPax={Number(formData.pax) || 0}
                 />
               )}
               {formData.accommodationType === "Resort" && (
@@ -1320,6 +1344,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   segments={formData.segments}
                   onSegmentsChange={handleSegmentsChange}
                   isReadOnly={isReadOnly}
+                  totalPax={Number(formData.pax) || 0}
                 />
               )}
               {formData.accommodationType === "Hostel" && (
@@ -1327,6 +1352,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   segments={formData.segments}
                   onSegmentsChange={handleSegmentsChange}
                   isReadOnly={isReadOnly}
+                  totalPax={Number(formData.pax) || 0}
                 />
               )}
               {formData.accommodationType === "Villa" && (
@@ -1339,6 +1365,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   onTotalRoomsChange={setVillaTotalRooms}
                   showRoomCategories={showRoomCategories}
                   onShowRoomCategoriesChange={setShowRoomCategories}
+                  totalPax={Number(formData.pax) || 0}
                 />
               )}
               <div className="-mt-1 space-y-3">

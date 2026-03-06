@@ -15,12 +15,14 @@ interface HotelLayoutProps {
   segments: RoomSegment[];
   onSegmentsChange: (segments: RoomSegment[]) => void;
   isReadOnly?: boolean;
+  totalPax: number;
 }
 
 const HotelLayout: React.FC<HotelLayoutProps> = ({
   segments,
   onSegmentsChange,
   isReadOnly = false,
+  totalPax,
 }) => {
   const [numRooms, setNumRooms] = useState(segments.length);
   const [copyToOthers, setCopyToOthers] = useState(false);
@@ -42,6 +44,13 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
     });
     return initial;
   });
+
+  const getTotalUsedPax = () => {
+    return Object.values(paxData).reduce(
+      (sum, room) => sum + room.adults + room.children,
+      0,
+    );
+  };
 
   // Handle room count change
   const handleRoomCountChange = (newCount: number) => {
@@ -124,27 +133,27 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
     onSegmentsChange(newSegments);
   };
 
-  const updatePaxCount = (
-    roomId: string,
-    field: "adults" | "children" | "infant",
-    increment: boolean,
-  ) => {
-    setPaxData((prev) => {
-      const current = prev[roomId] || { adults: 0, children: 0, infant: 0 };
-      const newValue = increment
-        ? current[field] + 1
-        : Math.max(0, current[field] - 1);
+  // const updatePaxCount = (
+  //   roomId: string,
+  //   field: "adults" | "children" | "infant",
+  //   increment: boolean,
+  // ) => {
+  //   setPaxData((prev) => {
+  //     const current = prev[roomId] || { adults: 0, children: 0, infant: 0 };
+  //     const newValue = increment
+  //       ? current[field] + 1
+  //       : Math.max(0, current[field] - 1);
 
-      return {
-        ...prev,
-        [roomId]: {
-          adults: field === "adults" ? newValue : current.adults,
-          children: field === "children" ? newValue : current.children,
-          infant: field === "infant" ? newValue : current.infant,
-        },
-      };
-    });
-  };
+  //     return {
+  //       ...prev,
+  //       [roomId]: {
+  //         adults: field === "adults" ? newValue : current.adults,
+  //         children: field === "children" ? newValue : current.children,
+  //         infant: field === "infant" ? newValue : current.infant,
+  //       },
+  //     };
+  //   });
+  // };
 
   return (
     <div className="w-full max-w-6xl mx-auto p-3">
@@ -343,21 +352,23 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                       <span className="px-2 text-[0.75rem] ">{pax.adults}</span>
                       <button
                         type="button"
-                        onClick={() =>
+                        onClick={() => {
+                          const used = getTotalUsedPax();
+                          if (used >= totalPax) return;
                           setPaxData((prev) => {
                             const cur = prev[roomId] || {
                               adults: 1,
                               children: 0,
                               infant: 0,
                             };
-                            // Adults max cap 2
-                            const nextAdults = Math.min(2, cur.adults + 1);
+                            // Adults max no cap
+                            const nextAdults = cur.adults + 1;
                             return {
                               ...prev,
                               [roomId]: { ...cur, adults: nextAdults },
                             };
-                          })
-                        }
+                          });
+                        }}
                         className="px-1 text-lg font-[600]"
                       >
                         <GoPlus size={12} />
@@ -396,21 +407,23 @@ const HotelLayout: React.FC<HotelLayoutProps> = ({
                       </span>
                       <button
                         type="button"
-                        onClick={() =>
+                        onClick={() => {
+                          const used = getTotalUsedPax();
+                          if (used >= totalPax) return;
                           setPaxData((prev) => {
                             const cur = prev[roomId] || {
                               adults: 1,
                               children: 0,
                               infant: 0,
                             };
-                            // Children max cap 1
-                            const nextChildren = Math.min(1, cur.children + 1);
+                            // Children max no cap
+                            const nextChildren = cur.children + 1;
                             return {
                               ...prev,
                               [roomId]: { ...cur, children: nextChildren },
                             };
-                          })
-                        }
+                          });
+                        }}
                         className="px-1 text-lg font-[600]"
                       >
                         <GoPlus size={12} />

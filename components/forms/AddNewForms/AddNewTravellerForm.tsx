@@ -141,7 +141,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
   // Validation rules
   const contactNumberPattern = useMemo(
-    () => new RegExp(`^\\\\d{${phoneMaxLength}}$`),
+    () => new RegExp(`^\\d{${phoneMaxLength}}$`),
     [phoneMaxLength],
   );
 
@@ -164,7 +164,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
       },
       emailId: {
         required: true,
-        pattern: /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/,
+        pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
         message: "Invalid email format",
       },
     }),
@@ -357,18 +357,6 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
         return;
       }
 
-      if (!validateForm()) {
-        const allTouched = Object.keys(validationRules).reduce(
-          (acc, key) => {
-            acc[key] = true;
-            return acc;
-          },
-          {} as Record<string, boolean>,
-        );
-        setTouched(allTouched);
-        return;
-      }
-
       try {
         setSubmitting(true);
         const name = [
@@ -409,7 +397,17 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
         const id: string = created?._id || created?.id || "";
         const displayName = created?.name || name;
 
-        setLastAddedTraveller({ id, name: displayName });
+        setLastAddedTraveller({
+          id,
+          name: displayName,
+          alias: formData.nickname || "",
+          customId: created?.customId || travellerCode || "",
+          tier: created?.tier || tier || "",
+          email: String(formData.emailId || "").trim() || "",
+          phone: payload.phone || "",
+          dateOfBirth: formData.dateofbirth ? String(formData.dateofbirth) : "",
+          remarks: formData.remarks || "",
+        });
         console.log("[AddNewTravellerForm] Traveller created successfully:", {
           id,
           displayName,
@@ -444,106 +442,11 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
       closeAddTraveller,
       formData,
       setLastAddedTraveller,
-      validateForm,
-      validationRules,
+      phoneCode,
+      tier,
+      travellerCode,
     ],
   );
-
-  // Enhanced input field component with validation indicators
-  const InputField: React.FC<{
-    name: keyof TravellerFormData;
-    id?: string;
-    type?: string;
-    placeholder?: string;
-    required?: boolean;
-    className?: string;
-    min?: number;
-  }> = ({
-    name,
-    type = "text",
-    placeholder,
-    required,
-    className = "",
-    min,
-  }) => {
-    const isValidatingField = name === "firstname" && isValidating; // Example for one field, can be extended
-    const hasError = errors[name] && touched[name];
-    const hasValue = formData[name] && String(formData[name]).trim();
-    const isValid = hasValue && !hasError && !isValidatingField;
-
-    return (
-      <div className="relative">
-        <input
-          type={type}
-          name={name}
-          value={type === "file" ? undefined : String(formData[name] ?? "")}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          placeholder={placeholder}
-          required={required}
-          min={min}
-          disabled={isSubmitting || isValidatingField}
-          className={`
-            w-full border rounded-md px-3 py-2 pr-10 text-sm placeholder:text-[#9CA3AF] transition-colors
-            ${
-              hasError
-                ? "border-red-300 focus:ring-red-200"
-                : isValid && touched[name]
-                  ? "border-green-300 focus:ring-green-200"
-                  : "border-[#E2E1E1] focus:ring-blue-200"
-            }
-            ${
-              isSubmitting || isValidatingField
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }
-            ${className}
-          `}
-        />
-
-        {/* Validation indicator */}
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-          {isValidatingField && (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
-          )}
-          {!isValidatingField && isValid && touched[name] && (
-            <svg
-              className="h-4 w-4 text-green-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          )}
-          {!isValidatingField && hasError && (
-            <svg
-              className="h-4 w-4 text-red-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          )}
-        </div>
-
-        {hasError && (
-          <p className="text-red-500 text-xs mt-1">{errors[name]}</p>
-        )}
-      </div>
-    );
-  };
 
   return (
     <SideSheet
@@ -563,6 +466,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
         className="space-y-6 p-4 flex flex-col min-h-full"
         ref={formRef as any}
         onSubmit={handleSubmit}
+        noValidate
       >
         {/* ================= BASIC DETAILS ================ */}
         <div className="border border-[#E2E1E1] rounded-[12px] p-3">
@@ -582,7 +486,6 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 ref={nameRef}
                 name="firstname"
                 placeholder="Enter First Name"
-                required
                 disabled={readOnly}
                 className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-200 disabled:text-[#020202]"
               />
@@ -598,7 +501,6 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 onChange={handleChange}
                 type="text"
                 placeholder="Enter Last Name"
-                required
                 disabled={readOnly}
                 className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-200 disabled:text-[#020202]"
               />
@@ -615,7 +517,6 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 onChange={handleChange}
                 type="text"
                 placeholder="Enter Nickname/Alias"
-                required
                 disabled={readOnly}
                 className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-200 disabled:text-[#020202]"
               />
@@ -681,7 +582,6 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 onChange={handleChange}
                 type="email"
                 placeholder="Enter Email ID"
-                required
                 disabled={readOnly}
                 className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 placeholder:text-[#9CA3AF] focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-200 disabled:text-[#020202]"
               />
@@ -840,6 +740,15 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                     setLastAddedTraveller({
                       id: updated?._id || id,
                       name: displayName,
+                      alias: formData.nickname || "",
+                      customId: updated?.customId || data?.customId || "",
+                      tier: updated?.tier || tier || "",
+                      email: String(formData.emailId || "").trim() || "",
+                      phone: payload.phone || "",
+                      dateOfBirth: formData.dateofbirth
+                        ? String(formData.dateofbirth)
+                        : "",
+                      remarks: formData.remarks || "",
                     });
                     handleClose();
                   } catch (err: any) {
@@ -869,7 +778,6 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 />
                 <Button
                   type="submit"
-                  onClick={handleSubmit}
                   text={isSubmitting || submitting ? "Saving..." : "Save"}
                   icon={<LuSave className="mr-1" />}
                   disabled={isSubmitting || submitting}

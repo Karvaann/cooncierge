@@ -1151,6 +1151,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   onAddDocuments={addBookingDocuments}
                   onRemoveDocuments={removeBookingDocuments}
                   existingDocuments={existingBookingDocuments}
+                  generalInfoData={formData}
                 />
               </div>
             </div>

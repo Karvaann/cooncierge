@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { MdOutlineKeyboardArrowUp } from "react-icons/md";
 import CustomCheckbox from "@/components/CustomCheckbox";
+import { FiMinus } from "react-icons/fi";
+import { GoPlus } from "react-icons/go";
 
 interface RoomSegment {
   id?: string | null;
@@ -18,6 +20,7 @@ interface VillaLayoutProps {
   onTotalRoomsChange: (count: number) => void;
   showRoomCategories: boolean;
   onShowRoomCategoriesChange: (checked: boolean) => void;
+  totalPax: number;
 }
 
 const VillaLayout: React.FC<VillaLayoutProps> = ({
@@ -29,9 +32,9 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
   onTotalRoomsChange,
   showRoomCategories,
   onShowRoomCategoriesChange,
+  totalPax,
 }) => {
   const [numRooms, setNumRooms] = useState(segments.length);
-  const [roomcount, setRoomcount] = useState(0);
   const [copyToOthers, setCopyToOthers] = useState(false);
 
   // Internal state for pax information (not stored in context)
@@ -47,6 +50,13 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
     });
     return initial;
   });
+
+  const getTotalUsedPax = () => {
+    return Object.values(paxData).reduce(
+      (sum, room) => sum + room.adults + room.children,
+      0,
+    );
+  };
 
   // Handle room count change
   const handleRoomCountChange = (newCount: number) => {
@@ -126,27 +136,6 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
     });
 
     onSegmentsChange(newSegments);
-  };
-
-  const updatePaxCount = (
-    roomId: string,
-    field: "adults" | "children",
-    increment: boolean,
-  ) => {
-    setPaxData((prev) => {
-      const current = prev[roomId] || { adults: 0, children: 0, infant: 0 };
-      const newValue = increment
-        ? current[field] + 1
-        : Math.max(0, current[field] - 1);
-
-      return {
-        ...prev,
-        [roomId]: {
-          adults: field === "adults" ? newValue : current.adults,
-          children: field === "children" ? newValue : current.children,
-        },
-      };
-    });
   };
 
   return (
@@ -379,7 +368,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                           Adults
                         </label>
 
-                        <div className="flex items-center border border-[#020202] rounded-md px-2 w-[78px]">
+                        <div className="flex items-center border border-[#020202] rounded-md px-1 py-1 w-[78px]">
                           <button
                             type="button"
                             onClick={() =>
@@ -400,7 +389,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                             }
                             className="px-2"
                           >
-                            −
+                            <FiMinus size={12} />
                           </button>
 
                           <span className="px-1 text-[0.75rem]">
@@ -409,7 +398,9 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
 
                           <button
                             type="button"
-                            onClick={() =>
+                            onClick={() => {
+                              const used = getTotalUsedPax();
+                              if (used >= totalPax) return;
                               setPaxData((prev) => {
                                 const cur = prev[roomId] ?? {
                                   adults: 1,
@@ -420,14 +411,14 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                                   ...prev,
                                   [roomId]: {
                                     ...cur,
-                                    adults: Math.min(2, cur.adults + 1),
+                                    adults: cur.adults + 1,
                                   },
                                 };
-                              })
-                            }
+                              });
+                            }}
                             className="px-2"
                           >
-                            +
+                            <GoPlus size={12} />
                           </button>
                         </div>
                       </div>
@@ -438,7 +429,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                           Children
                         </label>
 
-                        <div className="flex items-center border border-[#020202] rounded-md px-2 w-[78px]">
+                        <div className="flex items-center border border-[#020202] rounded-md px-1 py-1 w-[78px]">
                           <button
                             type="button"
                             onClick={() =>
@@ -459,7 +450,7 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                             }
                             className="px-2"
                           >
-                            −
+                            <FiMinus size={12} />
                           </button>
 
                           <span className="px-1 text-[0.75rem]">
@@ -468,7 +459,9 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
 
                           <button
                             type="button"
-                            onClick={() =>
+                            onClick={() => {
+                              const used = getTotalUsedPax();
+                              if (used >= totalPax) return;
                               setPaxData((prev) => {
                                 const cur = prev[roomId] ?? {
                                   adults: 1,
@@ -479,14 +472,14 @@ const VillaLayout: React.FC<VillaLayoutProps> = ({
                                   ...prev,
                                   [roomId]: {
                                     ...cur,
-                                    children: Math.min(1, cur.children + 1),
+                                    children: cur.children + 1,
                                   },
                                 };
-                              })
-                            }
+                              });
+                            }}
                             className="px-2"
                           >
-                            +
+                            <GoPlus size={12} />
                           </button>
                         </div>
                       </div>

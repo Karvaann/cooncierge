@@ -260,6 +260,25 @@ export const formatNumberByStoredCurrency = (
 };
 
 /**
+ * Format a number using the Indian numbering system
+ * Uses `toNumberOrZero` to coerce inputs and returns a string with fixed decimals.
+ */
+export const formatIndianNumber = (
+  value?: number | string,
+  decimals = 2,
+): string => {
+  const n = toNumberOrZero(value);
+  try {
+    return n.toLocaleString("en-IN", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  } catch {
+    return String(n.toFixed(decimals));
+  }
+};
+
+/**
  * Debounce function for performance optimization
  * @param func Function to debounce
  * @param wait Wait time in milliseconds

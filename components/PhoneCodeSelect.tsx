@@ -61,15 +61,14 @@ const PhoneCodeSelect: React.FC<PhoneCodeSelectProps> = ({
           searchLabel: `${c.name} ${c.dialCode} ${c.iso2}`,
         };
       }),
-    []
+    [],
   );
 
   const [selectedId, setSelectedId] = useState<string>(() => {
     const preferredIso2 = preferredIso2ByDialCode[value];
     const preferred = preferredIso2
       ? options.find(
-          (o) =>
-            o.dialCode === value && o.value.endsWith(`__${preferredIso2}`)
+          (o) => o.dialCode === value && o.value.endsWith(`__${preferredIso2}`),
         )
       : undefined;
     const match = preferred || options.find((o) => o.dialCode === value);
@@ -80,8 +79,7 @@ const PhoneCodeSelect: React.FC<PhoneCodeSelectProps> = ({
     const preferredIso2 = preferredIso2ByDialCode[value];
     const preferred = preferredIso2
       ? options.find(
-          (o) =>
-            o.dialCode === value && o.value.endsWith(`__${preferredIso2}`)
+          (o) => o.dialCode === value && o.value.endsWith(`__${preferredIso2}`),
         )
       : undefined;
     const match = preferred || options.find((o) => o.dialCode === value);

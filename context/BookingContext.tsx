@@ -325,18 +325,72 @@ interface BookingContextType {
   currentStepIndex: number;
 
   // Cross-component sync helpers
-  lastAddedCustomer: { id: string; name: string } | null;
-  setLastAddedCustomer: (c: { id: string; name: string } | null) => void;
-  lastAddedVendor: { id: string; name: string } | null;
-  setLastAddedVendor: (v: { id: string; name: string } | null) => void;
-  lastAddedTraveller: { id: string; name: string } | null;
-  setLastAddedTraveller: (t: { id: string; name: string } | null) => void;
+  lastAddedCustomer: {
+    id: string;
+    name: string;
+    alias?: string;
+    customId?: string;
+    tier?: string | number;
+  } | null;
+  setLastAddedCustomer: (
+    c: {
+      id: string;
+      name: string;
+      alias?: string;
+      customId?: string;
+      tier?: string | number;
+    } | null,
+  ) => void;
+  lastAddedVendor: {
+    id: string;
+    name: string;
+    alias?: string;
+    customId?: string;
+    tier?: string | number;
+    companyName?: string;
+    contactPerson?: string;
+  } | null;
+  setLastAddedVendor: (
+    v: {
+      id: string;
+      name: string;
+      alias?: string;
+      customId?: string;
+      tier?: string | number;
+      companyName?: string;
+      contactPerson?: string;
+    } | null,
+  ) => void;
+  lastAddedTraveller: {
+    id: string;
+    name: string;
+    alias?: string;
+    customId?: string;
+    tier?: string | number;
+    email?: string;
+    phone?: string;
+    dateOfBirth?: string;
+    remarks?: string;
+  } | null;
+  setLastAddedTraveller: (
+    t: {
+      id: string;
+      name: string;
+      alias?: string;
+      customId?: string;
+      tier?: string | number;
+      email?: string;
+      phone?: string;
+      dateOfBirth?: string;
+      remarks?: string;
+    } | null,
+  ) => void;
   travellerTarget: {
     type: "adultTravellers" | "infantTravellers";
     index: number;
   } | null;
   setTravellerTarget: (
-    t: { type: "adultTravellers" | "infantTravellers"; index: number } | null
+    t: { type: "adultTravellers" | "infantTravellers"; index: number } | null,
   ) => void;
 }
 
@@ -468,7 +522,7 @@ const initialState: BookingState = {
 // Reducer
 const bookingReducer = (
   state: BookingState,
-  action: BookingAction
+  action: BookingAction,
 ): BookingState => {
   switch (action.type) {
     case "OPEN_MODAL":
@@ -610,7 +664,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
       if (target) setTravellerTarget(target);
       setIsAddTravellerOpen(true);
     },
-    []
+    [],
   );
   const closeAddTraveller = useCallback(() => setIsAddTravellerOpen(false), []);
 
@@ -658,15 +712,15 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
   const closeModal = useCallback(() => dispatch({ type: "CLOSE_MODAL" }), []);
   const openSidesheet = useCallback(
     () => dispatch({ type: "OPEN_SIDESHEET" }),
-    []
+    [],
   );
   const closeSidesheet = useCallback(
     () => dispatch({ type: "CLOSE_SIDESHEET" }),
-    []
+    [],
   );
   const setLoading = useCallback(
     (loading: boolean) => dispatch({ type: "SET_LOADING", payload: loading }),
-    []
+    [],
   );
 
   const selectService = useCallback((service: Service) => {
@@ -689,18 +743,33 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
   const [lastAddedCustomer, setLastAddedCustomer] = useState<{
     id: string;
     name: string;
+    alias?: string;
+    customId?: string;
+    tier?: string | number;
   } | null>(null);
 
   // Recently created vendor for UI hydration
   const [lastAddedVendor, setLastAddedVendor] = useState<{
     id: string;
     name: string;
+    alias?: string;
+    customId?: string;
+    tier?: string | number;
+    companyName?: string;
+    contactPerson?: string;
   } | null>(null);
 
   // Recently created traveller for UI hydration
   const [lastAddedTraveller, setLastAddedTraveller] = useState<{
     id: string;
     name: string;
+    alias?: string;
+    customId?: string;
+    tier?: string | number;
+    email?: string;
+    phone?: string;
+    dateOfBirth?: string;
+    remarks?: string;
   } | null>(null);
 
   const setVendorForm = useCallback((form: VendorForm) => {
@@ -742,7 +811,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
       const generalInfoErrors = validateGeneralInfo(state.generalInfo);
       const serviceInfoErrors = validateServiceInfo(
         state.serviceInfo,
-        state.selectedService
+        state.selectedService,
       );
 
       const allErrors = { ...generalInfoErrors, ...serviceInfoErrors };
@@ -773,7 +842,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
       // Submit to API with draft ID if available
       const response = await BookingApiService.createQuotation(
         bookingData,
-        state.currentDraftId || undefined
+        state.currentDraftId || undefined,
       );
 
       if (!response.success) {
@@ -825,7 +894,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
 
         const response = await BookingApiService.saveDraft(
           draftData,
-          draftName
+          draftName,
         );
 
         if (!response.success) {
@@ -856,7 +925,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
       state.flightinfoform,
       state.accommodationinfoform,
       state.otherServiceInfoForm,
-    ]
+    ],
   );
 
   // Validate customer function
@@ -870,7 +939,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
         return false;
       }
     },
-    []
+    [],
   );
 
   // Validate vendor function
@@ -884,7 +953,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
         return false;
       }
     },
-    []
+    [],
   );
 
   // Load drafts function
@@ -949,7 +1018,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
         dispatch({ type: "SET_DRAFT_ERROR", payload: errorMessage });
       }
     },
-    [loadDrafts, state.currentDraftId]
+    [loadDrafts, state.currentDraftId],
   );
 
   // Search drafts function
@@ -967,7 +1036,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
         return [];
       }
     },
-    []
+    [],
   );
 
   // Computed properties
@@ -1118,7 +1187,7 @@ export const BookingProvider: React.FC<{ children: React.ReactNode }> = ({
       setLastAddedTraveller,
       travellerTarget,
       setTravellerTarget,
-    ]
+    ],
   );
 
   return (

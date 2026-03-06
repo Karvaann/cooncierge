@@ -104,6 +104,10 @@ interface TravellerDataType {
   email?: string;
   phone?: string;
   tier?: string | number;
+  alias?: string;
+  nickname?: string;
+  dateOfBirth?: string;
+  remarks?: string;
 }
 
 interface OwnerData {
@@ -1065,11 +1069,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     const adultNames = adultEntries.map((t) => {
       const id = normalizeId(t);
       const fromObj = normalizeName(t);
-
-      // Priority:
-      // 1. explicit name from backend
-      // 2. resolved name from traveller list
-      // 3. fallback TBA
       return normalizeTravellerName(
         fromObj || (id ? travellerNameById(id) : ""),
       );
@@ -1212,23 +1211,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   }, [allTravellers]);
 
   const getTravellerDisplayName = (t: TravellerDataType) =>
-    t.name ||
-    (t as any)?.fullName ||
-    (t as any)?.travellerName ||
-    (t as any)?.customerName ||
-    t.email ||
-    t.phone ||
-    "Traveller";
-
-  // useEffect(() => {
-  //   if (!externalFormData?.vendor) return;
-  //   if (!Array.isArray(allVendors) || allVendors.length === 0) return;
-
-  //   const match = allVendors.find((v) => v._id === externalFormData.vendor);
-  //   if (match) {
-  //     setVendorData({ id: match._id, name: match.name });
-  //   }
-  // }, [externalFormData?.vendor, allVendors]);
+    t.name || (t as any)?.fullName || (t as any)?.travellerName;
 
   // when adults change
   useEffect(() => {
@@ -1365,6 +1348,20 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Hydrate UI when a new customer is created via sidesheet
   useEffect(() => {
     if (!lastAddedCustomer) return;
+    // Inject the new customer into allCustomers so customersById picks it up
+    setAllCustomers((prev) => {
+      if (prev.some((c) => c._id === lastAddedCustomer.id)) return prev;
+      return [
+        ...prev,
+        {
+          _id: lastAddedCustomer.id,
+          name: lastAddedCustomer.name,
+          alias: lastAddedCustomer.alias || "",
+          customId: lastAddedCustomer.customId || "",
+          tier: lastAddedCustomer.tier || "",
+        } as CustomerDataType,
+      ];
+    });
     // Update first customer field with new entry
     setCustomerList((prev) => {
       const next = [...prev];
@@ -1380,6 +1377,21 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Hydrate UI when a new vendor is created via sidesheet
   useEffect(() => {
     if (!lastAddedVendor) return;
+    // Inject the new vendor into allVendors so vendorsById picks it up
+    setAllVendors((prev) => {
+      if (prev.some((v) => v._id === lastAddedVendor.id)) return prev;
+      return [
+        ...prev,
+        {
+          _id: lastAddedVendor.id,
+          alias: lastAddedVendor.alias || "",
+          customId: lastAddedVendor.customId || "",
+          tier: lastAddedVendor.tier || "",
+          companyName: lastAddedVendor.companyName || "",
+          contactPerson: lastAddedVendor.contactPerson || "",
+        } as VendorDataType,
+      ];
+    });
     setVendorList([{ id: lastAddedVendor.id, name: lastAddedVendor.name }]);
     const newFormData = { ...formData, vendor: lastAddedVendor.id };
     setFormData(newFormData);
@@ -1393,6 +1405,22 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     const id = lastAddedTraveller.id || "";
     if (!name) return;
 
+    // Inject the new traveller into allTravellers so traveller dropdowns and view pick it up
+    setAllTravellers((prev) => {
+      if (prev.some((t) => t._id === id)) return prev;
+      return [
+        ...prev,
+        {
+          _id: id,
+          name: lastAddedTraveller.name,
+          alias: lastAddedTraveller.alias || "",
+          customId: lastAddedTraveller.customId || "",
+          tier: lastAddedTraveller.tier || "",
+        } as TravellerDataType,
+      ];
+    });
+
+    // Update the form immediately with name + id
     setFormData((prev) => {
       let newFormData;
       if (travellerTarget.type === "adultTravellers") {
@@ -1675,11 +1703,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           </p>
                           <span className="text-gray-300">|</span>
                           <p className="text-[13px] font-[400] text-[#414141] truncate">
-                            {alias}
+                            {selected.customId}
                           </p>
+
                           <span className="text-gray-300">|</span>
                           <p className="text-[13px] font-[400] text-[#414141] truncate">
-                            {selected.customId}
+                            {alias}
                           </p>
                         </div>
 
@@ -1749,11 +1778,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                 </p>
                                 <span className="text-gray-300">|</span>
                                 <p className="text-[13px] font-[400] text-[#414141] truncate">
-                                  {alias || "-"}
+                                  {cust.customId}
                                 </p>
+
                                 <span className="text-gray-300">|</span>
                                 <p className="text-[13px] font-[400] text-[#414141] truncate">
-                                  {cust.customId}
+                                  {alias || "-"}
                                 </p>
                               </div>
 
@@ -1871,11 +1901,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         </p>
                         <span className="text-gray-300">|</span>
                         <p className="text-[13px] font-[400] text-[#414141] truncate">
-                          {alias}
+                          {selected.customId || "-"}
                         </p>
+
                         <span className="text-gray-300">|</span>
                         <p className="text-[13px] font-[400] text-[#414141] truncate">
-                          {selected.customId || "-"}
+                          {alias}
                         </p>
                       </div>
 
@@ -1946,11 +1977,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             </p>
                             <span className="text-gray-300">|</span>
                             <p className="text-[13px] font-[400] text-[#414141] truncate">
-                              {alias || "-"}
+                              {v.customId || "-"}
                             </p>
+
                             <span className="text-gray-300">|</span>
                             <p className="text-[13px] font-[400] text-[#414141] truncate">
-                              {v.customId || "-"}
+                              {alias || "-"}
                             </p>
                           </div>
 
@@ -2157,6 +2189,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             <p className="text-[13px] font-[400] text-[#414141] truncate">
                               {selected.customId}
                             </p>
+                            {getAlias(selected) ? (
+                              <>
+                                <span className="text-gray-300">|</span>
+                                <p className="text-[13px] font-[400] text-[#414141] truncate">
+                                  {getAlias(selected)}
+                                </p>
+                              </>
+                            ) : null}
                           </div>
 
                           {rating !== null ? (
@@ -2164,9 +2204,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                               <img
                                 src={`/icons/tier-icons/tier-${rating}.svg`}
                                 alt={`Tier ${rating}`}
-                                className="w-4 h-4 object-contain"
+                                className="w-4 h-4 object-contain inline-block align-middle"
                               />
-                              <span className="text-[13px] font-[600] text-[#020202]">
+                              <span className="text-[13px] font-[600] text-[#020202] leading-none inline-flex items-center">
                                 {rating}
                               </span>
                             </div>
@@ -2205,6 +2245,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                 <p className="text-[13px] font-[400] text-[#414141] truncate">
                                   {t.customId}
                                 </p>
+                                {getAlias(t) ? (
+                                  <>
+                                    <span className="text-gray-300">|</span>
+                                    <p className="text-[13px] font-[400] text-[#414141] truncate">
+                                      {getAlias(t)}
+                                    </p>
+                                  </>
+                                ) : null}
                               </div>
 
                               {/* show rating only when available */}
@@ -2229,9 +2277,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                       <img
                                         src={`/icons/tier-icons/tier-${rating}.svg`}
                                         alt={`Tier ${rating}`}
-                                        className="w-4 h-4 object-contain"
+                                        className="w-4 h-4 object-contain inline-block align-middle"
                                       />
-                                      <span className="text-[13px] font-[600] text-[#020202]">
+                                      <span className="text-[13px] font-[600] text-[#020202] leading-none inline-flex items-center">
                                         {rating}
                                       </span>
                                     </div>
@@ -2567,7 +2615,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   : "hover:text-[#414141]"
               }`}
             >
-              <div className="border border-[#818181] rounded-full p-0.5 flex items-center justify-center">
+              <div className="border border-[#818181] rounded-full p-0.25 flex items-center justify-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   width="14"
@@ -2622,7 +2670,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 </button>
               </div>
 
-              <div className="w-[59%]" ref={teamsSecondaryRef}>
+              <div className="w-[60%]" ref={teamsSecondaryRef}>
                 {/* Filter-style multi-select pills input */}
                 <div
                   className={`w-full min-h-[1.5rem] text-[12px] -mt-0.5 border border-gray-200 rounded-md px-2.5 py-2 flex items-center flex-wrap gap-1 ${
@@ -2685,12 +2733,16 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       </span>
                     ))
                   ) : (
-                    <span className="text-[#9CA3AF] text-[12px] flex items-center flex-1">
-                      Select Owner
+                    <span className="text-[#9CA3AF] font-[500 ]text-[12px] flex items-center flex-1">
+                      Search by User's Name
                     </span>
                   )}
 
-                  <MdOutlineKeyboardArrowDown className="ml-auto text-gray-400 pointer-events-none" />
+                  <CiSearch
+                    size={16}
+                    className="text-[#818181]"
+                    strokeWidth={1}
+                  />
                 </div>
 
                 {secondaryOwnerDropdownOpen &&

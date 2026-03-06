@@ -1,36 +1,26 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import SideSheet from "../SideSheet";
-import {
-  createVendor,
-  updateVendor,
-  getVendorBookingHistory,
-} from "@/services/vendorApi";
+import { createVendor, updateVendor } from "@/services/vendorApi";
 import { getAuthUser } from "@/services/storage/authStorage";
 import { useBooking } from "@/context/BookingContext";
 import DropDown from "../DropDown";
 import PhoneCodeSelect from "../PhoneCodeSelect";
 import SingleCalendar from "../SingleCalendar";
-import { CiCirclePlus } from "react-icons/ci";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
 import { LuSave } from "react-icons/lu";
 import Button from "../Button";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
-import { MdHistory } from "react-icons/md";
 import { FaRegFolder } from "react-icons/fa";
 import ErrorToast from "../ErrorToast";
 import {
   allowOnlyText,
   allowOnlyDigitsWithMax,
   allowTextAndNumbers,
-  allowOnlyNumbers,
-  isValidEmail,
 } from "@/utils/inputValidators";
 import { validateFullName, validateEmailFormat } from "@/utils/formValidators";
-import { all } from "axios";
 import {
   getPhoneNumberMaxLength,
   splitPhoneWithDialCode,
@@ -44,9 +34,16 @@ type VendorData = {
   alias: string;
   firstname?: string;
   lastname?: string;
-  email: string;
-  phone: string;
-  countryCode: string;
+  email?: string;
+  phone?: string;
+  countryCode?: string;
+  // Separate fields for company vs POC
+  companyPhone?: string;
+  companyCountryCode?: string;
+  companyEmail?: string;
+  pocPhone?: string;
+  pocCountryCode?: string;
+  pocEmail?: string;
   dateOfBirth: string;
 
   companyName: string;
@@ -100,7 +97,6 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   const [invalidField, setInvalidField] = useState<
     "company" | "contactPerson" | null
   >(null);
-  const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [vendorCode, setVendorCode] = useState("");
 
@@ -139,27 +135,6 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
     }[]
   >([]);
 
-  const formatDMY = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
-  };
-
-  const mapStatusForModal = (status?: string) => {
-    switch ((status || "").toLowerCase()) {
-      case "confirmed":
-        return "Confirmed" as const;
-      case "cancelled":
-        // Align with BookingHistoryModal expected status union which uses 'Cancelled'
-        return "Cancelled" as const;
-      case "draft":
-      default:
-        return "In Progress" as const;
-    }
-  };
-
   // Handle selecting files
   const handleFileChange = () => {
     const files = fileRef.current?.files;
@@ -190,8 +165,14 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   const [formData, setFormData] = useState<VendorData>({
     contactPerson: "",
     alias: "",
-    email: "",
-    phone: "",
+    // company-level
+    companyEmail: "",
+    companyPhone: "",
+    companyCountryCode: "+91",
+    // poc-level
+    pocEmail: "",
+    pocPhone: "",
+    pocCountryCode: "+91",
     dateOfBirth: "",
 
     companyName: "",
@@ -200,10 +181,14 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
     balanceType: "debit",
     remarks: "",
     tier: "",
-    countryCode: "+91",
   });
 
-  const phoneMaxLength = getPhoneNumberMaxLength(formData.countryCode);
+  const companyPhoneMaxLength = getPhoneNumberMaxLength(
+    formData.companyCountryCode || "+91",
+  );
+  const pocPhoneMaxLength = getPhoneNumberMaxLength(
+    formData.pocCountryCode || "+91",
+  );
 
   useEffect(() => {
     if (data) {
@@ -211,21 +196,39 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         ? String(data.contactPerson).trim()
         : `${data.firstname || ""} ${data.lastname || ""}`.trim();
 
-      // Split into country code dropdown + national number input.
-      const rawPhone = String(data.phone || "");
-      const parsed = splitPhoneWithDialCode(
-        rawPhone,
-        data.countryCode || "+91",
+      // Split into country code dropdown & national number input
+      const rawCompanyPhone = String(data.companyPhone || data.phone || "");
+      const parsedCompany = splitPhoneWithDialCode(
+        rawCompanyPhone,
+        data.companyCountryCode || data.countryCode || "+91",
       );
-      const digitsOnly = parsed.number.replace(/\D/g, "");
-      const maxLen = getPhoneNumberMaxLength(parsed.dialCode);
-      const trimmed = allowOnlyDigitsWithMax(digitsOnly, maxLen);
+      const companyDigits = parsedCompany.number.replace(/\D/g, "");
+      const companyTrimmed = allowOnlyDigitsWithMax(
+        companyDigits,
+        getPhoneNumberMaxLength(parsedCompany.dialCode),
+      );
+
+      // POC phone/email
+      const rawPocPhone = String(data.pocPhone || "");
+      const parsedPoc = splitPhoneWithDialCode(
+        rawPocPhone,
+        data.pocCountryCode || "+91",
+      );
+      const pocDigits = parsedPoc.number.replace(/\D/g, "");
+      const pocTrimmed = allowOnlyDigitsWithMax(
+        pocDigits,
+        getPhoneNumberMaxLength(parsedPoc.dialCode),
+      );
 
       setFormData({
         contactPerson: contactPersonFromData,
         alias: data.alias || "",
-        email: data.email || "",
-        phone: trimmed || "",
+        companyEmail: data.companyEmail || data.email || "",
+        companyPhone: companyTrimmed || "",
+        companyCountryCode: parsedCompany.dialCode || "+91",
+        pocEmail: data.pocEmail || "",
+        pocPhone: pocTrimmed || "",
+        pocCountryCode: parsedPoc.dialCode || "+91",
         dateOfBirth: data.dateOfBirth || "",
 
         companyName: data.companyName || "",
@@ -234,7 +237,6 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         balanceType: data.balanceType || "debit",
         remarks: data.remarks || "",
         tier: data.tier || "",
-        countryCode: parsed.dialCode || "+91",
       });
       setTier(data.tier || "");
       setExistingDocuments(Array.isArray(data.documents) ? data.documents : []);
@@ -243,8 +245,12 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       setFormData({
         contactPerson: "",
         alias: "",
-        email: "",
-        phone: "",
+        companyEmail: "",
+        companyPhone: "",
+        companyCountryCode: "+91",
+        pocEmail: "",
+        pocPhone: "",
+        pocCountryCode: "+91",
         dateOfBirth: "",
 
         companyName: "",
@@ -264,13 +270,24 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   useEffect(() => {
     setFormData((prev) => {
       const trimmed = allowOnlyDigitsWithMax(
-        String(prev.phone || ""),
-        phoneMaxLength,
+        String(prev.companyPhone || ""),
+        companyPhoneMaxLength,
       );
-      if (trimmed === prev.phone) return prev;
-      return { ...prev, phone: trimmed };
+      if (trimmed === prev.companyPhone) return prev;
+      return { ...prev, companyPhone: trimmed };
     });
-  }, [phoneMaxLength]);
+  }, [companyPhoneMaxLength]);
+
+  useEffect(() => {
+    setFormData((prev) => {
+      const trimmed = allowOnlyDigitsWithMax(
+        String(prev.pocPhone || ""),
+        pocPhoneMaxLength,
+      );
+      if (trimmed === prev.pocPhone) return prev;
+      return { ...prev, pocPhone: trimmed };
+    });
+  }, [pocPhoneMaxLength]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -302,11 +319,19 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       }, 100);
       return;
     }
-    // Validate email format if provided
-    const emailErr = validateEmailFormat(formData.email);
-    if (emailErr) {
-      showErrorToast(emailErr);
+    // Validate company email format if provided
+    const companyEmailErr = validateEmailFormat(formData.companyEmail);
+    if (companyEmailErr) {
+      showErrorToast(companyEmailErr);
       return;
+    }
+    // Validate POC email if provided
+    if (formData.pocEmail) {
+      const pocEmailErr = validateEmailFormat(formData.pocEmail);
+      if (pocEmailErr) {
+        showErrorToast(pocEmailErr);
+        return;
+      }
     }
     const user = getAuthUser() as any;
     const businessId = user?.businessId;
@@ -325,12 +350,23 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       formDataToSend.append("dateOfBirth", formData.dateOfBirth || "");
       formDataToSend.append("openingBalance", formData.openingBalance || "");
       formDataToSend.append("balanceType", formData.balanceType);
-      formDataToSend.append("email", formData.email || "");
-      formDataToSend.append("phone", formData.phone);
+      // company-level contact
+      formDataToSend.append(
+        "companyEmail",
+        String(formData.companyEmail || ""),
+      );
+      formDataToSend.append(
+        "companyCountryCode",
+        formData.companyCountryCode || "+91",
+      );
+      formDataToSend.append("companyPhone", formData.companyPhone || "");
+      // poc-level contact
+      formDataToSend.append("pocEmail", String(formData.pocEmail || ""));
+      formDataToSend.append("pocCountryCode", formData.pocCountryCode || "+91");
+      formDataToSend.append("pocPhone", formData.pocPhone || "");
       formDataToSend.append("address", formData.address || "");
       formDataToSend.append("tier", tier || "");
       formDataToSend.append("remarks", formData.remarks || "");
-      formDataToSend.append("countryCode", formData.countryCode || "+91");
       formDataToSend.append("customId", vendorCode || "");
 
       // Backend requires businessId as field
@@ -341,12 +377,6 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         formDataToSend.append("documents", file);
       });
 
-      // Ensure phone includes country code
-      const phoneValue = `${formData.countryCode || "+91"}${
-        formData.phone || ""
-      }`;
-      formDataToSend.set("phone", phoneValue);
-
       const created = await createVendor(formDataToSend);
       console.log("Vendor created successfully:", created);
 
@@ -354,7 +384,16 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         updateGeneralInfo({ vendor: created._id });
         const displayName =
           created.name || created.companyName || created.contactPerson || "";
-        setLastAddedVendor?.({ id: created._id, name: displayName });
+        setLastAddedVendor?.({
+          id: created._id,
+          name: displayName,
+          alias: created.alias || "",
+          customId: created.customId || vendorCode || "",
+          tier: created.tier || tier || "",
+          companyName: created.companyName || formData.companyName || "",
+          contactPerson:
+            created.contactPerson || String(formData.contactPerson || ""),
+        });
         onSuccess?.();
       }
 
@@ -401,14 +440,22 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         return;
       }
 
-      // Validate email format if provided
-      const emailErr2 = validateEmailFormat(formData.email);
-      if (emailErr2) {
-        showErrorToast(emailErr2);
+      // Validate company email format if provided
+      const companyEmailErr2 = validateEmailFormat(formData.companyEmail);
+      if (companyEmailErr2) {
+        showErrorToast(companyEmailErr2);
         return;
       }
+      // Validate POC email if provided
+      if (formData.pocEmail) {
+        const pocEmailErr2 = validateEmailFormat(formData.pocEmail);
+        if (pocEmailErr2) {
+          showErrorToast(pocEmailErr2);
+          return;
+        }
+      }
 
-      const vendorData = {
+      const vendorData: any = {
         companyName: formData.companyName,
         contactPerson: String(formData.contactPerson || ""),
         alias: formData.alias || undefined,
@@ -417,8 +464,18 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
           ? Number(formData.openingBalance)
           : undefined,
         balanceType: formData.balanceType,
-        email: formData.email,
-        phone: `${formData.countryCode || "+91"}${formData.phone}`,
+        // company-level contact
+        companyEmail: formData.companyEmail || undefined,
+        companyPhone: formData.companyPhone
+          ? `${formData.companyCountryCode || "+91"}${formData.companyPhone}`
+          : undefined,
+        companyCountryCode: formData.companyCountryCode || undefined,
+        // poc-level contact
+        pocEmail: formData.pocEmail || undefined,
+        pocPhone: formData.pocPhone
+          ? `${formData.pocCountryCode || "+91"}${formData.pocPhone}`
+          : undefined,
+        pocCountryCode: formData.pocCountryCode || undefined,
 
         address: formData.address,
         tier: tier || undefined,
@@ -503,9 +560,9 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   </label>
                   <div className="flex items-center">
                     <PhoneCodeSelect
-                      value={formData.countryCode}
+                      value={formData.companyCountryCode}
                       onChange={(v) =>
-                        setFormData({ ...formData, countryCode: v })
+                        setFormData({ ...formData, companyCountryCode: v })
                       }
                       disabled={readOnly}
                       customWidth="w-[88px]"
@@ -514,18 +571,18 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       customHeight="h-9"
                     />
                     <input
-                      name="phone"
-                      value={formData.phone}
+                      name="companyPhone"
+                      value={formData.companyPhone}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          phone: allowOnlyDigitsWithMax(
+                          companyPhone: allowOnlyDigitsWithMax(
                             e.target.value,
-                            phoneMaxLength,
+                            companyPhoneMaxLength,
                           ),
                         })
                       }
-                      maxLength={phoneMaxLength}
+                      maxLength={companyPhoneMaxLength}
                       placeholder="Enter Contact Number"
                       disabled={readOnly}
                       className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] placeholder:text-[#9CA3AF] text-[#414141] focus:outline-none focus:ring-1 hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
@@ -538,10 +595,10 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     Company Email ID
                   </label>
                   <input
-                    name="email"
-                    value={formData.email}
+                    name="companyEmail"
+                    value={formData.companyEmail}
                     onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
+                      setFormData({ ...formData, companyEmail: e.target.value })
                     }
                     placeholder="Enter Email ID"
                     disabled={readOnly}
@@ -620,9 +677,9 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   </label>
                   <div className="flex items-center">
                     <PhoneCodeSelect
-                      value={formData.countryCode}
+                      value={formData.pocCountryCode}
                       onChange={(v) =>
-                        setFormData({ ...formData, countryCode: v })
+                        setFormData({ ...formData, pocCountryCode: v })
                       }
                       disabled={readOnly}
                       customWidth="w-[88px]"
@@ -632,17 +689,17 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     <input
                       placeholder="Enter Contact Number"
                       type="text"
-                      value={formData.phone}
+                      value={formData.pocPhone}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          phone: allowOnlyDigitsWithMax(
+                          pocPhone: allowOnlyDigitsWithMax(
                             e.target.value,
-                            phoneMaxLength,
+                            pocPhoneMaxLength,
                           ),
                         })
                       }
-                      maxLength={phoneMaxLength}
+                      maxLength={pocPhoneMaxLength}
                       disabled={readOnly}
                       className="w-full h-[2rem] border border-gray-300 rounded-md px-3 py-2 text-[13px] placeholder:text-[#9CA3AF] text-[#414141] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE] hover:border-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
                     />
@@ -659,9 +716,9 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   <input
                     placeholder="Enter Email ID"
                     type="email"
-                    value={formData.email}
+                    value={formData.pocEmail}
                     onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
+                      setFormData({ ...formData, pocEmail: e.target.value })
                     }
                     disabled={readOnly}
                     className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-200 disabled:text-[#020202]"
