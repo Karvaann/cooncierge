@@ -34,6 +34,7 @@ interface TableProps {
   onRowClick?: (rowIndex: number) => void;
   onPaginationChange?: (page: number, rowsPerPage: number) => void;
   enableRowHoverActions?: boolean;
+  rowClassNameResolver?: (rowIndex: number) => string;
 }
 
 const Table: React.FC<TableProps> = ({
@@ -60,6 +61,7 @@ const Table: React.FC<TableProps> = ({
   onRowClick,
   onPaginationChange,
   enableRowHoverActions = false,
+  rowClassNameResolver,
 }) => {
   const [page, setPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
@@ -269,6 +271,11 @@ const Table: React.FC<TableProps> = ({
         ? "row-actions-active"
         : ""
     }
+    ${
+      rowClassNameResolver
+        ? rowClassNameResolver((page - 1) * rowsPerPage + idx)
+        : ""
+    }
   `}
                         >
                           {row}
@@ -312,6 +319,11 @@ const Table: React.FC<TableProps> = ({
       (activeVisibleRowIndex === idx ||
         (activeVisibleRowIndex === null && idx === 0))
         ? "row-actions-active"
+        : ""
+    }
+    ${
+      rowClassNameResolver
+        ? rowClassNameResolver((page - 1) * rowsPerPage + idx)
         : ""
     }
   `}

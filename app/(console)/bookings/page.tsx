@@ -16,6 +16,7 @@ import {
 import { BookingApiService } from "@/services/bookingApi";
 import { CustomIdApi } from "@/services/customIdApi";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
+import ChooseBookingTypeModal from "@/components/Modals/ChooseBookingTypeModal";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ModalSkeleton from "@/components/skeletons/ModalSkeleton";
@@ -111,6 +112,7 @@ interface QuotationData {
   customId: string;
   _id: string;
   quotationType: string;
+  isBookingDataComplete: true;
   channel: string;
   partyId: string;
   taskCount: number;
@@ -203,6 +205,7 @@ const getStatusBadgeClass = (status: string): string => {
 const OSBookingsPage = () => {
   const router = useRouter();
   // UI State
+  const [isCreateSourceModalOpen, setIsCreateSourceModalOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [generatedBookingCode, setGeneratedBookingCode] = useState<
     string | null
@@ -245,6 +248,9 @@ const OSBookingsPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
+  const [hoveredBookingRowId, setHoveredBookingRowId] = useState<string | null>(
+    null,
+  );
   const [calendarStartDate, setCalendarStartDate] = useState(() =>
     startOfDay(new Date()),
   );
@@ -542,8 +548,12 @@ const OSBookingsPage = () => {
     setIsSideSheetOpen(true);
   };
 
-  // When user requests create from Filter, generate custom id first then open create modal
-  const handleCreateRequested = async () => {
+  const handleCreateRequested = () => {
+    setIsCreateSourceModalOpen(true);
+  };
+
+  // Existing OS create flow: generate ids and then open service-selection modal
+  const handleOSCreateRequested = async () => {
     try {
       // simple guard against rapid duplicate calls
       const now = Date.now();
@@ -575,6 +585,17 @@ const OSBookingsPage = () => {
     } finally {
       setIsCreateOpen(true);
     }
+  };
+
+  const handleCreateSourceSelected = (source: "os" | "limitless") => {
+    setIsCreateSourceModalOpen(false);
+
+    if (source === "limitless") {
+      router.push("/bookings/limitless?create=1");
+      return;
+    }
+
+    void handleOSCreateRequested();
   };
 
   // Handle booking completion (refresh data)
@@ -722,6 +743,26 @@ const OSBookingsPage = () => {
     setSelectedDeleteId(quotationId);
     setIsDeleteModalOpen(true);
   };
+
+  const openBookingInEditMode = useCallback((item: any) => {
+    const quotationType = item?.quotationType || "";
+    const category = mapQuotationTypeToCategory(quotationType);
+    const title = formatServiceType(quotationType || "others");
+
+    setSideSheetMode("edit");
+    setSelectedQuotation(item);
+    setSelectedService({
+      id: item?._id || item?.id || "",
+      title,
+      image: "",
+      category,
+      description: "",
+    });
+    setIsSideSheetOpen(false);
+    requestAnimationFrame(() => {
+      setIsSideSheetOpen(true);
+    });
+  }, []);
 
   const confirmDelete = async () => {
     if (!selectedDeleteId) return;
@@ -1027,26 +1068,61 @@ const OSBookingsPage = () => {
       <td
         key={`id-${index}`}
         onClick={() => handleViewBooking(item)}
-        className="px-4 py-3 text-center text-[#020202]  font-[400] align-middle h-[3rem] cursor-pointer"
+        className="px-4 py-3 text-center  font-[400] align-middle h-[3rem] cursor-pointer"
       >
-        <button
-          onClick={() => handleViewBooking(item)}
-          className="text-[#020202] text-[13px] hover:underline font-[500]"
+        <div
+          className="relative inline-flex items-center justify-center"
+          onMouseEnter={() =>
+            setHoveredBookingRowId(String(item?._id || item?.id || ""))
+          }
+          onMouseLeave={() =>
+            setHoveredBookingRowId((prev) =>
+              prev === String(item?._id || item?.id || "") ? null : prev,
+            )
+          }
         >
-          {item.customId || item._id}
-        </button>
+          <div className="fade-content">
+            <button
+              onClick={() => handleViewBooking(item)}
+              className="text-[13px] hover:underline font-[500]"
+            >
+              {item.customId || item._id}
+            </button>
+          </div>
+
+          {!item.isBookingDataComplete && <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              openBookingInEditMode(item);
+            }}
+            className={`
+              absolute left-[-10px] top-1/2 z-[100] -translate-y-1/2
+              whitespace-nowrap flex items-center gap-2 rounded-[8px] bg-[#FFF] px-[12px] py-[8px]
+              text-[12px] font-[500] text-[#7135AD]
+              shadow-[0_2px_8px_0_rgba(0,0,0,0.06)]
+              transition-opacity duration-300 ease-in-out
+              ${hoveredBookingRowId === String(item?._id || item?.id || "") ? "opacity-100" : "opacity-0 pointer-events-none"}
+            `}
+          >
+            Complete Booking
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12H19M19 12L15 16M19 12L15 8" stroke="#7135AD" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>}
+        </div>
       </td>,
       <td
         key={`lead-${index}`}
         onClick={() => handleViewBooking(item)}
-        className="px-4 py-3 text-center text-[13px] text-[#020202] font-[400] align-middle h-[3rem] cursor-pointer"
+        className="px-4 fade-content py-3 text-center text-[13px] font-[400] align-middle h-[3rem] cursor-pointer"
       >
         {item.adultTravelers?.[0]?.name || item.customerId?.name || item.formFields?.customer || "--"}
       </td>,
       <td
         key={`date-${index}`}
         onClick={() => handleViewBooking(item)}
-        className="px-4 py-3 text-center  text-[13px] text-[#020202] font-[400] align-middle h-[3rem] cursor-pointer"
+        className="px-4 fade-content py-3 text-center  text-[13px] font-[400] align-middle h-[3rem] cursor-pointer"
       >
         {item.travelDate
           ? formatDMY(item.travelDate)
@@ -1059,9 +1135,9 @@ const OSBookingsPage = () => {
       <td
         key={`service-${index}`}
         onClick={() => handleViewBooking(item)}
-        className="px-4 py-3 text-center text-[13px] text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
+        className="px-4 py-3 fade-content text-center text-[13px] font-normal align-middle h-[3rem] cursor-pointer"
       >
-        <div className="flex flex-col items-center justify-center gap-2">
+        <div className="flex flex-col fade-content items-center justify-center gap-2">
           <div className="w-[16px] h-[16px] flex items-center justify-center">
             {getServiceIcon(item.quotationType || "draft")}
           </div>
@@ -1073,7 +1149,7 @@ const OSBookingsPage = () => {
       <td
         key={`status-${index}`}
         onClick={() => handleViewBooking(item)}
-        className="px-4 py-3 text-center align-middle text-[13px] h-[3rem] cursor-pointer"
+        className="px-4 py-3 fade-content text-center align-middle text-[13px] h-[3rem] cursor-pointer"
       >
         <span className={getStatusBadgeClass(mapStatus(item.status))}>
           {mapStatus(item.status)}
@@ -1082,7 +1158,7 @@ const OSBookingsPage = () => {
       <td
         key={`amount-${index}`}
         onClick={() => handleViewBooking(item)}
-        className="px-4 py-3 text-center text-[#020202] font-[400] align-middle h-[3rem] cursor-pointer"
+        className="px-4 py-3 fade-content text-center text-[#020202] font-[400] align-middle h-[3rem] cursor-pointer"
       >
         {item.totalAmount
           ? `${getStoredCurrencySymbol()} ${formatNumberByStoredCurrency(item.totalAmount)}`
@@ -1093,7 +1169,7 @@ const OSBookingsPage = () => {
       <td
         key={`owners-${index}`}
         onClick={() => handleViewBooking(item)}
-        className="px-4 py-3 text-center align-middle h-[3rem] cursor-pointer"
+        className="px-4 py-3 fade-content text-center align-middle h-[3rem] cursor-pointer"
       >
         <div className="flex items-center justify-center">
           {/* PRIMARY OWNER */}
@@ -1146,7 +1222,7 @@ const OSBookingsPage = () => {
       </td>,
       <td
         key={`tasks-${index}`}
-        className="px-4 py-3 text-center align-middle h-[3rem]"
+        className="px-4 py-3 fade-content text-center align-middle h-[3rem]"
       >
         <div
           className="flex justify-center"
@@ -1159,7 +1235,7 @@ const OSBookingsPage = () => {
       // ACTIONS COLUMN
       <td
         key={`actions-${index}`}
-        className="px-4 py-3 text-center align-middle h-[3rem]"
+        className="px-4 py-3 text-center fade-content align-middle h-[3rem]"
       >
         <div onClick={(e) => e.stopPropagation()}>
           <ActionMenu
@@ -1170,7 +1246,36 @@ const OSBookingsPage = () => {
       </td>,
     ]);
     return rows;
-  }, [sortedQuotationsForTable, ownersList, activeTab]);
+  }, [
+    sortedQuotationsForTable,
+    ownersList,
+    activeTab,
+    hoveredBookingRowId,
+    openBookingInEditMode,
+  ]);
+
+  const rowClassNameResolver = useCallback(
+    (rowIndex: number) => {
+      const item = sortedQuotationsForTable[rowIndex];
+      if (!item) return "";
+      const itemId = String(item?._id || item?.id || "");
+
+      const isBookingDataComplete =
+        item?.isBookingDataComplete === true ||
+        item?.isBookingDataComplete === "true";
+
+      const baseClass = !isBookingDataComplete
+        ? "!bg-[#FFFDEF] border-l-4 border-l-[#FEDB6B]"
+        : "";
+      const hoverOverlayClass =
+        hoveredBookingRowId === itemId && !isBookingDataComplete
+          ? "[&>.fade-content]:opacity-30 [&>.fade-content]:transition-opacity [&>.fade-content]:duration-300 [&>.fade-content]:ease-in-out"
+          : "text-[#020202]";
+
+      return `${baseClass} ${hoverOverlayClass}`.trim();
+    },
+    [hoveredBookingRowId, sortedQuotationsForTable],
+  );
 
   // Helper functions
 
@@ -1361,6 +1466,7 @@ const OSBookingsPage = () => {
                     onSort={handleSort}
                     categoryName="Bookings"
                     headerAlign={{ "Booking ID": "center" }}
+                    rowClassNameResolver={rowClassNameResolver}
                   />
                 )}
               </div>
@@ -1508,16 +1614,19 @@ const OSBookingsPage = () => {
           onConfirm={confirmDelete}
         />
 
-        {isCreateOpen && (
+        <ChooseBookingTypeModal
+          isOpen={isCreateSourceModalOpen}
+          onClose={() => setIsCreateSourceModalOpen(false)}
+          onSelect={handleCreateSourceSelected}
+        />
+
           <BookingFormModal
             isOpen={isCreateOpen}
             onClose={() => setIsCreateOpen(false)}
             onSelectedService={handleServiceSelect}
           />
-        )}
 
         <BookingFormSidesheet
-          key={selectedQuotation?._id || "create"}
           isOpen={isSideSheetOpen}
           onClose={handleBookingComplete}
           selectedService={selectedService}

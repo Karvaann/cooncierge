@@ -114,14 +114,14 @@ const Modal: React.FC<ModalProps> = ({
       >
         {/* HEADER FIXED LAYOUT */}
 
-        <div className="relative flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100">
+        <div className="relative flex items-center justify-between">
           {headerLeft ? (
-            <div className="flex-initial ml-3">{headerLeft}</div>
+            <div className="w-[95%]">{headerLeft}</div>
           ) : (
             <div className="flex-1 text-center px-6">
               <h2
                 id="modal-title"
-                className="text-black text-[1rem] md:text-[1.15rem] font-semibold leading-snug m-0"
+                className=""
               >
                 {title}
               </h2>
@@ -158,7 +158,7 @@ const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* ✅ CONTENT AREA */}
-        <div className="relative mt-[-0.25rem] z-10 p-4 overflow-y-auto max-h-[calc(90vh-80px)] bg-white">
+        <div className="">
           {children}
         </div>
       </div>
