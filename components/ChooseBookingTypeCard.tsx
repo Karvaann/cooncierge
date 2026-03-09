@@ -29,7 +29,7 @@ export default function ChooseBookingTypeCard({
 }: ChooseBookingTypeCardProps) {
   return (
     <div
-      className="relative rounded-[24px] border border-[#CCD0DB] bg-white px-7 py-6 transition-all duration-200 hover:border-4 hover:border-[#7135AD33] hover:px-[22px] hover:py-[21px]"
+      className="relative rounded-[24px] border border-[#CCD0DB] bg-white px-7 py-5 transition-all duration-200 hover:border-4 hover:border-[#7135AD33] hover:px-[22px] hover:py-[21px]"
       style={{ boxShadow: "0 2px 8px 0 rgba(0, 0, 0, 0.06)" }}
     >
       <div className="flex items-start gap-4">
@@ -79,7 +79,7 @@ export default function ChooseBookingTypeCard({
       <div className="mt-4 flex justify-end">
         <button
           onClick={onProceed}
-          className="group inline-flex items-center gap-1.5 rounded-[16px] bg-[#7135AD] px-5 py-2.5 text-[14px] font-[600] text-white hover:cursor-pointer transition-all duration-300"
+          className="group inline-flex items-center gap-1.5 rounded-[16px] bg-[#7135AD] px-5 py-2.5 text-[14px] font-[500] text-white hover:cursor-pointer transition-all duration-300"
         >
           Proceed to Create
           <svg
