@@ -22,16 +22,17 @@ const ChooseBookingTypeModal: React.FC<ChooseBookingTypeModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       size="sm"
-      customWidth="w-[700px]"
-      customeHeight="h-auto"
+      customWidth="w-[650px]"
+      customeHeight="h-[90vh]"
       customBorderRadius="rounded-3xl"
+      className="px-[26px] pt-[26px] pb-[35px] flex flex-col gap-[35px]"
       showCloseButton={true}
       title={
-        <div className="px-6 pt-6 text-center">
-          <h3 className="text-[29px] font-[600] text-[#020202]">
+        <div className="text-center">
+          <h3 className="text-[31px] font-[Roboto] font-[500] text-[#020202]">
             Booking Type
           </h3>
-          <p className="mt-[7px] text-[14px] font-[400] text-[#818181]">
+          <p className="text-[14px] font-[400] text-[#818181]">
             Choose whether you want to create
             <span className="font-[600] text-[#020202]">
               {" "}
@@ -43,7 +44,7 @@ const ChooseBookingTypeModal: React.FC<ChooseBookingTypeModalProps> = ({
         </div>
       }
     >
-      <div className="flex flex-col gap-[28px] px-7.5 py-8 pt-[40px]">
+      <div className="flex flex-col gap-[28px]">
         <ChooseBookingTypeCard
           title="Other Services"
           description="Select individual services to create bookings"
