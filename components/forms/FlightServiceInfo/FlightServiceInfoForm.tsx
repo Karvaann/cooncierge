@@ -428,28 +428,9 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
     onFormDataUpdate({ flightinfoform: formData });
   }, [formData]);
 
-  // Hard-coded exchange rate for demonstration
-  // const exchangeRate = 88.05;
-
-  // const handleCurrencyChange = (
-  //   type: "cost" | "selling",
-  //   currency: "INR" | "USD"
-  // ) => {
-  //   if (type === "cost") {
-  //     setCostPriceCurrency(currency);
-  //     setShowCostDropdown(false);
-  //     setRoeVisibleFor(currency === "USD" ? "cost" : null);
-  //   } else {
-  //     setSellingPriceCurrency(currency);
-  //     setShowSellingDropdown(false);
-  //     setRoeVisibleFor(currency === "USD" ? "selling" : null);
-  //   }
-  // };
-
   const options = [
     { value: "confirmed", label: "Confirmed" },
     { value: "cancelled", label: "Cancelled" },
-    // { value: "", label: "Booking Status" },
   ];
 
   const handleBookingStatusChange = (value: string) => {

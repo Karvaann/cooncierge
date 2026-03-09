@@ -472,50 +472,41 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       headerLeft={
-        <div className="relative w-full">
-          <h2 className="text-black text-[1rem] md:text-[1.15rem] font-semibold leading-snug m-0">
+        <div className="relativ flex flex-row justify-between items-center w-full">
+          <h2 className="text-[#020202] text-[16px] font-[500]">
             Select Booking Owners
           </h2>
-          <div className="absolute top-8 left-[-8] right-[-570] z-10 border-b border-gray-300" />
+          <div className="flex flex-row items-center gap-4">
+            <div
+              className="w-[20px] h-[20px] border bg-[#7135AD] border-[#7135AD] rounded-[6px] flex items-center justify-center cursor-pointer"
+              style={{background: isAdvanceSearchEnabled ? "#7135AD" : "white",
+                border: isAdvanceSearchEnabled ? "1px solid #7135AD" : "1px solid #E2E1E1",
+              }}
+              onClick={() => setIsAdvanceSearchEnabled((prev) => !prev)}
+            >
+              {isAdvanceSearchEnabled && (
+                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <path d="M1 5.75012L4.74268 9.50012L10.7427 1.00012" stroke="white" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+              )}
+            </div>
+            <span className="text-[15px] text-[#414141] font-[400]">
+              Advance Search
+            </span>
+
+          </div>
         </div>
       }
-      customWidth="max-w-4xl"
-      className="w-[52rem]"
+      customWidth="w-[65vw]"
+      className="p-[14px] rounded-[16px]"
     >
-      <div className="w-full">
+      <div className="mt-[14px] w-full">
         {/* Advance Search Checkbox */}
         {showAdvanceSearch && (
             <div className={`mb-4 flex w-full ${isAdvanceSearchEnabled ? "justify-end" : "justify-between"} items-center gap-2 cursor-pointer`}>
-             {!isAdvanceSearchEnabled && <div className="text-[14px] text-[#6B7280] font-medium">
+             {!isAdvanceSearchEnabled && <div className="text-[15px] font-[400] text-[#414141]">
                 {`${selectedOwners.length} Owner(s) Selected`}
               </div>}
-              <div className="flex flex-row items-center gap-2">
-                <div
-                  className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center cursor-pointer"
-                  onClick={() => setIsAdvanceSearchEnabled((prev) => !prev)}
-                >
-                  {isAdvanceSearchEnabled && (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="12"
-                      height="11"
-                      viewBox="0 0 12 11"
-                      fill="none"
-                    >
-                      <path
-                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                        stroke="#0D4B37"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  )}
-                </div>
-                <span className="text-[14px] text-[#414141] font-medium">
-                  Advance Search
-                </span>
-
-              </div>
           </div>
         )}
 
@@ -646,17 +637,17 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
             {/* Advance Search: Two Columns */}
             <div className="grid grid-cols-2 gap-6">
               {/* Primary Owner(s) */}
-              <div>
-                <h3 className="text-[16px] flex flex-row justify-between items-center font-medium text-[#1F2937] mb-3">
+              <div className="px-[20px] pb-[20px] pt-[14px] bg-[#F9F9F9] rounded-[14px]">
+                <h3 className="text-[15px] flex flex-row justify-between items-center font-[500] text-[#020202] mb-3">
                   <div>Primary Owner(s)</div>
-                  <div className="text-[12px] text-[#6B7280]">
+                  <div className="text-[15px] font-[400] text-[#414141]">
                     {primaryOwners.length} Owner(s) Selected
                   </div>
                 </h3>
                 <div className="relative" ref={primaryDropdownRef}>
                   <FilterInputShell
                     placeholder="Search / Select Owners"
-                    className="w-full"
+                    className="w-full bg-white"
                     onClick={(e) => {
                       e.stopPropagation();
                       recalcPrimaryPos();
@@ -778,17 +769,17 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
               </div>
 
               {/* Secondary Owner(s) */}
-              <div>
-                <h3 className="text-[16px] flex flex-row justify-between items-center font-medium text-[#1F2937] mb-3">
+              <div className="px-[20px] pb-[20px] pt-[14px] bg-[#F9F9F9] rounded-[14px]">
+                <h3 className="text-[15px] font-[500] flex flex-row justify-between items-center font-medium text-[#020202] mb-3">
                   <div>Secondary Owner(s)</div>
-                  <div className="text-[12px] text-[#6B7280]">
+                  <div className="text-[15px] font-[400] text-[#414141]">
                     {secondaryOwners.length} Owner(s) Selected
                   </div>
                 </h3>
                 <div className="relative" ref={secondaryDropdownRef}>
                   <FilterInputShell
                     placeholder="Search / Select Owners"
-                    className="w-full"
+                    className="w-full bg-white"
                     onClick={(e) => {
                       e.stopPropagation();
                       recalcSecondaryPos();
@@ -913,26 +904,23 @@ const SelectBookingOwnerModal: React.FC<SelectBookingOwnerModalProps> = ({
         )}
 
         {/* Bottom bar */}
-        <div className="mt-8 flex items-center justify-between">
-
-          <div className="flex items-center gap-3">
+        <div className="flex mt-[20px] w-full justify-end items-center gap-3">
             <Button
-              text="Reset"
+              text=""
               onClick={handleReset}
-              icon={<RiRefreshLine size={18} />}
+              icon={<RiRefreshLine size={24} />}
               bgColor="bg-white"
-              textColor="text-[#414141]"
-              className="border border-[#414141] hover:bg-gray-200 font-semibold px-4 py-1.5"
+              textColor="text-[#727476]"
+              className="border border-[#E2E1E1] rounded-[14px] hover:bg-gray-200 font-semibold px-[14px] py-[5px]"
             />
             <Button
               text="Apply"
               onClick={handleApply}
-              bgColor="bg-[#0D4B37]"
+              bgColor="bg-[#7135AD]"
               textColor="text-white"
-              className="border border-[#0D4B37] hover:bg-[#125E45] font-semibold px-4 py-1.5"
+              className="hover:bg-[#7135AD] rounded-[14px] font-semibold px-[14px] py-[7px]"
             />
           </div>
-        </div>
       </div>
     </Modal>
   );

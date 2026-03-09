@@ -2,6 +2,7 @@
 import { getCurrencySymbol, getCurrencyLocale } from "@/utils/helper";
 
 import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   useMemo,
   useState,
@@ -195,6 +196,10 @@ const getServiceStatusBadgeClass = (
 };
 
 const LimitlessBookingsPage = () => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const hasHandledAutoCreateRef = useRef(false);
+
   // UI State
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [generatedBookingCode, setGeneratedBookingCode] = useState<
@@ -525,7 +530,7 @@ const LimitlessBookingsPage = () => {
   ]);
 
   // When user requests create from Filter, generate custom id first then open sidesheet directly
-  const handleCreateRequested = async () => {
+  const handleCreateRequested = useCallback(async () => {
     try {
       // simple guard against rapid duplicate calls
       const now = Date.now();
@@ -567,7 +572,16 @@ const LimitlessBookingsPage = () => {
       setGeneratedVendorCode(null);
       alert("Could not generate booking ID. Please refresh and try again.");
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const shouldAutoCreate = searchParams.get("create") === "1";
+    if (!shouldAutoCreate || hasHandledAutoCreateRef.current) return;
+
+    hasHandledAutoCreateRef.current = true;
+    void handleCreateRequested();
+    router.replace("/bookings/limitless");
+  }, [handleCreateRequested, router, searchParams]);
 
   // Handle booking completion (refresh data)
   const handleBookingComplete = useCallback(async () => {

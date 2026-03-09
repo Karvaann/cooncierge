@@ -11,6 +11,7 @@ interface ModalProps {
   subtitle?: string; // Added optional subtitle for better structure
   customWidth?: string;
   customeHeight?: string;
+  customBorderRadius?: string;
   size?: "sm" | "md" | "lg" | "xl" | "full";
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
@@ -41,6 +42,7 @@ const Modal: React.FC<ModalProps> = ({
   zIndexClass = "z-[140]",
   disableOverlayClick = false,
   headerLeft,
+  customBorderRadius,
 }) => {
   const sizeClasses: ModalSize = useMemo(
     () => ({
@@ -50,7 +52,7 @@ const Modal: React.FC<ModalProps> = ({
       xl: "max-w-xl",
       full: "max-w-full mx-4",
     }),
-    []
+    [],
   );
 
   const isMobile = useMemo(() => {
@@ -62,7 +64,7 @@ const Modal: React.FC<ModalProps> = ({
     (event: KeyboardEvent) => {
       if (event.key === "Escape" && closeOnEscape) onClose();
     },
-    [onClose, closeOnEscape]
+    [onClose, closeOnEscape],
   );
 
   const handleOverlayClick = useCallback(
@@ -75,7 +77,7 @@ const Modal: React.FC<ModalProps> = ({
         onClose();
       }
     },
-    [onClose, closeOnOverlayClick]
+    [onClose, closeOnOverlayClick],
   );
 
   useEffect(() => {
@@ -104,8 +106,8 @@ const Modal: React.FC<ModalProps> = ({
     >
       <div
         className={`
-          relative bg-white rounded-lg shadow-xl overflow-hidden 
-          transition-all duration-300 transform ${modalWidthClass} ${modalHeightClass}
+          relative bg-white shadow-xl overflow-hidden 
+          transition-all duration-300 transform ${modalWidthClass} ${modalHeightClass} ${customBorderRadius ? customBorderRadius : "rounded-lg"}
           pointer-events-auto
           ${isMobile ? "absolute bottom-0 w-full rounded-t-2xl" : ""}
           ${className}
@@ -114,15 +116,12 @@ const Modal: React.FC<ModalProps> = ({
       >
         {/* HEADER FIXED LAYOUT */}
 
-        <div className="relative flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100">
+        <div className="relative flex items-center justify-between">
           {headerLeft ? (
-            <div className="flex-initial ml-3">{headerLeft}</div>
+            <div className="w-[95%]">{headerLeft}</div>
           ) : (
             <div className="flex-1 text-center px-6">
-              <h2
-                id="modal-title"
-                className="text-black text-[1rem] md:text-[1.15rem] font-semibold leading-snug m-0"
-              >
+              <h2 id="modal-title" className="">
                 {title}
               </h2>
 
@@ -158,9 +157,7 @@ const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* ✅ CONTENT AREA */}
-        <div className="relative mt-[-0.25rem] z-10 p-4 overflow-y-auto max-h-[calc(90vh-80px)] bg-white">
-          {children}
-        </div>
+        <div className="">{children}</div>
       </div>
     </div>
   );

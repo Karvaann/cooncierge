@@ -35,7 +35,6 @@ export default function Button({
         ${bgColor} 
         ${textColor} 
         ${width}
-        rounded-md 
         text-[14px] 
         font-medium 
         flex items-center justify-center gap-1.5
