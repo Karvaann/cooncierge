@@ -1,12 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { MdOutlineEdit } from "react-icons/md";
-import { FiMinusCircle } from "react-icons/fi";
-import SingleCalendar from "@/components/SingleCalendar";
-import DropDown from "@/components/DropDown";
-import { LuSave } from "react-icons/lu";
-import BaggageCounters from "./BaggageCounters";
+import React from "react";
+import FlightSegmentCard, {
+  type SegmentPreview,
+  type FlightSegmentData,
+} from "./FlightSegment";
 
 interface FlightInfoFormData {
   bookingdate: string;
@@ -16,7 +14,7 @@ interface FlightInfoFormData {
   sellingprice: number | string;
   PNR: number | string;
   pnrEnabled: boolean;
-  segments: FlightSegment[]; // Array of flight segments
+  segments: FlightSegment[];
   returnSegments: ReturnFlightSegment[];
   samePNRForAllSegments: boolean;
   flightType: "One Way" | "Round Trip" | "Multi-City";
@@ -35,7 +33,6 @@ interface FlightSegment {
     | string;
   pnr?: string;
   preview?: SegmentPreview;
-
   cabinBaggagePcs?: number | string;
   cabinBaggageWt?: number | string;
   checkInBaggagePcs?: number | string;
@@ -54,48 +51,10 @@ interface ReturnFlightSegment {
     | string;
   pnr?: string;
   preview?: SegmentPreview;
-
   cabinBaggagePcs?: number | string;
   cabinBaggageWt?: number | string;
   checkInBaggagePcs?: number | string;
   checkInBaggageWt?: number | string;
-}
-
-interface AviationAirportInfo {
-  airport?: string;
-  iata?: string;
-  scheduled?: string;
-}
-
-interface AviationAirlineInfo {
-  airline_name?: string;
-  name?: string;
-}
-
-interface AviationFlightInfo {
-  iata?: string;
-  number?: string;
-}
-
-interface AviationAPIResponse {
-  data: {
-    departure?: AviationAirportInfo;
-    arrival?: AviationAirportInfo;
-    airline?: AviationAirlineInfo;
-    flight?: AviationFlightInfo;
-  }[];
-}
-
-interface SegmentPreview {
-  airline?: string;
-  origin?: string;
-  destination?: string;
-  departureTime?: string;
-  departureTimeRaw?: string;
-  arrivalTime?: string;
-  arrivalTimeRaw?: string;
-  flightNumber?: string;
-  duration?: string;
 }
 
 export default function RoundTripLayout({
@@ -105,277 +64,7 @@ export default function RoundTripLayout({
   formData: FlightInfoFormData;
   setFormData: React.Dispatch<React.SetStateAction<FlightInfoFormData>>;
 }) {
-  const [segmentPreview, setSegmentPreview] = useState<
-    Record<string, SegmentPreview>
-  >({});
-  const [returnSegmentPreview, setReturnSegmentPreview] = useState<
-    Record<string, SegmentPreview>
-  >({});
-  const [editing, setEditing] = useState<Record<string, boolean>>({});
-  const [editingData, setEditingData] = useState<
-    Record<string, Partial<SegmentPreview>>
-  >({});
-  const lastFetchedRef = React.useRef<Record<string, string>>({});
-  const API_KEY = process.env.NEXT_PUBLIC_AVIATIONSTACK_KEY ?? "";
-
-  // Format time like 08:15 AM
-  const formatTime = (datetime: any) => {
-    if (!datetime) return "--";
-    return new Date(datetime).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const toTimeInput = (val?: string) => {
-    if (!val) return "";
-    const d = new Date(val);
-    if (!isNaN(d.getTime())) {
-      const hh = String(d.getHours()).padStart(2, "0");
-      const mm = String(d.getMinutes()).padStart(2, "0");
-      return `${hh}:${mm}`;
-    }
-    const m = String(val).match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
-    if (m) {
-      let hh = parseInt(m[1]!, 10);
-      const mm2 = m[2] ?? "00";
-      const ampm = (m[3] ?? "AM").toUpperCase();
-      if (ampm === "PM" && hh !== 12) hh += 12;
-      if (ampm === "AM" && hh === 12) hh = 0;
-      return `${String(hh).padStart(2, "0")}:${mm2}`;
-    }
-    const m2 = String(val).match(/(\d{1,2}):(\d{2})/);
-    if (m2)
-      return `${String(parseInt(m2[1]!, 10)).padStart(2, "0")}:${
-        m2[2] ?? "00"
-      }`;
-    return "";
-  };
-
-  // Truncate long place names for display
-  const truncateIfLong = (val?: string, limit = 20) => {
-    if (!val) return val ?? "";
-    return val.length > limit ? `${val.slice(0, limit)}...` : val;
-  };
-
-  // Normalize/cap time input HH:MM so hours <=23 and minutes <=59
-  const capTimeInput = (val?: string) => {
-    if (!val) return "";
-    const parts = String(val).split(":");
-    let hh = parseInt(parts[0] ?? "0", 10);
-    let mm = parseInt(parts[1] ?? "0", 10);
-    if (isNaN(hh)) hh = 0;
-    if (isNaN(mm)) mm = 0;
-    if (hh > 23) hh = 23;
-    if (mm > 59) mm = 59;
-    return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
-  };
-
-  // Duration calculator
-  const getDuration = (dep: any, arr: any) => {
-    if (!dep || !arr) return "--";
-    const d1: any = new Date(dep);
-    const d2: any = new Date(arr);
-
-    const diff = (d2 - d1) / 1000 / 60; // minutes
-    const h = Math.floor(diff / 60);
-    const m = diff % 60;
-
-    return `${h}h ${m}m`;
-  };
-
-  // Get flight endpoint - using flights API
-  // Note: flight_date parameter requires paid plan on AviationStack
-  // Free tier only allows real-time flight lookup by flight number
-  const getFlightEndpoint = (flightNumber: string, API_KEY: string): string => {
-    return `https://api.aviationstack.com/v1/flights?access_key=${API_KEY}&flight_iata=${flightNumber}`;
-  };
-
-  const fetchFlightData = async (
-    segment: FlightSegment | ReturnFlightSegment,
-    isReturn: boolean = false,
-  ) => {
-    try {
-      if (!segment.flightnumber) return;
-      if (!API_KEY) {
-        console.error("Missing NEXT_PUBLIC_AVIATIONSTACK_KEY");
-        return;
-      }
-
-      const endpoint = getFlightEndpoint(String(segment.flightnumber), API_KEY);
-
-      const res = await fetch(endpoint);
-      const data: AviationAPIResponse & {
-        error?: { code: number; type: string };
-      } = await res.json();
-
-      // Handle API errors
-      if (data?.error) {
-        console.warn("AviationStack API error:", data.error);
-        return;
-      }
-
-      if (!data?.data?.length) return;
-
-      const f: any = data.data[0];
-
-      const preview: SegmentPreview = {
-        airline: f.airline?.name || f.airline?.airline_name || "--",
-        origin: `${f.departure?.airport ?? "--"} (${
-          f.departure?.iata ?? "--"
-        })`,
-        destination: `${f.arrival?.airport ?? "--"} (${
-          f.arrival?.iata ?? "--"
-        })`,
-        departureTime: formatTime(f.departure?.scheduled),
-        departureTimeRaw: f.departure?.scheduled,
-        arrivalTime: formatTime(f.arrival?.scheduled),
-        arrivalTimeRaw: f.arrival?.scheduled,
-        flightNumber:
-          f.flight?.iata || f.flight?.number || String(segment.flightnumber),
-        duration: getDuration(f.departure?.scheduled, f.arrival?.scheduled),
-      };
-
-      if (isReturn) {
-        setReturnSegmentPreview((prev) => ({
-          ...prev,
-          [segment.id!]: preview,
-        }));
-        setFormData((prev) => ({
-          ...prev,
-          returnSegments: prev.returnSegments.map((s) =>
-            s.id === segment.id ? { ...s, preview } : s,
-          ),
-        }));
-      } else {
-        setSegmentPreview((prev) => ({
-          ...prev,
-          [segment.id!]: preview,
-        }));
-        setFormData((prev) => ({
-          ...prev,
-          segments: prev.segments.map((s) =>
-            s.id === segment.id ? { ...s, preview } : s,
-          ),
-        }));
-      }
-    } catch (error) {
-      console.error("Flight fetch error:", error);
-    }
-  };
-
-  // Store timeout refs for each segment to properly debounce
-  const timeoutRefs = React.useRef<Record<string, NodeJS.Timeout>>({});
-  const returnTimeoutRefs = React.useRef<Record<string, NodeJS.Timeout>>({});
-
-  // Debounced fetch for onwards segments
-  useEffect(() => {
-    formData.segments.forEach((segment) => {
-      const fn = String(segment.flightnumber || "");
-      const segmentId = segment.id!;
-
-      // Clear any existing timeout for this segment
-      if (timeoutRefs.current[segmentId]) {
-        clearTimeout(timeoutRefs.current[segmentId]);
-        delete timeoutRefs.current[segmentId];
-      }
-
-      // Clear preview data if flight number is empty or less than 3 characters
-      // Clear preview data if flight number is empty or less than 3 characters
-      const hasManualPreview = !!segment.preview;
-      if (fn.length < 3 && !hasManualPreview && !segmentPreview[segmentId]) {
-        setSegmentPreview((prev) => {
-          const updated = { ...prev };
-          delete updated[segmentId];
-          return updated;
-        });
-        return;
-      }
-
-      // Skip scheduling if same flight number was already fetched
-      if (lastFetchedRef.current[segmentId] === fn) return;
-
-      timeoutRefs.current[segmentId] = setTimeout(() => {
-        fetchFlightData(segment, false)
-          .then(() => {
-            lastFetchedRef.current[segmentId] = String(
-              segment.flightnumber || "",
-            );
-          })
-          .catch(() => {})
-          .finally(() => {
-            delete timeoutRefs.current[segmentId];
-          });
-      }, 3000);
-    });
-
-    // Cleanup all timeouts on unmount
-    return () => {
-      Object.values(timeoutRefs.current).forEach(clearTimeout);
-      timeoutRefs.current = {};
-    };
-  }, [formData.segments]);
-
-  // Debounced fetch for return segments
-  useEffect(() => {
-    formData.returnSegments.forEach((segment) => {
-      const fn = String(segment.flightnumber || "");
-      const segmentId = segment.id!;
-
-      // Clear any existing timeout for this segment
-      if (returnTimeoutRefs.current[segmentId]) {
-        clearTimeout(returnTimeoutRefs.current[segmentId]);
-        delete returnTimeoutRefs.current[segmentId];
-      }
-
-      // Clear preview data if flight number is empty or less than 3 characters
-      const hasManualPreview = !!segment.preview;
-      if (
-        fn.length < 3 &&
-        !hasManualPreview &&
-        !returnSegmentPreview[segmentId]
-      ) {
-        setReturnSegmentPreview((prev) => {
-          const updated = { ...prev };
-          delete updated[segmentId];
-          return updated;
-        });
-        return;
-      }
-
-      if (lastFetchedRef.current[segmentId] === fn) return;
-
-      returnTimeoutRefs.current[segmentId] = setTimeout(() => {
-        fetchFlightData(segment, true)
-          .then(() => {
-            lastFetchedRef.current[segmentId] = String(
-              segment.flightnumber || "",
-            );
-          })
-          .catch(() => {})
-          .finally(() => {
-            delete returnTimeoutRefs.current[segmentId];
-          });
-      }, 3000);
-    });
-
-    // Cleanup all timeouts on unmount
-    return () => {
-      Object.values(returnTimeoutRefs.current).forEach(clearTimeout);
-      returnTimeoutRefs.current = {};
-    };
-  }, [formData.returnSegments]);
-
-  const previewData: SegmentPreview = {
-    airline: "IndiGo Airlines",
-    origin: "Delhi (DEL)",
-    destination: "Mumbai (BOM)",
-    departureTime: "08:10 AM",
-    arrivalTime: "10:05 AM",
-    flightNumber: "A320",
-    duration: "1h 55m",
-  };
-
+  // Onwards segment handlers
   const addSegment = () => {
     const newSegment: FlightSegment = {
       id: Date.now().toString(),
@@ -393,13 +82,35 @@ export default function RoundTripLayout({
     if (formData.segments.length > 1) {
       setFormData({
         ...formData,
-        segments: formData.segments.filter((segment) => segment.id !== id),
+        segments: formData.segments.filter((s) => s.id !== id),
       });
     }
   };
 
+  const handleSegmentChange = (
+    segmentId: string,
+    patch: Partial<FlightSegmentData>,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      segments: prev.segments.map((s) =>
+        s.id === segmentId ? { ...s, ...patch } : s,
+      ),
+    }));
+  };
+
+  const handlePreviewChange = (segmentId: string, preview: SegmentPreview) => {
+    setFormData((prev) => ({
+      ...prev,
+      segments: prev.segments.map((s) =>
+        s.id === segmentId ? { ...s, preview } : s,
+      ),
+    }));
+  };
+
+  // Return segment handlers
   const addReturnSegment = () => {
-    const newSegment: FlightSegment = {
+    const newSegment: ReturnFlightSegment = {
       id: `return-${Date.now()}`,
       flightnumber: "",
       traveldate: "",
@@ -415,11 +126,33 @@ export default function RoundTripLayout({
     if (formData.returnSegments.length > 1) {
       setFormData({
         ...formData,
-        returnSegments: formData.returnSegments.filter(
-          (segment) => segment.id !== id,
-        ),
+        returnSegments: formData.returnSegments.filter((s) => s.id !== id),
       });
     }
+  };
+
+  const handleReturnSegmentChange = (
+    segmentId: string,
+    patch: Partial<FlightSegmentData>,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      returnSegments: prev.returnSegments.map((s) =>
+        s.id === segmentId ? { ...s, ...patch } : s,
+      ),
+    }));
+  };
+
+  const handleReturnPreviewChange = (
+    segmentId: string,
+    preview: SegmentPreview,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      returnSegments: prev.returnSegments.map((s) =>
+        s.id === segmentId ? { ...s, preview } : s,
+      ),
+    }));
   };
 
   const handleSegmentPnr = (
@@ -430,17 +163,19 @@ export default function RoundTripLayout({
     setFormData((prev) => {
       const updated = [...prev[type]];
       updated[idx] = { ...updated[idx], pnr: value } as FlightSegment;
-
       return { ...prev, [type]: updated };
     });
   };
 
-  // Calculate total duration from all segment previews
-  const getTotalDuration = (previews: Record<string, SegmentPreview>) => {
+  // Calculate total duration from segment previews
+  const getTotalDuration = (
+    segments: (FlightSegment | ReturnFlightSegment)[],
+  ) => {
     let totalMinutes = 0;
-    Object.values(previews).forEach((preview) => {
-      if (preview.duration && preview.duration !== "--") {
-        const match = preview.duration.match(/(\d+)h\s*(\d+)m/);
+    segments.forEach((s) => {
+      const duration = s.preview?.duration;
+      if (duration && duration !== "--") {
+        const match = duration.match(/(\d+)h\s*(\d+)m/);
         if (match && match[1] && match[2]) {
           totalMinutes += parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
         }
@@ -452,618 +187,78 @@ export default function RoundTripLayout({
     return `${h}h ${m}m`;
   };
 
+  const addSegmentButton = (onClick: () => void) => (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-[#7135AD] text-white text-[0.75rem] rounded-[10px] hover:cursor-pointer transition"
+    >
+      <div className="border rounded-full border-[#fff] px-0.5 py-0.5 flex items-center justify-center">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="10"
+          height="10"
+          viewBox="0 0 14 14"
+          fill="none"
+        >
+          <path
+            d="M6.59672 2.74805V10.4415M2.75 6.59477H10.4434"
+            stroke="white"
+            strokeWidth="1.7"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+      Add Segment
+    </button>
+  );
+
   return (
     <div className="space-y-6 text-[0.75rem] text-gray-700">
       {/* Onwards Section */}
       <div>
         <div className="mb-3">
-          <span className="font-[500] text-gray-600">
-            Onwards ({getTotalDuration(segmentPreview)})
+          <span className="font-[500] text-[#414141] text-[13px]">
+            Onwards ({getTotalDuration(formData.segments)})
           </span>
         </div>
 
-        <div className="border border-[#E2E1E1] p-4 rounded-lg">
+        <div className="bg-[#F9F9F9] p-4 rounded-[15px] w-full">
           <div className="space-y-4">
             {formData.segments.map((segment, index) => (
               <div
                 key={segment.id}
-                className="grid grid-cols-1 lg:grid-cols-2 gap-3"
+                className="grid grid-cols-1 lg:grid-cols-2 gap-4"
               >
-                {/* Flight Segment */}
-                <div className="border border-[#E2E1E1] rounded-lg px-3 py-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-[0.85rem] font-[600] text-gray-800">
-                      Flight Segment {index + 1}
-                    </h4>
-                    {formData.segments.length > 1 && (
-                      <button
-                        onClick={() => removeSegment(segment.id!)}
-                        className="text-gray-400 hover:cursor-pointer"
-                      >
-                        <FiMinusCircle size={16} />
-                      </button>
-                    )}
-                  </div>
-
-                  <hr className="mb-2 -mt-1 border-t border-[#E2E1E1]" />
-
-                  <div className="grid grid-cols-1 gap-3">
-                    {/* Flight Number */}
-                    <div>
-                      <label className="block mb-1 font-[500] text-gray-600">
-                        Flight Number
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="A320"
-                        value={segment.flightnumber}
-                        onChange={(e) => {
-                          const updatedSegments = formData.segments.map((s) =>
-                            s.id === segment.id
-                              ? { ...s, flightnumber: e.target.value }
-                              : s,
-                          );
-                          setFormData({
-                            ...formData,
-                            segments: updatedSegments,
-                          });
-                        }}
-                        className="w-[75%] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
-                      />
-                    </div>
-
-                    {/* PNR (toggle off) */}
-                    {!formData.pnrEnabled && (
-                      <div>
-                        <label className="block mb-1 font-[500] text-gray-600">
-                          PNR
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Enter PNR"
-                          value={segment.pnr || ""}
-                          onChange={(e) =>
-                            handleSegmentPnr(index, e.target.value, "segments")
-                          }
-                          className="w-[75%] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
-                        />
-                      </div>
-                    )}
-
-                    {/* Travel Date */}
-                    <div>
-                      <SingleCalendar
-                        label="Travel Date"
-                        value={segment.traveldate}
-                        onChange={(date) => {
-                          const updatedSegments = formData.segments.map((s) =>
-                            s.id === segment.id
-                              ? { ...s, traveldate: date }
-                              : s,
-                          );
-                          setFormData({
-                            ...formData,
-                            segments: updatedSegments,
-                          });
-                        }}
-                        placeholder="DD-MM-YYYY"
-                        minDate={formData.bookingdate}
-                        customWidth="w-[75%]"
-                        showCalendarIcon={false}
-                      />
-                    </div>
-
-                    {/* Cabin Class */}
-                    <div>
-                      <label className="block mb-1 font-[500] text-gray-600">
-                        Cabin Class
-                      </label>
-                      <DropDown
-                        options={[
-                          { value: "Economy", label: "Economy" },
-                          {
-                            value: "Premium Economy",
-                            label: "Premium Economy",
-                          },
-                          { value: "Business", label: "Business" },
-                          { value: "First Class", label: "First Class" },
-                        ]}
-                        placeholder="Cabin Class"
-                        value={segment.cabinclass}
-                        onChange={(val: string) => {
-                          const updatedSegments = formData.segments.map((s) =>
-                            s.id === segment.id ? { ...s, cabinclass: val } : s,
-                          );
-                          setFormData({
-                            ...formData,
-                            segments: updatedSegments,
-                          });
-                        }}
-                        customWidth="w-[75%]"
-                      />
-                    </div>
-
-                    {/* Cabin + Check-In baggage counters */}
-                    <BaggageCounters
-                      cabinPcs={segment.cabinBaggagePcs ?? 1}
-                      cabinWt={segment.cabinBaggageWt ?? ""}
-                      checkInPcs={segment.checkInBaggagePcs ?? 1}
-                      checkInWt={segment.checkInBaggageWt ?? ""}
-                      onChange={(patch) => {
-                        const updatedSegments = formData.segments.map((s) =>
-                          s.id === segment.id ? { ...s, ...patch } : s,
-                        );
-                        setFormData({
-                          ...formData,
-                          segments: updatedSegments,
-                        });
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Preview Section */}
-                <div className="border border-dotted border-[#E2E1E1] rounded-lg p-3">
-                  {/* Heading + edit icon (hidden while editing) */}
-                  {!editing[segment.id!] && (
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-[0.85rem] font-[600] text-gray-800">
-                        Preview
-                      </h4>
-                      <button
-                        onClick={() => {
-                          const segId = segment.id!;
-                          setEditing((prev) => ({ ...prev, [segId]: true }));
-                          const pv = segment.preview ?? segmentPreview[segId];
-                          setEditingData((prev) => ({
-                            ...prev,
-                            [segId]: {
-                              airline: pv?.airline ?? "",
-                              flightNumber:
-                                pv?.flightNumber ??
-                                String(segment.flightnumber ?? ""),
-                              origin: pv?.origin ?? "",
-                              destination: pv?.destination ?? "",
-                              departureTime: toTimeInput(
-                                pv?.departureTimeRaw ?? pv?.departureTime,
-                              ),
-                              arrivalTime: toTimeInput(
-                                pv?.arrivalTimeRaw ?? pv?.arrivalTime,
-                              ),
-                              duration: pv?.duration ?? "",
-                            },
-                          }));
-                        }}
-                        className="text-blue-600 hover:text-blue-700"
-                      >
-                        <MdOutlineEdit size={16} />
-                      </button>
-                    </div>
-                  )}
-
-                  {!editing[segment.id!] && (
-                    <hr className="mb-3 border-t border-[#E2E1E1]" />
-                  )}
-
-                  <div className="bg-white rounded-md p-3 min-h-[180px]">
-                    {(() => {
-                      const isEditing = !!editing[segment.id!];
-                      const preview =
-                        segment.preview ?? segmentPreview[segment.id!];
-                      if (isEditing) {
-                        const data = editingData[segment.id!] || {};
-                        return (
-                          <div className="h-full">
-                            <div className="grid grid-cols-1 gap-2 text-[0.75rem]">
-                              <div>
-                                <label className="text-gray-500 text-[0.6rem] mb-1 block">
-                                  Airline Name
-                                </label>
-                                <input
-                                  type="text"
-                                  value={data.airline ?? ""}
-                                  onChange={(e) =>
-                                    setEditingData((prev) => ({
-                                      ...prev,
-                                      [segment.id!]: {
-                                        ...prev[segment.id!],
-                                        airline: e.target.value,
-                                      },
-                                    }))
-                                  }
-                                  className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
-                                />
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <label className="text-gray-500 text-[0.6rem] mb-1 block">
-                                    Flight Number
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={
-                                      data.flightNumber ??
-                                      preview?.flightNumber ??
-                                      ""
-                                    }
-                                    onChange={(e) =>
-                                      setEditingData((prev) => ({
-                                        ...prev,
-                                        [segment.id!]: {
-                                          ...prev[segment.id!],
-                                          flightNumber: e.target.value,
-                                        },
-                                      }))
-                                    }
-                                    className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="text-gray-500 text-[0.6rem] mb-1 block">
-                                    Duration
-                                  </label>
-                                  <input
-                                    type="text"
-                                    placeholder="e.g. 1h 55m"
-                                    value={
-                                      data.duration ?? preview?.duration ?? ""
-                                    }
-                                    onChange={(e) =>
-                                      setEditingData((prev) => ({
-                                        ...prev,
-                                        [segment.id!]: {
-                                          ...prev[segment.id!],
-                                          duration: e.target.value,
-                                        },
-                                      }))
-                                    }
-                                    className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-2">
-                                <div>
-                                  <label className="text-gray-500 text-[0.6rem] mb-1 block">
-                                    Origin
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={data.origin ?? preview?.origin ?? ""}
-                                    onChange={(e) =>
-                                      setEditingData((prev) => ({
-                                        ...prev,
-                                        [segment.id!]: {
-                                          ...prev[segment.id!],
-                                          origin: e.target.value,
-                                        },
-                                      }))
-                                    }
-                                    className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="text-gray-500 text-[0.6rem] mb-1 block">
-                                    Destination
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={
-                                      data.destination ??
-                                      preview?.destination ??
-                                      ""
-                                    }
-                                    onChange={(e) =>
-                                      setEditingData((prev) => ({
-                                        ...prev,
-                                        [segment.id!]: {
-                                          ...prev[segment.id!],
-                                          destination: e.target.value,
-                                        },
-                                      }))
-                                    }
-                                    className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-2 gap-2 items-end">
-                                <div>
-                                  <label className="text-gray-500 text-[0.6rem] mb-1 block">
-                                    ETD
-                                  </label>
-                                  <input
-                                    type="time"
-                                    value={
-                                      (editingData[segment.id!]
-                                        ?.departureTime ??
-                                        preview?.departureTime) as string
-                                    }
-                                    onChange={(e) =>
-                                      setEditingData((prev) => ({
-                                        ...prev,
-                                        [segment.id!]: {
-                                          ...prev[segment.id!],
-                                          departureTime: capTimeInput(
-                                            e.target.value,
-                                          ),
-                                        },
-                                      }))
-                                    }
-                                    className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="text-gray-500 text-[0.6rem] mb-1 block">
-                                    ETA
-                                  </label>
-                                  <input
-                                    type="time"
-                                    value={
-                                      (editingData[segment.id!]?.arrivalTime ??
-                                        preview?.arrivalTime) as string
-                                    }
-                                    onChange={(e) =>
-                                      setEditingData((prev) => ({
-                                        ...prev,
-                                        [segment.id!]: {
-                                          ...prev[segment.id!],
-                                          arrivalTime: capTimeInput(
-                                            e.target.value,
-                                          ),
-                                        },
-                                      }))
-                                    }
-                                    className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
-                                  />
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Buttons */}
-                            <div className="flex justify-end gap-2 mt-4">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditing((prev) => ({
-                                    ...prev,
-                                    [segment.id!]: false,
-                                  }));
-                                  setEditingData((prev) => {
-                                    const copy = { ...prev };
-                                    delete copy[segment.id!];
-                                    return copy;
-                                  });
-                                }}
-                                className="px-3 py-1.5 bg-white border border-[#E2E1E1] rounded-md text-[0.75rem] text-gray-700 hover:bg-gray-50"
-                              >
-                                Cancel
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const d = editingData[segment.id!] || {};
-                                  const dep =
-                                    d.departureTime ?? d.departureTimeRaw ?? "";
-                                  const arr =
-                                    d.arrivalTime ?? d.arrivalTimeRaw ?? "";
-
-                                  let durationVal = d.duration ?? "";
-                                  if (
-                                    (!durationVal || durationVal === "") &&
-                                    dep &&
-                                    arr
-                                  ) {
-                                    try {
-                                      const depISO = `${segment.traveldate}T${dep}`;
-                                      const arrISO = `${segment.traveldate}T${arr}`;
-                                      const t1 = new Date(depISO);
-                                      const t2 = new Date(arrISO);
-                                      if (
-                                        !isNaN(t1.getTime()) &&
-                                        !isNaN(t2.getTime())
-                                      ) {
-                                        const diff =
-                                          (t2.getTime() - t1.getTime()) /
-                                          1000 /
-                                          60;
-                                        const h = Math.floor(diff / 60);
-                                        const m = Math.abs(
-                                          Math.floor(diff % 60),
-                                        );
-                                        durationVal = `${h}h ${m}m`;
-                                      }
-                                    } catch (e) {}
-                                  }
-
-                                  const newPreview: SegmentPreview = {
-                                    airline:
-                                      d.airline ?? preview?.airline ?? "",
-                                    origin: d.origin ?? preview?.origin ?? "",
-                                    destination:
-                                      d.destination ??
-                                      preview?.destination ??
-                                      "",
-                                    departureTime:
-                                      dep ?? preview?.departureTime ?? "",
-                                    arrivalTime:
-                                      arr ?? preview?.arrivalTime ?? "",
-                                    departureTimeRaw: dep
-                                      ? `${segment.traveldate}T${dep}`
-                                      : (preview?.departureTimeRaw ?? ""),
-                                    arrivalTimeRaw: arr
-                                      ? `${segment.traveldate}T${arr}`
-                                      : (preview?.arrivalTimeRaw ?? ""),
-                                    flightNumber:
-                                      d.flightNumber ??
-                                      preview?.flightNumber ??
-                                      String(segment.flightnumber ?? ""),
-                                    duration:
-                                      durationVal || preview?.duration || "",
-                                  };
-
-                                  setSegmentPreview((prev) => ({
-                                    ...prev,
-                                    [segment.id!]: newPreview,
-                                  }));
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    segments: prev.segments.map((s) =>
-                                      s.id === segment.id
-                                        ? { ...s, preview: newPreview }
-                                        : s,
-                                    ),
-                                  }));
-                                  lastFetchedRef.current[segment.id!] =
-                                    newPreview.flightNumber ??
-                                    String(segment.flightnumber ?? "");
-                                  setEditing((prev) => ({
-                                    ...prev,
-                                    [segment.id!]: false,
-                                  }));
-                                  setEditingData((prev) => {
-                                    const copy = { ...prev };
-                                    delete copy[segment.id!];
-                                    return copy;
-                                  });
-                                }}
-                                className="px-3 py-1.5 flex items-center gap-1 bg-[#0D4B37] text-white rounded-md text-[0.75rem] hover:bg-green-700"
-                              >
-                                <LuSave size={16} />
-                                Save
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      if (preview) {
-                        return (
-                          <>
-                            <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 mb-3 flex items-center gap-2">
-                              <span className="font-[500] text-gray-800">
-                                {preview.airline}
-                              </span>
-                            </div>
-
-                            <div className="space-y-0.5">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <div className="text-gray-500 text-[0.6rem] mb-0.5">
-                                    Origin
-                                  </div>
-                                  <div className="font-[600] text-gray-900">
-                                    {truncateIfLong(preview.origin)}
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-gray-500 text-[0.6rem] mb-0.5">
-                                    STD
-                                  </div>
-                                  <div className="font-[600] text-gray-900">
-                                    {preview.departureTime}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex justify-between items-center">
-                                <div>
-                                  <div className="text-gray-500 text-[0.6rem] mb-0.5">
-                                    Flight Number
-                                  </div>
-                                  <div className="font-[600] text-gray-900">
-                                    {preview.flightNumber}
-                                  </div>
-                                </div>
-
-                                <div className="flex flex-col items-center text-gray-500 text-[0.6rem]">
-                                  <div className="w-[1px] h-8 border-l-2 border-dotted border-gray-300 mb-1"></div>
-                                  <div className="text-[0.75rem] font-[500] text-gray-700">
-                                    ✈
-                                  </div>
-                                  <div className="w-[0.0625rem] h-8 border-l-2 border-dotted border-gray-300 mt-1"></div>
-                                </div>
-
-                                <div className="text-right">
-                                  <div className="text-gray-500 text-[0.6rem] mb-0.5">
-                                    Duration
-                                  </div>
-                                  <div className="font-[600] text-gray-900">
-                                    {preview.duration}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <div className="text-gray-500 text-[0.6rem] mb-0.5">
-                                    Destination
-                                  </div>
-                                  <div className="font-[600] text-gray-900">
-                                    {truncateIfLong(preview.destination)}
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-gray-500 text-[0.6rem] mb-0.5">
-                                    STA
-                                  </div>
-                                  <div className="font-[600] text-gray-900">
-                                    {preview.arrivalTime}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </>
-                        );
-                      }
-
-                      return (
-                        <div className="flex items-center justify-center h-full bg-gray-50 rounded-md text-gray-500 min-h-[255px]">
-                          <p>Preview data will appear here</p>
-                        </div>
-                      );
-                    })()}
-                  </div>
-                </div>
+                <FlightSegmentCard
+                  segment={segment}
+                  index={index}
+                  canRemove={formData.segments.length > 1}
+                  onRemove={removeSegment}
+                  onSegmentChange={handleSegmentChange}
+                  preview={segment.preview}
+                  onPreviewChange={handlePreviewChange}
+                  traveldate={segment.traveldate}
+                  bookingdate={formData.bookingdate}
+                  onTraveldateChange={(date) =>
+                    handleSegmentChange(segment.id!, { traveldate: date })
+                  }
+                  showPnr={!formData.pnrEnabled}
+                  onPnrChange={(val) =>
+                    handleSegmentPnr(index, val, "segments")
+                  }
+                />
               </div>
             ))}
 
-            {/* Add Segment */}
-            <button
-              onClick={addSegment}
-              className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-[#126ACB] text-white text-[0.75rem] rounded-md hover:cursor-pointer transition"
-            >
-              <div className="border rounded-full border-[#fff] px-0.5 py-0.5 flex items-center justify-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="10"
-                  height="10"
-                  viewBox="0 0 14 14"
-                  fill="none"
-                >
-                  <path
-                    d="M6.59672 2.74805V10.4415M2.75 6.59477H10.4434"
-                    stroke="white"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-              Add Segment
-            </button>
+            {addSegmentButton(addSegment)}
           </div>
 
           {/* Return Section */}
           <div>
             <div className="mb-3 mt-3">
               <span className="font-[500] text-gray-600">
-                Return ({getTotalDuration(returnSegmentPreview)})
+                Return ({getTotalDuration(formData.returnSegments)})
               </span>
             </div>
 
@@ -1071,595 +266,33 @@ export default function RoundTripLayout({
               {formData.returnSegments.map((segment, index) => (
                 <div
                   key={segment.id}
-                  className="grid grid-cols-1 lg:grid-cols-2 gap-3"
+                  className="grid grid-cols-1 lg:grid-cols-2 gap-4"
                 >
-                  {/* Return Segment */}
-                  <div className="border border-[#E2E1E1] rounded-lg px-3 py-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-[0.85rem] font-[600] text-gray-800">
-                        Flight Segment {index + 1}
-                      </h4>
-                      {formData.returnSegments.length > 1 && (
-                        <button
-                          onClick={() => removeReturnSegment(segment.id!)}
-                          className="text-gray-400 hover:text-red-500"
-                        >
-                          <FiMinusCircle size={16} />
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3">
-                      {/* Flight Number */}
-                      <div>
-                        <label className="block mb-1 font-[500] text-gray-600">
-                          Flight Number
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="A320"
-                          value={segment.flightnumber}
-                          onChange={(e) => {
-                            const updated = formData.returnSegments.map((s) =>
-                              s.id === segment.id
-                                ? { ...s, flightnumber: e.target.value }
-                                : s,
-                            );
-                            setFormData({
-                              ...formData,
-                              returnSegments: updated,
-                            });
-                          }}
-                          className="w-[75%] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
-                        />
-                      </div>
-
-                      {/* PNR */}
-                      {!formData.pnrEnabled && (
-                        <div>
-                          <label className="block mb-1 font-[500] text-gray-600">
-                            PNR
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="Enter PNR"
-                            value={segment.pnr || ""}
-                            onChange={(e) =>
-                              handleSegmentPnr(
-                                index,
-                                e.target.value,
-                                "returnSegments",
-                              )
-                            }
-                            className="w-[75%] px-2 py-1.5 border border-gray-300 rounded-md hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
-                          />
-                        </div>
-                      )}
-
-                      {/* Travel Date */}
-                      <div>
-                        <SingleCalendar
-                          label="Travel Date"
-                          value={segment.traveldate}
-                          onChange={(date) => {
-                            const updated = formData.returnSegments.map((s) =>
-                              s.id === segment.id
-                                ? { ...s, traveldate: date }
-                                : s,
-                            );
-                            setFormData({
-                              ...formData,
-                              returnSegments: updated,
-                            });
-                          }}
-                          placeholder="DD-MM-YYYY"
-                          minDate={formData.bookingdate}
-                          customWidth="w-[75%]"
-                          showCalendarIcon={false}
-                        />
-                      </div>
-
-                      {/* Cabin Class */}
-                      <div>
-                        <label className="block mb-1 font-[500] text-gray-600">
-                          Cabin Class
-                        </label>
-                        <DropDown
-                          options={[
-                            { value: "Economy", label: "Economy" },
-                            {
-                              value: "Premium Economy",
-                              label: "Premium Economy",
-                            },
-                            { value: "Business", label: "Business" },
-                            { value: "First Class", label: "First Class" },
-                          ]}
-                          placeholder="Cabin Class"
-                          value={segment.cabinclass}
-                          onChange={(val: string) => {
-                            const updated = formData.returnSegments.map((s) =>
-                              s.id === segment.id
-                                ? { ...s, cabinclass: val }
-                                : s,
-                            );
-                            setFormData({
-                              ...formData,
-                              returnSegments: updated,
-                            });
-                          }}
-                          customWidth="w-[75%]"
-                        />
-                      </div>
-
-                      {/* Cabin + Check-In baggage counters */}
-                      <BaggageCounters
-                        cabinPcs={segment.cabinBaggagePcs ?? 1}
-                        cabinWt={segment.cabinBaggageWt ?? ""}
-                        checkInPcs={segment.checkInBaggagePcs ?? 1}
-                        checkInWt={segment.checkInBaggageWt ?? ""}
-                        onChange={(patch) => {
-                          const updated = formData.returnSegments.map((s) =>
-                            s.id === segment.id ? { ...s, ...patch } : s,
-                          );
-                          setFormData({
-                            ...formData,
-                            returnSegments: updated,
-                          });
-                        }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Return Preview */}
-                  <div className="border border-dotted border-[#E2E1E1] rounded-lg p-3">
-                    {!editing[segment.id!] && (
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-[0.85rem] font-[600] text-gray-800">
-                          Preview
-                        </h4>
-                        <button
-                          onClick={() => {
-                            const segId = segment.id!;
-                            setEditing((prev) => ({ ...prev, [segId]: true }));
-                            const pv =
-                              segment.preview ?? returnSegmentPreview[segId];
-                            setEditingData((prev) => ({
-                              ...prev,
-                              [segId]: {
-                                airline: pv?.airline ?? "",
-                                flightNumber:
-                                  pv?.flightNumber ??
-                                  String(segment.flightnumber ?? ""),
-                                origin: pv?.origin ?? "",
-                                destination: pv?.destination ?? "",
-                                departureTime: toTimeInput(
-                                  pv?.departureTimeRaw ?? pv?.departureTime,
-                                ),
-                                arrivalTime: toTimeInput(
-                                  pv?.arrivalTimeRaw ?? pv?.arrivalTime,
-                                ),
-                                duration: pv?.duration ?? "",
-                              },
-                            }));
-                          }}
-                          className="text-blue-600 hover:text-blue-700"
-                        >
-                          <MdOutlineEdit size={16} />
-                        </button>
-                      </div>
-                    )}
-
-                    <div className="bg-white rounded-md p-3 min-h-[180px]">
-                      {(() => {
-                        const isEditing = !!editing[segment.id!];
-                        const preview =
-                          segment.preview ?? returnSegmentPreview[segment.id!];
-                        if (isEditing) {
-                          const data = editingData[segment.id!] || {};
-                          return (
-                            <div className="h-full">
-                              <div className="grid grid-cols-1 gap-2 text-[0.75rem]">
-                                <div>
-                                  <label className="text-gray-500 text-[0.6rem] mb-1 block">
-                                    Airline Name
-                                  </label>
-                                  <input
-                                    type="text"
-                                    value={data.airline ?? ""}
-                                    onChange={(e) =>
-                                      setEditingData((prev) => ({
-                                        ...prev,
-                                        [segment.id!]: {
-                                          ...prev[segment.id!],
-                                          airline: e.target.value,
-                                        },
-                                      }))
-                                    }
-                                    className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
-                                  />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div>
-                                    <label className="text-gray-500 text-[0.6rem] mb-1 block">
-                                      Flight Number
-                                    </label>
-                                    <input
-                                      type="text"
-                                      value={
-                                        data.flightNumber ??
-                                        preview?.flightNumber ??
-                                        ""
-                                      }
-                                      onChange={(e) =>
-                                        setEditingData((prev) => ({
-                                          ...prev,
-                                          [segment.id!]: {
-                                            ...prev[segment.id!],
-                                            flightNumber: e.target.value,
-                                          },
-                                        }))
-                                      }
-                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
-                                    />
-                                  </div>
-
-                                  <div>
-                                    <label className="text-gray-500 text-[0.6rem] mb-1 block">
-                                      Duration
-                                    </label>
-                                    <input
-                                      type="text"
-                                      placeholder="e.g. 1h 55m"
-                                      value={
-                                        data.duration ?? preview?.duration ?? ""
-                                      }
-                                      onChange={(e) =>
-                                        setEditingData((prev) => ({
-                                          ...prev,
-                                          [segment.id!]: {
-                                            ...prev[segment.id!],
-                                            duration: e.target.value,
-                                          },
-                                        }))
-                                      }
-                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
-                                    />
-                                  </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div>
-                                    <label className="text-gray-500 text-[0.6rem] mb-1 block">
-                                      Origin
-                                    </label>
-                                    <input
-                                      type="text"
-                                      value={
-                                        data.origin ?? preview?.origin ?? ""
-                                      }
-                                      onChange={(e) =>
-                                        setEditingData((prev) => ({
-                                          ...prev,
-                                          [segment.id!]: {
-                                            ...prev[segment.id!],
-                                            origin: e.target.value,
-                                          },
-                                        }))
-                                      }
-                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
-                                    />
-                                  </div>
-
-                                  <div>
-                                    <label className="text-gray-500 text-[0.6rem] mb-1 block">
-                                      Destination
-                                    </label>
-                                    <input
-                                      type="text"
-                                      value={
-                                        data.destination ??
-                                        preview?.destination ??
-                                        ""
-                                      }
-                                      onChange={(e) =>
-                                        setEditingData((prev) => ({
-                                          ...prev,
-                                          [segment.id!]: {
-                                            ...prev[segment.id!],
-                                            destination: e.target.value,
-                                          },
-                                        }))
-                                      }
-                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
-                                    />
-                                  </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-2 items-end">
-                                  <div>
-                                    <label className="text-gray-500 text-[0.6rem] mb-1 block">
-                                      ETD
-                                    </label>
-                                    <input
-                                      type="time"
-                                      value={
-                                        (editingData[segment.id!]
-                                          ?.departureTime ??
-                                          preview?.departureTime) as string
-                                      }
-                                      onChange={(e) =>
-                                        setEditingData((prev) => ({
-                                          ...prev,
-                                          [segment.id!]: {
-                                            ...prev[segment.id!],
-                                            departureTime: capTimeInput(
-                                              e.target.value,
-                                            ),
-                                          },
-                                        }))
-                                      }
-                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
-                                    />
-                                  </div>
-
-                                  <div>
-                                    <label className="text-gray-500 text-[0.6rem] mb-1 block">
-                                      ETA
-                                    </label>
-                                    <input
-                                      type="time"
-                                      value={
-                                        (editingData[segment.id!]
-                                          ?.arrivalTime ??
-                                          preview?.arrivalTime) as string
-                                      }
-                                      onChange={(e) =>
-                                        setEditingData((prev) => ({
-                                          ...prev,
-                                          [segment.id!]: {
-                                            ...prev[segment.id!],
-                                            arrivalTime: capTimeInput(
-                                              e.target.value,
-                                            ),
-                                          },
-                                        }))
-                                      }
-                                      className="w-full px-2 py-1 border border-[#E2E1E1] rounded-md text-[0.7rem] bg-white"
-                                    />
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex justify-end gap-2 mt-4">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditing((prev) => ({
-                                      ...prev,
-                                      [segment.id!]: false,
-                                    }));
-                                    setEditingData((prev) => {
-                                      const copy = { ...prev };
-                                      delete copy[segment.id!];
-                                      return copy;
-                                    });
-                                  }}
-                                  className="px-3 py-1.5 bg-white border border-[#E2E1E1] rounded-md text-[0.75rem] text-gray-700 hover:bg-gray-50"
-                                >
-                                  Cancel
-                                </button>
-
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const d = editingData[segment.id!] || {};
-                                    const dep =
-                                      d.departureTime ??
-                                      d.departureTimeRaw ??
-                                      "";
-                                    const arr =
-                                      d.arrivalTime ?? d.arrivalTimeRaw ?? "";
-                                    let durationVal = d.duration ?? "";
-                                    if (
-                                      (!durationVal || durationVal === "") &&
-                                      dep &&
-                                      arr
-                                    ) {
-                                      try {
-                                        const depISO = `${segment.traveldate}T${dep}`;
-                                        const arrISO = `${segment.traveldate}T${arr}`;
-                                        const t1 = new Date(depISO);
-                                        const t2 = new Date(arrISO);
-                                        if (
-                                          !isNaN(t1.getTime()) &&
-                                          !isNaN(t2.getTime())
-                                        ) {
-                                          const diff =
-                                            (t2.getTime() - t1.getTime()) /
-                                            1000 /
-                                            60;
-                                          const h = Math.floor(diff / 60);
-                                          const m = Math.abs(
-                                            Math.floor(diff % 60),
-                                          );
-                                          durationVal = `${h}h ${m}m`;
-                                        }
-                                      } catch (e) {}
-                                    }
-
-                                    const newPreview: SegmentPreview = {
-                                      airline:
-                                        d.airline ?? preview?.airline ?? "",
-                                      origin: d.origin ?? preview?.origin ?? "",
-                                      destination:
-                                        d.destination ??
-                                        preview?.destination ??
-                                        "",
-                                      departureTime:
-                                        dep ?? preview?.departureTime ?? "",
-                                      arrivalTime:
-                                        arr ?? preview?.arrivalTime ?? "",
-                                      departureTimeRaw: dep
-                                        ? `${segment.traveldate}T${dep}`
-                                        : (preview?.departureTimeRaw ?? ""),
-                                      arrivalTimeRaw: arr
-                                        ? `${segment.traveldate}T${arr}`
-                                        : (preview?.arrivalTimeRaw ?? ""),
-                                      flightNumber:
-                                        d.flightNumber ??
-                                        preview?.flightNumber ??
-                                        String(segment.flightnumber ?? ""),
-                                      duration:
-                                        durationVal || preview?.duration || "",
-                                    };
-
-                                    setReturnSegmentPreview((prev) => ({
-                                      ...prev,
-                                      [segment.id!]: newPreview,
-                                    }));
-                                    setFormData((prev) => ({
-                                      ...prev,
-                                      returnSegments: prev.returnSegments.map(
-                                        (s) =>
-                                          s.id === segment.id
-                                            ? { ...s, preview: newPreview }
-                                            : s,
-                                      ),
-                                    }));
-                                    lastFetchedRef.current[segment.id!] =
-                                      newPreview.flightNumber ??
-                                      String(segment.flightnumber ?? "");
-                                    setEditing((prev) => ({
-                                      ...prev,
-                                      [segment.id!]: false,
-                                    }));
-                                    setEditingData((prev) => {
-                                      const copy = { ...prev };
-                                      delete copy[segment.id!];
-                                      return copy;
-                                    });
-                                  }}
-                                  className="px-3 py-1.5 flex items-center gap-1 bg-[#0D4B37] text-white rounded-md text-[0.75rem] hover:bg-cursor-pointer"
-                                >
-                                  <LuSave size={16} />
-                                  Save
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        if (preview) {
-                          return (
-                            <>
-                              <div className="bg-blue-50 border border-blue-200 rounded-md px-3 py-2 mb-3 flex items-center gap-2">
-                                <span className="font-[500] text-gray-800">
-                                  {preview.airline}
-                                </span>
-                              </div>
-                              <div className="space-y-0.5">
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <div className="text-gray-500 text-[0.6rem] mb-0.5">
-                                      Origin
-                                    </div>
-                                    <div className="font-[600] text-gray-900">
-                                      {truncateIfLong(preview.origin)}
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-gray-500 text-[0.6rem] mb-0.5">
-                                      STD
-                                    </div>
-                                    <div className="font-[600] text-gray-900">
-                                      {preview.departureTime}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <div>
-                                    <div className="text-gray-500 text-[0.6rem] mb-0.5">
-                                      Flight Number
-                                    </div>
-                                    <div className="font-[600] text-gray-900">
-                                      {preview.flightNumber}
-                                    </div>
-                                  </div>
-                                  <div className="flex flex-col items-center text-gray-500 text-[0.6rem]">
-                                    <div className="w-[1px] h-8 border-l-2 border-dotted border-gray-300 mb-1"></div>
-                                    <div className="text-[0.75rem] font-[500] text-gray-700">
-                                      ✈
-                                    </div>
-                                    <div className="w-[0.0625rem] h-8 border-l-2 border-dotted border-gray-300 mt-1"></div>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-gray-500 text-[0.6rem] mb-0.5">
-                                      Duration
-                                    </div>
-                                    <div className="font-[600] text-gray-900">
-                                      {preview.duration}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <div className="text-gray-500 text-[0.6rem] mb-0.5">
-                                      Destination
-                                    </div>
-                                    <div className="font-[600] text-gray-900">
-                                      {truncateIfLong(preview.destination)}
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <div className="text-gray-500 text-[0.6rem] mb-0.5">
-                                      STA
-                                    </div>
-                                    <div className="font-[600] text-gray-900">
-                                      {preview.arrivalTime}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </>
-                          );
-                        }
-
-                        return (
-                          <div className="flex items-center justify-center h-full bg-gray-50 rounded-md text-gray-500 min-h-[255px]">
-                            <p>Preview data will appear here</p>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
+                  <FlightSegmentCard
+                    segment={segment}
+                    index={index}
+                    canRemove={formData.returnSegments.length > 1}
+                    onRemove={removeReturnSegment}
+                    onSegmentChange={handleReturnSegmentChange}
+                    preview={segment.preview}
+                    onPreviewChange={handleReturnPreviewChange}
+                    traveldate={segment.traveldate}
+                    bookingdate={formData.bookingdate}
+                    onTraveldateChange={(date) =>
+                      handleReturnSegmentChange(segment.id!, {
+                        traveldate: date,
+                      })
+                    }
+                    showPnr={!formData.pnrEnabled}
+                    onPnrChange={(val) =>
+                      handleSegmentPnr(index, val, "returnSegments")
+                    }
+                  />
                 </div>
               ))}
             </div>
-            {/* Add Return Segment */}
-            <button
-              onClick={addReturnSegment}
-              className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-[#126ACB] text-white text-[0.75rem] rounded-md hover:cursor-pointer transition"
-            >
-              <div className="border rounded-full border-[#fff] px-0.5 py-0.5 flex items-center justify-center">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="10"
-                  height="10"
-                  viewBox="0 0 14 14"
-                  fill="none"
-                >
-                  <path
-                    d="M6.59672 2.74805V10.4415M2.75 6.59477H10.4434"
-                    stroke="white"
-                    strokeWidth="1.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </div>
-              Add Segment
-            </button>
+
+            {addSegmentButton(addReturnSegment)}
           </div>
         </div>
       </div>

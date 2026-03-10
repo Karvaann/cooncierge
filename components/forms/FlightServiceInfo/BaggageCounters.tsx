@@ -48,14 +48,14 @@ export default function BaggageCounters({
   }) => {
     return (
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-md px-0">
+        <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-[7px] px-0">
           <input
             type="text"
             value={String(pcs)}
             readOnly
             className="w-5 text-center text-[0.75rem] bg-transparent placeholder:text-[#9CA3AF] outline-none"
           />
-          <div className="flex flex-col border border-[#020202] rounded-tr-md rounded-br-md overflow-hidden">
+          <div className="flex flex-col border border-[#7135AD] rounded-tr-[7px] rounded-br-[7px] overflow-hidden">
             <button
               type="button"
               onClick={(e) => {
@@ -63,9 +63,9 @@ export default function BaggageCounters({
                 e.stopPropagation();
                 onInc();
               }}
-              className="p-0.5 h-[16px] bg-[#F9F9F9] border-b border-[#020202]"
+              className="p-0.5 h-[16px] bg-[#F7EFFF] border-b border-[#7135AD]"
             >
-              <MdKeyboardArrowUp size={14} />
+              <MdKeyboardArrowUp size={14} className="text-[#7135AD]" />
             </button>
             <button
               type="button"
@@ -74,9 +74,9 @@ export default function BaggageCounters({
                 e.stopPropagation();
                 onDec();
               }}
-              className="p-0.5 bg-[#F9F9F9]"
+              className="p-0.5 bg-[#F7EFFF]"
             >
-              <MdKeyboardArrowDown size={14} />
+              <MdKeyboardArrowDown size={14} className="text-[#7135AD]" />
             </button>
           </div>
         </div>
@@ -84,11 +84,11 @@ export default function BaggageCounters({
         <span className="text-[0.75rem] font-[400] text-[#020202]">Pcs</span>
 
         <input
-          type="text"
+          type="number"
           value={wt == null ? "" : String(wt)}
           onChange={(e) => onWtChange(e.target.value)}
           placeholder="Wt."
-          className="w-10 px-2 py-1 border border-gray-300 rounded-md text-[0.75rem] placeholder:text-[#9CA3AF] outline-none"
+          className="w-10 px-2.5 py-1.5 border border-gray-300 rounded-[9px] text-[0.75rem] placeholder:text-[#9CA3AF] outline-none"
         />
         <span className="text-[0.75rem] font-[400] text-[#020202]">Kgs</span>
       </div>

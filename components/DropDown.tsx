@@ -71,7 +71,7 @@ const DropDown: React.FC<DropdownProps> = ({
   itemHeight,
   noBorder = false,
   buttonClassName = "",
-  focusRingClass = "focus:ring-1 focus:ring-green-400",
+  focusRingClass = "focus:ring-1 focus:ring-[#C6AEDE]",
   noButtonRadius = false,
   iconOnly = false,
   disabled = false,
@@ -283,6 +283,8 @@ const DropDown: React.FC<DropdownProps> = ({
 
   const inputWidthClass = customWidth ? customWidth : "w-[12rem]";
   const menuWidthClass = menuWidth ? menuWidth : inputWidthClass;
+  const hasCustomBg = /\bbg-/.test(buttonClassName);
+  const hasCustomHoverBorder = /\bhover:border-/.test(buttonClassName);
   return (
     <div ref={dropdownRef} className={`relative ${className}`}>
       {/* Dropdown Trigger */}
@@ -293,10 +295,12 @@ const DropDown: React.FC<DropdownProps> = ({
           } flex items-center px-2 ${
             readOnly || disabled
               ? `cursor-not-allowed${noDisabledBg ? "" : " bg-gray-200"}`
-              : "bg-white"
-          } ${noButtonRadius ? "" : "rounded-md"} ${
-            noBorder ? "" : "border border-gray-300"
-          } hover:border-green-300 transition-colors text-[13px] ${focusRingClass} ${buttonClassName}`}
+              : hasCustomBg
+                ? ""
+                : "bg-white"
+          } ${noButtonRadius ? "" : "rounded-[15px]"} ${
+            noBorder ? "border border-transparent" : "border border-gray-300"
+          } ${hasCustomHoverBorder ? "" : "hover:border-[#C6AEDE]"} transition-colors text-[13px] ${focusRingClass} ${buttonClassName}`}
         >
           <input
             ref={typeableInputRef}
@@ -361,10 +365,12 @@ const DropDown: React.FC<DropdownProps> = ({
           } flex items-center justify-between px-2 ${
             readOnly || disabled
               ? `cursor-not-allowed${noDisabledBg ? "" : " bg-gray-200"}`
-              : "bg-white"
+              : hasCustomBg
+                ? ""
+                : "bg-white"
           } ${noButtonRadius ? "" : "rounded-md"} ${
-            noBorder ? "" : "border border-gray-300"
-          } hover:border-green-300 transition-colors text-left text-[13px] focus:outline-none ${focusRingClass} ${buttonClassName}`}
+            noBorder ? "border border-transparent" : "border border-gray-300"
+          } ${hasCustomHoverBorder ? "" : "hover:border-[#C6AEDE]"} transition-colors text-left text-[13px] focus:outline-none ${focusRingClass} ${buttonClassName}`}
         >
           {!iconOnly && (
             <span

@@ -548,42 +548,32 @@ const OSBookingsPage = () => {
     setIsCreateSourceModalOpen(true);
   };
 
-  // Existing OS create flow: generate ids and then open service-selection modal
+  // Generate booking / customer / vendor IDs
   const handleOSCreateRequested = async () => {
     try {
-      // simple guard against rapid duplicate calls
       const now = Date.now();
       const last = (window as any).__lastBookingCodeRequestAt || 0;
       const IGNORE_MS = 1200;
-      if (now - last < IGNORE_MS) {
-        setIsCreateOpen(true);
-        return;
-      }
+      if (now - last < IGNORE_MS) return;
       (window as any).__lastBookingCodeRequestAt = now;
 
-      // generate booking and customer ids in parallel
       const [bookingResp, customerResp, vendorResp] = await Promise.all([
         CustomIdApi.generate("booking"),
         CustomIdApi.generate("customer"),
         CustomIdApi.generate("vendor"),
       ]);
-      const bookingId = bookingResp?.customId || null;
-      const customerId = customerResp?.customId || null;
-      const vendorId = vendorResp?.customId || null;
-      setGeneratedBookingCode(bookingId);
-      setGeneratedCustomerCode(customerId);
-      setGeneratedVendorCode(vendorId);
+      setGeneratedBookingCode(bookingResp?.customId || null);
+      setGeneratedCustomerCode(customerResp?.customId || null);
+      setGeneratedVendorCode(vendorResp?.customId || null);
     } catch (err) {
       console.error("Failed to generate custom id:", err);
       setGeneratedBookingCode(null);
       setGeneratedCustomerCode(null);
       setGeneratedVendorCode(null);
-    } finally {
-      setIsCreateOpen(true);
     }
   };
 
-  const handleCreateSourceSelected = (source: "os" | "limitless") => {
+  const handleCreateSourceSelected = async (source: "os" | "limitless") => {
     setIsCreateSourceModalOpen(false);
 
     if (source === "limitless") {
@@ -591,7 +581,20 @@ const OSBookingsPage = () => {
       return;
     }
 
-    void handleOSCreateRequested();
+    // Generate IDs
+    await handleOSCreateRequested();
+
+    // Open sidesheet directly with Flights selected by default
+    setSelectedQuotation(null);
+    setSelectedService({
+      id: "flights",
+      title: "Flights",
+      image: "/images/flight-icon.png",
+      category: "travel",
+      description: "Book domestic and international flights",
+    });
+    setSideSheetMode("edit");
+    setIsSideSheetOpen(true);
   };
 
   // Handle booking completion (refresh data)

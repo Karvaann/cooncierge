@@ -39,7 +39,7 @@ const NotesButtonToolTip: React.FC<NotesButtonProps> = ({ onClick }) => {
     <div
       role="tooltip"
       aria-hidden={!showTooltip}
-      className={`px-2 py-1 text-[0.65rem] text-white bg-gray-800 rounded-md shadow-lg pointer-events-none whitespace-nowrap transition-opacity duration-150 ease-in-out ${
+      className={`px-2 py-1 text-[0.65rem] text-[#020202] bg-white rounded-md shadow-lg pointer-events-none whitespace-nowrap transition-opacity duration-150 ease-in-out ${
         showTooltip ? "opacity-100 visible" : "opacity-0 invisible"
       }`}
       style={{
@@ -52,13 +52,13 @@ const NotesButtonToolTip: React.FC<NotesButtonProps> = ({ onClick }) => {
       }}
     >
       Add Notes
-      <div
-        className="absolute left-1/2 -bottom-1 w-2.5 h-2.5 bg-gray-800 shadow"
+      {/* <div
+        className="absolute left-1/2 -bottom-1 w-2.5 h-2.5 bg-white shadow"
         style={{
           transform: "translateX(-50%) rotate(45deg)",
           WebkitTransform: "translateX(-50%) rotate(45deg)",
         }}
-      />
+      /> */}
     </div>
   );
 
@@ -75,7 +75,7 @@ const NotesButtonToolTip: React.FC<NotesButtonProps> = ({ onClick }) => {
       <button
         ref={buttonRef}
         type="button"
-        className="w-9 h-9 rounded-md border border-gray-200 hover:bg-gray-200 cursor-pointer transition flex items-center justify-center"
+        className="w-9 h-9 rounded-md border border-gray-200 hover:bg-gray-100 cursor-pointer transition flex items-center justify-center"
         aria-label="Add Notes"
         onClick={onClick}
         tabIndex={0}

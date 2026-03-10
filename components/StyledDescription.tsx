@@ -19,7 +19,7 @@ interface StyledDescriptionProps {
 }
 
 export default function StyledDescription({
-  label = "Description",
+  label = "",
   value,
   onChange,
   readOnly = false,
@@ -491,7 +491,7 @@ export default function StyledDescription({
         <h3 className={`${labelSize} font-[500] text-[#414141]`}>{label}</h3>
       </div>
       <div
-        className={`${boxWidth} mt-1 bg-white rounded-md border border-gray-200`}
+        className={`${boxWidth} mt-1 bg-white rounded-[15px] border border-[#E2E1E1]`}
       >
         {/* Toolbar */}
         {!readOnly && (
@@ -557,7 +557,7 @@ export default function StyledDescription({
         <div className="relative">
           {isEmpty && (
             <div className="absolute top-0 left-0 px-3 py-2 text-[13px] font-[400] text-[#9CA3AF] pointer-events-none select-none">
-              Type here...
+              Enter Your Remarks Here
             </div>
           )}
           <div

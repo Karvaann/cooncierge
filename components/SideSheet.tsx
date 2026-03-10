@@ -136,7 +136,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
           absolute top-0 h-full bg-white shadow-xl
           px-[14px] pt-[14px]
           transition-transform duration-300 ease-in-out rounded-l-[24px]
- overflow-hidden
+          overflow-visible
           ${positionClasses[position].container}
           ${positionClasses[position].transform}
           ${positionClasses[position].rounded}
@@ -180,12 +180,12 @@ const SideSheet: React.FC<SideSheetProps> = ({
               </h2>
             </div>
             {(headerRight || showLinkButton) && (
-              <div className="ml-auto mr-1 flex items-center gap-2">
+              <div className="ml-auto mr-1 flex items-center gap-2 relative top-1 z-20">
                 {headerRight}
                 {showLinkButton && (
                   <button
                     type="button"
-                    className="text-[#126ACB] text-[0.8rem] font-medium hover:underline"
+                    className="text-[#126ACB] text-[0.8rem] font-[500] hover:underline"
                   >
                     Link to a User
                   </button>

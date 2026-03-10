@@ -50,19 +50,19 @@ type MultiCurrencyInputProps = {
 };
 
 const groupBase =
-  "flex items-center border border-gray-200 rounded-md overflow-hidden bg-white";
+  "flex items-center border border-gray-200 rounded-[15px] overflow-hidden bg-white";
 
 const groupInput =
-  "h-[34px] px-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 outline-none";
+  "h-[34px] px-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 outline-none rounded-[15px]";
 
 const addonLabel =
   "h-[34px] px-2 text-[0.72rem] font-[500] bg-[#F9F9F9] text-[#414141] border-r border-gray-200 flex items-center";
 
 const inputBase =
-  "w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-green-600";
+  "w-full border border-gray-200 rounded-[15px] px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-green-600";
 
 const groupSelectWhite =
-  "h-[34px] px-0 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 ";
+  "h-[34px] px-0 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 rounded-[15px]";
 
 export default function MultiCurrencyInput({
   currency,
@@ -137,7 +137,7 @@ export default function MultiCurrencyInput({
             noBorder={true}
             noButtonRadius={true}
             focusRingClass=""
-            buttonClassName={` text-[0.78rem] text-gray-700 h-[34px]`}
+            buttonClassName={` text-[11px] text-gray-700 h-[34px] rounded-l-[15px]`}
             className={groupSelectWhite}
             typeable
             readOnly={readOnly}
@@ -168,7 +168,7 @@ export default function MultiCurrencyInput({
 
             {/* INR field + Notes*/}
             <div className="flex items-center gap-3">
-              <div className="flex w-fit items-center border border-gray-200 rounded-md bg-[#F6F2E8] overflow-hidden h-[34px]">
+              <div className="flex w-fit items-center border border-gray-200 rounded-[15px] bg-[#F6F2E8] overflow-hidden h-[34px]">
                 <span className="px-2 text-[0.78rem] text-[#414141] bg-[#F6F2E8]">
                   INR
                 </span>
@@ -176,7 +176,7 @@ export default function MultiCurrencyInput({
                   {computedInr || "0"}
                 </div>
               </div>
-              <div>
+              <div className="rounded-[12px]">
                 <NotesButtonToolTip onClick={onToggleNotes} />
               </div>
             </div>
@@ -185,7 +185,7 @@ export default function MultiCurrencyInput({
 
         {/* Notes button for non-ROE layout */}
         {!showRoeFields && (
-          <div className="">
+          <div className="rounded-[12px]">
             <NotesButtonToolTip onClick={onToggleNotes} />
           </div>
         )}

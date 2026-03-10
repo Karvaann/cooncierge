@@ -15,6 +15,7 @@ import { CiSearch } from "react-icons/ci";
 import DropDown from "@/components/DropDown";
 import SingleCalendar from "@/components/SingleCalendar";
 import StyledDescription from "@/components/StyledDescription";
+import TimeInput from "../components/TimeInput";
 import { FaRegFolder } from "react-icons/fa";
 import { allowTextAndNumbers } from "@/utils/inputValidators";
 import { FaRegCopy } from "react-icons/fa6";
@@ -960,74 +961,22 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   <label className="block text-[12px] font-[500] text-[#414141] mb-1">
                     Time
                   </label>
-                  <input
-                    type="text"
+                  <TimeInput
+                    name="checkintime"
                     value={formData.checkintime}
-                    onChange={(e) => {
-                      // Only allow digits and colon
-                      let val = e.target.value.replace(/[^0-9:]/g, "");
-
-                      // Prevent multiple colons
-                      const colonCount = (val.match(/:/g) || []).length;
-                      if (colonCount > 1) {
-                        val = val.replace(/:([^:]*)$/, "$1");
-                      }
-
-                      // Auto-insert colon after 2 digits
-                      if (
-                        val.length === 2 &&
-                        !val.includes(":") &&
-                        formData.checkintime.length < 2
-                      ) {
-                        val = val + ":";
-                      }
-
-                      // Limit to HH:MM format (5 chars)
-                      if (val.length > 5) val = val.slice(0, 5);
-
-                      // Validate hours (0-23) and minutes (0-59)
-                      if (val.includes(":")) {
-                        const parts = val.split(":");
-                        const hours = parts[0] || "";
-                        const minutes = parts[1] || "";
-                        let validHours = hours;
-                        let validMinutes = minutes;
-
-                        // Validate hours
-                        if (hours.length > 0) {
-                          const hourNum = parseInt(hours, 10);
-                          if (hours.length === 2 && hourNum > 23) {
-                            validHours = "23";
-                          }
-                        }
-
-                        // Validate minutes
-                        if (validMinutes.length > 0) {
-                          const minNum = parseInt(validMinutes, 10);
-                          if (validMinutes.length === 2 && minNum > 59) {
-                            validMinutes = "59";
-                          }
-                        }
-
-                        val = validHours + ":" + validMinutes;
-                      } else {
-                        // Validate hours before colon is added
-                        if (val.length === 2) {
-                          const hourNum = parseInt(val, 10);
-                          if (hourNum > 23) {
-                            val = "23";
-                          }
-                        }
-                      }
-
+                    onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
-                        checkintime: val,
-                      }));
-                    }}
+                        checkintime: e.target.value,
+                      }))
+                    }
+                    onBlur={handleBlur}
                     placeholder="HH:MM"
-                    maxLength={5}
-                    className="w-[62%] px-2 py-1.5 border border-gray-300 rounded-sm text-[13px] font-[400] text-[#020202] placeholder:text-[#9CA3AF] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                    className="w-[62%]"
+                    hasError={!!(errors.checkintime && touched.checkintime)}
+                    errorMessage={errors.checkintime}
+                    disabled={isSubmitting}
+                    isValidating={isValidating}
                   />
                 </div>
               </div>
@@ -1059,74 +1008,22 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                   <label className="block text-[12px] font-[500] text-[#414141] mb-1">
                     Time
                   </label>
-                  <input
-                    type="text"
+                  <TimeInput
+                    name="checkouttime"
                     value={formData.checkouttime}
-                    onChange={(e) => {
-                      // Only allow digits and colon
-                      let val = e.target.value.replace(/[^0-9:]/g, "");
-
-                      // Prevent multiple colons
-                      const colonCount = (val.match(/:/g) || []).length;
-                      if (colonCount > 1) {
-                        val = val.replace(/:([^:]*)$/, "$1");
-                      }
-
-                      // Auto-insert colon after 2 digits
-                      if (
-                        val.length === 2 &&
-                        !val.includes(":") &&
-                        formData.checkouttime.length < 2
-                      ) {
-                        val = val + ":";
-                      }
-
-                      // Limit to HH:MM format (5 chars)
-                      if (val.length > 5) val = val.slice(0, 5);
-
-                      // Validate hours (0-23) and minutes (0-59)
-                      if (val.includes(":")) {
-                        const parts = val.split(":");
-                        const hours = parts[0] || "";
-                        const minutes = parts[1] || "";
-                        let validHours = hours;
-                        let validMinutes = minutes;
-
-                        // Validate hours
-                        if (hours.length > 0) {
-                          const hourNum = parseInt(hours, 10);
-                          if (hours.length === 2 && hourNum > 23) {
-                            validHours = "23";
-                          }
-                        }
-
-                        // Validate minutes
-                        if (validMinutes.length > 0) {
-                          const minNum = parseInt(validMinutes, 10);
-                          if (validMinutes.length === 2 && minNum > 59) {
-                            validMinutes = "59";
-                          }
-                        }
-
-                        val = validHours + ":" + validMinutes;
-                      } else {
-                        // Validate hours before colon is added
-                        if (val.length === 2) {
-                          const hourNum = parseInt(val, 10);
-                          if (hourNum > 23) {
-                            val = "23";
-                          }
-                        }
-                      }
-
+                    onChange={(e) =>
                       setFormData((prev) => ({
                         ...prev,
-                        checkouttime: val,
-                      }));
-                    }}
+                        checkouttime: e.target.value,
+                      }))
+                    }
+                    onBlur={handleBlur}
                     placeholder="HH:MM"
-                    maxLength={5}
-                    className="w-[62%] px-2 py-1.5 border border-gray-300 rounded-sm text-[13px] font-[400] text-[#020202] placeholder:text-[#9CA3AF] hover:border-green-400 focus:outline-none focus:ring-1 focus:ring-green-400"
+                    className="w-[62%]"
+                    hasError={!!(errors.checkouttime && touched.checkouttime)}
+                    errorMessage={errors.checkouttime}
+                    disabled={isSubmitting}
+                    isValidating={isValidating}
                   />
                 </div>
               </div>

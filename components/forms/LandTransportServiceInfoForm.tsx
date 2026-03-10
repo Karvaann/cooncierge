@@ -539,7 +539,7 @@ const LandTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
           {/* ================= TRANSPORT (LAND) INFO ================ */}
           <div className="w-full border border-[#E2E1E1] rounded-[12px] p-3 mt-4">
             <h1 className="text-[12px] font-[500] text-[#020202] mb-2">
-              Transportation (Land) Info
+              Transportation Info
             </h1>
 
             <hr className="mt-1 mb-3 border-t border-[#E2E1E1]" />

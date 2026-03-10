@@ -3,9 +3,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import Modal from "../Modal";
 import SingleCalendar from "../SingleCalendar";
-import DropDown from "../DropDown";
 import { FiFileText, FiSave } from "react-icons/fi";
-import { TbNotes } from "react-icons/tb";
 import { allowOnlyNumbers } from "@/utils/inputValidators";
 import { useAuth } from "@/context/AuthContext";
 import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";

@@ -27,6 +27,7 @@ import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerF
 import { allowTextAndNumbers } from "@/utils/inputValidators";
 import { CiCirclePlus } from "react-icons/ci";
 import LoadingSpinner from "@/components/atoms/LoadingSpinner";
+import RemarksField from "@/components/forms/components/RemarksField";
 
 // Type definitions
 interface GeneralInfoFormData {
@@ -286,7 +287,7 @@ const InputField: React.FC<InputFieldProps> = ({
         readOnly={readOnly}
         disabled={disabled || isValidating}
         className={`
-          w-full border rounded-md px-3 py-2 ${selectedDisplay ? "" : "pr-10"} placeholder:text-[12px] placeholder:text-[#9CA3AF] font-[400] text-[12px] transition-[border-color] duration-150 hover:border-[#C6AEDE] 
+          w-full border rounded-[15px] px-3 py-2.5 ${selectedDisplay ? "" : "pr-10"} placeholder:text-[12px] placeholder:text-[#9CA3AF] font-[400] text-[12px] transition-[border-color] duration-150 hover:border-[#C6AEDE] 
           ${
             hasError
               ? "border-red-300 focus:ring-red-200"
@@ -1599,7 +1600,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       )}
 
       {/* Customer Section */}
-      <div className="border border-gray-200 rounded-[12px] p-3">
+      <div className="border border-gray-200 rounded-[15px] p-3.5">
         <h2 className="text-[12px] text-[#020202] font-[500] mb-2">
           Billed To
         </h2>
@@ -1836,7 +1837,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       </div>
       {/* Vendor Section */}
       {!hideVendor && (
-        <div className="border border-gray-200 rounded-[12px] px-3 py-4">
+        <div className="border border-gray-200 rounded-[15px] px-3 py-4">
           <h2 className="text-[12px] text-[#020202] font-[500] mb-2">Vendor</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
@@ -2032,7 +2033,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       )}
 
       {/* Travellers Counter Section */}
-      <div className="border border-gray-200 rounded-xl p-3">
+      <div className="border border-gray-200 rounded-[15px] px-3.5 pb-0 pt-4">
         <h2 className="text-[12px] text-[#020202] font-[500] mb-1">
           Travellers
         </h2>
@@ -2043,7 +2044,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             <label className="block text-[12px] font-[500] ml-5 text-[#414141] mb-1">
               Adults
             </label>
-            <div className="w-[5rem] flex items-center justify-between border border-black rounded-md px-2 py-1">
+            <div className="w-[5rem] flex items-center justify-between border border-[#7135AD] rounded-[15px] px-2.5 py-1">
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
@@ -2062,9 +2063,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     : ""
                 }`}
               >
-                <FiMinus size={12} />
+                <FiMinus size={12} className="text-[#7135AD]" />
               </button>
-              <span className="text-[13px] ">{formData.adults}</span>
+              <span className="text-[13px] font-[600] text-[#7135AD]">
+                {formData.adults}
+              </span>
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
@@ -2077,7 +2080,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     : ""
                 }`}
               >
-                <GoPlus size={12} />
+                <GoPlus size={12} className="text-[#7135AD]" />
               </button>
             </div>
           </div>
@@ -2085,7 +2088,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             <label className="block text-[12px] ml-4 font-[500] text-[#414141] mb-1">
               Children
             </label>
-            <div className="w-[5rem] flex items-center justify-between border border-black rounded-md px-2 py-1">
+            <div className="w-[5rem] flex items-center justify-between border border-[#7135AD] rounded-[15px] px-2.5 py-1">
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
@@ -2101,9 +2104,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     : ""
                 }`}
               >
-                <FiMinus size={12} />
+                <FiMinus size={12} className="text-[#7135AD]" />
               </button>
-              <span className="text-[13px] ">{formData.infants}</span>
+              <span className="text-[13px] text-[#7135AD] font-[600] ">
+                {formData.infants}
+              </span>
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
@@ -2116,7 +2121,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     : ""
                 }`}
               >
-                <GoPlus size={12} />
+                <GoPlus size={12} className="text-[#7135AD]" />
               </button>
             </div>
           </div>
@@ -2349,7 +2354,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     });
                   }}
                   customWidth="w-[9rem]"
-                  className=""
+                  customHeight="h-[33px]"
+                  buttonClassName="px-3 rounded-[15px] bg-[#F9F9F9] hover:border hover:border-[#C6AEDE]"
+                  noBorder
+                  noButtonRadius
                 />
               </div>
 
@@ -2534,7 +2542,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       </div>
 
       {/* Booking Owner */}
-      <div className="border border-gray-200 rounded-xl p-3">
+      <div className="border border-gray-200 rounded-[15px] p-3.5">
         <h2 className="text-[13px] font-[500] mb-2">Booking Owner</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
         <label className="block text-[13px] font-[500] text-[#414141]">
@@ -2673,7 +2681,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               <div className="w-[60%]" ref={teamsSecondaryRef}>
                 {/* Filter-style multi-select pills input */}
                 <div
-                  className={`w-full min-h-[1.5rem] text-[12px] -mt-0.5 border border-gray-200 rounded-md px-2.5 py-2 flex items-center flex-wrap gap-1 ${
+                  className={`w-full min-h-[1.5rem] text-[12px] -mt-0.5 border border-gray-200 rounded-[15px] px-3 py-2.5 flex items-center flex-wrap gap-1 ${
                     isReadOnly
                       ? "bg-gray-200 text-[#020202] cursor-not-allowed"
                       : "hover:border-[#C6AEDE] cursor-pointer"
@@ -2849,30 +2857,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       </div>
 
       {/* Remarks */}
-      <div className="border border-gray-200 rounded-xl p-3">
-        <label className="block text-[13px] font-[500] text-[#020202]">
-          Remarks
-        </label>
-        <hr className="mt-1 mb-2 border-t border-gray-200" />
-        <textarea
-          name="remarks"
-          rows={5}
-          value={formData.remarks}
-          onChange={handleChange}
-          placeholder="Enter Your Remarks Here"
-          disabled={isSubmitting}
-          readOnly={isReadOnly}
-          className={`
-            w-full border border-gray-200 rounded-md px-3 py-2 text-[13px] text-[#020202] placeholder:text-[#9CA3AF] mt-2 transition-colors
-            focus:ring focus:ring-blue-200
-            ${
-              isReadOnly || isSubmitting
-                ? "bg-gray-200 cursor-not-allowed"
-                : "bg-white"
-            }
-          `}
-        />
-      </div>
+      <RemarksField
+        value={formData.remarks}
+        onChange={(val) => setFormData((prev) => ({ ...prev, remarks: val }))}
+        readOnly={isReadOnly}
+        isSubmitting={isSubmitting}
+      />
 
       <AddCustomerSideSheet
         isOpen={isViewCustomerOpen}

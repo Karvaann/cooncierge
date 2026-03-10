@@ -8,6 +8,7 @@ interface ButtonProps {
   textColor?: string;
   width?: string;
   icon?: React.ReactNode;
+  iconPosition?: "left" | "right";
   onClick?: () => void;
   type?: "button" | "submit" | "reset";
   disabled?: boolean;
@@ -20,6 +21,7 @@ export default function Button({
   textColor = "text-white",
   width = "w-auto",
   icon,
+  iconPosition = "left",
   onClick,
   type = "button",
   disabled = false,
@@ -44,8 +46,13 @@ export default function Button({
         ${className}
       `}
     >
-      {icon && <span className="flex items-center">{icon}</span>}
+      {iconPosition === "left" && icon && (
+        <span className="flex items-center">{icon}</span>
+      )}
       {text}
+      {iconPosition === "right" && icon && (
+        <span className="flex items-center">{icon}</span>
+      )}
     </button>
   );
 }
