@@ -94,6 +94,7 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
             placeholder="Booking Status"
             value={bookingstatus}
             onChange={handleStatusChange}
+            menuClassName="rounded-[14px] px-1.5"
             buttonClassName="px-3 py-1.5 hover:border-[#C6AEDE] rounded-[15px]"
             noButtonRadius
           />

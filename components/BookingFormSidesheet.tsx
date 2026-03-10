@@ -1141,7 +1141,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           placeholder="Select Service"
           customWidth="w-[11rem]"
           customHeight="py-1"
-          optionClassName="rounded-[15px]"
+          menuClassName="rounded-[14px] px-1.5"
           buttonClassName="px-3 py-1.5 hover:border-[#C6AEDE] rounded-[15px]"
           noButtonRadius
         />
