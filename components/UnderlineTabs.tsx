@@ -15,6 +15,7 @@ export default function UnderlineTabs({
   tabs,
   activeTab,
   onChange,
+  className,
 }: UnderlineTabsProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -49,7 +50,10 @@ export default function UnderlineTabs({
   }, [activeTab, tabs]);
 
   return (
-    <div ref={containerRef} className="relative flex items-end border-b border-[#E5E7EB]">
+    <div
+      ref={containerRef}
+      className={`relative flex items-end border-b border-[#E5E7EB] ${className || "w-full"}`}
+    >
       {tabs.map((tab) => {
         const isActive = activeTab === tab;
 

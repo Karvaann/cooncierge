@@ -13,6 +13,7 @@ import SuccessPopupModal from "./popups/BookingPopups/SuccessPopupModal";
 import ErrorToast from "./ErrorToast";
 import { BookingProvider, useBooking } from "@/context/BookingContext";
 import { useLimitlessDraft } from "@/context/LimitlessDraftContext";
+import { BookingFieldSyncProvider } from "@/context/BookingFieldSyncContext";
 import { BookingApiService } from "@/services/bookingApi";
 import SideSheet from "@/components/SideSheet";
 import GeneralInfoForm from "./forms/GeneralInfoForm";
@@ -1523,7 +1524,9 @@ export default function BookingFormSidesheetWrapper(
 ) {
   return (
     <BookingProvider>
-      <BookingFormSidesheetContent {...props} />
+      <BookingFieldSyncProvider>
+        <BookingFormSidesheetContent {...props} />
+      </BookingFieldSyncProvider>
     </BookingProvider>
   );
 }

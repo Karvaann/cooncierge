@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import SingleCalendar from "@/components/SingleCalendar";
 import DropDown from "@/components/DropDown";
 import { isAfterDate } from "@/utils/helper";
+import { useBookingFieldSync } from "@/context/BookingFieldSyncContext";
 
 const statusOptions = [
   { value: "confirmed", label: "Confirmed" },
@@ -31,8 +32,43 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
   onBookingStatusChange,
   onCancellationDateChange,
 }) => {
+  const sync = useBookingFieldSync();
+
+  // Refs to track the last context value we processed, so we only react to
+  // changes made by the OTHER DateFieldsAndStatus instance.
+  const prevSyncStatusRef = useRef(sync?.bookingStatus ?? "");
+  const prevSyncCancDateRef = useRef(sync?.cancellationDate ?? "");
+
+  // When the shared context bookingStatus changes (another form updated it),
+  // propagate to this form's parent via the existing callback.
+  useEffect(() => {
+    if (!sync || sync.bookingStatus === prevSyncStatusRef.current) return;
+    prevSyncStatusRef.current = sync.bookingStatus;
+    if (sync.bookingStatus !== bookingstatus) {
+      onBookingStatusChange(sync.bookingStatus);
+    }
+  }, [sync?.bookingStatus]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Same for cancellationDate.
+  useEffect(() => {
+    if (!sync || sync.cancellationDate === prevSyncCancDateRef.current) return;
+    prevSyncCancDateRef.current = sync.cancellationDate;
+    if (sync.cancellationDate !== (cancellationDate ?? "")) {
+      onCancellationDateChange?.(sync.cancellationDate);
+    }
+  }, [sync?.cancellationDate]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleStatusChange = (value: string) => {
-    onBookingStatusChange(String(value || ""));
+    const v = String(value || "");
+    onBookingStatusChange(v);
+    sync?.setBookingStatus(v);
+    prevSyncStatusRef.current = v;
+  };
+
+  const handleCancellationDateChange = (date: string) => {
+    onCancellationDateChange?.(date);
+    sync?.setCancellationDate(date);
+    prevSyncCancDateRef.current = date;
   };
 
   const handleBookingDateChange = (date: string) => {
@@ -67,7 +103,7 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
             <SingleCalendar
               label="Cancellation Date"
               value={cancellationDate || ""}
-              onChange={(date) => onCancellationDateChange?.(date)}
+              onChange={handleCancellationDateChange}
               placeholder="Select Date"
               customWidth="w-[12rem]"
               inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"

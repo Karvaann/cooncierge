@@ -187,7 +187,7 @@ export default function OneWayLayout({
         {/* Add Segment Button */}
         <button
           onClick={addSegment}
-          className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-[#7135AD] text-white text-[0.75rem] font-[500] rounded-[10px] hover:cursor-pointer transition"
+          className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-[#7135AD] text-white text-[11px] font-[500] rounded-[10px] hover:cursor-pointer transition"
         >
           <div className="border rounded-full border-[#fff] px-0.5 py-0.5 flex items-center justify-center">
             <svg

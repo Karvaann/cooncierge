@@ -8,7 +8,6 @@ import React, {
   useRef,
 } from "react";
 import { createPortal } from "react-dom";
-import { LuEye } from "react-icons/lu";
 import { CiSearch } from "react-icons/ci";
 import { FiMinus } from "react-icons/fi";
 import { GoPlus } from "react-icons/go";
@@ -28,6 +27,7 @@ import { allowTextAndNumbers } from "@/utils/inputValidators";
 import { CiCirclePlus } from "react-icons/ci";
 import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 import RemarksField from "@/components/forms/components/RemarksField";
+import RightSideIcons from "@/components/forms/components/RightSideIcons";
 
 // Type definitions
 interface GeneralInfoFormData {
@@ -634,9 +634,43 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const [isViewTravellerOpen, setIsViewTravellerOpen] = useState(false);
   const [viewTravellerData, setViewTravellerData] =
     useState<TravellerDataType | null>(null);
+  // Track whether this component was previously unmounted
+  const wasUnmounted = useRef(false);
+
+  const resetLocalStateToEmpty = () => {
+    setFormData(buildInitialState({}));
+    setErrors({});
+    setTouched({});
+    setCustomerList([{ id: "", name: "" }]);
+    setVendorList([{ id: "", name: "" }]);
+    setAdultTravellerList([{ id: "", name: "" }]);
+    setAllCustomers([]);
+    setAllVendors([]);
+    setAllTeams([]);
+    setAllTravellers([]);
+    setCustomerResults([]);
+    setVendorResults([]);
+    setPrimaryOwnerResults([]);
+    setTravellerResults([]);
+    setShowCustomerDropdown(false);
+    setShowVendorDropdown(false);
+    setShowPrimaryOwnerDropdown(false);
+    setSecondaryOwnerDropdownOpen(false);
+    setSelectedSecondaryOwners([]);
+    setActiveTravellerDropdown(null);
+    setActiveCustomerIndex(null);
+    setOwnerList([{ id: "", name: "" }]);
+    setIsViewCustomerOpen(false);
+    setViewCustomerData(null);
+    setIsViewVendorOpen(false);
+    setViewVendorData(null);
+    setIsViewTravellerOpen(false);
+    setViewTravellerData(null);
+    setIsLoadingLists(false);
+  };
 
   // Add refs for click-outside detection
-  const customerRef = useRef<HTMLDivElement | null>(null);
+  const customerRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   const vendorRef = useRef<HTMLDivElement | null>(null);
   const teamsPrimaryRef = useRef<HTMLDivElement | null>(null);
   const teamsSecondaryRef = useRef<HTMLDivElement | null>(null);
@@ -659,7 +693,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     const handleGlobalPointerDown = (e: PointerEvent) => {
       if (e.isPrimary === false) return;
 
-      const isInCustomer = isEventInside(e, customerRef.current);
+      let isInCustomer = false;
+      customerRefs.current.forEach((ref) => {
+        if (isEventInside(e, ref)) isInCustomer = true;
+      });
       const isInVendor = isEventInside(e, vendorRef.current);
       const isInPrimaryOwner = isEventInside(e, teamsPrimaryRef.current);
       const isInSecondaryOwner = isEventInside(e, teamsSecondaryRef.current);
@@ -826,6 +863,18 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     };
 
     fetchLists();
+  }, []);
+
+  // If this component was previously unmounted, clear local state on mount
+  useEffect(() => {
+    if (wasUnmounted.current) {
+      resetLocalStateToEmpty();
+    }
+    wasUnmounted.current = false;
+    return () => {
+      wasUnmounted.current = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Hydrate owner from externalFormData
@@ -1475,72 +1524,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     });
   }, [`${formData.adults}|${formData.children}|${formData.infants}`]);
 
-  const getFieldValue = (fieldName: string, overrideValue?: string) => {
-    if (overrideValue !== undefined) return overrideValue;
-    return formData[fieldName as keyof GeneralInfoFormData] ?? "";
-  };
-
-  // clearInput() helper
-  const clearInput = (
-    fieldName: string,
-    overrideHandler?: (value: string) => void,
-  ) => {
-    if (overrideHandler) {
-      overrideHandler("");
-    } else {
-      clearField(fieldName);
-    }
-  };
-
-  const RightSideIcons: React.FC<{
-    fieldName: string;
-    value?: string | undefined; // override value
-    overrideSetter?: (val: string) => void;
-    onClickPlus?: () => void; // for add customer/vendor modal
-    onClickView?: () => void;
-  }> = ({ fieldName, value, overrideSetter, onClickPlus, onClickView }) => {
-    const actualValue = getFieldValue(fieldName, value);
-    const valueString = String(actualValue ?? "");
-    const isEmpty = valueString.trim() === "";
-
-    return (
-      <div className="flex items-center gap-2 ml-auto">
-        {isEmpty && (
-          <button
-            type="button"
-            onClick={onClickPlus}
-            className="w-6.5 h-6.5 flex items-center bg-[#414141] justify-center rounded-md transition-colors"
-            disabled={isSubmitting}
-          >
-            <GoPlus size={16} className="text-white" />
-          </button>
-        )}
-
-        {/* EYE and MINUS when value exists */}
-        {!isEmpty && (
-          <>
-            <button
-              type="button"
-              onClick={onClickView}
-              className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-            >
-              <LuEye size={17} className="text-gray-400" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => clearInput(fieldName, overrideSetter)}
-              disabled={isSubmitting}
-              className="w-6.5 h-6.5 flex items-center justify-center bg-[#414141] rounded-md cursor-pointer transition-colors"
-            >
-              <FiMinus size={16} className="text-white" />
-            </button>
-          </>
-        )}
-      </div>
-    );
-  };
-
   // Handle input changes
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -1610,7 +1593,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           <div key={index} className="">
             <div className="flex items-center gap-1 mt-3">
               <label className="text-[12px] font-[500] text-[#414141]">
-                <span className="text-[#FF3B30]">*</span> Customer
+                <span className="text-[#FF3B30]">*</span>{" "}
+                {customerList.length > 1 ? `Customer ${index + 1}` : "Customer"}
               </label>
 
               {index > 0 && (
@@ -1625,7 +1609,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             </div>
 
             <div className="flex items-center mt-1 w-full">
-              <div className="w-[60%] relative" ref={customerRef}>
+              <div
+                className="w-[60%] relative"
+                ref={(el) => {
+                  customerRefs.current.set(index, el);
+                }}
+              >
                 <InputField
                   name="customer"
                   placeholder="Search by Customer Name/ID"
@@ -1650,19 +1639,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                       // IF FIELD CLEARED then also clear stored value so validation becomes empty
                       if (value.trim() === "") {
-                        const newFormData = {
-                          ...formData,
-                          customer: "",
-                          customerName: "",
-                        };
-                        setFormData(newFormData);
-                      } else {
-                        // Update customerName for draft display
-                        const newFormData = {
-                          ...formData,
-                          customerName: value,
-                        };
-                        setFormData(newFormData);
+                        if (index === 0) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            customer: "",
+                          }));
+                        }
                       }
 
                       const results = runFuzzySearch(allCustomers, value, [
@@ -1761,13 +1743,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                 name: cust.name,
                               });
                               setActiveCustomerIndex(null);
-                              // Sync main form and notify parent with both ID and name
-                              const newFormData = {
-                                ...formData,
-                                customer: cust._id,
-                                customerName: cust.name,
-                              };
-                              setFormData(newFormData);
                               setCustomerResults([]);
                               setShowCustomerDropdown(false);
                             }}
@@ -1808,25 +1783,20 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               </div>
 
               <RightSideIcons
-                fieldName="customer"
                 value={customerList[index]?.name ?? ""}
-                overrideSetter={(val: string) => {
-                  if (val.trim() === "") {
-                    updateCustomerField(index, { id: "", name: "" });
+                disabled={isSubmitting}
+                onClear={() => {
+                  updateCustomerField(index, { id: "", name: "" });
+                  if (index === 0) {
                     setFormData((prev) => ({
                       ...prev,
                       customer: "",
                       customerName: "",
                     }));
-                    setCustomerResults([]);
-                    setShowCustomerDropdown(false);
-                    setActiveCustomerIndex(null);
-                    return;
                   }
-                  updateCustomerField(index, {
-                    id: customerList[index]?.id ?? "",
-                    name: val,
-                  });
+                  setCustomerResults([]);
+                  setShowCustomerDropdown(false);
+                  setActiveCustomerIndex(null);
                 }}
                 onClickPlus={openAddCustomer}
                 onClickView={() => handleViewCustomer(index)}
@@ -1834,6 +1804,39 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             </div>
           </div>
         ))}
+
+        {!isReadOnly && (
+          <button
+            type="button"
+            onClick={() =>
+              setCustomerList((prev) => [...prev, { id: "", name: "" }])
+            }
+            disabled={isSubmitting}
+            className="flex items-center gap-2.5 mt-3 text-[13px] font-[400] text-[#414141] hover:text-[#414141]"
+          >
+            <div className="border border-[#818181] rounded-full p-0.25 flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="#818181"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <span className="-ml-1 text-[11px] font-[500] text-[#818181]">
+              Add Another Customer
+            </span>
+          </button>
+        )}
       </div>
       {/* Vendor Section */}
       {!hideVendor && (
@@ -2009,21 +2012,17 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             </div>
 
             <RightSideIcons
-              fieldName="vendor"
               value={vendorList[0]?.name ?? ""}
-              overrideSetter={(val) => {
-                if (val.trim() === "") {
-                  setVendorList([{ id: "", name: "" }]);
-                  setFormData((prev) => ({
-                    ...prev,
-                    vendor: "",
-                    vendorName: "",
-                  }));
-                  setVendorResults([]);
-                  setShowVendorDropdown(false);
-                  return;
-                }
-                setVendorList([{ id: "", name: val }]);
+              disabled={isSubmitting}
+              onClear={() => {
+                setVendorList([{ id: "", name: "" }]);
+                setFormData((prev) => ({
+                  ...prev,
+                  vendor: "",
+                  vendorName: "",
+                }));
+                setVendorResults([]);
+                setShowVendorDropdown(false);
               }}
               onClickPlus={openAddVendor}
               onClickView={() => handleViewVendor()}
@@ -2314,11 +2313,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 </div>
 
                 <RightSideIcons
-                  fieldName="adultTravellers"
                   value={formData.adultTravellers[index] ?? ""}
-                  overrideSetter={(val) =>
-                    updateTraveller("adultTravellers", index, val)
-                  }
+                  disabled={isSubmitting}
+                  onClear={() => updateTraveller("adultTravellers", index, "")}
                   onClickPlus={() =>
                     openAddTraveller({ type: "adultTravellers", index })
                   }
@@ -2523,11 +2520,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 </div>
 
                 <RightSideIcons
-                  fieldName="infantTravellers"
                   value={trav}
-                  overrideSetter={(val) =>
-                    updateTraveller("infantTravellers", index, val)
-                  }
+                  disabled={isSubmitting}
+                  onClear={() => updateTraveller("infantTravellers", index, "")}
                   onClickPlus={() =>
                     openAddTraveller({ type: "infantTravellers", index })
                   }
@@ -2617,17 +2612,17 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               type="button"
               onClick={() => !isReadOnly && setShowSecondaryOwnerField(true)}
               disabled={isReadOnly}
-              className={`flex items-center gap-2 text-[13px] font-[400] text-[#414141] ${
+              className={`flex items-center gap-2.5 text-[13px] font-[400] text-[#414141] ${
                 isReadOnly
                   ? "opacity-50 cursor-not-allowed"
                   : "hover:text-[#414141]"
               }`}
             >
-              <div className="border border-[#818181] rounded-full p-0.25 flex items-center justify-center">
+              <div className="border border-[#818181] -mt-0.5 rounded-full p-0.25 flex items-center justify-center">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
+                  width="13"
+                  height="13"
                   viewBox="0 0 24 24"
                   fill="none"
                   aria-hidden="true"

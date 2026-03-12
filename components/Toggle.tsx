@@ -5,7 +5,14 @@ import React from "react";
 const Toggle: React.FC<{
   checked: boolean;
   onChange: (v: boolean) => void;
-}> = ({ checked, onChange }) => {
+  checkedBg?: string;
+  uncheckedBg?: string;
+}> = ({
+  checked,
+  onChange,
+  checkedBg = "#126ACB",
+  uncheckedBg = "#E5E7EB",
+}) => {
   const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
     onChange(!checked);
@@ -26,7 +33,7 @@ const Toggle: React.FC<{
       onKeyDown={handleKey}
       aria-checked={checked}
       className={`inline-flex items-center justify-between w-7 h-4 rounded-full p-1 transition-colors focus:outline-none`}
-      style={{ backgroundColor: checked ? "#126ACB" : "#E5E7EB" }}
+      style={{ backgroundColor: checked ? checkedBg : uncheckedBg }}
     >
       <span
         className={`block bg-white rounded-full w-3 h-3 transform transition-transform`}

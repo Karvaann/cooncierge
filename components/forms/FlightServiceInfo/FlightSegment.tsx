@@ -513,7 +513,7 @@ export default function FlightSegmentCard({
                     placeholder="0"
                     className="w-8 text-[12px] text-[#020202] outline-none bg-transparent"
                   />
-                  <span className="text-[12px] border border-[#E2E1E1] rounded-[10px] px-1.5 py-0.5 bg-[#F9F9F9] text-[#818181] mr-3">
+                  <span className="text-[12px] font-[400] border border-[#E2E1E1] rounded-[10px] px-1.5 py-0.5 bg-[#F9F9F9] text-[#020202] mr-3">
                     h
                   </span>
 
@@ -522,7 +522,7 @@ export default function FlightSegmentCard({
                     placeholder="0"
                     className="w-8 text-[12px]  text-[#020202] outline-none bg-transparent"
                   />
-                  <span className="text-[12px] border border-[#E2E1E1] rounded-[10px] px-1.5 py-0.5 bg-[#F9F9F9] text-[#818181]">
+                  <span className="text-[12px] font-[400] border border-[#E2E1E1] rounded-[10px] px-1.5 py-0.5 bg-[#F9F9F9] text-[#020202]">
                     m
                   </span>
                 </div>

@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
 import DateFieldsAndStatus from "@/components/forms/components/DateFieldsAndStatus";
 import AmountSection from "@/components/AmountSection";
 import type { AmountSectionValue } from "@/components/AmountSection";
@@ -233,9 +239,16 @@ const PriceInfoForm: React.FC<PriceInfoProps> = ({
     defaultShowAdvancedPricing,
   );
 
+  const lastSyncedExternalRef = useRef<string>("");
+  const lastPushedRef = useRef<string>("");
+
   // Sync with external/initial form data when it changes (edit mode)
   useEffect(() => {
     if (!externalFormData || Object.keys(externalFormData).length === 0) return;
+
+    const serialized = JSON.stringify(normalizedExternalData);
+    if (serialized === lastSyncedExternalRef.current) return;
+    lastSyncedExternalRef.current = serialized;
 
     const nextShowAdvancedPricing = getDefaultShowAdvancedPricing(
       normalizedExternalData,
@@ -252,6 +265,9 @@ const PriceInfoForm: React.FC<PriceInfoProps> = ({
 
   // Push form data up whenever it changes
   useEffect(() => {
+    const serialized = JSON.stringify(formData);
+    if (serialized === lastPushedRef.current) return;
+    lastPushedRef.current = serialized;
     onFormDataUpdate({ priceinfoform: formData });
   }, [formData]);
 

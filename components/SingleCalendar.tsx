@@ -52,7 +52,9 @@ export default function SingleCalendar({
   const [showYearPicker, setShowYearPicker] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const selectedDate = value ? new Date(value) : null;
+  const [lastSelectedDate, setLastSelectedDate] = useState<Date | null>(null);
+
+  const selectedDate = value ? new Date(value) : open ? lastSelectedDate : null;
 
   const isDateAllowed = (date: Date) => {
     const dayOnly = new Date(date);
@@ -436,6 +438,7 @@ export default function SingleCalendar({
 
             const allowed = isDateAllowed(dayOnly);
             const isDisabled = !isCurrentMonth || !allowed;
+            const showOutlineForSelected = selected && open;
 
             return (
               <div key={index} className="relative w-9 h-8">
@@ -458,7 +461,9 @@ export default function SingleCalendar({
                     }
                     ${
                       isCurrentMonth && selected && allowed
-                        ? "text-white rounded-sm"
+                        ? showOutlineForSelected
+                          ? "text-white ring-2 ring-[#7135AD] rounded-sm"
+                          : "text-white rounded-sm"
                         : ""
                     }
                     ${
@@ -473,8 +478,10 @@ export default function SingleCalendar({
                     }
                   `}
                   style={
+                    // When calendar is open we show an outlined selected date;
+                    // when closed (or not open) keep filled purple background for selected date.
                     isCurrentMonth && selected && allowed
-                      ? { backgroundColor: "#0D4B37" }
+                      ? { backgroundColor: "#7135AD" }
                       : undefined
                   }
                 >
@@ -502,7 +509,7 @@ export default function SingleCalendar({
           className={`px-2 py-2 text-[13px] rounded-md transition-colors
             ${
               currentMonth.getMonth() === index
-                ? "bg-gray-700 text-white"
+                ? "bg-[#7135AD] text-white"
                 : "text-gray-700 hover:bg-gray-100"
             }
           `}
@@ -527,7 +534,7 @@ export default function SingleCalendar({
           className={`px-2 py-1.5 text-[13px] rounded-md transition-colors
             ${
               currentMonth.getFullYear() === year
-                ? "bg-gray-700 text-white"
+                ? "bg-[#7135AD] text-white"
                 : "text-gray-700 hover:bg-gray-100"
             }
           `}
@@ -564,6 +571,7 @@ export default function SingleCalendar({
 
             // If a date already exists, clear it for fresh selection
             if (value) {
+              setLastSelectedDate(new Date(value)); // store previous date
               setInputValue("");
               onChange("");
             }
@@ -648,7 +656,7 @@ export default function SingleCalendar({
                   setShowMonthPicker(!showMonthPicker);
                   setShowYearPicker(false);
                 }}
-                className="text-[13px] font-medium text-gray-700 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                className={`text-[13px] font-medium px-2 py-1 rounded transition-colors ${showMonthPicker ? "text-[#7135AD]" : "text-gray-700 hover:bg-gray-100"}`}
               >
                 {months[currentMonth.getMonth()]}
               </button>
@@ -660,7 +668,7 @@ export default function SingleCalendar({
                   setShowYearPicker(!showYearPicker);
                   setShowMonthPicker(false);
                 }}
-                className="text-[13px] font-medium text-gray-700 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                className={`text-[13px] font-medium px-2 py-1 rounded transition-colors ${showYearPicker ? "text-[#7135AD]" : "text-gray-700 hover:bg-gray-100"}`}
               >
                 {currentMonth.getFullYear()}
               </button>

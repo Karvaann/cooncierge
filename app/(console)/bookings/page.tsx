@@ -41,6 +41,7 @@ import {
   getItemTimestamp,
 } from "@/utils/sorting";
 import UnderlineTabs from "@/components/UnderlineTabs";
+import Toggle from "@/components/Toggle";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -247,6 +248,8 @@ const OSBookingsPage = () => {
   const [calendarStartDate, setCalendarStartDate] = useState(() =>
     startOfDay(new Date()),
   );
+  // Toggle whether incomplete bookings should be shown in the table
+  const [showIncomplete, setShowIncomplete] = useState(false);
   // Filters state
   const [filters, setFilters] = useState<FilterPayload>({
     serviceType: "",
@@ -468,9 +471,15 @@ const OSBookingsPage = () => {
         if (!intersects) return false;
       }
 
+      // If "Show Incomplete" is off, hide incomplete bookings
+      const isComplete =
+        q?.isBookingDataComplete === true ||
+        q?.isBookingDataComplete === "true";
+      if (!showIncomplete && !isComplete) return false;
+
       return true;
     });
-  }, [quotations, filters, selectedOwners]);
+  }, [quotations, filters, selectedOwners, showIncomplete]);
 
   // Load quotations from backend
   const loadQuotations = useCallback(async () => {
@@ -1476,13 +1485,39 @@ const OSBookingsPage = () => {
           />
 
           {bookingSourceTab === "My Bookings" ? (
-            <div className="relative mt-4 flex min-h-0 flex-1 flex-col rounded-2xl border border-[#E5E7EB] bg-white">
-              <UnderlineTabs
-                tabs={tabOptions}
-                activeTab={activeTab}
-                onChange={setActiveTab}
-                totalCount={filteredQuotations.length}
-              />
+            <div className="relative mt-4 flex min-h-0 flex-1 flex-col rounded-2xl border border-[#E5E7EB] pt-1.5 bg-white">
+              <div className="relative">
+                <UnderlineTabs
+                  tabs={tabOptions}
+                  activeTab={activeTab}
+                  onChange={setActiveTab}
+                  totalCount={filteredQuotations.length}
+                  className="w-full"
+                />
+
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-4">
+                  <div className="flex items-center gap-2 text-[13px] text-[#414141]">
+                    <Toggle
+                      checked={showIncomplete}
+                      onChange={(v: boolean) => setShowIncomplete(v)}
+                      checkedBg="#7135AD"
+                      uncheckedBg="#E5E7EB"
+                    />
+
+                    <span className="whitespace-nowrap text-[#414141] font-[400] text-[13px]">
+                      Show Incomplete Bookings
+                    </span>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="rounded-full text-[13px] border border-[#7135AD66] px-4 py-1.5 text-[#7135AD] font-[500]">
+                      <span className="text-[#414141] font-[500]">Total </span>{" "}
+                      : {filteredQuotations.length}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="mt-4 flex-1 min-h-0 overflow-auto px-5 py-[4px]">
                 {isLoading ? (
                   <TableSkeleton />

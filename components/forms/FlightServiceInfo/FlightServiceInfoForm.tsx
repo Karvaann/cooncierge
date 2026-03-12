@@ -1,6 +1,13 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+  useLayoutEffect,
+} from "react";
 import OneWayLayout from "./OneWayLayout";
 import RoundTripLayout from "./RoundTripLayout";
 import MultiCityLayout from "./MultiCityLayout";
@@ -16,6 +23,7 @@ interface FlightInfoFormData {
   bookingdate: string;
   traveldate: string;
   bookingstatus: "Confirmed" | "Canceled" | "In Progress" | string;
+  cancellationDate?: string;
   PNR: number | string;
   pnrEnabled: boolean;
   segments: FlightSegment[]; // Array of flight segments
@@ -115,7 +123,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
 }) => {
   // Normalize incoming data so we can hydrate the form from either
   // `externalFormData`, `externalFormData.formFields`, `externalFormData.flightinfoform`,
-  // or the raw `formData` passed from BookingFormSideSheet when editing.
+  // passed from BookingFormSideSheet when editing.
   const normalizedExternalData = useMemo(() => {
     const source = externalFormData ?? {};
     const fields =
@@ -130,6 +138,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
     bookingdate: normalizedExternalData?.bookingdate || "",
     traveldate: normalizedExternalData?.traveldate || "",
     bookingstatus: normalizedExternalData?.bookingstatus || "",
+    cancellationDate: (normalizedExternalData as any)?.cancellationDate || "",
     PNR: normalizedExternalData?.PNR || "",
     segments:
       normalizedExternalData?.segments && normalizedExternalData.segments.length
@@ -232,14 +241,40 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
           | "One Way"
           | "Round Trip"
           | "Multi-City") ?? prev.flightType,
+      cancellationDate:
+        (normalizedExternalData as any)?.cancellationDate ??
+        prev.cancellationDate,
     }));
   }, [externalFormData, isReadOnly, normalizedExternalData]);
-
-  // advanced/pricing removed - no formData sync needed
 
   useEffect(() => {
     onFormDataUpdate({ flightinfoform: formData });
   }, [formData]);
+
+  // Smooth pill indicator for flight type tabs
+  const flightTabContainerRef = useRef<HTMLDivElement | null>(null);
+  const [flightTabIndicator, setFlightTabIndicator] = useState({
+    left: 0,
+    width: 0,
+  });
+
+  useLayoutEffect(() => {
+    const update = () => {
+      const container = flightTabContainerRef.current;
+      if (!container) return;
+      const activeBtn = container.querySelector(
+        `[data-tab="${formData.flightType}"]`,
+      ) as HTMLElement | null;
+      if (!activeBtn) return;
+      setFlightTabIndicator({
+        left: activeBtn.offsetLeft,
+        width: activeBtn.offsetWidth,
+      });
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, [formData.flightType]);
 
   return (
     <>
@@ -258,6 +293,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             bookingdate={formData.bookingdate}
             traveldate={formData.traveldate}
             bookingstatus={formData.bookingstatus}
+            cancellationDate={formData.cancellationDate}
             onBookingDateChange={(date) =>
               setFormData((prev) => ({
                 ...prev,
@@ -273,6 +309,9 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             }
             onBookingStatusChange={(status) =>
               setFormData((prev) => ({ ...prev, bookingstatus: status }))
+            }
+            onCancellationDateChange={(date) =>
+              setFormData((prev) => ({ ...prev, cancellationDate: date }))
             }
           />
 
@@ -339,18 +378,31 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             </div>
 
             {/* Flight Type Tabs */}
-            <div className="inline-flex mb-3 mt-2 rounded-[15px] border border-[#E2E1E1] shadow-[0_2px_8px_0_rgba(0,0,0,0.06)]">
+            <div
+              ref={flightTabContainerRef}
+              className="inline-flex mb-3 mt-2 rounded-[15px] border border-[#E2E1E1] shadow-[0_2px_8px_0_rgba(0,0,0,0.06)] relative"
+            >
+              {/* Sliding indicator */}
+              <div
+                className="absolute top-0 h-full rounded-[15px] bg-[#F7EFFF] border-[0.8px] border-[#7135AD66] transition-all duration-300 ease-in-out"
+                style={{
+                  left: `${flightTabIndicator.left}px`,
+                  width: `${flightTabIndicator.width}px`,
+                }}
+              />
+
               {(["One Way", "Round Trip", "Multi-City"] as const).map(
                 (type) => (
                   <button
                     key={type}
+                    data-tab={type}
                     onClick={() =>
                       setFormData((prev) => ({ ...prev, flightType: type }))
                     }
-                    className={`px-3.5 py-1.5 text-[0.7rem] font-[500] transition-colors rounded-[15px]
+                    className={`relative z-10 px-3.5 py-1.5 text-[0.7rem] font-[500] transition-colors duration-300 rounded-[15px]
         ${
           formData.flightType === type
-            ? "bg-[#F7EFFF] text-[#7135AD] font-[500] text-[12px] border-[0.8px] border-[#7135AD66]"
+            ? "text-[#7135AD] font-[500] text-[12px]"
             : "bg-transparent text-[#414141] font-[400]"
         }`}
                   >

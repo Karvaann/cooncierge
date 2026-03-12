@@ -237,15 +237,15 @@ const CustomerDropDown: React.FC<CustomerDropDownProps> = ({
           <div className="absolute inset-y-0 left-0 right-10 flex items-center px-4 pointer-events-none">
             <div className="flex items-center justify-between w-full">
               <div className="flex items-center gap-1 min-w-0">
-                <p className="font-medium text-[13px] text-gray-900 truncate">
+                <p className="font-[400] text-[13px] text-[#020202] truncate">
                   {selectedCustomer.name}
                 </p>
                 <span className="text-gray-300">|</span>
-                <p className="text-[13px] text-gray-600 truncate">
+                <p className="text-[13px] text-[#414141] font-[400] truncate">
                   {displayOverlay.alias}
                 </p>
                 <span className="text-gray-300">|</span>
-                <p className="text-[13px] text-gray-600 truncate">
+                <p className="text-[13px] text-[#414141] font-[400] truncate">
                   {selectedCustomer.customId || "-"}
                 </p>
               </div>
@@ -256,7 +256,7 @@ const CustomerDropDown: React.FC<CustomerDropDownProps> = ({
                   alt={`Tier ${displayOverlay.rating}`}
                   className="w-4 h-4 object-contain"
                 />
-                <span className="text-[13px] font-semibold text-gray-700">
+                <span className="text-[13px] font-[400] text-[#020202]">
                   {displayOverlay.rating}
                 </span>
               </div>
