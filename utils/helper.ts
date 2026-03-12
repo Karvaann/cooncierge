@@ -1,4 +1,3 @@
-// Type definitions for Tailwind CSS classes
 export type BgClass = 
   | 'bg-blue-100' | 'bg-green-100' | 'bg-yellow-100' | 'bg-purple-100' 
   | 'bg-red-100' | 'bg-pink-100' | 'bg-cyan-100' | 'bg-orange-100' | 'bg-lime-100';
@@ -257,6 +256,25 @@ export const formatNumberByStoredCurrency = (
   options?: Intl.NumberFormatOptions,
 ): string => {
   return formatNumberByCurrency(value, getStoredBusinessCurrency() || "INR", options);
+};
+
+/**
+ * Format a number using the Indian numbering system
+ * Uses `toNumberOrZero` to coerce inputs and returns a string with fixed decimals.
+ */
+export const formatIndianNumber = (
+  value?: number | string,
+  decimals = 2,
+): string => {
+  const n = toNumberOrZero(value);
+  try {
+    return n.toLocaleString("en-IN", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  } catch {
+    return String(n.toFixed(decimals));
+  }
 };
 
 /**

@@ -13,6 +13,7 @@ import SuccessPopupModal from "./popups/BookingPopups/SuccessPopupModal";
 import ErrorToast from "./ErrorToast";
 import { BookingProvider, useBooking } from "@/context/BookingContext";
 import { useLimitlessDraft } from "@/context/LimitlessDraftContext";
+import { BookingFieldSyncProvider } from "@/context/BookingFieldSyncContext";
 import { BookingApiService } from "@/services/bookingApi";
 import SideSheet from "@/components/SideSheet";
 import GeneralInfoForm from "./forms/GeneralInfoForm";
@@ -29,7 +30,9 @@ import InsuranceServiceInfoForm from "./forms/InsuranceServiceInfoForm";
 import VisasServiceInfoForm from "./forms/VisasServiceInfoForm";
 import OthersServiceInfoForm from "./forms/OthersServiceInfoForm";
 import LimitlessServiceInfoForm from "./forms/LimitlessServiceInfoForm";
+import PriceInfoForm from "./forms/PriceInfo";
 import Button from "./Button";
+import DropDown from "./DropDown";
 import { LuSave } from "react-icons/lu";
 
 import { getAuthUser } from "@/services/storage/authStorage";
@@ -67,7 +70,7 @@ interface BookingFormSidesheetProps {
   hideVendor?: boolean;
 }
 
-type TabType = "general" | "service" | "review";
+type TabType = "general" | "service" | "price" | "review";
 
 interface TabConfig {
   id: TabType;
@@ -286,6 +289,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const [formInstanceId, setFormInstanceId] = useState(0);
 
   const [activeTab, setActiveTab] = useState<TabType>("general");
+  const [serviceOverride, setServiceOverride] = useState<string>("");
   const [formData, setFormData] = useState<any>(initialData || {});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -301,6 +305,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   const generalFormRef = useRef<HTMLFormElement | null>(null);
   const serviceFormRef = useRef<HTMLFormElement | null>(null);
   const addCustomerFormRef = useRef<HTMLFormElement | null>(null);
+  const priceFormRef = useRef<HTMLFormElement | null>(null);
   const addVendorFormRef = useRef<HTMLFormElement | null>(null);
   const addTravellerFormRef = useRef<HTMLFormElement | null>(null);
 
@@ -308,6 +313,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     const refs = [
       generalFormRef,
       serviceFormRef,
+      priceFormRef,
       addCustomerFormRef,
       addVendorFormRef,
       addTravellerFormRef,
@@ -411,6 +417,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   );
   const isReadOnly = readOnlyOverride ?? mode === "view";
 
+  //  show the Save button while keeping fields read-only
+  const isDuplicateView =
+    mode === "view" && !quotationId && Boolean(bookingCode || bookingCodeProp);
+
   // Each time the sidesheet opens, increment the instance id so
   // GeneralInfoForm / ServiceInfoForm (and nested modals) get a fresh mount.
   useEffect(() => {
@@ -464,6 +474,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     setIsDirty(false);
     setActiveTab("general");
     setReadOnlyOverride(null);
+    setServiceOverride("");
 
     // snapshot initial state for dirty-checking
     initialSnapshotRef.current = stableStringify(initialData ?? {});
@@ -480,6 +491,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     setCustomerCode("");
     setBookingCode("");
     setVendorCode("");
+    setServiceOverride("");
     resetManagedForms();
   }, [isOpen, resetManagedForms]);
 
@@ -500,6 +512,14 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     if (generalFormRef.current instanceof HTMLFormElement) {
       const generalData = new FormData(generalFormRef.current);
       generalData.forEach((value, key) => {
+        allFormData[key] = value;
+      });
+    }
+
+    // Get data from Price Info form
+    if (priceFormRef.current instanceof HTMLFormElement) {
+      const priceData = new FormData(priceFormRef.current);
+      priceData.forEach((value, key) => {
         allFormData[key] = value;
       });
     }
@@ -529,6 +549,12 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         id: "service",
         label: "Service Info",
         component: ServiceInfoFormSwitcher,
+        isEnabled: true,
+      },
+      {
+        id: "price",
+        label: "Price Info",
+        component: PriceInfoForm,
         isEnabled: true,
       },
     ],
@@ -731,6 +757,34 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     return bookingDataTemp;
   }
 
+  /**
+   * Validate advanced-pricing fields when the checkbox is on.
+   */
+  const validateAdvancedPricing = useCallback(
+    (formValues: Record<string, any>): string => {
+      // Find the *infoform key (flightinfoform, accommodationinfoform, etc.)
+      const infoFormKey = Object.keys(formValues).find((k) =>
+        k.toLowerCase().endsWith("infoform"),
+      );
+      const infoForm = infoFormKey ? formValues[infoFormKey] : null;
+      if (!infoForm || typeof infoForm !== "object") return "";
+      if (!infoForm.showAdvancedPricing) return "";
+
+      const isEmpty = (v: unknown) =>
+        v === undefined || v === null || String(v).trim() === "";
+
+      if (isEmpty(infoForm.vendorBasePrice))
+        return "Vendor Base Price is required when Advanced Pricing is enabled";
+      if (isEmpty(infoForm.vendorIncentiveReceived))
+        return "Vendor Incentive Received is required when Advanced Pricing is enabled";
+      if (isEmpty(infoForm.commissionPaid))
+        return "Commission Paid is required when Advanced Pricing is enabled";
+
+      return "";
+    },
+    [],
+  );
+
   const handleDraftSubmit = useCallback(async () => {
     setIsSubmitting(true);
 
@@ -761,6 +815,15 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       return;
     }
 
+    // Validate advanced pricing fields before saving draft
+    const advPricingError = validateAdvancedPricing(formValues);
+    if (advPricingError) {
+      setApiErrorMessage(advPricingError);
+      setShowApiErrorToast(true);
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       // booking type may come from selectedService, initialData or the form values
       const bookingData = convertToBookingData(
@@ -768,14 +831,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         quotationTypeForDraft,
         "draft",
       );
-
-      // Prepare multipart form data
-      // const formDataToSend = new FormData();
-      // formDataToSend.append("data", JSON.stringify(bookingData));
-
-      // bookingDocuments.forEach((file) => {
-      //   formDataToSend.append("documents", file);
-      // });
 
       const response = await BookingApiService.createQuotation(bookingData);
 
@@ -837,6 +892,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     onClose,
     bookingDocuments,
     onBookingSaved,
+    validateAdvancedPricing,
   ]);
 
   const handleSubmit = useCallback(async () => {
@@ -864,6 +920,15 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         alert(
           "Please select a service or set a service type before submitting",
         );
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Validate advanced pricing fields before submitting
+      const advPricingError = validateAdvancedPricing(formValues);
+      if (advPricingError) {
+        setApiErrorMessage(advPricingError);
+        setShowApiErrorToast(true);
         setIsSubmitting(false);
         return;
       }
@@ -945,6 +1010,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     isEditingExisting,
     quotationId,
     onBookingSaved,
+    validateAdvancedPricing,
   ]);
 
   // Optimized tab click handler
@@ -982,12 +1048,12 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         <button
           key={tab.id}
           className={`
-          px-4 py-1.5 text-[12px] font-[400] transition-colors relative
+          px-4 py-1.5 text-[12px] font-[500] transition-colors relative
           ${
             activeTab === tab.id
-              ? "text-[#0D4B37]"
+              ? "text-[#7135AD]"
               : tab.isEnabled
-                ? "text-gray-500 hover:text-gray-700"
+                ? "text-[#818181] hover:cursor-pointer"
                 : "text-gray-300 cursor-not-allowed"
           }
         `}
@@ -999,56 +1065,25 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           {tab.label}
           {/* Green underline for active tab */}
           {activeTab === tab.id && (
-            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-[2px] bg-[#0D4B37] z-20"></span>
+            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4/5 h-[2px] bg-[#7135AD] z-20"></span>
           )}
         </button>
       )),
     [tabs, activeTab, handleTabClick],
   );
 
-  // Memoized active tab content
-  // const activeTabContent = useMemo(() => {
-  //   const activeTabConfig = tabs.find((tab) => tab.id === activeTab);
-  //   if (!activeTabConfig) return null;
-
-  //   const Component = activeTabConfig.component;
-
-  //   const commonProps = {
-  //     formData,
-  //     onFormDataUpdate: handleFormDataUpdate,
-  //     onSubmit: handleFormSubmit,
-  //     selectedService,
-  //     isSubmitting,
-  //   };
-
-  //   return (
-  //     <Component
-  //       {...commonProps}
-  //       formRef={activeTab === "general" ? generalFormRef : serviceFormRef}
-  //     />
-  //   );
-  // }, [
-  //   activeTab,
-  //   tabs,
-  //   formData,
-  //   handleFormDataUpdate,
-  //   handleFormSubmit,
-  //   selectedService,
-  //   isSubmitting,
-  // ]);
-
   // Memoized title (returns JSX to allow styled divider)
   const title = useMemo(() => {
     if (!selectedService) return <span>Booking Form</span>;
     return (
       <div className="flex items-center">
-        <span className="text-[16px] text-[#020202] font-[500]">
+        <span className="text-[16px] text-[#020202] font-[600]">
           {selectedService.title}
         </span>
         {bookingCode ? (
           <>
             <span className="mx-[7px] w-px h-4 bg-gray-200" aria-hidden />
-            <span className="font-mono text-[18px] font-[500] text-[#020202]">
+            <span className="font-mono text-[16px] font-[600] text-[#020202]">
               {bookingCode}
             </span>
           </>
@@ -1057,9 +1092,63 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     );
   }, [selectedService, bookingCode]);
 
-  // Confirm modal title text
-  const confirmModalText =
-    "Do you want to save Data - #1234 to drafts before closing?";
+  // Service dropdown options for switching the service info form
+  const serviceDropdownOptions = useMemo(
+    () => [
+      { value: "travel", label: "Flights" },
+      { value: "accommodation", label: "Accommodation" },
+      { value: "transport-land", label: "Transportation" },
+      { value: "tickets", label: "Ticket (Attraction)" },
+      { value: "activity", label: "Activity" },
+      { value: "travel insurance", label: "Travel Insurance" },
+      { value: "visas", label: "Visa" },
+      { value: "others", label: "Others" },
+    ],
+    [],
+  );
+
+  // Resolve the effective service category for ServiceInfoFormSwitcher
+  const effectiveServiceCategory =
+    serviceOverride ||
+    (typeof selectedService === "string"
+      ? selectedService
+      : selectedService?.category) ||
+    initialData?.quotationType ||
+    "travel";
+
+  const effectiveSelectedService = useMemo(() => {
+    if (!serviceOverride) return selectedService;
+    const label =
+      serviceDropdownOptions.find((o) => o.value === serviceOverride)?.label ||
+      "";
+    return {
+      id: selectedService?.id || "",
+      title: label,
+      image: selectedService?.image || "",
+      category: serviceOverride as Service["category"],
+      description: selectedService?.description || "",
+    };
+  }, [serviceOverride, selectedService, serviceDropdownOptions]);
+
+  // Dropdown shown in the SideSheet header, only on the service tab
+  const headerRight = useMemo(() => {
+    if (activeTab !== "service" || isReadOnly) return undefined;
+    return (
+      <div className="flex items-center">
+        <DropDown
+          options={serviceDropdownOptions}
+          value={effectiveServiceCategory}
+          onChange={setServiceOverride}
+          placeholder="Select Service"
+          customWidth="w-[11rem]"
+          customHeight="py-1"
+          menuClassName="rounded-[14px] px-1.5"
+          buttonClassName="px-3 py-1.5 hover:border-[#C6AEDE] rounded-[15px]"
+          noButtonRadius
+        />
+      </div>
+    );
+  }, [activeTab, isReadOnly, serviceDropdownOptions, effectiveServiceCategory]);
 
   return (
     <>
@@ -1068,6 +1157,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         onClose={handleRequestClose}
         onCloseButtonClick={handleRequestClose}
         title={title}
+        headerRight={headerRight}
         width="xl"
         zIndex={900}
       >
@@ -1082,24 +1172,29 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
             </div>
 
             {/* Divider line below tabs */}
-            <div className="absolute top-6.5 left-6 right-8 z-10 border-b border-gray-200"></div>
+            <div className="absolute top-11.5 left-3 right-7 z-10 border-b border-gray-200"></div>
 
             {/* Tab Content - Scrollable with padding for fixed header and footer */}
-            <div className="overflow-y-auto mt-[18px] pt-7 pb-8" role="tabpanel">
+            <div
+              className="overflow-y-auto mt-[18px] pt-7 pb-8"
+              role="tabpanel"
+            >
               {/* dont unmount General Info */}
               <div
                 style={{ display: activeTab === "general" ? "block" : "none" }}
                 className={isReadOnly ? "opacity-90" : ""}
               >
-                {isOpen && <GeneralInfoForm
-                  key={`general-${quotationId || "new"}-${formInstanceId}`}
-                  initialFormData={initialData || {}}
-                  onFormDataUpdate={handleFormDataUpdate}
-                  isSubmitting={isSubmitting || isReadOnly}
-                  isReadOnly={isReadOnly}
-                  formRef={generalFormRef as React.RefObject<HTMLFormElement>}
-                  hideVendor={hideVendor}
-                />}
+                {isOpen && (
+                  <GeneralInfoForm
+                    key={`general-${quotationId || "new"}-${formInstanceId}`}
+                    initialFormData={initialData || {}}
+                    onFormDataUpdate={handleFormDataUpdate}
+                    isSubmitting={isSubmitting || isReadOnly}
+                    isReadOnly={isReadOnly}
+                    formRef={generalFormRef as React.RefObject<HTMLFormElement>}
+                    hideVendor={hideVendor}
+                  />
+                )}
               </div>
 
               {/* Always mount Service Info */}
@@ -1112,7 +1207,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                 }
               >
                 <ServiceInfoFormSwitcher
-                  key={`service-${quotationId || "new"}-${formInstanceId}`}
+                  key={`service-${quotationId || "new"}-${formInstanceId}-${effectiveServiceCategory}`}
                   initialData={initialData}
                   onFormDataUpdate={handleFormDataUpdate}
                   isSubmitting={isSubmitting || isReadOnly}
@@ -1120,8 +1215,32 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   formRef={serviceFormRef}
                   bookingCode={bookingCode}
                   selectedService={
-                    selectedService || initialData?.quotationType
+                    effectiveSelectedService || initialData?.quotationType
                   }
+                  onAddDocuments={addBookingDocuments}
+                  onRemoveDocuments={removeBookingDocuments}
+                  existingDocuments={existingBookingDocuments}
+                  generalInfoData={formData}
+                />
+              </div>
+
+              {/* Always mount Price Info */}
+              <div
+                style={{ display: activeTab === "price" ? "block" : "none" }}
+                className={
+                  isReadOnly
+                    ? "opacity-90 [&_input]:pointer-events-none [&_textarea]:pointer-events-none [&_select]:pointer-events-none [&_button]:pointer-events-none"
+                    : ""
+                }
+              >
+                <PriceInfoForm
+                  key={`price-${quotationId || "new"}-${formInstanceId}`}
+                  externalFormData={initialData}
+                  onFormDataUpdate={handleFormDataUpdate}
+                  isSubmitting={isSubmitting || isReadOnly}
+                  isReadOnly={isReadOnly}
+                  formRef={priceFormRef}
+                  bookingCode={bookingCode}
                   onAddDocuments={addBookingDocuments}
                   onRemoveDocuments={removeBookingDocuments}
                   existingDocuments={existingBookingDocuments}
@@ -1130,11 +1249,11 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
             </div>
 
             {/* Footer Actions - kept outside the scrollable area so it remains fixed at the bottom */}
-            <div className="border-t border-gray-200 p-4 bg-white">
-              <div className="flex justify-between">
+            <div className="border-t border-gray-200 px-4 py-2 bg-white">
+              <div className="flex justify-between mt-1 -ml-2 -mb-1">
                 {/* LEFT SIDE BUTTONS */}
                 <div>
-                  {activeTab === "service" && (
+                  {(activeTab === "service" || activeTab === "price") && (
                     <Button
                       text="Previous"
                       onClick={() => {
@@ -1145,13 +1264,11 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                         if (prevTab?.isEnabled) setActiveTab(prevTab.id);
                       }}
                       bgColor="bg-white"
-                      textColor="text-[#114958]"
-                      className="border border-[#0D4B37] hover:cursror-pointer"
+                      textColor="text-[#7135AD]"
+                      className="border border-[#7135AD] hover:cursror-pointer rounded-[15px] px-2 py-2"
                       disabled={isSubmitting}
                     />
                   )}
-
-                  {/* General tab → Nothing shown */}
                 </div>
 
                 {/* RIGHT SIDE BUTTONS */}
@@ -1159,20 +1276,39 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   {/* EDIT MODE */}
                   {mode !== "view" && (
                     <>
-                      {activeTab === "general" && !isEditingExisting && (
+                      {(activeTab === "general" ||
+                        (activeTab == "service" && !isEditingExisting)) && (
                         <Button
                           text="Save As Draft"
                           onClick={handleDraftSubmit}
                           bgColor="bg-white"
-                          textColor="text-[#0D4B37]"
-                          className="hover:bg-gray-200 border border-[#0D4B37]"
+                          textColor="text-[#7135AD] font-[600]"
+                          className="hover:cursor-pointer px-2 py-2 border border-[#7135AD] rounded-[15px]"
                           disabled={isSubmitting}
                         />
                       )}
 
-                      {activeTab === "general" && (
+                      {(activeTab === "general" || activeTab === "service") && (
                         <Button
                           text="Next"
+                          icon={
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="12"
+                              height="8"
+                              viewBox="0 0 12 8"
+                              fill="none"
+                            >
+                              <path
+                                d="M0.75 3.75H11.25M11.25 3.75L8.25 6.75M11.25 3.75L8.25 0.75"
+                                stroke="white"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          }
+                          iconPosition="right"
                           onClick={() => {
                             const currentIndex = tabs.findIndex(
                               (tab) => tab.id === activeTab,
@@ -1180,22 +1316,23 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                             const nextTab = tabs[currentIndex + 1];
                             if (nextTab?.isEnabled) setActiveTab(nextTab.id);
                           }}
-                          bgColor="bg-[#0D4B37]"
-                          textColor="text-white"
-                          className="hover:cursor-pointer"
+                          bgColor="bg-[#7135AD]"
+                          textColor="text-white font-[600]"
+                          className="hover:cursor-pointer px-2.5 py-2 rounded-[15px] gap-2"
                           disabled={isSubmitting}
                         />
                       )}
 
-                      {activeTab === "service" && (
+                      {activeTab === "price" && (
                         <>
                           {!isEditingExisting && (
                             <Button
-                              text="Save As Draft"
+                              text="Save as Draft"
                               onClick={handleDraftSubmit}
-                              bgColor="bg-white border border-[#0D4B37]"
-                              textColor="text-[#0D4B37]"
+                              bgColor="bg-white border border-[#7135AD]"
+                              textColor="text-[#7135AD]"
                               disabled={isSubmitting}
+                              className="rounded-[15px] px-2 py-2"
                             />
                           )}
 
@@ -1203,20 +1340,16 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                             text={
                               isLimitlessBooking
                                 ? "Proceed to booking summary"
-                                : "Save"
+                                : "Save Details"
                             }
                             onClick={() =>
                               isLimitlessBooking
                                 ? handleProceedToBookingSummary()
                                 : handleSubmit()
                             }
-                            icon={
-                              isLimitlessBooking ? undefined : (
-                                <LuSave size={16} />
-                              )
-                            }
-                            bgColor="bg-[#0D4B37]"
+                            bgColor="bg-[#7135AD]"
                             textColor="text-white"
+                            className="hover:cursor-pointer px-2 py-2 rounded-[15px]"
                             width="w-auto"
                             type="button"
                             disabled={
@@ -1231,7 +1364,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   {/* VIEW MODE */}
                   {mode === "view" && (
                     <>
-                      {activeTab === "general" && (
+                      {(activeTab === "general" || activeTab === "service") && (
                         <Button
                           text="Next"
                           onClick={() => {
@@ -1241,14 +1374,46 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                             const nextTab = tabs[currentIndex + 1];
                             if (nextTab?.isEnabled) setActiveTab(nextTab.id);
                           }}
-                          bgColor="bg-[#114958]"
-                          textColor="text-white"
-                          className="hover:bg-[#0d3a45]"
+                          icon={
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="12"
+                              height="8"
+                              viewBox="0 0 12 8"
+                              fill="none"
+                            >
+                              <path
+                                d="M0.75 3.75H11.25M11.25 3.75L8.25 6.75M11.25 3.75L8.25 0.75"
+                                stroke="white"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          }
+                          iconPosition="right"
+                          bgColor="bg-[#7135AD]"
+                          textColor="text-white font-[600]"
+                          className="hover:cursor-pointer px-2 py-2 rounded-[15px] gap-2"
                           disabled={isSubmitting}
                         />
                       )}
 
-                      {isReadOnly ? (
+                      {activeTab === "price" && isDuplicateView ? (
+                        <Button
+                          text={"Save"}
+                          onClick={() => handleSubmit()}
+                          icon={<LuSave size={16} />}
+                          bgColor="bg-[#7135AD]"
+                          textColor="text-white"
+                          width="w-auto"
+                          type="button"
+                          className="mr-4 rounded-[15px] px-2 py-2"
+                          disabled={
+                            isSubmitting || !(bookingCode || bookingCodeProp)
+                          }
+                        />
+                      ) : activeTab === "price" && isReadOnly ? (
                         <Button
                           text="Edit"
                           onClick={() => {
@@ -1260,11 +1425,11 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                             }
                           }}
                           bgColor="bg-white"
-                          textColor="text-[#114958]"
-                          className="hover:bg-gray-200 border border-[#114958]"
+                          textColor="text-[#7135AD]"
+                          className="hover:cursor-pointer px-2 py-2 rounded-[15px] border border-[#7135AD]"
                           disabled={isSubmitting || !quotationId}
                         />
-                      ) : (
+                      ) : activeTab === "price" ? (
                         <Button
                           text={
                             isLimitlessBooking ? "Proceed to Summary" : "Save"
@@ -1279,13 +1444,16 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                               <LuSave size={16} />
                             )
                           }
-                          bgColor="bg-[#0D4B37]"
+                          bgColor="bg-[#7135AD]"
                           textColor="text-white"
                           width="w-auto"
                           type="button"
-                          disabled={isSubmitting || !quotationId}
+                          className="mr-4 rounded-[15px] px-2 py-2"
+                          disabled={
+                            isSubmitting || (!quotationId && !bookingCode)
+                          }
                         />
-                      )}
+                      ) : null}
                     </>
                   )}
                 </div>
@@ -1356,7 +1524,9 @@ export default function BookingFormSidesheetWrapper(
 ) {
   return (
     <BookingProvider>
-      <BookingFormSidesheetContent {...props} />
+      <BookingFieldSyncProvider>
+        <BookingFormSidesheetContent {...props} />
+      </BookingFieldSyncProvider>
     </BookingProvider>
   );
 }

@@ -9,6 +9,7 @@ import { useBookingFieldSync } from "@/context/BookingFieldSyncContext";
 const statusOptions = [
   { value: "confirmed", label: "Confirmed" },
   { value: "cancelled", label: "Cancelled" },
+  { value: "reschedulled", label: "Rescedulled" },
 ];
 
 interface DateFieldsAndStatusProps {

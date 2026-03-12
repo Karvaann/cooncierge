@@ -1,12 +1,11 @@
 "use client";
 
 import React, { useId, useMemo, useState } from "react";
-import DropDown from "@/components/DropDown";
-import { TbNotes } from "react-icons/tb";
 import { useAuth } from "@/context/AuthContext";
 import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
 import MultiCurrencyInput from "@/components/multiCurrencyUI";
-import { getStoredCurrencySymbol } from "@/utils/helper";
+import { getStoredCurrencySymbol, formatIndianNumber } from "@/utils/helper";
+import CancellationInline from "@/components/CancellationInline";
 
 export type AmountSectionValue = {
   costprice?: string;
@@ -38,6 +37,39 @@ export type AmountSectionValue = {
   commissionRoe?: string;
   commissionInr?: string;
   commissionNotes?: string;
+
+  // Cancellation-specific fields
+  cancellationDate?: string;
+
+  costRefundAmount?: string;
+  costRefundCurrency?: "INR" | "USD";
+  costRefundRoe?: string;
+  costRefundInr?: string;
+  costRefundNotes?: string;
+
+  sellingRefundAmount?: string;
+  sellingRefundCurrency?: "INR" | "USD";
+  sellingRefundRoe?: string;
+  sellingRefundInr?: string;
+  sellingRefundNotes?: string;
+
+  vendorInvoiceRefundAmount?: string;
+  vendorInvoiceRefundCurrency?: "INR" | "USD";
+  vendorInvoiceRefundRoe?: string;
+  vendorInvoiceRefundInr?: string;
+  vendorInvoiceRefundNotes?: string;
+
+  chargebackAmount?: string;
+  chargebackCurrency?: "INR" | "USD";
+  chargebackRoe?: string;
+  chargebackInr?: string;
+  chargebackNotes?: string;
+
+  commissionRefundAmount?: string;
+  commissionRefundCurrency?: "INR" | "USD";
+  commissionRefundRoe?: string;
+  commissionRefundInr?: string;
+  commissionRefundNotes?: string;
 };
 
 interface AmountSectionProps {
@@ -76,6 +108,8 @@ const computeInr = (amountStr?: string | number, roeStr?: string | number) => {
   });
 };
 
+// moved formatIndianNumber to utils/helper.ts
+
 const AmountSection: React.FC<AmountSectionProps> = ({
   value,
   onChange,
@@ -106,8 +140,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
   const [showCommissionNotesFlag, setShowCommissionNotesFlag] =
     useState<boolean>(false);
 
-  const isCancelled =
-    bookingStatus?.toLowerCase() === "cancelled" && Boolean(cancellationForm);
+  const isCancelled = bookingStatus?.toLowerCase() === "cancelled";
 
   const derivedCostPrice = useMemo(() => {
     // Always compute components in INR. If an amount is provided in USD,
@@ -146,47 +179,23 @@ const AmountSection: React.FC<AmountSectionProps> = ({
     v.commissionInr,
   ]);
 
-  const handlePriceChange =
-    (field: "costprice" | "sellingprice") =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const raw = e.target.value;
-      const sanitized = sanitizeNumeric(raw);
-      const next: any = { ...v, [field]: sanitized };
-
-      if (field === "costprice") {
-        if (requiresRoe(v.costCurrency, businessCurrency)) {
-          next.costInr = computeInr(sanitized, v.costRoe ?? "");
-        } else {
-          next.costInr = "";
-        }
-      }
-
-      if (field === "sellingprice") {
-        if (requiresRoe(v.sellingCurrency, businessCurrency)) {
-          next.sellingInr = computeInr(sanitized, v.sellingRoe ?? "");
-        } else {
-          next.sellingInr = "";
-        }
-      }
-
-      onChange(next);
-    };
-
   return (
-    <div className="mb-4 border border-gray-200 rounded-lg w-[48vw] p-3">
+    <div className="mb-4 border border-[#E2E1E1] rounded-[15px] w-full p-3.5">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[13px] font-medium text-gray-700">Amount</h3>
 
-        {!(isCancelled && !editableCancelled) && (
+        {!(isCancelled && isReadOnly) && (
           <label
             className={`flex items-center gap-2 ${
-              isReadOnly || isSubmitting ? "cursor-not-allowed" : "cursor-pointer"
+              isReadOnly || isSubmitting
+                ? "cursor-not-allowed"
+                : "cursor-pointer"
             }`}
           >
             <input
               type="checkbox"
               id={checkboxId}
-              className="hidden"
+              className="peer sr-only"
               checked={showAdvancedPricing}
               disabled={isReadOnly || isSubmitting}
               onChange={() => {
@@ -196,11 +205,11 @@ const AmountSection: React.FC<AmountSectionProps> = ({
             />
             <label
               htmlFor={checkboxId}
-              className={`w-4 h-4 -mt-1 border border-gray-300 rounded-sm flex items-center justify-center peer-checked:bg-green-600 ${
+              className={`w-4 h-4 -mt-1 border border-gray-300 rounded-[4px] flex items-center justify-center transition-transform duration-150 ease-out transform ${
                 isReadOnly || isSubmitting
                   ? "cursor-not-allowed opacity-60"
                   : "cursor-pointer"
-              }`}
+              } peer-checked:scale-110 peer-checked:shadow-[0_8px_20px_rgba(113,53,173,0.12)] peer-checked:bg-[#7135AD] peer-checked:border-[#7135AD]`}
             >
               {showAdvancedPricing && (
                 <svg
@@ -212,7 +221,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 >
                   <path
                     d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                    stroke="#0D4B37"
+                    stroke="#FFFFFF"
                     strokeWidth="1.5"
                     strokeLinecap="round"
                   />
@@ -220,8 +229,8 @@ const AmountSection: React.FC<AmountSectionProps> = ({
               )}
             </label>
             <span
-              className={`text-[13px] ${
-                isReadOnly || isSubmitting ? "text-gray-400" : "text-gray-700"
+              className={`text-[13px] font-[500] ${
+                isReadOnly || isSubmitting ? "text-gray-400" : "text-[#414141]"
               }`}
             >
               Show Advanced Pricing
@@ -230,932 +239,19 @@ const AmountSection: React.FC<AmountSectionProps> = ({
         )}
       </div>
 
-      <hr className="mb-3 -mt-1 border-t border-gray-200" />
+      <hr className="mb-3 -mt-1 border-t border-[#E2E1E1]" />
 
-      {/* CANCELLATION MODAL SAVED DATA VIEW (read-only) */}
-      {isCancelled && !editableCancelled ? (
-        <div className="border border-gray-200 rounded-lg overflow-hidden">
-          {!showAdvancedPricing ? (
-            <div>
-              {/* COST PRICE */}
-              <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
-                  Cost Price
-                </div>
-                <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      requiresRoe(
-                        cancellationForm?.costCurrency,
-                        businessCurrency,
-                      )
-                        ? "grid-cols-[160px_90px_130px]"
-                        : "grid-cols-[340px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
-                        {cancellationForm?.costCurrency || "INR"}
-                      </div>
-                      <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
-                        {cancellationForm?.costprice || "0"}
-                      </div>
-                    </div>
-
-                    {requiresRoe(
-                      cancellationForm?.costCurrency,
-                      businessCurrency,
-                    ) && (
-                      <>
-                        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                            ROE
-                          </span>
-                          <input
-                            type="text"
-                            value={cancellationForm?.costRoe || ""}
-                            onChange={() => {}}
-                            className="h-[34px] px-2 text-[13px] outline-none w-full bg-white"
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {cancellationForm?.costInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {cancellationForm?.costNotes && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
-                        {cancellationForm?.costNotes}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* COST REFUND RECEIVED */}
-              <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
-                  Refund Received
-                </div>
-                <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      requiresRoe(
-                        cancellationForm?.costRefundCurrency,
-                        businessCurrency,
-                      )
-                        ? "grid-cols-[160px_90px_130px]"
-                        : "grid-cols-[340px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
-                        {cancellationForm?.costRefundCurrency || "INR"}
-                      </div>
-                      <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
-                        {cancellationForm?.costRefundAmount || "0"}
-                      </div>
-                    </div>
-
-                    {requiresRoe(
-                      cancellationForm?.costRefundCurrency,
-                      businessCurrency,
-                    ) && (
-                      <>
-                        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                            ROE
-                          </span>
-                          <input
-                            type="text"
-                            value={cancellationForm?.costRefundRoe || ""}
-                            onChange={() => {}}
-                            className="h-[34px] px-2 text-[13px] outline-none w-full bg-white"
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {cancellationForm?.costRefundInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {cancellationForm?.costRefundNotes && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
-                        {cancellationForm?.costRefundNotes}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* SELLING PRICE */}
-              <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
-                  Selling Price
-                </div>
-                <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      requiresRoe(
-                        cancellationForm?.sellingCurrency,
-                        businessCurrency,
-                      )
-                        ? "grid-cols-[170px_100px_140px]"
-                        : "grid-cols-[340px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
-                        {cancellationForm?.sellingCurrency || "INR"}
-                      </div>
-                      <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
-                        {cancellationForm?.sellingprice || "0"}
-                      </div>
-                    </div>
-
-                    {requiresRoe(
-                      cancellationForm?.sellingCurrency,
-                      businessCurrency,
-                    ) && (
-                      <>
-                        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                            ROE
-                          </span>
-                          <input
-                            type="text"
-                            value={cancellationForm?.sellingRoe || ""}
-                            onChange={() => {}}
-                            className="h-[34px] px-2 text-[13px] outline-none w-full bg-white"
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {cancellationForm?.sellingInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {cancellationForm?.sellingNotes && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
-                        {cancellationForm?.sellingNotes}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* SELLING REFUND RECEIVED */}
-              <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
-                  Refund Received
-                </div>
-                <div className="p-4">
-                  <div
-                    className={`grid ${
-                      requiresRoe(
-                        cancellationForm?.sellingRefundCurrency,
-                        businessCurrency,
-                      )
-                        ? "grid-cols-[160px_90px_130px]"
-                        : "grid-cols-[340px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
-                        {cancellationForm?.sellingRefundCurrency || "INR"}
-                      </div>
-                      <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
-                        {cancellationForm?.sellingRefundAmount || "0"}
-                      </div>
-                    </div>
-
-                    {requiresRoe(
-                      cancellationForm?.sellingRefundCurrency,
-                      businessCurrency,
-                    ) && (
-                      <>
-                        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                            ROE
-                          </span>
-                          <input
-                            type="text"
-                            value={cancellationForm?.sellingRefundRoe || ""}
-                            onChange={() => {}}
-                            className="h-[34px] px-2 text-[13px] outline-none w-full bg-white"
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {cancellationForm?.sellingRefundInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {cancellationForm?.sellingRefundNotes && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
-                        {cancellationForm?.sellingRefundNotes}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* ADVANCED PRICING VIEW - VENDOR BASE PRICE */}
-              <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
-                  Vendor Base Price
-                </div>
-                <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      requiresRoe(
-                        cancellationForm?.vendorBaseCurrency,
-                        businessCurrency,
-                      )
-                        ? "grid-cols-[160px_90px_130px]"
-                        : "grid-cols-[340px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
-                        {cancellationForm?.vendorBaseCurrency || "INR"}
-                      </div>
-                      <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
-                        {cancellationForm?.vendorBasePrice || "0"}
-                      </div>
-                    </div>
-
-                    {requiresRoe(
-                      cancellationForm?.vendorBaseCurrency,
-                      businessCurrency,
-                    ) && (
-                      <>
-                        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                            ROE
-                          </span>
-                          <input
-                            type="text"
-                            value={cancellationForm?.vendorBaseRoe || ""}
-                            onChange={() => {}}
-                            className="h-[34px] px-2 text-[13px] outline-none w-full bg-white"
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {cancellationForm?.vendorBaseInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {cancellationForm?.vendorBaseNotes && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
-                        {cancellationForm?.vendorBaseNotes}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* VENDOR INVOICE REFUND RECEIVED */}
-              <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
-                  Refund Received
-                </div>
-                <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      requiresRoe(
-                        cancellationForm?.vendorInvoiceRefundCurrency,
-                        businessCurrency,
-                      )
-                        ? "grid-cols-[160px_90px_130px]"
-                        : "grid-cols-[340px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
-                        {cancellationForm?.vendorInvoiceRefundCurrency || "INR"}
-                      </div>
-                      <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
-                        {cancellationForm?.vendorInvoiceRefundAmount || "0"}
-                      </div>
-                    </div>
-
-                    {requiresRoe(
-                      cancellationForm?.vendorInvoiceRefundCurrency,
-                      businessCurrency,
-                    ) && (
-                      <>
-                        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                            ROE
-                          </span>
-                          <input
-                            type="text"
-                            value={
-                              cancellationForm?.vendorInvoiceRefundRoe || ""
-                            }
-                            onChange={() => {}}
-                            className="h-[34px] px-2 text-[13px] outline-none w-full bg-white"
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {cancellationForm?.vendorInvoiceRefundInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {cancellationForm?.vendorInvoiceRefundNotes && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
-                        {cancellationForm?.vendorInvoiceRefundNotes}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* SUPPLIER INCENTIVE RECEIVED */}
-              <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
-                  Supplier Incentive Received
-                </div>
-                <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      requiresRoe(
-                        cancellationForm?.vendorIncentiveCurrency,
-                        businessCurrency,
-                      )
-                        ? "grid-cols-[160px_90px_130px]"
-                        : "grid-cols-[340px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
-                        {cancellationForm?.vendorIncentiveCurrency || "INR"}
-                      </div>
-                      <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
-                        {cancellationForm?.vendorIncentiveReceived || "0"}
-                      </div>
-                    </div>
-
-                    {requiresRoe(
-                      cancellationForm?.vendorIncentiveCurrency,
-                      businessCurrency,
-                    ) && (
-                      <>
-                        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                            ROE
-                          </span>
-                          <input
-                            type="text"
-                            value={cancellationForm?.vendorIncentiveRoe || ""}
-                            onChange={() => {}}
-                            className="h-[34px] px-2 text-[13px] outline-none w-full bg-white"
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {cancellationForm?.vendorIncentiveInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {cancellationForm?.vendorIncentiveNotes && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
-                        {cancellationForm?.vendorIncentiveNotes}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* CHARGEBACK */}
-              <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
-                  Chargeback
-                </div>
-                <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      requiresRoe(
-                        cancellationForm?.chargebackCurrency,
-                        businessCurrency,
-                      )
-                        ? "grid-cols-[160px_90px_130px]"
-                        : "grid-cols-[340px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
-                        {cancellationForm?.chargebackCurrency || "INR"}
-                      </div>
-                      <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
-                        {cancellationForm?.chargebackAmount || "0"}
-                      </div>
-                    </div>
-
-                    {requiresRoe(
-                      cancellationForm?.chargebackCurrency,
-                      businessCurrency,
-                    ) && (
-                      <>
-                        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                            ROE
-                          </span>
-                          <input
-                            type="text"
-                            value={cancellationForm?.chargebackRoe || ""}
-                            onChange={() => {}}
-                            className="h-[34px] px-2 text-[13px] outline-none w-full bg-white"
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {cancellationForm?.chargebackInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {cancellationForm?.chargebackNotes && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
-                        {cancellationForm?.chargebackNotes}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* COMMISSION PAYOUT */}
-              <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
-                  Commission Payout
-                </div>
-                <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      requiresRoe(
-                        cancellationForm?.commissionCurrency,
-                        businessCurrency,
-                      )
-                        ? "grid-cols-[160px_90px_130px]"
-                        : "grid-cols-[340px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
-                        {cancellationForm?.commissionCurrency || "INR"}
-                      </div>
-                      <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
-                        {cancellationForm?.commissionPaid || "0"}
-                      </div>
-                    </div>
-
-                    {requiresRoe(
-                      cancellationForm?.commissionCurrency,
-                      businessCurrency,
-                    ) && (
-                      <>
-                        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                            ROE
-                          </span>
-                          <input
-                            type="text"
-                            value={cancellationForm?.commissionRoe || ""}
-                            onChange={() => {}}
-                            className="h-[34px] px-2 text-[13px] outline-none w-full bg-white"
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {cancellationForm?.commissionInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {cancellationForm?.commissionNotes && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
-                        {cancellationForm?.commissionNotes}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* COMMISSION REFUND */}
-              <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
-                  Refund Received
-                </div>
-                <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      requiresRoe(
-                        cancellationForm?.commissionRefundCurrency,
-                        businessCurrency,
-                      )
-                        ? "grid-cols-[160px_90px_130px]"
-                        : "grid-cols-[340px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
-                        {cancellationForm?.commissionRefundCurrency || "INR"}
-                      </div>
-                      <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
-                        {cancellationForm?.commissionRefundAmount || "0"}
-                      </div>
-                    </div>
-
-                    {requiresRoe(
-                      cancellationForm?.commissionRefundCurrency,
-                      businessCurrency,
-                    ) && (
-                      <>
-                        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                            ROE
-                          </span>
-                          <input
-                            type="text"
-                            value={cancellationForm?.commissionRefundRoe || ""}
-                            onChange={() => {}}
-                            className="h-[34px] px-2 text-[13px] outline-none w-full bg-white"
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {cancellationForm?.commissionRefundInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {cancellationForm?.commissionRefundNotes && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
-                        {cancellationForm?.commissionRefundNotes}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* SELLING PRICE */}
-              <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
-                  Selling Price
-                </div>
-                <div className="p-4 border-b border-gray-200">
-                  <div
-                    className={`grid ${
-                      requiresRoe(
-                        cancellationForm?.sellingCurrency,
-                        businessCurrency,
-                      )
-                        ? "grid-cols-[170px_100px_140px]"
-                        : "grid-cols-[340px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
-                        {cancellationForm?.sellingCurrency || "INR"}
-                      </div>
-                      <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
-                        {cancellationForm?.sellingprice || "0"}
-                      </div>
-                    </div>
-
-                    {requiresRoe(
-                      cancellationForm?.sellingCurrency,
-                      businessCurrency,
-                    ) && (
-                      <>
-                        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                            ROE
-                          </span>
-                          <input
-                            type="text"
-                            value={cancellationForm?.sellingRoe || ""}
-                            onChange={() => {}}
-                            className="h-[34px] px-2 text-[13px] outline-none w-full bg-white"
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {cancellationForm?.sellingInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {cancellationForm?.sellingNotes && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
-                        {cancellationForm?.sellingNotes}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* SELLING REFUND RECEIVED */}
-              <div className="grid grid-cols-[220px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-gray-200 flex items-center justify-center text-[13px] font-medium text-[#414141] py-4">
-                  Refund Received
-                </div>
-                <div className="p-4">
-                  <div
-                    className={`grid ${
-                      requiresRoe(
-                        cancellationForm?.sellingRefundCurrency,
-                        businessCurrency,
-                      )
-                        ? "grid-cols-[160px_90px_130px]"
-                        : "grid-cols-[340px]"
-                    } gap-3 items-center`}
-                  >
-                    <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-gray-50">
-                      <div className="h-[34px] px-2 text-[0.78rem] bg-white text-gray-700 border-r border-gray-200 flex items-center justify-center min-w-[64px]">
-                        {cancellationForm?.sellingRefundCurrency || "INR"}
-                      </div>
-                      <div className="h-[34px] px-3 text-[13px] flex-1 flex items-center bg-gray-50 text-gray-700">
-                        {cancellationForm?.sellingRefundAmount || "0"}
-                      </div>
-                    </div>
-
-                    {requiresRoe(
-                      cancellationForm?.sellingRefundCurrency,
-                      businessCurrency,
-                    ) && (
-                      <>
-                        <div className="flex items-center border border-gray-300 rounded-md overflow-hidden bg-white">
-                          <span className="h-[34px] px-2 text-[0.72rem] text-gray-600 bg-gray-50 border-r border-gray-200 flex items-center">
-                            ROE
-                          </span>
-                          <input
-                            type="text"
-                            value={cancellationForm?.sellingRefundRoe || ""}
-                            onChange={() => {}}
-                            className="h-[34px] px-2 text-[13px] outline-none w-full bg-white"
-                            placeholder=""
-                          />
-                        </div>
-
-                        <div className="flex items-center border border-gray-200 rounded-md bg-[#FFF7E7] overflow-hidden h-[34px]">
-                          <span className="px-2 text-[0.78rem] text-gray-700 border-r border-gray-200 bg-[#FFF7E7]">
-                            INR
-                          </span>
-                          <div className="flex-1 px-2 text-[0.78rem] text-gray-700 bg-[#FFF7E7]">
-                            {cancellationForm?.sellingRefundInr || ""}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  {cancellationForm?.sellingRefundNotes && (
-                    <div className="mt-3">
-                      <label className="block text-[0.78rem] font-semibold text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <div className="w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 bg-gray-50">
-                        {cancellationForm?.sellingRefundNotes}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-
-          {/* Saved summary cards for cancelled saved data */}
-          {cancellationForm?.summary && (
-            <div className="mt-4 space-y-2 px-1">
-              <div className="flex items-center gap-2">
-                <div>
-                  <div className="text-[13px] font-semibold text-gray-600 mb-1">
-                    Old Cost Price
-                  </div>
-                  <div className="border border-gray-200 w-[116px] font-medium rounded-md px-3 py-2 text-[14px] text-[#818181] bg-[#F9F9F9]">
-                    {getStoredCurrencySymbol()} {cancellationForm.summary.oldCost}
-                  </div>
-                </div>
-
-                <div className="w-px h-10 mt-6 bg-gray-300"></div>
-
-                <div>
-                  <div className="text-[13px] font-semibold text-gray-600 mb-1">
-                    Old Selling Price
-                  </div>
-                  <div className="border border-gray-200 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
-                    {getStoredCurrencySymbol()} {cancellationForm.summary.oldSelling}
-                  </div>
-                </div>
-
-                <div className="w-px h-10 mt-6 bg-gray-300"></div>
-
-                <div>
-                  <div className="text-[13px] font-semibold text-[#818181] mb-1">
-                    Net
-                  </div>
-                  <div className="border border-gray-200 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
-                    {getStoredCurrencySymbol()} {cancellationForm.summary.oldNet}
-                  </div>
-                </div>
-
-                <div className="w-2" />
-
-                <div>
-                  <div className="text-[13px] font-semibold text-[#818181] mb-1">
-                    &nbsp;
-                  </div>
-                  <div className="px-1 py-2 text-[14px] text-gray-500">
-                    {cancellationForm.summary.oldMargin}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <div>
-                  <div className="text-[13px] font-semibold text-[#818181] mb-1">
-                    New Cost Price
-                  </div>
-                  <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
-                    {getStoredCurrencySymbol()} {cancellationForm.summary.newCost}
-                  </div>
-                </div>
-
-                <div className="w-px h-10 mt-6 bg-gray-300"></div>
-
-                <div>
-                  <div className="text-[13px] font-semibold text-[#818181] mb-1">
-                    New Selling Price
-                  </div>
-                  <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
-                    {getStoredCurrencySymbol()} {cancellationForm.summary.newSelling}
-                  </div>
-                </div>
-
-                <div className="w-px h-10 mt-6 bg-gray-300"></div>
-
-                <div>
-                  <div className="text-[13px] font-semibold text-[#818181] mb-1">
-                    Net
-                  </div>
-                  <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
-                    {getStoredCurrencySymbol()} {cancellationForm.summary.newNet}
-                  </div>
-                </div>
-
-                <div className="w-2" />
-
-                <div>
-                  <div className="text-[13px] font-semibold text-[#818181] mb-1">
-                    &nbsp;
-                  </div>
-                  <div className="px-1 py-2 text-[0.8rem] text-gray-500">
-                    {cancellationForm.summary.newMargin}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
+      {isCancelled ? (
+        <CancellationInline
+          value={v}
+          onChange={onChange}
+          showAdvancedPricing={showAdvancedPricing}
+          isReadOnly={isReadOnly}
+          isSubmitting={isSubmitting}
+        />
       ) : (
         <>
           {/* NORMAL EDITABLE VIEW WHEN NOT CANCELLED */}
-
           {!showAdvancedPricing ? (
             <>
               {/* Cost Price */}
@@ -1208,6 +304,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                   requiresRoe={requiresRoe}
                   notesInputWidth="60%"
                   amountInputWidth="30%"
+                  readOnly={!!isReadOnly || !!isSubmitting}
                 />
               </div>
 
@@ -1264,133 +361,45 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                   requiresRoe={requiresRoe}
                   notesInputWidth="60%"
                   amountInputWidth="30%"
+                  readOnly={!!isReadOnly || !!isSubmitting}
                 />
               </div>
 
+              <hr className="mb-2 mt-3 border-t border-[#E2E1E1]" />
+
               {/* NET */}
               <div className="w-fit rounded-lg p-1 mt-1 bg-white">
-                <span className="text-[13px] font-medium text-gray-700 block mb-2">
+                <span className="text-[13px] font-medium text-[#414141] block mb-2">
                   Net
                 </span>
 
                 <div className="flex items-center gap-3">
-                  <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[13px] font-medium rounded-md">
-                    {`INR ${Number(v.sellingprice) - Number(v.costprice)}`}
+                  <span className="px-3 py-1.5 bg-[#7135AD0D] text-[#7135AD] text-[14px] font-[500] rounded-[10px]">
+                    {`${getStoredCurrencySymbol()} ${formatIndianNumber(
+                      (Number(v.sellingprice) || 0) - derivedCostPrice,
+                    )}`}
                   </span>
 
-                  <span className="text-[13px] text-gray-700 font-medium">
-                    {v.costprice && v.sellingprice
+                  <span className="text-[13px] text-[#414141] font-[600]">
+                    {derivedCostPrice > 0 && v.sellingprice
                       ? `${(
-                          ((Number(v.sellingprice) - Number(v.costprice)) /
-                            Number(v.costprice)) *
+                          (((Number(v.sellingprice) || 0) - derivedCostPrice) /
+                            (derivedCostPrice || 1)) *
                           100
                         ).toFixed(2)}%`
                       : "0%"}
                   </span>
                 </div>
               </div>
-
-              {/* Saved summary cards (appear after user saves via CancellationModal) */}
-              {cancellationForm?.summary && (
-                <div className="mt-4 space-y-2 px-1">
-                  <div className="flex items-center gap-2">
-                    <div>
-                      <div className="text-[13px] font-semibold text-gray-600 mb-1">
-                        Old Cost Price
-                      </div>
-                      <div className="border border-gray-200 w-[116px] font-medium rounded-md px-3 py-2 text-[14px] text-[#818181] bg-[#F9F9F9]">
-                        {getStoredCurrencySymbol()} {cancellationForm.summary.oldCost}
-                      </div>
-                    </div>
-
-                    <div className="w-px h-10 mt-6 bg-gray-300"></div>
-
-                    <div>
-                      <div className="text-[13px] font-semibold text-gray-600 mb-1">
-                        Old Selling Price
-                      </div>
-                      <div className="border border-gray-200 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
-                        {getStoredCurrencySymbol()} {cancellationForm.summary.oldSelling}
-                      </div>
-                    </div>
-
-                    <div className="w-px h-10 mt-6 bg-gray-300"></div>
-
-                    <div>
-                      <div className="text-[13px] font-semibold text-[#818181] mb-1">
-                        Net
-                      </div>
-                      <div className="border border-gray-200 w-[116px] rounded-md px-3 py-2 text-[14px] text-[#818181] bg-gray-50">
-                        {getStoredCurrencySymbol()} {cancellationForm.summary.oldNet}
-                      </div>
-                    </div>
-
-                    <div className="w-2" />
-
-                    <div>
-                      <div className="text-[13px] font-semibold text-[#818181] mb-1">
-                        &nbsp;
-                      </div>
-                      <div className="px-1 py-2 text-[14px] text-gray-500">
-                        {cancellationForm.summary.oldMargin}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <div>
-                      <div className="text-[13px] font-semibold text-[#818181] mb-1">
-                        New Cost Price
-                      </div>
-                      <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
-                        {getStoredCurrencySymbol()} {cancellationForm.summary.newCost}
-                      </div>
-                    </div>
-
-                    <div className="w-px h-10 mt-6 bg-gray-300"></div>
-
-                    <div>
-                      <div className="text-[13px] font-semibold text-[#818181] mb-1">
-                        New Selling Price
-                      </div>
-                      <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
-                        {getStoredCurrencySymbol()} {cancellationForm.summary.newSelling}
-                      </div>
-                    </div>
-
-                    <div className="w-px h-10 mt-6 bg-gray-300"></div>
-
-                    <div>
-                      <div className="text-[13px] font-semibold text-[#818181] mb-1">
-                        Net
-                      </div>
-                      <div className="border border-blue-100 w-[116px] rounded-md px-3 py-2 text-[14px] text-blue-600 bg-blue-50">
-                        {getStoredCurrencySymbol()} {cancellationForm.summary.newNet}
-                      </div>
-                    </div>
-
-                    <div className="w-2" />
-
-                    <div>
-                      <div className="text-[13px] font-semibold text-[#818181] mb-1">
-                        &nbsp;
-                      </div>
-                      <div className="px-1 py-2 text-[0.8rem] text-gray-500">
-                        {cancellationForm.summary.newMargin}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </>
           ) : (
             /* Advanced Pricing Component */
             <div className="space-y-3">
-              <h4 className="text-[13px] font-medium text-gray-700 mb-3">
+              <h4 className="text-[13px] font-[500] text-[#414141] mb-3">
                 Vendor Payment Summary
               </h4>
 
-              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+              <div className="border border-[#E2E1E1] mb-4 overflow-hidden bg-white">
                 {[
                   { label: "Vendor Base Price", key: "price" },
                   { label: "Vendor Incentive Received", key: "received" },
@@ -1399,9 +408,9 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 ].map((item, index) => (
                   <div
                     key={index}
-                    className="grid grid-cols-12 border-b last:border-b-0 border-gray-200"
+                    className="grid grid-cols-12 border-b last:border-b-0 border-[#E2E1E1]"
                   >
-                    <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
+                    <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] border-r border-[#E2E1E1] text-[0.8rem] text-gray-700 font-medium py-5">
                       {item.label}
                     </div>
                     <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
@@ -1582,12 +591,15 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                             }}
                             businessCurrency={businessCurrency}
                             requiresRoe={requiresRoe}
-                            amountInputWidth="40%"
+                            amountInputWidth="44%"
+                            readOnly={!!isReadOnly || !!isSubmitting}
                           />
                         </div>
                       ) : (
-                        <div className="px-3 py-2 text-blue-600 font-semibold text-[0.9rem]">
-                          {`${getStoredCurrencySymbol()} ${derivedCostPrice.toFixed(2)}`}
+                        <div className="px-3 py-1.5 text-[#7135AD] bg-[#7135AD0D] rounded-[10px] font-[500] text-[13px]">
+                          {`${getStoredCurrencySymbol()} ${formatIndianNumber(
+                            derivedCostPrice,
+                          )}`}
                         </div>
                       )}
                     </div>
@@ -1595,22 +607,18 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 ))}
               </div>
 
-              <h4 className="text-[0.8rem] font-semibold text-gray-700">
+              <h4 className="text-[0.8rem] font-[500] text-[#414141] ">
                 Customer Revenue Summary
               </h4>
 
-              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white">
+              <div className="border border-[#E2E1E1] -mt-1 overflow-hidden bg-white">
                 <div className="grid grid-cols-12">
-                  <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] text-[0.8rem] text-gray-700 font-medium py-5">
+                  <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] border-r border-[#E2E1E1] text-[0.8rem] text-gray-700 font-medium py-5">
                     Selling Price
                   </div>
 
                   <div className="col-span-8 flex flex-col gap-2 py-3 px-4 bg-white">
                     <div className="flex items-center gap-3">
-                      <div className="text-gray-600 text-[0.85rem] font-medium">
-                        {getStoredCurrencySymbol()}
-                      </div>
-
                       <div className="flex-1">
                         <MultiCurrencyInput
                           currency={
@@ -1668,6 +676,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                           businessCurrency={businessCurrency}
                           requiresRoe={requiresRoe}
                           amountInputWidth="40%"
+                          readOnly={!!isReadOnly || !!isSubmitting}
                         />
                       </div>
                     </div>
@@ -1676,22 +685,22 @@ const AmountSection: React.FC<AmountSectionProps> = ({
               </div>
 
               <div className="w-fit rounded-lg p-1 mt-1 bg-white">
-                <span className="text-[13px] font-medium text-gray-700 block mb-2">
+                <span className="text-[13px] font-[500] text-[#414141] block mb-2">
                   Net
                 </span>
 
                 <div className="flex items-center gap-3">
-                  <span className="px-2 py-1 bg-blue-50 text-blue-500 text-[13px] font-medium rounded-md">
-                    {`INR ${(
-                      (Number(v.sellingprice) || 0) - derivedCostPrice
-                    ).toFixed(2)}`}
+                  <span className="px-3 py-1.5 bg-[#7135AD0D] text-[#7135AD] text-[14px] font-[500] rounded-[10px]">
+                    {`${getStoredCurrencySymbol()} ${formatIndianNumber(
+                      (Number(v.sellingprice) || 0) - derivedCostPrice,
+                    )}`}
                   </span>
 
-                  <span className="text-[13px] text-gray-700 font-medium">
+                  <span className="text-[13px] text-[#414141] font-[500]">
                     {derivedCostPrice > 0 && v.sellingprice
                       ? `${(
                           (((Number(v.sellingprice) || 0) - derivedCostPrice) /
-                            derivedCostPrice) *
+                            (derivedCostPrice || 1)) *
                           100
                         ).toFixed(2)}%`
                       : "0%"}
