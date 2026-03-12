@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { addDays, format, isSameDay, startOfDay } from "date-fns";
 import { BookingApiService } from "@/services/bookingApi";
 import { CustomIdApi } from "@/services/customIdApi";
@@ -19,7 +19,11 @@ import {
   getStoredCurrencySymbol,
 } from "@/utils/helper";
 import { FaRegTrashAlt } from "react-icons/fa";
-import { MdOutlineEdit } from "react-icons/md";
+import {
+  MdOutlineEdit,
+  MdOutlineKeyboardArrowDown,
+  MdOutlineTravelExplore,
+} from "react-icons/md";
 import { TbArrowAutofitRight } from "react-icons/tb";
 import { FiCopy } from "react-icons/fi";
 import { CiFilter } from "react-icons/ci";
@@ -34,7 +38,6 @@ import { useRouter } from "next/navigation";
 import { LuPlane, LuHotel, LuTicket } from "react-icons/lu";
 import { PiCarProfileLight } from "react-icons/pi";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
-import { MdOutlineTravelExplore } from "react-icons/md";
 import {
   getNextTriSortState,
   type TriSortState,
@@ -90,6 +93,7 @@ type FilterPayload = {
   serviceType: string;
   status: string;
   owner: string | string[];
+  bookingType: string;
   search: string;
   searchBy: string;
   bookingStartDate: string;
@@ -188,12 +192,112 @@ const getStatusBadgeClass = (status: string): string => {
   switch (status) {
     case "Confirmed":
       return "px-2 py-1 text-[12px] border border-[#DCFCE7] font-[500] rounded-full bg-[#F0FDF4] text-[#15803D]";
+    case "Rescheduled":
+      return "px-2 py-1 text-[12px] border border-[#DBEAFE] font-[500] rounded-full bg-[#EFF6FF] text-[#1D4ED8]";
+    case "Cancelled":
+      return "px-2 py-1 text-[12px] border border-[#FEE2E2] font-[500] rounded-full bg-[#FFF5F5] text-[#991B1B]";
     case "Draft":
       return "px-2 py-1 text-[12px] border border-[#FEF9C3] font-[500] rounded-full bg-[#FEF9C3] text-[#854D0E]";
     case "Deleted":
     default:
       return "px-2 py-1 text-[12px] border border-[#FEE2E2] font-[500] rounded-full bg-[#FFF5F5] text-[#991B1B]";
   }
+};
+
+const mapStatus = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    confirmed: "Confirmed",
+    rescheduled: "Rescheduled",
+    cancelled: "Cancelled",
+  };
+  return statusMap[status?.toLowerCase()] || "Confirmed";
+};
+
+const RECENT_CREATED_SESSION_KEY = "os_bookings_recent_created_v1";
+const RECENT_CREATED_TTL_MS = 1000 * 60 * 60 * 3;
+
+const isBookingIncomplete = (item: any): boolean =>
+  !(
+    item?.isBookingDataComplete === true ||
+    item?.isBookingDataComplete === "true"
+  );
+
+const getCreatedAtTimestamp = (item: any): number => {
+  const raw = item?.createdAt || item?.updatedAt || item?.travelDate;
+  const parsed = raw ? new Date(raw).getTime() : NaN;
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const normalizeKey = (value: string): string => value.toLowerCase().trim();
+
+const getBookingSourceType = (item: any): "os" | "limitless" => {
+  const explicitType = normalizeKey(
+    String(item?.bookingType || item?.sourceType || item?.source || ""),
+  );
+  if (explicitType === "limitless") return "limitless";
+  if (explicitType === "os") return "os";
+
+  if (
+    Array.isArray(item?.limitlessDestinations) &&
+    item.limitlessDestinations.length
+  ) {
+    return "limitless";
+  }
+
+  return "os";
+};
+
+const normalizeAlphaNumeric = (value: string): string =>
+  value.replace(/[^a-z0-9]/gi, "").toLowerCase();
+
+const normalizeDigits = (value: string): string => value.replace(/\D/g, "");
+
+const getSubsequenceMatchIndices = (
+  source: string,
+  query: string,
+  matchMode: "alnum" | "digits",
+): number[] | null => {
+  if (!query) return [];
+
+  const normalizedQuery =
+    matchMode === "digits"
+      ? normalizeDigits(query)
+      : normalizeAlphaNumeric(query);
+  if (!normalizedQuery) return [];
+
+  const indices: number[] = [];
+  let queryCursor = 0;
+
+  for (
+    let i = 0;
+    i < source.length && queryCursor < normalizedQuery.length;
+    i++
+  ) {
+    const char = source[i] || "";
+    const normalizedChar =
+      matchMode === "digits"
+        ? (char.match(/\d/) || [])[0] || ""
+        : (char.match(/[a-z0-9]/i) || [])[0]?.toLowerCase() || "";
+
+    if (!normalizedChar) continue;
+
+    if (normalizedChar === normalizedQuery[queryCursor]) {
+      indices.push(i);
+      queryCursor += 1;
+    }
+  }
+
+  if (queryCursor !== normalizedQuery.length) return null;
+  return indices;
+};
+
+const matchesOrderedSubsequence = (
+  source: string,
+  query: string,
+  matchMode: "alnum" | "digits",
+): boolean => {
+  const indices = getSubsequenceMatchIndices(source, query, matchMode);
+  return indices !== null;
 };
 
 const OSBookingsPage = () => {
@@ -224,20 +328,22 @@ const OSBookingsPage = () => {
   const tabOptions = useMemo(
     () =>
       isBookingMaker
-        ? ["Approved", "Pending", "Drafts", "Denied", "Deleted"]
+        ? ["Bookings", "Pending", "Drafts", "Denied", "Deleted"]
         : ["Bookings", "Drafts", "Deleted"],
     [isBookingMaker],
   );
 
   const [bookingSourceTab, setBookingSourceTab] = useState("My Bookings");
   const [activeTab, setActiveTab] = useState("Bookings");
-
-  useEffect(() => {
-    // If auth resolves later and user is a booking maker, default to Approved.
-    if (isBookingMaker && activeTab === "Bookings") {
-      setActiveTab("Approved");
-    }
-  }, [isBookingMaker, activeTab]);
+  const [showIncompleteOnly, setShowIncompleteOnly] = useState(false);
+  const [activeHeaderFilter, setActiveHeaderFilter] = useState<
+    "Service" | "Service Status" | null
+  >(null);
+  const [recentCreatedMap, setRecentCreatedMap] = useState<
+    Record<string, number>
+  >({});
+  const hasLoadedInitialBatchRef = useRef(false);
+  const knownBookingIdsRef = useRef<Set<string>>(new Set());
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
@@ -256,12 +362,12 @@ const OSBookingsPage = () => {
     status: "",
     owner: "",
     search: "",
-    searchBy: "customerId",
+    searchBy: "bookingId",
     bookingStartDate: "",
     bookingEndDate: "",
     tripStartDate: "",
     tripEndDate: "",
-    bookingType: "os",
+    bookingType: "",
   });
 
   // Data State
@@ -277,6 +383,53 @@ const OSBookingsPage = () => {
   });
   // Owners list built dynamically from quotations data
   const [ownersList, setOwnersList] = useState<Owner[]>([]);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(RECENT_CREATED_SESSION_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as Record<string, number>;
+      const now = Date.now();
+      const cleaned = Object.fromEntries(
+        Object.entries(parsed || {}).filter(
+          ([, createdAt]) => now - Number(createdAt) < RECENT_CREATED_TTL_MS,
+        ),
+      );
+      setRecentCreatedMap(cleaned);
+    } catch {
+      setRecentCreatedMap({});
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(
+        RECENT_CREATED_SESSION_KEY,
+        JSON.stringify(recentCreatedMap),
+      );
+    } catch {
+      // no-op
+    }
+  }, [recentCreatedMap]);
+
+  useEffect(() => {
+    if (!activeHeaderFilter) return;
+
+    const handleOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (
+        target.closest("[data-header-filter-trigger]") ||
+        target.closest("[data-header-filter-dropdown]")
+      ) {
+        return;
+      }
+      setActiveHeaderFilter(null);
+    };
+
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [activeHeaderFilter]);
 
   const computeInitials = (name: string) => {
     const parts = name.trim().split(/\s+/);
@@ -405,8 +558,49 @@ const OSBookingsPage = () => {
   // Apply all filters client-side (search, booking date, travel date, owner)
   const filteredQuotations = useMemo(() => {
     return quotations.filter((q, idx) => {
+      const bookingType = getBookingSourceType(q);
+      const selectedBookingType = normalizeKey(filters.bookingType || "");
+
+      if (
+        (selectedBookingType === "os" || selectedBookingType === "limitless") &&
+        bookingType !== selectedBookingType
+      ) {
+        return false;
+      }
+
+      if (filters.serviceType) {
+        if (bookingType === "limitless") {
+          const destinationValues = [
+            ...(Array.isArray((q as any)?.limitlessDestinations)
+              ? ((q as any).limitlessDestinations as string[])
+              : []),
+            String(q.formFields?.destination || ""),
+          ]
+            .map((v) => normalizeKey(v))
+            .filter(Boolean);
+
+          if (!destinationValues.includes(normalizeKey(filters.serviceType))) {
+            return false;
+          }
+        } else {
+          const serviceValue = normalizeKey(String(q.quotationType || ""));
+          if (serviceValue !== normalizeKey(filters.serviceType)) {
+            return false;
+          }
+        }
+      }
+
+      if (filters.status) {
+        const normalizedStatus = normalizeKey(
+          mapStatus(String(q.status || "")),
+        );
+        if (normalizedStatus !== normalizeKey(filters.status)) {
+          return false;
+        }
+      }
+
       if (filters.search.trim()) {
-        const s = filters.search.toLowerCase();
+        const s = filters.search.trim();
         const ownerNames = ([] as Array<{ name?: string }>)
           .concat(
             q.secondaryOwner || [],
@@ -417,14 +611,31 @@ const OSBookingsPage = () => {
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
+        const bookingId = q.customId || q._id || "";
+        const leadPaxName =
+          q.adultTravelers?.[0]?.name ||
+          q.customerId?.name ||
+          q.formFields?.customer ||
+          "";
+        const customerName = q.customerId?.name || q.formFields?.customer || "";
+        const rawAmount = q.totalAmount ?? q.formFields?.budget;
+        const amountString =
+          rawAmount === undefined || rawAmount === null
+            ? ""
+            : String(rawAmount);
+
         const matchesSearch =
-          filters.searchBy === "customerName"
-            ? (q.customerId?.name || q.formFields.customer || "")
-                .toLowerCase()
-                .includes(s)
-            : filters.searchBy === "owner"
-              ? ownerNames.includes(s)
-              : (q.customerId?._id || "").toLowerCase().includes(s);
+          filters.searchBy === "bookingId"
+            ? matchesOrderedSubsequence(bookingId, s, "alnum")
+            : filters.searchBy === "leadPax"
+              ? leadPaxName.toLowerCase().includes(s.toLowerCase())
+              : filters.searchBy === "customerName"
+                ? customerName.toLowerCase().includes(s.toLowerCase())
+                : filters.searchBy === "amount"
+                  ? matchesOrderedSubsequence(amountString, s, "digits")
+                  : filters.searchBy === "owner"
+                    ? ownerNames.includes(s.toLowerCase())
+                    : false;
         if (!matchesSearch) return false;
       }
 
@@ -513,6 +724,40 @@ const OSBookingsPage = () => {
         const raw: any = response.data;
         const allQuotations =
           (raw?.quotations as any[]) || (raw as any[]) || [];
+
+        const now = Date.now();
+        const fetchedIds = new Set<string>();
+        allQuotations.forEach((item: any) => {
+          const id = String(item?._id || item?.id || "");
+          if (id) fetchedIds.add(id);
+        });
+
+        setRecentCreatedMap((prev) => {
+          const next: Record<string, number> = {};
+
+          Object.entries(prev).forEach(([id, ts]) => {
+            if (
+              fetchedIds.has(id) &&
+              now - Number(ts) < RECENT_CREATED_TTL_MS
+            ) {
+              next[id] = Number(ts);
+            }
+          });
+
+          if (hasLoadedInitialBatchRef.current) {
+            allQuotations.forEach((item: any) => {
+              const id = String(item?._id || item?.id || "");
+              if (id && !knownBookingIdsRef.current.has(id)) {
+                next[id] = now;
+              }
+            });
+          } else {
+            hasLoadedInitialBatchRef.current = true;
+          }
+
+          return next;
+        });
+        knownBookingIdsRef.current = fetchedIds;
 
         setQuotations(allQuotations);
         // calculateSummaryData(response.data?.quotations);
@@ -737,14 +982,6 @@ const OSBookingsPage = () => {
     };
 
     return iconMap[key] || "📋"; // fallback
-  };
-
-  const mapStatus = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      confirmed: "Confirmed",
-      cancelled: "Cancelled",
-    };
-    return statusMap[status?.toLowerCase()] || "Confirmed";
   };
 
   const handleDeleteClick = (quotationId: string) => {
@@ -995,8 +1232,54 @@ const OSBookingsPage = () => {
 
       // Apply search filter to drafts
       if (filters.search.trim()) {
-        const s = filters.search.toLowerCase();
+        const s = filters.search.trim();
         return normalizedDrafts.filter((draft: any) => {
+          const bookingType = getBookingSourceType(draft);
+          const selectedBookingType = normalizeKey(filters.bookingType || "");
+
+          if (
+            (selectedBookingType === "os" ||
+              selectedBookingType === "limitless") &&
+            bookingType !== selectedBookingType
+          ) {
+            return false;
+          }
+
+          if (filters.serviceType) {
+            if (bookingType === "limitless") {
+              const destinationValues = [
+                ...(Array.isArray(draft?.limitlessDestinations)
+                  ? (draft.limitlessDestinations as string[])
+                  : []),
+                String(draft.formFields?.destination || ""),
+              ]
+                .map((v) => normalizeKey(v))
+                .filter(Boolean);
+
+              if (
+                !destinationValues.includes(normalizeKey(filters.serviceType))
+              ) {
+                return false;
+              }
+            } else {
+              const serviceValue = normalizeKey(
+                String(draft.quotationType || ""),
+              );
+              if (serviceValue !== normalizeKey(filters.serviceType)) {
+                return false;
+              }
+            }
+          }
+
+          if (filters.status) {
+            const normalizedStatus = normalizeKey(
+              mapStatus(String(draft.status || "")),
+            );
+            if (normalizedStatus !== normalizeKey(filters.status)) {
+              return false;
+            }
+          }
+
           const ownerNames = ([] as Array<{ name?: string }>)
             .concat(
               draft.owner || [],
@@ -1007,20 +1290,88 @@ const OSBookingsPage = () => {
             .filter(Boolean)
             .join(" ")
             .toLowerCase();
-          const customerName = (
+          const bookingId = draft.customId || draft._id || "";
+          const leadPaxName =
+            draft.adultTravelers?.[0]?.name ||
             draft.customerId?.name ||
             draft.formFields?.customer ||
-            ""
-          ).toLowerCase();
+            "";
+          const customerName =
+            draft.customerId?.name || draft.formFields?.customer || "";
+          const rawAmount = draft.totalAmount ?? draft.formFields?.budget;
+          const amountString =
+            rawAmount === undefined || rawAmount === null
+              ? ""
+              : String(rawAmount);
 
-          if (filters.searchBy === "customerName")
-            return customerName.includes(s);
-          if (filters.searchBy === "owner") return ownerNames.includes(s);
-          return (draft.customerId?._id || "").toLowerCase().includes(s);
+          if (filters.searchBy === "bookingId") {
+            return matchesOrderedSubsequence(bookingId, s, "alnum");
+          }
+          if (filters.searchBy === "leadPax") {
+            return leadPaxName.toLowerCase().includes(s.toLowerCase());
+          }
+          if (filters.searchBy === "customerName") {
+            return customerName.toLowerCase().includes(s.toLowerCase());
+          }
+          if (filters.searchBy === "amount") {
+            return matchesOrderedSubsequence(amountString, s, "digits");
+          }
+          if (filters.searchBy === "owner") {
+            return ownerNames.includes(s.toLowerCase());
+          }
+          return false;
         });
       }
 
-      return normalizedDrafts;
+      return normalizedDrafts.filter((draft: any) => {
+        const bookingType = getBookingSourceType(draft);
+        const selectedBookingType = normalizeKey(filters.bookingType || "");
+
+        if (
+          (selectedBookingType === "os" ||
+            selectedBookingType === "limitless") &&
+          bookingType !== selectedBookingType
+        ) {
+          return false;
+        }
+
+        if (filters.serviceType) {
+          if (bookingType === "limitless") {
+            const destinationValues = [
+              ...(Array.isArray(draft?.limitlessDestinations)
+                ? (draft.limitlessDestinations as string[])
+                : []),
+              String(draft.formFields?.destination || ""),
+            ]
+              .map((v) => normalizeKey(v))
+              .filter(Boolean);
+
+            if (
+              !destinationValues.includes(normalizeKey(filters.serviceType))
+            ) {
+              return false;
+            }
+          } else {
+            const serviceValue = normalizeKey(
+              String(draft.quotationType || ""),
+            );
+            if (serviceValue !== normalizeKey(filters.serviceType)) {
+              return false;
+            }
+          }
+        }
+
+        if (filters.status) {
+          const normalizedStatus = normalizeKey(
+            mapStatus(String(draft.status || "")),
+          );
+          if (normalizedStatus !== normalizeKey(filters.status)) {
+            return false;
+          }
+        }
+
+        return true;
+      });
     }
 
     // Filter quotations by status based on active tab
@@ -1052,13 +1403,46 @@ const OSBookingsPage = () => {
   // Use shared timestamp extractor from utils/sorting.ts
   // (keeps logic consistent across pages)
 
+  const toggledQuotations = useMemo(
+    () =>
+      showIncompleteOnly
+        ? finalQuotations.filter((item) => isBookingIncomplete(item))
+        : finalQuotations,
+    [finalQuotations, showIncompleteOnly],
+  );
+
   const sortedQuotationsForTable = useMemo(() => {
     if (sortState.key !== "Travel Date" || sortState.direction === "none") {
-      return filteredQuotations;
+      const withIndex = toggledQuotations.map((item, originalIndex) => ({
+        item,
+        originalIndex,
+      }));
+
+      withIndex.sort((a, b) => {
+        const aId = String(a.item?._id || a.item?.id || "");
+        const bId = String(b.item?._id || b.item?.id || "");
+        const aRecent = aId ? recentCreatedMap[aId] || 0 : 0;
+        const bRecent = bId ? recentCreatedMap[bId] || 0 : 0;
+
+        if (aRecent || bRecent) {
+          if (!aRecent) return 1;
+          if (!bRecent) return -1;
+          const recentDiff = bRecent - aRecent;
+          if (recentDiff !== 0) return recentDiff;
+        }
+
+        const createdDiff =
+          getCreatedAtTimestamp(b.item) - getCreatedAtTimestamp(a.item);
+        if (createdDiff !== 0) return createdDiff;
+
+        return a.originalIndex - b.originalIndex;
+      });
+
+      return withIndex.map((entry) => entry.item);
     }
 
     // Stable sort: keep original order for ties.
-    const withIndex = filteredQuotations.map((item, originalIndex) => ({
+    const withIndex = toggledQuotations.map((item, originalIndex) => ({
       item,
       originalIndex,
     }));
@@ -1078,9 +1462,67 @@ const OSBookingsPage = () => {
     });
 
     return withIndex.map((x) => x.item);
-  }, [filteredQuotations, sortState.direction, sortState.key]);
+  }, [toggledQuotations, sortState.direction, sortState.key, recentCreatedMap]);
 
   // Convert quotations to table data
+  const shouldHighlight = Boolean(filters.search.trim());
+  const highlightText = useCallback(
+    (
+      text: string,
+      mode: "substring-ci" | "subsequence-alnum" | "subsequence-digits",
+      onlyWhenSearchBy?: string[],
+    ) => {
+      if (!text) return text;
+      const query = filters.search.trim();
+      if (!query || !shouldHighlight) return text;
+      if (onlyWhenSearchBy && !onlyWhenSearchBy.includes(filters.searchBy)) {
+        return text;
+      }
+
+      if (mode === "substring-ci") {
+        const lowerText = text.toLowerCase();
+        const lowerQuery = query.toLowerCase();
+        const start = lowerText.indexOf(lowerQuery);
+        if (start < 0) return text;
+        const end = start + lowerQuery.length;
+        return (
+          <>
+            {text.slice(0, start)}
+            <span className="rounded-[2px] bg-[#FFF3B0]">
+              {text.slice(start, end)}
+            </span>
+            {text.slice(end)}
+          </>
+        );
+      }
+
+      const indices =
+        mode === "subsequence-digits"
+          ? getSubsequenceMatchIndices(text, query, "digits")
+          : getSubsequenceMatchIndices(text, query, "alnum");
+      if (!indices || indices.length === 0) return text;
+      const indexSet = new Set(indices);
+
+      return (
+        <>
+          {Array.from(text).map((char, idx) =>
+            indexSet.has(idx) ? (
+              <span
+                key={`${char}-${idx}`}
+                className="rounded-[2px] bg-[#FFF3B0]"
+              >
+                {char}
+              </span>
+            ) : (
+              <span key={`${char}-${idx}`}>{char}</span>
+            ),
+          )}
+        </>
+      );
+    },
+    [filters.search, filters.searchBy, shouldHighlight],
+  );
+
   const tableData = useMemo<JSX.Element[][]>(() => {
     const rows = sortedQuotationsForTable.map((item, index) => [
       <td
@@ -1104,7 +1546,11 @@ const OSBookingsPage = () => {
               onClick={() => handleViewBooking(item)}
               className="text-[13px] hover:underline font-[500]"
             >
-              {item.customId || item._id}
+              {highlightText(
+                item.customId || item._id || "--",
+                "subsequence-alnum",
+                ["bookingId"],
+              )}
             </button>
           </div>
 
@@ -1149,10 +1595,14 @@ const OSBookingsPage = () => {
         onClick={() => handleViewBooking(item)}
         className="px-4 fade-content py-3 text-center text-[13px] font-[400] align-middle h-[3rem] cursor-pointer"
       >
-        {item.adultTravelers?.[0]?.name ||
-          item.customerId?.name ||
-          item.formFields?.customer ||
-          "--"}
+        {highlightText(
+          item.adultTravelers?.[0]?.name ||
+            item.customerId?.name ||
+            item.formFields?.customer ||
+            "--",
+          "substring-ci",
+          ["leadPax", "customerName"],
+        )}
       </td>,
       <td
         key={`date-${index}`}
@@ -1195,11 +1645,15 @@ const OSBookingsPage = () => {
         onClick={() => handleViewBooking(item)}
         className="px-4 py-3 fade-content text-center text-[#020202] font-[400] align-middle h-[3rem] cursor-pointer"
       >
-        {item.totalAmount
-          ? `${getStoredCurrencySymbol()} ${formatNumberByStoredCurrency(item.totalAmount)}`
-          : item.formFields?.budget
-            ? `${getStoredCurrencySymbol()} ${formatNumberByStoredCurrency(item.formFields.budget)}`
-            : "--"}
+        {item.totalAmount || item.formFields?.budget
+          ? highlightText(
+              `${getStoredCurrencySymbol()} ${formatNumberByStoredCurrency(
+                item.totalAmount || item.formFields?.budget,
+              )}`,
+              "subsequence-digits",
+              ["amount"],
+            )
+          : "--"}
       </td>,
       <td
         key={`owners-${index}`}
@@ -1286,6 +1740,7 @@ const OSBookingsPage = () => {
     ownersList,
     activeTab,
     hoveredBookingRowId,
+    highlightText,
     openBookingInEditMode,
   ]);
 
@@ -1295,9 +1750,7 @@ const OSBookingsPage = () => {
       if (!item) return "";
       const itemId = String(item?._id || item?.id || "");
 
-      const isBookingDataComplete =
-        item?.isBookingDataComplete === true ||
-        item?.isBookingDataComplete === "true";
+      const isBookingDataComplete = !isBookingIncomplete(item);
 
       const baseClass = !isBookingDataComplete
         ? "!bg-[#FFFDEF] border-l-4 border-l-[#FEDB6B]"
@@ -1314,28 +1767,216 @@ const OSBookingsPage = () => {
 
   // Helper functions
 
-  const filterOptions = useMemo(
-    () => ({
-      serviceTypes: [
-        { value: "flight", label: "✈️ Flight" },
-        { value: "hotel", label: "🏨 Hotel" },
-        { value: "car", label: "🚗 Car Rental" },
-        { value: "package", label: "🎫 Package" },
-      ],
+  const filterOptions = useMemo(() => {
+    const osServiceMap = new Map<string, string>();
+    const limitlessDestinationSet = new Set<string>();
+
+    quotations.forEach((item) => {
+      const sourceType = getBookingSourceType(item);
+      if (sourceType === "limitless") {
+        const destinations = [
+          ...(Array.isArray((item as any).limitlessDestinations)
+            ? ((item as any).limitlessDestinations as string[])
+            : []),
+          String(item.formFields?.destination || ""),
+        ]
+          .map((d) => d.trim())
+          .filter(Boolean);
+
+        destinations.forEach((destination) =>
+          limitlessDestinationSet.add(destination),
+        );
+        return;
+      }
+
+      const value = normalizeKey(String(item.quotationType || ""));
+      if (!value || osServiceMap.has(value)) return;
+      osServiceMap.set(
+        value,
+        formatServiceType(String(item.quotationType || "")),
+      );
+    });
+
+    const selectedBookingType = normalizeKey(filters.bookingType || "");
+    const serviceTypes =
+      selectedBookingType === "limitless"
+        ? Array.from(limitlessDestinationSet)
+            .sort((a, b) => a.localeCompare(b))
+            .map((destination) => ({ value: destination, label: destination }))
+        : Array.from(osServiceMap.entries())
+            .sort((a, b) => a[1].localeCompare(b[1]))
+            .map(([value, label]) => ({ value, label }));
+
+    return {
+      serviceTypes,
       statuses: [
-        { value: "successful", label: "Successful" },
-        { value: "pending", label: "Pending" },
-        { value: "failed", label: "Failed" },
+        { value: "confirmed", label: "Confirmed" },
+        { value: "rescheduled", label: "Rescheduled" },
+        { value: "cancelled", label: "Cancelled" },
       ],
       owners: ownersList.map((o) => ({ value: o.full, label: o.full })),
+    };
+  }, [ownersList, quotations, filters.bookingType]);
+
+  const columnIconMap = useMemo<Record<string, JSX.Element>>(
+    () => ({
+      "Travel Date": (
+        <TbArrowsUpDown className="inline w-3 h-3 text-[#818181] hover:text-[#7135AD] stroke-[2]" />
+      ),
+      Service: (
+        <CiFilter
+          className={`inline w-3 h-3 stroke-[2] ${
+            !filters.bookingType
+              ? "text-[#C4C4C4]"
+              : activeHeaderFilter === "Service"
+                ? "text-[#7C3AED]"
+                : "text-[#818181] hover:text-[#7135AD]"
+          }`}
+        />
+      ),
+      "Service Status": (
+        <CiFilter
+          className={`inline w-3 h-3 stroke-[2] ${
+            activeHeaderFilter === "Service Status"
+              ? "text-[#7C3AED]"
+              : "text-[#818181] hover:text-[#7135AD]"
+          }`}
+        />
+      ),
     }),
-    [ownersList],
+    [activeHeaderFilter, filters.bookingType],
   );
 
-  const handleFilterChange = (next: FilterPayload) => {
+  const statusFilterOptions = useMemo(
+    () => [
+      { value: "confirmed", label: "Confirmed" },
+      { value: "cancelled", label: "Cancelled" },
+      { value: "rescheduled", label: "Rescheduled" },
+    ],
+    [],
+  );
+
+  const renderHeaderDropdown = useCallback(
+    (
+      title: string,
+      value: string,
+      options: Array<{ value: string; label: string }>,
+      onSelect: (nextValue: string) => void,
+      placeholder = title,
+    ) => {
+      return (
+        <>
+          <div className="w-[230px] overflow-hidden rounded-[14px] border border-[#D7D7D7] bg-white shadow-[0_12px_30px_rgba(0,0,0,0.14)]">
+            <button
+              type="button"
+              className="flex w-full items-center justify-between px-[14px] py-[7px] text-left text-[14px] font-[400]"
+            >
+              <span className={value ? "text-[#020202]" : "text-[#98A0AF]"}>
+                {value
+                  ? options.find((opt) => opt.value === value)?.label || value
+                  : placeholder}
+              </span>
+              <MdOutlineKeyboardArrowDown className="h-6 w-6 text-[#7A7A7A]" />
+            </button>
+          </div>
+          <div className="w-[230px] overflow-hidden rounded-[14px] border border-[#D7D7D7] bg-white shadow-[0_12px_30px_rgba(0,0,0,0.14)]">
+            <div className="border-t border-[#D7D7D7] bg-white">
+              <button
+                type="button"
+                onClick={() => {
+                  onSelect("");
+                  setActiveHeaderFilter(null);
+                }}
+                className={`block w-full border-b border-[#D7D7D7] px-[14px] py-[7px] text-left text-[14px] font-[400] ${
+                  !value ? "text-[#7C3AED]" : "text-[#020202]"
+                }`}
+              >
+                All
+              </button>
+              {options.map((opt, idx) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onSelect(opt.value);
+                    setActiveHeaderFilter(null);
+                  }}
+                  className={`block w-full px-[14px] py-[7px] text-left text-[14px] font-[400] ${
+                    value === opt.value ? "text-[#7C3AED]" : "text-[#020202]"
+                  } ${idx < options.length - 1 ? "border-b border-[#D7D7D7]" : ""}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      );
+    },
+    [],
+  );
+
+  const headerDropdownMap = useMemo(
+    () => ({
+      Service: {
+        isOpen: activeHeaderFilter === "Service",
+        align: "center" as const,
+        content: renderHeaderDropdown(
+          "Service",
+          filters.serviceType,
+          filterOptions.serviceTypes as Array<{ value: string; label: string }>,
+          (nextValue) =>
+            setFilters((prev) => ({ ...prev, serviceType: nextValue })),
+          filters.bookingType === "limitless" ? "Destination" : "Service",
+        ),
+      },
+      "Service Status": {
+        isOpen: activeHeaderFilter === "Service Status",
+        align: "center" as const,
+        content: renderHeaderDropdown(
+          "Booking Status",
+          filters.status,
+          statusFilterOptions,
+          (nextValue) => setFilters((prev) => ({ ...prev, status: nextValue })),
+          "Booking Status",
+        ),
+      },
+    }),
+    [
+      activeHeaderFilter,
+      filterOptions.serviceTypes,
+      filters.bookingType,
+      filters.serviceType,
+      filters.status,
+      renderHeaderDropdown,
+      statusFilterOptions,
+    ],
+  );
+
+  const handleHeaderIconClick = useCallback(
+    (column: string) => {
+      if (column === "Travel Date") {
+        handleSort(column);
+        return;
+      }
+
+      if (column !== "Service" && column !== "Service Status") return;
+
+      if (column === "Service" && !filters.bookingType) return;
+
+      const nextColumn =
+        column === "Service" || column === "Service Status" ? column : null;
+      setActiveHeaderFilter((prev) =>
+        prev === nextColumn ? null : nextColumn,
+      );
+    },
+    [filters.bookingType],
+  );
+
+  const handleFilterChange = useCallback((next: FilterPayload) => {
     setFilters(next);
     setSearchValue(next.search);
-  };
+  }, []);
 
   const getBookingTimelineDate = useCallback((item: any) => {
     const rawDate =
@@ -1448,7 +2089,7 @@ const OSBookingsPage = () => {
 
             <button
               onClick={() => handleCreateRequested()}
-              className="text-white text-[14px] font-[500] bg-[#7135AD] rounded-[14px] px-[14px] py-[7px]"
+              className="text-white text-[14px] font-[500] bg-[#7135AD] rounded-[14px] px-[14px] py-[8px]"
             >
               + Create
             </button>
@@ -1460,21 +2101,31 @@ const OSBookingsPage = () => {
             serviceTypes={filterOptions.serviceTypes}
             statuses={filterOptions.statuses}
             owners={filterOptions.owners}
+            showTravelDateFilter={bookingSourceTab === "My Bookings"}
             searchOptions={[
               {
-                value: "customerId",
-                label: "Customer ID",
-                placeholder: "Search by Customer ID",
+                value: "bookingId",
+                label: "Booking ID",
+                placeholder: "Search by Booking ID",
+                minChars: 3,
+              },
+              {
+                value: "leadPax",
+                label: "Lead Pax",
+                placeholder: "Search by Lead Pax",
+                minChars: 3,
               },
               {
                 value: "customerName",
                 label: "Customer Name",
                 placeholder: "Search by Customer Name",
+                minChars: 3,
               },
               {
-                value: "owner",
-                label: "Owner",
-                placeholder: "Search by Owner",
+                value: "amount",
+                label: "Amount",
+                placeholder: "Search by Amount",
+                minChars: 2,
               },
             ]}
             createOpen={isCreateOpen}
@@ -1485,39 +2136,45 @@ const OSBookingsPage = () => {
           />
 
           {bookingSourceTab === "My Bookings" ? (
-            <div className="relative mt-4 flex min-h-0 flex-1 flex-col rounded-2xl border border-[#E5E7EB] pt-1.5 bg-white">
-              <div className="relative">
+            <div className="relative mt-4 flex min-h-0 flex-1 flex-col rounded-2xl border border-[1px] border-[#E5E7EB] bg-white">
+              <div className="flex items-center justify-between border-b border-[#E5E7EB]">
                 <UnderlineTabs
                   tabs={tabOptions}
                   activeTab={activeTab}
                   onChange={setActiveTab}
                   totalCount={filteredQuotations.length}
-                  className="w-full"
+                  className="!border-b-0"
                 />
+                <div className="flex items-center gap-[20px] px-4">
+                  <div className="flex items-center gap-[6px]">
+                    <button
+                      onClick={() => setShowIncompleteOnly((prev) => !prev)}
+                      className={`relative inline-flex h-5 w-8 items-center rounded-full transition-colors ${
+                        showIncompleteOnly ? "bg-[#7135AD]" : "bg-[#C9CCCE]"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          showIncompleteOnly
+                            ? "translate-x-3.5"
+                            : "translate-x-0.5"
+                        }`}
+                      />
+                    </button>
 
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-4">
-                  <div className="flex items-center gap-2 text-[13px] text-[#414141]">
-                    <Toggle
-                      checked={showIncomplete}
-                      onChange={(v: boolean) => setShowIncomplete(v)}
-                      checkedBg="#7135AD"
-                      uncheckedBg="#E5E7EB"
-                    />
-
-                    <span className="whitespace-nowrap text-[#414141] font-[400] text-[13px]">
+                    <span className="text-[12px] font-[400] text-[#414141]">
                       Show Incomplete Bookings
                     </span>
                   </div>
 
-                  <div className="flex items-center">
-                    <div className="rounded-full text-[13px] border border-[#7135AD66] px-4 py-1.5 text-[#7135AD] font-[500]">
-                      <span className="text-[#414141] font-[500]">Total </span>{" "}
-                      : {filteredQuotations.length}
-                    </div>
+                  <div className="rounded-full border border-[#C6B2DE] px-[14px] py-[6px] text-[12px] font-[500] text-[#4B4B4B]">
+                    Total :{" "}
+                    <span className="font-[500] text-[#7135AD]">
+                      {sortedQuotationsForTable.length}
+                    </span>
                   </div>
                 </div>
               </div>
-
               <div className="mt-4 flex-1 min-h-0 overflow-auto px-5 py-[4px]">
                 {isLoading ? (
                   <TableSkeleton />
@@ -1526,6 +2183,8 @@ const OSBookingsPage = () => {
                     data={tableData}
                     columns={columns}
                     columnIconMap={columnIconMap}
+                    onHeaderIconClick={handleHeaderIconClick}
+                    headerDropdownMap={headerDropdownMap}
                     columnWidthClassMap={{
                       "Booking ID": "w-[8rem]",
                       Tasks: "w-[7.5rem]",

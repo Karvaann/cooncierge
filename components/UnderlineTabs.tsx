@@ -15,7 +15,7 @@ export default function UnderlineTabs({
   tabs,
   activeTab,
   onChange,
-  className,
+  className = "",
 }: UnderlineTabsProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -52,7 +52,7 @@ export default function UnderlineTabs({
   return (
     <div
       ref={containerRef}
-      className={`relative flex items-end border-b border-[#E5E7EB] ${className || "w-full"}`}
+      className={`relative flex items-end border-b border-[#E5E7EB] ${className}`}
     >
       {tabs.map((tab) => {
         const isActive = activeTab === tab;
@@ -65,7 +65,7 @@ export default function UnderlineTabs({
             }}
             type="button"
             onClick={() => onChange(tab)}
-            className={`relative py-[12px] px-6 text-[13px] font-[400] transition-colors duration-200 ${
+            className={`relative py-[12px] px-6 text-[13.5px] font-[500] transition-colors duration-200 ${
               isActive
                 ? "text-[#7135AD]"
                 : "text-[#818181] hover:text-[#5F5F5F]"

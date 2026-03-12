@@ -45,6 +45,7 @@ export interface SearchOption {
   value: string;
   label: string;
   placeholder?: string;
+  minChars?: number;
 }
 
 export interface FilterProps {
@@ -110,8 +111,17 @@ const Filter: React.FC<FilterProps> = ({
     (initialFilters as Partial<FilterState>).searchBy ||
     normalizedSearchOptions[0]?.value ||
     "all";
+  const getMinCharsForSearchBy = useCallback(
+    (searchBy: string) =>
+      normalizedSearchOptions.find((option) => option.value === searchBy)
+        ?.minChars ?? 3,
+    [normalizedSearchOptions],
+  );
   const initialSearch = initialFilters.search || "";
-  const initialEffectiveSearch = initialSearch.length >= 3 ? initialSearch : "";
+  const initialEffectiveSearch =
+    initialSearch.length >= getMinCharsForSearchBy(defaultSearchBy)
+      ? initialSearch
+      : "";
 
   const [filters, setFilters] = useState<FilterState>({
     serviceType: initialFilters.serviceType || "",
@@ -308,6 +318,38 @@ const Filter: React.FC<FilterProps> = ({
     filters.searchBy,
     normalizedSearchOptions,
     updateFilter,
+  ]);
+
+  useEffect(() => {
+    const value = filters.search || "";
+    const minChars = getMinCharsForSearchBy(filters.searchBy);
+
+    if (value.length === 0) {
+      if (effectiveSearch !== "") {
+        setEffectiveSearch("");
+        onSearchChange?.("");
+      }
+      return;
+    }
+
+    if (value.length >= minChars) {
+      if (effectiveSearch !== value) {
+        setEffectiveSearch(value);
+        onSearchChange?.(value);
+      }
+      return;
+    }
+
+    if (effectiveSearch !== "") {
+      setEffectiveSearch("");
+      onSearchChange?.("");
+    }
+  }, [
+    effectiveSearch,
+    filters.search,
+    filters.searchBy,
+    getMinCharsForSearchBy,
+    onSearchChange,
   ]);
 
   const removeOwner = useCallback(
@@ -682,18 +724,6 @@ const Filter: React.FC<FilterProps> = ({
                     ? document.body
                     : (null as any),
                 )}
-            </div>
-
-            {/* Reset */}
-            <div className="rounded-[16px]">
-              <Button
-                text=""
-                onClick={handleReset}
-                icon={<RiRefreshLine size={18} />}
-                bgColor="bg-white"
-                textColor="text-[#7A7A7A]"
-                className="h-[38px] w-[38px] rounded-[16px] border border-[#D2D2D2] py-[11px] font-semibold shadow-none"
-              />
             </div>
           </div>
         </div>

@@ -59,7 +59,7 @@ const TaskButton = ({ count, bookingId }: TaskButtonProps) => {
       >
         <TbClipboardText className="w-4 h-4 text-[#854D0E]" />
       </button>
-      <span className="absolute -top-2 -right-2 bg-[#FFF] text-[#EB382B] transition-all duration-300 ease-in-out group-hover:bg-[#EB382B] group-hover:text-white text-[8px] font-semibold rounded-full w-[18px] h-[18px] flex items-center justify-center shadow">
+      <span className="absolute -top-2 -right-2 bg-[#FFF] text-[#7135AD] transition-all duration-300 ease-in-out group-hover:bg-[#7135AD] group-hover:text-white text-[8px] font-semibold rounded-full w-[18px] h-[18px] flex items-center justify-center shadow">
         {loading ? "" : tasksCount}
       </span>
       <DayWiseTaskModal

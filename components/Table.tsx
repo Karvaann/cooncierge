@@ -35,6 +35,15 @@ interface TableProps {
   onPaginationChange?: (page: number, rowsPerPage: number) => void;
   enableRowHoverActions?: boolean;
   rowClassNameResolver?: (rowIndex: number) => string;
+  onHeaderIconClick?: (column: string) => void;
+  headerDropdownMap?: Record<
+    string,
+    {
+      isOpen: boolean;
+      content: React.ReactNode;
+      align?: "left" | "center" | "right";
+    }
+  >;
 }
 
 const Table: React.FC<TableProps> = ({
@@ -62,6 +71,8 @@ const Table: React.FC<TableProps> = ({
   onPaginationChange,
   enableRowHoverActions = false,
   rowClassNameResolver,
+  onHeaderIconClick,
+  headerDropdownMap = {},
 }) => {
   const [page, setPage] = useState<number>(1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
@@ -161,7 +172,7 @@ const Table: React.FC<TableProps> = ({
             onSort(col);
           }
         }}
-        className={`sticky top-0 z-10 px-[18px] py-[18px] ${headerCellTextClassName} font-[500] leading-4 tracking-[0.6px] text-[13px] ${
+        className={`sticky top-0 z-10 relative overflow-visible px-[18px] py-[18px] ${headerCellTextClassName} font-[500] leading-4 tracking-[0.6px] text-[13px] ${
           columnWidthClassMap[col] || ""
         }
         ${headerClassName || "bg-[#F3F3F3]"}
@@ -196,8 +207,38 @@ const Table: React.FC<TableProps> = ({
           >
             {col}
           </span>
-          {columnIconMap?.[col]}
+          {columnIconMap?.[col] ? (
+            onHeaderIconClick ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onHeaderIconClick(col);
+                }}
+                data-header-filter-trigger={col}
+                className="inline-flex items-center"
+              >
+                {columnIconMap[col]}
+              </button>
+            ) : (
+              columnIconMap[col]
+            )
+          ) : null}
         </div>
+        {headerDropdownMap[col]?.isOpen && (
+          <div
+            data-header-filter-dropdown={col}
+            className={`absolute top-full mt-2 z-[120] ${
+              headerDropdownMap[col]?.align === "left"
+                ? "left-0"
+                : headerDropdownMap[col]?.align === "right"
+                  ? "right-0"
+                  : "left-1/2 -translate-x-1/2"
+            }`}
+          >
+            {headerDropdownMap[col]?.content}
+          </div>
+        )}
       </th>
     ));
 
