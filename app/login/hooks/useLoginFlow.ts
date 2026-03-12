@@ -51,7 +51,7 @@ export function useLoginFlow() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace("/bookings/other-services");
+      router.replace("/bookings");
     }
   }, [isAuthenticated, router]);
 

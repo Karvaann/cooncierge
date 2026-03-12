@@ -45,6 +45,7 @@ export interface SearchOption {
   value: string;
   label: string;
   placeholder?: string;
+  minChars?: number;
 }
 
 export interface FilterProps {
@@ -110,8 +111,17 @@ const Filter: React.FC<FilterProps> = ({
     (initialFilters as Partial<FilterState>).searchBy ||
     normalizedSearchOptions[0]?.value ||
     "all";
+  const getMinCharsForSearchBy = useCallback(
+    (searchBy: string) =>
+      normalizedSearchOptions.find((option) => option.value === searchBy)
+        ?.minChars ?? 3,
+    [normalizedSearchOptions],
+  );
   const initialSearch = initialFilters.search || "";
-  const initialEffectiveSearch = initialSearch.length >= 3 ? initialSearch : "";
+  const initialEffectiveSearch =
+    initialSearch.length >= getMinCharsForSearchBy(defaultSearchBy)
+      ? initialSearch
+      : "";
 
   const [filters, setFilters] = useState<FilterState>({
     serviceType: initialFilters.serviceType || "",
@@ -302,6 +312,38 @@ const Filter: React.FC<FilterProps> = ({
 
     updateFilter("searchBy", defaultSearchBy);
   }, [defaultSearchBy, filters.searchBy, normalizedSearchOptions, updateFilter]);
+
+  useEffect(() => {
+    const value = filters.search || "";
+    const minChars = getMinCharsForSearchBy(filters.searchBy);
+
+    if (value.length === 0) {
+      if (effectiveSearch !== "") {
+        setEffectiveSearch("");
+        onSearchChange?.("");
+      }
+      return;
+    }
+
+    if (value.length >= minChars) {
+      if (effectiveSearch !== value) {
+        setEffectiveSearch(value);
+        onSearchChange?.(value);
+      }
+      return;
+    }
+
+    if (effectiveSearch !== "") {
+      setEffectiveSearch("");
+      onSearchChange?.("");
+    }
+  }, [
+    effectiveSearch,
+    filters.search,
+    filters.searchBy,
+    getMinCharsForSearchBy,
+    onSearchChange,
+  ]);
 
   const removeOwner = useCallback(
     (name: string) => {
@@ -695,16 +737,7 @@ const Filter: React.FC<FilterProps> = ({
                   placeholder={resolvedSearchPlaceholder}
                   value={filters.search}
                   onChange={(e) => {
-                    const value = e.target.value;
-                    updateFilter("search", value);
-
-                    if (value.length === 0) {
-                      setEffectiveSearch("");
-                      onSearchChange?.("");
-                    } else if (value.length >= 3) {
-                      setEffectiveSearch(value);
-                      onSearchChange?.(value);
-                    }
+                    updateFilter("search", e.target.value);
                   }}
                   className="h-full min-w-0 flex-1 bg-transparent pl-3 pr-3 text-[12px] font-normal text-[#111111] outline-none placeholder:text-[#A0A9BA]"
                 />

@@ -54,7 +54,7 @@ export default function SettingsPage() {
       <aside className="hidden md:block w-[200px] shrink-0 bg-white">
         <div className="  py-[14px] px-[14px]">
           <Link
-            href="/bookings/other-services"
+            href="/bookings"
             className="text-[13px] flex items-center text-[#020202] font-[400] gap-[10px] hover:underline"
           >
             <MdKeyboardArrowLeft className=" text-[#020202]" /> Back to Home
