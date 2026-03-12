@@ -259,8 +259,8 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   });
 
   useLayoutEffect(() => {
+    const container = flightTabContainerRef.current;
     const update = () => {
-      const container = flightTabContainerRef.current;
       if (!container) return;
       const activeBtn = container.querySelector(
         `[data-tab="${formData.flightType}"]`,
@@ -272,8 +272,17 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
       });
     };
     update();
+    // Re-measure when the container is resized (covers late layout/paint)
+    let ro: ResizeObserver | undefined;
+    if (container) {
+      ro = new ResizeObserver(update);
+      ro.observe(container);
+    }
     window.addEventListener("resize", update);
-    return () => window.removeEventListener("resize", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      ro?.disconnect();
+    };
   }, [formData.flightType]);
 
   return (

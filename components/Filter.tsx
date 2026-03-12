@@ -548,6 +548,84 @@ const Filter: React.FC<FilterProps> = ({
                     e.stopPropagation();
                     setOwnerModalOpen(true);
                   }}
+                >
+                  {selectedOwners.length > 0 ? (
+                    <>
+                      <span
+                        key={selectedOwners[0]}
+                        className="flex items-center gap-1 bg-white border border-[#CCD0DB] text-black px-2 py-0.5 rounded-full text-[12px]"
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (selectedOwners[0])
+                              removeOwner(selectedOwners[0]);
+                          }}
+                          className="py-1"
+                        >
+                          <IoClose size={16} className="text-[#818181]" />
+                        </button>
+                        {selectedOwners[0]}
+                      </span>
+
+                      {selectedOwners.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOwnerModalOpen(true);
+                          }}
+                          className="text-[#114958] underline text-[14px] ml-2"
+                          aria-label="Show more owners"
+                        >
+                          + {selectedOwners.length - 1}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-[#9CA3AF] text-[14px] flex items-center flex-1">
+                      Search / Select Owner
+                    </span>
+                  )}
+                </FilterInputShell>
+
+                <SelectBookingOwnerModal
+                  isOpen={ownerModalOpen}
+                  onClose={() => setOwnerModalOpen(false)}
+                  initialSelectedOwners={selectedOwners}
+                  initialPrimaryOwners={
+                    Array.isArray(filters.primaryOwner)
+                      ? filters.primaryOwner
+                      : typeof filters.primaryOwner === "string" &&
+                          filters.primaryOwner
+                        ? [filters.primaryOwner]
+                        : []
+                  }
+                  initialSecondaryOwners={filters.secondaryOwners || []}
+                  onApply={(next) => {
+                    setSelectedOwners(next);
+                    updateFilter("owner", next);
+                    updateFilter("primaryOwner", "");
+                    updateFilter("secondaryOwners", []);
+                  }}
+                  onApplyAdvanced={(primary, secondary) => {
+                    // Combine for display in pills
+                    const combined = [...new Set([...primary, ...secondary])];
+                    setSelectedOwners(combined);
+                    // Store separately for filtering logic
+                    updateFilter(
+                      "primaryOwner",
+                      primary.length === 0
+                        ? ""
+                        : primary.length === 1
+                          ? (primary[0] ?? "")
+                          : primary,
+                    );
+                    updateFilter("secondaryOwners", secondary);
+                    updateFilter("owner", ""); // Clear regular owner when using advanced
+                  }}
+                  showAdvanceSearch={allowAdvanceOwnerSearch}
                 />
               </div>
             </div>
@@ -611,10 +689,9 @@ const Filter: React.FC<FilterProps> = ({
                           className="flex items-center gap-2 px-2 py-2  hover:bg-gray-50 cursor-pointer border-b border-gray-200"
                           onClick={(e) => {
                             e.stopPropagation();
-                            updateFilter("bookingType" as any, "");
+                            updateFilter("bookingType" as any, opt.value);
                             setBookingTypeOpen(false);
                           }}
-                          aria-label="Clear booking type"
                         >
                           <span
                             className={`${bookingTypeLabel === opt.label ? "text-[#7135AD]" : "text-[#020202]"} font-[400] text-[13px]`}
@@ -631,100 +708,97 @@ const Filter: React.FC<FilterProps> = ({
               </div>
             </div>
           )}
-
-          <div className="flex w-2/7 items-center gap-3">
-            {/* Search */}
-            <div className="w-full min-w-0">
-              <div
-                className={`${searchInputWidth} flex h-[44px] items-stretch overflow-hidden rounded-[14px] border border-[#E2E1E1] bg-white hover:border-green-200`}
+        </div>
+        <div className="flex w-2/7 items-center gap-3">
+          {/* Search */}
+          <div className="w-full min-w-0">
+            <div
+              className={`${searchInputWidth} flex h-[44px] items-stretch overflow-hidden rounded-[14px] border border-[#E2E1E1] bg-white hover:border-green-200`}
+            >
+              <button
+                ref={searchByRef}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const rect = searchByRef.current?.getBoundingClientRect();
+                  if (rect) {
+                    setSearchByPos({
+                      left: rect.left,
+                      top: rect.top,
+                      width: rect.width,
+                      height: rect.height,
+                    });
+                  }
+                  setSearchByOpen((prev) => !prev);
+                }}
+                className="flex h-full shrink-0 items-center gap-2 whitespace-nowrap px-3 text-[12px] font-[400] text-[#020202]"
               >
-                <button
-                  ref={searchByRef}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const rect = searchByRef.current?.getBoundingClientRect();
-                    if (rect) {
-                      setSearchByPos({
-                        left: rect.left,
-                        top: rect.top,
-                        width: rect.width,
-                        height: rect.height,
-                      });
-                    }
-                    setSearchByOpen((prev) => !prev);
+                <span>{selectedSearchOption?.label || "Search"}</span>
+                <MdOutlineKeyboardArrowDown className="text-[20px] text-[#7A7A7A]" />
+              </button>
+
+              <div className="flex min-w-0 flex-1 items-center border-l border-[#D9D9D9]">
+                <input
+                  type="text"
+                  placeholder={resolvedSearchPlaceholder}
+                  value={filters.search}
+                  onChange={(e) => {
+                    updateFilter("search", e.target.value);
                   }}
-                  className="flex h-full shrink-0 items-center gap-2 whitespace-nowrap px-3 text-[12px] font-[400] text-[#020202]"
-                >
-                  <span>{selectedSearchOption?.label || "Search"}</span>
-                  <MdOutlineKeyboardArrowDown className="text-[20px] text-[#7A7A7A]" />
-                </button>
-
-                <div className="flex min-w-0 flex-1 items-center border-l border-[#D9D9D9]">
-                  <input
-                    type="text"
-                    placeholder={resolvedSearchPlaceholder}
-                    value={filters.search}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      updateFilter("search", value);
-
-                      if (value.length === 0) {
-                        setEffectiveSearch("");
-                        onSearchChange?.("");
-                      } else if (value.length >= 3) {
-                        setEffectiveSearch(value);
-                        onSearchChange?.(value);
-                      }
-                    }}
-                    className="h-full min-w-0 flex-1 bg-transparent pl-3 pr-3 text-[12px] font-normal text-[#111111] outline-none placeholder:text-[#A0A9BA]"
-                  />
-                  <CiSearch
-                    className="mr-6 shrink-0 text-[#808080]"
-                    size={24}
-                  />
-                </div>
+                  className="h-full min-w-0 flex-1 bg-transparent pl-3 pr-3 text-[12px] font-normal text-[#111111] outline-none placeholder:text-[#A0A9BA]"
+                />
+                <CiSearch className="mr-6 shrink-0 text-[#808080]" size={24} />
               </div>
-
-              {searchByOpen &&
-                searchByPos &&
-                createPortal(
-                  <div
-                    ref={searchByPortalRef}
-                    style={{
-                      position: "fixed",
-                      left: searchByPos.left,
-                      top: searchByPos.top + searchByPos.height + 4,
-                      minWidth: searchByPos.width,
-                      zIndex: 9999,
-                    }}
-                    className="overflow-hidden rounded-[16px] border border-[#D9D9D9] bg-white shadow-[0_10px_25px_rgba(0,0,0,0.10)]"
-                  >
-                    {normalizedSearchOptions.map((option, index) => {
-                      const isActive = option.value === filters.searchBy;
-
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => {
-                            updateFilter("searchBy", option.value);
-                            setSearchByOpen(false);
-                          }}
-                          className={`block w-full whitespace-nowrap px-2 py-2 text-left text-[12px] ${
-                            isActive ? "text-[#7C3AED]" : "text-[#444444]"
-                          } ${index < normalizedSearchOptions.length - 1 ? "border-b border-[#D9D9D9]" : ""}`}
-                        >
-                          {option.label}
-                        </button>
-                      );
-                    })}
-                  </div>,
-                  typeof document !== "undefined"
-                    ? document.body
-                    : (null as any),
-                )}
             </div>
+
+            {searchByOpen &&
+              searchByPos &&
+              createPortal(
+                <div
+                  ref={searchByPortalRef}
+                  style={{
+                    position: "fixed",
+                    left: searchByPos.left,
+                    top: searchByPos.top + searchByPos.height + 4,
+                    minWidth: searchByPos.width,
+                    zIndex: 9999,
+                  }}
+                  className="overflow-hidden rounded-[16px] border border-[#D9D9D9] bg-white shadow-[0_10px_25px_rgba(0,0,0,0.10)]"
+                >
+                  {normalizedSearchOptions.map((option, index) => {
+                    const isActive = option.value === filters.searchBy;
+
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          updateFilter("searchBy", option.value);
+                          setSearchByOpen(false);
+                        }}
+                        className={`block w-full whitespace-nowrap px-2 py-2 text-left text-[12px] ${
+                          isActive ? "text-[#7C3AED]" : "text-[#444444]"
+                        } ${index < normalizedSearchOptions.length - 1 ? "border-b border-[#D9D9D9]" : ""}`}
+                      >
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>,
+                typeof document !== "undefined" ? document.body : (null as any),
+              )}
+          </div>
+
+          {/* Reset */}
+          <div className="rounded-[16px]">
+            <Button
+              text=""
+              onClick={handleReset}
+              icon={<RiRefreshLine size={18} />}
+              bgColor="bg-white"
+              textColor="text-[#7A7A7A]"
+              className="h-[38px] w-[38px] rounded-[16px] border border-[#D2D2D2] py-[11px] font-semibold shadow-none"
+            />
           </div>
         </div>
       </div>
