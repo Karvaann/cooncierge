@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { MdKeyboardArrowDown, MdKeyboardArrowUp } from "react-icons/md";
+import { allowOnlyNumbers } from "@/utils/inputValidators";
 
 type Value = number | string | undefined | null;
 
@@ -23,6 +24,72 @@ const toInt = (v: Value) => {
   return Number.isFinite(n) ? n : 0;
 };
 
+function Control({
+  pcs,
+  wt,
+  onInc,
+  onDec,
+  onWtChange,
+}: {
+  pcs: number;
+  wt: Value;
+  onInc: () => void;
+  onDec: () => void;
+  onWtChange: (next: string) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-[7px] px-0">
+        <input
+          type="text"
+          value={String(pcs)}
+          readOnly
+          className="w-5 text-center text-[0.75rem] bg-transparent placeholder:text-[#9CA3AF] outline-none"
+        />
+        <div className="flex flex-col border border-[#7135AD] rounded-tr-[7px] rounded-br-[7px] overflow-hidden">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onInc();
+            }}
+            className="p-0.5 h-[16px] bg-[#F7EFFF] border-b border-[#7135AD]"
+          >
+            <MdKeyboardArrowUp size={14} className="text-[#7135AD]" />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDec();
+            }}
+            className="p-0.5 bg-[#F7EFFF]"
+          >
+            <MdKeyboardArrowDown size={14} className="text-[#7135AD]" />
+          </button>
+        </div>
+      </div>
+
+      <span className="text-[0.75rem] font-[400] text-[#020202]">Pcs</span>
+
+      <input
+        type="text"
+        inputMode="decimal"
+        value={wt == null ? "" : String(wt)}
+        onChange={(e) => {
+          const sanitized = e.target.value.replace(/[^0-9.]/g, "");
+          onWtChange(allowOnlyNumbers(sanitized));
+        }}
+        placeholder="Wt."
+        className="w-10 px-2.5 py-1.5 border border-gray-300 rounded-[9px] text-[0.75rem] placeholder:text-[#9CA3AF] outline-none"
+      />
+      <span className="text-[0.75rem] font-[400] text-[#020202]">Kgs</span>
+    </div>
+  );
+}
+
 export default function BaggageCounters({
   cabinPcs,
   cabinWt,
@@ -33,73 +100,11 @@ export default function BaggageCounters({
   const cabinPcsNum = useMemo(() => toInt(cabinPcs), [cabinPcs]);
   const checkInPcsNum = useMemo(() => toInt(checkInPcs), [checkInPcs]);
 
-  const Control = ({
-    pcs,
-    wt,
-    onInc,
-    onDec,
-    onWtChange,
-  }: {
-    pcs: number;
-    wt: Value;
-    onInc: () => void;
-    onDec: () => void;
-    onWtChange: (next: string) => void;
-  }) => {
-    return (
-      <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-md px-0">
-          <input
-            type="text"
-            value={String(pcs)}
-            readOnly
-            className="w-5 text-center text-[0.75rem] bg-transparent outline-none"
-          />
-          <div className="flex flex-col border border-black rounded-sm overflow-hidden">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onInc();
-              }}
-              className="p-0.5 border-b border-black"
-            >
-              <MdKeyboardArrowUp size={14} />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onDec();
-              }}
-              className="p-0.5"
-            >
-              <MdKeyboardArrowDown size={14} />
-            </button>
-          </div>
-        </div>
-
-        <span className="text-[0.75rem] font-medium text-gray-700">Pcs</span>
-
-        <input
-          type="text"
-          value={wt == null ? "" : String(wt)}
-          onChange={(e) => onWtChange(e.target.value)}
-          placeholder="Wt."
-          className="w-10 px-2 py-1 border border-gray-300 rounded-md text-[0.75rem] outline-none"
-        />
-        <span className="text-[0.75rem] font-medium text-gray-700">Kgs</span>
-      </div>
-    );
-  };
-
   return (
     <div className="pt-1">
       <div className="flex items-center justify-between">
-        <span className="text-[0.75rem] font-medium text-gray-600">Cabin</span>
-        <span className="text-[0.75rem] font-medium text-gray-600">
+        <span className="text-[0.75rem] font-[500] text-[#414141]">Cabin</span>
+        <span className="text-[0.75rem] mr-28 font-[500] text-[#414141]">
           Check-In
         </span>
       </div>

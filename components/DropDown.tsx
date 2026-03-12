@@ -39,7 +39,26 @@ interface DropdownProps {
   searchPlaceholder?: string;
   getOptionSearchValue?: (option: DropdownOption) => string;
   footerAction?: DropdownFooterAction;
+  /** When true, the trigger becomes a typeable input with fuzzy search filtering */
+  typeable?: boolean;
+  /** When true, skip the default bg-gray-200 background applied on disabled / readOnly state */
+  noDisabledBg?: boolean;
+  /** Custom className applied to each option item in the dropdown menu */
+  optionClassName?: string;
+  /** Custom className applied to the menu container (e.g. 'rounded-[15px]') */
   menuClassName?: string;
+}
+
+/* ── Fuzzy-match: every query char must appear in order in the target ── */
+function fuzzyMatch(query: string, target: string): boolean {
+  const q = query.toLowerCase();
+  const t = target.toLowerCase();
+  if (t.includes(q)) return true;
+  let qi = 0;
+  for (let ti = 0; ti < t.length && qi < q.length; ti++) {
+    if (t[ti] === q[qi]) qi++;
+  }
+  return qi === q.length;
 }
 
 const DropDown: React.FC<DropdownProps> = ({
@@ -54,7 +73,7 @@ const DropDown: React.FC<DropdownProps> = ({
   itemHeight,
   noBorder = false,
   buttonClassName = "",
-  focusRingClass = "focus:ring-1 focus:ring-green-400",
+  focusRingClass = "focus:ring-1 focus:ring-[#C6AEDE]",
   noButtonRadius = false,
   iconOnly = false,
   disabled = false,
@@ -64,12 +83,18 @@ const DropDown: React.FC<DropdownProps> = ({
   searchPlaceholder = "Type to filter...",
   getOptionSearchValue,
   footerAction,
+  typeable = false,
+  noDisabledBg = false,
+  optionClassName = "",
   menuClassName = "",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(value || "");
   const [openUpwards, setOpenUpwards] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [typeableQuery, setTypeableQuery] = useState("");
+  const [highlightIdx, setHighlightIdx] = useState(0);
+  const typeableInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const [menuPos, setMenuPos] = useState<{
@@ -92,6 +117,21 @@ const DropDown: React.FC<DropdownProps> = ({
     : placeholder;
 
   const filteredOptions = useMemo(() => {
+    // typeable mode: use fuzzy match against typeableQuery
+    if (typeable) {
+      const q = typeableQuery.trim();
+      if (!q) return options;
+      return options.filter((opt) => {
+        const searchText =
+          opt.searchLabel ||
+          (typeof getOptionSearchValue === "function"
+            ? getOptionSearchValue(opt)
+            : "") ||
+          (typeof opt.label === "string" ? opt.label : "") ||
+          opt.value;
+        return fuzzyMatch(q, String(searchText));
+      });
+    }
     if (!searchable) return options;
     const query = searchQuery.trim().toLowerCase();
     if (!query) return options;
@@ -107,7 +147,28 @@ const DropDown: React.FC<DropdownProps> = ({
         opt.value;
       return String(labelText).toLowerCase().includes(query);
     });
-  }, [getOptionSearchValue, options, searchQuery, searchable]);
+  }, [
+    getOptionSearchValue,
+    options,
+    searchQuery,
+    searchable,
+    typeable,
+    typeableQuery,
+  ]);
+
+  // Reset highlight when filtered list changes (typeable mode)
+  useEffect(() => {
+    setHighlightIdx(0);
+  }, [filteredOptions.length]);
+
+  // Scroll highlighted item into view
+  useEffect(() => {
+    if (!typeable || !isOpen || !menuRef.current) return;
+    const item = menuRef.current.querySelector(
+      `[data-idx="${highlightIdx}"]`,
+    ) as HTMLElement | null;
+    item?.scrollIntoView({ block: "nearest" });
+  }, [highlightIdx, isOpen, typeable]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -211,7 +272,10 @@ const DropDown: React.FC<DropdownProps> = ({
   };
 
   useEffect(() => {
-    if (!isOpen) setSearchQuery("");
+    if (!isOpen) {
+      setSearchQuery("");
+      setTypeableQuery("");
+    }
   }, [isOpen]);
 
   useEffect(() => {
@@ -222,47 +286,120 @@ const DropDown: React.FC<DropdownProps> = ({
 
   const inputWidthClass = customWidth ? customWidth : "w-[12rem]";
   const menuWidthClass = menuWidth ? menuWidth : inputWidthClass;
+  const hasCustomBg = /\bbg-/.test(buttonClassName);
+  const hasCustomHoverBorder = /\bhover:border-/.test(buttonClassName);
   return (
     <div ref={dropdownRef} className={`relative ${className}`}>
-      {/* Dropdown Button */}
-      <button
-        type="button"
-        onClick={handleToggle}
-        disabled={disabled || readOnly}
-        aria-disabled={disabled || readOnly}
-        aria-label={iconOnly ? placeholder : undefined}
-        className={`${inputWidthClass} ${
-          customHeight ? customHeight : "py-1.5"
-        } flex items-center justify-between px-2 ${
-          readOnly
-            ? "bg-gray-100 cursor-not-allowed text-gray-600"
-            : "bg-white"
-        } ${noButtonRadius ? "" : "rounded-md"} ${
-          noBorder ? "" : "border border-gray-300"
-        } hover:border-green-300 transition-colors text-left text-[13px] focus:outline-none ${focusRingClass} ${buttonClassName}`}
-      >
-        {!iconOnly && (
-          <span className={`${selectedValue ? "text-black" : "text-gray-400"}`}>
-            {displayText}
-          </span>
-        )}
-        <svg
-          aria-hidden={iconOnly ? "false" : "true"}
-          className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
-            isOpen ? "rotate-180" : ""
-          }`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      {/* Dropdown Trigger */}
+      {typeable ? (
+        <div
+          className={`${inputWidthClass} ${
+            customHeight ? customHeight : "py-1.5"
+          } flex items-center px-2 ${
+            readOnly || disabled
+              ? `cursor-not-allowed${noDisabledBg ? "" : " bg-gray-200"}`
+              : hasCustomBg
+                ? ""
+                : "bg-white"
+          } ${noButtonRadius ? "" : "rounded-[15px]"} ${
+            noBorder ? "border border-transparent" : "border border-gray-300"
+          } ${hasCustomHoverBorder ? "" : "hover:border-[#C6AEDE]"} transition-colors text-[13px] ${focusRingClass} ${buttonClassName}`}
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
+          <input
+            ref={typeableInputRef}
+            type="text"
+            value={
+              isOpen
+                ? typeableQuery
+                : typeof displayText === "string"
+                  ? displayText
+                  : selectedValue
+            }
+            onChange={(e) => {
+              setTypeableQuery(e.target.value);
+              if (!isOpen) setIsOpen(true);
+            }}
+            onFocus={() => {
+              setTypeableQuery("");
+              setIsOpen(true);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setIsOpen(false);
+                typeableInputRef.current?.blur();
+              }
+            }}
+            disabled={disabled}
+            readOnly={readOnly}
+            className={`flex-1 min-w-0 bg-transparent outline-none text-[13px]${readOnly ? " cursor-not-allowed" : ""}`}
           />
-        </svg>
-      </button>
+          <svg
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!disabled && !readOnly) {
+                setIsOpen((prev) => !prev);
+                typeableInputRef.current?.focus();
+              }
+            }}
+            className={`w-4 h-4 flex-shrink-0 text-gray-400 cursor-pointer transition-transform duration-200 ${
+              isOpen ? "rotate-180" : ""
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={handleToggle}
+          disabled={disabled || readOnly}
+          aria-disabled={disabled || readOnly}
+          aria-label={iconOnly ? placeholder : undefined}
+          className={`${inputWidthClass} ${
+            customHeight ? customHeight : "py-1.5"
+          } flex items-center justify-between px-2 ${
+            readOnly || disabled
+              ? `cursor-not-allowed${noDisabledBg ? "" : " bg-gray-200"}`
+              : hasCustomBg
+                ? ""
+                : "bg-white"
+          } ${noButtonRadius ? "" : "rounded-md"} ${
+            noBorder ? "border border-transparent" : "border border-gray-300"
+          } ${hasCustomHoverBorder ? "" : "hover:border-[#C6AEDE]"} transition-colors text-left text-[13px] focus:outline-none ${focusRingClass} ${buttonClassName}`}
+        >
+          {!iconOnly && (
+            <span
+              className={`${selectedValue ? "text-black" : "text-gray-400"}`}
+            >
+              {displayText}
+            </span>
+          )}
+          <svg
+            aria-hidden={iconOnly ? "false" : "true"}
+            className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+              isOpen ? "rotate-180" : ""
+            }`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
+        </button>
+      )}
 
       {/* Dropdown Menu */}
       {isOpen &&
@@ -292,7 +429,7 @@ const DropDown: React.FC<DropdownProps> = ({
                   }
                   return base;
                 })()}
-                className={`${menuWidthClass} bg-white  ${menuClassName || "rounded-md"} border border-gray-300 shadow-lg overflow-auto max-h-[240px] z-[1100]`}
+                className={`${menuWidthClass} bg-white ${menuClassName || "rounded-md"} border border-gray-300 shadow-lg overflow-auto max-h-[240px] z-[1100]`}
               >
                 {searchable && (
                   <div className="sticky top-0 bg-white z-10 border-b border-gray-200 p-2">
@@ -306,12 +443,18 @@ const DropDown: React.FC<DropdownProps> = ({
                     />
                   </div>
                 )}
-                {filteredOptions.map((option) => (
+                {filteredOptions.map((option, idx) => (
                   <button
                     key={option.value}
                     type="button"
+                    data-idx={idx}
+                    onMouseEnter={() => typeable && setHighlightIdx(idx)}
                     onClick={() => handleSelect(option.value)}
-                    className={`w-full block px-2 py-1.5 text-left text-[13px] text-black hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0`}
+                    className={`w-full block px-2 py-1.5 text-left text-[13px] transition-colors border-b border-gray-100 last:border-b-0 ${
+                      typeable && idx === highlightIdx
+                        ? "bg-green-50 text-black"
+                        : "text-black hover:bg-gray-50"
+                    } ${optionClassName}`}
                   >
                     {option.label}
                   </button>
@@ -334,7 +477,7 @@ const DropDown: React.FC<DropdownProps> = ({
                   </button>
                 )}
 
-                {searchable && filteredOptions.length === 0 && (
+                {(searchable || typeable) && filteredOptions.length === 0 && (
                   <div className="px-3 py-2 text-[12px] text-gray-500">
                     No results
                   </div>
