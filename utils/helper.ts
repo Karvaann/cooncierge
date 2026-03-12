@@ -363,6 +363,29 @@ export const formatServiceType = (type: string): string => {
   return map[normalized] || type;
 };
 
+/**
+ * Return a public URL for an airline icon SVG
+ * Matches by a few common substrings in the airline name
+ */
+export const getAirlineIconUrl = (airline?: string | null): string | null => {
+  if (!airline) return null;
+  const key = airline.trim().toLowerCase();
+
+  const map: Record<string, string> = {
+    indigo: "/airline-icons/IndiGo_Airlines_logo.svg",
+    "air india": "/airline-icons/Air_India_2023.svg",
+    airindia: "/airline-icons/Air_India_2023.svg",
+    airasia: "/airline-icons/AirAsia_Edited.svg",
+    "air asia": "/airline-icons/AirAsia_Edited.svg",
+  };
+
+  for (const k of Object.keys(map)) {
+    if (key.includes(k)) return map[k];
+  }
+
+  return null;
+};
+
 
 
 export const generateCustomId = (type: "customer" | "vendor" | "traveller" | "team" | "bookings") => {

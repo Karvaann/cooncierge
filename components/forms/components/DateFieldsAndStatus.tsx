@@ -8,6 +8,7 @@ import { useBookingFieldSync } from "@/context/BookingFieldSyncContext";
 
 const statusOptions = [
   { value: "confirmed", label: "Confirmed" },
+  { value: "rescheduled", label: "Rescheduled" },
   { value: "cancelled", label: "Cancelled" },
 ];
 
@@ -20,6 +21,8 @@ interface DateFieldsAndStatusProps {
   onTravelDateChange: (date: string) => void;
   onBookingStatusChange: (status: string) => void;
   onCancellationDateChange?: (date: string) => void;
+  onNewBookingDateChange?: (date: string) => void;
+  onNewTravelDateChange?: (date: string) => void;
 }
 
 const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
@@ -31,15 +34,21 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
   onTravelDateChange,
   onBookingStatusChange,
   onCancellationDateChange,
+  onNewBookingDateChange,
+  onNewTravelDateChange,
 }) => {
   const sync = useBookingFieldSync();
 
   // Refs to track the last context value we processed, so we only react to
-  // changes made by the OTHER DateFieldsAndStatus instance.
+  // changes made by the other instance.
   const prevSyncStatusRef = useRef(sync?.bookingStatus ?? "");
   const prevSyncCancDateRef = useRef(sync?.cancellationDate ?? "");
+  const prevSyncNewBookingRef = useRef(sync?.newBookingDate ?? "");
+  const prevSyncNewTravelRef = useRef(sync?.newTravelDate ?? "");
+  const prevSyncBookingRef = useRef(sync?.bookingDate ?? "");
+  const prevSyncTravelRef = useRef(sync?.travelDate ?? "");
 
-  // When the shared context bookingStatus changes (another form updated it),
+  // When the shared context bookingStatus changes,
   // propagate to this form's parent via the existing callback.
   useEffect(() => {
     if (!sync || sync.bookingStatus === prevSyncStatusRef.current) return;
@@ -49,7 +58,7 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
     }
   }, [sync?.bookingStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Same for cancellationDate.
+  // cancellationDate.
   useEffect(() => {
     if (!sync || sync.cancellationDate === prevSyncCancDateRef.current) return;
     prevSyncCancDateRef.current = sync.cancellationDate;
@@ -57,6 +66,42 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
       onCancellationDateChange?.(sync.cancellationDate);
     }
   }, [sync?.cancellationDate]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // newBookingDate.
+  useEffect(() => {
+    if (!sync || sync.newBookingDate === prevSyncNewBookingRef.current) return;
+    prevSyncNewBookingRef.current = sync.newBookingDate;
+    if (sync.newBookingDate) {
+      onNewBookingDateChange?.(sync.newBookingDate);
+    }
+  }, [sync?.newBookingDate]);
+
+  // newTravelDate.
+  useEffect(() => {
+    if (!sync || sync.newTravelDate === prevSyncNewTravelRef.current) return;
+    prevSyncNewTravelRef.current = sync.newTravelDate;
+    if (sync.newTravelDate) {
+      onNewTravelDateChange?.(sync.newTravelDate);
+    }
+  }, [sync?.newTravelDate]);
+
+  // bookingDate.
+  useEffect(() => {
+    if (!sync || sync.bookingDate === prevSyncBookingRef.current) return;
+    prevSyncBookingRef.current = sync.bookingDate;
+    if (sync.bookingDate !== bookingdate) {
+      onBookingDateChange(sync.bookingDate);
+    }
+  }, [sync?.bookingDate]);
+
+  // travelDate.
+  useEffect(() => {
+    if (!sync || sync.travelDate === prevSyncTravelRef.current) return;
+    prevSyncTravelRef.current = sync.travelDate;
+    if (sync.travelDate !== traveldate) {
+      onTravelDateChange(sync.travelDate);
+    }
+  }, [sync?.travelDate]);
 
   const handleStatusChange = (value: string) => {
     const v = String(value || "");
@@ -72,15 +117,42 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
   };
 
   const handleBookingDateChange = (date: string) => {
+    // notify parent
     onBookingDateChange(date);
+
+    // update shared state so other forms see it
+    sync?.setBookingDate(date);
+    prevSyncBookingRef.current = date;
+
     if (bookingdate !== date) {
+      // clear travel date if booking date changed to something else
       onTravelDateChange("");
+      sync?.setTravelDate("");
       return;
     }
 
     if (traveldate && isAfterDate(date, traveldate)) {
       onTravelDateChange("");
+      sync?.setTravelDate("");
     }
+  };
+
+  const handleTravelDateChange = (date: string) => {
+    onTravelDateChange(date);
+    sync?.setTravelDate(date);
+    prevSyncTravelRef.current = date;
+  };
+
+  const handleNewBookingDateChange = (date: string) => {
+    onNewBookingDateChange?.(date);
+    sync?.setNewBookingDate(date);
+    prevSyncNewBookingRef.current = date;
+  };
+
+  const handleNewTravelDateChange = (date: string) => {
+    onNewTravelDateChange?.(date);
+    sync?.setNewTravelDate(date);
+    prevSyncNewTravelRef.current = date;
   };
 
   return (
@@ -98,29 +170,18 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
             inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
           />
 
-          {/* Travel Date or Cancellation Date */}
-          {bookingstatus?.toLowerCase() === "cancelled" ? (
-            <SingleCalendar
-              label="Cancellation Date"
-              value={cancellationDate || ""}
-              onChange={handleCancellationDateChange}
-              placeholder="Select Date"
-              customWidth="w-[12rem]"
-              inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
-            />
-          ) : (
-            <SingleCalendar
-              label="Travel Date"
-              value={traveldate}
-              onChange={onTravelDateChange}
-              placeholder="Select Date"
-              minDate={bookingdate}
-              minTypeable={bookingdate}
-              readOnly={!bookingdate}
-              customWidth="w-[12rem]"
-              inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
-            />
-          )}
+          {/* Travel Date */}
+          <SingleCalendar
+            label="Travel Date"
+            value={traveldate}
+            onChange={handleTravelDateChange}
+            placeholder="Select Date"
+            minDate={bookingdate}
+            minTypeable={bookingdate}
+            readOnly={!bookingdate}
+            customWidth="w-[12rem]"
+            inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+          />
         </div>
 
         {/* Right section: Booking Status */}
@@ -136,6 +197,45 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
           />
         </div>
       </div>
+
+      {/* New Booking/Travel Date row shown when booking is rescheduled */}
+      {bookingstatus?.toLowerCase() === "rescheduled" && (
+        <div className="flex items-end flex-wrap gap-2 mb-3">
+          <SingleCalendar
+            label="New Booking Date"
+            value={sync?.newBookingDate || ""}
+            onChange={handleNewBookingDateChange}
+            placeholder="Select Date"
+            customWidth="w-[12rem]"
+            inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+          />
+
+          <SingleCalendar
+            label="New Travel Date"
+            value={sync?.newTravelDate || ""}
+            onChange={handleNewTravelDateChange}
+            placeholder="Select Date"
+            minDate={sync?.newBookingDate || bookingdate}
+            customWidth="w-[12rem]"
+            inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+          />
+        </div>
+      )}
+
+      {/* Cancellation Date row shown when booking is cancelled */}
+      {bookingstatus?.toLowerCase() === "cancelled" && (
+        <div className="mb-5 mt-1">
+          <SingleCalendar
+            label="Cancellation Date"
+            value={cancellationDate || ""}
+            onChange={handleCancellationDateChange}
+            placeholder="Select Date"
+            customWidth="w-[48%]"
+            showCalendarIcon={true}
+            inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+          />
+        </div>
+      )}
     </>
   );
 };

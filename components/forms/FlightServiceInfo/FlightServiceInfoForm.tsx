@@ -296,7 +296,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         ref={formRef}
         onSubmit={(e) => e.preventDefault()}
       >
-        <div className="px-0 py-1">
+        <div className="px-0 py-1.5">
           {/* Booking Date, Travel Date & Booking Status */}
           <DateFieldsAndStatus
             bookingdate={formData.bookingdate}
@@ -324,10 +324,8 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             }
           />
 
-          {/* Amount Section removed per request */}
-
           {/* Flight Info */}
-          <div className="mb-4 w-full border border-[#E2E1E1] rounded-[15px] p-3.5 mt-4">
+          <div className="mb-4 w-full border border-[#E2E1E1] rounded-[15px] p-3.5 mt-5">
             <h2 className="text-[13px] font-[500] text-[#020202] mb-2">
               Flight Info
             </h2>

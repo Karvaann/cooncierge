@@ -560,7 +560,7 @@ export default function SingleCalendar({
         </label>
       )}
 
-      <div className="relative">
+      <div className={`relative ${widthClass}`}>
         <input
           type="text"
           value={inputValue}
@@ -584,7 +584,7 @@ export default function SingleCalendar({
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          className={`relative ${widthClass} ${
+          className={`relative w-full ${
             inputStyleClass
               ? `${inputStyleClass} ${readOnly ? "cursor-default" : "outline-none"} pr-7`
               : `border border-gray-300 rounded-md ${

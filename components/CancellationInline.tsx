@@ -262,6 +262,7 @@ const CancellationInline: React.FC<CancellationInlineProps> = ({
                   businessCurrency={businessCurrency}
                   requiresRoe={requiresRoe}
                   inputClassName={inputBase}
+                  amountInputWidth="44%"
                   readOnly={readOnly}
                 />
               </div>
@@ -315,6 +316,7 @@ const CancellationInline: React.FC<CancellationInlineProps> = ({
                   businessCurrency={businessCurrency}
                   requiresRoe={requiresRoe}
                   inputClassName={inputBase}
+                  amountInputWidth="44%"
                   useWhiteDropdown={false}
                   readOnly={readOnly}
                 />
@@ -378,6 +380,7 @@ const CancellationInline: React.FC<CancellationInlineProps> = ({
                   businessCurrency={businessCurrency}
                   requiresRoe={requiresRoe}
                   inputClassName={inputBase}
+                  amountInputWidth="44%"
                   readOnly={readOnly}
                 />
               </div>
@@ -445,6 +448,7 @@ const CancellationInline: React.FC<CancellationInlineProps> = ({
                   inputClassName={smallInputBase}
                   useWhiteDropdown={false}
                   readOnly={readOnly}
+                  amountInputWidth="44%"
                 />
               </div>
             </div>
@@ -507,6 +511,7 @@ const CancellationInline: React.FC<CancellationInlineProps> = ({
                   businessCurrency={businessCurrency}
                   requiresRoe={requiresRoe}
                   inputClassName={inputBase}
+                  amountInputWidth="44%"
                   readOnly={readOnly}
                 />
               </div>
@@ -567,6 +572,7 @@ const CancellationInline: React.FC<CancellationInlineProps> = ({
                   inputClassName={smallInputBase}
                   useWhiteDropdown={false}
                   readOnly={readOnly}
+                  amountInputWidth="44%"
                 />
               </div>
             </div>
@@ -628,6 +634,7 @@ const CancellationInline: React.FC<CancellationInlineProps> = ({
                   useWhiteDropdown={true}
                   inputClassName={inputBase}
                   readOnly={readOnly}
+                  amountInputWidth="44%"
                 />
               </div>
             </div>
@@ -692,6 +699,7 @@ const CancellationInline: React.FC<CancellationInlineProps> = ({
                   useWhiteDropdown={false}
                   inputClassName={smallInputBase}
                   readOnly={readOnly}
+                  amountInputWidth="44%"
                 />
               </div>
             </div>
@@ -746,6 +754,7 @@ const CancellationInline: React.FC<CancellationInlineProps> = ({
               requiresRoe={requiresRoe}
               useWhiteDropdown={true}
               inputClassName={inputBase}
+              amountInputWidth="44%"
               readOnly={readOnly}
             />
           </div>
@@ -803,6 +812,7 @@ const CancellationInline: React.FC<CancellationInlineProps> = ({
               requiresRoe={requiresRoe}
               useWhiteDropdown={true}
               inputClassName={smallInputBase}
+              amountInputWidth="44%"
               readOnly={readOnly}
             />
           </div>
