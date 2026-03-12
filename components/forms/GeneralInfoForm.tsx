@@ -8,7 +8,6 @@ import React, {
   useRef,
 } from "react";
 import { createPortal } from "react-dom";
-import { LuEye } from "react-icons/lu";
 import { CiSearch } from "react-icons/ci";
 import { FiMinus } from "react-icons/fi";
 import { GoPlus } from "react-icons/go";
@@ -26,6 +25,9 @@ import DropDown from "@/components/DropDown";
 import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerForm";
 import { allowTextAndNumbers } from "@/utils/inputValidators";
 import { CiCirclePlus } from "react-icons/ci";
+import LoadingSpinner from "@/components/atoms/LoadingSpinner";
+import RemarksField from "@/components/forms/components/RemarksField";
+import RightSideIcons from "@/components/forms/components/RightSideIcons";
 
 // Type definitions
 interface GeneralInfoFormData {
@@ -103,6 +105,10 @@ interface TravellerDataType {
   email?: string;
   phone?: string;
   tier?: string | number;
+  alias?: string;
+  nickname?: string;
+  dateOfBirth?: string;
+  remarks?: string;
 }
 
 interface OwnerData {
@@ -246,6 +252,7 @@ interface InputFieldProps {
   isValidating?: boolean;
   isValid?: boolean;
   selectedDisplay?: React.ReactNode;
+  isViewMode?: boolean;
 }
 
 const InputField: React.FC<InputFieldProps> = ({
@@ -263,7 +270,7 @@ const InputField: React.FC<InputFieldProps> = ({
   hasError = false,
   errorMessage,
   isValidating = false,
-  isValid = false,
+  isViewMode = false,
   selectedDisplay,
 }) => {
   return (
@@ -280,46 +287,39 @@ const InputField: React.FC<InputFieldProps> = ({
         readOnly={readOnly}
         disabled={disabled || isValidating}
         className={`
-          w-full border rounded-md px-3 py-2 pr-10 placeholder:text-[12px] text-[12px]  transition-colors hover:border-green-400 
+          w-full border rounded-[15px] px-3 py-2.5 ${selectedDisplay ? "" : "pr-10"} placeholder:text-[12px] placeholder:text-[#9CA3AF] font-[400] text-[12px] transition-[border-color] duration-150 hover:border-[#C6AEDE] 
           ${
             hasError
               ? "border-red-300 focus:ring-red-200"
-              : "border-gray-200 focus:ring-green-400"
+              : "border-gray-200 focus:ring-[#C6AEDE]"
           }
 
-          ${disabled || isValidating ? "opacity-50 cursor-not-allowed" : ""}
+          ${
+            disabled
+              ? "bg-gray-200 cursor-not-allowed"
+              : readOnly
+                ? "bg-white cursor-default"
+                : "bg-white"
+          }
           ${selectedDisplay ? "text-transparent caret-transparent" : ""}
           ${className}
         `}
       />
 
       {selectedDisplay && (
-        <div className="absolute inset-0 flex items-center px-3 pr-10 pointer-events-none">
+        <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
           {selectedDisplay}
         </div>
       )}
 
       {/* Validation indicator */}
       <div className="absolute inset-y-0 right-0 flex items-center pr-3 gap-1 translate-y-[1px]">
-        <CiSearch size={18} className="text-gray-400" />
+        {!selectedDisplay && (
+          <CiSearch size={16} className="text-[#818181]" strokeWidth={1} />
+        )}
         {isValidating && (
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
         )}
-        {/* {!isValidating && isValid && (
-          <svg
-            className="h-4 w-4 text-green-500"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 13l4 4L19 7"
-            />
-          </svg>
-        )} */}
         {!isValidating && hasError && (
           <svg
             className="h-4 w-4 text-red-500"
@@ -553,6 +553,15 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   //   name: "",
   // });
 
+  // Loading state for initial data fetch
+  const [isLoadingLists, setIsLoadingLists] = useState(true);
+
+  // presence of incoming externalFormData is edit mode
+  const hasInitialData = useMemo(
+    () => Boolean(externalFormData && Object.keys(externalFormData).length > 0),
+    [externalFormData],
+  );
+
   // Search data states
   const [allCustomers, setAllCustomers] = useState<CustomerDataType[]>([]);
   const [allVendors, setAllVendors] = useState<VendorDataType[]>([]);
@@ -625,9 +634,43 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const [isViewTravellerOpen, setIsViewTravellerOpen] = useState(false);
   const [viewTravellerData, setViewTravellerData] =
     useState<TravellerDataType | null>(null);
+  // Track whether this component was previously unmounted
+  const wasUnmounted = useRef(false);
+
+  const resetLocalStateToEmpty = () => {
+    setFormData(buildInitialState({}));
+    setErrors({});
+    setTouched({});
+    setCustomerList([{ id: "", name: "" }]);
+    setVendorList([{ id: "", name: "" }]);
+    setAdultTravellerList([{ id: "", name: "" }]);
+    setAllCustomers([]);
+    setAllVendors([]);
+    setAllTeams([]);
+    setAllTravellers([]);
+    setCustomerResults([]);
+    setVendorResults([]);
+    setPrimaryOwnerResults([]);
+    setTravellerResults([]);
+    setShowCustomerDropdown(false);
+    setShowVendorDropdown(false);
+    setShowPrimaryOwnerDropdown(false);
+    setSecondaryOwnerDropdownOpen(false);
+    setSelectedSecondaryOwners([]);
+    setActiveTravellerDropdown(null);
+    setActiveCustomerIndex(null);
+    setOwnerList([{ id: "", name: "" }]);
+    setIsViewCustomerOpen(false);
+    setViewCustomerData(null);
+    setIsViewVendorOpen(false);
+    setViewVendorData(null);
+    setIsViewTravellerOpen(false);
+    setViewTravellerData(null);
+    setIsLoadingLists(false);
+  };
 
   // Add refs for click-outside detection
-  const customerRef = useRef<HTMLDivElement | null>(null);
+  const customerRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   const vendorRef = useRef<HTMLDivElement | null>(null);
   const teamsPrimaryRef = useRef<HTMLDivElement | null>(null);
   const teamsSecondaryRef = useRef<HTMLDivElement | null>(null);
@@ -650,7 +693,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     const handleGlobalPointerDown = (e: PointerEvent) => {
       if (e.isPrimary === false) return;
 
-      const isInCustomer = isEventInside(e, customerRef.current);
+      let isInCustomer = false;
+      customerRefs.current.forEach((ref) => {
+        if (isEventInside(e, ref)) isInCustomer = true;
+      });
       const isInVendor = isEventInside(e, vendorRef.current);
       const isInPrimaryOwner = isEventInside(e, teamsPrimaryRef.current);
       const isInSecondaryOwner = isEventInside(e, teamsSecondaryRef.current);
@@ -796,6 +842,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Fetch all customers, vendors, Teamss on mount
   useEffect(() => {
     const fetchLists = async () => {
+      setIsLoadingLists(true);
       try {
         const [cRes, travellerRes, vRes, tRes] = await Promise.all([
           getCustomers({ isDeleted: false }),
@@ -810,10 +857,24 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         setAllTravellers(travellerRes || []);
       } catch (err) {
         // console.error("[GeneralInfoForm] Failed loading lists", err);
+      } finally {
+        setIsLoadingLists(false);
       }
     };
 
     fetchLists();
+  }, []);
+
+  // If this component was previously unmounted, clear local state on mount
+  useEffect(() => {
+    if (wasUnmounted.current) {
+      resetLocalStateToEmpty();
+    }
+    wasUnmounted.current = false;
+    return () => {
+      wasUnmounted.current = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Hydrate owner from externalFormData
@@ -1058,11 +1119,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     const adultNames = adultEntries.map((t) => {
       const id = normalizeId(t);
       const fromObj = normalizeName(t);
-
-      // Priority:
-      // 1. explicit name from backend
-      // 2. resolved name from traveller list
-      // 3. fallback TBA
       return normalizeTravellerName(
         fromObj || (id ? travellerNameById(id) : ""),
       );
@@ -1205,23 +1261,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   }, [allTravellers]);
 
   const getTravellerDisplayName = (t: TravellerDataType) =>
-    t.name ||
-    (t as any)?.fullName ||
-    (t as any)?.travellerName ||
-    (t as any)?.customerName ||
-    t.email ||
-    t.phone ||
-    "Traveller";
-
-  // useEffect(() => {
-  //   if (!externalFormData?.vendor) return;
-  //   if (!Array.isArray(allVendors) || allVendors.length === 0) return;
-
-  //   const match = allVendors.find((v) => v._id === externalFormData.vendor);
-  //   if (match) {
-  //     setVendorData({ id: match._id, name: match.name });
-  //   }
-  // }, [externalFormData?.vendor, allVendors]);
+    t.name || (t as any)?.fullName || (t as any)?.travellerName;
 
   // when adults change
   useEffect(() => {
@@ -1358,6 +1398,20 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Hydrate UI when a new customer is created via sidesheet
   useEffect(() => {
     if (!lastAddedCustomer) return;
+    // Inject the new customer into allCustomers so customersById picks it up
+    setAllCustomers((prev) => {
+      if (prev.some((c) => c._id === lastAddedCustomer.id)) return prev;
+      return [
+        ...prev,
+        {
+          _id: lastAddedCustomer.id,
+          name: lastAddedCustomer.name,
+          alias: lastAddedCustomer.alias || "",
+          customId: lastAddedCustomer.customId || "",
+          tier: lastAddedCustomer.tier || "",
+        } as CustomerDataType,
+      ];
+    });
     // Update first customer field with new entry
     setCustomerList((prev) => {
       const next = [...prev];
@@ -1373,6 +1427,21 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Hydrate UI when a new vendor is created via sidesheet
   useEffect(() => {
     if (!lastAddedVendor) return;
+    // Inject the new vendor into allVendors so vendorsById picks it up
+    setAllVendors((prev) => {
+      if (prev.some((v) => v._id === lastAddedVendor.id)) return prev;
+      return [
+        ...prev,
+        {
+          _id: lastAddedVendor.id,
+          alias: lastAddedVendor.alias || "",
+          customId: lastAddedVendor.customId || "",
+          tier: lastAddedVendor.tier || "",
+          companyName: lastAddedVendor.companyName || "",
+          contactPerson: lastAddedVendor.contactPerson || "",
+        } as VendorDataType,
+      ];
+    });
     setVendorList([{ id: lastAddedVendor.id, name: lastAddedVendor.name }]);
     const newFormData = { ...formData, vendor: lastAddedVendor.id };
     setFormData(newFormData);
@@ -1386,6 +1455,22 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     const id = lastAddedTraveller.id || "";
     if (!name) return;
 
+    // Inject the new traveller into allTravellers so traveller dropdowns and view pick it up
+    setAllTravellers((prev) => {
+      if (prev.some((t) => t._id === id)) return prev;
+      return [
+        ...prev,
+        {
+          _id: id,
+          name: lastAddedTraveller.name,
+          alias: lastAddedTraveller.alias || "",
+          customId: lastAddedTraveller.customId || "",
+          tier: lastAddedTraveller.tier || "",
+        } as TravellerDataType,
+      ];
+    });
+
+    // Update the form immediately with name + id
     setFormData((prev) => {
       let newFormData;
       if (travellerTarget.type === "adultTravellers") {
@@ -1439,72 +1524,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     });
   }, [`${formData.adults}|${formData.children}|${formData.infants}`]);
 
-  const getFieldValue = (fieldName: string, overrideValue?: string) => {
-    if (overrideValue !== undefined) return overrideValue;
-    return formData[fieldName as keyof GeneralInfoFormData] ?? "";
-  };
-
-  // clearInput() helper
-  const clearInput = (
-    fieldName: string,
-    overrideHandler?: (value: string) => void,
-  ) => {
-    if (overrideHandler) {
-      overrideHandler("");
-    } else {
-      clearField(fieldName);
-    }
-  };
-
-  const RightSideIcons: React.FC<{
-    fieldName: string;
-    value?: string | undefined; // override value
-    overrideSetter?: (val: string) => void;
-    onClickPlus?: () => void; // for add customer/vendor modal
-    onClickView?: () => void;
-  }> = ({ fieldName, value, overrideSetter, onClickPlus, onClickView }) => {
-    const actualValue = getFieldValue(fieldName, value);
-    const valueString = String(actualValue ?? "");
-    const isEmpty = valueString.trim() === "";
-
-    return (
-      <div className="flex items-center gap-2 ml-auto">
-        {isEmpty && (
-          <button
-            type="button"
-            onClick={onClickPlus}
-            className="w-6.5 h-6.5 flex items-center bg-[#414141] justify-center rounded-md transition-colors"
-            disabled={isSubmitting}
-          >
-            <GoPlus size={16} className="text-white" />
-          </button>
-        )}
-
-        {/* EYE and MINUS when value exists */}
-        {!isEmpty && (
-          <>
-            <button
-              type="button"
-              onClick={onClickView}
-              className="w-7 h-7 flex items-center justify-center bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
-            >
-              <LuEye size={17} className="text-gray-400" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => clearInput(fieldName, overrideSetter)}
-              disabled={isSubmitting}
-              className="w-6.5 h-6.5 flex items-center justify-center bg-[#414141] rounded-md cursor-pointer transition-colors"
-            >
-              <FiMinus size={16} className="text-white" />
-            </button>
-          </>
-        )}
-      </div>
-    );
-  };
-
   // Handle input changes
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -1556,23 +1575,26 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   return (
     <form
       ref={formRef}
-      className={`space-y-4 px-[10px] py-[28px] ${
-        isReadOnly
-          ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-200 [&_select]:!bg-gray-200"
-          : ""
-      }`}
+      className="space-y-4 px-[10px] py-[28px] relative"
       onSubmit={(e) => e.preventDefault()}
     >
+      {isLoadingLists && (isReadOnly || hasInitialData) && (
+        <LoadingSpinner overlay size="lg" message="Loading form data..." />
+      )}
+
       {/* Customer Section */}
-      <div className="border border-gray-200 rounded-[12px] p-3">
-        <h2 className="text-[12px] text-[#020202] font-[400] mb-2">Billed To</h2>
+      <div className="border border-gray-200 rounded-[15px] p-3.5">
+        <h2 className="text-[12px] text-[#020202] font-[500] mb-2">
+          Billed To
+        </h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
 
         {customerList.map((customer, index) => (
           <div key={index} className="">
             <div className="flex items-center gap-1 mt-3">
-              <label className="text-[12px] font-[400] text-[#414141]">
-                <span className="text-[#FF3B30]">*</span> Customer
+              <label className="text-[12px] font-[500] text-[#414141]">
+                <span className="text-[#FF3B30]">*</span>{" "}
+                {customerList.length > 1 ? `Customer ${index + 1}` : "Customer"}
               </label>
 
               {index > 0 && (
@@ -1587,7 +1609,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             </div>
 
             <div className="flex items-center mt-1 w-full">
-              <div className="w-[30rem] relative" ref={customerRef}>
+              <div
+                className="w-[60%] relative"
+                ref={(el) => {
+                  customerRefs.current.set(index, el);
+                }}
+              >
                 <InputField
                   name="customer"
                   placeholder="Search by Customer Name/ID"
@@ -1612,19 +1639,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                       // IF FIELD CLEARED then also clear stored value so validation becomes empty
                       if (value.trim() === "") {
-                        const newFormData = {
-                          ...formData,
-                          customer: "",
-                          customerName: "",
-                        };
-                        setFormData(newFormData);
-                      } else {
-                        // Update customerName for draft display
-                        const newFormData = {
-                          ...formData,
-                          customerName: value,
-                        };
-                        setFormData(newFormData);
+                        if (index === 0) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            customer: "",
+                          }));
+                        }
                       }
 
                       const results = runFuzzySearch(allCustomers, value, [
@@ -1649,7 +1669,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       }
                     },
                   })}
-                  readOnly={!!customer?.id}
+                  readOnly={!!customer?.id || isReadOnly}
+                  disabled={isReadOnly || isSubmitting}
                   selectedDisplay={(() => {
                     const selected = customer?.id
                       ? customersById.get(customer.id)
@@ -1660,26 +1681,27 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     return (
                       <div className="flex items-center justify-between w-full">
                         <div className="flex items-center gap-1 min-w-0">
-                          <p className="font-medium text-[13px] text-gray-900 truncate">
+                          <p className="font-[400] text-[13px] text-[#020202] truncate">
                             {selected.name}
                           </p>
                           <span className="text-gray-300">|</span>
-                          <p className="text-[13px] text-gray-600 truncate">
-                            {alias}
-                          </p>
-                          <span className="text-gray-300">|</span>
-                          <p className="text-[13px] text-gray-600 truncate">
+                          <p className="text-[13px] font-[400] text-[#414141] truncate">
                             {selected.customId}
+                          </p>
+
+                          <span className="text-gray-300">|</span>
+                          <p className="text-[13px] font-[400] text-[#414141] truncate">
+                            {alias}
                           </p>
                         </div>
 
                         <div className="flex items-center gap-1 shrink-0">
                           <img
-                            src={`/icons/tier-${rating}.png`}
+                            src={`/icons/tier-icons/tier-${rating}.svg`}
                             alt={`Tier ${rating}`}
-                            className="w-4 h-4 object-contain"
+                            className="w-4 h-4 object-contain inline-block align-middle"
                           />
-                          <span className="text-[13px] font-semibold text-gray-700">
+                          <span className="text-[13px] font-[600] text-[#020202] leading-none inline-flex items-center justify-center">
                             {rating}
                           </span>
                         </div>
@@ -1691,7 +1713,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 {activeCustomerIndex === index &&
                   showCustomerDropdown &&
                   customerResults.length > 0 && (
-                    <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] max-h-60 mt-1 overflow-y-auto shadow-md z-50">
+                    <div className="absolute bg-white border border-gray-200 rounded-md w-[100%] max-h-60 mt-1 overflow-y-auto shadow-md z-50">
                       {customerResults.map((cust) => {
                         // derive numeric rating (1-5) from cust.tier if available
                         let rating = 4;
@@ -1721,39 +1743,33 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                 name: cust.name,
                               });
                               setActiveCustomerIndex(null);
-                              // Sync main form and notify parent with both ID and name
-                              const newFormData = {
-                                ...formData,
-                                customer: cust._id,
-                                customerName: cust.name,
-                              };
-                              setFormData(newFormData);
                               setCustomerResults([]);
                               setShowCustomerDropdown(false);
                             }}
                           >
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-1">
-                                <p className="font-medium text-[13px] text-gray-900">
+                              <div className="flex items-center gap-1 min-w-0">
+                                <p className="font-[400] text-[13px] text-[#020202] truncate">
                                   {cust.name}
                                 </p>
                                 <span className="text-gray-300">|</span>
-                                <p className="text-[13px] text-gray-600 truncate">
-                                  {alias || "-"}
-                                </p>
-                                <span className="text-gray-300">|</span>
-                                <p className="text-[13px] text-gray-600 truncate">
+                                <p className="text-[13px] font-[400] text-[#414141] truncate">
                                   {cust.customId}
+                                </p>
+
+                                <span className="text-gray-300">|</span>
+                                <p className="text-[13px] font-[400] text-[#414141] truncate">
+                                  {alias || "-"}
                                 </p>
                               </div>
 
                               <div className="flex items-center gap-1">
                                 <img
-                                  src={`/icons/tier-${rating}.png`}
+                                  src={`/icons/tier-icons/tier-${rating}.svg`}
                                   alt={`Tier ${rating}`}
-                                  className="w-4 h-4 object-contain"
+                                  className="w-4 h-4 object-contain inline-block align-middle"
                                 />
-                                <span className="text-[13px] font-semibold text-gray-700">
+                                <span className="text-[13px] font-[600] leading-none inline-flex items-center justify-center text-[#020202]">
                                   {rating}
                                 </span>
                               </div>
@@ -1767,25 +1783,20 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               </div>
 
               <RightSideIcons
-                fieldName="customer"
                 value={customerList[index]?.name ?? ""}
-                overrideSetter={(val: string) => {
-                  if (val.trim() === "") {
-                    updateCustomerField(index, { id: "", name: "" });
+                disabled={isSubmitting}
+                onClear={() => {
+                  updateCustomerField(index, { id: "", name: "" });
+                  if (index === 0) {
                     setFormData((prev) => ({
                       ...prev,
                       customer: "",
                       customerName: "",
                     }));
-                    setCustomerResults([]);
-                    setShowCustomerDropdown(false);
-                    setActiveCustomerIndex(null);
-                    return;
                   }
-                  updateCustomerField(index, {
-                    id: customerList[index]?.id ?? "",
-                    name: val,
-                  });
+                  setCustomerResults([]);
+                  setShowCustomerDropdown(false);
+                  setActiveCustomerIndex(null);
                 }}
                 onClickPlus={openAddCustomer}
                 onClickView={() => handleViewCustomer(index)}
@@ -1793,20 +1804,52 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             </div>
           </div>
         ))}
+
+        {!isReadOnly && (
+          <button
+            type="button"
+            onClick={() =>
+              setCustomerList((prev) => [...prev, { id: "", name: "" }])
+            }
+            disabled={isSubmitting}
+            className="flex items-center gap-2.5 mt-3 text-[13px] font-[400] text-[#414141] hover:text-[#414141]"
+          >
+            <div className="border border-[#818181] rounded-full p-0.25 flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="#818181"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <span className="-ml-1 text-[11px] font-[500] text-[#818181]">
+              Add Another Customer
+            </span>
+          </button>
+        )}
       </div>
       {/* Vendor Section */}
       {!hideVendor && (
-        <div className="border border-gray-200 rounded-[12px] px-3 py-4">
-          <h2 className="text-[12px] text-[#020202] font-[400] mb-2">Vendor</h2>
+        <div className="border border-gray-200 rounded-[15px] px-3 py-4">
+          <h2 className="text-[12px] text-[#020202] font-[500] mb-2">Vendor</h2>
           <hr className="mt-1 mb-2 border-t border-gray-200" />
 
-
-          <label className="text-[12px] font-[400] text-[#414141]">
+          <label className="text-[12px] font-[500] text-[#414141]">
             <span className="text-[#FF3B30]">*</span> Vendor
           </label>
 
           <div className="flex items-center gap-2">
-            <div className="w-[30rem] relative" ref={vendorRef}>
+            <div className="w-[60%] relative" ref={vendorRef}>
               <InputField
                 name="vendor"
                 placeholder="Search by Vendor Name/ID"
@@ -1843,7 +1886,8 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                   setShowVendorDropdown(results.length > 0);
                 }}
-                readOnly={!!vendorList?.[0]?.id}
+                readOnly={!!vendorList?.[0]?.id || isReadOnly}
+                disabled={isReadOnly || isSubmitting}
                 selectedDisplay={(() => {
                   const selectedId = vendorList?.[0]?.id ?? "";
                   if (!selectedId) return null;
@@ -1856,27 +1900,28 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   return (
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-1 min-w-0">
-                        <p className="font-normal text-[13px] text-gray-900 truncate">
+                        <p className="font-[400] text-[13px] text-[#020202] truncate">
                           {primary}
                         </p>
                         <span className="text-gray-300">|</span>
-                        <p className="text-[13px] text-gray-600 truncate">
-                          {alias}
-                        </p>
-                        <span className="text-gray-300">|</span>
-                        <p className="text-[13px] text-gray-600 truncate">
+                        <p className="text-[13px] font-[400] text-[#414141] truncate">
                           {selected.customId || "-"}
+                        </p>
+
+                        <span className="text-gray-300">|</span>
+                        <p className="text-[13px] font-[400] text-[#414141] truncate">
+                          {alias}
                         </p>
                       </div>
 
                       {rating !== null ? (
                         <div className="flex items-center gap-1 shrink-0">
                           <img
-                            src={`/icons/tier-${rating}.png`}
+                            src={`/icons/tier-icons/tier-${rating}.svg`}
                             alt={`Tier ${rating}`}
-                            className="w-4 h-4 object-contain"
+                            className="w-4 h-4 object-contain inline-block align-middle"
                           />
-                          <span className="text-[0.75rem] font-semibold text-gray-700">
+                          <span className="text-[0.75rem] font-[600] text-[#020202] leading-none inline-flex items-center">
                             {rating}
                           </span>
                         </div>
@@ -1887,7 +1932,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               />
 
               {showVendorDropdown && vendorResults.length > 0 && (
-                <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+                <div className="absolute bg-white border border-gray-200 rounded-md w-[100%] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
                   {vendorResults.map((v) => {
                     // derive rating only if tier present
                     let rating: number | null = null;
@@ -1931,27 +1976,28 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1">
-                            <p className="font-normal text-[13px] text-gray-900">
+                            <p className="font-[400] text-[13px] text-[#020202] truncate">
                               {v.companyName || v.contactPerson}
                             </p>
                             <span className="text-gray-300">|</span>
-                            <p className="text-[13px] text-gray-600 truncate">
-                              {alias || "-"}
-                            </p>
-                            <span className="text-gray-300">|</span>
-                            <p className="text-[13px] text-gray-600 truncate">
+                            <p className="text-[13px] font-[400] text-[#414141] truncate">
                               {v.customId || "-"}
+                            </p>
+
+                            <span className="text-gray-300">|</span>
+                            <p className="text-[13px] font-[400] text-[#414141] truncate">
+                              {alias || "-"}
                             </p>
                           </div>
 
                           {rating !== null ? (
                             <div className="flex items-center gap-1">
                               <img
-                                src={`/icons/tier-${rating}.png`}
+                                src={`/icons/tier-icons/tier-${rating}.svg`}
                                 alt={`Tier ${rating}`}
-                                className="w-4 h-4 object-contain"
+                                className="w-4 h-4 object-contain inline-block align-middle"
                               />
-                              <span className="text-[0.75rem] font-semibold text-gray-700">
+                              <span className="text-[0.75rem] font-[600] text-[#020202] leading-none inline-flex items-center">
                                 {rating}
                               </span>
                             </div>
@@ -1966,21 +2012,17 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             </div>
 
             <RightSideIcons
-              fieldName="vendor"
               value={vendorList[0]?.name ?? ""}
-              overrideSetter={(val) => {
-                if (val.trim() === "") {
-                  setVendorList([{ id: "", name: "" }]);
-                  setFormData((prev) => ({
-                    ...prev,
-                    vendor: "",
-                    vendorName: "",
-                  }));
-                  setVendorResults([]);
-                  setShowVendorDropdown(false);
-                  return;
-                }
-                setVendorList([{ id: "", name: val }]);
+              disabled={isSubmitting}
+              onClear={() => {
+                setVendorList([{ id: "", name: "" }]);
+                setFormData((prev) => ({
+                  ...prev,
+                  vendor: "",
+                  vendorName: "",
+                }));
+                setVendorResults([]);
+                setShowVendorDropdown(false);
               }}
               onClickPlus={openAddVendor}
               onClickView={() => handleViewVendor()}
@@ -1990,16 +2032,18 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       )}
 
       {/* Travellers Counter Section */}
-      <div className="border border-gray-200 rounded-xl p-3">
-        <h2 className="text-[12px] text-[#020202] font-[500] mb-1">Travellers</h2>
+      <div className="border border-gray-200 rounded-[15px] px-3.5 pb-0 pt-4">
+        <h2 className="text-[12px] text-[#020202] font-[500] mb-1">
+          Travellers
+        </h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
 
         <div className="flex gap-6 mb-5 mt-3">
           <div className="flex flex-col">
-            <label className="block text-[12px] font-[500] text-[#414141] mb-1">
+            <label className="block text-[12px] font-[500] ml-5 text-[#414141] mb-1">
               Adults
             </label>
-            <div className="w-[5rem] flex items-center justify-between border border-[1.5px] border-black rounded-lg px-2 py-1">
+            <div className="w-[5rem] flex items-center justify-between border border-[#7135AD] rounded-[15px] px-2.5 py-1">
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
@@ -2012,36 +2056,38 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         : Math.max(1, prev.adults - 1), // otherwise → min 1
                   }))
                 }
-                className={`text-lg font-semibold ${
+                className={`text-lg font-[600] ${
                   isReadOnly || isSubmitting
                     ? "opacity-50 cursor-not-allowed"
                     : ""
                 }`}
               >
-                <FiMinus size={12} />
+                <FiMinus size={12} className="text-[#7135AD]" />
               </button>
-              <span className="text-[13px] ">{formData.adults}</span>
+              <span className="text-[13px] font-[600] text-[#7135AD]">
+                {formData.adults}
+              </span>
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
                 onClick={() =>
                   setFormData({ ...formData, adults: formData.adults + 1 })
                 }
-                className={`text-lg font-semibold ${
+                className={`text-lg font-[600] ${
                   isReadOnly || isSubmitting
                     ? "opacity-50 cursor-not-allowed"
                     : ""
                 }`}
               >
-                <GoPlus size={12} />
+                <GoPlus size={12} className="text-[#7135AD]" />
               </button>
             </div>
           </div>
           <div className="flex flex-col">
-            <label className="block text-[12px] font-[500] text-[#414141] mb-1">
+            <label className="block text-[12px] ml-4 font-[500] text-[#414141] mb-1">
               Children
             </label>
-            <div className="w-[5rem] flex items-center justify-between border border-[1.5px] border-black rounded-lg px-2 py-1">
+            <div className="w-[5rem] flex items-center justify-between border border-[#7135AD] rounded-[15px] px-2.5 py-1">
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
@@ -2051,28 +2097,30 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     infants: Math.max(0, formData.infants - 1),
                   })
                 }
-                className={`text-lg font-semibold ${
+                className={`text-lg font-[600] ${
                   isReadOnly || isSubmitting
                     ? "opacity-50 cursor-not-allowed"
                     : ""
                 }`}
               >
-                <FiMinus size={12} />
+                <FiMinus size={12} className="text-[#7135AD]" />
               </button>
-              <span className="text-[13px] ">{formData.infants}</span>
+              <span className="text-[13px] text-[#7135AD] font-[600] ">
+                {formData.infants}
+              </span>
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
                 onClick={() =>
                   setFormData({ ...formData, infants: formData.infants + 1 })
                 }
-                className={`text-lg font-semibold ${
+                className={`text-lg font-[600] ${
                   isReadOnly || isSubmitting
                     ? "opacity-50 cursor-not-allowed"
                     : ""
                 }`}
               >
-                <GoPlus size={12} />
+                <GoPlus size={12} className="text-[#7135AD]" />
               </button>
             </div>
           </div>
@@ -2082,11 +2130,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         <div className="mt-4 space-y-2">
           {adultTravellerList.map((_, index) => (
             <div key={index} className="mb-6">
-              <label className="block w-[30rem] text-[12px] font-[400] text-[#414141] mb-2">
-                <span className="text-red-500">*</span>
+              <label className="block w-[60%] text-[12px] font-[400] text-[#414141] mb-1">
+                <span className="text-[#FF3B30]">*</span>
                 {`Adult ${index + 1}${index === 0 ? " (Lead Pax)" : ""}`}
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <div
                   className="w-[30rem] relative"
                   ref={(el) => {
@@ -2138,23 +2186,31 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       return (
                         <div className="flex items-center justify-between w-full">
                           <div className="flex items-center gap-1 min-w-0">
-                            <p className="font-normal text-[13px] text-gray-900 truncate">
+                            <p className="font-[400] text-[13px] text-[#020202] truncate">
                               {selected.name}
                             </p>
                             <span className="text-gray-300">|</span>
-                            <p className="text-[13px] text-gray-600 truncate">
+                            <p className="text-[13px] font-[400] text-[#414141] truncate">
                               {selected.customId}
                             </p>
+                            {getAlias(selected) ? (
+                              <>
+                                <span className="text-gray-300">|</span>
+                                <p className="text-[13px] font-[400] text-[#414141] truncate">
+                                  {getAlias(selected)}
+                                </p>
+                              </>
+                            ) : null}
                           </div>
 
                           {rating !== null ? (
                             <div className="flex items-center gap-1 shrink-0">
                               <img
-                                src={`/icons/tier-${rating}.png`}
+                                src={`/icons/tier-icons/tier-${rating}.svg`}
                                 alt={`Tier ${rating}`}
-                                className="w-4 h-4 object-contain"
+                                className="w-4 h-4 object-contain inline-block align-middle"
                               />
-                              <span className="text-[13px] font-semibold text-gray-700">
+                              <span className="text-[13px] font-[600] text-[#020202] leading-none inline-flex items-center">
                                 {rating}
                               </span>
                             </div>
@@ -2186,13 +2242,21 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-1">
-                                <p className="font-normal text-[13px] text-gray-900">
+                                <p className="font-normal text-[13px] text-[#020202] truncate">
                                   {t.name}
                                 </p>
                                 <span className="text-gray-300">|</span>
-                                <p className="text-[13px] text-gray-600 truncate">
+                                <p className="text-[13px] font-[400] text-[#414141] truncate">
                                   {t.customId}
                                 </p>
+                                {getAlias(t) ? (
+                                  <>
+                                    <span className="text-gray-300">|</span>
+                                    <p className="text-[13px] font-[400] text-[#414141] truncate">
+                                      {getAlias(t)}
+                                    </p>
+                                  </>
+                                ) : null}
                               </div>
 
                               {/* show rating only when available */}
@@ -2215,11 +2279,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                   return (
                                     <div className="flex items-center gap-1">
                                       <img
-                                        src={`/icons/tier-${rating}.png`}
+                                        src={`/icons/tier-icons/tier-${rating}.svg`}
                                         alt={`Tier ${rating}`}
-                                        className="w-4 h-4 object-contain"
+                                        className="w-4 h-4 object-contain inline-block align-middle"
                                       />
-                                      <span className="text-[13px] font-semibold text-gray-700">
+                                      <span className="text-[13px] font-[600] text-[#020202] leading-none inline-flex items-center">
                                         {rating}
                                       </span>
                                     </div>
@@ -2234,17 +2298,13 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         <div
                           className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
                           onClick={() => {
-                            // Set this traveller to TBA (To Be Announced)
-                            updateTraveller(
-                              "adultTravellers",
-                              index,
-                              "TBA",
-                            );
+                            // Set this traveller to TBA
+                            updateTraveller("adultTravellers", index, "TBA");
                             setActiveTravellerDropdown(null);
                             setTravellerResults([]);
                           }}
                         >
-                          <p className="font-medium text-[13px] text-gray-700">
+                          <p className="font-[500] text-center text-[13px] text-[#818181]">
                             Don&apos;t have the name? Enter TBA
                           </p>
                         </div>
@@ -2253,11 +2313,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 </div>
 
                 <RightSideIcons
-                  fieldName="adultTravellers"
                   value={formData.adultTravellers[index] ?? ""}
-                  overrideSetter={(val) =>
-                    updateTraveller("adultTravellers", index, val)
-                  }
+                  disabled={isSubmitting}
+                  onClear={() => updateTraveller("adultTravellers", index, "")}
                   onClickPlus={() =>
                     openAddTraveller({ type: "adultTravellers", index })
                   }
@@ -2270,10 +2328,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           ))}
 
           {formData.infantTravellers.map((trav, index) => (
-            <div key={index} className="mb-6">
+            <div key={index} className="mb-4">
               <div className="w-[30rem] flex items-center justify-between mb-2">
                 <label className=" text-[12px] font-[400] text-[#414141]">
-                  <span className="text-red-500">*</span>
+                  <span className="text-[#FF3B30]">*</span>
                   {`Child ${index + 1}`}
                 </label>
 
@@ -2292,8 +2350,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       return { ...prev, childAges: ages };
                     });
                   }}
-                  customWidth="w-[14rem]"
-                  className="mt-1"
+                  customWidth="w-[9rem]"
+                  customHeight="h-[33px]"
+                  buttonClassName="px-3 rounded-[15px] bg-[#F9F9F9] hover:border hover:border-[#C6AEDE]"
+                  noBorder
+                  noButtonRadius
                 />
               </div>
 
@@ -2354,7 +2415,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                               {selected.name}
                             </p>
                             <span className="text-gray-300">|</span>
-                            <p className="text-[13px] text-gray-600 truncate">
+                            <p className="text-[13px] font-[400] text-[#414141] truncate">
                               {selected.customId}
                             </p>
                           </div>
@@ -2362,11 +2423,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           {rating !== null ? (
                             <div className="flex items-center gap-1 shrink-0">
                               <img
-                                src={`/icons/tier-${rating}.png`}
+                                src={`/icons/tier-icons/tier-${rating}.svg`}
                                 alt={`Tier ${rating}`}
                                 className="w-4 h-4 object-contain"
                               />
-                              <span className="text-[13px] font-semibold text-gray-700">
+                              <span className="text-[13px] font-[600] text-[#020202]">
                                 {rating}
                               </span>
                             </div>
@@ -2415,11 +2476,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-1">
-                                  <p className="font-normal text-[13px] text-gray-900">
+                                  <p className="font-normal text-[13px] text-[#020202] truncate">
                                     {t.name}
                                   </p>
                                   <span className="text-gray-300">|</span>
-                                  <p className="text-[13px] text-gray-600 truncate">
+                                  <p className="text-[13px] font-[400] text-[#414141] truncate">
                                     {t.customId}
                                   </p>
                                 </div>
@@ -2427,11 +2488,11 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                 {rating !== null ? (
                                   <div className="flex items-center gap-1">
                                     <img
-                                      src={`/icons/tier-${rating}.png`}
+                                      src={`/icons/tier-icons/tier-${rating}.svg`}
                                       alt={`Tier ${rating}`}
                                       className="w-4 h-4 object-contain"
                                     />
-                                    <span className="text-[13px] font-semibold text-gray-700">
+                                    <span className="text-[13px] font-[600] text-[#020202]">
                                       {rating}
                                     </span>
                                   </div>
@@ -2450,7 +2511,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                             setTravellerResults([]);
                           }}
                         >
-                          <p className="font-medium text-[13px] text-gray-700">
+                          <p className="font-[500] text-center text-[13px] text-[#818181]">
                             Don&apos;t have the name? Enter TBA
                           </p>
                         </div>
@@ -2459,11 +2520,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 </div>
 
                 <RightSideIcons
-                  fieldName="infantTravellers"
                   value={trav}
-                  overrideSetter={(val) =>
-                    updateTraveller("infantTravellers", index, val)
-                  }
+                  disabled={isSubmitting}
+                  onClear={() => updateTraveller("infantTravellers", index, "")}
                   onClickPlus={() =>
                     openAddTraveller({ type: "infantTravellers", index })
                   }
@@ -2478,16 +2537,16 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       </div>
 
       {/* Booking Owner */}
-      <div className="border border-gray-200 rounded-xl p-3">
-        <h2 className="text-[13px] font-medium mb-2">Booking Owner</h2>
+      <div className="border border-gray-200 rounded-[15px] p-3.5">
+        <h2 className="text-[13px] font-[500] mb-2">Booking Owner</h2>
         <hr className="mt-1 mb-2 border-t border-gray-200" />
-        <label className="block text-[13px] font-medium text-gray-700 mb-1">
-          <span className="text-red-500">*</span> Primary
+        <label className="block text-[13px] font-[500] text-[#414141]">
+          <span className="text-[#FF3B30]">*</span> Primary
         </label>
-        <div className="w-[59%] relative" ref={teamsPrimaryRef}>
+        <div className="w-[60%] relative" ref={teamsPrimaryRef}>
           <InputField
             name="bookingOwner"
-            placeholder="Search by Name/Username/ID"
+            placeholder="Search by User's Name"
             required
             className="mt-1 text-[13px] py-2"
             readOnly={isReadOnly}
@@ -2523,28 +2582,28 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           {!isReadOnly &&
             showPrimaryOwnerDropdown &&
             primaryOwnerResults.length > 0 && (
-            <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-              {primaryOwnerResults.map((t: TeamDataType) => (
-                <div
-                  key={t._id}
-                  className="p-2 cursor-pointer hover:bg-gray-100"
-                  onClick={() => {
-                    setOwnerList([{ id: t._id, name: t.name }]); // Save both ID and name
-                    const newFormData = {
-                      ...formData,
-                      bookingOwner: t._id,
-                      ownerName: t.name,
-                    };
-                    setFormData(newFormData);
-                    setPrimaryOwnerResults([]);
-                    setShowPrimaryOwnerDropdown(false);
-                  }}
-                >
-                  <p className="font-medium text-[13px]">{t.name}</p>
-                </div>
-              ))}
-            </div>
-          )}
+              <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+                {primaryOwnerResults.map((t: TeamDataType) => (
+                  <div
+                    key={t._id}
+                    className="p-2 cursor-pointer hover:bg-gray-100"
+                    onClick={() => {
+                      setOwnerList([{ id: t._id, name: t.name }]); // Save both ID and name
+                      const newFormData = {
+                        ...formData,
+                        bookingOwner: t._id,
+                        ownerName: t.name,
+                      };
+                      setFormData(newFormData);
+                      setPrimaryOwnerResults([]);
+                      setShowPrimaryOwnerDropdown(false);
+                    }}
+                  >
+                    <p className="font-[500] text-[13px]">{t.name}</p>
+                  </div>
+                ))}
+              </div>
+            )}
         </div>
 
         <div className="mt-3">
@@ -2553,14 +2612,31 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               type="button"
               onClick={() => !isReadOnly && setShowSecondaryOwnerField(true)}
               disabled={isReadOnly}
-              className={`flex items-center gap-2 text-[13px] text-gray-600 ${
+              className={`flex items-center gap-2.5 text-[13px] font-[400] text-[#414141] ${
                 isReadOnly
                   ? "opacity-50 cursor-not-allowed"
-                  : "hover:text-gray-800"
+                  : "hover:text-[#414141]"
               }`}
             >
-              <CiCirclePlus size={20} className="text-[#818181]" />
-              <span className="-ml-1 text-[12px] text-[#818181] ">
+              <div className="border border-[#818181] -mt-0.5 rounded-full p-0.25 flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M12 5v14M5 12h14"
+                    stroke="#818181"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <span className="-ml-1 text-[11px] font-[500] text-[#818181] ">
                 {" "}
                 Add Secondary User{" "}
               </span>
@@ -2568,7 +2644,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
           ) : (
             <>
               <div className="flex items-center gap-2 mb-1">
-                <label className="block text-[13px] font-medium text-gray-700">
+                <label className="block text-[13px] font-[500] text-[#414141]">
                   <span className="text-red-500">*</span> Secondary
                 </label>
                 <button
@@ -2597,13 +2673,13 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 </button>
               </div>
 
-              <div className="w-[59%]" ref={teamsSecondaryRef}>
+              <div className="w-[60%]" ref={teamsSecondaryRef}>
                 {/* Filter-style multi-select pills input */}
                 <div
-                  className={`w-full min-h-[1.5rem] text-[12px] -mt-0.5 border border-gray-200 rounded-md px-2.5 py-2 flex items-center flex-wrap gap-1 ${
+                  className={`w-full min-h-[1.5rem] text-[12px] -mt-0.5 border border-gray-200 rounded-[15px] px-3 py-2.5 flex items-center flex-wrap gap-1 ${
                     isReadOnly
-                      ? "bg-gray-100 text-gray-700 cursor-not-allowed"
-                      : "hover:border-green-200 cursor-pointer"
+                      ? "bg-gray-200 text-[#020202] cursor-not-allowed"
+                      : "hover:border-[#C6AEDE] cursor-pointer"
                   }`}
                   onClick={(e) => {
                     if (isReadOnly) return;
@@ -2660,12 +2736,16 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       </span>
                     ))
                   ) : (
-                    <span className="text-[#9CA3AF] text-[12px] flex items-center flex-1">
-                      Select Owner
+                    <span className="text-[#9CA3AF] font-[500 ]text-[12px] flex items-center flex-1">
+                      Search by User's Name
                     </span>
                   )}
 
-                  <MdOutlineKeyboardArrowDown className="ml-auto text-gray-400 pointer-events-none" />
+                  <CiSearch
+                    size={16}
+                    className="text-[#818181]"
+                    strokeWidth={1}
+                  />
                 </div>
 
                 {secondaryOwnerDropdownOpen &&
@@ -2772,25 +2852,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       </div>
 
       {/* Remarks */}
-      <div className="border border-gray-200 rounded-xl p-3">
-        <label className="block text-[13px]  font-medium text-gray-700">
-          Remarks
-        </label>
-        <hr className="mt-1 mb-2 border-t border-gray-200" />
-        <textarea
-          name="remarks"
-          rows={5}
-          value={formData.remarks}
-          onChange={handleChange}
-          placeholder="Enter Your Remarks Here"
-          disabled={isSubmitting}
-          className={`
-            w-full border border-gray-200 rounded-md px-3 py-2 text-[13px]  mt-2 transition-colors
-            focus:ring focus:ring-blue-200
-            ${isSubmitting ? "opacity-50 cursor-not-allowed" : ""}
-          `}
-        />
-      </div>
+      <RemarksField
+        value={formData.remarks}
+        onChange={(val) => setFormData((prev) => ({ ...prev, remarks: val }))}
+        readOnly={isReadOnly}
+        isSubmitting={isSubmitting}
+      />
 
       <AddCustomerSideSheet
         isOpen={isViewCustomerOpen}

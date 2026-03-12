@@ -39,6 +39,7 @@ interface DropdownProps {
   searchPlaceholder?: string;
   getOptionSearchValue?: (option: DropdownOption) => string;
   footerAction?: DropdownFooterAction;
+  menuClassName?: string;
 }
 
 const DropDown: React.FC<DropdownProps> = ({
@@ -63,6 +64,7 @@ const DropDown: React.FC<DropdownProps> = ({
   searchPlaceholder = "Type to filter...",
   getOptionSearchValue,
   footerAction,
+  menuClassName = "",
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedValue, setSelectedValue] = useState(value || "");
@@ -290,7 +292,7 @@ const DropDown: React.FC<DropdownProps> = ({
                   }
                   return base;
                 })()}
-                className={`${menuWidthClass} bg-white rounded-md border border-gray-300 shadow-lg overflow-auto max-h-[240px] z-[1100]`}
+                className={`${menuWidthClass} bg-white  ${menuClassName || "rounded-md"} border border-gray-300 shadow-lg overflow-auto max-h-[240px] z-[1100]`}
               >
                 {searchable && (
                   <div className="sticky top-0 bg-white z-10 border-b border-gray-200 p-2">

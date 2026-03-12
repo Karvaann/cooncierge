@@ -22,6 +22,9 @@ type Props = {
   showCalendarIcon?: boolean; // Whether to show the calendar icon (default: true)
   readOnly?: boolean; // When true, input is disabled and calendar cannot be opened
   popupMaxHeight?: string; // Tailwind max-height class for calendar popup (e.g. 'max-h-44')
+  minTypeable?: string; // ISO string – typed dates before this are rejected and input is cleared
+  /** Override all input styling with a single Tailwind class string. When provided, replaces the default padding, text size, color, border, rounding, hover, and background classes. */
+  inputStyleClass?: string;
 };
 
 export default function SingleCalendar({
@@ -38,6 +41,8 @@ export default function SingleCalendar({
   readOnly = false,
   popupMaxHeight,
   maxDate,
+  minTypeable,
+  inputStyleClass,
   ...props
 }: Props) {
   const [open, setOpen] = useState(false);
@@ -47,7 +52,9 @@ export default function SingleCalendar({
   const [showYearPicker, setShowYearPicker] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const selectedDate = value ? new Date(value) : null;
+  const [lastSelectedDate, setLastSelectedDate] = useState<Date | null>(null);
+
+  const selectedDate = value ? new Date(value) : open ? lastSelectedDate : null;
 
   const isDateAllowed = (date: Date) => {
     const dayOnly = new Date(date);
@@ -189,10 +196,16 @@ export default function SingleCalendar({
 
   const formatDateForInput = (date: Date | null) => {
     if (!date) return "";
+
     const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
+
+    const month = date.toLocaleString("en-US", {
+      month: "long",
+    });
+
+    const year = String(date.getFullYear()).slice(-2);
+
+    return `${day} ${month}'${year}`;
   };
 
   const parseInputDate = (input: string): Date | null => {
@@ -275,9 +288,23 @@ export default function SingleCalendar({
     if (val.length === 10) {
       const parsedDate = parseInputDate(val);
       if (parsedDate) {
+        // Reject typed dates before minTypeable (actively clear input)
+        if (minTypeable) {
+          const minT = new Date(minTypeable);
+          minT.setHours(0, 0, 0, 0);
+          const typed = new Date(parsedDate);
+          typed.setHours(0, 0, 0, 0);
+          if (typed < minT) {
+            setInputValue("");
+            onChange("");
+            return;
+          }
+        }
+
         // ensure parsed date is allowed (not after maxDate / not before minDate / not disabled past)
         if (!isDateAllowed(parsedDate)) {
-          // do not accept invalid range; leave input for blur to reset
+          setInputValue("");
+          onChange("");
           return;
         }
 
@@ -294,17 +321,42 @@ export default function SingleCalendar({
   };
 
   const handleInputBlur = () => {
-    // Preserve whatever the user typed. If it's a complete valid date (DD-MM-YYYY)
-    // and within allowed range, apply it. Otherwise keep the typed value.
+    // If invalid, clear the input
     if (inputValue.length === 10) {
       const parsed = parseInputDate(inputValue);
-      if (parsed && isDateAllowed(parsed)) {
-        onChange(parsed.toISOString());
-        setCurrentMonth(new Date(parsed.getFullYear(), parsed.getMonth(), 1));
-        setOpen(false);
-        setShowMonthPicker(false);
-        setShowYearPicker(false);
+      if (parsed) {
+        // Reject dates before minTypeable
+        if (minTypeable) {
+          const minT = new Date(minTypeable);
+          minT.setHours(0, 0, 0, 0);
+          const typed = new Date(parsed);
+          typed.setHours(0, 0, 0, 0);
+          if (typed < minT) {
+            setInputValue("");
+            onChange("");
+            return;
+          }
+        }
+
+        if (isDateAllowed(parsed)) {
+          onChange(parsed.toISOString());
+          setCurrentMonth(new Date(parsed.getFullYear(), parsed.getMonth(), 1));
+          setOpen(false);
+          setShowMonthPicker(false);
+          setShowYearPicker(false);
+        } else {
+          setInputValue("");
+          onChange("");
+        }
+      } else {
+        // Incomplete/invalid format — clear
+        setInputValue("");
+        onChange("");
       }
+    } else if (inputValue.length > 0) {
+      // Partially typed date on blur — clear it
+      setInputValue("");
+      onChange("");
     }
   };
 
@@ -386,6 +438,7 @@ export default function SingleCalendar({
 
             const allowed = isDateAllowed(dayOnly);
             const isDisabled = !isCurrentMonth || !allowed;
+            const showOutlineForSelected = selected && open;
 
             return (
               <div key={index} className="relative w-9 h-8">
@@ -408,7 +461,9 @@ export default function SingleCalendar({
                     }
                     ${
                       isCurrentMonth && selected && allowed
-                        ? "text-white rounded-sm"
+                        ? showOutlineForSelected
+                          ? "text-white ring-2 ring-[#7135AD] rounded-sm"
+                          : "text-white rounded-sm"
                         : ""
                     }
                     ${
@@ -423,8 +478,10 @@ export default function SingleCalendar({
                     }
                   `}
                   style={
+                    // When calendar is open we show an outlined selected date;
+                    // when closed (or not open) keep filled purple background for selected date.
                     isCurrentMonth && selected && allowed
-                      ? { backgroundColor: "#0D4B37" }
+                      ? { backgroundColor: "#7135AD" }
                       : undefined
                   }
                 >
@@ -452,7 +509,7 @@ export default function SingleCalendar({
           className={`px-2 py-2 text-[13px] rounded-md transition-colors
             ${
               currentMonth.getMonth() === index
-                ? "bg-gray-700 text-white"
+                ? "bg-[#7135AD] text-white"
                 : "text-gray-700 hover:bg-gray-100"
             }
           `}
@@ -477,7 +534,7 @@ export default function SingleCalendar({
           className={`px-2 py-1.5 text-[13px] rounded-md transition-colors
             ${
               currentMonth.getFullYear() === year
-                ? "bg-gray-700 text-white"
+                ? "bg-[#7135AD] text-white"
                 : "text-gray-700 hover:bg-gray-100"
             }
           `}
@@ -487,6 +544,9 @@ export default function SingleCalendar({
       ))}
     </div>
   );
+
+  // compute width class: prefer `customWidth`, then `inputClassName`, then default
+  const widthClass = customWidth || inputClassName || "w-[12rem]";
 
   return (
     <div className="relative" ref={ref}>
@@ -500,9 +560,7 @@ export default function SingleCalendar({
         </label>
       )}
 
-      <div
-        className="relative"
-      >
+      <div className="relative">
         <input
           type="text"
           value={inputValue}
@@ -513,6 +571,7 @@ export default function SingleCalendar({
 
             // If a date already exists, clear it for fresh selection
             if (value) {
+              setLastSelectedDate(new Date(value)); // store previous date
               setInputValue("");
               onChange("");
             }
@@ -525,14 +584,16 @@ export default function SingleCalendar({
           autoCorrect="off"
           autoCapitalize="off"
           spellCheck={false}
-          className={`relative ${
-              customWidth || "w-[12rem]" || inputClassName
-            } border border-gray-300 rounded-md ${
-              (readOnly
-              ? "bg-gray-100 cursor-default border-gray-200 w-full px-2 py-1 pr-7 text-[13px] text-gray-700 bg-gray-100 cursor-default"
-              : "bg-white hover:border-green-400 w-full pr-7 px-2 py-1 text-[13px] text-gray-700 outline-none bg-transparent")
-            } transition-colors`}
-        onClick={(e) => e.stopPropagation()}
+          className={`relative ${widthClass} ${
+            inputStyleClass
+              ? `${inputStyleClass} ${readOnly ? "cursor-default" : "outline-none"} pr-7`
+              : `border border-gray-300 rounded-md ${
+                  readOnly
+                    ? "px-2 py-1 pr-7 text-[13px] text-gray-700 bg-gray-200 cursor-default"
+                    : "hover:border-green-400 pr-7 px-2 py-1 text-[13px] text-gray-700 outline-none bg-transparent"
+                }`
+          } transition-colors`}
+          onClick={(e) => e.stopPropagation()}
         />
 
         {!readOnly && showCalendarIcon && (
@@ -595,7 +656,7 @@ export default function SingleCalendar({
                   setShowMonthPicker(!showMonthPicker);
                   setShowYearPicker(false);
                 }}
-                className="text-[13px] font-medium text-gray-700 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                className={`text-[13px] font-medium px-2 py-1 rounded transition-colors ${showMonthPicker ? "text-[#7135AD]" : "text-gray-700 hover:bg-gray-100"}`}
               >
                 {months[currentMonth.getMonth()]}
               </button>
@@ -607,7 +668,7 @@ export default function SingleCalendar({
                   setShowYearPicker(!showYearPicker);
                   setShowMonthPicker(false);
                 }}
-                className="text-[13px] font-medium text-gray-700 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+                className={`text-[13px] font-medium px-2 py-1 rounded transition-colors ${showYearPicker ? "text-[#7135AD]" : "text-gray-700 hover:bg-gray-100"}`}
               >
                 {currentMonth.getFullYear()}
               </button>
