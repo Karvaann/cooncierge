@@ -682,12 +682,6 @@ const OSBookingsPage = () => {
         if (!intersects) return false;
       }
 
-      // If "Show Incomplete" is off, hide incomplete bookings
-      const isComplete =
-        q?.isBookingDataComplete === true ||
-        q?.isBookingDataComplete === "true";
-      if (!showIncomplete && !isComplete) return false;
-
       return true;
     });
   }, [quotations, filters, selectedOwners, showIncomplete]);
