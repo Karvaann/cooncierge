@@ -285,7 +285,6 @@ const OSBookingsPage = () => {
   const router = useRouter();
   // UI State
   const [isCreateSourceModalOpen, setIsCreateSourceModalOpen] = useState(false);
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [generatedBookingCode, setGeneratedBookingCode] = useState<
     string | null
   >(null);
@@ -771,7 +770,6 @@ const OSBookingsPage = () => {
       const last = (window as any).__lastBookingCodeRequestAt || 0;
       const IGNORE_MS = 1200;
       if (now - last < IGNORE_MS) {
-        setIsCreateOpen(true);
         return;
       }
       (window as any).__lastBookingCodeRequestAt = now;
@@ -793,12 +791,10 @@ const OSBookingsPage = () => {
       setGeneratedBookingCode(null);
       setGeneratedCustomerCode(null);
       setGeneratedVendorCode(null);
-    } finally {
-      setIsCreateOpen(true);
     }
   };
 
-  const handleCreateSourceSelected = (source: "os" | "limitless") => {
+  const handleCreateSourceSelected = async (source: "os" | "limitless") => {
     setIsCreateSourceModalOpen(false);
 
     if (source === "limitless") {
@@ -806,8 +802,22 @@ const OSBookingsPage = () => {
       return;
     }
 
-    void handleOSCreateRequested();
+    // Generate IDs
+    await handleOSCreateRequested();
+
+    // Open sidesheet directly with Flights selected by default
+    setSelectedQuotation(null);
+    setSelectedService({
+      id: "flights",
+      title: "Flights",
+      image: "/images/flight-icon.png",
+      category: "travel",
+      description: "Book domestic and international flights",
+    });
+    setSideSheetMode("edit");
+    setIsSideSheetOpen(true);
   };
+
 
   // Handle booking completion (refresh data)
   const handleBookingComplete = useCallback(async () => {
@@ -2032,8 +2042,6 @@ const OSBookingsPage = () => {
                 minChars: 2,
               },
             ]}
-            createOpen={isCreateOpen}
-            setCreateOpen={setIsCreateOpen}
             onCreateClick={handleCreateRequested}
             allowAdvanceOwnerSearch={true}
             showBookingType={true}
@@ -2253,12 +2261,6 @@ const OSBookingsPage = () => {
           onClose={() => setIsCreateSourceModalOpen(false)}
           onSelect={handleCreateSourceSelected}
         />
-
-          <BookingFormModal
-            isOpen={isCreateOpen}
-            onClose={() => setIsCreateOpen(false)}
-            onSelectedService={handleServiceSelect}
-          />
 
         <BookingFormSidesheet
           isOpen={isSideSheetOpen}
