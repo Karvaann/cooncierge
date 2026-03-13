@@ -9,7 +9,7 @@ import React, {
 } from "react";
 import { createPortal } from "react-dom";
 import { RiRefreshLine } from "react-icons/ri";
-import { IoClose } from "react-icons/io5";
+import { IoChevronBack, IoChevronForward, IoClose } from "react-icons/io5";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import Button from "./Button";
 import { CiSearch } from "react-icons/ci";
@@ -71,6 +71,12 @@ export interface FilterProps {
   showTravelDateFilter?: boolean;
   travelDateLabel?: string;
   showCategory?: boolean;
+  showResultNavigator?: boolean;
+  resultNavigatorActive?: boolean;
+  resultNavigatorCurrent?: number;
+  resultNavigatorTotal?: number;
+  onResultNavigatorPrev?: () => void;
+  onResultNavigatorNext?: () => void;
   allowAdvanceOwnerSearch?: boolean;
   searchOptions?: SearchOption[];
 }
@@ -100,6 +106,12 @@ const Filter: React.FC<FilterProps> = ({
   showTravelDateFilter = true,
   travelDateLabel = "Travel Date",
   showCategory = false,
+  showResultNavigator = false,
+  resultNavigatorActive = false,
+  resultNavigatorCurrent = 0,
+  resultNavigatorTotal = 0,
+  onResultNavigatorPrev,
+  onResultNavigatorNext,
   allowAdvanceOwnerSearch = false,
   searchOptions = DEFAULT_SEARCH_OPTIONS,
 }) => {
@@ -798,6 +810,33 @@ const Filter: React.FC<FilterProps> = ({
           </div>
         </div>
       </div>
+      {showResultNavigator && (
+        <div className="mt-4 flex items-center gap-2 text-[14px] text-[#5E5E5E]">
+          <span>Showing</span>
+          <button
+            type="button"
+            onClick={() => onResultNavigatorPrev?.()}
+            disabled={!resultNavigatorActive || resultNavigatorCurrent <= 1}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-[8px] border border-[#D7D7D7] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <IoChevronBack className="h-4 w-4" />
+          </button>
+          <span className="min-w-[1ch] text-center text-[#7C3AED]">
+            {resultNavigatorCurrent}
+          </span>
+          <button
+            type="button"
+            onClick={() => onResultNavigatorNext?.()}
+            disabled={!resultNavigatorActive || resultNavigatorCurrent >= resultNavigatorTotal}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-[8px] border border-[#D7D7D7] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <IoChevronForward className="h-4 w-4" />
+          </button>
+          <span>
+            of {resultNavigatorTotal} results
+          </span>
+        </div>
+      )}
     </div>
   );
 };

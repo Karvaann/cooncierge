@@ -10,6 +10,7 @@ import {
 } from "react";
 import {
   addDays,
+  differenceInCalendarDays,
   format,
   isSameDay,
   startOfDay,
@@ -32,7 +33,7 @@ import {
 import { FaRegTrashAlt } from "react-icons/fa";
 import { MdOutlineEdit, MdOutlineKeyboardArrowDown, MdOutlineTravelExplore } from "react-icons/md";
 import { TbArrowAutofitRight } from "react-icons/tb";
-import { FiCopy } from "react-icons/fi";
+import { FiCheck, FiCopy } from "react-icons/fi";
 import { CiFilter } from "react-icons/ci";
 import { TbArrowsUpDown } from "react-icons/tb";
 import { FaRegCalendar, FaRegClock } from "react-icons/fa";
@@ -50,6 +51,7 @@ import {
   type TriSortState,
 } from "@/utils/sorting";
 import UnderlineTabs from "@/components/UnderlineTabs";
+import { RiRefreshLine } from "react-icons/ri";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -95,8 +97,8 @@ type BookingService = {
 };
 
 type FilterPayload = {
-  serviceType: string;
-  status: string;
+  serviceType: string | string[];
+  status: string | string[];
   owner: string | string[];
   bookingType: string;
   search: string;
@@ -226,6 +228,50 @@ const getCreatedAtTimestamp = (item: any): number => {
 };
 
 const normalizeKey = (value: string): string => value.toLowerCase().trim();
+const toFilterArray = (
+  value: string | string[] | undefined,
+): string[] =>
+  Array.isArray(value)
+    ? value.filter(Boolean).map((v) => normalizeKey(String(v)))
+    : value
+      ? [normalizeKey(String(value))]
+      : [];
+
+const OS_SERVICE_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "flight", label: "Flight" },
+  { value: "accommodation", label: "Accommodation" },
+  { value: "transportation", label: "Transportation" },
+  { value: "ticket", label: "Ticket (Attraction)" },
+  { value: "activity", label: "Activity" },
+  { value: "travel insurance", label: "Travel Insurance" },
+  { value: "visa", label: "Visa" },
+  { value: "others", label: "Others" },
+];
+
+const getOsServiceKey = (quotationType?: string): string => {
+  const v = normalizeKey(String(quotationType || ""));
+  if (!v) return "others";
+  if (["flight", "flights", "travel"].includes(v)) return "flight";
+  if (["hotel", "accommodation"].includes(v)) return "accommodation";
+  if (
+    [
+      "car",
+      "transport-land",
+      "land-transport",
+      "land",
+      "transportation",
+      "transport-maritime",
+      "maritime",
+    ].includes(v)
+  ) {
+    return "transportation";
+  }
+  if (["ticket", "tickets"].includes(v)) return "ticket";
+  if (["activity", "activities"].includes(v)) return "activity";
+  if (["insurance", "travel insurance"].includes(v)) return "travel insurance";
+  if (["visa", "visas"].includes(v)) return "visa";
+  return "others";
+};
 
 const getBookingSourceType = (item: any): "os" | "limitless" => {
   const explicitType = normalizeKey(
@@ -326,6 +372,11 @@ const OSBookingsPage = () => {
   const [activeHeaderFilter, setActiveHeaderFilter] = useState<
     "Travel Date" | "Service" | "Service Status" | null
   >(null);
+  const [pendingServiceTypes, setPendingServiceTypes] = useState<string[]>([]);
+  const [pendingStatusTypes, setPendingStatusTypes] = useState<string[]>([]);
+  const [pendingDateField, setPendingDateField] = useState<
+    "travelDate" | "bookingDate"
+  >("travelDate");
   const [travelDateField, setTravelDateField] = useState<
     "travelDate" | "bookingDate"
   >("travelDate");
@@ -344,6 +395,9 @@ const OSBookingsPage = () => {
   );
   const [calendarStartDate, setCalendarStartDate] = useState(() =>
     addDays(startOfDay(new Date()), -2),
+  );
+  const [selectedTimelineDate, setSelectedTimelineDate] = useState<Date | null>(
+    null,
   );
   // Filters state
   const [filters, setFilters] = useState<FilterPayload>({
@@ -419,6 +473,18 @@ const OSBookingsPage = () => {
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [activeHeaderFilter]);
+
+  useEffect(() => {
+    if (activeHeaderFilter === "Service") {
+      setPendingServiceTypes(toFilterArray(filters.serviceType));
+    }
+    if (activeHeaderFilter === "Service Status") {
+      setPendingStatusTypes(toFilterArray(filters.status));
+    }
+    if (activeHeaderFilter === "Travel Date") {
+      setPendingDateField(travelDateField);
+    }
+  }, [activeHeaderFilter, filters.serviceType, filters.status, travelDateField]);
 
   useEffect(() => {
     if (!activeVoucherRowId) return;
@@ -566,6 +632,8 @@ const OSBookingsPage = () => {
   // Apply all filters client-side (search, booking date, travel date, owner)
   const filteredQuotations = useMemo(() => {
     return quotations.filter((q, idx) => {
+      const selectedServiceTypes = toFilterArray(filters.serviceType);
+      const selectedStatuses = toFilterArray(filters.status);
       const bookingType = getBookingSourceType(q);
       const selectedBookingType = normalizeKey(filters.bookingType || "");
 
@@ -576,8 +644,8 @@ const OSBookingsPage = () => {
         return false;
       }
 
-      if (filters.serviceType) {
-        if (bookingType === "limitless") {
+      if (selectedServiceTypes.length > 0) {
+        if (bookingType === "limitless" && selectedBookingType === "limitless") {
           const destinationValues = [
             ...(Array.isArray((q as any)?.limitlessDestinations)
               ? ((q as any).limitlessDestinations as string[])
@@ -587,20 +655,21 @@ const OSBookingsPage = () => {
             .map((v) => normalizeKey(v))
             .filter(Boolean);
 
-          if (!destinationValues.includes(normalizeKey(filters.serviceType))) {
+          if (!selectedServiceTypes.some((sel) => destinationValues.includes(sel))) {
             return false;
           }
         } else {
-          const serviceValue = normalizeKey(String(q.quotationType || ""));
-          if (serviceValue !== normalizeKey(filters.serviceType)) {
+          if (bookingType !== "os") return false;
+          const serviceValue = getOsServiceKey(String(q.quotationType || ""));
+          if (!selectedServiceTypes.includes(serviceValue)) {
             return false;
           }
         }
       }
 
-      if (filters.status) {
+      if (selectedStatuses.length > 0) {
         const normalizedStatus = normalizeKey(mapStatus(String(q.status || "")));
-        if (normalizedStatus !== normalizeKey(filters.status)) {
+        if (!selectedStatuses.includes(normalizedStatus)) {
           return false;
         }
       }
@@ -1230,6 +1299,8 @@ const OSBookingsPage = () => {
       if (filters.search.trim()) {
         const s = filters.search.trim();
         return normalizedDrafts.filter((draft: any) => {
+          const selectedServiceTypes = toFilterArray(filters.serviceType);
+          const selectedStatuses = toFilterArray(filters.status);
           const bookingType = getBookingSourceType(draft);
           const selectedBookingType = normalizeKey(filters.bookingType || "");
 
@@ -1240,8 +1311,8 @@ const OSBookingsPage = () => {
             return false;
           }
 
-          if (filters.serviceType) {
-            if (bookingType === "limitless") {
+          if (selectedServiceTypes.length > 0) {
+            if (bookingType === "limitless" && selectedBookingType === "limitless") {
               const destinationValues = [
                 ...(Array.isArray(draft?.limitlessDestinations)
                   ? (draft.limitlessDestinations as string[])
@@ -1251,20 +1322,21 @@ const OSBookingsPage = () => {
                 .map((v) => normalizeKey(v))
                 .filter(Boolean);
 
-              if (!destinationValues.includes(normalizeKey(filters.serviceType))) {
+              if (!selectedServiceTypes.some((sel) => destinationValues.includes(sel))) {
                 return false;
               }
             } else {
-              const serviceValue = normalizeKey(String(draft.quotationType || ""));
-              if (serviceValue !== normalizeKey(filters.serviceType)) {
+              if (bookingType !== "os") return false;
+              const serviceValue = getOsServiceKey(String(draft.quotationType || ""));
+              if (!selectedServiceTypes.includes(serviceValue)) {
                 return false;
               }
             }
           }
 
-          if (filters.status) {
+          if (selectedStatuses.length > 0) {
             const normalizedStatus = normalizeKey(mapStatus(String(draft.status || "")));
-            if (normalizedStatus !== normalizeKey(filters.status)) {
+            if (!selectedStatuses.includes(normalizedStatus)) {
               return false;
             }
           }
@@ -1309,6 +1381,8 @@ const OSBookingsPage = () => {
       }
 
       return normalizedDrafts.filter((draft: any) => {
+        const selectedServiceTypes = toFilterArray(filters.serviceType);
+        const selectedStatuses = toFilterArray(filters.status);
         const bookingType = getBookingSourceType(draft);
         const selectedBookingType = normalizeKey(filters.bookingType || "");
 
@@ -1319,8 +1393,8 @@ const OSBookingsPage = () => {
           return false;
         }
 
-        if (filters.serviceType) {
-          if (bookingType === "limitless") {
+        if (selectedServiceTypes.length > 0) {
+          if (bookingType === "limitless" && selectedBookingType === "limitless") {
             const destinationValues = [
               ...(Array.isArray(draft?.limitlessDestinations)
                 ? (draft.limitlessDestinations as string[])
@@ -1330,20 +1404,21 @@ const OSBookingsPage = () => {
               .map((v) => normalizeKey(v))
               .filter(Boolean);
 
-            if (!destinationValues.includes(normalizeKey(filters.serviceType))) {
+            if (!selectedServiceTypes.some((sel) => destinationValues.includes(sel))) {
               return false;
             }
           } else {
-            const serviceValue = normalizeKey(String(draft.quotationType || ""));
-            if (serviceValue !== normalizeKey(filters.serviceType)) {
+            if (bookingType !== "os") return false;
+            const serviceValue = getOsServiceKey(String(draft.quotationType || ""));
+            if (!selectedServiceTypes.includes(serviceValue)) {
               return false;
             }
           }
         }
 
-        if (filters.status) {
+        if (selectedStatuses.length > 0) {
           const normalizedStatus = normalizeKey(mapStatus(String(draft.status || "")));
-          if (normalizedStatus !== normalizeKey(filters.status)) {
+          if (!selectedStatuses.includes(normalizedStatus)) {
             return false;
           }
         }
@@ -1793,7 +1868,6 @@ const OSBookingsPage = () => {
 
   const filterOptions = useMemo(
     () => {
-      const osServiceMap = new Map<string, string>();
       const limitlessDestinationSet = new Set<string>();
 
       quotations.forEach((item) => {
@@ -1813,10 +1887,6 @@ const OSBookingsPage = () => {
           );
           return;
         }
-
-        const value = normalizeKey(String(item.quotationType || ""));
-        if (!value || osServiceMap.has(value)) return;
-        osServiceMap.set(value, formatServiceType(String(item.quotationType || "")));
       });
 
       const selectedBookingType = normalizeKey(filters.bookingType || "");
@@ -1825,9 +1895,7 @@ const OSBookingsPage = () => {
           ? Array.from(limitlessDestinationSet)
               .sort((a, b) => a.localeCompare(b))
               .map((destination) => ({ value: destination, label: destination }))
-          : Array.from(osServiceMap.entries())
-              .sort((a, b) => a[1].localeCompare(b[1]))
-              .map(([value, label]) => ({ value, label }));
+          : OS_SERVICE_OPTIONS;
 
       return {
         serviceTypes,
@@ -1913,11 +1981,9 @@ const OSBookingsPage = () => {
       Service: (
         <CiFilter
           className={`inline w-3 h-3 stroke-[2] ${
-            !filters.bookingType
-              ? "text-[#C4C4C4]"
-              : activeHeaderFilter === "Service"
-                ? "text-[#7C3AED]"
-                : "text-[#818181] hover:text-[#7135AD]"
+            activeHeaderFilter === "Service"
+              ? "text-[#7C3AED]"
+              : "text-[#818181] hover:text-[#7135AD]"
           }`}
         />
       ),
@@ -1931,7 +1997,7 @@ const OSBookingsPage = () => {
         />
       ),
     }),
-    [activeHeaderFilter, filters.bookingType],
+    [activeHeaderFilter],
   );
 
   const statusFilterOptions = useMemo(
@@ -1957,64 +2023,111 @@ const OSBookingsPage = () => {
     [dateColumnLabel],
   );
 
-  const renderHeaderDropdown = useCallback(
+  const renderSingleSelectDropdown = useCallback(
     (
-      title: string,
       value: string,
       options: Array<{ value: string; label: string }>,
       onSelect: (nextValue: string) => void,
-      placeholder = title,
-      showAllOption = true,
-    ) => {
-      return (
-      <>
-        <div className="w-[230px] overflow-hidden rounded-[14px] border border-[#D7D7D7] bg-white shadow-[0_12px_30px_rgba(0,0,0,0.14)]">
-          <button
-            type="button"
-            className="flex w-full items-center justify-between px-[14px] py-[7px] text-left text-[14px] font-[400]"
-          >
-            <span className={value ? "text-[#020202]" : "text-[#98A0AF]"}>
-              {value ? options.find((opt) => opt.value === value)?.label || value : placeholder}
-            </span>
-            <MdOutlineKeyboardArrowDown className="h-6 w-6 text-[#7A7A7A]" />
-          </button>
-        </div>
-        <div className="w-[230px] overflow-hidden rounded-[14px] border border-[#D7D7D7] bg-white shadow-[0_12px_30px_rgba(0,0,0,0.14)]">
-          <div className="border-t border-[#D7D7D7] bg-white">
-          {showAllOption && (
-            <button
-              type="button"
-              onClick={() => {
-                onSelect("");
-                setActiveHeaderFilter(null);
-              }}
-              className={`block w-full border-b border-[#D7D7D7] px-[14px] py-[7px] text-left text-[14px] font-[400] ${
-                !value ? "text-[#7C3AED]" : "text-[#020202]"
-              }`}
-            >
-              All
-            </button>
-          )}
+      placeholder: string,
+      onReset: () => void,
+      onApply: () => void,
+    ) => (
+      <div className="flex max-h-[340px] w-[200px] flex-col overflow-hidden rounded-[14px] border border-[#E2E1E1] bg-white shadow-[0_12px_30px_rgba(0,0,0,0.14)]">
+        <div className="overflow-y-auto">
           {options.map((opt, idx) => (
             <button
               key={opt.value}
-                type="button"
-                onClick={() => {
-                  onSelect(opt.value);
-                  setActiveHeaderFilter(null);
-                }}
-                className={`block w-full px-[14px] py-[7px] text-left text-[14px] font-[400] ${
-                  value === opt.value ? "text-[#7C3AED]" : "text-[#020202]"
-                } ${idx < options.length - 1 ? "border-b border-[#D7D7D7]" : ""}`}
+              type="button"
+              onClick={() => onSelect(opt.value)}
+              className={`flex w-full items-center gap-[8px] p-[12px] text-left font-[400] text-[13px] text-[#414141] ${idx === 0 ? "border-t border-[#E1E1E1]" : ""} border-b border-[#E1E1E1] last:border-b-0`}
+            >
+              <span
+                className={`inline-flex h-5 w-5 items-center justify-center rounded-[6px] border ${
+                  value === opt.value
+                    ? "border-[#7135AD] bg-[#7135AD] text-white"
+                    : "border-[#D3D3D3] bg-white text-transparent"
+                }`}
               >
-                {opt.label}
-              </button>
-            ))}
-          </div>
+                <FiCheck className="w-3 h-3" />
+              </span>
+              <span>{opt.label}</span>
+            </button>
+          ))}
         </div>
-      </>
-    )
-  },
+        <div className="sticky bottom-0 flex items-center justify-between border-t border-[#D7D7D7] bg-white px-4 py-3">
+          <button
+            type="button"
+            onClick={onReset}
+            className="rounded-[8px] border border-[#D7D7D7] p-2 text-[13px] text-[#6A6A6A]"
+          >
+            <RiRefreshLine size={12} />
+          </button>
+          <button
+            type="button"
+            onClick={onApply}
+            className="rounded-[10px] bg-[#7135AD] px-5 py-1.5 text-[13px] font-[600] text-white"
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+    ),
+    [],
+  );
+
+  const renderMultiSelectDropdown = useCallback(
+    (
+      options: Array<{ value: string; label: string }>,
+      pendingValues: string[],
+      onToggle: (value: string) => void,
+      onReset: () => void,
+      onApply: () => void,
+    ) => (
+      <div className="flex max-h-[320px] w-[220px] flex-col overflow-hidden rounded-[18px] border border-[#D7D7D7] bg-white shadow-[0_12px_30px_rgba(0,0,0,0.14)]">
+        <div className="overflow-y-auto">
+          {options.map((opt, idx) => {
+            const checked = pendingValues.includes(opt.value);
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onToggle(opt.value)}
+                className={`flex w-full items-center gap-[8px] p-[10px] text-left font-[400] text-[12px] text-[#020202] ${
+                  idx < options.length - 1 ? "border-b border-[#D7D7D7]" : ""
+                }`}
+              >
+                <span
+                  className={`inline-flex h-5 w-5 items-center justify-center rounded-[6px] border text-[15px] ${
+                    checked
+                      ? "border-[#7135AD] bg-[#7135AD] text-white"
+                      : "border-[#D3D3D3] bg-white text-transparent"
+                  }`}
+                >
+                  <FiCheck className="w-3 h-3" />
+                </span>
+                <span className="text-[#4A4A4A]">{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="sticky bottom-0 flex items-center justify-between border-t border-[#D7D7D7] bg-white px-5 py-4">
+          <button
+            type="button"
+            onClick={onReset}
+            className="rounded-[8px] border border-[#D7D7D7] p-2 text-[14px] text-[#6A6A6A]"
+          >
+            <RiRefreshLine size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={onApply}
+            className="rounded-[12px] bg-[#7135AD] px-6 py-2 text-[14px] font-[600] text-white"
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+    ),
     [],
   );
 
@@ -2023,68 +2136,99 @@ const OSBookingsPage = () => {
       "Travel Date": {
         isOpen: activeHeaderFilter === "Travel Date",
         align: "center" as const,
-        content: renderHeaderDropdown(
-          "Date Field",
-          travelDateField,
+        content: renderSingleSelectDropdown(
+          pendingDateField,
           travelDateFieldOptions,
           (nextValue) => {
             if (nextValue === "travelDate" || nextValue === "bookingDate") {
-              setTravelDateField(nextValue);
+              setPendingDateField(nextValue);
             }
           },
           "Date Field",
-          false,
+          () => setPendingDateField("travelDate"),
+          () => {
+            setTravelDateField(pendingDateField);
+            setActiveHeaderFilter(null);
+          },
         ),
       },
       "Booking Date": {
         isOpen: activeHeaderFilter === "Travel Date",
         align: "center" as const,
-        content: renderHeaderDropdown(
-          "Date Field",
-          travelDateField,
+        content: renderSingleSelectDropdown(
+          pendingDateField,
           travelDateFieldOptions,
           (nextValue) => {
             if (nextValue === "travelDate" || nextValue === "bookingDate") {
-              setTravelDateField(nextValue);
+              setPendingDateField(nextValue);
             }
           },
           "Date Field",
-          false,
+          () => setPendingDateField("travelDate"),
+          () => {
+            setTravelDateField(pendingDateField);
+            setActiveHeaderFilter(null);
+          },
         ),
       },
       Service: {
         isOpen: activeHeaderFilter === "Service",
         align: "center" as const,
-        content: renderHeaderDropdown(
-          "Service",
-          filters.serviceType,
-          filterOptions.serviceTypes as Array<{ value: string; label: string }>,
-          (nextValue) => setFilters((prev) => ({ ...prev, serviceType: nextValue })),
-          filters.bookingType === "limitless" ? "Destination" : "Service",
+        content: renderMultiSelectDropdown(
+          OS_SERVICE_OPTIONS,
+          pendingServiceTypes,
+          (value) =>
+            setPendingServiceTypes((prev) =>
+              prev.includes(value)
+                ? prev.filter((v) => v !== value)
+                : [...prev, value],
+            ),
+          () => setPendingServiceTypes([]),
+          () => {
+            setFilters((prev) => ({
+              ...prev,
+              serviceType: pendingServiceTypes.length ? pendingServiceTypes : "",
+            }));
+            setActiveHeaderFilter(null);
+          },
         ),
       },
       "Service Status": {
         isOpen: activeHeaderFilter === "Service Status",
         align: "center" as const,
-        content: renderHeaderDropdown(
-          "Booking Status",
-          filters.status,
+        content: renderMultiSelectDropdown(
           statusFilterOptions,
-          (nextValue) => setFilters((prev) => ({ ...prev, status: nextValue })),
-          "Booking Status",
+          pendingStatusTypes,
+          (value) =>
+            setPendingStatusTypes((prev) =>
+              prev.includes(value)
+                ? prev.filter((v) => v !== value)
+                : [...prev, value],
+            ),
+          () => setPendingStatusTypes([]),
+          () => {
+            setFilters((prev) => ({
+              ...prev,
+              status: pendingStatusTypes.length ? pendingStatusTypes : "",
+            }));
+            setActiveHeaderFilter(null);
+          },
         ),
       },
     }),
     [
       activeHeaderFilter,
-      filterOptions.serviceTypes,
       filters.bookingType,
       filters.serviceType,
       filters.status,
-      renderHeaderDropdown,
+      renderSingleSelectDropdown,
+      renderMultiSelectDropdown,
       statusFilterOptions,
       travelDateField,
       travelDateFieldOptions,
+      pendingServiceTypes,
+      pendingStatusTypes,
+      pendingDateField,
     ],
   );
 
@@ -2092,13 +2236,11 @@ const OSBookingsPage = () => {
     (column: string) => {
       if (column !== "Service" && column !== "Service Status") return;
 
-      if (column === "Service" && !filters.bookingType) return;
-
       const nextColumn =
         column === "Service" || column === "Service Status" ? column : null;
       setActiveHeaderFilter((prev) => (prev === nextColumn ? null : nextColumn));
     },
-    [filters.bookingType],
+    [],
   );
 
   const handleFilterChange = useCallback((next: FilterPayload) => {
@@ -2170,10 +2312,139 @@ const OSBookingsPage = () => {
     [calendarStartDate],
   );
 
+  const hasOwnerFilter = useMemo(
+    () =>
+      Array.isArray(filters.owner)
+        ? filters.owner.length > 0
+        : Boolean(filters.owner),
+    [filters.owner],
+  );
+
+  const isCalendarFilterApplied = useMemo(
+    () =>
+      Boolean(
+        filters.search ||
+          filters.bookingStartDate ||
+          filters.bookingEndDate ||
+          filters.tripStartDate ||
+          filters.tripEndDate ||
+          toFilterArray(filters.serviceType).length > 0 ||
+          toFilterArray(filters.status).length > 0 ||
+          filters.bookingType ||
+          hasOwnerFilter,
+      ),
+    [
+      filters.search,
+      filters.bookingStartDate,
+      filters.bookingEndDate,
+      filters.tripStartDate,
+      filters.tripEndDate,
+      filters.serviceType,
+      filters.status,
+      filters.bookingType,
+      hasOwnerFilter,
+    ],
+  );
+
+  const matchedCalendarDates = useMemo(() => {
+    const dateMap = new Map<number, Date>();
+    filteredQuotations.forEach((item) => {
+      const raw = getBookingTimelineDate(item);
+      if (!raw) return;
+      const normalized = startOfDay(raw);
+      dateMap.set(normalized.getTime(), normalized);
+    });
+
+    return Array.from(dateMap.values()).sort(
+      (a, b) => a.getTime() - b.getTime(),
+    );
+  }, [filteredQuotations, getBookingTimelineDate]);
+
+  const currentCalendarAnchorDate = useMemo(
+    () => addDays(calendarStartDate, 2),
+    [calendarStartDate],
+  );
+
+  const calendarNavigatorIndex = useMemo(() => {
+    if (matchedCalendarDates.length === 0) return 0;
+
+    const anchor = startOfDay(currentCalendarAnchorDate).getTime();
+    let nearestIndex = 0;
+    let nearestDiff = Number.POSITIVE_INFINITY;
+
+    matchedCalendarDates.forEach((date, idx) => {
+      const diff = Math.abs(date.getTime() - anchor);
+      if (diff < nearestDiff) {
+        nearestDiff = diff;
+        nearestIndex = idx;
+      }
+    });
+
+    return nearestIndex + 1;
+  }, [currentCalendarAnchorDate, matchedCalendarDates]);
+
+  const jumpToCalendarMatch = useCallback(
+    (direction: -1 | 1) => {
+      if (!isCalendarFilterApplied || matchedCalendarDates.length === 0) return;
+      const selectedIndex = selectedTimelineDate
+        ? matchedCalendarDates.findIndex((date) =>
+            isSameDay(date, selectedTimelineDate),
+          )
+        : -1;
+      const currentIndex = Math.max(
+        0,
+        selectedIndex >= 0 ? selectedIndex : calendarNavigatorIndex - 1,
+      );
+      const targetIndex = Math.min(
+        matchedCalendarDates.length - 1,
+        Math.max(0, currentIndex + direction),
+      );
+      const targetDate = matchedCalendarDates[targetIndex];
+      if (!targetDate) return;
+      const normalizedTarget = startOfDay(targetDate);
+      const windowStart = startOfDay(calendarStartDate);
+      const windowEnd = addDays(windowStart, 9);
+
+      if (normalizedTarget.getTime() < windowStart.getTime()) {
+        const gapDays = differenceInCalendarDays(windowStart, normalizedTarget);
+        const batches = Math.ceil(gapDays / 10);
+        setCalendarStartDate(addDays(windowStart, -10 * batches));
+      } else if (normalizedTarget.getTime() > windowEnd.getTime()) {
+        const gapDays = differenceInCalendarDays(normalizedTarget, windowEnd);
+        const batches = Math.ceil(gapDays / 10);
+        setCalendarStartDate(addDays(windowStart, 10 * batches));
+      }
+
+      setSelectedTimelineDate(normalizedTarget);
+    },
+    [
+      calendarStartDate,
+      calendarNavigatorIndex,
+      isCalendarFilterApplied,
+      matchedCalendarDates,
+      selectedTimelineDate,
+      setCalendarStartDate,
+    ],
+  );
+
+  const isCalendarNavigatorActive =
+    bookingSourceTab === "My Calender" &&
+    isCalendarFilterApplied &&
+    matchedCalendarDates.length > 0;
+
+  useEffect(() => {
+    if (bookingSourceTab !== "My Calender" || !isCalendarFilterApplied) {
+      setSelectedTimelineDate(null);
+    }
+  }, [bookingSourceTab, isCalendarFilterApplied]);
+
   const timelineBuckets = useMemo(
     () =>
       timelineDates.map((date) => {
-        const bookings = filteredQuotations
+        const sourceBookings = showIncompleteOnly
+          ? filteredQuotations.filter((item) => isBookingIncomplete(item))
+          : filteredQuotations;
+        const bookings = sourceBookings
           .filter((item) => {
             const bookingDate = getBookingTimelineDate(item);
             return bookingDate ? isSameDay(bookingDate, date) : false;
@@ -2191,7 +2462,7 @@ const OSBookingsPage = () => {
           limitlessCount: 0,
         };
       }),
-    [filteredQuotations, getBookingTimelineDate, timelineDates],
+    [filteredQuotations, getBookingTimelineDate, timelineDates, showIncompleteOnly],
   );
 
   return (
@@ -2222,6 +2493,14 @@ const OSBookingsPage = () => {
             serviceTypes={filterOptions.serviceTypes}
             statuses={filterOptions.statuses}
             owners={filterOptions.owners}
+            showResultNavigator={
+              bookingSourceTab === "My Calender" && isCalendarFilterApplied
+            }
+            resultNavigatorActive={isCalendarNavigatorActive}
+            resultNavigatorCurrent={isCalendarNavigatorActive ? calendarNavigatorIndex : 0}
+            resultNavigatorTotal={isCalendarNavigatorActive ? matchedCalendarDates.length : 0}
+            onResultNavigatorPrev={() => jumpToCalendarMatch(-1)}
+            onResultNavigatorNext={() => jumpToCalendarMatch(1)}
             searchOptions={[
               {
                 value: "bookingId",
@@ -2327,7 +2606,26 @@ const OSBookingsPage = () => {
                 <h2 className="text-[15px] whitespace-pre font-[600] text-[#020202]">
                   Bookings  Timeline
                 </h2>
-                <div className="flex items-center gap-[10px]">
+                <div className="flex items-center gap-[14px]">
+                  <div className="flex items-center gap-[6px]">
+                    <button
+                      onClick={() => setShowIncompleteOnly((prev) => !prev)}
+                      className={`relative inline-flex h-5 w-8 items-center rounded-full transition-colors ${
+                        showIncompleteOnly ? "bg-[#7135AD]" : "bg-[#C9CCCE]"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          showIncompleteOnly
+                            ? "translate-x-3.5"
+                            : "translate-x-0.5"
+                        }`}
+                      />
+                    </button>
+                    <span className="text-[12px] font-[400] text-[#414141] whitespace-nowrap">
+                      Show Incomplete Bookings
+                    </span>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setCalendarStartDate((prev) => addDays(prev, -10))}
@@ -2355,34 +2653,79 @@ const OSBookingsPage = () => {
 
               <div className="grid grid-cols-5 gap-5 overflow-y-scroll p-5">
                 {timelineBuckets.map((bucket, index) => {
+                  const isFilterArrowSelectedCard =
+                    Boolean(selectedTimelineDate) &&
+                    isCalendarNavigatorActive &&
+                    isSameDay(bucket.date, selectedTimelineDate as Date);
+
                   return (
                     <div
                       key={bucket.date.toISOString()}
-                      className="flex h-[260px] min-h-0 flex-col overflow-hidden rounded-[16px] bg-[#FAFAFA] shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                      className={`flex h-[260px] min-h-0 flex-col overflow-hidden rounded-[16px] bg-[#FAFAFA] ${
+                        isFilterArrowSelectedCard
+                          ? "border-2 border-[#D8CDE8]  shadow-[0_2px_8px_0_rgba(161,94,241,0.5)]"
+                          : "shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                      }`}
                     >
                       <div
-                        className="shrink-0 border-[0.5px] border-[#E2E1E1] bg-gradient-to-r from-[#F6ECFF] to-[#FDFAFF]  p-[10px] text-[#7135AD]"
+                        className={`shrink-0 p-[10px] ${
+                          isFilterArrowSelectedCard
+                            ? "bg-gradient-to-r from-[#6F2DBD] to-[#8D4FD7] text-white"
+                            : "border-[0.5px] border-[#E2E1E1] bg-gradient-to-r from-[#F6ECFF] to-[#FDFAFF] text-[#7135AD]"
+                        }`}
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                              <path d="M14.6641 2.75V6.41667M7.33073 2.75V6.41667M3.66406 10.0833H18.3307M10.0807 13.75H10.9974V16.5M5.4974 4.58333H16.4974C17.5099 4.58333 18.3307 5.40414 18.3307 6.41667V17.4167C18.3307 18.4292 17.5099 19.25 16.4974 19.25H5.4974C4.48487 19.25 3.66406 18.4292 3.66406 17.4167V6.41667C3.66406 5.40414 4.48487 4.58333 5.4974 4.58333Z" stroke="#7135AD" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
+                            <span
+                              className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                                isFilterArrowSelectedCard
+                                  ? "bg-[rgba(255,255,255,0.12)]"
+                                  : "bg-[rgba(113,53,173,0.08)]"
+                              }`}
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M14.6641 2.75V6.41667M7.33073 2.75V6.41667M3.66406 10.0833H18.3307M10.0807 13.75H10.9974V16.5M5.4974 4.58333H16.4974C17.5099 4.58333 18.3307 5.40414 18.3307 6.41667V17.4167C18.3307 18.4292 17.5099 19.25 16.4974 19.25H5.4974C4.48487 19.25 3.66406 18.4292 3.66406 17.4167V6.41667C3.66406 5.40414 4.48487 4.58333 5.4974 4.58333Z" stroke={isFilterArrowSelectedCard ? "white" : "#7135AD"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </span>
                             <div>
-                              <div className="text-[14px] font-[500]">
+                              <div
+                                className={`text-[14px] font-[500] ${
+                                  isFilterArrowSelectedCard
+                                    ? "text-white"
+                                    : "text-[#7135AD]"
+                                }`}
+                              >
                                 {format(bucket.date, "do MMM")}
                               </div>
-                              <div className="text-[13px]">
+                              <div
+                                className={`text-[13px] ${
+                                  isFilterArrowSelectedCard
+                                    ? "text-white/95"
+                                    : "text-[#7135AD]"
+                                }`}
+                              >
                                 {format(bucket.date, "EEEE")}
                               </div>
                             </div>
                           </div>
 
                           <div className="flex min-w-[100px] flex-col gap-2">
-                            <div className="rounded-full bg-[#F6EDFF] px-[10px] py-[2px] text-center text-[12px] font-[500] text-[#7135AD]">
+                            <div
+                              className={`rounded-full px-[10px] py-[2px] text-center text-[12px] font-[500] ${
+                                isFilterArrowSelectedCard
+                                  ? "bg-[rgba(0,0,0,0.14)] text-white"
+                                  : "bg-[#F6EDFF] text-[#7135AD]"
+                              }`}
+                            >
                               OS : {bucket.osCount}
                             </div>
-                            <div className="rounded-full bg-[#F6EDFF] px-[10px] py-[2px] text-center text-[12px] font-[500] text-[#7135AD]">
+                            <div
+                              className={`rounded-full px-[10px] py-[2px] text-center text-[12px] font-[500] ${
+                                isFilterArrowSelectedCard
+                                  ? "bg-[rgba(0,0,0,0.14)] text-white"
+                                  : "bg-[#F6EDFF] text-[#7135AD]"
+                              }`}
+                            >
                               Limitless : {bucket.limitlessCount}
                             </div>
                           </div>
@@ -2393,19 +2736,25 @@ const OSBookingsPage = () => {
                         {bucket.bookings.length > 0 ? (
                           bucket.bookings.map((item, bookingIndex) => {
                             const bookingDate = getBookingTimelineDate(item);
+                            const normalizedStatus = mapStatus(
+                              String(item.status || ""),
+                            ).toLowerCase();
                             const sideColor =
-                              bookingIndex % 3 === 1
+                              normalizedStatus === "rescheduled"
                                 ? "#F59E0B"
-                                : bookingIndex % 3 === 2
-                                  ? "#A78BFA"
+                                : normalizedStatus === "cancelled"
+                                  ? "#A3A3A3"
                                   : "#3FAE49";
+                            const isCancelled = normalizedStatus === "cancelled";
 
                             return (
                               <button
                                 key={`${item._id}-${bookingIndex}`}
                                 type="button"
                                 onClick={() => handleViewBooking(item)}
-                                className="flex w-full flex-col gap-[12px] rounded-[14px] border-l-4 border-transparent [border-left-color:var(--timeline-accent)] bg-white p-[12px] text-left shadow-[0_2px_8px_0_rgba(0,0,0,0.06)] transition-all duration-300 hover:border hover:border-[var(--timeline-accent)]"
+                                className={`flex w-full flex-col gap-[12px] rounded-[14px] border-l-4 border-transparent [border-left-color:var(--timeline-accent)] p-[12px] text-left shadow-[0_2px_8px_0_rgba(0,0,0,0.06)] transition-all duration-300 hover:border hover:border-[var(--timeline-accent)] ${
+                                  isCancelled ? "bg-[#F4F4F4] opacity-75" : "bg-white"
+                                }`}
                                 style={{
                                   ["--timeline-accent" as string]: sideColor,
                                 }}
