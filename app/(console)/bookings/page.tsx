@@ -1820,9 +1820,23 @@ const OSBookingsPage = () => {
       // ACTIONS COLUMN
       <td
         key={`actions-${index}`}
-        className="px-4 py-3 text-center fade-content align-middle h-[3rem]"
+        className="px-4 py-3 text-center fade-content align-middle h-[4rem]"
       >
-        <div onClick={(e) => e.stopPropagation()}>
+        <div
+          className="mx-auto flex w-fit items-center gap-[8px] opacity-0 pointer-events-none transition-opacity duration-300 ease-in-out [.row-actions-active_&]:opacity-100 [.row-actions-active_&]:pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="relative group">
+            <button
+              type="button"
+              className="rounded-[6px] border border-[#E2E1E1] bg-[#FFF] px-[11px] py-1.5 text-[14px] text-[#414141] font-[400]"
+            >
+              ₹
+            </button>
+            <div className="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 rounded-[6px] bg-[#111111] px-2 py-1 text-[11px] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 whitespace-nowrap">
+              Record Payment
+            </div>
+          </div>
           <ActionMenu
             actions={getActionsForTab(activeTab, item)}
             right="right-15"
@@ -2596,6 +2610,7 @@ const OSBookingsPage = () => {
                     categoryName="Bookings"
                     headerAlign={{ "Booking ID": "center" }}
                     rowClassNameResolver={rowClassNameResolver}
+                    enableRowHoverActions={true}
                   />
                 )}
               </div>
