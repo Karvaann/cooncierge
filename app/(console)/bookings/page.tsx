@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   addDays,
   differenceInCalendarDays,
@@ -401,6 +402,10 @@ const OSBookingsPage = () => {
   const [activeVoucherRowId, setActiveVoucherRowId] = useState<string | null>(
     null,
   );
+  const [paymentTooltip, setPaymentTooltip] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const [hoveredBookingRowId, setHoveredBookingRowId] = useState<string | null>(
     null,
   );
@@ -410,6 +415,9 @@ const OSBookingsPage = () => {
   const [selectedTimelineDate, setSelectedTimelineDate] = useState<Date | null>(
     null,
   );
+  const [selectedTimelineBookingId, setSelectedTimelineBookingId] = useState<
+    string | null
+  >(null);
   // Filters state
   const [filters, setFilters] = useState<FilterPayload>({
     serviceType: "",
@@ -520,6 +528,18 @@ const OSBookingsPage = () => {
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [activeVoucherRowId]);
+
+  useEffect(() => {
+    if (!paymentTooltip) return;
+
+    const clearTooltip = () => setPaymentTooltip(null);
+    window.addEventListener("scroll", clearTooltip, true);
+    window.addEventListener("resize", clearTooltip);
+    return () => {
+      window.removeEventListener("scroll", clearTooltip, true);
+      window.removeEventListener("resize", clearTooltip);
+    };
+  }, [paymentTooltip]);
 
   const computeInitials = (name: string) => {
     const parts = name.trim().split(/\s+/);
@@ -1920,16 +1940,21 @@ const OSBookingsPage = () => {
           className="mx-auto flex w-fit items-center gap-[8px] opacity-0 pointer-events-none transition-opacity duration-300 ease-in-out [.row-actions-active_&]:opacity-100 [.row-actions-active_&]:pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="relative group">
+          <div className="relative">
             <button
               type="button"
-              className="rounded-[6px] border border-[#E2E1E1] bg-[#FFF] px-[11px] py-1.5 text-[14px] text-[#414141] font-[400]"
+              onMouseEnter={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setPaymentTooltip({
+                  top: rect.top - 8,
+                  left: rect.left + rect.width / 2,
+                });
+              }}
+              onMouseLeave={() => setPaymentTooltip(null)}
+              className="rounded-[6px] border border-[#E2E1E1] bg-[#FFF] px-[11px] py-1.5 text-[14px] text-[#414141] hover:text-[#7135AD] font-[400]"
             >
               ₹
             </button>
-            <div className="pointer-events-none z-[99999] absolute left-1/2 bottom-full mb-2 -translate-x-1/2 rounded-[6px] bg-[#111111] px-2 py-1 text-[11px] text-white opacity-0 group-hover:opacity-100 whitespace-nowrap">
-              Record Payment
-            </div>
           </div>
           <ActionMenu
             actions={getActionsForTab(activeTab, item)}
@@ -2456,62 +2481,73 @@ const OSBookingsPage = () => {
     ],
   );
 
-  const matchedCalendarDates = useMemo(() => {
-    const dateMap = new Map<number, Date>();
-    filteredQuotations.forEach((item) => {
-      const raw = getBookingTimelineDate(item);
-      if (!raw) return;
-      const normalized = startOfDay(raw);
-      dateMap.set(normalized.getTime(), normalized);
-    });
+  const calendarSourceBookings = useMemo(
+    () =>
+      showIncompleteOnly
+        ? filteredQuotations.filter((item) => isBookingIncomplete(item))
+        : filteredQuotations,
+    [filteredQuotations, showIncompleteOnly],
+  );
 
-    return Array.from(dateMap.values()).sort(
-      (a, b) => a.getTime() - b.getTime(),
-    );
-  }, [filteredQuotations, getBookingTimelineDate]);
-
-  const currentCalendarAnchorDate = useMemo(
-    () => addDays(calendarStartDate, 2),
-    [calendarStartDate],
+  const matchedCalendarBookings = useMemo(
+    () =>
+      calendarSourceBookings
+        .map((item) => {
+          const date = getBookingTimelineDate(item);
+          const id = String(item?._id || item?.id || "");
+          if (!date || !id) return null;
+          return {
+            id,
+            date,
+            day: startOfDay(date),
+            item,
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => {
+          const diff = a!.date.getTime() - b!.date.getTime();
+          if (diff !== 0) return diff;
+          return a!.id.localeCompare(b!.id);
+        }) as Array<{
+        id: string;
+        date: Date;
+        day: Date;
+        item: any;
+      }>,
+    [calendarSourceBookings, getBookingTimelineDate],
   );
 
   const calendarNavigatorIndex = useMemo(() => {
-    if (matchedCalendarDates.length === 0) return 0;
+    if (matchedCalendarBookings.length === 0) return 0;
+    if (selectedTimelineBookingId) {
+      const selectedIndex = matchedCalendarBookings.findIndex(
+        (entry) => entry.id === selectedTimelineBookingId,
+      );
+      if (selectedIndex >= 0) return selectedIndex + 1;
+    }
 
-    const anchor = startOfDay(currentCalendarAnchorDate).getTime();
-    let nearestIndex = 0;
-    let nearestDiff = Number.POSITIVE_INFINITY;
+    const windowStart = startOfDay(calendarStartDate);
+    const windowEnd = addDays(windowStart, 9);
+    const firstVisibleIndex = matchedCalendarBookings.findIndex(
+      (entry) =>
+        entry.day.getTime() >= windowStart.getTime() &&
+        entry.day.getTime() <= windowEnd.getTime(),
+    );
 
-    matchedCalendarDates.forEach((date, idx) => {
-      const diff = Math.abs(date.getTime() - anchor);
-      if (diff < nearestDiff) {
-        nearestDiff = diff;
-        nearestIndex = idx;
-      }
-    });
-
-    return nearestIndex + 1;
-  }, [currentCalendarAnchorDate, matchedCalendarDates]);
+    return (firstVisibleIndex >= 0 ? firstVisibleIndex : 0) + 1;
+  }, [calendarStartDate, matchedCalendarBookings, selectedTimelineBookingId]);
 
   const jumpToCalendarMatch = useCallback(
     (direction: -1 | 1) => {
-      if (!isCalendarFilterApplied || matchedCalendarDates.length === 0) return;
-      const selectedIndex = selectedTimelineDate
-        ? matchedCalendarDates.findIndex((date) =>
-            isSameDay(date, selectedTimelineDate),
-          )
-        : -1;
-      const currentIndex = Math.max(
-        0,
-        selectedIndex >= 0 ? selectedIndex : calendarNavigatorIndex - 1,
-      );
+      if (!isCalendarFilterApplied || matchedCalendarBookings.length === 0) return;
+      const currentIndex = Math.max(0, calendarNavigatorIndex - 1);
       const targetIndex = Math.min(
-        matchedCalendarDates.length - 1,
+        matchedCalendarBookings.length - 1,
         Math.max(0, currentIndex + direction),
       );
-      const targetDate = matchedCalendarDates[targetIndex];
-      if (!targetDate) return;
-      const normalizedTarget = startOfDay(targetDate);
+      const targetBooking = matchedCalendarBookings[targetIndex];
+      if (!targetBooking) return;
+      const normalizedTarget = targetBooking.day;
       const windowStart = startOfDay(calendarStartDate);
       const windowEnd = addDays(windowStart, 9);
 
@@ -2526,13 +2562,13 @@ const OSBookingsPage = () => {
       }
 
       setSelectedTimelineDate(normalizedTarget);
+      setSelectedTimelineBookingId(targetBooking.id);
     },
     [
       calendarStartDate,
       calendarNavigatorIndex,
       isCalendarFilterApplied,
-      matchedCalendarDates,
-      selectedTimelineDate,
+      matchedCalendarBookings,
       setCalendarStartDate,
     ],
   );
@@ -2540,21 +2576,53 @@ const OSBookingsPage = () => {
   const isCalendarNavigatorActive =
     bookingSourceTab === "My Calender" &&
     isCalendarFilterApplied &&
-    matchedCalendarDates.length > 0;
+    matchedCalendarBookings.length > 0;
 
   useEffect(() => {
     if (bookingSourceTab !== "My Calender" || !isCalendarFilterApplied) {
       setSelectedTimelineDate(null);
+      setSelectedTimelineBookingId(null);
+      return;
     }
-  }, [bookingSourceTab, isCalendarFilterApplied]);
+
+    if (matchedCalendarBookings.length === 0) {
+      setSelectedTimelineDate(null);
+      setSelectedTimelineBookingId(null);
+      return;
+    }
+
+    if (
+      selectedTimelineBookingId &&
+      matchedCalendarBookings.some((entry) => entry.id === selectedTimelineBookingId)
+    ) {
+      return;
+    }
+
+    const windowStart = startOfDay(calendarStartDate);
+    const windowEnd = addDays(windowStart, 9);
+    const firstVisibleBooking =
+      matchedCalendarBookings.find(
+        (entry) =>
+          entry.day.getTime() >= windowStart.getTime() &&
+          entry.day.getTime() <= windowEnd.getTime(),
+      ) || matchedCalendarBookings[0];
+
+    if (firstVisibleBooking) {
+      setSelectedTimelineDate(firstVisibleBooking.day);
+      setSelectedTimelineBookingId(firstVisibleBooking.id);
+    }
+  }, [
+    bookingSourceTab,
+    isCalendarFilterApplied,
+    matchedCalendarBookings,
+    selectedTimelineBookingId,
+    calendarStartDate,
+  ]);
 
   const timelineBuckets = useMemo(
     () =>
       timelineDates.map((date) => {
-        const sourceBookings = showIncompleteOnly
-          ? filteredQuotations.filter((item) => isBookingIncomplete(item))
-          : filteredQuotations;
-        const bookings = sourceBookings
+        const bookings = calendarSourceBookings
           .filter((item) => {
             const bookingDate = getBookingTimelineDate(item);
             return bookingDate ? isSameDay(bookingDate, date) : false;
@@ -2573,15 +2641,28 @@ const OSBookingsPage = () => {
         };
       }),
     [
-      filteredQuotations,
+      calendarSourceBookings,
       getBookingTimelineDate,
       timelineDates,
-      showIncompleteOnly,
     ],
   );
 
   return (
     <div className="h-[83vh] overflow-hidden bg-[#F9F9F9] px-7 py-0">
+      {paymentTooltip &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="pointer-events-none fixed z-[10000] shadow-[0_2px_8px_rgba(0,0,0,0.06)] border border-[#E2E1E1] -translate-x-1/2 -translate-y-full rounded-[6px] bg-[#FFFFFF] px-2 py-1 text-[11px] text-[#414141] whitespace-nowrap"
+            style={{
+              left: paymentTooltip.left,
+              top: paymentTooltip.top,
+            }}
+          >
+            Record Payment
+          </div>,
+          document.body,
+        )}
       <div className="flex h-full flex-col bg-[#F9F9F9]">
         <div className="flex h-full min-h-0 flex-col">
           <div className="flex w-full mb-6 items-center justify-between">
@@ -2616,7 +2697,7 @@ const OSBookingsPage = () => {
               isCalendarNavigatorActive ? calendarNavigatorIndex : 0
             }
             resultNavigatorTotal={
-              isCalendarNavigatorActive ? matchedCalendarDates.length : 0
+              isCalendarNavigatorActive ? matchedCalendarBookings.length : 0
             }
             onResultNavigatorPrev={() => jumpToCalendarMatch(-1)}
             onResultNavigatorNext={() => jumpToCalendarMatch(1)}
@@ -2873,6 +2954,9 @@ const OSBookingsPage = () => {
                         {bucket.bookings.length > 0 ? (
                           bucket.bookings.map((item, bookingIndex) => {
                             const bookingDate = getBookingTimelineDate(item);
+                            const isSelectedTimelineBooking =
+                              selectedTimelineBookingId ===
+                              String(item?._id || item?.id || "");
                             const normalizedStatus = mapStatus(
                               String(item.status || ""),
                             ).toLowerCase();
@@ -2889,11 +2973,23 @@ const OSBookingsPage = () => {
                               <button
                                 key={`${item._id}-${bookingIndex}`}
                                 type="button"
-                                onClick={() => handleViewBooking(item)}
+                                onClick={() => {
+                                  setSelectedTimelineDate(
+                                    bookingDate ? startOfDay(bookingDate) : bucket.date,
+                                  );
+                                  setSelectedTimelineBookingId(
+                                    String(item?._id || item?.id || ""),
+                                  );
+                                  handleViewBooking(item);
+                                }}
                                 className={`flex w-full flex-col gap-[12px] rounded-[14px] border-l-4 border-transparent [border-left-color:var(--timeline-accent)] p-[12px] text-left shadow-[0_2px_8px_0_rgba(0,0,0,0.06)] transition-all duration-300 hover:border hover:border-[var(--timeline-accent)] ${
                                   isCancelled
                                     ? "bg-[#F4F4F4] opacity-75"
                                     : "bg-white"
+                                } ${
+                                  isSelectedTimelineBooking
+                                    ? "ring-2 ring-[var(--timeline-accent)] ring-offset-1"
+                                    : ""
                                 }`}
                                 style={{
                                   ["--timeline-accent" as string]: sideColor,

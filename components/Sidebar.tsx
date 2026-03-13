@@ -95,11 +95,35 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
           </button>
         )}
         {!isOpen && hoveredIndex === index && (
-          <div className="pointer-events-none absolute left-[calc(100%+12px)] top-1/2 z-[70] -translate-y-1/2">
-            <div className="relative rounded-[14px] bg-[#2F343D] px-5 py-3 text-[14px] font-[600] text-white shadow-[0_18px_40px_rgba(0,0,0,0.25)]">
-              <span className="whitespace-nowrap">{item.label}</span>
-              <span className="absolute left-0 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[4px] bg-[#2F343D]" />
-            </div>
+          <div className="absolute left-[calc(100%+12px)] top-1/2 z-[70] -translate-y-1/2">
+            {item.subMenu ? (
+              <div className="relative overflow-hidden rounded-[12px] bg-gradient-to-r from-[#121226] via-[#1D1A2F] to-[#2D2B39] px-5 py-3 text-white shadow-[0_20px_45px_rgba(0,0,0,0.30)]">
+                <span className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[6px] bg-[#171528]" />
+                <div className="flex items-start gap-2">
+                  <div className="text-[14px] flex flex-col items-center gap-1 font-[500] leading-none">
+                    <div>{item.label}</div>
+                    <div className="bg-[rgb(216,178,255)] w-[1px]" />
+                  </div>
+                  <div className="flex flex-col gap-3 pt-2">
+                    {item.subMenu.map((sub) => (
+                      <Link
+                        key={sub.href}
+                        prefetch
+                        href={sub.href}
+                        className="whitespace-nowrap text-[12px] font-[400] leading-none text-white transition-transform duration-200 hover:translate-x-1 hover:text-[#D8B2FF]"
+                      >
+                        {sub.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="pointer-events-none relative rounded-[14px] bg-[#2F343D] px-5 py-3 text-[14px] font-[400] text-white shadow-[0_18px_40px_rgba(0,0,0,0.25)]">
+                <span className="whitespace-nowrap">{item.label}</span>
+                <span className="absolute left-0 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[4px] bg-[#2F343D]" />
+              </div>
+            )}
           </div>
         )}
         {item.subMenu && isOpen && (
