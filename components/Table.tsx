@@ -36,6 +36,7 @@ interface TableProps {
   enableRowHoverActions?: boolean;
   rowClassNameResolver?: (rowIndex: number) => string;
   onHeaderIconClick?: (column: string) => void;
+  headerIconClickableColumns?: string[];
   headerDropdownMap?: Record<
     string,
     {
@@ -50,7 +51,7 @@ const Table: React.FC<TableProps> = ({
   data,
   columns,
   initialRowsPerPage = 10,
-  maxRowsPerPageOptions = [2, 5, 10, 25, 50],
+  maxRowsPerPageOptions = [10, 20, 50, 100],
   columnIconMap,
   columnWidthClassMap = {},
   onSort,
@@ -72,6 +73,7 @@ const Table: React.FC<TableProps> = ({
   enableRowHoverActions = false,
   rowClassNameResolver,
   onHeaderIconClick,
+  headerIconClickableColumns,
   headerDropdownMap = {},
 }) => {
   const [page, setPage] = useState<number>(1);
@@ -208,7 +210,10 @@ const Table: React.FC<TableProps> = ({
             {col}
           </span>
           {columnIconMap?.[col] ? (
-            onHeaderIconClick ? (
+            onHeaderIconClick &&
+            (headerIconClickableColumns
+              ? headerIconClickableColumns.includes(col)
+              : true) ? (
               <button
                 type="button"
                 onClick={(e) => {

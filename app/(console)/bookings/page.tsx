@@ -42,13 +42,12 @@ import TaskButton from "@/components/TaskButton";
 import TableTabs from "@/components/TableTabs";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { LuPlane, LuHotel, LuTicket } from "react-icons/lu";
+import { LuPlane, LuHotel, LuTicket, LuDownload } from "react-icons/lu";
 import { PiCarProfileLight } from "react-icons/pi";
-import { IoChevronBack, IoChevronForward } from "react-icons/io5";
+import { IoChevronBack, IoChevronForward, IoChevronDown } from "react-icons/io5";
 import {
   getNextTriSortState,
   type TriSortState,
-  getItemTimestamp,
 } from "@/utils/sorting";
 import UnderlineTabs from "@/components/UnderlineTabs";
 
@@ -171,6 +170,7 @@ const columns: string[] = [
   "Service Status",
   "Amount",
   "Owners",
+  "Voucher",
   "Tasks",
   "Actions",
 ];
@@ -196,6 +196,13 @@ const getStatusBadgeClass = (status: string): string => {
       return "px-2 py-1 text-[12px] border border-[#FEE2E2] font-[500] rounded-full bg-[#FFF5F5] text-[#991B1B]";
   }
 };
+
+const VOUCHER_MENU_OPTIONS = [
+  "Booking Voucher",
+  "Customer Invoice(s)",
+  "Vendor Voucher(s)",
+  "Vendor Invoice(s)",
+];
 
 const mapStatus = (status: string): string => {
   const statusMap: Record<string, string> = {
@@ -317,8 +324,11 @@ const OSBookingsPage = () => {
   const [activeTab, setActiveTab] = useState("Bookings");
   const [showIncompleteOnly, setShowIncompleteOnly] = useState(false);
   const [activeHeaderFilter, setActiveHeaderFilter] = useState<
-    "Service" | "Service Status" | null
+    "Travel Date" | "Service" | "Service Status" | null
   >(null);
+  const [travelDateField, setTravelDateField] = useState<
+    "travelDate" | "bookingDate"
+  >("travelDate");
   const [recentCreatedMap, setRecentCreatedMap] = useState<Record<string, number>>(
     {},
   );
@@ -328,11 +338,12 @@ const OSBookingsPage = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
+  const [activeVoucherRowId, setActiveVoucherRowId] = useState<string | null>(null);
   const [hoveredBookingRowId, setHoveredBookingRowId] = useState<string | null>(
     null,
   );
   const [calendarStartDate, setCalendarStartDate] = useState(() =>
-    startOfDay(new Date()),
+    addDays(startOfDay(new Date()), -2),
   );
   // Filters state
   const [filters, setFilters] = useState<FilterPayload>({
@@ -408,6 +419,25 @@ const OSBookingsPage = () => {
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [activeHeaderFilter]);
+
+  useEffect(() => {
+    if (!activeVoucherRowId) return;
+
+    const handleOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (
+        target.closest("[data-voucher-trigger]") ||
+        target.closest("[data-voucher-menu]")
+      ) {
+        return;
+      }
+      setActiveVoucherRowId(null);
+    };
+
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [activeVoucherRowId]);
 
   const computeInitials = (name: string) => {
     const parts = name.trim().split(/\s+/);
@@ -1345,6 +1375,14 @@ const OSBookingsPage = () => {
   // Use shared timestamp extractor from utils/sorting.ts
   // (keeps logic consistent across pages)
 
+  const getSelectedDateFieldRawValue = useCallback(
+    (item: any) =>
+      travelDateField === "bookingDate"
+        ? item.createdAt || item.updatedAt || null
+        : item.travelDate || item.formFields?.departureDate || null,
+    [travelDateField],
+  );
+
   const toggledQuotations = useMemo(
     () =>
       showIncompleteOnly
@@ -1390,15 +1428,19 @@ const OSBookingsPage = () => {
     }));
 
     withIndex.sort((a, b) => {
-      const at = getItemTimestamp(a.item);
-      const bt = getItemTimestamp(b.item);
+      const atRaw = getSelectedDateFieldRawValue(a.item);
+      const btRaw = getSelectedDateFieldRawValue(b.item);
+      const at = atRaw ? new Date(atRaw).getTime() : null;
+      const bt = btRaw ? new Date(btRaw).getTime() : null;
 
       // Always keep missing/invalid dates at the bottom.
-      if (at === null && bt === null) return a.originalIndex - b.originalIndex;
-      if (at === null) return 1;
-      if (bt === null) return -1;
+      if (!Number.isFinite(at) && !Number.isFinite(bt)) {
+        return a.originalIndex - b.originalIndex;
+      }
+      if (!Number.isFinite(at)) return 1;
+      if (!Number.isFinite(bt)) return -1;
 
-      const diff = at - bt;
+      const diff = Number(at) - Number(bt);
       if (diff !== 0) return sortState.direction === "asc" ? diff : -diff;
       return a.originalIndex - b.originalIndex;
     });
@@ -1409,6 +1451,7 @@ const OSBookingsPage = () => {
     sortState.direction,
     sortState.key,
     recentCreatedMap,
+    getSelectedDateFieldRawValue,
   ]);
 
   // Convert quotations to table data
@@ -1534,13 +1577,9 @@ const OSBookingsPage = () => {
         onClick={() => handleViewBooking(item)}
         className="px-4 fade-content py-3 text-center  text-[13px] font-[400] align-middle h-[3rem] cursor-pointer"
       >
-        {item.travelDate
-          ? formatDMY(item.travelDate)
-          : item.formFields?.departureDate
-            ? formatDMY(item.formFields.departureDate)
-            : item.createdAt
-              ? formatDMY(item.createdAt)
-              : "--"}
+        {getSelectedDateFieldRawValue(item)
+          ? formatDMY(String(getSelectedDateFieldRawValue(item)))
+          : "--"}
       </td>,
       <td
         key={`service-${index}`}
@@ -1635,6 +1674,63 @@ const OSBookingsPage = () => {
         </div>
       </td>,
       <td
+        key={`voucher-${index}`}
+        className="px-4 py-3 fade-content text-center align-middle h-[3rem]"
+      >
+        <div className="relative flex items-center justify-center">
+          <div className="inline-flex overflow-hidden rounded-[7px] border border-[#E2E1E1] bg-[#FFF] hover:bg-[#F7F7F7]">
+            <span className="flex p-[6px] items-center justify-center border-r border-[#E2E1E1]">
+              <Image
+                src="/icons/voucher-icon.svg"
+                alt="Voucher"
+                width={20}
+                height={20}
+                className="object-contain"
+              />
+            </span>
+            <button
+              type="button"
+              data-voucher-trigger
+              onClick={(e) => {
+                e.stopPropagation();
+                const rowId = String(item?._id || item?.id || index);
+                setActiveVoucherRowId((prev) => (prev === rowId ? null : rowId));
+              }}
+              className="flex p-[6px] items-center justify-center"
+            >
+              <IoChevronDown className="h-[14px] w-[14px] text-[#8A8A8A]" />
+            </button>
+          </div>
+
+          {activeVoucherRowId === String(item?._id || item?.id || index) && (
+            <div
+              data-voucher-menu
+              className="absolute left-1/2 top-[48px] z-[140] w-[180px] -translate-x-1/2 overflow-hidden rounded-[12px] border border-[#D6D6D6] bg-white shadow-[0_12px_24px_rgba(0,0,0,0.14)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {VOUCHER_MENU_OPTIONS.map((label, optionIndex) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => {
+                    console.log("Voucher download option clicked:", label, item?._id || item?.id);
+                    setActiveVoucherRowId(null);
+                  }}
+                  className={`flex w-full items-center gap-[6px] px-[16px] py-[10px] text-left text-[12px] font-[400] text-[#3E3E3E] hover:bg-[#FAF7FF] ${
+                    optionIndex < VOUCHER_MENU_OPTIONS.length - 1
+                      ? "border-b border-[#DCDCDC]"
+                      : ""
+                  }`}
+                >
+                  <LuDownload className="h-[15px] w-[15px] text-[#7C3AED]" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </td>,
+      <td
         key={`tasks-${index}`}
         className="px-4 py-3 fade-content text-center align-middle h-[3rem]"
       >
@@ -1666,6 +1762,8 @@ const OSBookingsPage = () => {
     activeTab,
     hoveredBookingRowId,
     highlightText,
+    getSelectedDateFieldRawValue,
+    activeVoucherRowId,
     openBookingInEditMode,
   ]);
 
@@ -1747,7 +1845,70 @@ const OSBookingsPage = () => {
   const columnIconMap = useMemo<Record<string, JSX.Element>>(
     () => ({
       "Travel Date": (
-        <TbArrowsUpDown className="inline w-3 h-3 text-[#818181] hover:text-[#7135AD] stroke-[2]" />
+        <span className="inline-flex items-center gap-2">
+          <button
+            type="button"
+            data-header-filter-trigger="Travel Date"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveHeaderFilter((prev) =>
+                prev === "Travel Date" ? null : "Travel Date",
+              );
+            }}
+            className="inline-flex items-center"
+          >
+            <CiFilter
+              className={`inline w-3 h-3 stroke-[2] ${
+                activeHeaderFilter === "Travel Date"
+                  ? "text-[#7C3AED]"
+                  : "text-[#818181] hover:text-[#7135AD]"
+              }`}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSort("Travel Date");
+            }}
+            className="inline-flex items-center"
+          >
+            <TbArrowsUpDown className="inline w-3 h-3 text-[#818181] hover:text-[#7135AD] stroke-[2]" />
+          </button>
+        </span>
+      ),
+      "Booking Date": (
+        <span className="inline-flex items-center gap-2">
+          <button
+            type="button"
+            data-header-filter-trigger="Travel Date"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveHeaderFilter((prev) =>
+                prev === "Travel Date" ? null : "Travel Date",
+              );
+            }}
+            className="inline-flex items-center"
+          >
+            <CiFilter
+              className={`inline w-3 h-3 stroke-[2] ${
+                activeHeaderFilter === "Travel Date"
+                  ? "text-[#7C3AED]"
+                  : "text-[#818181] hover:text-[#7135AD]"
+              }`}
+            />
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSort("Travel Date");
+            }}
+            className="inline-flex items-center"
+          >
+            <TbArrowsUpDown className="inline w-3 h-3 text-[#818181] hover:text-[#7135AD] stroke-[2]" />
+          </button>
+        </span>
       ),
       Service: (
         <CiFilter
@@ -1782,6 +1943,20 @@ const OSBookingsPage = () => {
     [],
   );
 
+  const travelDateFieldOptions = useMemo(
+    () => [
+      { value: "travelDate", label: "Travel Date" },
+      { value: "bookingDate", label: "Booking Date" },
+    ],
+    [],
+  );
+  const dateColumnLabel =
+    travelDateField === "bookingDate" ? "Booking Date" : "Travel Date";
+  const displayColumns = useMemo(
+    () => columns.map((col) => (col === "Travel Date" ? dateColumnLabel : col)),
+    [dateColumnLabel],
+  );
+
   const renderHeaderDropdown = useCallback(
     (
       title: string,
@@ -1789,6 +1964,7 @@ const OSBookingsPage = () => {
       options: Array<{ value: string; label: string }>,
       onSelect: (nextValue: string) => void,
       placeholder = title,
+      showAllOption = true,
     ) => {
       return (
       <>
@@ -1805,6 +1981,7 @@ const OSBookingsPage = () => {
         </div>
         <div className="w-[230px] overflow-hidden rounded-[14px] border border-[#D7D7D7] bg-white shadow-[0_12px_30px_rgba(0,0,0,0.14)]">
           <div className="border-t border-[#D7D7D7] bg-white">
+          {showAllOption && (
             <button
               type="button"
               onClick={() => {
@@ -1817,9 +1994,10 @@ const OSBookingsPage = () => {
             >
               All
             </button>
-            {options.map((opt, idx) => (
-              <button
-                key={opt.value}
+          )}
+          {options.map((opt, idx) => (
+            <button
+              key={opt.value}
                 type="button"
                 onClick={() => {
                   onSelect(opt.value);
@@ -1842,6 +2020,38 @@ const OSBookingsPage = () => {
 
   const headerDropdownMap = useMemo(
     () => ({
+      "Travel Date": {
+        isOpen: activeHeaderFilter === "Travel Date",
+        align: "center" as const,
+        content: renderHeaderDropdown(
+          "Date Field",
+          travelDateField,
+          travelDateFieldOptions,
+          (nextValue) => {
+            if (nextValue === "travelDate" || nextValue === "bookingDate") {
+              setTravelDateField(nextValue);
+            }
+          },
+          "Date Field",
+          false,
+        ),
+      },
+      "Booking Date": {
+        isOpen: activeHeaderFilter === "Travel Date",
+        align: "center" as const,
+        content: renderHeaderDropdown(
+          "Date Field",
+          travelDateField,
+          travelDateFieldOptions,
+          (nextValue) => {
+            if (nextValue === "travelDate" || nextValue === "bookingDate") {
+              setTravelDateField(nextValue);
+            }
+          },
+          "Date Field",
+          false,
+        ),
+      },
       Service: {
         isOpen: activeHeaderFilter === "Service",
         align: "center" as const,
@@ -1873,16 +2083,13 @@ const OSBookingsPage = () => {
       filters.status,
       renderHeaderDropdown,
       statusFilterOptions,
+      travelDateField,
+      travelDateFieldOptions,
     ],
   );
 
   const handleHeaderIconClick = useCallback(
     (column: string) => {
-      if (column === "Travel Date") {
-        handleSort(column);
-        return;
-      }
-
       if (column !== "Service" && column !== "Service Status") return;
 
       if (column === "Service" && !filters.bookingType) return;
@@ -2015,7 +2222,6 @@ const OSBookingsPage = () => {
             serviceTypes={filterOptions.serviceTypes}
             statuses={filterOptions.statuses}
             owners={filterOptions.owners}
-            showTravelDateFilter={bookingSourceTab === 'My Bookings'}
             searchOptions={[
               {
                 value: "bookingId",
@@ -2096,12 +2302,14 @@ const OSBookingsPage = () => {
                 ) : (
                   <Table
                     data={tableData}
-                    columns={columns}
+                    columns={displayColumns}
                     columnIconMap={columnIconMap}
                     onHeaderIconClick={handleHeaderIconClick}
+                    headerIconClickableColumns={["Service", "Service Status"]}
                     headerDropdownMap={headerDropdownMap}
                     columnWidthClassMap={{
                       "Booking ID": "w-[8rem]",
+                      Voucher: "w-[9rem]",
                       Tasks: "w-[7.5rem]",
                       Actions: "w-[7.5rem]",
                     }}
