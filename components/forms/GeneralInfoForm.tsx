@@ -2750,11 +2750,13 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                     </span>
                   )}
 
-                  <CiSearch
-                    size={16}
-                    className="text-[#818181]"
-                    strokeWidth={1}
-                  />
+                  {selectedSecondaryOwners.length === 0 && (
+                    <CiSearch
+                      size={16}
+                      className="text-[#818181]"
+                      strokeWidth={1}
+                    />
+                  )}
                 </div>
 
                 {secondaryOwnerDropdownOpen &&
