@@ -1130,24 +1130,61 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     };
   }, [serviceOverride, selectedService, serviceDropdownOptions]);
 
-  // Dropdown shown in the SideSheet header, only on the service tab
+  // Header right area
   const headerRight = useMemo(() => {
-    if (activeTab !== "service" || isReadOnly) return undefined;
-    return (
-      <div className="flex items-center">
-        <DropDown
-          options={serviceDropdownOptions}
-          value={effectiveServiceCategory}
-          onChange={setServiceOverride}
-          placeholder="Select Service"
-          customWidth="w-[11rem]"
-          customHeight="py-1"
-          menuClassName="rounded-[14px] px-1.5"
-          buttonClassName="px-3 py-1.5 hover:border-[#C6AEDE] rounded-[15px]"
-          noButtonRadius
-        />
-      </div>
+    const uploadButton = (
+      <button
+        type="button"
+        className="flex items-center gap-2 text-[13px] px-3.5 py-1.5 rounded-[10px] text-white font-[500]"
+        style={{
+          background: "linear-gradient(90deg, #FF33DD -17.7%, #606AFF 100%)",
+        }}
+        onClick={() => {}}
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="14"
+          height="14"
+          viewBox="0 0 14 14"
+          fill="none"
+          aria-hidden
+        >
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M3.30049 6.20563L4.40066 2.90513H5.82368L6.92385 6.20563L10.2243 7.30579V8.72882L6.92385 9.82898L5.82368 13.1295H4.40066L3.30049 9.82898L0 8.72882V7.30579L3.30049 6.20563ZM5.11217 5.51401L4.60493 7.03572L4.13059 7.51007L2.60888 8.0173L4.13059 8.52454L4.60493 8.99888L5.11217 10.5206L5.61941 8.99888L6.09375 8.52454L7.61546 8.0173L6.09375 7.51007L5.61941 7.03572L5.11217 5.51401Z"
+            fill="white"
+          />
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M10.1002 1.7553L10.6853 0H11.5391L12.1242 1.7553L13.8795 2.34039V3.19421L12.1242 3.77931L11.5391 5.53461H10.6853L10.1002 3.77931L8.34487 3.19421V2.34039L10.1002 1.7553Z"
+            fill="white"
+          />
+        </svg>
+        <span>Upload with AI</span>
+      </button>
     );
+
+    if (activeTab === "service" && !isReadOnly) {
+      return (
+        <div className="flex items-center gap-3">
+          <DropDown
+            options={serviceDropdownOptions}
+            value={effectiveServiceCategory}
+            onChange={setServiceOverride}
+            placeholder="Select Service"
+            customWidth="w-[11rem]"
+            customHeight="py-1"
+            menuClassName="rounded-[14px] px-1.5"
+            buttonClassName="px-3 py-1.5 text-[#020202] font-[400] hover:border-[#C6AEDE] rounded-[15px]"
+            noButtonRadius
+          />
+          {uploadButton}
+        </div>
+      );
+    }
+    return <div className="flex items-center">{uploadButton}</div>;
   }, [activeTab, isReadOnly, serviceDropdownOptions, effectiveServiceCategory]);
 
   return (
@@ -1244,6 +1281,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   onAddDocuments={addBookingDocuments}
                   onRemoveDocuments={removeBookingDocuments}
                   existingDocuments={existingBookingDocuments}
+                  customerCount={formData?.customerCount ?? 1}
                 />
               </div>
             </div>

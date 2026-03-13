@@ -8,6 +8,7 @@ import SingleCalendar from "@/components/SingleCalendar";
 import DropDown from "@/components/DropDown";
 import BaggageCounters from "./BaggageCounters";
 import TimeInput from "../components/TimeInput";
+import { getAirlineIconUrl } from "@/utils/helper";
 
 // --- Exported Types ---
 
@@ -551,10 +552,24 @@ export default function FlightSegmentCard({
           ) : preview ? (
             <>
               {/* Airline Header */}
-              <div className="bg-blue-50 border border-[#3A469D] rounded-md px-3 py-2 mb-3 flex items-center gap-2">
-                <span className="font-[500] text-gray-800">
-                  {preview.airline}
-                </span>
+              <div className="border border-[#3A469D] rounded-md px-3 py-2 mb-3 flex items-center gap-2">
+                {(() => {
+                  const icon = getAirlineIconUrl(preview.airline);
+                  return (
+                    <>
+                      {icon && (
+                        <img
+                          src={icon}
+                          alt={preview.airline || "airline"}
+                          className="w-7 h-7 object-contain rounded-sm"
+                        />
+                      )}
+                      <span className="font-[500] text-[#020202]">
+                        {preview.airline}
+                      </span>
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Route Info */}
