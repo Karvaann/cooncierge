@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import DropDown from "./DropDown";
 import NotesButtonToolTip from "./NotesButtonToolTip";
 import { CURRENCIES } from "../utils/currencies";
+import StyledDescription from "./StyledDescription";
 type Currency = "USD" | "INR";
 
 type MultiCurrencyInputProps = {
@@ -126,14 +127,14 @@ export default function MultiCurrencyInput({
           <DropDown
             options={CURRENCIES.map((c) => ({
               value: c.value,
-              label: `${c.value} – ${c.label}`,
+              label: `${c.value}`,
               buttonLabel: c.value,
               searchLabel: `${c.value} ${c.label} ${c.symbol}`,
             }))}
             value={currency}
             onChange={(val) => onCurrencyChange(val as Currency)}
             customWidth="w-[60px]"
-            menuWidth="w-[220px]"
+            menuWidth="w-[70px]"
             noBorder={true}
             noButtonRadius={true}
             focusRingClass=""
@@ -141,6 +142,7 @@ export default function MultiCurrencyInput({
             className={groupSelectWhite}
             typeable
             readOnly={readOnly}
+            menuClassName="rounded-[15px] scrollbar-thin"
           />
           <input
             className={`${groupInput} flex-1${readOnly ? "cursor-not-allowed" : ""}`}
@@ -197,14 +199,16 @@ export default function MultiCurrencyInput({
           <label className="block text-[0.78rem] font-[500] text-gray-700 mb-1">
             Notes
           </label>
-          <input
-            value={notes}
-            onChange={(e) => onNotesChange(e.target.value)}
-            className={`${inputClassName || inputBase}${readOnly ? "cursor-not-allowed" : ""}`}
-            placeholder={notesPlaceholder}
-            style={notesInputWidth ? { width: notesInputWidth } : undefined}
-            readOnly={readOnly}
-          />
+          <div className="-mt-4">
+            <StyledDescription
+              value={notes}
+              onChange={onNotesChange}
+              readOnly={readOnly}
+              boxWidth={notesInputWidth ?? "w-[99%]"}
+              label=""
+              rows={2}
+            />
+          </div>
         </div>
       )}
     </>

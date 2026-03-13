@@ -1,13 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import {
-  useMemo,
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-} from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import {
   addDays,
   differenceInCalendarDays,
@@ -31,7 +25,11 @@ import {
   getStoredCurrencySymbol,
 } from "@/utils/helper";
 import { FaRegTrashAlt } from "react-icons/fa";
-import { MdOutlineEdit, MdOutlineKeyboardArrowDown, MdOutlineTravelExplore } from "react-icons/md";
+import {
+  MdOutlineEdit,
+  MdOutlineKeyboardArrowDown,
+  MdOutlineTravelExplore,
+} from "react-icons/md";
 import { TbArrowAutofitRight } from "react-icons/tb";
 import { FiCheck, FiCopy } from "react-icons/fi";
 import { CiFilter } from "react-icons/ci";
@@ -45,11 +43,12 @@ import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { LuPlane, LuHotel, LuTicket, LuDownload } from "react-icons/lu";
 import { PiCarProfileLight } from "react-icons/pi";
-import { IoChevronBack, IoChevronForward, IoChevronDown } from "react-icons/io5";
 import {
-  getNextTriSortState,
-  type TriSortState,
-} from "@/utils/sorting";
+  IoChevronBack,
+  IoChevronForward,
+  IoChevronDown,
+} from "react-icons/io5";
+import { getNextTriSortState, type TriSortState } from "@/utils/sorting";
 import UnderlineTabs from "@/components/UnderlineTabs";
 import { RiRefreshLine } from "react-icons/ri";
 
@@ -219,7 +218,10 @@ const RECENT_CREATED_SESSION_KEY = "os_bookings_recent_created_v1";
 const RECENT_CREATED_TTL_MS = 1000 * 60 * 60 * 3;
 
 const isBookingIncomplete = (item: any): boolean =>
-  !(item?.isBookingDataComplete === true || item?.isBookingDataComplete === "true");
+  !(
+    item?.isBookingDataComplete === true ||
+    item?.isBookingDataComplete === "true"
+  );
 
 const getCreatedAtTimestamp = (item: any): number => {
   const raw = item?.createdAt || item?.updatedAt || item?.travelDate;
@@ -228,9 +230,7 @@ const getCreatedAtTimestamp = (item: any): number => {
 };
 
 const normalizeKey = (value: string): string => value.toLowerCase().trim();
-const toFilterArray = (
-  value: string | string[] | undefined,
-): string[] =>
+const toFilterArray = (value: string | string[] | undefined): string[] =>
   Array.isArray(value)
     ? value.filter(Boolean).map((v) => normalizeKey(String(v)))
     : value
@@ -280,7 +280,10 @@ const getBookingSourceType = (item: any): "os" | "limitless" => {
   if (explicitType === "limitless") return "limitless";
   if (explicitType === "os") return "os";
 
-  if (Array.isArray(item?.limitlessDestinations) && item.limitlessDestinations.length) {
+  if (
+    Array.isArray(item?.limitlessDestinations) &&
+    item.limitlessDestinations.length
+  ) {
     return "limitless";
   }
 
@@ -300,13 +303,19 @@ const getSubsequenceMatchIndices = (
   if (!query) return [];
 
   const normalizedQuery =
-    matchMode === "digits" ? normalizeDigits(query) : normalizeAlphaNumeric(query);
+    matchMode === "digits"
+      ? normalizeDigits(query)
+      : normalizeAlphaNumeric(query);
   if (!normalizedQuery) return [];
 
   const indices: number[] = [];
   let queryCursor = 0;
 
-  for (let i = 0; i < source.length && queryCursor < normalizedQuery.length; i++) {
+  for (
+    let i = 0;
+    i < source.length && queryCursor < normalizedQuery.length;
+    i++
+  ) {
     const char = source[i] || "";
     const normalizedChar =
       matchMode === "digits"
@@ -380,16 +389,18 @@ const OSBookingsPage = () => {
   const [travelDateField, setTravelDateField] = useState<
     "travelDate" | "bookingDate"
   >("travelDate");
-  const [recentCreatedMap, setRecentCreatedMap] = useState<Record<string, number>>(
-    {},
-  );
+  const [recentCreatedMap, setRecentCreatedMap] = useState<
+    Record<string, number>
+  >({});
   const hasLoadedInitialBatchRef = useRef(false);
   const knownBookingIdsRef = useRef<Set<string>>(new Set());
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
-  const [activeVoucherRowId, setActiveVoucherRowId] = useState<string | null>(null);
+  const [activeVoucherRowId, setActiveVoucherRowId] = useState<string | null>(
+    null,
+  );
   const [hoveredBookingRowId, setHoveredBookingRowId] = useState<string | null>(
     null,
   );
@@ -484,7 +495,12 @@ const OSBookingsPage = () => {
     if (activeHeaderFilter === "Travel Date") {
       setPendingDateField(travelDateField);
     }
-  }, [activeHeaderFilter, filters.serviceType, filters.status, travelDateField]);
+  }, [
+    activeHeaderFilter,
+    filters.serviceType,
+    filters.status,
+    travelDateField,
+  ]);
 
   useEffect(() => {
     if (!activeVoucherRowId) return;
@@ -645,7 +661,10 @@ const OSBookingsPage = () => {
       }
 
       if (selectedServiceTypes.length > 0) {
-        if (bookingType === "limitless" && selectedBookingType === "limitless") {
+        if (
+          bookingType === "limitless" &&
+          selectedBookingType === "limitless"
+        ) {
           const destinationValues = [
             ...(Array.isArray((q as any)?.limitlessDestinations)
               ? ((q as any).limitlessDestinations as string[])
@@ -655,7 +674,9 @@ const OSBookingsPage = () => {
             .map((v) => normalizeKey(v))
             .filter(Boolean);
 
-          if (!selectedServiceTypes.some((sel) => destinationValues.includes(sel))) {
+          if (
+            !selectedServiceTypes.some((sel) => destinationValues.includes(sel))
+          ) {
             return false;
           }
         } else {
@@ -668,7 +689,9 @@ const OSBookingsPage = () => {
       }
 
       if (selectedStatuses.length > 0) {
-        const normalizedStatus = normalizeKey(mapStatus(String(q.status || "")));
+        const normalizedStatus = normalizeKey(
+          mapStatus(String(q.status || "")),
+        );
         if (!selectedStatuses.includes(normalizedStatus)) {
           return false;
         }
@@ -676,21 +699,28 @@ const OSBookingsPage = () => {
 
       if (filters.search.trim()) {
         const s = filters.search.trim();
-        const ownerNames = ([] as Array<{ name?: string }>).concat(
-          q.secondaryOwner || [],
-          q.primaryOwner ? [q.primaryOwner] : [],
-          q.owner || [],
-        )
+        const ownerNames = ([] as Array<{ name?: string }>)
+          .concat(
+            q.secondaryOwner || [],
+            q.primaryOwner ? [q.primaryOwner] : [],
+            q.owner || [],
+          )
           .map((owner) => owner?.name || "")
           .filter(Boolean)
           .join(" ")
           .toLowerCase();
         const bookingId = q.customId || q._id || "";
         const leadPaxName =
-          q.adultTravelers?.[0]?.name || q.customerId?.name || q.formFields?.customer || "";
+          q.adultTravelers?.[0]?.name ||
+          q.customerId?.name ||
+          q.formFields?.customer ||
+          "";
         const customerName = q.customerId?.name || q.formFields?.customer || "";
         const rawAmount = q.totalAmount ?? q.formFields?.budget;
-        const amountString = rawAmount === undefined || rawAmount === null ? "" : String(rawAmount);
+        const amountString =
+          rawAmount === undefined || rawAmount === null
+            ? ""
+            : String(rawAmount);
 
         const matchesSearch =
           filters.searchBy === "bookingId"
@@ -798,7 +828,10 @@ const OSBookingsPage = () => {
           const next: Record<string, number> = {};
 
           Object.entries(prev).forEach(([id, ts]) => {
-            if (fetchedIds.has(id) && now - Number(ts) < RECENT_CREATED_TTL_MS) {
+            if (
+              fetchedIds.has(id) &&
+              now - Number(ts) < RECENT_CREATED_TTL_MS
+            ) {
               next[id] = Number(ts);
             }
           });
@@ -916,7 +949,6 @@ const OSBookingsPage = () => {
     setSideSheetMode("edit");
     setIsSideSheetOpen(true);
   };
-
 
   // Handle booking completion (refresh data)
   const handleBookingComplete = useCallback(async () => {
@@ -1305,14 +1337,18 @@ const OSBookingsPage = () => {
           const selectedBookingType = normalizeKey(filters.bookingType || "");
 
           if (
-            (selectedBookingType === "os" || selectedBookingType === "limitless") &&
+            (selectedBookingType === "os" ||
+              selectedBookingType === "limitless") &&
             bookingType !== selectedBookingType
           ) {
             return false;
           }
 
           if (selectedServiceTypes.length > 0) {
-            if (bookingType === "limitless" && selectedBookingType === "limitless") {
+            if (
+              bookingType === "limitless" &&
+              selectedBookingType === "limitless"
+            ) {
               const destinationValues = [
                 ...(Array.isArray(draft?.limitlessDestinations)
                   ? (draft.limitlessDestinations as string[])
@@ -1322,12 +1358,18 @@ const OSBookingsPage = () => {
                 .map((v) => normalizeKey(v))
                 .filter(Boolean);
 
-              if (!selectedServiceTypes.some((sel) => destinationValues.includes(sel))) {
+              if (
+                !selectedServiceTypes.some((sel) =>
+                  destinationValues.includes(sel),
+                )
+              ) {
                 return false;
               }
             } else {
               if (bookingType !== "os") return false;
-              const serviceValue = getOsServiceKey(String(draft.quotationType || ""));
+              const serviceValue = getOsServiceKey(
+                String(draft.quotationType || ""),
+              );
               if (!selectedServiceTypes.includes(serviceValue)) {
                 return false;
               }
@@ -1335,17 +1377,20 @@ const OSBookingsPage = () => {
           }
 
           if (selectedStatuses.length > 0) {
-            const normalizedStatus = normalizeKey(mapStatus(String(draft.status || "")));
+            const normalizedStatus = normalizeKey(
+              mapStatus(String(draft.status || "")),
+            );
             if (!selectedStatuses.includes(normalizedStatus)) {
               return false;
             }
           }
 
-          const ownerNames = ([] as Array<{ name?: string }>).concat(
-            draft.owner || [],
-            draft.secondaryOwner || [],
-            draft.primaryOwner ? [draft.primaryOwner] : [],
-          )
+          const ownerNames = ([] as Array<{ name?: string }>)
+            .concat(
+              draft.owner || [],
+              draft.secondaryOwner || [],
+              draft.primaryOwner ? [draft.primaryOwner] : [],
+            )
             .map((owner) => owner?.name || "")
             .filter(Boolean)
             .join(" ")
@@ -1356,10 +1401,13 @@ const OSBookingsPage = () => {
             draft.customerId?.name ||
             draft.formFields?.customer ||
             "";
-          const customerName = draft.customerId?.name || draft.formFields?.customer || "";
+          const customerName =
+            draft.customerId?.name || draft.formFields?.customer || "";
           const rawAmount = draft.totalAmount ?? draft.formFields?.budget;
           const amountString =
-            rawAmount === undefined || rawAmount === null ? "" : String(rawAmount);
+            rawAmount === undefined || rawAmount === null
+              ? ""
+              : String(rawAmount);
 
           if (filters.searchBy === "bookingId") {
             return matchesOrderedSubsequence(bookingId, s, "alnum");
@@ -1387,14 +1435,18 @@ const OSBookingsPage = () => {
         const selectedBookingType = normalizeKey(filters.bookingType || "");
 
         if (
-          (selectedBookingType === "os" || selectedBookingType === "limitless") &&
+          (selectedBookingType === "os" ||
+            selectedBookingType === "limitless") &&
           bookingType !== selectedBookingType
         ) {
           return false;
         }
 
         if (selectedServiceTypes.length > 0) {
-          if (bookingType === "limitless" && selectedBookingType === "limitless") {
+          if (
+            bookingType === "limitless" &&
+            selectedBookingType === "limitless"
+          ) {
             const destinationValues = [
               ...(Array.isArray(draft?.limitlessDestinations)
                 ? (draft.limitlessDestinations as string[])
@@ -1404,12 +1456,18 @@ const OSBookingsPage = () => {
               .map((v) => normalizeKey(v))
               .filter(Boolean);
 
-            if (!selectedServiceTypes.some((sel) => destinationValues.includes(sel))) {
+            if (
+              !selectedServiceTypes.some((sel) =>
+                destinationValues.includes(sel),
+              )
+            ) {
               return false;
             }
           } else {
             if (bookingType !== "os") return false;
-            const serviceValue = getOsServiceKey(String(draft.quotationType || ""));
+            const serviceValue = getOsServiceKey(
+              String(draft.quotationType || ""),
+            );
             if (!selectedServiceTypes.includes(serviceValue)) {
               return false;
             }
@@ -1417,7 +1475,9 @@ const OSBookingsPage = () => {
         }
 
         if (selectedStatuses.length > 0) {
-          const normalizedStatus = normalizeKey(mapStatus(String(draft.status || "")));
+          const normalizedStatus = normalizeKey(
+            mapStatus(String(draft.status || "")),
+          );
           if (!selectedStatuses.includes(normalizedStatus)) {
             return false;
           }
@@ -1445,7 +1505,13 @@ const OSBookingsPage = () => {
           return true;
       }
     });
-  }, [activeTab, drafts, filteredQuotations, filters.search, filters.searchBy]) as any[];
+  }, [
+    activeTab,
+    drafts,
+    filteredQuotations,
+    filters.search,
+    filters.searchBy,
+  ]) as any[];
 
   // Use shared timestamp extractor from utils/sorting.ts
   // (keeps logic consistent across pages)
@@ -1553,7 +1619,9 @@ const OSBookingsPage = () => {
         return (
           <>
             {text.slice(0, start)}
-            <span className="rounded-[2px] bg-[#FFF3B0]">{text.slice(start, end)}</span>
+            <span className="rounded-[2px] bg-[#FFF3B0]">
+              {text.slice(start, end)}
+            </span>
             {text.slice(end)}
           </>
         );
@@ -1570,7 +1638,10 @@ const OSBookingsPage = () => {
         <>
           {Array.from(text).map((char, idx) =>
             indexSet.has(idx) ? (
-              <span key={`${char}-${idx}`} className="rounded-[2px] bg-[#FFF3B0]">
+              <span
+                key={`${char}-${idx}`}
+                className="rounded-[2px] bg-[#FFF3B0]"
+              >
                 {char}
               </span>
             ) : (
@@ -1614,13 +1685,14 @@ const OSBookingsPage = () => {
             </button>
           </div>
 
-          {!item.isBookingDataComplete && <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              openBookingInEditMode(item);
-            }}
-            className={`
+          {!item.isBookingDataComplete && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openBookingInEditMode(item);
+              }}
+              className={`
               absolute left-[-10px] top-1/2 z-[100] -translate-y-1/2
               whitespace-nowrap flex items-center gap-2 rounded-[8px] bg-[#FFF] px-[12px] py-[8px]
               text-[12px] font-[500] text-[#7135AD]
@@ -1628,12 +1700,25 @@ const OSBookingsPage = () => {
               transition-opacity duration-300 ease-in-out
               ${hoveredBookingRowId === String(item?._id || item?.id || "") ? "opacity-100" : "opacity-0 pointer-events-none"}
             `}
-          >
-            Complete Booking
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-              <path d="M5 12H19M19 12L15 16M19 12L15 8" stroke="#7135AD" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>}
+            >
+              Complete Booking
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+              >
+                <path
+                  d="M5 12H19M19 12L15 16M19 12L15 8"
+                  stroke="#7135AD"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          )}
         </div>
       </td>,
       <td
@@ -1642,7 +1727,10 @@ const OSBookingsPage = () => {
         className="px-4 fade-content py-3 text-center text-[13px] font-[400] align-middle h-[3rem] cursor-pointer"
       >
         {highlightText(
-          item.adultTravelers?.[0]?.name || item.customerId?.name || item.formFields?.customer || "--",
+          item.adultTravelers?.[0]?.name ||
+            item.customerId?.name ||
+            item.formFields?.customer ||
+            "--",
           "substring-ci",
           ["leadPax", "customerName"],
         )}
@@ -1769,7 +1857,9 @@ const OSBookingsPage = () => {
               onClick={(e) => {
                 e.stopPropagation();
                 const rowId = String(item?._id || item?.id || index);
-                setActiveVoucherRowId((prev) => (prev === rowId ? null : rowId));
+                setActiveVoucherRowId((prev) =>
+                  prev === rowId ? null : rowId,
+                );
               }}
               className="flex p-[6px] items-center justify-center"
             >
@@ -1788,7 +1878,11 @@ const OSBookingsPage = () => {
                   key={label}
                   type="button"
                   onClick={() => {
-                    console.log("Voucher download option clicked:", label, item?._id || item?.id);
+                    console.log(
+                      "Voucher download option clicked:",
+                      label,
+                      item?._id || item?.id,
+                    );
                     setActiveVoucherRowId(null);
                   }}
                   className={`flex w-full items-center gap-[6px] px-[16px] py-[10px] text-left text-[12px] font-[400] text-[#3E3E3E] hover:bg-[#FAF7FF] ${
@@ -1833,7 +1927,7 @@ const OSBookingsPage = () => {
             >
               ₹
             </button>
-            <div className="pointer-events-none absolute left-1/2 bottom-full mb-2 -translate-x-1/2 rounded-[6px] bg-[#111111] px-2 py-1 text-[11px] text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 whitespace-nowrap">
+            <div className="pointer-events-none z-[99999] absolute left-1/2 bottom-full mb-2 -translate-x-1/2 rounded-[6px] bg-[#111111] px-2 py-1 text-[11px] text-white opacity-0 group-hover:opacity-100 whitespace-nowrap">
               Record Payment
             </div>
           </div>
@@ -1862,8 +1956,7 @@ const OSBookingsPage = () => {
       if (!item) return "";
       const itemId = String(item?._id || item?.id || "");
 
-      const isBookingDataComplete =
-        !isBookingIncomplete(item);
+      const isBookingDataComplete = !isBookingIncomplete(item);
 
       const baseClass = !isBookingDataComplete
         ? "!bg-[#FFFDEF] border-l-4 border-l-[#FEDB6B]"
@@ -1880,49 +1973,46 @@ const OSBookingsPage = () => {
 
   // Helper functions
 
-  const filterOptions = useMemo(
-    () => {
-      const limitlessDestinationSet = new Set<string>();
+  const filterOptions = useMemo(() => {
+    const limitlessDestinationSet = new Set<string>();
 
-      quotations.forEach((item) => {
-        const sourceType = getBookingSourceType(item);
-        if (sourceType === "limitless") {
-          const destinations = [
-            ...(Array.isArray((item as any).limitlessDestinations)
-              ? ((item as any).limitlessDestinations as string[])
-              : []),
-            String(item.formFields?.destination || ""),
-          ]
-            .map((d) => d.trim())
-            .filter(Boolean);
+    quotations.forEach((item) => {
+      const sourceType = getBookingSourceType(item);
+      if (sourceType === "limitless") {
+        const destinations = [
+          ...(Array.isArray((item as any).limitlessDestinations)
+            ? ((item as any).limitlessDestinations as string[])
+            : []),
+          String(item.formFields?.destination || ""),
+        ]
+          .map((d) => d.trim())
+          .filter(Boolean);
 
-          destinations.forEach((destination) =>
-            limitlessDestinationSet.add(destination),
-          );
-          return;
-        }
-      });
+        destinations.forEach((destination) =>
+          limitlessDestinationSet.add(destination),
+        );
+        return;
+      }
+    });
 
-      const selectedBookingType = normalizeKey(filters.bookingType || "");
-      const serviceTypes =
-        selectedBookingType === "limitless"
-          ? Array.from(limitlessDestinationSet)
-              .sort((a, b) => a.localeCompare(b))
-              .map((destination) => ({ value: destination, label: destination }))
-          : OS_SERVICE_OPTIONS;
+    const selectedBookingType = normalizeKey(filters.bookingType || "");
+    const serviceTypes =
+      selectedBookingType === "limitless"
+        ? Array.from(limitlessDestinationSet)
+            .sort((a, b) => a.localeCompare(b))
+            .map((destination) => ({ value: destination, label: destination }))
+        : OS_SERVICE_OPTIONS;
 
-      return {
-        serviceTypes,
-        statuses: [
-          { value: "confirmed", label: "Confirmed" },
-          { value: "rescheduled", label: "Rescheduled" },
-          { value: "cancelled", label: "Cancelled" },
-        ],
-        owners: ownersList.map((o) => ({ value: o.full, label: o.full })),
-      };
-    },
-    [ownersList, quotations, filters.bookingType],
-  );
+    return {
+      serviceTypes,
+      statuses: [
+        { value: "confirmed", label: "Confirmed" },
+        { value: "rescheduled", label: "Rescheduled" },
+        { value: "cancelled", label: "Cancelled" },
+      ],
+      owners: ownersList.map((o) => ({ value: o.full, label: o.full })),
+    };
+  }, [ownersList, quotations, filters.bookingType]);
 
   const columnIconMap = useMemo<Record<string, JSX.Element>>(
     () => ({
@@ -2201,7 +2291,9 @@ const OSBookingsPage = () => {
           () => {
             setFilters((prev) => ({
               ...prev,
-              serviceType: pendingServiceTypes.length ? pendingServiceTypes : "",
+              serviceType: pendingServiceTypes.length
+                ? pendingServiceTypes
+                : "",
             }));
             setActiveHeaderFilter(null);
           },
@@ -2246,16 +2338,13 @@ const OSBookingsPage = () => {
     ],
   );
 
-  const handleHeaderIconClick = useCallback(
-    (column: string) => {
-      if (column !== "Service" && column !== "Service Status") return;
+  const handleHeaderIconClick = useCallback((column: string) => {
+    if (column !== "Service" && column !== "Service Status") return;
 
-      const nextColumn =
-        column === "Service" || column === "Service Status" ? column : null;
-      setActiveHeaderFilter((prev) => (prev === nextColumn ? null : nextColumn));
-    },
-    [],
-  );
+    const nextColumn =
+      column === "Service" || column === "Service Status" ? column : null;
+    setActiveHeaderFilter((prev) => (prev === nextColumn ? null : nextColumn));
+  }, []);
 
   const handleFilterChange = useCallback((next: FilterPayload) => {
     setFilters(next);
@@ -2277,7 +2366,9 @@ const OSBookingsPage = () => {
   }, []);
 
   const getTimelineServiceLabel = useCallback((quotationType?: string) => {
-    const normalized = String(quotationType || "").toLowerCase().trim();
+    const normalized = String(quotationType || "")
+      .toLowerCase()
+      .trim();
 
     if (["flight", "flights", "travel"].includes(normalized)) {
       return "Flight";
@@ -2301,7 +2392,9 @@ const OSBookingsPage = () => {
   }, []);
 
   const getTimelineServiceIcon = useCallback((quotationType?: string) => {
-    const normalized = String(quotationType || "").toLowerCase().trim();
+    const normalized = String(quotationType || "")
+      .toLowerCase()
+      .trim();
 
     if (["flight", "flights", "travel"].includes(normalized)) {
       return <LuPlane className="h-4 w-4 text-[#7A3EC8]" />;
@@ -2322,7 +2415,10 @@ const OSBookingsPage = () => {
   }, []);
 
   const timelineDates = useMemo(
-    () => Array.from({ length: 10 }, (_, index) => addDays(calendarStartDate, index)),
+    () =>
+      Array.from({ length: 10 }, (_, index) =>
+        addDays(calendarStartDate, index),
+      ),
     [calendarStartDate],
   );
 
@@ -2338,14 +2434,14 @@ const OSBookingsPage = () => {
     () =>
       Boolean(
         filters.search ||
-          filters.bookingStartDate ||
-          filters.bookingEndDate ||
-          filters.tripStartDate ||
-          filters.tripEndDate ||
-          toFilterArray(filters.serviceType).length > 0 ||
-          toFilterArray(filters.status).length > 0 ||
-          filters.bookingType ||
-          hasOwnerFilter,
+        filters.bookingStartDate ||
+        filters.bookingEndDate ||
+        filters.tripStartDate ||
+        filters.tripEndDate ||
+        toFilterArray(filters.serviceType).length > 0 ||
+        toFilterArray(filters.status).length > 0 ||
+        filters.bookingType ||
+        hasOwnerFilter,
       ),
     [
       filters.search,
@@ -2476,16 +2572,20 @@ const OSBookingsPage = () => {
           limitlessCount: 0,
         };
       }),
-    [filteredQuotations, getBookingTimelineDate, timelineDates, showIncompleteOnly],
+    [
+      filteredQuotations,
+      getBookingTimelineDate,
+      timelineDates,
+      showIncompleteOnly,
+    ],
   );
 
   return (
     <div className="h-[83vh] overflow-hidden bg-[#F9F9F9] px-7 py-0">
       <div className="flex h-full flex-col bg-[#F9F9F9]">
         <div className="flex h-full min-h-0 flex-col">
-
           <div className="flex w-full mb-6 items-center justify-between">
-             <TableTabs
+            <TableTabs
               tabs={["My Bookings", "My Calender"]}
               activeTab={bookingSourceTab}
               onChange={setBookingSourceTab}
@@ -2494,12 +2594,13 @@ const OSBookingsPage = () => {
               draggableIndicator={true}
             />
 
-            <button onClick={() => handleCreateRequested()} className="text-white text-[14px] font-[500] bg-[#7135AD] rounded-[14px] px-[14px] py-[8px]">
+            <button
+              onClick={() => handleCreateRequested()}
+              className="text-white text-[14px] font-[500] bg-[#7135AD] rounded-[14px] px-[14px] py-[8px]"
+            >
               + Create
             </button>
-
           </div>
-
 
           <Filter
             onFilterChange={handleFilterChange}
@@ -2511,8 +2612,12 @@ const OSBookingsPage = () => {
               bookingSourceTab === "My Calender" && isCalendarFilterApplied
             }
             resultNavigatorActive={isCalendarNavigatorActive}
-            resultNavigatorCurrent={isCalendarNavigatorActive ? calendarNavigatorIndex : 0}
-            resultNavigatorTotal={isCalendarNavigatorActive ? matchedCalendarDates.length : 0}
+            resultNavigatorCurrent={
+              isCalendarNavigatorActive ? calendarNavigatorIndex : 0
+            }
+            resultNavigatorTotal={
+              isCalendarNavigatorActive ? matchedCalendarDates.length : 0
+            }
             onResultNavigatorPrev={() => jumpToCalendarMatch(-1)}
             onResultNavigatorNext={() => jumpToCalendarMatch(1)}
             searchOptions={[
@@ -2548,47 +2653,44 @@ const OSBookingsPage = () => {
 
           {bookingSourceTab === "My Bookings" ? (
             <div className="relative mt-4 flex min-h-0 flex-1 flex-col rounded-2xl border border-[1px] border-[#E5E7EB] bg-white">
-                <div className="flex items-center justify-between border-b border-[#E5E7EB]">
-                  <UnderlineTabs
-                    tabs={tabOptions}
-                    activeTab={activeTab}
-                    onChange={setActiveTab}
-                    totalCount={filteredQuotations.length}
-                    className="!border-b-0"
-                  />
-                  <div className="flex items-center gap-[20px] px-4">
-
-                    <div className="flex items-center gap-[6px]">
-
-                      <button
-                        onClick={() => setShowIncompleteOnly((prev) => !prev)}
-                        className={`relative inline-flex h-5 w-8 items-center rounded-full transition-colors ${
-                          showIncompleteOnly ? "bg-[#7135AD]" : "bg-[#C9CCCE]"
+              <div className="flex items-center justify-between border-b border-[#E5E7EB]">
+                <UnderlineTabs
+                  tabs={tabOptions}
+                  activeTab={activeTab}
+                  onChange={setActiveTab}
+                  totalCount={filteredQuotations.length}
+                  className="!border-b-0"
+                />
+                <div className="flex items-center gap-[20px] px-4">
+                  <div className="flex items-center gap-[6px]">
+                    <button
+                      onClick={() => setShowIncompleteOnly((prev) => !prev)}
+                      className={`relative inline-flex h-5 w-8 items-center rounded-full transition-colors ${
+                        showIncompleteOnly ? "bg-[#7135AD]" : "bg-[#C9CCCE]"
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          showIncompleteOnly
+                            ? "translate-x-3.5"
+                            : "translate-x-0.5"
                         }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            showIncompleteOnly
-                              ? "translate-x-3.5"
-                              : "translate-x-0.5"
-                          }`}
-                        />
-                      </button>
+                      />
+                    </button>
 
-                      <span className="text-[12px] font-[400] text-[#414141]">
-                        Show Incomplete Bookings
-                      </span>
+                    <span className="text-[12px] font-[400] text-[#414141]">
+                      Show Incomplete Bookings
+                    </span>
+                  </div>
 
-                    </div>
-
-                    <div className="rounded-full border border-[#C6B2DE] px-[14px] py-[6px] text-[12px] font-[500] text-[#4B4B4B]">
-                      Total :{" "}
-                      <span className="font-[500] text-[#7135AD]">
-                        {sortedQuotationsForTable.length}
-                      </span>
-                    </div>
+                  <div className="rounded-full border border-[#C6B2DE] px-[14px] py-[6px] text-[12px] font-[500] text-[#4B4B4B]">
+                    Total :{" "}
+                    <span className="font-[500] text-[#7135AD]">
+                      {sortedQuotationsForTable.length}
+                    </span>
                   </div>
                 </div>
+              </div>
               <div className="mt-4 flex-1 min-h-0 overflow-auto px-5 py-[4px]">
                 {isLoading ? (
                   <TableSkeleton />
@@ -2619,7 +2721,7 @@ const OSBookingsPage = () => {
             <div className="relative mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
               <div className="flex items-center justify-between border-b border-[#E2E1E1] py-[7px] px-5">
                 <h2 className="text-[15px] whitespace-pre font-[600] text-[#020202]">
-                  Bookings  Timeline
+                  Bookings Timeline
                 </h2>
                 <div className="flex items-center gap-[14px]">
                   <div className="flex items-center gap-[6px]">
@@ -2643,7 +2745,9 @@ const OSBookingsPage = () => {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setCalendarStartDate((prev) => addDays(prev, -10))}
+                    onClick={() =>
+                      setCalendarStartDate((prev) => addDays(prev, -10))
+                    }
                     className="rounded-full p-2 text-[#7A7A7A] transition-colors hover:bg-[#F3F3F3]"
                     aria-label="Previous 10 dates"
                   >
@@ -2657,7 +2761,9 @@ const OSBookingsPage = () => {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setCalendarStartDate((prev) => addDays(prev, 10))}
+                    onClick={() =>
+                      setCalendarStartDate((prev) => addDays(prev, 10))
+                    }
                     className="rounded-full p-2 text-[#7A7A7A] transition-colors hover:bg-[#F3F3F3]"
                     aria-label="Next 10 dates"
                   >
@@ -2698,8 +2804,24 @@ const OSBookingsPage = () => {
                                   : "bg-[rgba(113,53,173,0.08)]"
                               }`}
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                                <path d="M14.6641 2.75V6.41667M7.33073 2.75V6.41667M3.66406 10.0833H18.3307M10.0807 13.75H10.9974V16.5M5.4974 4.58333H16.4974C17.5099 4.58333 18.3307 5.40414 18.3307 6.41667V17.4167C18.3307 18.4292 17.5099 19.25 16.4974 19.25H5.4974C4.48487 19.25 3.66406 18.4292 3.66406 17.4167V6.41667C3.66406 5.40414 4.48487 4.58333 5.4974 4.58333Z" stroke={isFilterArrowSelectedCard ? "white" : "#7135AD"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                width="20"
+                                height="20"
+                                viewBox="0 0 20 20"
+                                fill="none"
+                              >
+                                <path
+                                  d="M14.6641 2.75V6.41667M7.33073 2.75V6.41667M3.66406 10.0833H18.3307M10.0807 13.75H10.9974V16.5M5.4974 4.58333H16.4974C17.5099 4.58333 18.3307 5.40414 18.3307 6.41667V17.4167C18.3307 18.4292 17.5099 19.25 16.4974 19.25H5.4974C4.48487 19.25 3.66406 18.4292 3.66406 17.4167V6.41667C3.66406 5.40414 4.48487 4.58333 5.4974 4.58333Z"
+                                  stroke={
+                                    isFilterArrowSelectedCard
+                                      ? "white"
+                                      : "#7135AD"
+                                  }
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
                               </svg>
                             </span>
                             <div>
@@ -2760,7 +2882,8 @@ const OSBookingsPage = () => {
                                 : normalizedStatus === "cancelled"
                                   ? "#A3A3A3"
                                   : "#3FAE49";
-                            const isCancelled = normalizedStatus === "cancelled";
+                            const isCancelled =
+                              normalizedStatus === "cancelled";
 
                             return (
                               <button
@@ -2768,7 +2891,9 @@ const OSBookingsPage = () => {
                                 type="button"
                                 onClick={() => handleViewBooking(item)}
                                 className={`flex w-full flex-col gap-[12px] rounded-[14px] border-l-4 border-transparent [border-left-color:var(--timeline-accent)] p-[12px] text-left shadow-[0_2px_8px_0_rgba(0,0,0,0.06)] transition-all duration-300 hover:border hover:border-[var(--timeline-accent)] ${
-                                  isCancelled ? "bg-[#F4F4F4] opacity-75" : "bg-white"
+                                  isCancelled
+                                    ? "bg-[#F4F4F4] opacity-75"
+                                    : "bg-white"
                                 }`}
                                 style={{
                                   ["--timeline-accent" as string]: sideColor,
@@ -2791,10 +2916,14 @@ const OSBookingsPage = () => {
                                 <div className="flex items-center justify-between gap-3">
                                   <div className="flex items-center gap-3">
                                     <div className="">
-                                      {getTimelineServiceIcon(item.quotationType)}
+                                      {getTimelineServiceIcon(
+                                        item.quotationType,
+                                      )}
                                     </div>
                                     <span className="text-[14px] font-[500] text-[#020202]">
-                                      {getTimelineServiceLabel(item.quotationType)}
+                                      {getTimelineServiceLabel(
+                                        item.quotationType,
+                                      )}
                                     </span>
                                   </div>
                                   <span className="rounded-full bg-[#F9F9F9] px-[10px] py-[2px] text-[11px] font-[500] text-[#333333]">
