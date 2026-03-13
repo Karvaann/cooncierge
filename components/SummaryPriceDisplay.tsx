@@ -301,7 +301,7 @@ const SummaryPriceDisplay: React.FC<Props> = ({
           <div className="text-[13px] font-[500] text-[#414141] mb-1">
             Old Cost Price
           </div>
-          <div className="w-[116px] font-medium rounded-[12px] px-3 py-1.5 text-[14px] text-[#818181] bg-[#F9F9F9]">
+          <div className="w-fit min-w-[116px] font-medium rounded-[12px] px-3 py-1.5 text-[14px] text-[#818181] bg-[#F9F9F9]">
             {getStoredCurrencySymbol()} {formatCurrency(oldCostPrice)}
           </div>
         </div>
@@ -310,14 +310,14 @@ const SummaryPriceDisplay: React.FC<Props> = ({
           <div className="text-[13px] font-[500] text-[#414141] mb-1">
             Old Selling Price
           </div>
-          <div className="w-[116px] rounded-[12px] px-3 py-1.5 text-[14px] text-[#818181] bg-gray-50">
+          <div className="w-fit min-w-[116px] rounded-[12px] px-3 py-1.5 text-[14px] text-[#818181] bg-gray-50">
             {getStoredCurrencySymbol()} {formatCurrency(oldSellingPrice)}
           </div>
         </div>
 
         <div>
           <div className="text-[13px] font-[500] text-[#414141] mb-1">Net</div>
-          <div className="w-[116px] rounded-[12px] px-3 py-1.5 text-[14px] text-[#818181] bg-gray-50">
+          <div className="w-fit min-w-[116px] rounded-[12px] px-3 py-1.5 text-[14px] text-[#818181] bg-gray-50">
             {getStoredCurrencySymbol()} {formatCurrency(oldNet)}
           </div>
         </div>
@@ -337,7 +337,7 @@ const SummaryPriceDisplay: React.FC<Props> = ({
           <div className="text-[13px] font-[500] text-[#414141] mb-1">
             New Cost Price
           </div>
-          <div className="w-[116px] font-[500] rounded-[12px] px-3 py-1.5 text-[14px] text-[#7135AD] bg-[#7135AD0D]">
+          <div className="w-fit min-w-[116px] font-[500] rounded-[12px] px-3 py-1.5 text-[14px] text-[#7135AD] bg-[#7135AD0D]">
             {getStoredCurrencySymbol()} {formatCurrency(newCostPrice)}
           </div>
         </div>
@@ -346,14 +346,14 @@ const SummaryPriceDisplay: React.FC<Props> = ({
           <div className="text-[13px] font-[500] text-[#414141] mb-1">
             New Selling Price
           </div>
-          <div className="w-[116px] font-[500] rounded-[12px] px-3 py-1.5 text-[14px] text-[#7135AD] bg-[#7135AD0D]">
+          <div className="w-fit min-w-[116px] font-[500] rounded-[12px] px-3 py-1.5 text-[14px] text-[#7135AD] bg-[#7135AD0D]">
             {getStoredCurrencySymbol()} {formatCurrency(newSellingPrice)}
           </div>
         </div>
 
         <div>
           <div className="text-[13px] font-[500] text-[#414141] mb-1">Net</div>
-          <div className="w-[116px] font-[500] rounded-[12px] px-3 py-1.5 text-[14px] text-[#7135AD] bg-[#7135AD0D]">
+          <div className="w-fit min-w-[116px] font-[500] rounded-[12px] px-3 py-1.5 text-[14px] text-[#7135AD] bg-[#7135AD0D]">
             {getStoredCurrencySymbol()} {formatCurrency(newNet)}
           </div>
         </div>

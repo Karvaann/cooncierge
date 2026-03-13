@@ -565,8 +565,8 @@ export default function StyledDescription({
           <div
             ref={editorRef}
             contentEditable={!readOnly}
-            className={`px-3 py-1 min-h-[48px] text-[13px] text-gray-700 outline-none focus:ring-0 ${readOnly ? "bg-gray-200 cursor-not-allowed" : ""}`}
-            style={{ color: "#9ca3af", minHeight: `${(rows ?? 3) * 22}px` }}
+            className={`px-3 py-1 min-h-[48px] text-[13px] text-[#020202] outline-none focus:ring-0 ${readOnly ? "bg-gray-200 cursor-not-allowed" : ""}`}
+            style={{ color: "#020202", minHeight: `${(rows ?? 3) * 22}px` }}
             onInput={handleEditorInput}
             onMouseUp={updateActiveFormats}
             onKeyUp={updateActiveFormats}
