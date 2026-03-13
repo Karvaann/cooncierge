@@ -160,7 +160,7 @@ export function useLoginFlow() {
 
       if (response.token && !response.user?.resetPasswordRequired) {
         await refreshUser();
-        router.replace("/bookings/other-services");
+        router.replace("/bookings");
       }
     } catch (error: unknown) {
       const err = error as AxiosError<{ message?: string }>;

@@ -52,7 +52,7 @@ export interface FlightSegmentCardProps {
     patch: Partial<FlightSegmentData>,
   ) => void;
   preview: SegmentPreview | undefined;
-  onPreviewChange: (segmentId: string, preview: SegmentPreview) => void;
+  onPreviewChange: (segmentId: string, preview?: SegmentPreview) => void;
   traveldate: string;
   bookingdate: string;
   onTraveldateChange: (date: string) => void;
@@ -223,6 +223,11 @@ export default function FlightSegmentCard({
   };
 
   const cancelEditing = () => {
+    // If all edit fields are empty, clear preview so placeholder shows.
+    const allEmpty = isEditingDataEmpty(editingData);
+    if (allEmpty) {
+      onPreviewChange(segId, undefined);
+    }
     setIsEditing(false);
     setEditingData({});
   };
@@ -248,6 +253,14 @@ export default function FlightSegmentCard({
       } catch {}
     }
 
+    // If all fields are empty, clear preview and exit.
+    if (isEditingDataEmpty(d)) {
+      onPreviewChange(segId, undefined);
+      setIsEditing(false);
+      setEditingData({});
+      return;
+    }
+
     const newPreview: SegmentPreview = {
       airline: d.airline ?? preview?.airline ?? "",
       origin: d.origin ?? preview?.origin ?? "",
@@ -270,6 +283,23 @@ export default function FlightSegmentCard({
     onPreviewChange(segId, newPreview);
     setIsEditing(false);
     setEditingData({});
+  };
+
+  const isEditingDataEmpty = (d: Partial<SegmentPreview> | undefined) => {
+    if (!d) return true;
+    const keys: Array<keyof SegmentPreview> = [
+      "airline",
+      "flightNumber",
+      "origin",
+      "destination",
+      "departureTime",
+      "arrivalTime",
+      "duration",
+    ];
+    return !keys.some((k) => {
+      const v = (d as any)[k];
+      return typeof v === "string" && v.trim() !== "";
+    });
   };
 
   return (
