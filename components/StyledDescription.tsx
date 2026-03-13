@@ -19,7 +19,7 @@ interface StyledDescriptionProps {
 }
 
 export default function StyledDescription({
-  label = "Description",
+  label = "",
   value,
   onChange,
   readOnly = false,
@@ -34,6 +34,10 @@ export default function StyledDescription({
     ul: false,
     ol: false,
   });
+
+  const [isEmpty, setIsEmpty] = useState(
+    !value || value.trim() === "" || value === "<br>",
+  );
 
   const LIST_BASE_CLASS = "text-black pl-4";
   const getListClassName = (type: "ul" | "ol") =>
@@ -535,7 +539,7 @@ export default function StyledDescription({
         <h3 className={`${labelSize} font-medium text-gray-700`}>{label}</h3>
       </div>
       <div
-        className={`${boxWidth} mt-1 bg-white rounded-md border border-gray-200`}
+        className={`${boxWidth} mt-1 bg-white rounded-[15px] border border-gray-200`}
       >
         {/* Toolbar */}
         <div className="flex items-center gap-2 px-2 py-1">
@@ -594,17 +598,24 @@ export default function StyledDescription({
         <hr className="mb-1 mr-2 ml-2 -mt-1 border-t border-gray-200" />
 
         {/* Editor Area */}
-        <div
-          ref={editorRef}
-          contentEditable={!readOnly}
-          className="px-3 py-2 min-h-[80px] text-[13px] outline-none focus:ring-0"
-          style={{ color: "#9ca3af" }}
-          onInput={handleEditorInput}
-          onMouseUp={updateActiveFormats}
-          onKeyUp={updateActiveFormats}
-          onSelect={updateActiveFormats}
-          suppressContentEditableWarning
-        ></div>
+        <div className="relative">
+          {isEmpty && (
+            <div className="absolute top-0 left-0 px-3 py-2 text-[13px] font-[400] text-[#9CA3AF] pointer-events-none select-none">
+              Enter Your Remarks Here
+            </div>
+          )}
+          <div
+            ref={editorRef}
+            contentEditable={!readOnly}
+            className="px-3 py-2 min-h-[80px] text-[13px] outline-none focus:ring-0"
+            style={{ color: "#9ca3af" }}
+            onInput={handleEditorInput}
+            onMouseUp={updateActiveFormats}
+            onKeyUp={updateActiveFormats}
+            onSelect={updateActiveFormats}
+            suppressContentEditableWarning
+          ></div>
+        </div>
       </div>
     </>
   );
