@@ -296,7 +296,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         ref={formRef}
         onSubmit={(e) => e.preventDefault()}
       >
-        <div className="px-0 py-1">
+        <div className="px-0 py-1.5">
           {/* Booking Date, Travel Date & Booking Status */}
           <DateFieldsAndStatus
             bookingdate={formData.bookingdate}

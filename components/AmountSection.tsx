@@ -1,11 +1,13 @@
-"use client";
+﻿"use client";
 
 import React, { useId, useMemo, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
 import MultiCurrencyInput from "@/components/multiCurrencyUI";
 import { getStoredCurrencySymbol, formatIndianNumber } from "@/utils/helper";
-import CancellationInline from "@/components/CancellationInline";
+import CancellationSection from "@/components/CancellationSection";
+import RescheduledPriceSection from "@/components/RescheduledPriceSection";
+import { toRescheduled, fromRescheduled } from "@/utils/amountMapping";
 
 export type AmountSectionValue = {
   costprice?: string;
@@ -141,6 +143,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
     useState<boolean>(false);
 
   const isCancelled = bookingStatus?.toLowerCase() === "cancelled";
+  const isRescheduled = bookingStatus?.toLowerCase() === "rescheduled";
 
   const derivedCostPrice = useMemo(() => {
     // Always compute components in INR. If an amount is provided in USD,
@@ -184,7 +187,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-[13px] font-medium text-gray-700">Amount</h3>
 
-        {!(isCancelled && isReadOnly) && (
+        {!((isCancelled || isRescheduled) && isReadOnly) && (
           <label
             className={`flex items-center gap-2 ${
               isReadOnly || isSubmitting
@@ -242,9 +245,17 @@ const AmountSection: React.FC<AmountSectionProps> = ({
       <hr className="mb-3 -mt-1 border-t border-[#E2E1E1]" />
 
       {isCancelled ? (
-        <CancellationInline
+        <CancellationSection
           value={v}
           onChange={onChange}
+          showAdvancedPricing={showAdvancedPricing}
+          isReadOnly={isReadOnly}
+          isSubmitting={isSubmitting}
+        />
+      ) : isRescheduled ? (
+        <RescheduledPriceSection
+          value={toRescheduled(v)}
+          onChange={(next) => onChange(fromRescheduled(next, v))}
           showAdvancedPricing={showAdvancedPricing}
           isReadOnly={isReadOnly}
           isSubmitting={isSubmitting}
