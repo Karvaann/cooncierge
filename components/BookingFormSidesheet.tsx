@@ -1281,6 +1281,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   onAddDocuments={addBookingDocuments}
                   onRemoveDocuments={removeBookingDocuments}
                   existingDocuments={existingBookingDocuments}
+                  customerCount={formData?.customerCount ?? 1}
                 />
               </div>
             </div>

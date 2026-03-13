@@ -149,13 +149,53 @@ const SummaryPriceDisplay: React.FC<Props> = ({
   }, [showAdvancedPricing, f, businessCurrency]);
 
   const oldSellingPrice = useMemo(() => {
-    return parseToInr(
-      f.sellingPrice,
-      f.sellingCurrency,
-      f.sellingRoe,
-      f.sellingInr,
+    if (variant === "rescheduled") {
+      const r = v as RescheduledAmountValue;
+      const entries = r.rescheduledSellingPrices?.length
+        ? r.rescheduledSellingPrices
+        : [
+            {
+              oldSellingPrice: r.oldSellingPrice,
+              oldSellingCurrency: r.oldSellingCurrency,
+              oldSellingRoe: r.oldSellingRoe,
+              oldSellingInr: r.oldSellingInr,
+            },
+          ];
+      return entries.reduce(
+        (sum, sp) =>
+          sum +
+          parseToInr(
+            sp.oldSellingPrice,
+            sp.oldSellingCurrency,
+            sp.oldSellingRoe,
+            sp.oldSellingInr,
+          ),
+        0,
+      );
+    }
+    const c = v as AmountSectionValue;
+    const entries = c.sellingPrices?.length
+      ? c.sellingPrices
+      : [
+          {
+            sellingprice: c.sellingprice,
+            sellingCurrency: c.sellingCurrency,
+            sellingRoe: c.sellingRoe,
+            sellingInr: c.sellingInr,
+          },
+        ];
+    return entries.reduce(
+      (sum, sp) =>
+        sum +
+        parseToInr(
+          sp.sellingprice,
+          sp.sellingCurrency,
+          sp.sellingRoe,
+          sp.sellingInr,
+        ),
+      0,
     );
-  }, [f, businessCurrency]);
+  }, [v, variant, businessCurrency]);
 
   const newCostPrice = useMemo(() => {
     if (showAdvancedPricing) {
@@ -188,13 +228,53 @@ const SummaryPriceDisplay: React.FC<Props> = ({
   }, [showAdvancedPricing, f, businessCurrency]);
 
   const newSellingPrice = useMemo(() => {
-    return parseToInr(
-      f.newSellingPrice,
-      f.newSellingCurrency,
-      f.newSellingRoe,
-      f.newSellingInr,
+    if (variant === "rescheduled") {
+      const r = v as RescheduledAmountValue;
+      const entries = r.rescheduledSellingPrices?.length
+        ? r.rescheduledSellingPrices
+        : [
+            {
+              additionalSellingPrice: r.additionalSellingPrice,
+              additionalSellingCurrency: r.additionalSellingCurrency,
+              additionalSellingRoe: r.additionalSellingRoe,
+              additionalSellingInr: r.additionalSellingInr,
+            },
+          ];
+      return entries.reduce(
+        (sum, sp) =>
+          sum +
+          parseToInr(
+            sp.additionalSellingPrice,
+            sp.additionalSellingCurrency,
+            sp.additionalSellingRoe,
+            sp.additionalSellingInr,
+          ),
+        0,
+      );
+    }
+    const c = v as AmountSectionValue;
+    const entries = c.sellingPrices?.length
+      ? c.sellingPrices
+      : [
+          {
+            sellingRefundAmount: c.sellingRefundAmount,
+            sellingRefundCurrency: c.sellingRefundCurrency,
+            sellingRefundRoe: c.sellingRefundRoe,
+            sellingRefundInr: c.sellingRefundInr,
+          },
+        ];
+    return entries.reduce(
+      (sum, sp) =>
+        sum +
+        parseToInr(
+          sp.sellingRefundAmount,
+          sp.sellingRefundCurrency,
+          sp.sellingRefundRoe,
+          sp.sellingRefundInr,
+        ),
+      0,
     );
-  }, [f, businessCurrency]);
+  }, [v, variant, businessCurrency]);
 
   const oldNet = oldSellingPrice - oldCostPrice;
   const newNet = newSellingPrice - newCostPrice;

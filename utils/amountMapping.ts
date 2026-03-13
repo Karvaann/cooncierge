@@ -1,5 +1,11 @@
-import type { AmountSectionValue } from "@/components/AmountSection";
-import type { RescheduledAmountValue } from "@/components/RescheduledPriceSection";
+import type {
+  AmountSectionValue,
+  SellingPriceEntry,
+} from "@/components/AmountSection";
+import type {
+  RescheduledAmountValue,
+  RescheduledSellingPriceEntry,
+} from "@/components/RescheduledPriceSection";
 
 export const toRescheduled = (
   src: Partial<AmountSectionValue>,
@@ -55,6 +61,20 @@ export const toRescheduled = (
     additionalCommissionRoe: src.commissionRefundRoe,
     additionalCommissionInr: src.commissionRefundInr,
     additionalCommissionNotes: src.commissionRefundNotes,
+    rescheduledSellingPrices: src.sellingPrices?.map(
+      (sp): RescheduledSellingPriceEntry => ({
+        oldSellingPrice: sp.sellingprice,
+        oldSellingCurrency: sp.sellingCurrency,
+        oldSellingRoe: sp.sellingRoe,
+        oldSellingInr: sp.sellingInr,
+        oldSellingNotes: sp.sellingNotes,
+        additionalSellingPrice: sp.sellingRefundAmount,
+        additionalSellingCurrency: sp.sellingRefundCurrency,
+        additionalSellingRoe: sp.sellingRefundRoe,
+        additionalSellingInr: sp.sellingRefundInr,
+        additionalSellingNotes: sp.sellingRefundNotes,
+      }),
+    ),
   }) as RescheduledAmountValue;
 
 export const fromRescheduled = (
@@ -113,4 +133,18 @@ export const fromRescheduled = (
     commissionRefundRoe: r.additionalCommissionRoe,
     commissionRefundInr: r.additionalCommissionInr,
     commissionRefundNotes: r.additionalCommissionNotes,
+    sellingPrices: r.rescheduledSellingPrices?.map(
+      (sp): SellingPriceEntry => ({
+        sellingprice: sp.oldSellingPrice,
+        sellingCurrency: sp.oldSellingCurrency,
+        sellingRoe: sp.oldSellingRoe,
+        sellingInr: sp.oldSellingInr,
+        sellingNotes: sp.oldSellingNotes,
+        sellingRefundAmount: sp.additionalSellingPrice,
+        sellingRefundCurrency: sp.additionalSellingCurrency,
+        sellingRefundRoe: sp.additionalSellingRoe,
+        sellingRefundInr: sp.additionalSellingInr,
+        sellingRefundNotes: sp.additionalSellingNotes,
+      }),
+    ),
   }) as AmountSectionValue;

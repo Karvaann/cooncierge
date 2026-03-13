@@ -178,8 +178,9 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
             placeholder="Select Date"
             minDate={bookingdate}
             minTypeable={bookingdate}
-            readOnly={!bookingdate}
+            readOnly={false}
             customWidth="w-[12rem]"
+            showCalendarIcon={true}
             inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
           />
         </div>

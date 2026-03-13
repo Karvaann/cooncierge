@@ -98,6 +98,7 @@ interface PriceInfoProps {
     uploadedAt?: string | Date;
     _id?: string;
   }>;
+  customerCount?: number;
 }
 
 const PriceInfoForm: React.FC<PriceInfoProps> = ({
@@ -110,6 +111,7 @@ const PriceInfoForm: React.FC<PriceInfoProps> = ({
   externalFormData,
   bookingCode,
   existingDocuments = [],
+  customerCount = 1,
 }) => {
   const normalizedExternalData = useMemo(() => {
     const source = externalFormData ?? {};
@@ -322,6 +324,7 @@ const PriceInfoForm: React.FC<PriceInfoProps> = ({
           onToggleAdvancedPricing={setShowAdvancedPricing}
           isReadOnly={isReadOnly}
           isSubmitting={isSubmitting}
+          customerCount={customerCount}
         />
 
         {/* Documents */}

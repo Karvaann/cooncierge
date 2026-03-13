@@ -6,7 +6,10 @@ import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
 import MultiCurrencyInput from "@/components/multiCurrencyUI";
 import SummaryPriceDisplay from "@/components/SummaryPriceDisplay";
 import { allowOnlyNumbers } from "@/utils/inputValidators";
-import type { AmountSectionValue } from "@/components/AmountSection";
+import type {
+  AmountSectionValue,
+  SellingPriceEntry,
+} from "@/components/AmountSection";
 
 type Currency = "INR" | "USD";
 
@@ -16,6 +19,7 @@ interface CancellationSectionProps {
   showAdvancedPricing: boolean;
   isReadOnly?: boolean | undefined;
   isSubmitting?: boolean | undefined;
+  customerCount?: number;
 }
 
 const inputBase =
@@ -42,6 +46,7 @@ const CancellationSection: React.FC<CancellationSectionProps> = ({
   showAdvancedPricing,
   isReadOnly = false,
   isSubmitting = false,
+  customerCount = 1,
 }) => {
   const { user } = useAuth();
   const businessCurrency = getBusinessCurrency(user as any);
@@ -55,8 +60,12 @@ const CancellationSection: React.FC<CancellationSectionProps> = ({
   // Notes toggle state
   const [showCostNotes, setShowCostNotes] = useState(false);
   const [showCostRefundNotes, setShowCostRefundNotes] = useState(false);
-  const [showSellingNotes, setShowSellingNotes] = useState(false);
-  const [showSellingRefundNotes, setShowSellingRefundNotes] = useState(false);
+  const [sellingNotesFlags, setSellingNotesFlags] = useState<
+    Record<number, boolean>
+  >({});
+  const [sellingRefundNotesFlags, setSellingRefundNotesFlags] = useState<
+    Record<number, boolean>
+  >({});
   const [advNotesVisible, setAdvNotesVisible] = useState({
     vendorBase: false,
     vendorInvoiceRefund: false,
@@ -67,6 +76,57 @@ const CancellationSection: React.FC<CancellationSectionProps> = ({
   });
 
   // summary calculations are now handled inside SummaryPriceDisplay
+
+  const sellingPrices: SellingPriceEntry[] = (() => {
+    const base: SellingPriceEntry[] = v.sellingPrices?.length
+      ? [...v.sellingPrices]
+      : [
+          {
+            sellingprice: v.sellingprice,
+            sellingCurrency: v.sellingCurrency,
+            sellingRoe: v.sellingRoe,
+            sellingInr: v.sellingInr,
+            sellingNotes: v.sellingNotes,
+            sellingRefundAmount: v.sellingRefundAmount,
+            sellingRefundCurrency: v.sellingRefundCurrency,
+            sellingRefundRoe: v.sellingRefundRoe,
+            sellingRefundInr: v.sellingRefundInr,
+            sellingRefundNotes: v.sellingRefundNotes,
+          } as SellingPriceEntry,
+        ];
+    while (base.length < customerCount) base.push({});
+    return base.slice(0, customerCount);
+  })();
+
+  const updateSellingPrice = (
+    index: number,
+    patch: Partial<SellingPriceEntry>,
+  ) => {
+    const prices = sellingPrices.map((sp, i) =>
+      i === index ? { ...sp, ...patch } : { ...sp },
+    );
+    const first = prices[0] || {};
+    const flat: Record<string, any> = { ...v, sellingPrices: prices };
+    if (first.sellingprice !== undefined)
+      flat.sellingprice = first.sellingprice;
+    if (first.sellingCurrency !== undefined)
+      flat.sellingCurrency = first.sellingCurrency;
+    if (first.sellingRoe !== undefined) flat.sellingRoe = first.sellingRoe;
+    if (first.sellingInr !== undefined) flat.sellingInr = first.sellingInr;
+    if (first.sellingNotes !== undefined)
+      flat.sellingNotes = first.sellingNotes;
+    if (first.sellingRefundAmount !== undefined)
+      flat.sellingRefundAmount = first.sellingRefundAmount;
+    if (first.sellingRefundCurrency !== undefined)
+      flat.sellingRefundCurrency = first.sellingRefundCurrency;
+    if (first.sellingRefundRoe !== undefined)
+      flat.sellingRefundRoe = first.sellingRefundRoe;
+    if (first.sellingRefundInr !== undefined)
+      flat.sellingRefundInr = first.sellingRefundInr;
+    if (first.sellingRefundNotes !== undefined)
+      flat.sellingRefundNotes = first.sellingRefundNotes;
+    onChange(flat as AmountSectionValue);
+  };
 
   return (
     <div className="space-y-2">
@@ -199,7 +259,7 @@ const CancellationSection: React.FC<CancellationSectionProps> = ({
 
                 <div className="grid grid-cols-[280px_1fr]">
                   <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
-                    Vendor Base Price
+                    Vendor Invoice (Base)
                   </div>
                   <div className="p-4 border-b border-[#E2E1E1]">
                     <MultiCurrencyInput
@@ -333,10 +393,10 @@ const CancellationSection: React.FC<CancellationSectionProps> = ({
                   </div>
                 </div>
 
-                {/* Supplier Incentive Received */}
+                {/* Vendor Incentive Received */}
                 <div className="grid grid-cols-[280px_1fr]">
                   <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
-                    Supplier Incentive Received
+                    Vendor Incentive Received
                   </div>
                   <div className="p-4 border-b border-[#E2E1E1]">
                     <MultiCurrencyInput
@@ -407,7 +467,7 @@ const CancellationSection: React.FC<CancellationSectionProps> = ({
                 {/* Chargeback */}
                 <div className="grid grid-cols-[280px_1fr]">
                   <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
-                    Chargeback
+                    Vendor Incentive Chargeback
                   </div>
                   <div className="p-4 border-b border-[#E2E1E1]">
                     <MultiCurrencyInput
@@ -535,7 +595,7 @@ const CancellationSection: React.FC<CancellationSectionProps> = ({
                 {/* Commission Refund */}
                 <div className="grid grid-cols-[280px_1fr]">
                   <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
-                    Refund Received
+                    Commission Payout Chargeback
                   </div>
                   <div className="p-4 border-[#E2E1E1]">
                     <MultiCurrencyInput
@@ -613,117 +673,145 @@ const CancellationSection: React.FC<CancellationSectionProps> = ({
         </h4>
 
         <div className="border border-[#E2E1E1] overflow-hidden">
-          {/* (Selling) */}
-          <div className="grid grid-cols-[280px_1fr]">
-            <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
-              Selling Price
-            </div>
-            <div className="p-4 border-b border-[#E2E1E1]">
-              <MultiCurrencyInput
-                currency={(v.sellingCurrency as Currency) || "INR"}
-                onCurrencyChange={(val) => {
-                  const next: any = { ...v, sellingCurrency: val };
-                  if (requiresRoe(val, businessCurrency)) {
-                    next.sellingInr = computeInr(
-                      String(v.sellingprice ?? ""),
-                      String(v.sellingRoe ?? ""),
-                    );
-                  } else {
-                    next.sellingRoe = "";
-                    next.sellingInr = "";
-                  }
-                  onChange(next);
-                }}
-                amount={v.sellingprice || ""}
-                onAmountChange={(val) => {
-                  const amount = allowOnlyNumbers(val);
-                  update({
-                    sellingprice: amount,
-                    sellingInr: requiresRoe(v.sellingCurrency, businessCurrency)
-                      ? computeInr(amount, v.sellingRoe ?? "")
-                      : "",
-                  });
-                }}
-                roe={v.sellingRoe || ""}
-                onRoeChange={(val) => {
-                  const roe = allowOnlyNumbers(val);
-                  update({
-                    sellingRoe: roe,
-                    sellingInr: computeInr(v.sellingprice ?? "", roe),
-                  });
-                }}
-                inr={v.sellingInr || ""}
-                notes={v.sellingNotes || ""}
-                onNotesChange={(val) => update({ sellingNotes: val })}
-                showNotes={showSellingNotes}
-                onToggleNotes={() => setShowSellingNotes((s) => !s)}
-                businessCurrency={businessCurrency}
-                requiresRoe={requiresRoe}
-                useWhiteDropdown={true}
-                inputClassName={inputBase}
-                readOnly={readOnly}
-                amountInputWidth="44%"
-              />
-            </div>
-          </div>
+          {sellingPrices.map((sp, i) => (
+            <React.Fragment key={i}>
+              {/* Selling Price */}
+              <div className="grid grid-cols-[280px_1fr]">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
+                  {`Selling Price${customerCount > 1 ? ` (Customer ${i + 1})` : ""}`}
+                </div>
+                <div className="p-4 border-b border-[#E2E1E1]">
+                  <MultiCurrencyInput
+                    currency={(sp.sellingCurrency as Currency) || "INR"}
+                    onCurrencyChange={(val) => {
+                      const patch: Partial<SellingPriceEntry> = {
+                        sellingCurrency: val as Currency,
+                      };
+                      if (requiresRoe(val, businessCurrency)) {
+                        patch.sellingInr = computeInr(
+                          String(sp.sellingprice ?? ""),
+                          String(sp.sellingRoe ?? ""),
+                        );
+                      } else {
+                        patch.sellingRoe = "";
+                        patch.sellingInr = "";
+                      }
+                      updateSellingPrice(i, patch);
+                    }}
+                    amount={sp.sellingprice || ""}
+                    onAmountChange={(val) => {
+                      const amount = allowOnlyNumbers(val);
+                      const patch: Partial<SellingPriceEntry> = {
+                        sellingprice: amount,
+                        sellingInr: requiresRoe(
+                          sp.sellingCurrency,
+                          businessCurrency,
+                        )
+                          ? computeInr(amount, sp.sellingRoe ?? "")
+                          : "",
+                      };
+                      updateSellingPrice(i, patch);
+                    }}
+                    roe={sp.sellingRoe || ""}
+                    onRoeChange={(val) => {
+                      const roe = allowOnlyNumbers(val);
+                      updateSellingPrice(i, {
+                        sellingRoe: roe,
+                        sellingInr: computeInr(sp.sellingprice ?? "", roe),
+                      });
+                    }}
+                    inr={sp.sellingInr || ""}
+                    notes={sp.sellingNotes || ""}
+                    onNotesChange={(val) =>
+                      updateSellingPrice(i, { sellingNotes: val })
+                    }
+                    showNotes={!!sellingNotesFlags[i]}
+                    onToggleNotes={() =>
+                      setSellingNotesFlags((prev) => ({
+                        ...prev,
+                        [i]: !prev[i],
+                      }))
+                    }
+                    businessCurrency={businessCurrency}
+                    requiresRoe={requiresRoe}
+                    useWhiteDropdown={true}
+                    inputClassName={inputBase}
+                    readOnly={readOnly}
+                    amountInputWidth="44%"
+                  />
+                </div>
+              </div>
 
-          {/* SELLING REFUND RECEIVED */}
-          <div className="grid grid-cols-[280px_1fr]">
-            <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
-              Refund Paid
-            </div>
-            <div className="p-4">
-              <MultiCurrencyInput
-                currency={(v.sellingRefundCurrency as Currency) || "INR"}
-                onCurrencyChange={(val) =>
-                  update({
-                    sellingRefundCurrency: val,
-                    sellingRefundRoe: requiresRoe(val, businessCurrency)
-                      ? (v.sellingRefundRoe ?? "")
-                      : "",
-                    sellingRefundInr: requiresRoe(val, businessCurrency)
-                      ? (v.sellingRefundInr ?? "")
-                      : "",
-                  })
-                }
-                amount={v.sellingRefundAmount || ""}
-                onAmountChange={(val) => {
-                  const amount = allowOnlyNumbers(val);
-                  update({
-                    sellingRefundAmount: amount,
-                    sellingRefundInr: requiresRoe(
-                      v.sellingRefundCurrency,
-                      businessCurrency,
-                    )
-                      ? computeInr(amount, v.sellingRefundRoe ?? "")
-                      : (v.sellingRefundInr ?? ""),
-                  });
-                }}
-                roe={v.sellingRefundRoe || ""}
-                onRoeChange={(val) => {
-                  const roe = allowOnlyNumbers(val);
-                  update({
-                    sellingRefundRoe: roe,
-                    sellingRefundInr: computeInr(
-                      v.sellingRefundAmount ?? "",
-                      roe,
-                    ),
-                  });
-                }}
-                inr={v.sellingRefundInr || ""}
-                notes={v.sellingRefundNotes || ""}
-                onNotesChange={(val) => update({ sellingRefundNotes: val })}
-                showNotes={showSellingRefundNotes}
-                onToggleNotes={() => setShowSellingRefundNotes((s) => !s)}
-                businessCurrency={businessCurrency}
-                requiresRoe={requiresRoe}
-                useWhiteDropdown={true}
-                inputClassName={smallInputBase}
-                amountInputWidth="44%"
-                readOnly={readOnly}
-              />
-            </div>
-          </div>
+              {/* Refund Paid */}
+              <div className="grid grid-cols-[280px_1fr]">
+                <div
+                  className={`bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141] ${i < sellingPrices.length - 1 ? "border-b" : ""}`}
+                >
+                  {`Refund Paid${customerCount > 1 ? ` (Customer ${i + 1})` : ""}`}
+                </div>
+                <div
+                  className={`p-4 ${i < sellingPrices.length - 1 ? "border-b border-[#E2E1E1]" : ""}`}
+                >
+                  <MultiCurrencyInput
+                    currency={(sp.sellingRefundCurrency as Currency) || "INR"}
+                    onCurrencyChange={(val) => {
+                      updateSellingPrice(i, {
+                        sellingRefundCurrency: val as Currency,
+                        sellingRefundRoe: requiresRoe(val, businessCurrency)
+                          ? (sp.sellingRefundRoe ?? "")
+                          : "",
+                        sellingRefundInr: requiresRoe(val, businessCurrency)
+                          ? (sp.sellingRefundInr ?? "")
+                          : "",
+                      });
+                    }}
+                    amount={sp.sellingRefundAmount || ""}
+                    onAmountChange={(val) => {
+                      const amount = allowOnlyNumbers(val);
+                      updateSellingPrice(i, {
+                        sellingRefundAmount: amount,
+                        sellingRefundInr: requiresRoe(
+                          sp.sellingRefundCurrency,
+                          businessCurrency,
+                        )
+                          ? computeInr(amount, sp.sellingRefundRoe ?? "")
+                          : (sp.sellingRefundInr ?? ""),
+                      });
+                    }}
+                    roe={sp.sellingRefundRoe || ""}
+                    onRoeChange={(val) => {
+                      const roe = allowOnlyNumbers(val);
+                      updateSellingPrice(i, {
+                        sellingRefundRoe: roe,
+                        sellingRefundInr: computeInr(
+                          sp.sellingRefundAmount ?? "",
+                          roe,
+                        ),
+                      });
+                    }}
+                    inr={sp.sellingRefundInr || ""}
+                    notes={sp.sellingRefundNotes || ""}
+                    onNotesChange={(val) =>
+                      updateSellingPrice(i, { sellingRefundNotes: val })
+                    }
+                    showNotes={!!sellingRefundNotesFlags[i]}
+                    onToggleNotes={() =>
+                      setSellingRefundNotesFlags((prev) => ({
+                        ...prev,
+                        [i]: !prev[i],
+                      }))
+                    }
+                    businessCurrency={businessCurrency}
+                    requiresRoe={requiresRoe}
+                    useWhiteDropdown={true}
+                    inputClassName={smallInputBase}
+                    amountInputWidth="44%"
+                    readOnly={readOnly}
+                  />
+                </div>
+              </div>
+            </React.Fragment>
+          ))}
         </div>
       </div>
 

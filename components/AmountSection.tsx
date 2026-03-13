@@ -9,6 +9,19 @@ import CancellationSection from "@/components/CancellationSection";
 import RescheduledPriceSection from "@/components/RescheduledPriceSection";
 import { toRescheduled, fromRescheduled } from "@/utils/amountMapping";
 
+export interface SellingPriceEntry {
+  sellingprice?: string | undefined;
+  sellingCurrency?: "INR" | "USD" | undefined;
+  sellingRoe?: string | undefined;
+  sellingInr?: string | undefined;
+  sellingNotes?: string | undefined;
+  sellingRefundAmount?: string | undefined;
+  sellingRefundCurrency?: "INR" | "USD" | undefined;
+  sellingRefundRoe?: string | undefined;
+  sellingRefundInr?: string | undefined;
+  sellingRefundNotes?: string | undefined;
+}
+
 export type AmountSectionValue = {
   costprice?: string;
   costCurrency?: "INR" | "USD";
@@ -72,6 +85,8 @@ export type AmountSectionValue = {
   commissionRefundRoe?: string;
   commissionRefundInr?: string;
   commissionRefundNotes?: string;
+
+  sellingPrices?: SellingPriceEntry[];
 };
 
 interface AmountSectionProps {
@@ -88,6 +103,7 @@ interface AmountSectionProps {
   isSubmitting?: boolean;
 
   editableCancelled?: boolean;
+  customerCount?: number;
 }
 
 // Allow only digits and a single decimal point for price fields (same as Flight form)
@@ -122,6 +138,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
   isReadOnly,
   isSubmitting,
   editableCancelled = false,
+  customerCount = 1,
 }) => {
   const checkboxId = useId();
 
@@ -132,9 +149,51 @@ const AmountSection: React.FC<AmountSectionProps> = ({
   const update = (patch: Partial<AmountSectionValue>) =>
     onChange({ ...v, ...patch });
 
+  const sellingPrices: SellingPriceEntry[] = (() => {
+    const base: SellingPriceEntry[] = v.sellingPrices?.length
+      ? [...v.sellingPrices]
+      : [
+          {
+            sellingprice: v.sellingprice,
+            sellingCurrency: v.sellingCurrency,
+            sellingRoe: v.sellingRoe,
+            sellingInr: v.sellingInr,
+            sellingNotes: v.sellingNotes,
+          } as SellingPriceEntry,
+        ];
+    while (base.length < customerCount) base.push({});
+    return base.slice(0, customerCount);
+  })();
+
+  const updateSellingPrice = (
+    index: number,
+    patch: Partial<SellingPriceEntry>,
+  ) => {
+    const prices = sellingPrices.map((sp, i) =>
+      i === index ? { ...sp, ...patch } : { ...sp },
+    );
+    const first = prices[0] || {};
+    const flat: Record<string, any> = { ...v, sellingPrices: prices };
+    if (first.sellingprice !== undefined)
+      flat.sellingprice = first.sellingprice;
+    if (first.sellingCurrency !== undefined)
+      flat.sellingCurrency = first.sellingCurrency;
+    if (first.sellingRoe !== undefined) flat.sellingRoe = first.sellingRoe;
+    if (first.sellingInr !== undefined) flat.sellingInr = first.sellingInr;
+    if (first.sellingNotes !== undefined)
+      flat.sellingNotes = first.sellingNotes;
+    onChange(flat as AmountSectionValue);
+  };
+
+  const totalSellingPrice = sellingPrices.reduce(
+    (sum, sp) => sum + (Number(sp.sellingprice) || 0),
+    0,
+  );
+
   const [showCostNotesFlag, setShowCostNotesFlag] = useState<boolean>(false);
-  const [showSellingNotesFlag, setShowSellingNotesFlag] =
-    useState<boolean>(false);
+  const [sellingNotesFlags, setSellingNotesFlags] = useState<
+    Record<number, boolean>
+  >({});
   const [showVendorBaseNotesFlag, setShowVendorBaseNotesFlag] =
     useState<boolean>(false);
   const [showVendorIncentiveNotesFlag, setShowVendorIncentiveNotesFlag] =
@@ -251,6 +310,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
           showAdvancedPricing={showAdvancedPricing}
           isReadOnly={isReadOnly}
           isSubmitting={isSubmitting}
+          customerCount={customerCount}
         />
       ) : isRescheduled ? (
         <RescheduledPriceSection
@@ -259,6 +319,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
           showAdvancedPricing={showAdvancedPricing}
           isReadOnly={isReadOnly}
           isSubmitting={isSubmitting}
+          customerCount={customerCount}
         />
       ) : (
         <>
@@ -319,62 +380,75 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 />
               </div>
 
-              {/* Selling Price */}
-              <div>
-                <label className="block text-[13px] font-medium text-gray-700 mb-1">
-                  Selling Price
-                </label>
-                <MultiCurrencyInput
-                  currency={(v.sellingCurrency as "INR" | "USD") || "INR"}
-                  onCurrencyChange={(val) => {
-                    const next: any = {
-                      ...v,
-                      sellingCurrency: val,
-                    };
-                    if (requiresRoe(val as string, businessCurrency)) {
-                      next.sellingInr = computeInr(
-                        String(v.sellingprice ?? ""),
-                        String(v.sellingRoe ?? ""),
-                      );
-                    } else {
-                      next.sellingRoe = "";
-                      next.sellingInr = "";
+              {/* Selling Price(s) */}
+              {sellingPrices.map((sp, i) => (
+                <div key={i} className={i > 0 ? "mt-3" : ""}>
+                  <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                    {`Selling Price${customerCount > 1 ? ` (Customer ${i + 1})` : ""}`}
+                  </label>
+                  <MultiCurrencyInput
+                    currency={(sp.sellingCurrency as "INR" | "USD") || "INR"}
+                    onCurrencyChange={(val) => {
+                      const patch: Partial<SellingPriceEntry> = {
+                        sellingCurrency: val as "INR" | "USD",
+                      };
+                      if (requiresRoe(val as string, businessCurrency)) {
+                        patch.sellingInr = computeInr(
+                          String(sp.sellingprice ?? ""),
+                          String(sp.sellingRoe ?? ""),
+                        );
+                      } else {
+                        patch.sellingRoe = "";
+                        patch.sellingInr = "";
+                      }
+                      updateSellingPrice(i, patch);
+                    }}
+                    amount={sp.sellingprice || ""}
+                    onAmountChange={(val) => {
+                      const sanitized = sanitizeNumeric(val);
+                      const patch: Partial<SellingPriceEntry> = {
+                        sellingprice: sanitized,
+                      };
+                      if (requiresRoe(sp.sellingCurrency, businessCurrency)) {
+                        patch.sellingInr = computeInr(
+                          sanitized,
+                          sp.sellingRoe ?? "",
+                        );
+                      } else {
+                        patch.sellingInr = "";
+                      }
+                      updateSellingPrice(i, patch);
+                    }}
+                    roe={sp.sellingRoe || ""}
+                    onRoeChange={(val) =>
+                      updateSellingPrice(i, {
+                        sellingRoe: val,
+                        sellingInr: computeInr(
+                          String(sp.sellingprice ?? ""),
+                          val,
+                        ),
+                      })
                     }
-                    onChange(next);
-                  }}
-                  amount={v.sellingprice || ""}
-                  onAmountChange={(val) => {
-                    const sanitized = sanitizeNumeric(val);
-                    const next: any = { ...v, sellingprice: sanitized };
-                    if (requiresRoe(v.sellingCurrency, businessCurrency)) {
-                      next.sellingInr = computeInr(
-                        sanitized,
-                        v.sellingRoe ?? "",
-                      );
-                    } else {
-                      next.sellingInr = "";
+                    inr={sp.sellingInr || ""}
+                    notes={sp.sellingNotes || ""}
+                    onNotesChange={(val) =>
+                      updateSellingPrice(i, { sellingNotes: val })
                     }
-                    onChange(next);
-                  }}
-                  roe={v.sellingRoe || ""}
-                  onRoeChange={(val) =>
-                    update({
-                      sellingRoe: val,
-                      sellingInr: computeInr(String(v.sellingprice ?? ""), val),
-                    })
-                  }
-                  inr={v.sellingInr || ""}
-                  notes={v.sellingNotes || ""}
-                  onNotesChange={(val) => update({ sellingNotes: val })}
-                  showNotes={showSellingNotesFlag}
-                  onToggleNotes={() => setShowSellingNotesFlag((s) => !s)}
-                  businessCurrency={businessCurrency}
-                  requiresRoe={requiresRoe}
-                  notesInputWidth="60%"
-                  amountInputWidth="30%"
-                  readOnly={!!isReadOnly || !!isSubmitting}
-                />
-              </div>
+                    showNotes={!!sellingNotesFlags[i]}
+                    onToggleNotes={() =>
+                      setSellingNotesFlags((prev) => ({
+                        ...prev,
+                        [i]: !prev[i],
+                      }))
+                    }
+                    businessCurrency={businessCurrency}
+                    requiresRoe={requiresRoe}
+                    notesInputWidth="60%"
+                    amountInputWidth="30%"
+                    readOnly={!!isReadOnly || !!isSubmitting}
+                  />
+                </div>
+              ))}
 
               <hr className="mb-2 mt-3 border-t border-[#E2E1E1]" />
 
@@ -387,14 +461,14 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <div className="flex items-center gap-3">
                   <span className="px-3 py-1.5 bg-[#7135AD0D] text-[#7135AD] text-[14px] font-[500] rounded-[10px]">
                     {`${getStoredCurrencySymbol()} ${formatIndianNumber(
-                      (Number(v.sellingprice) || 0) - derivedCostPrice,
+                      totalSellingPrice - derivedCostPrice,
                     )}`}
                   </span>
 
                   <span className="text-[13px] text-[#414141] font-[600]">
-                    {derivedCostPrice > 0 && v.sellingprice
+                    {derivedCostPrice > 0 && totalSellingPrice
                       ? `${(
-                          (((Number(v.sellingprice) || 0) - derivedCostPrice) /
+                          ((totalSellingPrice - derivedCostPrice) /
                             (derivedCostPrice || 1)) *
                           100
                         ).toFixed(2)}%`
@@ -623,76 +697,92 @@ const AmountSection: React.FC<AmountSectionProps> = ({
               </h4>
 
               <div className="border border-[#E2E1E1] -mt-1 overflow-hidden bg-white">
-                <div className="grid grid-cols-12">
-                  <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] border-r border-[#E2E1E1] text-[0.8rem] text-gray-700 font-medium py-5">
-                    Selling Price
-                  </div>
+                {sellingPrices.map((sp, i) => (
+                  <div
+                    key={i}
+                    className="grid grid-cols-12 border-b last:border-b-0 border-[#E2E1E1]"
+                  >
+                    <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] border-r border-[#E2E1E1] text-[0.8rem] text-gray-700 font-medium py-5">
+                      {`Selling Price${customerCount > 1 ? ` (Customer ${i + 1})` : ""}`}
+                    </div>
 
-                  <div className="col-span-8 flex flex-col gap-2 py-3 px-4 bg-white">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <MultiCurrencyInput
-                          currency={
-                            (v.sellingCurrency as "INR" | "USD") || "INR"
-                          }
-                          onCurrencyChange={(val) => {
-                            const next: any = {
-                              ...v,
-                              sellingCurrency: val,
-                            };
-                            if (requiresRoe(val as string, businessCurrency)) {
-                              next.sellingInr = computeInr(
-                                String(v.sellingprice ?? ""),
-                                String(v.sellingRoe ?? ""),
-                              );
-                            } else {
-                              next.sellingRoe = "";
-                              next.sellingInr = "";
+                    <div className="col-span-8 flex flex-col gap-2 py-3 px-4 bg-white">
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
+                          <MultiCurrencyInput
+                            currency={
+                              (sp.sellingCurrency as "INR" | "USD") || "INR"
                             }
-                            onChange(next);
-                          }}
-                          amount={v.sellingprice || ""}
-                          onAmountChange={(val) => {
-                            const sanitized = sanitizeNumeric(val);
-                            const next: any = { ...v, sellingprice: sanitized };
-                            if (
-                              requiresRoe(v.sellingCurrency, businessCurrency)
-                            ) {
-                              next.sellingInr = computeInr(
-                                sanitized,
-                                v.sellingRoe ?? "",
-                              );
-                            } else {
-                              next.sellingInr = "";
+                            onCurrencyChange={(val) => {
+                              const patch: Partial<SellingPriceEntry> = {
+                                sellingCurrency: val as "INR" | "USD",
+                              };
+                              if (
+                                requiresRoe(val as string, businessCurrency)
+                              ) {
+                                patch.sellingInr = computeInr(
+                                  String(sp.sellingprice ?? ""),
+                                  String(sp.sellingRoe ?? ""),
+                                );
+                              } else {
+                                patch.sellingRoe = "";
+                                patch.sellingInr = "";
+                              }
+                              updateSellingPrice(i, patch);
+                            }}
+                            amount={sp.sellingprice || ""}
+                            onAmountChange={(val) => {
+                              const sanitized = sanitizeNumeric(val);
+                              const patch: Partial<SellingPriceEntry> = {
+                                sellingprice: sanitized,
+                              };
+                              if (
+                                requiresRoe(
+                                  sp.sellingCurrency,
+                                  businessCurrency,
+                                )
+                              ) {
+                                patch.sellingInr = computeInr(
+                                  sanitized,
+                                  sp.sellingRoe ?? "",
+                                );
+                              } else {
+                                patch.sellingInr = "";
+                              }
+                              updateSellingPrice(i, patch);
+                            }}
+                            roe={sp.sellingRoe || ""}
+                            onRoeChange={(val) =>
+                              updateSellingPrice(i, {
+                                sellingRoe: val,
+                                sellingInr: computeInr(
+                                  String(sp.sellingprice ?? ""),
+                                  val,
+                                ),
+                              })
                             }
-                            onChange(next);
-                          }}
-                          roe={v.sellingRoe || ""}
-                          onRoeChange={(val) =>
-                            update({
-                              sellingRoe: val,
-                              sellingInr: computeInr(
-                                String(v.sellingprice ?? ""),
-                                val,
-                              ),
-                            })
-                          }
-                          inr={v.sellingInr || ""}
-                          notes={v.sellingNotes || ""}
-                          onNotesChange={(val) => update({ sellingNotes: val })}
-                          showNotes={showSellingNotesFlag}
-                          onToggleNotes={() =>
-                            setShowSellingNotesFlag((s) => !s)
-                          }
-                          businessCurrency={businessCurrency}
-                          requiresRoe={requiresRoe}
-                          amountInputWidth="40%"
-                          readOnly={!!isReadOnly || !!isSubmitting}
-                        />
+                            inr={sp.sellingInr || ""}
+                            notes={sp.sellingNotes || ""}
+                            onNotesChange={(val) =>
+                              updateSellingPrice(i, { sellingNotes: val })
+                            }
+                            showNotes={!!sellingNotesFlags[i]}
+                            onToggleNotes={() =>
+                              setSellingNotesFlags((prev) => ({
+                                ...prev,
+                                [i]: !prev[i],
+                              }))
+                            }
+                            businessCurrency={businessCurrency}
+                            requiresRoe={requiresRoe}
+                            amountInputWidth="40%"
+                            readOnly={!!isReadOnly || !!isSubmitting}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
+                ))}
               </div>
 
               <div className="w-fit rounded-lg p-1 mt-1 bg-white">
@@ -703,14 +793,14 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                 <div className="flex items-center gap-3">
                   <span className="px-3 py-1.5 bg-[#7135AD0D] text-[#7135AD] text-[14px] font-[500] rounded-[10px]">
                     {`${getStoredCurrencySymbol()} ${formatIndianNumber(
-                      (Number(v.sellingprice) || 0) - derivedCostPrice,
+                      totalSellingPrice - derivedCostPrice,
                     )}`}
                   </span>
 
                   <span className="text-[13px] text-[#414141] font-[500]">
-                    {derivedCostPrice > 0 && v.sellingprice
+                    {derivedCostPrice > 0 && totalSellingPrice
                       ? `${(
-                          (((Number(v.sellingprice) || 0) - derivedCostPrice) /
+                          ((totalSellingPrice - derivedCostPrice) /
                             (derivedCostPrice || 1)) *
                           100
                         ).toFixed(2)}%`

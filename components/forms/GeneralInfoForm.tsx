@@ -46,6 +46,7 @@ interface GeneralInfoFormData {
   secondaryBookingOwner: string;
   secondaryBookingOwners: string[];
   remarks: string;
+  customerCount?: number;
 }
 
 interface CustomerDataType {
@@ -539,6 +540,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const [customerList, setCustomerList] = useState<
     { id: string; name: string }[]
   >([{ id: "", name: "" }]);
+
+  // Sync customer count to formData for price info
+  useEffect(() => {
+    setFormData((prev) => {
+      if (prev.customerCount === customerList.length) return prev;
+      return { ...prev, customerCount: customerList.length };
+    });
+  }, [customerList.length]);
 
   const [vendorList, setVendorList] = useState<{ id: string; name: string }[]>([
     { id: "", name: "" },
@@ -1697,7 +1706,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                         <div className="flex items-center gap-1 shrink-0">
                           <img
-                            src={`/icons/tier-icons/tier-${rating}.svg`}
+                            src={`/icons/tier-${rating}.png`}
                             alt={`Tier ${rating}`}
                             className="w-4 h-4 object-contain inline-block align-middle"
                           />
@@ -1765,7 +1774,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                               <div className="flex items-center gap-1">
                                 <img
-                                  src={`/icons/tier-icons/tier-${rating}.svg`}
+                                  src={`/icons/tier-${rating}.png`}
                                   alt={`Tier ${rating}`}
                                   className="w-4 h-4 object-contain inline-block align-middle"
                                 />
@@ -1917,7 +1926,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       {rating !== null ? (
                         <div className="flex items-center gap-1 shrink-0">
                           <img
-                            src={`/icons/tier-icons/tier-${rating}.svg`}
+                            src={`/icons/tier-${rating}.png`}
                             alt={`Tier ${rating}`}
                             className="w-4 h-4 object-contain inline-block align-middle"
                           />
@@ -1993,7 +2002,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           {rating !== null ? (
                             <div className="flex items-center gap-1">
                               <img
-                                src={`/icons/tier-icons/tier-${rating}.svg`}
+                                src={`/icons/tier-${rating}.png`}
                                 alt={`Tier ${rating}`}
                                 className="w-4 h-4 object-contain inline-block align-middle"
                               />
@@ -2206,7 +2215,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           {rating !== null ? (
                             <div className="flex items-center gap-1 shrink-0">
                               <img
-                                src={`/icons/tier-icons/tier-${rating}.svg`}
+                                src={`/icons/tier-${rating}.png`}
                                 alt={`Tier ${rating}`}
                                 className="w-4 h-4 object-contain inline-block align-middle"
                               />
@@ -2279,7 +2288,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                   return (
                                     <div className="flex items-center gap-1">
                                       <img
-                                        src={`/icons/tier-icons/tier-${rating}.svg`}
+                                        src={`/icons/tier-${rating}.png`}
                                         alt={`Tier ${rating}`}
                                         className="w-4 h-4 object-contain inline-block align-middle"
                                       />
@@ -2423,7 +2432,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           {rating !== null ? (
                             <div className="flex items-center gap-1 shrink-0">
                               <img
-                                src={`/icons/tier-icons/tier-${rating}.svg`}
+                                src={`/icons/tier-${rating}.png`}
                                 alt={`Tier ${rating}`}
                                 className="w-4 h-4 object-contain"
                               />
@@ -2488,7 +2497,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                 {rating !== null ? (
                                   <div className="flex items-center gap-1">
                                     <img
-                                      src={`/icons/tier-icons/tier-${rating}.svg`}
+                                      src={`/icons/tier-${rating}.png`}
                                       alt={`Tier ${rating}`}
                                       className="w-4 h-4 object-contain"
                                     />

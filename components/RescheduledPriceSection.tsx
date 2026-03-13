@@ -6,9 +6,27 @@ import { getBusinessCurrency, requiresRoe } from "@/utils/currencyUtil";
 import MultiCurrencyInput from "@/components/multiCurrencyUI";
 import SummaryPriceDisplay from "@/components/SummaryPriceDisplay";
 import { allowOnlyNumbers } from "@/utils/inputValidators";
-import { getStoredCurrencySymbol, formatIndianNumber } from "@/utils/helper";
+import {
+  getStoredCurrencySymbol,
+  formatIndianNumber,
+  formatDate,
+} from "@/utils/helper";
+import { useBookingFieldSync } from "@/context/BookingFieldSyncContext";
 
 type Currency = "INR" | "USD";
+
+export interface RescheduledSellingPriceEntry {
+  oldSellingPrice?: string | undefined;
+  oldSellingCurrency?: Currency | undefined;
+  oldSellingRoe?: string | undefined;
+  oldSellingInr?: string | undefined;
+  oldSellingNotes?: string | undefined;
+  additionalSellingPrice?: string | undefined;
+  additionalSellingCurrency?: Currency | undefined;
+  additionalSellingRoe?: string | undefined;
+  additionalSellingInr?: string | undefined;
+  additionalSellingNotes?: string | undefined;
+}
 
 export type RescheduledAmountValue = {
   // Non-advanced: old cost
@@ -80,6 +98,8 @@ export type RescheduledAmountValue = {
   additionalCommissionRoe?: string;
   additionalCommissionInr?: string;
   additionalCommissionNotes?: string;
+
+  rescheduledSellingPrices?: RescheduledSellingPriceEntry[];
 };
 
 interface RescheduledPriceSectionProps {
@@ -88,6 +108,7 @@ interface RescheduledPriceSectionProps {
   showAdvancedPricing: boolean;
   isReadOnly?: boolean | undefined;
   isSubmitting?: boolean | undefined;
+  customerCount?: number;
 }
 
 const inputBase =
@@ -114,9 +135,14 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
   showAdvancedPricing,
   isReadOnly = false,
   isSubmitting = false,
+  customerCount = 1,
 }) => {
   const { user } = useAuth();
   const businessCurrency = getBusinessCurrency(user as any);
+
+  const sync = useBookingFieldSync();
+  const displayBookingDate = formatDate(sync?.bookingDate);
+  const displayNewBookingDate = formatDate(sync?.newBookingDate);
 
   const v = value ?? {};
   const update = (patch: Partial<RescheduledAmountValue>) =>
@@ -127,9 +153,11 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
   // Notes toggle state
   const [showCostNotes, setShowCostNotes] = useState(false);
   const [showAdditionalCostNotes, setShowAdditionalCostNotes] = useState(false);
-  const [showSellingNotes, setShowSellingNotes] = useState(false);
-  const [showAdditionalSellingNotes, setShowAdditionalSellingNotes] =
-    useState(false);
+  const [sellingNotesFlags, setSellingNotesFlags] = useState<
+    Record<number, boolean>
+  >({});
+  const [additionalSellingNotesFlags, setAdditionalSellingNotesFlags] =
+    useState<Record<number, boolean>>({});
   const [advNotesVisible, setAdvNotesVisible] = useState({
     oldVendorBase: false,
     additionalVendorInvoiceBase: false,
@@ -218,6 +246,63 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
     v.additionalCommissionRoe,
   ]);
 
+  const rescheduledSellingPrices: RescheduledSellingPriceEntry[] = (() => {
+    const base: RescheduledSellingPriceEntry[] = v.rescheduledSellingPrices
+      ?.length
+      ? [...v.rescheduledSellingPrices]
+      : [
+          {
+            oldSellingPrice: v.oldSellingPrice,
+            oldSellingCurrency: v.oldSellingCurrency,
+            oldSellingRoe: v.oldSellingRoe,
+            oldSellingInr: v.oldSellingInr,
+            oldSellingNotes: v.oldSellingNotes,
+            additionalSellingPrice: v.additionalSellingPrice,
+            additionalSellingCurrency: v.additionalSellingCurrency,
+            additionalSellingRoe: v.additionalSellingRoe,
+            additionalSellingInr: v.additionalSellingInr,
+            additionalSellingNotes: v.additionalSellingNotes,
+          } as RescheduledSellingPriceEntry,
+        ];
+    while (base.length < customerCount) base.push({});
+    return base.slice(0, customerCount);
+  })();
+
+  const updateRescheduledSellingPrice = (
+    index: number,
+    patch: Partial<RescheduledSellingPriceEntry>,
+  ) => {
+    const prices = rescheduledSellingPrices.map((sp, i) =>
+      i === index ? { ...sp, ...patch } : { ...sp },
+    );
+    const first = prices[0] || {};
+    const flat: Record<string, any> = {
+      ...v,
+      rescheduledSellingPrices: prices,
+    };
+    if (first.oldSellingPrice !== undefined)
+      flat.oldSellingPrice = first.oldSellingPrice;
+    if (first.oldSellingCurrency !== undefined)
+      flat.oldSellingCurrency = first.oldSellingCurrency;
+    if (first.oldSellingRoe !== undefined)
+      flat.oldSellingRoe = first.oldSellingRoe;
+    if (first.oldSellingInr !== undefined)
+      flat.oldSellingInr = first.oldSellingInr;
+    if (first.oldSellingNotes !== undefined)
+      flat.oldSellingNotes = first.oldSellingNotes;
+    if (first.additionalSellingPrice !== undefined)
+      flat.additionalSellingPrice = first.additionalSellingPrice;
+    if (first.additionalSellingCurrency !== undefined)
+      flat.additionalSellingCurrency = first.additionalSellingCurrency;
+    if (first.additionalSellingRoe !== undefined)
+      flat.additionalSellingRoe = first.additionalSellingRoe;
+    if (first.additionalSellingInr !== undefined)
+      flat.additionalSellingInr = first.additionalSellingInr;
+    if (first.additionalSellingNotes !== undefined)
+      flat.additionalSellingNotes = first.additionalSellingNotes;
+    onChange(flat as RescheduledAmountValue);
+  };
+
   return (
     <div className="space-y-2">
       <div className="space-y-3">
@@ -229,9 +314,15 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
             <div className="border border-[#E2E1E1] overflow-hidden">
               {/* (Cost) */}
               <div className="grid grid-cols-[280px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
                   Old Cost Price
+                  {displayBookingDate ? (
+                    <div className="mt-1 text-[12px] border border-[#E2E1E1] text-[#414141] rounded-[8px] bg-white px-2 py-0.5">
+                      {displayBookingDate}
+                    </div>
+                  ) : null}
                 </div>
+
                 <div className="p-4 border-b border-[#E2E1E1]">
                   <MultiCurrencyInput
                     currency={(v.oldCostCurrency as Currency) || "INR"}
@@ -284,8 +375,13 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
               </div>
 
               <div className="grid grid-cols-[280px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
                   Additional Cost Price
+                  {displayNewBookingDate ? (
+                    <div className="mt-1 text-[12px] border border-[#E2E1E1] text-[#414141] rounded-[8px] bg-white px-2 py-0.5">
+                      {displayNewBookingDate}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="p-4">
                   <MultiCurrencyInput
@@ -353,8 +449,13 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
                 {/* ADVANCED PRICING: Vendor Base Price */}
 
                 <div className="grid grid-cols-[280px_1fr]">
-                  <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
+                  <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
                     Old Vendor Invoice (Base)
+                    {displayBookingDate ? (
+                      <div className="mt-1 text-[12px] border border-[#E2E1E1] text-[#414141] rounded-[8px] bg-white px-2 py-0.5">
+                        {displayBookingDate}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="p-4 border-b border-[#E2E1E1]">
                     <MultiCurrencyInput
@@ -419,8 +520,13 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
 
                 {/* Vendor Invoice Refund */}
                 <div className="grid grid-cols-[280px_1fr]">
-                  <div className="bg-[#F9F9F9] border-r border-b border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
+                  <div className="bg-[#F9F9F9] border-r border-b border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
                     Additional Vendor Invoice (Base)
+                    {displayNewBookingDate ? (
+                      <div className="mt-1 text-[12px] border border-[#E2E1E1] text-[#414141] rounded-[8px] bg-white px-2 py-0.5">
+                        {displayNewBookingDate}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="p-4 border-b border-[#E2E1E1]">
                     <MultiCurrencyInput
@@ -496,8 +602,13 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
 
                 {/* Supplier Incentive Received */}
                 <div className="grid grid-cols-[280px_1fr]">
-                  <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
+                  <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
                     Old Vendor Incentive Received
+                    {displayBookingDate ? (
+                      <div className="mt-1 text-[12px] border border-[#E2E1E1] text-[#414141] rounded-[8px] bg-white px-2 py-0.5">
+                        {displayBookingDate}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="p-4 border-b border-[#E2E1E1]">
                     <MultiCurrencyInput
@@ -568,8 +679,13 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
 
                 {/* Chargeback */}
                 <div className="grid grid-cols-[280px_1fr]">
-                  <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
+                  <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
                     Additional Vendor Incentive Received
+                    {displayNewBookingDate ? (
+                      <div className="mt-1 text-[12px] border border-[#E2E1E1] text-[#414141] rounded-[8px] bg-white px-2 py-0.5">
+                        {displayNewBookingDate}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="p-4 border-b border-[#E2E1E1]">
                     <MultiCurrencyInput
@@ -648,8 +764,13 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
 
                 {/* Commission Payout */}
                 <div className="grid grid-cols-[280px_1fr]">
-                  <div className="bg-[#F9F9F9] border-r border-t border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
+                  <div className="bg-[#F9F9F9] border-r border-t border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
                     Old Commission Payout
+                    {displayBookingDate ? (
+                      <div className="mt-1 text-[12px] border border-[#E2E1E1] text-[#414141] rounded-[8px] bg-white px-2 py-0.5">
+                        {displayBookingDate}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="p-4 border-b border-[#E2E1E1]">
                     <MultiCurrencyInput
@@ -715,8 +836,13 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
 
                 {/* Commission Refund */}
                 <div className="grid grid-cols-[280px_1fr]">
-                  <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
+                  <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
                     Additional Commission Payout
+                    {displayNewBookingDate ? (
+                      <div className="mt-1 text-[12px] border border-[#E2E1E1] text-[#414141] rounded-[8px] bg-white px-2 py-0.5">
+                        {displayNewBookingDate}
+                      </div>
+                    ) : null}
                   </div>
                   <div className="p-4 border-[#E2E1E1]">
                     <MultiCurrencyInput
@@ -811,120 +937,167 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
         </h4>
 
         <div className="border border-[#E2E1E1] overflow-hidden">
-          {/* (Selling) */}
-          <div className="grid grid-cols-[280px_1fr]">
-            <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
-              Old Selling Price
-            </div>
-            <div className="p-4 border-b border-[#E2E1E1]">
-              <MultiCurrencyInput
-                currency={(v.oldSellingCurrency as Currency) || "INR"}
-                onCurrencyChange={(val) => {
-                  const next: any = { ...v, oldSellingCurrency: val };
-                  if (requiresRoe(val, businessCurrency)) {
-                    next.oldSellingInr = computeInr(
-                      String(v.oldSellingPrice ?? ""),
-                      String(v.oldSellingRoe ?? ""),
-                    );
-                  } else {
-                    next.oldSellingRoe = "";
-                    next.oldSellingInr = "";
-                  }
-                  onChange(next);
-                }}
-                amount={v.oldSellingPrice || ""}
-                onAmountChange={(val) => {
-                  const amount = allowOnlyNumbers(val);
-                  update({
-                    oldSellingPrice: amount,
-                    oldSellingInr: requiresRoe(
-                      v.oldSellingCurrency,
-                      businessCurrency,
-                    )
-                      ? computeInr(amount, v.oldSellingRoe ?? "")
-                      : "",
-                  });
-                }}
-                roe={v.oldSellingRoe || ""}
-                onRoeChange={(val) => {
-                  const roe = allowOnlyNumbers(val);
-                  update({
-                    oldSellingRoe: roe,
-                    oldSellingInr: computeInr(v.oldSellingPrice ?? "", roe),
-                  });
-                }}
-                inr={v.oldSellingInr || ""}
-                notes={v.oldSellingNotes || ""}
-                onNotesChange={(val) => update({ oldSellingNotes: val })}
-                showNotes={showSellingNotes}
-                onToggleNotes={() => setShowSellingNotes((s) => !s)}
-                businessCurrency={businessCurrency}
-                requiresRoe={requiresRoe}
-                useWhiteDropdown={true}
-                inputClassName={inputBase}
-                readOnly={readOnly}
-                amountInputWidth="44%"
-              />
-            </div>
-          </div>
+          {rescheduledSellingPrices.map((sp, idx) => (
+            <React.Fragment key={idx}>
+              {/* Old Selling Price */}
+              <div className="grid grid-cols-[280px_1fr]">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
+                  Old Selling Price
+                  {rescheduledSellingPrices.length > 1
+                    ? ` (Customer ${idx + 1})`
+                    : ""}
+                  {displayBookingDate ? (
+                    <div className="mt-1 text-[12px] border border-[#E2E1E1] text-[#414141] rounded-[8px] bg-white px-2 py-0.5">
+                      {displayBookingDate}
+                    </div>
+                  ) : null}
+                </div>
+                <div className="p-4 border-b border-[#E2E1E1]">
+                  <MultiCurrencyInput
+                    currency={(sp.oldSellingCurrency as Currency) || "INR"}
+                    onCurrencyChange={(val) => {
+                      const patch: Partial<RescheduledSellingPriceEntry> = {
+                        oldSellingCurrency: val,
+                      };
+                      if (requiresRoe(val, businessCurrency)) {
+                        patch.oldSellingInr = computeInr(
+                          String(sp.oldSellingPrice ?? ""),
+                          String(sp.oldSellingRoe ?? ""),
+                        );
+                      } else {
+                        patch.oldSellingRoe = "";
+                        patch.oldSellingInr = "";
+                      }
+                      updateRescheduledSellingPrice(idx, patch);
+                    }}
+                    amount={sp.oldSellingPrice || ""}
+                    onAmountChange={(val) => {
+                      const amount = allowOnlyNumbers(val);
+                      updateRescheduledSellingPrice(idx, {
+                        oldSellingPrice: amount,
+                        oldSellingInr: requiresRoe(
+                          sp.oldSellingCurrency,
+                          businessCurrency,
+                        )
+                          ? computeInr(amount, sp.oldSellingRoe ?? "")
+                          : "",
+                      });
+                    }}
+                    roe={sp.oldSellingRoe || ""}
+                    onRoeChange={(val) => {
+                      const roe = allowOnlyNumbers(val);
+                      updateRescheduledSellingPrice(idx, {
+                        oldSellingRoe: roe,
+                        oldSellingInr: computeInr(
+                          sp.oldSellingPrice ?? "",
+                          roe,
+                        ),
+                      });
+                    }}
+                    inr={sp.oldSellingInr || ""}
+                    notes={sp.oldSellingNotes || ""}
+                    onNotesChange={(val) =>
+                      updateRescheduledSellingPrice(idx, {
+                        oldSellingNotes: val,
+                      })
+                    }
+                    showNotes={!!sellingNotesFlags[idx]}
+                    onToggleNotes={() =>
+                      setSellingNotesFlags((p) => ({
+                        ...p,
+                        [idx]: !p[idx],
+                      }))
+                    }
+                    businessCurrency={businessCurrency}
+                    requiresRoe={requiresRoe}
+                    useWhiteDropdown={true}
+                    inputClassName={inputBase}
+                    readOnly={readOnly}
+                    amountInputWidth="44%"
+                  />
+                </div>
+              </div>
 
-          {/* SELLING REFUND RECEIVED */}
-          <div className="grid grid-cols-[280px_1fr]">
-            <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
-              Additional Selling Price
-            </div>
-            <div className="p-4">
-              <MultiCurrencyInput
-                currency={(v.additionalSellingCurrency as Currency) || "INR"}
-                onCurrencyChange={(val) =>
-                  update({
-                    additionalSellingCurrency: val,
-                    additionalSellingRoe: requiresRoe(val, businessCurrency)
-                      ? (v.additionalSellingRoe ?? "")
-                      : "",
-                    additionalSellingInr: requiresRoe(val, businessCurrency)
-                      ? (v.additionalSellingInr ?? "")
-                      : "",
-                  })
-                }
-                amount={v.additionalSellingPrice || ""}
-                onAmountChange={(val) => {
-                  const amount = allowOnlyNumbers(val);
-                  update({
-                    additionalSellingPrice: amount,
-                    additionalSellingInr: requiresRoe(
-                      v.additionalSellingCurrency,
-                      businessCurrency,
-                    )
-                      ? computeInr(amount, v.additionalSellingRoe ?? "")
-                      : (v.additionalSellingInr ?? ""),
-                  });
-                }}
-                roe={v.additionalSellingRoe || ""}
-                onRoeChange={(val) => {
-                  const roe = allowOnlyNumbers(val);
-                  update({
-                    additionalSellingRoe: roe,
-                    additionalSellingInr: computeInr(
-                      v.additionalSellingPrice ?? "",
-                      roe,
-                    ),
-                  });
-                }}
-                inr={v.additionalSellingInr || ""}
-                notes={v.additionalSellingNotes || ""}
-                onNotesChange={(val) => update({ additionalSellingNotes: val })}
-                showNotes={showAdditionalSellingNotes}
-                onToggleNotes={() => setShowAdditionalSellingNotes((s) => !s)}
-                businessCurrency={businessCurrency}
-                requiresRoe={requiresRoe}
-                useWhiteDropdown={true}
-                inputClassName={smallInputBase}
-                amountInputWidth="44%"
-                readOnly={readOnly}
-              />
-            </div>
-          </div>
+              {/* Additional Selling Price */}
+              <div className="grid grid-cols-[280px_1fr]">
+                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
+                  Additional Selling Price
+                  {rescheduledSellingPrices.length > 1
+                    ? ` (Customer ${idx + 1})`
+                    : ""}
+                  {displayNewBookingDate ? (
+                    <div className="mt-1 text-[12px] border border-[#E2E1E1] text-[#414141] rounded-[8px] bg-white px-2 py-0.5">
+                      {displayNewBookingDate}
+                    </div>
+                  ) : null}
+                </div>
+                <div
+                  className={`p-4${idx < rescheduledSellingPrices.length - 1 ? " border-b border-[#E2E1E1]" : ""}`}
+                >
+                  <MultiCurrencyInput
+                    currency={
+                      (sp.additionalSellingCurrency as Currency) || "INR"
+                    }
+                    onCurrencyChange={(val) =>
+                      updateRescheduledSellingPrice(idx, {
+                        additionalSellingCurrency: val,
+                        additionalSellingRoe: requiresRoe(val, businessCurrency)
+                          ? (sp.additionalSellingRoe ?? "")
+                          : "",
+                        additionalSellingInr: requiresRoe(val, businessCurrency)
+                          ? (sp.additionalSellingInr ?? "")
+                          : "",
+                      })
+                    }
+                    amount={sp.additionalSellingPrice || ""}
+                    onAmountChange={(val) => {
+                      const amount = allowOnlyNumbers(val);
+                      updateRescheduledSellingPrice(idx, {
+                        additionalSellingPrice: amount,
+                        additionalSellingInr: requiresRoe(
+                          sp.additionalSellingCurrency,
+                          businessCurrency,
+                        )
+                          ? computeInr(amount, sp.additionalSellingRoe ?? "")
+                          : (sp.additionalSellingInr ?? ""),
+                      });
+                    }}
+                    roe={sp.additionalSellingRoe || ""}
+                    onRoeChange={(val) => {
+                      const roe = allowOnlyNumbers(val);
+                      updateRescheduledSellingPrice(idx, {
+                        additionalSellingRoe: roe,
+                        additionalSellingInr: computeInr(
+                          sp.additionalSellingPrice ?? "",
+                          roe,
+                        ),
+                      });
+                    }}
+                    inr={sp.additionalSellingInr || ""}
+                    notes={sp.additionalSellingNotes || ""}
+                    onNotesChange={(val) =>
+                      updateRescheduledSellingPrice(idx, {
+                        additionalSellingNotes: val,
+                      })
+                    }
+                    showNotes={!!additionalSellingNotesFlags[idx]}
+                    onToggleNotes={() =>
+                      setAdditionalSellingNotesFlags((p) => ({
+                        ...p,
+                        [idx]: !p[idx],
+                      }))
+                    }
+                    businessCurrency={businessCurrency}
+                    requiresRoe={requiresRoe}
+                    useWhiteDropdown={true}
+                    inputClassName={smallInputBase}
+                    amountInputWidth="44%"
+                    readOnly={readOnly}
+                  />
+                </div>
+              </div>
+            </React.Fragment>
+          ))}
         </div>
       </div>
 
