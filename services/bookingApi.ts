@@ -1111,56 +1111,104 @@ export class BookingApiService {
   }
 
   // Get all quotations (bookings) with filter params aligned to backend controller
-  static async getAllQuotations(params?: {
-    bookingStartDate?: string;
-    bookingEndDate?: string;
-    travelStartDate?: string;
-    travelEndDate?: string;
-    owner?: string | string[];
-    activeTab: string
+  // static async getAllQuotations(params?: {
+  //   bookingStartDate?: string;
+  //   bookingEndDate?: string;
+  //   travelStartDate?: string;
+  //   travelEndDate?: string;
+  //   owner?: string | string[];
+  //   activeTab: string
+  // }): Promise<ApiResponse<unknown>> {
+  //   try {
+  //     let endpoint = '/quotation/get-all-quotations';
+  //     if (params?.activeTab === "Drafts") {
+  //       endpoint = endpoint + '?serviceStatus=draft';
+  //     }
+  //     if (params?.activeTab === "Bookings") {
+  //       endpoint = endpoint + '?serviceStatus=approved';
+  //     }
+  //     if (params?.activeTab === "Deleted") {
+  //       endpoint = endpoint + '?isDeleted=true';
+  //     }
+  //     if (params?.activeTab === "Pending") {
+  //       endpoint = endpoint + '?serviceStatus=pending';
+  //     }
+  //     if (params?.activeTab === "Denied") {
+  //       endpoint = endpoint + '?serviceStatus=denied';
+  //     }
+  //     if (params?.activeTab === "Approved") {
+  //       endpoint = endpoint + '?serviceStatus=approved';
+  //     }
+  //     const response = await apiClient.get(endpoint, {
+  //       params: {
+  //         bookingStartDate: params?.bookingStartDate || undefined,
+  //         bookingEndDate: params?.bookingEndDate || undefined,
+  //         travelStartDate: params?.travelStartDate || undefined,
+  //         travelEndDate: params?.travelEndDate || undefined,
+  //         // Backend currently supports single owner; pick first when array
+  //         owner: Array.isArray(params?.owner)
+  //           ? (params?.owner[0] || undefined)
+  //           : params?.owner || undefined,
+  //       },
+  //     });
+  //     return {
+  //       success: true,
+  //       data: response.data,
+  //       message: 'Quotations retrieved successfully',
+  //     };
+  //   } catch (error) {
+  //     console.error('Error fetching quotations:', error);
+  //     return {
+  //       success: false,
+  //       message: 'Failed to fetch quotations',
+  //     };
+  //   }
+  // }
+
+  // Get quotations owned by the logged-in user (paginated)
+  static async getMyQuotations(params?: {
+    bookingStartDate?: string | undefined;
+    bookingEndDate?: string | undefined;
+    travelStartDate?: string | undefined;
+    travelEndDate?: string | undefined;
+    activeTab?: string;
+    page?: number;
+    limit?: number;
   }): Promise<ApiResponse<unknown>> {
     try {
-      let endpoint = '/quotation/get-all-quotations';
-      if (params?.activeTab === "Drafts") {
-        endpoint = endpoint + '?serviceStatus=draft';
+      let serviceStatus: string | undefined;
+      let isDeleted: string | undefined;
+
+      switch (params?.activeTab) {
+        case 'Drafts': serviceStatus = 'draft'; break;
+        case 'Bookings': serviceStatus = 'approved'; break;
+        case 'Pending': serviceStatus = 'pending'; break;
+        case 'Denied': serviceStatus = 'denied'; break;
+        case 'Deleted': isDeleted = 'true'; break;
       }
-      if (params?.activeTab === "Bookings") {
-        endpoint = endpoint + '?serviceStatus=approved';
-      }
-      if (params?.activeTab === "Deleted") {
-        endpoint = endpoint + '?isDeleted=true';
-      }
-      if (params?.activeTab === "Pending") {
-        endpoint = endpoint + '?serviceStatus=pending';
-      }
-      if (params?.activeTab === "Denied") {
-        endpoint = endpoint + '?serviceStatus=denied';
-      }
-      if (params?.activeTab === "Approved") {
-        endpoint = endpoint + '?serviceStatus=approved';
-      }
-      const response = await apiClient.get(endpoint, {
+
+      const response = await apiClient.get('/quotation/get-my-quotations', {
         params: {
           bookingStartDate: params?.bookingStartDate || undefined,
           bookingEndDate: params?.bookingEndDate || undefined,
           travelStartDate: params?.travelStartDate || undefined,
           travelEndDate: params?.travelEndDate || undefined,
-          // Backend currently supports single owner; pick first when array
-          owner: Array.isArray(params?.owner)
-            ? (params?.owner[0] || undefined)
-            : params?.owner || undefined,
+          serviceStatus,
+          isDeleted,
+          page: params?.page || undefined,
+          limit: params?.limit || undefined,
         },
       });
       return {
         success: true,
         data: response.data,
-        message: 'Quotations retrieved successfully',
+        message: 'My quotations retrieved successfully',
       };
     } catch (error) {
-      console.error('Error fetching quotations:', error);
+      console.error('Error fetching my quotations:', error);
       return {
         success: false,
-        message: 'Failed to fetch quotations',
+        message: 'Failed to fetch my quotations',
       };
     }
   }

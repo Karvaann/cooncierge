@@ -1,11 +1,6 @@
 "use client";
 
-import React, {
-  useState,
-  useMemo,
-  useCallback,
-  useEffect,
-} from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import DropDown from "./DropDown";
 // Type definitions
@@ -45,6 +40,9 @@ interface TableProps {
       align?: "left" | "center" | "right";
     }
   >;
+  /* Server-side pagination props */
+  externalTotalRows?: number;
+  externalPage?: number;
 }
 
 const Table: React.FC<TableProps> = ({
@@ -75,8 +73,11 @@ const Table: React.FC<TableProps> = ({
   onHeaderIconClick,
   headerIconClickableColumns,
   headerDropdownMap = {},
+  externalTotalRows,
+  externalPage,
 }) => {
-  const [page, setPage] = useState<number>(1);
+  const isServerPaginated = externalTotalRows !== undefined;
+  const [page, setPage] = useState<number>(externalPage ?? 1);
   const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
   const [activeVisibleRowIndex, setActiveVisibleRowIndex] = useState<
     number | null
@@ -87,16 +88,29 @@ const Table: React.FC<TableProps> = ({
     setActiveVisibleRowIndex(null);
   }, [enableRowHoverActions, page, rowsPerPage, data.length]);
 
+  // Sync external page when server-side pagination is active
+  useEffect(() => {
+    if (externalPage !== undefined) {
+      setPage(externalPage);
+    }
+  }, [externalPage]);
+
   // Memoized calculations
-  const totalRows = useMemo(() => data.length, [data.length]);
+  const totalRows = useMemo(
+    () => externalTotalRows ?? data.length,
+    [externalTotalRows, data.length],
+  );
   const totalPages = useMemo(
     () => Math.ceil(totalRows / rowsPerPage),
     [totalRows, rowsPerPage],
   );
 
   const paginatedRows = useMemo(
-    () => data.slice((page - 1) * rowsPerPage, page * rowsPerPage),
-    [data, page, rowsPerPage],
+    () =>
+      isServerPaginated
+        ? data
+        : data.slice((page - 1) * rowsPerPage, page * rowsPerPage),
+    [data, page, rowsPerPage, isServerPaginated],
   );
 
   // Memoized pagination buttons
@@ -174,7 +188,7 @@ const Table: React.FC<TableProps> = ({
             onSort(col);
           }
         }}
-        className={`sticky top-0 z-10 relative overflow-visible px-[18px] py-[18px] ${headerCellTextClassName} font-[500] leading-4 tracking-[0.6px] text-[13px] ${
+        className={`top-0 z-10 relative overflow-visible px-[18px] py-[18px] ${headerCellTextClassName} font-[500] leading-4 tracking-[0.6px] text-[13px] ${
           columnWidthClassMap[col] || ""
         }
         ${headerClassName || "bg-[#F3F3F3]"}
