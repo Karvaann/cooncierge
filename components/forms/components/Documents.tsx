@@ -22,6 +22,7 @@ interface DocumentsProps {
   onRemoveDocuments?: ((files: File[]) => void) | undefined;
   isReadOnly?: boolean;
   maxDocuments?: number;
+  onDeleteExistingDocument?: ((index: number) => void) | undefined;
 }
 
 const Documents: React.FC<DocumentsProps> = ({
@@ -30,6 +31,7 @@ const Documents: React.FC<DocumentsProps> = ({
   onRemoveDocuments,
   isReadOnly = false,
   maxDocuments = 3,
+  onDeleteExistingDocument,
 }) => {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
@@ -98,17 +100,27 @@ const Documents: React.FC<DocumentsProps> = ({
           existingDocuments.map((doc, i) => (
             <div
               key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
-              onClick={() => doc.url && window.open(doc.url, "_blank")}
               className="flex items-center justify-between w-full bg-white rounded-[15px] px-3 py-2 hover:cursor-pointer transition"
             >
               <button
                 type="button"
+                onClick={() => doc.url && window.open(doc.url, "_blank")}
                 className="text-[#7135AD] p-1.5 -ml-2 rounded-[15px] bg-[#126ACB0D] text-[13px] truncate flex items-center gap-2 hover:cursor-pointer transition-colors cursor-pointer"
                 title="Click to view document"
               >
                 <FaRegFolder className="text-[#7135AD] w-3 h-3" />
                 {doc.originalName || doc.fileName}
               </button>
+
+              {onDeleteExistingDocument && !isReadOnly ? (
+                <button
+                  type="button"
+                  onClick={() => onDeleteExistingDocument(i)}
+                  className="text-[#EB382B] hover:cursor-pointer"
+                >
+                  <FiTrash2 size={16} />
+                </button>
+              ) : null}
             </div>
           ))}
 

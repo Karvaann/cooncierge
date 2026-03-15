@@ -31,10 +31,10 @@ const ConfirmPopupModal: React.FC<ConfirmPopupModalProps> = ({
       showCloseButton={false} // ⬅️ we control it manually
       closeOnOverlayClick={true}
       closeOnEscape={true}
-      className="p-0"
+      className="pt-8 pb-4 px-5"
       zIndexClass="z-[1000]"
     >
-      <div className="relative px-1 -mt-4 pb-1.5 flex flex-col items-center">
+      <div className="relative px-1 -mt-2 pb-1.5 flex flex-col items-center">
         {/* ❌ Custom Close Button */}
         <button
           onClick={onClose}

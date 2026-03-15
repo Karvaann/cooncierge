@@ -28,14 +28,14 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       size="sm"
       customWidth="w-72"
       customeHeight="h-fit"
-      showCloseButton={false} // 🔥 custom close button only
+      showCloseButton={false} // custom close button only
       closeOnOverlayClick={true}
       closeOnEscape={true}
-      className="p-0"
+      className="pb-4 pt-8 px-5"
       zIndexClass="z-[1200]"
       disableOverlayClick={false}
     >
-      <div className="relative px-2 -mt-3 pb-2 -ml-2 flex flex-col items-center">
+      <div className="relative px-2 -mt-2 pb-2 -ml-2 flex flex-col items-center">
         {/* 🔥 Custom Close Button */}
         <button
           onClick={onClose}
