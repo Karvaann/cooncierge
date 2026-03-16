@@ -101,15 +101,9 @@ export default function BaggageCounters({
   const checkInPcsNum = useMemo(() => toInt(checkInPcs), [checkInPcs]);
 
   return (
-    <div className="pt-1">
-      <div className="flex items-center justify-between">
+    <>
+      <div>
         <span className="text-[0.75rem] font-[500] text-[#414141]">Cabin</span>
-        <span className="text-[0.75rem] mr-28 font-[500] text-[#414141]">
-          Check-In
-        </span>
-      </div>
-
-      <div className="mt-2 grid grid-cols-2 gap-3">
         <Control
           pcs={cabinPcsNum}
           wt={cabinWt}
@@ -119,17 +113,22 @@ export default function BaggageCounters({
           }
           onWtChange={(next) => onChange({ cabinBaggageWt: next })}
         />
-
-        <Control
-          pcs={checkInPcsNum}
-          wt={checkInWt}
-          onInc={() => onChange({ checkInBaggagePcs: checkInPcsNum + 1 })}
-          onDec={() =>
-            onChange({ checkInBaggagePcs: Math.max(0, checkInPcsNum - 1) })
-          }
-          onWtChange={(next) => onChange({ checkInBaggageWt: next })}
-        />
       </div>
-    </div>
+
+      <div>
+        <span className="text-[0.75rem] font-[500] text-[#414141]">
+          Check-In
+        </span>
+          <Control
+            pcs={checkInPcsNum}
+            wt={checkInWt}
+            onInc={() => onChange({ checkInBaggagePcs: checkInPcsNum + 1 })}
+            onDec={() =>
+              onChange({ checkInBaggagePcs: Math.max(0, checkInPcsNum - 1) })
+            }
+            onWtChange={(next) => onChange({ checkInBaggageWt: next })}
+          />
+      </div>
+    </>
   );
 }

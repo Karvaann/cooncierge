@@ -2145,7 +2145,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               </label>
               <div className="flex items-center gap-1">
                 <div
-                  className="w-[30rem] relative"
+                  className="w-[60%] relative"
                   ref={(el) => {
                     travellerRefs.current.set(`adult-${index}`, el);
                   }}
@@ -2370,7 +2370,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               {/* CHILD INPUT */}
               <div className="flex items-center gap-2">
                 <div
-                  className="w-[30rem] relative"
+                  className="w-[60%] relative"
                   ref={(el) => {
                     travellerRefs.current.set(`infant-${index}`, el);
                   }}

@@ -156,8 +156,8 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
   };
 
   return (
-    <>
-      <div className="flex flex-wrap items-end justify-between mb-3">
+    <div className="flex flex-wrap items-start justify-between mb-3">
+      <div className="">
         {/* Left section: Booking + Travel Date */}
         <div className="flex items-end flex-wrap gap-2">
           {/* Booking Date */}
@@ -184,60 +184,61 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
             inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
           />
         </div>
+        {/* Cancellation Date row shown when booking is cancelled */}
+        {bookingstatus?.toLowerCase() === "cancelled" && (
+          <div className="w-full mb-5 mt-[14px]">
+            <SingleCalendar
+              label="Cancellation Date"
+              value={cancellationDate || ""}
+              onChange={handleCancellationDateChange}
+              placeholder="Select Date"
+              customWidth="w-full"
+              showCalendarIcon={true}
+              inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+            />
+          </div>
+        )}
 
-        {/* Right section: Booking Status */}
-        <div>
-          <DropDown
-            options={statusOptions}
-            placeholder="Booking Status"
-            value={bookingstatus}
-            onChange={handleStatusChange}
-            menuClassName="rounded-[14px] px-1.5"
-            buttonClassName="px-3 py-1.5 hover:border-[#C6AEDE] rounded-[15px]"
-            noButtonRadius
-          />
-        </div>
+        {/* New Booking/Travel Date row shown when booking is rescheduled */}
+        {bookingstatus?.toLowerCase() === "rescheduled" && (
+          <div className="flex items-end flex-wrap gap-2 mb-5 mt-[14px]">
+            <SingleCalendar
+              label="New Booking Date"
+              value={sync?.newBookingDate || ""}
+              onChange={handleNewBookingDateChange}
+              placeholder="Select Date"
+              customWidth="w-[12rem]"
+              inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+            />
+
+            <SingleCalendar
+              label="New Travel Date"
+              value={sync?.newTravelDate || ""}
+              onChange={handleNewTravelDateChange}
+              placeholder="Select Date"
+              minDate={sync?.newBookingDate || bookingdate}
+              customWidth="w-[12rem]"
+              inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+            />
+          </div>
+        )}
+
+        
       </div>
 
-      {/* New Booking/Travel Date row shown when booking is rescheduled */}
-      {bookingstatus?.toLowerCase() === "rescheduled" && (
-        <div className="flex items-end flex-wrap gap-2 mb-3">
-          <SingleCalendar
-            label="New Booking Date"
-            value={sync?.newBookingDate || ""}
-            onChange={handleNewBookingDateChange}
-            placeholder="Select Date"
-            customWidth="w-[12rem]"
-            inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
-          />
-
-          <SingleCalendar
-            label="New Travel Date"
-            value={sync?.newTravelDate || ""}
-            onChange={handleNewTravelDateChange}
-            placeholder="Select Date"
-            minDate={sync?.newBookingDate || bookingdate}
-            customWidth="w-[12rem]"
-            inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
-          />
-        </div>
-      )}
-
-      {/* Cancellation Date row shown when booking is cancelled */}
-      {bookingstatus?.toLowerCase() === "cancelled" && (
-        <div className="mb-5 mt-1">
-          <SingleCalendar
-            label="Cancellation Date"
-            value={cancellationDate || ""}
-            onChange={handleCancellationDateChange}
-            placeholder="Select Date"
-            customWidth="w-[48%]"
-            showCalendarIcon={true}
-            inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
-          />
-        </div>
-      )}
-    </>
+      {/* Right section: Booking Status */}
+        <div>
+        <DropDown
+          options={statusOptions}
+          placeholder="Booking Status"
+          value={bookingstatus}
+          onChange={handleStatusChange}
+          menuClassName="rounded-[14px] px-1.5"
+          buttonClassName="px-3 py-1.5 hover:border-[#C6AEDE] rounded-[15px]"
+          noButtonRadius
+        />
+      </div>
+    </div>
   );
 };
 

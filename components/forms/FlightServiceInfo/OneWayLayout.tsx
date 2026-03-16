@@ -132,7 +132,7 @@ export default function OneWayLayout({
       <div className="w-full bg-[#F9F9F9] -ml-2 rounded-[15px] p-4 space-y-4">
         {formData.segments.map((segment, index) => (
           <React.Fragment key={segment.id}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-4">
               <FlightSegmentCard
                 segment={segment}
                 index={index}

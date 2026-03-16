@@ -327,16 +327,6 @@ const PriceInfoForm: React.FC<PriceInfoProps> = ({
           customerCount={customerCount}
         />
 
-        {/* Documents */}
-        <div className="mt-4">
-          <Documents
-            existingDocuments={existingDocuments}
-            onAddDocuments={onAddDocuments}
-            onRemoveDocuments={onRemoveDocuments}
-            isReadOnly={isReadOnly}
-          />
-        </div>
-
         {/* Remarks */}
         <RemarksField
           value={formData.remarks}

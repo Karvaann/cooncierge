@@ -48,7 +48,7 @@ const SideSheet: React.FC<SideSheetProps> = ({
       md: "w-96",
       lg: "w-[41.664vw]",
       lg2: "w-[50.43vw]",
-      xl: "w-[52.08vw]",
+      xl: "w-[56vw]",
       full: "w-full",
     }),
     [],
