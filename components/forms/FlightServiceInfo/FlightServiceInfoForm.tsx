@@ -142,10 +142,13 @@ const ensureFlightTypeDefaults = (
   data: Partial<FlightInfoFormData>,
   fallbackTravelDate = "",
 ) => {
-  const flightType = (data.flightType as FlightInfoFormData["flightType"]) || "One Way";
+  const flightType =
+    (data.flightType as FlightInfoFormData["flightType"]) || "One Way";
   const topTravelDate = String(data.traveldate ?? fallbackTravelDate ?? "");
   const incomingSegments = Array.isArray(data.segments)
-    ? data.segments.map((segment, index) => normalizeSegment(segment, `seg-${index + 1}`))
+    ? data.segments.map((segment, index) =>
+        normalizeSegment(segment, `seg-${index + 1}`),
+      )
     : [];
   const incomingReturnSegments = Array.isArray(data.returnSegments)
     ? data.returnSegments.map((segment, index) =>
@@ -201,11 +204,17 @@ const ensureFlightTypeDefaults = (
 };
 
 const sanitizeFlightNumber = (value: string) =>
-  value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+  value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 4);
 
 const sanitizePNR = (value: string) => allowUppercaseAlphanumeric6(value);
 
-const getUserNickname = (generalInfoData?: Record<string, any>, externalFormData?: Record<string, any>) => {
+const getUserNickname = (
+  generalInfoData?: Record<string, any>,
+  externalFormData?: Record<string, any>,
+) => {
   const candidates = [
     generalInfoData?.nickname,
     generalInfoData?.customerNickname,
@@ -270,7 +279,8 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
     flightType: ensureFlightTypeDefaults(normalizedExternalData).flightType,
     remarks: normalizedExternalData?.remarks || "",
     importantinfo: normalizedExternalData?.importantinfo || "",
-    rulesAndConditions: (normalizedExternalData as any)?.rulesAndConditions || "",
+    rulesAndConditions:
+      (normalizedExternalData as any)?.rulesAndConditions || "",
     rulesTemplate: (normalizedExternalData as any)?.rulesTemplate || "",
 
     cancellationForm: (normalizedExternalData as any)?.cancellationForm,
@@ -338,7 +348,9 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
         pnr: mainPnr,
       }));
       const hasDiff =
-        segments.some((segment, index) => segment.pnr !== prev.segments[index]?.pnr) ||
+        segments.some(
+          (segment, index) => segment.pnr !== prev.segments[index]?.pnr,
+        ) ||
         returnSegments.some(
           (segment, index) => segment.pnr !== prev.returnSegments[index]?.pnr,
         );

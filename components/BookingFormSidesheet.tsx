@@ -381,7 +381,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     setBookingDocuments((prev) =>
       prev.filter(
         (item) =>
-          String(item.category) !== String(category) || !toRemove.has(item.file),
+          String(item.category) !== String(category) ||
+          !toRemove.has(item.file),
       ),
     );
   };
@@ -630,7 +631,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       String(quotationType).toLowerCase() === "flight";
 
     const flightInfoForm =
-      typeof input.flightinfoform === "object" ? { ...input.flightinfoform } : {};
+      typeof input.flightinfoform === "object"
+        ? { ...input.flightinfoform }
+        : {};
     const priceInfoForm =
       typeof input.priceinfoform === "object" ? { ...input.priceinfoform } : {};
 
@@ -642,7 +645,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         ? { ...input[infoFormKey] }
         : {};
     const flatInfoForm =
-      Object.keys(flightInfoForm).length > 0 ? flightInfoForm : fallbackInfoForm;
+      Object.keys(flightInfoForm).length > 0
+        ? flightInfoForm
+        : fallbackInfoForm;
 
     const formFieldsBase = Object.fromEntries(
       Object.entries(rest).filter(
@@ -722,7 +727,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         airlineLogo: preview.airlineLogo || "",
         flightNumber: preview.flightNumber || "",
         originAirportCode:
-          preview.originAirportCode || origin.match(/\(([A-Z]{3})\)/)?.[1] || "",
+          preview.originAirportCode ||
+          origin.match(/\(([A-Z]{3})\)/)?.[1] ||
+          "",
         destinationAirportCode:
           preview.destinationAirportCode ||
           destination.match(/\(([A-Z]{3})\)/)?.[1] ||
@@ -747,7 +754,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       to: String(
         segment?.to ||
           segment?.preview?.destinationAirportCode ||
-          String(segment?.preview?.destination || "").match(/\(([A-Z]{3})\)/)?.[1] ||
+          String(segment?.preview?.destination || "").match(
+            /\(([A-Z]{3})\)/,
+          )?.[1] ||
           "",
       ).trim(),
       flightNumber: String(
@@ -773,7 +782,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           segment?.checkInBaggageWt ?? segment?.checkInBaggage?.weight ?? 0,
         ),
       },
-      ...(segment?.preview ? { preview: mapFlightPreview(segment.preview) } : {}),
+      ...(segment?.preview
+        ? { preview: mapFlightPreview(segment.preview) }
+        : {}),
     });
 
     const tripType = String(
@@ -890,7 +901,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         if (!customerId) return null;
         return {
           customerId,
-          sellingPrice: numericValue(entry?.sellingprice ?? priceInfoForm.sellingprice),
+          sellingPrice: numericValue(
+            entry?.sellingprice ?? priceInfoForm.sellingprice,
+          ),
         };
       })
       .filter(Boolean);
@@ -900,7 +913,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           pnr: String(flatInfoForm.PNR || flatInfoForm.pnr || "").trim(),
           samePnrForAllSegments: Boolean(
             flatInfoForm.samePNRForAllSegments ??
-              flatInfoForm.samePnrForAllSegments,
+            flatInfoForm.samePnrForAllSegments,
           ),
           tripType,
           ...(tripType === "one way"
@@ -1062,7 +1075,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     }
     if (resolvedVendorId) bookingDataTemp.append("vendorId", resolvedVendorId);
     if (customerPricing.length > 0) {
-      bookingDataTemp.append("customerPricing", JSON.stringify(customerPricing));
+      bookingDataTemp.append(
+        "customerPricing",
+        JSON.stringify(customerPricing),
+      );
     }
     bookingDataTemp.append("adultTravelers", JSON.stringify(adultTravelers));
     bookingDataTemp.append("childTravelers", JSON.stringify(childTravelers));
