@@ -83,12 +83,12 @@ const OpeningBalance: React.FC<Props> = ({
         </div>
         <div className="absolute right-3 top-2 text-sm font-medium">
           {balanceType === "debit" ? (
-            <span className=" text-green-500 text-[13px]">
+            <span className=" text-[#EB382B] text-[11px] font-[600]">
               Customer pays you {getStoredCurrencySymbol()}{" "}
               {balanceAmount || ""}
             </span>
           ) : (
-            <span className="text-red-500 text-[13px]">
+            <span className="text-[#4CA640] text-[11px] font-[600]">
               You pay the customer {getStoredCurrencySymbol()}{" "}
               {balanceAmount || ""}
             </span>

@@ -15,7 +15,7 @@ import generateCustomId from "@/utils/helper";
 import TierDropDown from "../dropdowns/TierDropDown";
 import OpeningBalance from "../OpeningBalance";
 import ErrorToast from "../ErrorToast";
-import Documents from "@/components/forms/components/Documents";
+import AttachedFiles from "@/components/AttachedFiles";
 import RemarksField from "@/components/forms/components/RemarksField";
 import ConfirmationModal from "../popups/ConfirmationModal";
 import {
@@ -640,7 +640,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                 <div className="flex flex-col gap-1 md:col-span-2">
                   <label className="block text-[13px] font-[500] text-[#414141]">
-                    Full Name <span className="text-red-500">*</span>
+                    <span className="text-red-500">*</span> Full Name
                   </label>
                   <input
                     ref={nameRef}
@@ -728,6 +728,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={(iso) =>
                       setFormData((prev) => ({ ...prev, dateOfBirth: iso }))
                     }
+                    labelClassName="text-[13px] text-[#414141] font-[500]"
                     placeholder="DD-MM-YYYY"
                     customWidth="w-full -mt-0.5 py-1"
                     showCalendarIcon={true}
@@ -781,11 +782,10 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               </div>
             </div>
 
-            <Documents
+            <AttachedFiles
               existingDocuments={existingDocuments}
               onAddDocuments={onAddDocuments}
               onRemoveDocuments={onRemoveAttachedDocuments}
-              onDeleteExistingDocument={handleDeleteExistingDocument}
               isReadOnly={readOnly}
               maxDocuments={3}
             />
@@ -820,7 +820,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
             {/* ================= TIER ================ */}
             <div className=" p-1 -mt-4">
-              <h2 className="text-[13px] font-[500] mb-2">Rating</h2>
+              <h2 className="text-[13px] font-[500] mb-2 text-[#414141]">
+                Rating
+              </h2>
 
               <div className="flex flex-col">
                 <TierDropDown
@@ -907,42 +909,41 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
             {/* ================= ACTION BUTTONS ================ */}
           </div>
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 py-2 px-3 z-30">
+          <div className="sticky bottom-0 bg-white border-t border-gray-200 py-2 px-1 z-30">
             <div className="flex justify-end gap-2">
               {mode === "view" ? (
                 <Button
                   text="Close"
                   onClick={onCancel}
                   bgColor="bg-white"
-                  textColor="text-gray-700"
-                  className="border border-gray-300 hover:bg-gray-100"
+                  textColor="text-[#7135AD]"
+                  className="mr-1 rounded-[15px] px-2 py-2 border border-[#E2E1E1]"
                 />
               ) : (
                 <>
                   <Button
-                    text="Cancel"
+                    text="Save As Draft"
                     onClick={onCancel}
                     bgColor="bg-white"
-                    textColor="text-gray-700"
-                    className="border border-gray-300 hover:bg-gray-100"
+                    textColor="text-[#7135AD]"
+                    className="mr-1 rounded-[15px] px-2 py-2 border border-[#E2E1E1]"
                   />
 
                   {mode === "edit" ? (
                     <Button
                       text="Update Customer"
                       onClick={handleUpdateCustomer}
-                      bgColor="bg-[#0D4B37]"
+                      bgColor="bg-[#7135AD]"
                       textColor="text-white"
                       className="hover:bg-green-900"
                     />
                   ) : (
                     <Button
-                      text="Save"
+                      text="Save Details"
                       type="submit"
-                      icon={<LuSave size={16} />}
-                      bgColor="bg-[#0D4B37]"
+                      bgColor="bg-[#7135AD]"
                       textColor="text-white"
-                      className="hover:bg-[#0f3d44]"
+                      className="mr-4 rounded-[15px] px-2 py-2"
                     />
                   )}
                 </>

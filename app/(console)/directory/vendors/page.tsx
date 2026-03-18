@@ -237,7 +237,7 @@ const VendorDirectory = () => {
 
     const rating = Math.min(Math.max(Math.round(ratingRaw), 1), 5);
 
-    const tierIcon = `/icons/tier-${rating}.png`;
+    const tierIcon = `/icons/tier-icons/tier-${rating}-svg.svg`;
 
     return (
       <div className="flex items-center gap-2 justify-center">

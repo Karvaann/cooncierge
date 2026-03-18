@@ -113,6 +113,7 @@ type FilterPayload = {
 interface QuotationData {
   customId: string;
   _id: string;
+  id: string;
   quotationType: string;
   isBookingDataComplete: true;
   channel: string;
@@ -438,6 +439,11 @@ const OSBookingsPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   // const [summaryData, setSummaryData] = useState<SummaryData | null>(null);
+
+  // Server-side pagination state
+  const [serverPage, setServerPage] = useState(1);
+  const [serverRowsPerPage, setServerRowsPerPage] = useState(10);
+  const [serverTotalCount, setServerTotalCount] = useState(0);
 
   const [sortState, setSortState] = useState<TriSortState<string>>({
     key: null,
@@ -809,33 +815,28 @@ const OSBookingsPage = () => {
     try {
       setIsLoading(true);
       setError(null);
-      const apiParams: {
-        bookingStartDate?: string;
-        bookingEndDate?: string;
-        travelStartDate?: string;
-        travelEndDate?: string;
-        owner?: string | string[];
-        activeTab: string;
-      } = { activeTab };
 
-      if (filters.bookingStartDate)
-        apiParams.bookingStartDate = filters.bookingStartDate;
-      if (filters.bookingEndDate)
-        apiParams.bookingEndDate = filters.bookingEndDate;
-      if (filters.tripStartDate)
-        apiParams.travelStartDate = filters.tripStartDate;
-      if (filters.tripEndDate) apiParams.travelEndDate = filters.tripEndDate;
-      console.log("Active tab:", activeTab);
-      // Note: Owner filtering is done client-side since API returns owner objects with names
-
-      const response = await BookingApiService.getAllQuotations(
-        Object.keys(apiParams).length ? apiParams : undefined,
-      );
+      const response = await BookingApiService.getMyQuotations({
+        bookingStartDate: filters.bookingStartDate || undefined,
+        bookingEndDate: filters.bookingEndDate || undefined,
+        travelStartDate: filters.tripStartDate || undefined,
+        travelEndDate: filters.tripEndDate || undefined,
+        activeTab,
+        page: serverPage,
+        limit: serverRowsPerPage,
+      });
 
       if (response.success && response.data) {
         const raw: any = response.data;
         const allQuotations =
           (raw?.quotations as any[]) || (raw as any[]) || [];
+
+        // Store pagination metadata from backend
+        if (raw?.pagination) {
+          setServerTotalCount(raw.pagination.totalCount ?? 0);
+        } else {
+          setServerTotalCount(allQuotations.length);
+        }
 
         const now = Date.now();
         const fetchedIds = new Set<string>();
@@ -872,7 +873,6 @@ const OSBookingsPage = () => {
         knownBookingIdsRef.current = fetchedIds;
 
         setQuotations(allQuotations);
-        // calculateSummaryData(response.data?.quotations);
       } else {
         throw new Error(response.message || "Failed to load quotations");
       }
@@ -888,6 +888,8 @@ const OSBookingsPage = () => {
     filters.tripStartDate,
     filters.tripEndDate,
     activeTab,
+    serverPage,
+    serverRowsPerPage,
   ]);
 
   // Load quotations on component mount and filter changes
@@ -902,6 +904,30 @@ const OSBookingsPage = () => {
     filters.owner,
     activeTab,
   ]);
+
+  // Reset to page 1 when filters or tab change
+  useEffect(() => {
+    setServerPage(1);
+  }, [
+    activeTab,
+    filters.bookingStartDate,
+    filters.bookingEndDate,
+    filters.tripStartDate,
+    filters.tripEndDate,
+  ]);
+
+  // Handle Table pagination controls
+  const handleServerPaginationChange = useCallback(
+    (newPage: number, newRowsPerPage: number) => {
+      if (newRowsPerPage !== serverRowsPerPage) {
+        setServerRowsPerPage(newRowsPerPage);
+        setServerPage(1);
+      } else if (newPage !== serverPage) {
+        setServerPage(newPage);
+      }
+    },
+    [serverPage, serverRowsPerPage],
+  );
 
   const handleServiceSelect = (service: BookingService) => {
     setSelectedQuotation(null);
@@ -2539,7 +2565,8 @@ const OSBookingsPage = () => {
 
   const jumpToCalendarMatch = useCallback(
     (direction: -1 | 1) => {
-      if (!isCalendarFilterApplied || matchedCalendarBookings.length === 0) return;
+      if (!isCalendarFilterApplied || matchedCalendarBookings.length === 0)
+        return;
       const currentIndex = Math.max(0, calendarNavigatorIndex - 1);
       const targetIndex = Math.min(
         matchedCalendarBookings.length - 1,
@@ -2593,7 +2620,9 @@ const OSBookingsPage = () => {
 
     if (
       selectedTimelineBookingId &&
-      matchedCalendarBookings.some((entry) => entry.id === selectedTimelineBookingId)
+      matchedCalendarBookings.some(
+        (entry) => entry.id === selectedTimelineBookingId,
+      )
     ) {
       return;
     }
@@ -2640,11 +2669,7 @@ const OSBookingsPage = () => {
           limitlessCount: 0,
         };
       }),
-    [
-      calendarSourceBookings,
-      getBookingTimelineDate,
-      timelineDates,
-    ],
+    [calendarSourceBookings, getBookingTimelineDate, timelineDates],
   );
 
   return (
@@ -2733,7 +2758,7 @@ const OSBookingsPage = () => {
           />
 
           {bookingSourceTab === "My Bookings" ? (
-            <div className="relative mt-4 flex min-h-0 flex-1 flex-col rounded-2xl border border-[1px] border-[#E5E7EB] bg-white">
+            <div className="relative mt-4 flex min-h-0 flex-1 flex-col rounded-2xl border-[1px] border-[#E5E7EB] bg-white">
               <div className="flex items-center justify-between border-b border-[#E5E7EB]">
                 <UnderlineTabs
                   tabs={tabOptions}
@@ -2767,7 +2792,7 @@ const OSBookingsPage = () => {
                   <div className="rounded-full border border-[#C6B2DE] px-[14px] py-[6px] text-[12px] font-[500] text-[#4B4B4B]">
                     Total :{" "}
                     <span className="font-[500] text-[#7135AD]">
-                      {sortedQuotationsForTable.length}
+                      {serverTotalCount}
                     </span>
                   </div>
                 </div>
@@ -2794,6 +2819,10 @@ const OSBookingsPage = () => {
                     headerAlign={{ "Booking ID": "center" }}
                     rowClassNameResolver={rowClassNameResolver}
                     enableRowHoverActions={true}
+                    initialRowsPerPage={serverRowsPerPage}
+                    externalTotalRows={serverTotalCount}
+                    externalPage={serverPage}
+                    onPaginationChange={handleServerPaginationChange}
                   />
                 )}
               </div>
@@ -2975,7 +3004,9 @@ const OSBookingsPage = () => {
                                 type="button"
                                 onClick={() => {
                                   setSelectedTimelineDate(
-                                    bookingDate ? startOfDay(bookingDate) : bucket.date,
+                                    bookingDate
+                                      ? startOfDay(bookingDate)
+                                      : bucket.date,
                                   );
                                   setSelectedTimelineBookingId(
                                     String(item?._id || item?.id || ""),

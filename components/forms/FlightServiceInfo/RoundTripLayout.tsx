@@ -228,7 +228,7 @@ export default function RoundTripLayout({
             {formData.segments.map((segment, index) => (
               <div
                 key={segment.id}
-                className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+                className="grid grid-cols-1 lg:grid-cols-1 gap-4"
               >
                 <FlightSegmentCard
                   segment={segment}
@@ -266,7 +266,7 @@ export default function RoundTripLayout({
               {formData.returnSegments.map((segment, index) => (
                 <div
                   key={segment.id}
-                  className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+                  className="grid grid-cols-1 lg:grid-cols-1 gap-4"
                 >
                   <FlightSegmentCard
                     segment={segment}

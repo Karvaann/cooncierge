@@ -205,7 +205,7 @@ export default function MultiCityLayout({
                 {segs.map((segment, segIdx) => (
                   <div
                     key={segment.id}
-                    className="grid grid-cols-1 lg:grid-cols-2 gap-4"
+                    className="grid grid-cols-1 lg:grid-cols-1 gap-4"
                   >
                     <FlightSegmentCard
                       segment={segment}

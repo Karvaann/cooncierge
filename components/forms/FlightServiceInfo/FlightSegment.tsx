@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { FiMinusCircle } from "react-icons/fi";
 import { MdOutlineEdit } from "react-icons/md";
 import { LuSave } from "react-icons/lu";
+import Modal from "@/components/Modal";
 import SingleCalendar from "@/components/SingleCalendar";
 import DropDown from "@/components/DropDown";
 import BaggageCounters from "./BaggageCounters";
@@ -101,6 +102,26 @@ const capTimeInput = (val?: string) => {
   if (hh > 23) hh = 23;
   if (mm > 59) mm = 59;
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+};
+
+const parseDurationParts = (duration?: string) => {
+  const match = String(duration ?? "").match(/(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?/i);
+  return {
+    hours: match?.[1] ?? "",
+    minutes: match?.[2] ?? "",
+  };
+};
+
+const buildDurationValue = (hours?: string, minutes?: string) => {
+  const safeHours = String(hours ?? "").trim();
+  const safeMinutes = String(minutes ?? "").trim();
+
+  if (!safeHours && !safeMinutes) return "";
+
+  const normalizedHours = safeHours === "" ? "0" : safeHours;
+  const normalizedMinutes = safeMinutes === "" ? "0" : safeMinutes;
+
+  return `${normalizedHours}h ${normalizedMinutes}m`;
 };
 
 const formatTime = (datetime: any) => {
@@ -234,8 +255,8 @@ export default function FlightSegmentCard({
 
   const saveEditing = () => {
     const d = editingData;
-    const dep = d.departureTime ?? d.departureTimeRaw ?? "";
-    const arr = d.arrivalTime ?? d.arrivalTimeRaw ?? "";
+    const dep = capTimeInput(d.departureTime ?? d.departureTimeRaw ?? "");
+    const arr = capTimeInput(d.arrivalTime ?? d.arrivalTimeRaw ?? "");
 
     let durationVal = d.duration ?? "";
     if ((!durationVal || durationVal === "") && dep && arr) {
@@ -297,17 +318,17 @@ export default function FlightSegmentCard({
       "duration",
     ];
     return !keys.some((k) => {
-      const v = (d as any)[k];
+      const v = d[k];
       return typeof v === "string" && v.trim() !== "";
     });
   };
 
   return (
-    <>
+    <div className="border border-[#E2E1E1] bg-white rounded-[15px] w-full py-[14px] px-[20px] min-w-0 shadow-[0_2px_8px_0_rgba(0,0,0,0.06)]">
       {/* Flight Segment Form Card */}
-      <div className="border border-[#E2E1E1] bg-white rounded-[15px] w-full py-[14px] px-[20px] min-w-0 shadow-[0_2px_8px_0_rgba(0,0,0,0.06)]">
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="text-[0.85rem] font-[500] text-[#414141]">
+      <div>
+        <div className="flex  items-center justify-between mb-[14px]">
+          <h4 className="text-[13px] rounded-[6px] bg-[#F9F9F9] px-[10px] py-[5px] font-[500] text-[#414141]">
             Flight Segment {index + 1}
           </h4>
           {canRemove && (
@@ -320,9 +341,7 @@ export default function FlightSegmentCard({
           )}
         </div>
 
-        <hr className="mb-2 -mt-1 border-t border-[#E2E1E1]" />
-
-        <div className="grid grid-cols-1 gap-4">
+        <div className="grid grid-cols-5 gap-2">
           {/* Flight Number */}
           <div>
             <label className="block mb-1 font-[500] text-[#414141]">
@@ -406,308 +425,277 @@ export default function FlightSegmentCard({
       </div>
 
       {/* Preview Card */}
-      <div className="border border-dotted border-[#E2E1E1] bg-white w-full rounded-[15px] p-3.5 min-w-0">
-        {!isEditing && (
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-[0.85rem] font-[500] text-[#414141]">
-              Preview
-            </h4>
-            <button
-              onClick={startEditing}
-              className="text-blue-600 hover:text-blue-700"
-            >
-              <MdOutlineEdit size={16} />
-            </button>
-          </div>
-        )}
-
-        {!isEditing && <hr className="mb-3 border-t border-[#E2E1E1]" />}
-
-        <div className="bg-white rounded-md p-2">
-          {isEditing ? (
-            <div className="grid grid-cols-2 gap-3">
-              {/* Airline Name */}
-              <div>
-                <label className="text-[#414141] font-[500] text-[12px] mb-1 block">
-                  Airline Name
-                </label>
-                <input
-                  type="text"
-                  value={editingData.airline ?? ""}
-                  onChange={(e) =>
-                    setEditingData((prev) => ({
-                      ...prev,
-                      airline: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-1.5 border border-[#E2E1E1] rounded-[15px] text-[#020202] text-[0.75rem]"
-                />
-              </div>
-
-              {/* Flight Number */}
-              <div>
-                <label className="text-[#414141] font-[500] text-[12px] mb-1 block">
-                  Flight Number
-                </label>
-                <input
-                  type="text"
-                  value={editingData.flightNumber ?? ""}
-                  onChange={(e) =>
-                    setEditingData((prev) => ({
-                      ...prev,
-                      flightNumber: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-1.5 border border-[#E2E1E1] rounded-[15px] text-[#020202] text-[0.75rem]"
-                />
-              </div>
-
-              {/* Origin */}
-              <div>
-                <label className="text-[#414141] font-[500] text-[12px] mb-1 block">
-                  Origin
-                </label>
-                <input
-                  type="text"
-                  value={editingData.origin ?? ""}
-                  onChange={(e) =>
-                    setEditingData((prev) => ({
-                      ...prev,
-                      origin: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-1.5 border border-[#E2E1E1] rounded-[15px] text-[#020202] text-[0.75rem]"
-                />
-              </div>
-
-              {/* Destination */}
-              <div>
-                <label className="text-[#414141] font-[500] text-[12px] mb-1 block">
-                  Destination
-                </label>
-                <input
-                  type="text"
-                  value={editingData.destination ?? ""}
-                  onChange={(e) =>
-                    setEditingData((prev) => ({
-                      ...prev,
-                      destination: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-1.5 border border-[#E2E1E1] rounded-[15px] text-[#020202] text-[0.75rem]"
-                />
-              </div>
-
-              {/* ETD */}
-              <div>
-                <label className="text-[#414141] font-[500] text-[12px] mb-1 block">
-                  ETD
-                </label>
-                <TimeInput
-                  value={editingData.departureTime ?? ""}
-                  onChange={(e) =>
-                    setEditingData((prev) => ({
-                      ...prev,
-                      departureTime: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-1.5 border border-[#E2E1E1] rounded-[15px] text-[#020202] text-[0.75rem]"
-                />
-              </div>
-
-              {/* ETA */}
-              <div>
-                <label className="text-[#414141] font-[500] text-[12px] mb-1 block">
-                  ETA
-                </label>
-                <TimeInput
-                  value={editingData.arrivalTime ?? ""}
-                  onChange={(e) =>
-                    setEditingData((prev) => ({
-                      ...prev,
-                      arrivalTime: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3 py-1.5 border border-[#E2E1E1] rounded-[15px] text-[#020202] text-[0.75rem]"
-                />
-              </div>
-
-              {/* Duration */}
-              <div>
-                <label className="text-[#414141] font-[500] text-[12px] mb-1 block">
-                  Duration
-                </label>
-
-                <div className="flex w-full items-center border border-[#E2E1E1] rounded-[15px] px-3 py-1">
-                  <input
-                    type="number"
-                    placeholder="0"
-                    className="w-8 text-[12px] text-[#020202] outline-none bg-transparent"
-                  />
-                  <span className="text-[12px] font-[400] border border-[#E2E1E1] rounded-[10px] px-1.5 py-0.5 bg-[#F9F9F9] text-[#020202] mr-3">
-                    h
-                  </span>
-
-                  <input
-                    type="number"
-                    placeholder="0"
-                    className="w-8 text-[12px]  text-[#020202] outline-none bg-transparent"
-                  />
-                  <span className="text-[12px] font-[400] border border-[#E2E1E1] rounded-[10px] px-1.5 py-0.5 bg-[#F9F9F9] text-[#020202]">
-                    m
-                  </span>
-                </div>
-              </div>
-
-              {/* Buttons */}
-              <div className="col-span-2 flex justify-end gap-2 mt-3">
-                <button
-                  onClick={cancelEditing}
-                  className="px-4 py-1.5 font-[600] rounded-[10px] border text-[0.75rem]"
-                  style={{ borderColor: "#7135AD", color: "#7135AD" }}
-                >
-                  Cancel
-                </button>
-
-                <button
-                  onClick={saveEditing}
-                  className="px-4 py-1.5 rounded-[10px] text-white text-[0.75rem] flex items-center gap-1"
-                  style={{ backgroundColor: "#7135AD" }}
-                >
-                  <LuSave size={14} />
-                  Save
-                </button>
-              </div>
-            </div>
-          ) : preview ? (
+      <div className="bg-[linear-gradient(90deg,#F6ECFF_0%,#FDFAFF_100%)] w-full rounded-[15px] mt-2 p-3.5 min-w-0">
+          {preview ? (
             <>
               {/* Airline Header */}
-              <div className="border border-[#3A469D] rounded-md px-3 py-2 mb-3 flex items-center gap-2">
+              <div className="flex justify-between items-center gap-2">
                 {(() => {
-                  const icon = getAirlineIconUrl(preview.airline);
                   return (
                     <>
-                      {icon && (
-                        <img
-                          src={icon}
-                          alt={preview.airline || "airline"}
-                          className="w-7 h-7 object-contain rounded-sm"
-                        />
-                      )}
-                      <span className="font-[500] text-[#020202]">
-                        {preview.airline}
-                      </span>
+                      <div className="flex items-center gap-3">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="17" viewBox="0 0 18 17" fill="none">
+                            <path d="M16.3589 6.79992C16.4357 7.08326 16.3997 7.35006 16.2509 7.60034C16.1021 7.85062 15.8837 8.01354 15.5957 8.08909L4.30608 11.0641C4.15248 11.1113 3.99888 11.1019 3.84528 11.0358C3.69168 10.9696 3.57648 10.8658 3.49968 10.7241L1.61328 7.38076L2.65008 7.11159L4.42128 8.83992L8.09328 7.87659L4.85328 2.86159L6.23568 2.49326L11.2469 7.04076L15.0341 6.04909C15.3221 5.96409 15.5957 5.99715 15.8549 6.14826C16.1141 6.29937 16.2821 6.51659 16.3589 6.79992ZM3.42768 13.0899H14.9477V14.5066H3.42768V13.0899Z" fill="#126ACB"/>
+                          </svg>
+                          <div className="font-[500] text-[#126ACB]">
+                            {preview.airline}
+                          </div>
+                          <div>
+                            {preview.flightNumber}
+                          </div>
+
+                      </div>
+                      
+
+                      <button
+                        onClick={startEditing}
+                        className="text-blue-600 hover:text-blue-700"
+                      >
+                        <MdOutlineEdit size={16} />
+                      </button>
                     </>
                   );
                 })()}
               </div>
 
-              {/* Route Info */}
-              <div className="grid grid-cols-[1fr_40px_1fr] gap-x-8 gap-y-8 mt-4">
-                {/*Origin / STD */}
-                <div>
-                  <div className="text-[#818181] font-[400] text-[11px] mb-0.5">
-                    Origin
-                  </div>
-                  <div className="font-[500] text-[#020202]">
+              <div className="flex items-center justify-between mt-5 gap-2">
+                  <div className="font-[500] text-[13px] text-[#414141]">
                     {truncateIfLong(preview.origin)}
                   </div>
-                </div>
 
-                <div className="row-span-3 flex flex-col items-center h-full">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="6"
-                    height="6"
-                    viewBox="0 0 6 6"
-                    fill="none"
-                    className="self-center mt-1"
-                  >
-                    <circle cx="3" cy="3" r="3" fill="#818181" />
-                  </svg>
-
-                  <div className="flex-1 w-[1px] border-l-2 border-dotted border-[#818181]"></div>
-
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="18"
-                    height="20"
-                    viewBox="0 0 18 20"
-                    fill="none"
-                    className="my-2"
-                  >
-                    <path
-                      d="M11 14V18C11 18.5304 10.7893 19.0391 10.4142 19.4142C10.0391 19.7893 9.53043 20 9 20C8.46957 20 7.96086 19.7893 7.58579 19.4142C7.21071 19.0391 7 18.5304 7 18L7 14L0 10L0 7L7 9V5L5 3V0L9 2L13 0V3L11 5L11 9L18 7L18 10L11 14Z"
-                      fill="#3A469D"
-                    />
-                  </svg>
-
-                  <div className="flex-1 w-[0.0625rem] border-l-2 border-dotted border-[#818181]"></div>
-
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="6"
-                    height="6"
-                    viewBox="0 0 6 6"
-                    fill="none"
-                    className="self-center mb-1"
-                  >
-                    <circle cx="3" cy="3" r="3" fill="#818181" />
-                  </svg>
-                </div>
-
-                <div className="text-right">
-                  <div className="text-[#818181] font-[400] text-[11px] mb-0.5">
-                    STD
+                  <div className="rounded-full bg-[#F0E1FF] p-[4px]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 8 8" fill="none">
+                      <circle cx="4" cy="4" r="4" fill="#020202"/>
+                    </svg>
                   </div>
-                  <div className="font-[500] text-[#020202]">
+
+                  <div className="font-[500] text-[13px] text-[#818181]">
                     {preview.departureTime}
                   </div>
-                </div>
-
-                {/* Flight Number / Duration */}
-                <div>
-                  <div className="text-[#818181] font-[400] text-[11px] mb-0.5">
-                    Flight Number
+                  <div className="border-t border-dashed border-t-[#9CA3AF] h-[2px] w-[20%]" />
+                  <div className="font-[400] text-[11px] whitespace-nowrap flex-shrink-0 rounded-full border border-[rgba(113,53,173,0.20)] py-[2px] px-[4px] text-[#818181]">
+                    ~{preview.duration}
                   </div>
-                  <div className="font-[500] text-[#020202]">
-                    {preview.flightNumber}
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="font-[400] text-[#414141]">
-                    {preview.duration}
-                  </div>
-                </div>
-
-                {/* Destination / STA */}
-                <div>
-                  <div className="text-[#818181] font-[400] text-[11px] mb-0.5">
-                    Destination
-                  </div>
-                  <div className="font-[500] text-[#020202]">
-                    {truncateIfLong(preview.destination)}
-                  </div>
-                </div>
-
-                <div className="text-right">
-                  <div className="text-[#818181] font-[400] text-[11px] mb-0.5">
-                    STA
-                  </div>
-                  <div className="font-[500] text-[#020202]">
+                   <div className="border-t border-dashed border-t-[#9CA3AF] h-[2px] w-[20%]" />
+                  <div className="font-[500] text-[13px] text-[#818181]">
                     {preview.arrivalTime}
                   </div>
-                </div>
+
+                  <div className="rounded-full bg-[#F0E1FF] p-[4px]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 8 8" fill="none">
+                      <circle cx="4" cy="4" r="4" fill="#020202"/>
+                    </svg>
+                  </div>
+
+                  <div className="font-[500] text-[13px] text-[#414141]">
+                    {truncateIfLong(preview.destination)}
+                  </div>
+
               </div>
             </>
           ) : (
-            <div className="flex items-center justify-center h-full bg-gray-100 rounded-md text-gray-500 min-h-[255px]">
+            <div className="flex relative items-center justify-center h-full rounded-md text-gray-500 min-h-[80px]">
               <p>Preview data will appear here</p>
+               <button
+                  onClick={startEditing}
+                  className="absolute top-0 right-2 text-blue-600 hover:text-blue-700"
+                >
+                  <MdOutlineEdit size={16} />
+                </button>
+
             </div>
           )}
-        </div>
       </div>
-    </>
+
+      <Modal
+        isOpen={isEditing}
+        onClose={cancelEditing}
+        showCloseButton
+        customWidth="w-[min(1100px,calc(100vw-32px))]"
+        className="rounded-[28px]"
+        zIndexClass="z-[99999]"
+        headerLeft={
+          <div className="flex items-center justify-between px-7 pt-6">
+            <h2 className="text-[1.05rem] font-[600] text-[#414141]">
+              Edit Preview
+            </h2>
+          </div>
+        }
+      >
+        <div className="px-7 pb-7 pt-5">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+            <div>
+              <label className="text-[#414141] font-[500] text-[12px] mb-1.5 block">
+                Airline Name
+              </label>
+              <input
+                type="text"
+                value={editingData.airline ?? ""}
+                onChange={(e) =>
+                  setEditingData((prev) => ({
+                    ...prev,
+                    airline: e.target.value,
+                  }))
+                }
+                className="w-full px-4 py-2.5 border border-[#D9D9D9] rounded-[18px] text-[#020202] text-[0.95rem] outline-none focus:border-[#C6AEDE]"
+              />
+            </div>
+
+            <div>
+              <label className="text-[#414141] font-[500] text-[12px] mb-1.5 block">
+                Flight Number
+              </label>
+              <input
+                type="text"
+                value={editingData.flightNumber ?? ""}
+                onChange={(e) =>
+                  setEditingData((prev) => ({
+                    ...prev,
+                    flightNumber: e.target.value,
+                  }))
+                }
+                className="w-full px-4 py-2.5 border border-[#D9D9D9] rounded-[18px] text-[#020202] text-[0.95rem] outline-none focus:border-[#C6AEDE]"
+              />
+            </div>
+
+            <div>
+              <label className="text-[#414141] font-[500] text-[12px] mb-1.5 block">
+                Origin
+              </label>
+              <input
+                type="text"
+                value={editingData.origin ?? ""}
+                onChange={(e) =>
+                  setEditingData((prev) => ({
+                    ...prev,
+                    origin: e.target.value,
+                  }))
+                }
+                className="w-full px-4 py-2.5 border border-[#D9D9D9] rounded-[18px] text-[#020202] text-[0.95rem] outline-none focus:border-[#C6AEDE]"
+              />
+            </div>
+
+            <div>
+              <label className="text-[#414141] font-[500] text-[12px] mb-1.5 block">
+                Destination
+              </label>
+              <input
+                type="text"
+                value={editingData.destination ?? ""}
+                onChange={(e) =>
+                  setEditingData((prev) => ({
+                    ...prev,
+                    destination: e.target.value,
+                  }))
+                }
+                className="w-full px-4 py-2.5 border border-[#D9D9D9] rounded-[18px] text-[#020202] text-[0.95rem] outline-none focus:border-[#C6AEDE]"
+              />
+            </div>
+
+            <div>
+              <label className="text-[#414141] font-[500] text-[12px] mb-1.5 block">
+                ETD
+              </label>
+              <TimeInput
+                value={editingData.departureTime ?? ""}
+                onChange={(e) =>
+                  setEditingData((prev) => ({
+                    ...prev,
+                    departureTime: capTimeInput(e.target.value),
+                  }))
+                }
+                className="w-full px-4 py-2.5 border border-[#D9D9D9] rounded-[18px] text-[#020202] text-[0.95rem]"
+              />
+            </div>
+
+            <div>
+              <label className="text-[#414141] font-[500] text-[12px] mb-1.5 block">
+                ETA
+              </label>
+              <TimeInput
+                value={editingData.arrivalTime ?? ""}
+                onChange={(e) =>
+                  setEditingData((prev) => ({
+                    ...prev,
+                    arrivalTime: capTimeInput(e.target.value),
+                  }))
+                }
+                className="w-full px-4 py-2.5 border border-[#D9D9D9] rounded-[18px] text-[#020202] text-[0.95rem]"
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <label className="text-[#414141] font-[500] text-[12px] mb-1.5 block">
+                Duration
+              </label>
+
+              <div className="flex w-full items-center gap-3 border border-[#D9D9D9] rounded-[18px] px-4 py-2">
+                <input
+                  type="number"
+                  min="0"
+                  placeholder="0"
+                  value={parseDurationParts(editingData.duration).hours}
+                  onChange={(e) => {
+                    const durationParts = parseDurationParts(editingData.duration);
+                    setEditingData((prev) => ({
+                      ...prev,
+                      duration: buildDurationValue(
+                        e.target.value,
+                        durationParts.minutes,
+                      ),
+                    }));
+                  }}
+                  className="w-12 text-[0.95rem] text-[#020202] outline-none bg-transparent"
+                />
+                <span className="text-[0.95rem] font-[400] border border-[#E2E1E1] rounded-[10px] px-2 py-0.5 bg-[#F9F9F9] text-[#020202]">
+                  h
+                </span>
+
+                <input
+                  type="number"
+                  min="0"
+                  max="59"
+                  placeholder="0"
+                  value={parseDurationParts(editingData.duration).minutes}
+                  onChange={(e) => {
+                    const durationParts = parseDurationParts(editingData.duration);
+                    setEditingData((prev) => ({
+                      ...prev,
+                      duration: buildDurationValue(
+                        durationParts.hours,
+                        e.target.value,
+                      ),
+                    }));
+                  }}
+                  className="w-12 text-[0.95rem] text-[#020202] outline-none bg-transparent"
+                />
+                <span className="text-[0.95rem] font-[400] border border-[#E2E1E1] rounded-[10px] px-2 py-0.5 bg-[#F9F9F9] text-[#020202]">
+                  m
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-7 flex justify-end gap-3">
+            <button
+              onClick={cancelEditing}
+              className="px-4 py-2 font-[600] rounded-[14px] border text-[0.85rem]"
+              style={{ borderColor: "#7135AD", color: "#7135AD" }}
+            >
+              Cancel
+            </button>
+
+            <button
+              onClick={saveEditing}
+              className="px-5 py-2 rounded-[14px] text-white text-[0.95rem] flex items-center gap-2"
+              style={{ backgroundColor: "#7135AD" }}
+            >
+              <LuSave size={15} />
+              Save Details
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
   );
 }

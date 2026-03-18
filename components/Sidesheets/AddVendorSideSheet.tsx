@@ -12,7 +12,7 @@ import { LuSave } from "react-icons/lu";
 import Button from "../Button";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import ErrorToast from "../ErrorToast";
-import Documents from "@/components/forms/components/Documents";
+import AttachedFiles from "@/components/AttachedFiles";
 import RemarksField from "@/components/forms/components/RemarksField";
 import {
   allowOnlyText,
@@ -655,6 +655,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     onChange={(iso) =>
                       setFormData((prev) => ({ ...prev, dateOfBirth: iso }))
                     }
+                    labelClassName="text-[13px] text-[#414141] font-[500]"
                     placeholder="DD-MM-YYYY"
                     customWidth="w-full -mt-0.5 py-1"
                     showCalendarIcon={true}
@@ -668,11 +669,10 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
             {/* ================= DOCUMENTS ================ */}
 
-            <Documents
+            <AttachedFiles
               existingDocuments={existingDocuments}
               onAddDocuments={onAddDocuments}
               onRemoveDocuments={onRemoveAttachedDocuments}
-              onDeleteExistingDocument={handleDeleteExistingDocument}
               isReadOnly={readOnly}
               maxDocuments={3}
             />
@@ -711,7 +711,9 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
             {/* ================= TIER ================ */}
             <div className=" p-1 -mt-4">
-              <h2 className="text-[13px] font-[500] mb-2">Rating</h2>
+              <h2 className="text-[13px] font-[500] mb-2 text-[#414141]">
+                Rating
+              </h2>
 
               <div className="flex flex-col">
                 <TierDropDown
@@ -737,31 +739,45 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
             {/* ================= ACTION BUTTONS ================ */}
           </div>
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 py-2 px-3 z-30">
+          <div className="sticky bottom-0 bg-white border-t border-gray-200 py-2 px-1 z-30">
             <div className="flex justify-end gap-2">
               {mode === "view" ? (
                 <Button
                   text="Close"
                   onClick={onCancel}
-                  bgColor="bg-gray-200"
-                  textColor="text-gray-700"
-                />
-              ) : mode === "edit" ? (
-                <Button
-                  text="Update Vendor"
-                  type="submit"
-                  onClick={handleUpdateVendor}
-                  bgColor="bg-[#0D4B37]"
-                  textColor="text-white"
+                  bgColor="bg-white"
+                  textColor="text-[#7135AD]"
+                  className="mr-1 rounded-[15px] px-2 py-2 border border-[#E2E1E1]"
                 />
               ) : (
-                <Button
-                  text="Save"
-                  type="submit"
-                  icon={<LuSave size={16} />}
-                  bgColor="bg-[#114958]"
-                  textColor="text-white"
-                />
+                <>
+                  <Button
+                    text="Save As Draft"
+                    onClick={onCancel}
+                    bgColor="bg-white"
+                    textColor="text-[#7135AD]"
+                    className="mr-1 rounded-[15px] px-2 py-2 border border-[#E2E1E1]"
+                  />
+
+                  {mode === "edit" ? (
+                    <Button
+                      text="Update Vendor"
+                      type="submit"
+                      onClick={handleUpdateVendor}
+                      bgColor="bg-[#7135AD]"
+                      textColor="text-white"
+                      className="hover:bg-green-900"
+                    />
+                  ) : (
+                    <Button
+                      text="Save Details"
+                      type="submit"
+                      bgColor="bg-[#7135AD]"
+                      textColor="text-white"
+                      className="mr-4 rounded-[15px] px-2 py-2"
+                    />
+                  )}
+                </>
               )}
             </div>
           </div>
