@@ -29,6 +29,8 @@ export default function StyledDescription({
   rows = 3,
 }: StyledDescriptionProps): JSX.Element {
   const editorRef = useRef<HTMLDivElement>(null);
+  const isSettingRef = useRef(false);
+  const lastValueRef = useRef<string>(value || "");
   const [activeFormats, setActiveFormats] = useState<ActiveFormats>({
     bold: false,
     italic: false,
@@ -64,12 +66,19 @@ export default function StyledDescription({
     const newContent = value || "";
     // Avoid cursor jump if content is already same
     if (editor.innerHTML !== newContent) {
+      isSettingRef.current = true;
       editor.innerHTML = newContent;
+      isSettingRef.current = false;
     }
-    setIsEmpty(!value || value.trim() === "" || value === "<br>");
+    // Store browser-normalized HTML so handleEditorInput comparisons are accurate
+    lastValueRef.current = editor.innerHTML;
+    const nextEmpty = !value || value.trim() === "" || value === "<br>";
+    setIsEmpty((prev) => (prev === nextEmpty ? prev : nextEmpty));
   }, [value]);
 
   const handleEditorInput = () => {
+    // Skip events triggered by programmatic innerHTML changes to prevent loops
+    if (isSettingRef.current) return;
     const editor = editorRef.current;
     if (!editor) return;
 
@@ -79,7 +88,10 @@ export default function StyledDescription({
       text === "" || html === "<br>" || html === "<div><br></div>";
     setIsEmpty(editorIsEmpty);
 
-    onChange?.(editorIsEmpty ? "" : html);
+    const newValue = editorIsEmpty ? "" : html;
+    if (newValue === lastValueRef.current) return;
+    lastValueRef.current = newValue;
+    onChange?.(newValue);
   };
 
   const rangeIntersectsNode = (range: Range, node: Node): boolean => {

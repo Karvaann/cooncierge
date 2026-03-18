@@ -62,11 +62,13 @@ export default function RoundTripLayout({
   setFormData,
   sharedPnrEnabled,
   onMainTravelDateChange,
+  isReadOnly,
 }: {
   formData: FlightInfoFormData;
   setFormData: React.Dispatch<React.SetStateAction<FlightInfoFormData>>;
   sharedPnrEnabled: boolean;
   onMainTravelDateChange: (date: string) => void;
+  isReadOnly?: boolean;
 }) {
   // Onwards segment handlers
   const addSegment = () => {
@@ -253,6 +255,7 @@ export default function RoundTripLayout({
                   onPnrChange={(val) =>
                     handleSegmentPnr(index, val, "segments")
                   }
+                  isReadOnly={isReadOnly || false}
                 />
               </div>
             ))}

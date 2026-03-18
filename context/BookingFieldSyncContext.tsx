@@ -12,7 +12,6 @@ interface BookingFieldSyncContextValue {
   bookingStatusSource: string;
   bookingDateSource: string;
   travelDateSource: string;
-  internalNotes: string;
   setBookingStatus: (status: string) => void;
   setCancellationDate: (date: string) => void;
   setNewBookingDate: (date: string) => void;
@@ -22,7 +21,6 @@ interface BookingFieldSyncContextValue {
   setBookingStatusSource: (source: string) => void;
   setBookingDateSource: (source: string) => void;
   setTravelDateSource: (source: string) => void;
-  setInternalNotes: (notes: string) => void;
 }
 
 const BookingFieldSyncContext =
@@ -42,7 +40,6 @@ export function BookingFieldSyncProvider({
   const [bookingStatusSource, setBookingStatusSource] = useState("");
   const [bookingDateSource, setBookingDateSource] = useState("");
   const [travelDateSource, setTravelDateSource] = useState("");
-  const [internalNotes, setInternalNotes] = useState("");
 
   const value = useMemo(
     () => ({
@@ -55,7 +52,6 @@ export function BookingFieldSyncProvider({
       bookingStatusSource,
       bookingDateSource,
       travelDateSource,
-      internalNotes,
       setBookingStatus,
       setCancellationDate,
       setNewBookingDate,
@@ -65,7 +61,6 @@ export function BookingFieldSyncProvider({
       setBookingStatusSource,
       setBookingDateSource,
       setTravelDateSource,
-      setInternalNotes,
     }),
     [
       bookingStatus,
@@ -77,7 +72,6 @@ export function BookingFieldSyncProvider({
       bookingStatusSource,
       bookingDateSource,
       travelDateSource,
-      internalNotes,
     ],
   );
 

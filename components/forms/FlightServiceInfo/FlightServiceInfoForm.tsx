@@ -16,7 +16,6 @@ import DateFieldsAndStatus from "@/components/forms/components/DateFieldsAndStat
 import Documents from "@/components/forms/components/Documents";
 import RemarksField from "@/components/forms/components/RemarksField";
 import DropDown from "@/components/DropDown";
-import { useBookingFieldSync } from "@/context/BookingFieldSyncContext";
 
 // Type definitions
 interface FlightInfoFormData {
@@ -247,17 +246,155 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   generalInfoData,
   existingDocuments = [],
 }) => {
-  const sync = useBookingFieldSync();
-  // Normalize incoming data so we can hydrate the form from either
-  // `externalFormData`, `externalFormData.formFields`, `externalFormData.flightinfoform`,
-  // passed from BookingFormSideSheet when editing.
+  // Normalize incoming data so we can hydrate the form
   const normalizedExternalData = useMemo(() => {
-    const source = externalFormData ?? {};
-    const fields =
-      (source as ExternalFormData)?.formFields ??
-      (source as any)?.flightinfoform ??
-      source;
-    return fields as Partial<FlightInfoFormData>;
+    const source = (externalFormData ?? {}) as Record<string, any>;
+
+    // form already pushed its own state under flightinfoform
+    if (source.flightinfoform) {
+      return source.flightinfoform as Partial<FlightInfoFormData>;
+    }
+
+    // Detect new API schema
+    const ff = source.formFields as Record<string, any> | undefined;
+    const hasApiSchema =
+      ff &&
+      typeof ff === "object" &&
+      (source.bookingDate || source.travelDate || source.status);
+
+    if (!hasApiSchema) {
+      // Fallback, use formFields or source directly
+      return (ff ?? source) as Partial<FlightInfoFormData>;
+    }
+
+    // New API schema
+
+    // tripType → flightType
+    const tripTypeMap: Record<string, string> = {
+      "one way": "One Way",
+      "round trip": "Round Trip",
+      "multi-city": "Multi-City",
+      "multi city": "Multi-City",
+    };
+    const rawTripType = String(ff.tripType ?? "one way")
+      .toLowerCase()
+      .trim();
+    const flightType = tripTypeMap[rawTripType] || "One Way";
+
+    // Reverse-map a preview stored in API format back to the form's SegmentPreview shape
+    const normalizeApiPreview = (preview: any) => {
+      if (!preview || typeof preview !== "object") return undefined;
+      return {
+        airline: preview.airline || "",
+        flightNumber: preview.flightNumber || "",
+        origin:
+          preview.origin ||
+          (preview.originCity
+            ? `${preview.originCity} (${preview.originAirportCode || ""})`
+            : preview.originAirportCode || ""),
+        destination:
+          preview.destination ||
+          (preview.destinationCity
+            ? `${preview.destinationCity} (${preview.destinationAirportCode || ""})`
+            : preview.destinationAirportCode || ""),
+        departureTime: preview.departureTime || preview.std || "",
+        arrivalTime: preview.arrivalTime || preview.sta || "",
+        duration: preview.duration || "",
+        pnr: preview.pnr || "",
+        // Keep API fields for components that reference them directly
+        originAirportCode: preview.originAirportCode || "",
+        destinationAirportCode: preview.destinationAirportCode || "",
+      };
+    };
+
+    // Map one API segment to form FlightSegment shape
+    const normalizeApiSegment = (
+      seg: any,
+      index: number,
+      prefix = "seg",
+    ): any => ({
+      id: seg.id ?? `${prefix}-${index + 1}`,
+      flightnumber: String(seg.flightNumber ?? seg.flightnumber ?? ""),
+      traveldate: String(seg.travelDate ?? seg.traveldate ?? ""),
+      cabinclass: String(seg.cabinClass ?? seg.cabinclass ?? ""),
+      pnr: String(seg.pnr ?? ""),
+      cabinBaggagePcs: seg.cabinBaggage?.pieces ?? seg.cabinBaggagePcs ?? 1,
+      cabinBaggageWt: seg.cabinBaggage?.weight ?? seg.cabinBaggageWt ?? "",
+      checkInBaggagePcs:
+        seg.checkInBaggage?.pieces ?? seg.checkInBaggagePcs ?? 1,
+      checkInBaggageWt:
+        seg.checkInBaggage?.weight ?? seg.checkInBaggageWt ?? "",
+      ...(seg.preview ? { preview: normalizeApiPreview(seg.preview) } : {}),
+      ...(typeof seg.tripId === "number" ? { tripId: seg.tripId } : {}),
+    });
+
+    // Build segments / returnSegments based on trip type
+    let segments: any[] = [];
+    let returnSegments: any[] = [];
+
+    if (flightType === "One Way") {
+      const raw = Array.isArray(ff.segments)
+        ? ff.segments
+        : Array.isArray(source.segments)
+          ? source.segments
+          : [];
+      segments = raw.map((s: any, i: number) =>
+        normalizeApiSegment(s, i, "seg"),
+      );
+    } else if (flightType === "Round Trip") {
+      if (Array.isArray(ff.trips) && ff.trips.length >= 2) {
+        segments = (ff.trips[0]?.segments || []).map((s: any, i: number) =>
+          normalizeApiSegment(s, i, "seg"),
+        );
+        returnSegments = (ff.trips[1]?.segments || []).map(
+          (s: any, i: number) => normalizeApiSegment(s, i, "return"),
+        );
+      } else {
+        const raw = Array.isArray(ff.segments) ? ff.segments : [];
+        segments = raw.map((s: any, i: number) =>
+          normalizeApiSegment(s, i, "seg"),
+        );
+      }
+    } else {
+      // Multi-City
+      if (Array.isArray(ff.trips)) {
+        segments = ff.trips.flatMap((trip: any, tripIdx: number) =>
+          (trip.segments || []).map((s: any, i: number) => ({
+            ...normalizeApiSegment(s, i, "seg"),
+            tripId: tripIdx + 1,
+          })),
+        );
+      } else {
+        const raw = Array.isArray(ff.segments) ? ff.segments : [];
+        segments = raw.map((s: any, i: number) => ({
+          ...normalizeApiSegment(s, i, "seg"),
+          tripId: (s as any).tripId ?? i + 1,
+        }));
+      }
+    }
+
+    return {
+      bookingdate: source.bookingDate || ff.bookingdate || "",
+      traveldate: source.travelDate || ff.traveldate || "",
+      bookingstatus: source.status || ff.bookingstatus || "",
+      cancellationDate: ff.cancellationDate || source.cancellationDate || "",
+      newBookingDate: ff.newBookingDate || "",
+      newTravelDate: ff.newTravelDate || "",
+      PNR: ff.pnr || ff.PNR || source.pnr || "",
+      samePNRForAllSegments:
+        ff.samePnrForAllSegments ?? ff.samePNRForAllSegments ?? true,
+      pnrEnabled: ff.samePnrForAllSegments ?? ff.samePNRForAllSegments ?? true,
+      flightType,
+      segments,
+      returnSegments,
+      remarks: ff.internalNotes ?? ff.remarks ?? source.internalNotes ?? "",
+      importantinfo: ff.importantinfo || "",
+      rulesAndConditions:
+        ff.rulesAndConditions ?? source.rulesAndConditions ?? "",
+      rulesTemplate:
+        ff.rulesTemplateId ?? ff.rulesTemplate ?? source.rulesTemplateId ?? "",
+      cancellationForm: ff.cancellationForm ?? undefined,
+    } as Partial<FlightInfoFormData>;
   }, [externalFormData]);
 
   // Internal form state
@@ -319,20 +456,6 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   useEffect(() => {
     onFormDataUpdate({ flightinfoform: formData });
   }, [formData]);
-
-  useEffect(() => {
-    if ((sync?.internalNotes ?? "") === String(formData.remarks ?? "")) return;
-    sync?.setInternalNotes(String(formData.remarks ?? ""));
-  }, [formData.remarks, sync]);
-
-  useEffect(() => {
-    if (!sync?.internalNotes) return;
-    setFormData((prev) =>
-      prev.remarks === sync.internalNotes
-        ? prev
-        : { ...prev, remarks: sync.internalNotes },
-    );
-  }, [sync?.internalNotes]);
 
   useEffect(() => {
     if (!formData.samePNRForAllSegments) return;
@@ -452,6 +575,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             onNewTravelDateChange={(date) =>
               setFormData((prev) => ({ ...prev, newTravelDate: date }))
             }
+            isReadOnly={isReadOnly}
           />
 
           {/* Amount Section removed per request */}
@@ -575,6 +699,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                     })),
                   }))
                 }
+                isReadOnly={isReadOnly}
               />
             )}
 
@@ -586,6 +711,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                 onMainTravelDateChange={(date: string) =>
                   setFormData((prev) => ({ ...prev, traveldate: date }))
                 }
+                isReadOnly={isReadOnly}
               />
             )}
 
@@ -597,6 +723,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                 onMainTravelDateChange={(date: string) =>
                   setFormData((prev) => ({ ...prev, traveldate: date }))
                 }
+                isReadOnly={isReadOnly}
               />
             )}
           </div>

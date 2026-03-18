@@ -131,7 +131,8 @@ const CancellationSection: React.FC<CancellationSectionProps> = ({
   };
 
   const displayCustomerLabel = (index: number) =>
-    customerLabels[index] || `Customer ${index + 1}`;
+    // customerLabels[index] ||
+    `Customer ${index + 1}`;
 
   return (
     <div className="space-y-2">

@@ -39,12 +39,12 @@ function Control({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-[7px] px-0">
+      <div className="flex items-center gap-0 bg-white border border-gray-300 rounded-[7px] px-0">
         <input
           type="text"
           value={String(pcs)}
           readOnly
-          className="w-5 text-center text-[0.75rem] bg-transparent placeholder:text-[#9CA3AF] outline-none"
+          className="w-5 h-9 text-center text-[0.75rem] bg-transparent placeholder:text-[#9CA3AF] outline-none"
         />
         <div className="flex flex-col border border-[#7135AD] rounded-tr-[7px] rounded-br-[7px] overflow-hidden">
           <button
@@ -119,15 +119,15 @@ export default function BaggageCounters({
         <span className="text-[0.75rem] font-[500] text-[#414141]">
           Check-In
         </span>
-          <Control
-            pcs={checkInPcsNum}
-            wt={checkInWt}
-            onInc={() => onChange({ checkInBaggagePcs: checkInPcsNum + 1 })}
-            onDec={() =>
-              onChange({ checkInBaggagePcs: Math.max(0, checkInPcsNum - 1) })
-            }
-            onWtChange={(next) => onChange({ checkInBaggageWt: next })}
-          />
+        <Control
+          pcs={checkInPcsNum}
+          wt={checkInWt}
+          onInc={() => onChange({ checkInBaggagePcs: checkInPcsNum + 1 })}
+          onDec={() =>
+            onChange({ checkInBaggagePcs: Math.max(0, checkInPcsNum - 1) })
+          }
+          onWtChange={(next) => onChange({ checkInBaggageWt: next })}
+        />
       </div>
     </>
   );

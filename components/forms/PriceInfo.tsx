@@ -10,10 +10,9 @@ import React, {
 import DateFieldsAndStatus from "@/components/forms/components/DateFieldsAndStatus";
 import AmountSection from "@/components/AmountSection";
 import type { AmountSectionValue } from "@/components/AmountSection";
-import Documents from "@/components/forms/components/Documents";
 import RemarksField from "@/components/forms/components/RemarksField";
 import { getDefaultShowAdvancedPricing } from "@/utils/advancedPricing";
-import { useBookingFieldSync } from "@/context/BookingFieldSyncContext";
+import { normalizePriceInfo } from "@/services/normalizers/priceInfoNormalizer";
 
 interface PriceInfoFormData {
   bookingdate: string;
@@ -75,6 +74,13 @@ interface PriceInfoFormData {
   commissionRefundRoe: string;
   commissionRefundInr: string;
   commissionRefundNotes: string;
+  sellingPrices?: Array<{
+    sellingprice?: string;
+    sellingCurrency?: "INR" | "USD";
+    sellingRoe?: string;
+    sellingInr?: string;
+    sellingNotes?: string;
+  }>;
 }
 
 interface ExternalFormData {
@@ -117,20 +123,15 @@ const PriceInfoForm: React.FC<PriceInfoProps> = ({
   existingDocuments = [],
   customerCount = 1,
 }) => {
-  const sync = useBookingFieldSync();
-  const normalizedExternalData = useMemo(() => {
-    const source = externalFormData ?? {};
-    const fields =
-      (source as ExternalFormData)?.formFields ??
-      (source as any)?.priceinfoform ??
-      source;
-    return fields as Partial<PriceInfoFormData>;
-  }, [externalFormData]);
+  const normalizedExternalData = useMemo(
+    () => normalizePriceInfo(externalFormData),
+    [externalFormData],
+  );
 
   const defaultShowAdvancedPricing = useMemo(
     () => getDefaultShowAdvancedPricing(normalizedExternalData, isReadOnly),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [],
+    [normalizedExternalData, isReadOnly],
   );
 
   const [formData, setFormData] = useState<PriceInfoFormData>(() => ({
@@ -279,27 +280,16 @@ const PriceInfoForm: React.FC<PriceInfoProps> = ({
   }, [formData]);
 
   useEffect(() => {
-    if ((sync?.internalNotes ?? "") === String(formData.remarks ?? "")) return;
-    sync?.setInternalNotes(String(formData.remarks ?? ""));
-  }, [formData.remarks, sync]);
-
-  useEffect(() => {
-    if (!sync?.internalNotes) return;
-    setFormData((prev) =>
-      prev.remarks === sync.internalNotes
-        ? prev
-        : { ...prev, remarks: sync.internalNotes },
-    );
-  }, [sync?.internalNotes]);
-
-  useEffect(() => {
     if (!showAdvancedPricing) return;
 
     setFormData((prev) => {
       const next = { ...prev };
       let changed = false;
 
-      if (!String(next.vendorBasePrice ?? "").trim() && String(next.costprice ?? "").trim()) {
+      if (
+        !String(next.vendorBasePrice ?? "").trim() &&
+        String(next.costprice ?? "").trim()
+      ) {
         next.vendorBasePrice = next.costprice;
         next.vendorBaseCurrency = next.costCurrency;
         next.vendorBaseRoe = next.costRoe;
@@ -308,9 +298,14 @@ const PriceInfoForm: React.FC<PriceInfoProps> = ({
         changed = true;
       }
 
-      if (!String(next.sellingprice ?? "").trim() && Array.isArray(next.sellingPrices) && next.sellingPrices[0]?.sellingprice) {
+      if (
+        !String(next.sellingprice ?? "").trim() &&
+        Array.isArray(next.sellingPrices) &&
+        next.sellingPrices[0]?.sellingprice
+      ) {
         next.sellingprice = String(next.sellingPrices[0]?.sellingprice ?? "");
-        next.sellingCurrency = next.sellingPrices[0]?.sellingCurrency || next.sellingCurrency;
+        next.sellingCurrency =
+          next.sellingPrices[0]?.sellingCurrency || next.sellingCurrency;
         next.sellingRoe = String(next.sellingPrices[0]?.sellingRoe ?? "");
         next.sellingInr = String(next.sellingPrices[0]?.sellingInr ?? "");
         next.sellingNotes = String(next.sellingPrices[0]?.sellingNotes ?? "");
@@ -335,12 +330,18 @@ const PriceInfoForm: React.FC<PriceInfoProps> = ({
   }, [customerCount, externalFormData, generalInfoData]);
 
   const handleAmountChange = useCallback((updated: AmountSectionValue) => {
-    setFormData((prev) => ({ ...prev, ...updated }));
+    setFormData(
+      (prev) =>
+        ({
+          ...prev,
+          ...(updated as unknown as Partial<PriceInfoFormData>),
+        }) as PriceInfoFormData,
+    );
   }, []);
 
   return (
     <form
-      className={`space-y-4 py-4 px-2.5 -mt-1 overflow-x-hidden ${
+      className={`space-y-4 py-4 px-2.5 mb-12 -mt-1 overflow-x-hidden ${
         isReadOnly
           ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-300 [&_select]:!bg-gray-200"
           : ""
@@ -372,11 +373,12 @@ const PriceInfoForm: React.FC<PriceInfoProps> = ({
             setFormData((prev) => ({ ...prev, cancellationDate: date }))
           }
           onNewBookingDateChange={(date) =>
-            setFormData((prev) => ({ ...prev, newBookingDate: date } as any))
+            setFormData((prev) => ({ ...prev, newBookingDate: date }) as any)
           }
           onNewTravelDateChange={(date) =>
-            setFormData((prev) => ({ ...prev, newTravelDate: date } as any))
+            setFormData((prev) => ({ ...prev, newTravelDate: date }) as any)
           }
+          isReadOnly={isReadOnly}
         />
 
         {/* Amount Section */}

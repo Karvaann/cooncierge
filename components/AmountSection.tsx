@@ -216,45 +216,72 @@ const AmountSection: React.FC<AmountSectionProps> = ({
   const isCancelled = bookingStatus?.toLowerCase() === "cancelled";
   const isRescheduled = bookingStatus?.toLowerCase() === "rescheduled";
 
-  const derivedCostPrice = useMemo(() => {
-    // Always compute components in INR. If an amount is provided in USD,
-    // prefer the explicit INR field
+  const derivedCostPrice = useMemo<number>(() => {
+    // When in advanced pricing view, always compute Cost Price from
+    // VendorBase - VendorIncentive + Commission
+    // In normal view, prefer an explicit Cost Price entered by the user
     const parseNum = (s?: string) =>
       Number(String(s ?? "").replace(/,/g, "")) || 0;
 
-    const base =
-      String(v.vendorBaseCurrency) === "USD"
-        ? parseNum(v.vendorBaseInr) ||
-          parseNum(v.vendorBasePrice) * parseNum(v.vendorBaseRoe)
-        : parseNum(v.vendorBasePrice);
+    const computeFromVendor = () => {
+      const base =
+        String(v.vendorBaseCurrency) === "USD"
+          ? parseNum(v.vendorBaseInr) ||
+            parseNum(v.vendorBasePrice) * parseNum(v.vendorBaseRoe)
+          : parseNum(v.vendorBasePrice);
 
-    const inc =
-      String(v.vendorIncentiveCurrency) === "USD"
-        ? parseNum(v.vendorIncentiveInr) ||
-          parseNum(v.vendorIncentiveReceived) * parseNum(v.vendorIncentiveRoe)
-        : parseNum(v.vendorIncentiveReceived);
+      const inc =
+        String(v.vendorIncentiveCurrency) === "USD"
+          ? parseNum(v.vendorIncentiveInr) ||
+            parseNum(v.vendorIncentiveReceived) * parseNum(v.vendorIncentiveRoe)
+          : parseNum(v.vendorIncentiveReceived);
 
-    const com =
-      String(v.commissionCurrency) === "USD"
-        ? parseNum(v.commissionInr) ||
-          parseNum(v.commissionPaid) * parseNum(v.commissionRoe)
-        : parseNum(v.commissionPaid);
+      const com =
+        String(v.commissionCurrency) === "USD"
+          ? parseNum(v.commissionInr) ||
+            parseNum(v.commissionPaid) * parseNum(v.commissionRoe)
+          : parseNum(v.commissionPaid);
 
-    return base - inc + com;
+      return base - inc + com;
+    };
+
+    if (showAdvancedPricing) {
+      return computeFromVendor();
+    }
+
+    const explicitCost =
+      String(v.costCurrency) === "USD"
+        ? parseNum(v.costInr) || parseNum(v.costprice) * parseNum(v.costRoe)
+        : parseNum(v.costprice);
+
+    if (explicitCost && explicitCost !== 0) return explicitCost;
+
+    return computeFromVendor();
   }, [
+    // explicit cost deps
+    v.costCurrency,
+    v.costprice,
+    v.costRoe,
+    v.costInr,
+    showAdvancedPricing,
+    // vendor/commission fallback deps
     v.vendorBaseCurrency,
     v.vendorBasePrice,
     v.vendorBaseInr,
+    v.vendorBaseRoe,
     v.vendorIncentiveCurrency,
     v.vendorIncentiveReceived,
     v.vendorIncentiveInr,
+    v.vendorIncentiveRoe,
     v.commissionCurrency,
     v.commissionPaid,
     v.commissionInr,
+    v.commissionRoe,
   ]);
 
   const displayCustomerLabel = (index: number) =>
-    customerLabels[index] || `Customer ${index + 1}`;
+    // customerLabels[index] ||
+    `Customer ${index + 1}`;
 
   return (
     <div className="mb-4 border border-[#E2E1E1] rounded-[15px] w-full p-3.5">
@@ -400,11 +427,11 @@ const AmountSection: React.FC<AmountSectionProps> = ({
               {/* Selling Price(s) */}
               {sellingPrices.map((sp, i) => (
                 <div key={i} className={i > 0 ? "mt-3" : ""}>
-                <label className="block text-[13px] font-medium text-gray-700 mb-1">
-                  {customerCount > 1
-                    ? `Selling Price (${displayCustomerLabel(i)})`
-                    : "Selling Price"}
-                </label>
+                  <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                    {customerCount > 1
+                      ? `Selling Price (${displayCustomerLabel(i)})`
+                      : "Selling Price"}
+                  </label>
                   <MultiCurrencyInput
                     currency={(sp.sellingCurrency as "INR" | "USD") || "INR"}
                     onCurrencyChange={(val) => {
@@ -514,7 +541,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     key={index}
                     className="grid grid-cols-12 border-b last:border-b-0 border-[#E2E1E1]"
                   >
-                  <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] border-r border-[#E2E1E1] text-[0.8rem] text-gray-700 font-medium py-5">
+                    <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] border-r border-[#E2E1E1] text-[0.8rem] text-gray-700 font-medium py-5">
                       <span className="flex items-center">
                         {item.key === "price"
                           ? "Vendor Invoice (Base)"
@@ -807,7 +834,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                             }
                             businessCurrency={businessCurrency}
                             requiresRoe={requiresRoe}
-                            amountInputWidth="40%"
+                            amountInputWidth="44%"
                             readOnly={!!isReadOnly || !!isSubmitting}
                           />
                         </div>

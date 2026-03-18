@@ -8,10 +8,8 @@ import Modal from "@/components/Modal";
 import SingleCalendar from "@/components/SingleCalendar";
 import DropDown from "@/components/DropDown";
 import BaggageCounters from "./BaggageCounters";
-import TimeInput from "../components/TimeInput";
-import { getAirlineIconUrl } from "@/utils/helper";
 
-// --- Exported Types ---
+// Exported Types
 
 export interface SegmentPreview {
   airline?: string;
@@ -61,9 +59,10 @@ export interface FlightSegmentCardProps {
   /** Show a per-segment PNR field */
   showPnr?: boolean;
   onPnrChange?: (value: string) => void;
+  isReadOnly?: boolean;
 }
 
-// --- Helper Functions ---
+// Helper Functions
 
 const toTimeInput = (val?: string) => {
   if (!val) return "";
@@ -93,20 +92,10 @@ const truncateIfLong = (val?: string, limit = 20) => {
   return val.length > limit ? `${val.slice(0, limit)}...` : val;
 };
 
-const capTimeInput = (val?: string) => {
-  if (!val) return "";
-  const parts = String(val).split(":");
-  let hh = parseInt(parts[0] ?? "0", 10);
-  let mm = parseInt(parts[1] ?? "0", 10);
-  if (isNaN(hh)) hh = 0;
-  if (isNaN(mm)) mm = 0;
-  if (hh > 23) hh = 23;
-  if (mm > 59) mm = 59;
-  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
-};
-
 const parseDurationParts = (duration?: string) => {
-  const match = String(duration ?? "").match(/(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?/i);
+  const match = String(duration ?? "").match(
+    /(?:(\d+)\s*h)?\s*(?:(\d+)\s*m)?/i,
+  );
   return {
     hours: match?.[1] ?? "",
     minutes: match?.[2] ?? "",
@@ -126,10 +115,16 @@ const buildDurationValue = (hours?: string, minutes?: string) => {
 };
 
 const sanitizeFlightNumber = (value: string) =>
-  value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+  value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 4);
 
 const sanitizePNR = (value: string) =>
-  value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+  value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 6);
 
 const formatTime = (datetime: any) => {
   if (!datetime) return "--";
@@ -149,7 +144,7 @@ const getDuration = (dep: any, arr: any) => {
   return `${h}h ${m}m`;
 };
 
-// --- Component ---
+// Component
 
 export default function FlightSegmentCard({
   segment,
@@ -164,12 +159,13 @@ export default function FlightSegmentCard({
   onTraveldateChange,
   showPnr,
   onPnrChange,
+  isReadOnly,
 }: FlightSegmentCardProps) {
   const segId = segment.id!;
   const [isEditing, setIsEditing] = useState(false);
   const [editingData, setEditingData] = useState<Partial<SegmentPreview>>({});
 
-  // --- Internal API fetch logic ---
+  // Internal API fetch logic
   const API_KEY = process.env.NEXT_PUBLIC_AVIATIONSTACK_KEY ?? "";
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastFetchedRef = useRef<string>("");
@@ -240,7 +236,8 @@ export default function FlightSegmentCard({
     setEditingData({
       airline: preview?.airline ?? "",
       flightNumber:
-        preview?.flightNumber ?? sanitizeFlightNumber(String(segment.flightnumber ?? "")),
+        preview?.flightNumber ??
+        sanitizeFlightNumber(String(segment.flightnumber ?? "")),
       origin: preview?.origin ?? "",
       destination: preview?.destination ?? "",
       departureTime: toTimeInput(
@@ -264,8 +261,8 @@ export default function FlightSegmentCard({
 
   const saveEditing = () => {
     const d = editingData;
-    const dep = capTimeInput(d.departureTime ?? d.departureTimeRaw ?? "");
-    const arr = capTimeInput(d.arrivalTime ?? d.arrivalTimeRaw ?? "");
+    const dep = d.departureTime ?? d.departureTimeRaw ?? "";
+    const arr = d.arrivalTime ?? d.arrivalTimeRaw ?? "";
 
     let durationVal = d.duration ?? "";
     if ((!durationVal || durationVal === "") && dep && arr) {
@@ -434,6 +431,7 @@ export default function FlightSegmentCard({
               noButtonRadius
               className="mt-1"
               optionClassName="font-[400] text-[#020202]"
+              readOnly={isReadOnly || false}
             />
           </div>
 
@@ -450,85 +448,100 @@ export default function FlightSegmentCard({
 
       {/* Preview Card */}
       <div className="bg-[linear-gradient(90deg,#F6ECFF_0%,#FDFAFF_100%)] w-full rounded-[15px] mt-2 p-3.5 min-w-0">
-          {preview ? (
-            <>
-              {/* Airline Header */}
-              <div className="flex justify-between items-center gap-2">
-                {(() => {
-                  return (
-                    <>
-                      <div className="flex items-center gap-3">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="17" viewBox="0 0 18 17" fill="none">
-                            <path d="M16.3589 6.79992C16.4357 7.08326 16.3997 7.35006 16.2509 7.60034C16.1021 7.85062 15.8837 8.01354 15.5957 8.08909L4.30608 11.0641C4.15248 11.1113 3.99888 11.1019 3.84528 11.0358C3.69168 10.9696 3.57648 10.8658 3.49968 10.7241L1.61328 7.38076L2.65008 7.11159L4.42128 8.83992L8.09328 7.87659L4.85328 2.86159L6.23568 2.49326L11.2469 7.04076L15.0341 6.04909C15.3221 5.96409 15.5957 5.99715 15.8549 6.14826C16.1141 6.29937 16.2821 6.51659 16.3589 6.79992ZM3.42768 13.0899H14.9477V14.5066H3.42768V13.0899Z" fill="#126ACB"/>
-                          </svg>
-                          <div className="font-[500] text-[#126ACB]">
-                            {preview.airline}
-                          </div>
-                          <div>
-                            {preview.flightNumber}
-                          </div>
-
-                      </div>
-                      
-
-                      <button
-                        onClick={startEditing}
-                        className="text-blue-600 hover:text-blue-700"
+        {preview ? (
+          <>
+            {/* Airline Header */}
+            <div className="flex justify-between items-center gap-2">
+              {(() => {
+                return (
+                  <>
+                    <div className="flex items-center gap-3">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="18"
+                        height="17"
+                        viewBox="0 0 18 17"
+                        fill="none"
                       >
-                        <MdOutlineEdit size={16} />
-                      </button>
-                    </>
-                  );
-                })()}
-              </div>
+                        <path
+                          d="M16.3589 6.79992C16.4357 7.08326 16.3997 7.35006 16.2509 7.60034C16.1021 7.85062 15.8837 8.01354 15.5957 8.08909L4.30608 11.0641C4.15248 11.1113 3.99888 11.1019 3.84528 11.0358C3.69168 10.9696 3.57648 10.8658 3.49968 10.7241L1.61328 7.38076L2.65008 7.11159L4.42128 8.83992L8.09328 7.87659L4.85328 2.86159L6.23568 2.49326L11.2469 7.04076L15.0341 6.04909C15.3221 5.96409 15.5957 5.99715 15.8549 6.14826C16.1141 6.29937 16.2821 6.51659 16.3589 6.79992ZM3.42768 13.0899H14.9477V14.5066H3.42768V13.0899Z"
+                          fill="#126ACB"
+                        />
+                      </svg>
+                      <div className="font-[500] text-[#126ACB]">
+                        {preview.airline}
+                      </div>
+                      <div>{preview.flightNumber}</div>
+                    </div>
 
-              <div className="flex items-center justify-between mt-5 gap-2">
-                  <div className="font-[500] text-[13px] text-[#414141]">
-                    {truncateIfLong(preview.origin)}
-                  </div>
-
-                  <div className="rounded-full bg-[#F0E1FF] p-[4px]">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 8 8" fill="none">
-                      <circle cx="4" cy="4" r="4" fill="#020202"/>
-                    </svg>
-                  </div>
-
-                  <div className="font-[500] text-[13px] text-[#818181]">
-                    {preview.departureTime}
-                  </div>
-                  <div className="border-t border-dashed border-t-[#9CA3AF] h-[2px] w-[20%]" />
-                  <div className="font-[400] text-[11px] whitespace-nowrap flex-shrink-0 rounded-full border border-[rgba(113,53,173,0.20)] py-[2px] px-[4px] text-[#818181]">
-                    ~{preview.duration}
-                  </div>
-                   <div className="border-t border-dashed border-t-[#9CA3AF] h-[2px] w-[20%]" />
-                  <div className="font-[500] text-[13px] text-[#818181]">
-                    {preview.arrivalTime}
-                  </div>
-
-                  <div className="rounded-full bg-[#F0E1FF] p-[4px]">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 8 8" fill="none">
-                      <circle cx="4" cy="4" r="4" fill="#020202"/>
-                    </svg>
-                  </div>
-
-                  <div className="font-[500] text-[13px] text-[#414141]">
-                    {truncateIfLong(preview.destination)}
-                  </div>
-
-              </div>
-            </>
-          ) : (
-            <div className="flex relative items-center justify-center h-full rounded-md text-gray-500 min-h-[80px]">
-              <p>Preview data will appear here</p>
-               <button
-                  onClick={startEditing}
-                  className="absolute top-0 right-2 text-blue-600 hover:text-blue-700"
-                >
-                  <MdOutlineEdit size={16} />
-                </button>
-
+                    <button
+                      onClick={startEditing}
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      <MdOutlineEdit size={16} />
+                    </button>
+                  </>
+                );
+              })()}
             </div>
-          )}
+
+            <div className="flex items-center justify-between mt-5 gap-2">
+              <div className="font-[500] text-[13px] text-[#414141]">
+                {truncateIfLong(preview.origin)}
+              </div>
+
+              <div className="rounded-full bg-[#F0E1FF] p-[4px]">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="8"
+                  height="8"
+                  viewBox="0 0 8 8"
+                  fill="none"
+                >
+                  <circle cx="4" cy="4" r="4" fill="#020202" />
+                </svg>
+              </div>
+
+              <div className="font-[500] text-[13px] text-[#818181]">
+                {preview.departureTime}
+              </div>
+              <div className="border-t border-dashed border-t-[#9CA3AF] h-[2px] w-[20%]" />
+              <div className="font-[400] text-[11px] whitespace-nowrap flex-shrink-0 rounded-full border border-[rgba(113,53,173,0.20)] py-[2px] px-[4px] text-[#818181]">
+                ~{preview.duration}
+              </div>
+              <div className="border-t border-dashed border-t-[#9CA3AF] h-[2px] w-[20%]" />
+              <div className="font-[500] text-[13px] text-[#818181]">
+                {preview.arrivalTime}
+              </div>
+
+              <div className="rounded-full bg-[#F0E1FF] p-[4px]">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="8"
+                  height="8"
+                  viewBox="0 0 8 8"
+                  fill="none"
+                >
+                  <circle cx="4" cy="4" r="4" fill="#020202" />
+                </svg>
+              </div>
+
+              <div className="font-[500] text-[13px] text-[#414141]">
+                {truncateIfLong(preview.destination)}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex relative items-center justify-center h-full rounded-md text-gray-500 min-h-[80px]">
+            <p>Preview data will appear here</p>
+            <button
+              onClick={startEditing}
+              className="absolute top-0 right-2 text-blue-600 hover:text-blue-700"
+            >
+              <MdOutlineEdit size={16} />
+            </button>
+          </div>
+        )}
       </div>
 
       <Modal
@@ -637,14 +650,65 @@ export default function FlightSegmentCard({
               <label className="text-[#414141] font-[500] text-[12px] mb-1.5 block">
                 ETD
               </label>
-              <TimeInput
+              <input
+                type="text"
                 value={editingData.departureTime ?? ""}
-                onChange={(e) =>
-                  setEditingData((prev) => ({
-                    ...prev,
-                    departureTime: capTimeInput(e.target.value),
-                  }))
-                }
+                onChange={(e) => {
+                  const input = e.target.value;
+                  setEditingData((prev) => {
+                    let val = String(input).replace(/[^0-9:]/g, "");
+
+                    const colonCount = (val.match(/:/g) || []).length;
+                    if (colonCount > 1) {
+                      val = val.replace(/:([^:]*)$/, "$1");
+                    }
+
+                    if (
+                      val.length === 2 &&
+                      !val.includes(":") &&
+                      (prev.departureTime ?? "").length < 2
+                    ) {
+                      val = val + ":";
+                    }
+
+                    if (val.length > 5) val = val.slice(0, 5);
+
+                    if (val.includes(":")) {
+                      const parts = val.split(":");
+                      const hours = parts[0] || "";
+                      const minutes = parts[1] || "";
+                      let validHours = hours;
+                      let validMinutes = minutes;
+
+                      if (hours.length > 0) {
+                        const hourNum = parseInt(hours, 10);
+                        if (hours.length === 2 && hourNum > 23) {
+                          validHours = "23";
+                        }
+                      }
+
+                      if (validMinutes.length > 0) {
+                        const minNum = parseInt(validMinutes, 10);
+                        if (validMinutes.length === 2 && minNum > 59) {
+                          validMinutes = "59";
+                        }
+                      }
+
+                      val = validHours + ":" + validMinutes;
+                    } else {
+                      if (val.length === 2) {
+                        const hourNum = parseInt(val, 10);
+                        if (hourNum > 23) {
+                          val = "23";
+                        }
+                      }
+                    }
+
+                    return { ...prev, departureTime: val };
+                  });
+                }}
+                placeholder="HH:MM"
+                maxLength={5}
                 className="w-full px-4 py-2.5 border border-[#D9D9D9] rounded-[18px] text-[#020202] text-[0.95rem]"
               />
             </div>
@@ -653,14 +717,65 @@ export default function FlightSegmentCard({
               <label className="text-[#414141] font-[500] text-[12px] mb-1.5 block">
                 ETA
               </label>
-              <TimeInput
+              <input
+                type="text"
                 value={editingData.arrivalTime ?? ""}
-                onChange={(e) =>
-                  setEditingData((prev) => ({
-                    ...prev,
-                    arrivalTime: capTimeInput(e.target.value),
-                  }))
-                }
+                onChange={(e) => {
+                  const input = e.target.value;
+                  setEditingData((prev) => {
+                    let val = String(input).replace(/[^0-9:]/g, "");
+
+                    const colonCount = (val.match(/:/g) || []).length;
+                    if (colonCount > 1) {
+                      val = val.replace(/:([^:]*)$/, "$1");
+                    }
+
+                    if (
+                      val.length === 2 &&
+                      !val.includes(":") &&
+                      (prev.arrivalTime ?? "").length < 2
+                    ) {
+                      val = val + ":";
+                    }
+
+                    if (val.length > 5) val = val.slice(0, 5);
+
+                    if (val.includes(":")) {
+                      const parts = val.split(":");
+                      const hours = parts[0] || "";
+                      const minutes = parts[1] || "";
+                      let validHours = hours;
+                      let validMinutes = minutes;
+
+                      if (hours.length > 0) {
+                        const hourNum = parseInt(hours, 10);
+                        if (hours.length === 2 && hourNum > 23) {
+                          validHours = "23";
+                        }
+                      }
+
+                      if (validMinutes.length > 0) {
+                        const minNum = parseInt(validMinutes, 10);
+                        if (validMinutes.length === 2 && minNum > 59) {
+                          validMinutes = "59";
+                        }
+                      }
+
+                      val = validHours + ":" + validMinutes;
+                    } else {
+                      if (val.length === 2) {
+                        const hourNum = parseInt(val, 10);
+                        if (hourNum > 23) {
+                          val = "23";
+                        }
+                      }
+                    }
+
+                    return { ...prev, arrivalTime: val };
+                  });
+                }}
+                placeholder="HH:MM"
+                maxLength={5}
                 className="w-full px-4 py-2.5 border border-[#D9D9D9] rounded-[18px] text-[#020202] text-[0.95rem]"
               />
             </div>
@@ -677,7 +792,9 @@ export default function FlightSegmentCard({
                   placeholder="0"
                   value={parseDurationParts(editingData.duration).hours}
                   onChange={(e) => {
-                    const durationParts = parseDurationParts(editingData.duration);
+                    const durationParts = parseDurationParts(
+                      editingData.duration,
+                    );
                     setEditingData((prev) => ({
                       ...prev,
                       duration: buildDurationValue(
@@ -699,7 +816,9 @@ export default function FlightSegmentCard({
                   placeholder="0"
                   value={parseDurationParts(editingData.duration).minutes}
                   onChange={(e) => {
-                    const durationParts = parseDurationParts(editingData.duration);
+                    const durationParts = parseDurationParts(
+                      editingData.duration,
+                    );
                     setEditingData((prev) => ({
                       ...prev,
                       duration: buildDurationValue(

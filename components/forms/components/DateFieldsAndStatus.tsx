@@ -41,6 +41,7 @@ interface DateFieldsAndStatusProps {
   onCancellationDateChange?: (date: string) => void;
   onNewBookingDateChange?: (date: string) => void;
   onNewTravelDateChange?: (date: string) => void;
+  isReadOnly?: boolean;
 }
 
 const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
@@ -56,6 +57,7 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
   onCancellationDateChange,
   onNewBookingDateChange,
   onNewTravelDateChange,
+  isReadOnly,
 }) => {
   const sync = useBookingFieldSync();
 
@@ -174,8 +176,8 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
     const nextTravelDateOnly = date ? new Date(date) : null;
     const isPreBookingDate = Boolean(
       bookingDateOnly &&
-        nextTravelDateOnly &&
-        nextTravelDateOnly.getTime() < bookingDateOnly.getTime(),
+      nextTravelDateOnly &&
+      nextTravelDateOnly.getTime() < bookingDateOnly.getTime(),
     );
     const shouldConfirmSourceChange =
       Boolean(traveldate) &&
@@ -265,84 +267,83 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
     <>
       <div className="flex flex-wrap items-start justify-between mb-3">
         <div className="">
-        {/* Left section: Booking + Travel Date */}
-        <div className="flex items-end flex-wrap gap-2">
-          {/* Booking Date */}
-          <SingleCalendar
-            label="Booking Date"
-            value={bookingdate}
-            onChange={handleBookingDateChange}
-            placeholder="Select Date"
-            customWidth="w-[12rem]"
-            inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
-          />
-
-          {/* Travel Date */}
-          <SingleCalendar
-            label="Travel Date"
-            value={traveldate}
-            onChange={handleTravelDateChange}
-            placeholder="Select Date"
-            readOnly={false}
-            customWidth="w-[12rem]"
-            showCalendarIcon={true}
-            inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
-          />
-        </div>
-        {/* Cancellation Date row shown when booking is cancelled */}
-        {bookingstatus?.toLowerCase() === "cancelled" && (
-          <div className="w-full mb-5 mt-[14px]">
+          {/* Left section: Booking + Travel Date */}
+          <div className="flex items-end flex-wrap gap-2">
+            {/* Booking Date */}
             <SingleCalendar
-              label="Cancellation Date"
-              value={cancellationDate || ""}
-              onChange={handleCancellationDateChange}
+              label="Booking Date"
+              value={bookingdate}
+              onChange={handleBookingDateChange}
               placeholder="Select Date"
-              customWidth="w-full"
+              customWidth="w-[12rem]"
+              inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+            />
+
+            {/* Travel Date */}
+            <SingleCalendar
+              label="Travel Date"
+              value={traveldate}
+              onChange={handleTravelDateChange}
+              placeholder="Select Date"
+              readOnly={false}
+              customWidth="w-[12rem]"
               showCalendarIcon={true}
               inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
             />
           </div>
-        )}
+          {/* Cancellation Date row shown when booking is cancelled */}
+          {bookingstatus?.toLowerCase() === "cancelled" && (
+            <div className="w-full mb-5 mt-[14px]">
+              <SingleCalendar
+                label="Cancellation Date"
+                value={cancellationDate || ""}
+                onChange={handleCancellationDateChange}
+                placeholder="Select Date"
+                customWidth="w-full"
+                showCalendarIcon={true}
+                inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+              />
+            </div>
+          )}
 
-        {/* New Booking/Travel Date row shown when booking is rescheduled */}
-        {bookingstatus?.toLowerCase() === "rescheduled" && (
-          <div className="flex items-end flex-wrap gap-2 mb-5 mt-[14px]">
-            <SingleCalendar
-              label="New Booking Date"
-              value={sync?.newBookingDate || ""}
-              onChange={handleNewBookingDateChange}
-              placeholder="Select Date"
-              customWidth="w-[12rem]"
-              inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
-            />
+          {/* New Booking/Travel Date row shown when booking is rescheduled */}
+          {bookingstatus?.toLowerCase() === "rescheduled" && (
+            <div className="flex items-end flex-wrap gap-2 mb-5 mt-[14px]">
+              <SingleCalendar
+                label="New Booking Date"
+                value={sync?.newBookingDate || ""}
+                onChange={handleNewBookingDateChange}
+                placeholder="Select Date"
+                customWidth="w-[12rem]"
+                inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+              />
 
-            <SingleCalendar
-              label="New Travel Date"
-              value={sync?.newTravelDate || ""}
-              onChange={handleNewTravelDateChange}
-              placeholder="Select Date"
-              minDate={sync?.newBookingDate || bookingdate}
-              customWidth="w-[12rem]"
-              inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
-            />
-          </div>
-        )}
-
-        
+              <SingleCalendar
+                label="New Travel Date"
+                value={sync?.newTravelDate || ""}
+                onChange={handleNewTravelDateChange}
+                placeholder="Select Date"
+                minDate={sync?.newBookingDate || bookingdate}
+                customWidth="w-[12rem]"
+                inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+              />
+            </div>
+          )}
         </div>
 
-      {/* Right section: Booking Status */}
-        <div>
-        <DropDown
-          options={statusOptions}
-          placeholder="Booking Status"
-          value={bookingstatus}
-          onChange={handleStatusChange}
-          menuClassName="rounded-[14px] px-1.5"
-          buttonClassName="px-3 py-1.5 hover:border-[#C6AEDE] rounded-[15px]"
-          noButtonRadius
-        />
-      </div>
+        {/* Right section: Booking Status */}
+        <div className="mt-5">
+          <DropDown
+            options={statusOptions}
+            placeholder="Booking Status"
+            value={bookingstatus}
+            onChange={handleStatusChange}
+            menuClassName="rounded-[14px] px-1.5"
+            buttonClassName="px-3 py-1.5 hover:border-[#C6AEDE] rounded-[15px]"
+            noButtonRadius
+            readOnly={isReadOnly || false}
+          />
+        </div>
       </div>
 
       <ConfirmationModal

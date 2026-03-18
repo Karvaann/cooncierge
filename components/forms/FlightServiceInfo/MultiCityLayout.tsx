@@ -60,11 +60,13 @@ export default function MultiCityLayout({
   setFormData,
   sharedPnrEnabled,
   onMainTravelDateChange,
+  isReadOnly,
 }: {
   formData: FlightInfoFormData;
   setFormData: React.Dispatch<React.SetStateAction<FlightInfoFormData>>;
   sharedPnrEnabled: boolean;
   onMainTravelDateChange: (date: string) => void;
+  isReadOnly?: boolean;
 }) {
   const [trips, setTrips] = useState<number[]>([1, 2]);
 
@@ -242,6 +244,7 @@ export default function MultiCityLayout({
                       }}
                       showPnr={!sharedPnrEnabled}
                       onPnrChange={(val) => handleSegmentPnr(segment.id!, val)}
+                      isReadOnly={isReadOnly || false}
                     />
                   </div>
                 ))}

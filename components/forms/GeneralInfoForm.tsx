@@ -28,7 +28,6 @@ import { CiCirclePlus } from "react-icons/ci";
 import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 import RemarksField from "@/components/forms/components/RemarksField";
 import RightSideIcons from "@/components/forms/components/RightSideIcons";
-import { useBookingFieldSync } from "@/context/BookingFieldSyncContext";
 import { getAuthUser } from "@/services/storage/authStorage";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 
@@ -74,6 +73,7 @@ interface CustomerDataType {
   remarks?: string;
   openingBalance?: string;
   balanceType?: "credit" | "debit";
+  nickname?: string;
 }
 
 interface VendorDataType {
@@ -525,7 +525,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   formRef,
   hideVendor = false,
 }) => {
-  const sync = useBookingFieldSync();
   const [formData, setFormData] = useState<GeneralInfoFormData>(
     buildInitialState(externalFormData),
   );
@@ -578,20 +577,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       lastPushedFormData.current = formData;
     }
   }, [formData, onFormDataUpdate]);
-
-  useEffect(() => {
-    if ((sync?.internalNotes ?? "") === String(formData.remarks ?? "")) return;
-    sync?.setInternalNotes(String(formData.remarks ?? ""));
-  }, [formData.remarks, sync]);
-
-  useEffect(() => {
-    if (!sync?.internalNotes) return;
-    setFormData((prev) =>
-      prev.remarks === sync.internalNotes
-        ? prev
-        : { ...prev, remarks: sync.internalNotes },
-    );
-  }, [sync?.internalNotes]);
 
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -971,7 +956,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       return;
     }
 
-    const match = allTeams.find((team) => String(team._id || team.id) === authUserId);
+    const match = allTeams.find(
+      (team) => String(team._id || team.id) === authUserId,
+    );
     if (!match) {
       hasAppliedDefaultPrimaryOwnerRef.current = true;
       return;
@@ -1187,7 +1174,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       return;
     }
 
-    const match = allCustomers.find((c) => c._id === externalFormData.customerId?._id);
+    const match = allCustomers.find(
+      (c) => c._id === externalFormData.customerId?._id,
+    );
     if (match) {
       setCustomerList([{ id: match._id, name: match.name }]);
     } else if (externalFormData.customerId.name) {
@@ -1548,27 +1537,28 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Hydrate UI when a new customer is created via sidesheet
   useEffect(() => {
     if (!lastAddedCustomer) return;
+    const lac: any = lastAddedCustomer;
     // Inject the new customer into allCustomers so customersById picks it up
     setAllCustomers((prev) => {
-      if (prev.some((c) => c._id === lastAddedCustomer.id)) return prev;
+      if (prev.some((c) => c._id === lac.id)) return prev;
       return [
         ...prev,
         {
-          _id: lastAddedCustomer.id,
-          name: lastAddedCustomer.name,
-          alias: lastAddedCustomer.alias || "",
-          customId: lastAddedCustomer.customId || "",
-          tier: lastAddedCustomer.tier || "",
+          _id: lac.id,
+          name: lac.name,
+          alias: lac.alias || "",
+          customId: lac.customId || "",
+          tier: lac.tier || "",
         } as CustomerDataType,
       ];
     });
     // Update first customer field with new entry
     setCustomerList((prev) => {
       const next = [...prev];
-      next[0] = { id: lastAddedCustomer.id, name: lastAddedCustomer.name };
+      next[0] = { id: lac.id, name: lac.name };
       return next;
     });
-    const newFormData = { ...formData, customer: lastAddedCustomer.id };
+    const newFormData = { ...formData, customer: lac.id };
     setFormData(newFormData);
     // Clear any error on customer field
     setErrors((prev) => ({ ...prev, customer: "" }));
@@ -1577,23 +1567,24 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Hydrate UI when a new vendor is created via sidesheet
   useEffect(() => {
     if (!lastAddedVendor) return;
+    const lav: any = lastAddedVendor;
     // Inject the new vendor into allVendors so vendorsById picks it up
     setAllVendors((prev) => {
-      if (prev.some((v) => v._id === lastAddedVendor.id)) return prev;
+      if (prev.some((v) => v._id === lav.id)) return prev;
       return [
         ...prev,
         {
-          _id: lastAddedVendor.id,
-          alias: lastAddedVendor.alias || "",
-          customId: lastAddedVendor.customId || "",
-          tier: lastAddedVendor.tier || "",
-          companyName: lastAddedVendor.companyName || "",
-          contactPerson: lastAddedVendor.contactPerson || "",
+          _id: lav.id,
+          alias: lav.alias || "",
+          customId: lav.customId || "",
+          tier: lav.tier || "",
+          companyName: lav.companyName || "",
+          contactPerson: lav.contactPerson || "",
         } as VendorDataType,
       ];
     });
-    setVendorList([{ id: lastAddedVendor.id, name: lastAddedVendor.name }]);
-    const newFormData = { ...formData, vendor: lastAddedVendor.id };
+    setVendorList([{ id: lav.id, name: lav.name }]);
+    const newFormData = { ...formData, vendor: lav.id };
     setFormData(newFormData);
     setErrors((prev) => ({ ...prev, vendor: "" }));
   }, [lastAddedVendor]);
@@ -1601,8 +1592,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   // Hydrate UI when a new traveller is created via sidesheet
   useEffect(() => {
     if (!lastAddedTraveller || !travellerTarget) return;
-    const name = lastAddedTraveller.name || "";
-    const id = lastAddedTraveller.id || "";
+    const lat: any = lastAddedTraveller;
+    const name = lat.name || "";
+    const id = lat.id || "";
     if (!name) return;
 
     // Inject the new traveller into allTravellers so traveller dropdowns and view pick it up
@@ -1612,10 +1604,10 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         ...prev,
         {
           _id: id,
-          name: lastAddedTraveller.name,
-          alias: lastAddedTraveller.alias || "",
-          customId: lastAddedTraveller.customId || "",
-          tier: lastAddedTraveller.tier || "",
+          name: lat.name,
+          alias: lat.alias || "",
+          customId: lat.customId || "",
+          tier: lat.tier || "",
         } as TravellerDataType,
       ];
     });
@@ -2193,112 +2185,87 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             <label className="block text-[12px] font-[500] ml-5 text-[#414141] mb-1">
               Adults
             </label>
-            {formData.adults === 0 ? (
+
+            <div className="w-[5rem] flex items-center justify-between border border-[#7135AD] rounded-[15px] px-2.5 py-1">
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
                 onClick={() =>
-                  setFormData((prev) => ({ ...prev, adults: 1 }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    adults:
+                      (prev.infants ?? 0) > 0 || (prev.children ?? 0) > 0
+                        ? Math.max(0, prev.adults - 1)
+                        : Math.max(1, prev.adults - 1),
+                  }))
                 }
-                className="w-[5rem] border border-[#7135AD] rounded-[15px] px-2.5 py-1 text-[13px] font-[600] text-[#7135AD]"
+                className={`text-lg font-[600] -mt-0.5 ${
+                  isReadOnly || isSubmitting
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
               >
-                Add
+                <FiMinus size={12} className="text-[#7135AD]" />
               </button>
-            ) : (
-              <div className="w-[5rem] flex items-center justify-between border border-[#7135AD] rounded-[15px] px-2.5 py-1">
-                <button
-                  type="button"
-                  disabled={isReadOnly || isSubmitting}
-                  onClick={() =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      adults:
-                        (prev.infants ?? 0) > 0 || (prev.children ?? 0) > 0
-                          ? Math.max(0, prev.adults - 1)
-                          : Math.max(1, prev.adults - 1),
-                    }))
-                  }
-                  className={`text-lg font-[600] ${
-                    isReadOnly || isSubmitting
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
-                  }`}
-                >
-                  <FiMinus size={12} className="text-[#7135AD]" />
-                </button>
-                <span className="text-[13px] font-[600] text-[#7135AD]">
-                  {formData.adults}
-                </span>
-                <button
-                  type="button"
-                  disabled={isReadOnly || isSubmitting}
-                  onClick={() =>
-                    setFormData({ ...formData, adults: formData.adults + 1 })
-                  }
-                  className={`text-lg font-[600] ${
-                    isReadOnly || isSubmitting
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
-                  }`}
-                >
-                  <GoPlus size={12} className="text-[#7135AD]" />
-                </button>
-              </div>
-            )}
+              <span className="text-[13px] font-[600] text-[#7135AD]">
+                {formData.adults}
+              </span>
+              <button
+                type="button"
+                disabled={isReadOnly || isSubmitting}
+                onClick={() =>
+                  setFormData({ ...formData, adults: formData.adults + 1 })
+                }
+                className={`text-lg font-[600] -mt-0.5 ${
+                  isReadOnly || isSubmitting
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
+              >
+                <GoPlus size={12} className="text-[#7135AD]" />
+              </button>
+            </div>
           </div>
           <div className="flex flex-col">
             <label className="block text-[12px] ml-4 font-[500] text-[#414141] mb-1">
               Children
             </label>
-            {formData.infants === 0 ? (
+            <div className="w-[5rem] flex items-center justify-between border border-[#7135AD] rounded-[15px] px-2.5 py-1">
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
                 onClick={() =>
-                  setFormData((prev) => ({ ...prev, infants: 1 }))
+                  setFormData({
+                    ...formData,
+                    infants: Math.max(0, formData.infants - 1),
+                  })
                 }
-                className="w-[5rem] border border-[#7135AD] rounded-[15px] px-2.5 py-1 text-[13px] font-[600] text-[#7135AD]"
+                className={`text-lg font-[600] -mt-0.5 ${
+                  isReadOnly || isSubmitting
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
               >
-                Add
+                <FiMinus size={12} className="text-[#7135AD]" />
               </button>
-            ) : (
-              <div className="w-[5rem] flex items-center justify-between border border-[#7135AD] rounded-[15px] px-2.5 py-1">
-                <button
-                  type="button"
-                  disabled={isReadOnly || isSubmitting}
-                  onClick={() =>
-                    setFormData({
-                      ...formData,
-                      infants: Math.max(0, formData.infants - 1),
-                    })
-                  }
-                  className={`text-lg font-[600] ${
-                    isReadOnly || isSubmitting
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
-                  }`}
-                >
-                  <FiMinus size={12} className="text-[#7135AD]" />
-                </button>
-                <span className="text-[13px] text-[#7135AD] font-[600] ">
-                  {formData.infants}
-                </span>
-                <button
-                  type="button"
-                  disabled={isReadOnly || isSubmitting}
-                  onClick={() =>
-                    setFormData({ ...formData, infants: formData.infants + 1 })
-                  }
-                  className={`text-lg font-[600] ${
-                    isReadOnly || isSubmitting
-                      ? "opacity-50 cursor-not-allowed"
-                      : ""
-                  }`}
-                >
-                  <GoPlus size={12} className="text-[#7135AD]" />
-                </button>
-              </div>
-            )}
+              <span className="text-[13px] text-[#7135AD] font-[600] ">
+                {formData.infants}
+              </span>
+              <button
+                type="button"
+                disabled={isReadOnly || isSubmitting}
+                onClick={() =>
+                  setFormData({ ...formData, infants: formData.infants + 1 })
+                }
+                className={`text-lg font-[600] -mt-0.5 ${
+                  isReadOnly || isSubmitting
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
+              >
+                <GoPlus size={12} className="text-[#7135AD]" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -2507,7 +2474,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
           {formData.infantTravellers.map((trav, index) => (
             <div key={index} className="mb-4">
-              <div className="w-[30rem] flex items-center justify-between mb-2">
+              <div className="w-[60%] flex items-center justify-between mb-2">
                 <label className=" text-[12px] font-[400] text-[#414141]">
                   <span className="text-[#FF3B30]">*</span>
                   {`Child ${index + 1}${formData.adults === 0 && index === 0 ? " (Lead Pax)" : ""}`}
@@ -2523,8 +2490,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   onChange={(val) => {
                     const numVal = val === "" ? null : Number(val);
                     const selectedTraveller =
-                      travellersById.get(formData.infantTravellerIds?.[index] ?? "") ||
-                      null;
+                      travellersById.get(
+                        formData.infantTravellerIds?.[index] ?? "",
+                      ) || null;
                     const computedAge = computeAgeFromDob(
                       selectedTraveller?.dateOfBirth,
                     );
@@ -2960,7 +2928,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           <IoClose size={16} className="text-[#818181]" />
                         </button>
                         {(() => {
-                          const owner = allTeams.find((team) => team._id === o.id);
+                          const owner = allTeams.find(
+                            (team) => team._id === o.id,
+                          );
                           return getOwnerPillLabel(owner) || o.name;
                         })()}
                       </span>
@@ -3114,7 +3084,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         }}
         title={
           childAgeConfirmation
-            ? `The age of child ${childAgeConfirmation.index + 1} does not match the DOB mentioned in child info which is ${new Date(childAgeConfirmation.dob).toLocaleDateString("en-GB", {
+            ? `The age of child ${childAgeConfirmation.index + 1} does not match the DOB mentioned in child info which is ${new Date(
+                childAgeConfirmation.dob,
+              ).toLocaleDateString("en-GB", {
                 day: "2-digit",
                 month: "short",
                 year: "numeric",

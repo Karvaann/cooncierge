@@ -54,7 +54,7 @@ const groupBase =
   "flex items-center border border-gray-200 rounded-[15px] overflow-hidden bg-white";
 
 const groupInput =
-  "h-[34px] px-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 outline-none rounded-[15px]";
+  "h-[34px] px-3 w-[79%] -ml-1 text-[0.78rem] text-gray-700 placeholder:text-gray-400 outline-none rounded-r-[15px]";
 
 const addonLabel =
   "h-[34px] px-2 text-[0.72rem] font-[500] bg-[#F9F9F9] text-[#414141] border-r border-gray-200 flex items-center";

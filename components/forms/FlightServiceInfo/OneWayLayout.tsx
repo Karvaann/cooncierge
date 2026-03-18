@@ -42,10 +42,12 @@ export default function OneWayLayout({
   formData,
   setFormData,
   onMainTravelDateChange,
+  isReadOnly,
 }: {
   formData: FlightInfoFormData;
   setFormData: React.Dispatch<React.SetStateAction<FlightInfoFormData>>;
   onMainTravelDateChange: (date: string) => void;
+  isReadOnly?: boolean;
 }) {
   const calculateLayover = (
     arrival: string | undefined,
@@ -146,6 +148,7 @@ export default function OneWayLayout({
                 traveldate={formData.traveldate}
                 bookingdate={formData.bookingdate}
                 onTraveldateChange={onMainTravelDateChange}
+                isReadOnly={isReadOnly || false}
               />
             </div>
 

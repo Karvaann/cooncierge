@@ -35,6 +35,7 @@ import Button from "./Button";
 import DropDown from "./DropDown";
 import { LuSave } from "react-icons/lu";
 import type { DocumentCategory } from "./forms/components/Documents";
+import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 
 import { getAuthUser } from "@/services/storage/authStorage";
 
@@ -291,6 +292,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
   const [activeTab, setActiveTab] = useState<TabType>("general");
   const [serviceOverride, setServiceOverride] = useState<string>("");
+  const [isOpening, setIsOpening] = useState<boolean>(false);
+  const [isLoadingData, setIsLoadingData] = useState<boolean>(false);
   const [formData, setFormData] = useState<any>(initialData || {});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -446,12 +449,35 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     mode === "view" && !quotationId && Boolean(bookingCode || bookingCodeProp);
 
   // Each time the sidesheet opens, increment the instance id so
-  // GeneralInfoForm / ServiceInfoForm (and nested modals) get a fresh mount.
+  // GeneralInfoForm / ServiceInfoForm get a fresh mount.
   useEffect(() => {
     if (isOpen) {
       setFormInstanceId((prev) => prev + 1);
     }
   }, [isOpen]);
+
+  // Show a brief spinner overlay while the sidesheet is opening
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    if (isOpen) {
+      setIsOpening(true);
+      // keep spinner visible
+      timer = setTimeout(() => setIsOpening(false), 1000);
+    } else {
+      setIsOpening(false);
+    }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [isOpen]);
+
+  // When opened in view mode, show spinner until initialData is applied
+  useEffect(() => {
+    if (isOpen && mode === "view") {
+      setIsLoadingData(true);
+    }
+    if (!isOpen) setIsLoadingData(false);
+  }, [isOpen, mode]);
 
   // Accept bookingCode from parent
   useEffect(() => {
@@ -510,6 +536,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       setExistingBookingDocuments([]);
       setBookingDocuments([]);
     }
+
+    // Initial data applied — stop loading spinner for data
+    setIsLoadingData(false);
 
     setIsDirty(false);
     setActiveTab("general");
@@ -1558,6 +1587,19 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         zIndex={900}
       >
         <div className="relative h-full">
+          {(mode === "view" || isEditingExisting) &&
+            (isOpening || isLoadingData) && (
+              <LoadingSpinner
+                overlay
+                message={
+                  isLoadingData
+                    ? "Loading booking data..."
+                    : isReadOnly
+                      ? "Opening..."
+                      : "Preparing editor..."
+                }
+              />
+            )}
           <div className="flex flex-col h-full">
             {/* Tabs - Fixed at top */}
             <div
@@ -1762,6 +1804,24 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   {/* VIEW MODE */}
                   {mode === "view" && (
                     <>
+                      {isReadOnly && (
+                        <Button
+                          text="Edit"
+                          onClick={() => {
+                            setReadOnlyOverride(false);
+                            try {
+                              onRequestEdit?.();
+                            } catch (e) {
+                              /* ignore */
+                            }
+                          }}
+                          bgColor="bg-white"
+                          textColor="text-[#7135AD]"
+                          className="hover:cursor-pointer px-2 py-2 rounded-[15px] border border-[#7135AD]"
+                          disabled={isSubmitting || !quotationId}
+                        />
+                      )}
+
                       {(activeTab === "general" || activeTab === "service") && (
                         <Button
                           text="Next"
@@ -1811,23 +1871,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                             isSubmitting || !(bookingCode || bookingCodeProp)
                           }
                         />
-                      ) : activeTab === "price" && isReadOnly ? (
-                        <Button
-                          text="Edit"
-                          onClick={() => {
-                            setReadOnlyOverride(false);
-                            try {
-                              onRequestEdit?.();
-                            } catch (e) {
-                              /* ignore */
-                            }
-                          }}
-                          bgColor="bg-white"
-                          textColor="text-[#7135AD]"
-                          className="hover:cursor-pointer px-2 py-2 rounded-[15px] border border-[#7135AD]"
-                          disabled={isSubmitting || !quotationId}
-                        />
-                      ) : activeTab === "price" ? (
+                      ) : activeTab === "price" && !isReadOnly ? (
                         <Button
                           text={
                             isLimitlessBooking ? "Proceed to Summary" : "Save"

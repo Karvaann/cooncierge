@@ -315,9 +315,6 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
     onChange(flat as RescheduledAmountValue);
   };
 
-  const displayCustomerLabel = (index: number) =>
-    customerLabels[index] || `Customer ${index + 1}`;
-
   return (
     <div className="space-y-2">
       <div className="space-y-3">
@@ -962,7 +959,7 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
                 <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
                   Old Selling Price
                   {rescheduledSellingPrices.length > 1
-                    ? ` (${displayCustomerLabel(idx)})`
+                    ? ` (Customer ${idx + 1})`
                     : ""}
                   {displayBookingDate ? (
                     <div className="mt-1 text-[12px] border border-[#E2E1E1] text-[#414141] rounded-[8px] bg-white px-2 py-0.5">
@@ -1041,7 +1038,7 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
                 <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
                   Additional Selling Price
                   {rescheduledSellingPrices.length > 1
-                    ? ` (${displayCustomerLabel(idx)})`
+                    ? ` (Customer ${idx + 1})`
                     : ""}
                   {displayNewBookingDate ? (
                     <div className="mt-1 text-[12px] border border-[#E2E1E1] text-[#414141] rounded-[8px] bg-white px-2 py-0.5">
