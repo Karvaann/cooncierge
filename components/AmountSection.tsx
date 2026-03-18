@@ -104,7 +104,18 @@ interface AmountSectionProps {
 
   editableCancelled?: boolean;
   customerCount?: number;
+  customerLabels?: string[];
 }
+
+const FormulaTooltip = ({ text }: { text: string }) => (
+  <span
+    className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#D0C3E0] text-[10px] text-[#7135AD] cursor-help"
+    title={text}
+    aria-label={text}
+  >
+    i
+  </span>
+);
 
 // Allow only digits and a single decimal point for price fields (same as Flight form)
 const sanitizeNumeric = (val: string) => {
@@ -139,6 +150,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
   isSubmitting,
   editableCancelled = false,
   customerCount = 1,
+  customerLabels = [],
 }) => {
   const checkboxId = useId();
 
@@ -241,6 +253,9 @@ const AmountSection: React.FC<AmountSectionProps> = ({
     v.commissionInr,
   ]);
 
+  const displayCustomerLabel = (index: number) =>
+    customerLabels[index] || `Customer ${index + 1}`;
+
   return (
     <div className="mb-4 border border-[#E2E1E1] rounded-[15px] w-full p-3.5">
       <div className="flex items-center justify-between mb-3">
@@ -311,6 +326,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
           isReadOnly={isReadOnly}
           isSubmitting={isSubmitting}
           customerCount={customerCount}
+          customerLabels={customerLabels}
         />
       ) : isRescheduled ? (
         <RescheduledPriceSection
@@ -320,6 +336,7 @@ const AmountSection: React.FC<AmountSectionProps> = ({
           isReadOnly={isReadOnly}
           isSubmitting={isSubmitting}
           customerCount={customerCount}
+          customerLabels={customerLabels}
         />
       ) : (
         <>
@@ -383,9 +400,11 @@ const AmountSection: React.FC<AmountSectionProps> = ({
               {/* Selling Price(s) */}
               {sellingPrices.map((sp, i) => (
                 <div key={i} className={i > 0 ? "mt-3" : ""}>
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1">
-                    {`Selling Price${customerCount > 1 ? ` (Customer ${i + 1})` : ""}`}
-                  </label>
+                <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                  {customerCount > 1
+                    ? `Selling Price (${displayCustomerLabel(i)})`
+                    : "Selling Price"}
+                </label>
                   <MultiCurrencyInput
                     currency={(sp.sellingCurrency as "INR" | "USD") || "INR"}
                     onCurrencyChange={(val) => {
@@ -495,8 +514,19 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     key={index}
                     className="grid grid-cols-12 border-b last:border-b-0 border-[#E2E1E1]"
                   >
-                    <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] border-r border-[#E2E1E1] text-[0.8rem] text-gray-700 font-medium py-5">
-                      {item.label}
+                  <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] border-r border-[#E2E1E1] text-[0.8rem] text-gray-700 font-medium py-5">
+                      <span className="flex items-center">
+                        {item.key === "price"
+                          ? "Vendor Invoice (Base)"
+                          : item.key === "received"
+                            ? "Vendor Incentive Received"
+                            : item.key === "payout"
+                              ? "Commission Payout"
+                              : "Cost Price"}
+                        {item.key === "cost" && (
+                          <FormulaTooltip text="Cost Price = Vendor Invoice (Base) - Vendor Incentive Received + Commission Payout" />
+                        )}
+                      </span>
                     </div>
                     <div className="col-span-8 flex items-center gap-3 py-3 px-4 bg-white">
                       {item.key !== "cost" ? (
@@ -703,7 +733,9 @@ const AmountSection: React.FC<AmountSectionProps> = ({
                     className="grid grid-cols-12 border-b last:border-b-0 border-[#E2E1E1]"
                   >
                     <div className="col-span-4 flex items-center justify-center bg-[#F8F8F8] border-r border-[#E2E1E1] text-[0.8rem] text-gray-700 font-medium py-5">
-                      {`Selling Price${customerCount > 1 ? ` (Customer ${i + 1})` : ""}`}
+                      {customerCount > 1
+                        ? `Selling Price (${displayCustomerLabel(i)})`
+                        : "Selling Price"}
                     </div>
 
                     <div className="col-span-8 flex flex-col gap-2 py-3 px-4 bg-white">

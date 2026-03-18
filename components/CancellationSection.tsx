@@ -20,6 +20,7 @@ interface CancellationSectionProps {
   isReadOnly?: boolean | undefined;
   isSubmitting?: boolean | undefined;
   customerCount?: number;
+  customerLabels?: string[];
 }
 
 const inputBase =
@@ -47,6 +48,7 @@ const CancellationSection: React.FC<CancellationSectionProps> = ({
   isReadOnly = false,
   isSubmitting = false,
   customerCount = 1,
+  customerLabels = [],
 }) => {
   const { user } = useAuth();
   const businessCurrency = getBusinessCurrency(user as any);
@@ -127,6 +129,9 @@ const CancellationSection: React.FC<CancellationSectionProps> = ({
       flat.sellingRefundNotes = first.sellingRefundNotes;
     onChange(flat as AmountSectionValue);
   };
+
+  const displayCustomerLabel = (index: number) =>
+    customerLabels[index] || `Customer ${index + 1}`;
 
   return (
     <div className="space-y-2">
@@ -678,7 +683,9 @@ const CancellationSection: React.FC<CancellationSectionProps> = ({
               {/* Selling Price */}
               <div className="grid grid-cols-[280px_1fr]">
                 <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
-                  {`Selling Price${customerCount > 1 ? ` (Customer ${i + 1})` : ""}`}
+                  {customerCount > 1
+                    ? `Selling Price (${displayCustomerLabel(i)})`
+                    : "Selling Price"}
                 </div>
                 <div className="p-4 border-b border-[#E2E1E1]">
                   <MultiCurrencyInput

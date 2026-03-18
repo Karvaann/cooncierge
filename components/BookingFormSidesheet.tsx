@@ -34,6 +34,7 @@ import PriceInfoForm from "./forms/PriceInfo";
 import Button from "./Button";
 import DropDown from "./DropDown";
 import { LuSave } from "react-icons/lu";
+import type { DocumentCategory } from "./forms/components/Documents";
 
 import { getAuthUser } from "@/services/storage/authStorage";
 
@@ -328,7 +329,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
   }, []);
 
   // Collect all documents from all forms
-  const [bookingDocuments, setBookingDocuments] = useState<File[]>([]);
+  const [bookingDocuments, setBookingDocuments] = useState<
+    Array<{ file: File; category: DocumentCategory | "documents" }>
+  >([]);
   const [existingBookingDocuments, setExistingBookingDocuments] = useState<
     Array<{
       originalName: string;
@@ -339,28 +342,48 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       mimeType: string;
       uploadedAt: string | Date;
       _id?: string;
+      documentCategory?: DocumentCategory | string;
     }>
   >([]);
 
-  const addBookingDocuments = (files: File[]) => {
+  const addBookingDocuments = (
+    files: File[],
+    category: DocumentCategory | "documents" = "documents",
+  ) => {
     const MAX_DOCS = 3;
     setBookingDocuments((prev) => {
       const existingCount = Array.isArray(existingBookingDocuments)
-        ? existingBookingDocuments.length
+        ? existingBookingDocuments.filter(
+            (doc) =>
+              String(doc.documentCategory ?? "documents") === String(category),
+          ).length
         : 0;
-      const remainingSlots = MAX_DOCS - existingCount - prev.length;
+      const uploadedCount = prev.filter(
+        (item) => String(item.category) === String(category),
+      ).length;
+      const remainingSlots = MAX_DOCS - existingCount - uploadedCount;
       if (remainingSlots <= 0) return prev;
       return [
         ...prev,
-        ...(Array.isArray(files) ? files.slice(0, remainingSlots) : []),
+        ...(Array.isArray(files)
+          ? files.slice(0, remainingSlots).map((file) => ({ file, category }))
+          : []),
       ];
     });
   };
 
-  const removeBookingDocuments = (filesToRemove: File[]) => {
+  const removeBookingDocuments = (
+    filesToRemove: File[],
+    category: DocumentCategory | "documents" = "documents",
+  ) => {
     if (!Array.isArray(filesToRemove) || filesToRemove.length === 0) return;
     const toRemove = new Set(filesToRemove);
-    setBookingDocuments((prev) => prev.filter((file) => !toRemove.has(file)));
+    setBookingDocuments((prev) =>
+      prev.filter(
+        (item) =>
+          String(item.category) !== String(category) || !toRemove.has(item.file),
+      ),
+    );
   };
 
   const [customerCode, setCustomerCode] = useState("");
@@ -389,7 +412,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       setLimitlessDraft({
         bookingCode: bookingCode || formData?.customId || "",
         formData: formData || {},
-        documents: bookingDocuments,
+        documents: bookingDocuments.map((item) => item.file),
       });
     } catch (_) {
       /* ignore */
@@ -458,11 +481,27 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     if (initialData && Object.keys(initialData).length > 0) {
       setFormData(initialData);
       // Load existing documents from initialData
-      if (Array.isArray(initialData.documents)) {
-        setExistingBookingDocuments(initialData.documents);
-      } else {
-        setExistingBookingDocuments([]);
-      }
+      const existingDocuments = [
+        ...(Array.isArray(initialData.documents)
+          ? initialData.documents.map((doc: any) => ({
+              ...doc,
+              documentCategory: doc.documentCategory || "documents",
+            }))
+          : []),
+        ...(Array.isArray((initialData as any).vendorVoucherDocuments)
+          ? (initialData as any).vendorVoucherDocuments.map((doc: any) => ({
+              ...doc,
+              documentCategory: "vendorVoucher",
+            }))
+          : []),
+        ...(Array.isArray((initialData as any).vendorInvoiceDocuments)
+          ? (initialData as any).vendorInvoiceDocuments.map((doc: any) => ({
+              ...doc,
+              documentCategory: "vendorInvoice",
+            }))
+          : []),
+      ];
+      setExistingBookingDocuments(existingDocuments);
       // clear any pending new uploads from previous interactions
       setBookingDocuments([]);
     } else {
@@ -586,32 +625,38 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       ...rest
     } = input;
 
-    // Detect ANY key that ends with "infoform"
+    const isFlightQuotation =
+      String(quotationType).toLowerCase() === "travel" ||
+      String(quotationType).toLowerCase() === "flight";
+
+    const flightInfoForm =
+      typeof input.flightinfoform === "object" ? { ...input.flightinfoform } : {};
+    const priceInfoForm =
+      typeof input.priceinfoform === "object" ? { ...input.priceinfoform } : {};
+
     const infoFormKey = Object.keys(input).find((k) =>
       k.toLowerCase().endsWith("infoform"),
     );
-
-    // Extract and flatten the infoform object
-    const flatInfoForm =
+    const fallbackInfoForm =
       infoFormKey && typeof input[infoFormKey] === "object"
         ? { ...input[infoFormKey] }
         : {};
+    const flatInfoForm =
+      Object.keys(flightInfoForm).length > 0 ? flightInfoForm : fallbackInfoForm;
 
-    // Everything except known fields and infoform goes to formFields
-    const formFields = Object.fromEntries(
-      Object.entries(rest).filter(([key]) => key !== infoFormKey),
+    const formFieldsBase = Object.fromEntries(
+      Object.entries(rest).filter(
+        ([key]) => key !== infoFormKey && key !== "priceinfoform",
+      ),
     );
-
-    // Merge flattened infoform into formFields
-    Object.assign(formFields, flatInfoForm);
 
     // Ensure cancellation modal payload is stored inside formFields.cancellationForm
     const cancellationFormCandidate =
       (flatInfoForm as any)?.cancellationForm ??
       (input as any)?.cancellationForm ??
-      (formFields as any)?.cancellationForm;
+      (formFieldsBase as any)?.cancellationForm;
     if (cancellationFormCandidate) {
-      (formFields as any).cancellationForm = cancellationFormCandidate;
+      (formFieldsBase as any).cancellationForm = cancellationFormCandidate;
     }
 
     const isValidMongoObjectId = (value: unknown): boolean => {
@@ -647,6 +692,127 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         .filter((id) => typeof id === "string")
         .map((id) => (id as string).trim())
         .filter((id) => isValidMongoObjectId(id));
+    };
+
+    const toIsoString = (value: unknown): string => {
+      if (!value) return "";
+      const date = new Date(String(value));
+      return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+    };
+
+    const numericValue = (value: unknown): number =>
+      Number(String(value ?? "").replace(/,/g, "")) || 0;
+
+    const mapMoney = (
+      amount: unknown,
+      currency: unknown,
+      exchangeRate: unknown,
+    ) => ({
+      amount: numericValue(amount),
+      currency: String(currency || "INR"),
+      exchangeRate: Number(String(exchangeRate ?? "").replace(/,/g, "")) || 1,
+    });
+
+    const mapFlightPreview = (preview: any) => {
+      if (!preview || typeof preview !== "object") return undefined;
+      const origin = String(preview.origin || "");
+      const destination = String(preview.destination || "");
+      return {
+        airline: preview.airline || "",
+        airlineLogo: preview.airlineLogo || "",
+        flightNumber: preview.flightNumber || "",
+        originAirportCode:
+          preview.originAirportCode || origin.match(/\(([A-Z]{3})\)/)?.[1] || "",
+        destinationAirportCode:
+          preview.destinationAirportCode ||
+          destination.match(/\(([A-Z]{3})\)/)?.[1] ||
+          "",
+        originCity: preview.originCity || origin.split("(")[0]?.trim() || "",
+        destinationCity:
+          preview.destinationCity || destination.split("(")[0]?.trim() || "",
+        std: preview.std || preview.departureTime || "",
+        sta: preview.sta || preview.arrivalTime || "",
+        duration: preview.duration || "",
+      };
+    };
+
+    const mapFlightSegment = (segment: any) => ({
+      pnr: String(segment?.pnr || flatInfoForm?.PNR || "").trim(),
+      from: String(
+        segment?.from ||
+          segment?.preview?.originAirportCode ||
+          String(segment?.preview?.origin || "").match(/\(([A-Z]{3})\)/)?.[1] ||
+          "",
+      ).trim(),
+      to: String(
+        segment?.to ||
+          segment?.preview?.destinationAirportCode ||
+          String(segment?.preview?.destination || "").match(/\(([A-Z]{3})\)/)?.[1] ||
+          "",
+      ).trim(),
+      flightNumber: String(
+        segment?.flightnumber || segment?.flightNumber || "",
+      ).trim(),
+      travelDate: toIsoString(segment?.traveldate || segment?.travelDate),
+      cabinClass: String(
+        segment?.cabinclass || segment?.cabinClass || "",
+      ).trim(),
+      cabinBaggage: {
+        pieces: Number(
+          segment?.cabinBaggagePcs ?? segment?.cabinBaggage?.pieces ?? 0,
+        ),
+        weight: Number(
+          segment?.cabinBaggageWt ?? segment?.cabinBaggage?.weight ?? 0,
+        ),
+      },
+      checkInBaggage: {
+        pieces: Number(
+          segment?.checkInBaggagePcs ?? segment?.checkInBaggage?.pieces ?? 0,
+        ),
+        weight: Number(
+          segment?.checkInBaggageWt ?? segment?.checkInBaggage?.weight ?? 0,
+        ),
+      },
+      ...(segment?.preview ? { preview: mapFlightPreview(segment.preview) } : {}),
+    });
+
+    const tripType = String(
+      flatInfoForm.flightType || flatInfoForm.tripType || "one way",
+    )
+      .toLowerCase()
+      .replace("-", " ");
+    const segments = Array.isArray(flatInfoForm.segments)
+      ? flatInfoForm.segments
+      : [];
+    const returnSegments = Array.isArray(flatInfoForm.returnSegments)
+      ? flatInfoForm.returnSegments
+      : [];
+
+    const buildTrips = () => {
+      if (tripType === "round trip") {
+        return [
+          { title: "Trip 1", segments: segments.map(mapFlightSegment) },
+          { title: "Trip 2", segments: returnSegments.map(mapFlightSegment) },
+        ];
+      }
+
+      if (tripType === "multi city") {
+        const grouped = new Map<number, any[]>();
+        segments.forEach((segment: any, index: number) => {
+          const tripId = Number(segment?.tripId ?? index + 1);
+          const items = grouped.get(tripId) || [];
+          items.push(segment);
+          grouped.set(tripId, items);
+        });
+        return Array.from(grouped.entries())
+          .sort((a, b) => a[0] - b[0])
+          .map(([tripId, tripSegments]) => ({
+            title: `Trip ${tripId}`,
+            segments: tripSegments.map(mapFlightSegment),
+          }));
+      }
+
+      return [{ title: "Trip 1", segments: segments.map(mapFlightSegment) }];
     };
 
     // New schema, split adults vs children travellers.
@@ -699,24 +865,168 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       .filter((v) => isValidMongoObjectId(v))
       .filter((v, i, a) => a.indexOf(v) === i);
 
-    // Build final object
+    const customerIds = [
+      ...sanitizeObjectIdList((input as any)?.customerId),
+      resolveMongoObjectId(
+        input.customer,
+        (input as any)?.customerId,
+        (input as any)?.customerId?._id,
+      ),
+    ]
+      .filter(Boolean)
+      .filter((value, index, array) => array.indexOf(value) === index);
+
+    const customerPricingSource = Array.isArray(priceInfoForm.sellingPrices)
+      ? priceInfoForm.sellingPrices
+      : [
+          {
+            sellingprice: priceInfoForm.sellingprice,
+          },
+        ];
+
+    const customerPricing = customerPricingSource
+      .map((entry: any, index: number) => {
+        const customerId = customerIds[index] || customerIds[0];
+        if (!customerId) return null;
+        return {
+          customerId,
+          sellingPrice: numericValue(entry?.sellingprice ?? priceInfoForm.sellingprice),
+        };
+      })
+      .filter(Boolean);
+
+    const formFields = isFlightQuotation
+      ? {
+          pnr: String(flatInfoForm.PNR || flatInfoForm.pnr || "").trim(),
+          samePnrForAllSegments: Boolean(
+            flatInfoForm.samePNRForAllSegments ??
+              flatInfoForm.samePnrForAllSegments,
+          ),
+          tripType,
+          ...(tripType === "one way"
+            ? { segments: segments.map(mapFlightSegment) }
+            : { trips: buildTrips() }),
+          rulesAndConditions: String(
+            flatInfoForm.rulesAndConditions || flatInfoForm.importantinfo || "",
+          ),
+          rulesTemplateId: String(
+            flatInfoForm.rulesTemplateId || flatInfoForm.rulesTemplate || "",
+          ),
+          internalNotes: String(
+            flatInfoForm.remarks || flatInfoForm.internalNotes || "",
+          ),
+          ...(cancellationFormCandidate
+            ? { cancellationForm: cancellationFormCandidate }
+            : {}),
+        }
+      : {
+          ...formFieldsBase,
+          ...flatInfoForm,
+        };
+
+    const mappedPriceInfo = isFlightQuotation
+      ? {
+          advancedPricing: Boolean(priceInfoForm.showAdvancedPricing),
+          sellingPrice: mapMoney(
+            priceInfoForm.sellingprice,
+            priceInfoForm.sellingCurrency,
+            priceInfoForm.sellingRoe,
+          ),
+          costPrice: mapMoney(
+            priceInfoForm.costprice,
+            priceInfoForm.costCurrency,
+            priceInfoForm.costRoe,
+          ),
+          vendorInvoiceBase: mapMoney(
+            priceInfoForm.vendorBasePrice,
+            priceInfoForm.vendorBaseCurrency,
+            priceInfoForm.vendorBaseRoe,
+          ),
+          vendorIncentiveReceived: mapMoney(
+            priceInfoForm.vendorIncentiveReceived,
+            priceInfoForm.vendorIncentiveCurrency,
+            priceInfoForm.vendorIncentiveRoe,
+          ),
+          commissionPayout: mapMoney(
+            priceInfoForm.commissionPaid,
+            priceInfoForm.commissionCurrency,
+            priceInfoForm.commissionRoe,
+          ),
+          additionalVendorInvoiceBase: mapMoney(
+            priceInfoForm.vendorInvoiceRefundAmount,
+            priceInfoForm.vendorInvoiceRefundCurrency,
+            priceInfoForm.vendorInvoiceRefundRoe,
+          ),
+          refundReceived: mapMoney(
+            priceInfoForm.costRefundAmount,
+            priceInfoForm.costRefundCurrency,
+            priceInfoForm.costRefundRoe,
+          ),
+          refundPaid: mapMoney(
+            priceInfoForm.sellingRefundAmount,
+            priceInfoForm.sellingRefundCurrency,
+            priceInfoForm.sellingRefundRoe,
+          ),
+          vendorIncentiveChargeback: mapMoney(
+            priceInfoForm.chargebackAmount,
+            priceInfoForm.chargebackCurrency,
+            priceInfoForm.chargebackRoe,
+          ),
+          commissionPayoutChargeback: mapMoney(
+            priceInfoForm.commissionRefundAmount,
+            priceInfoForm.commissionRefundCurrency,
+            priceInfoForm.commissionRefundRoe,
+          ),
+          additionalCostPrice: mapMoney(
+            priceInfoForm.costRefundAmount,
+            priceInfoForm.costRefundCurrency,
+            priceInfoForm.costRefundRoe,
+          ),
+          additionalSellingPrice: mapMoney(
+            priceInfoForm.sellingRefundAmount,
+            priceInfoForm.sellingRefundCurrency,
+            priceInfoForm.sellingRefundRoe,
+          ),
+          additionalVendorIncentiveReceived: mapMoney(
+            priceInfoForm.chargebackAmount,
+            priceInfoForm.chargebackCurrency,
+            priceInfoForm.chargebackRoe,
+          ),
+          additionalCommissionPayout: mapMoney(
+            priceInfoForm.commissionRefundAmount,
+            priceInfoForm.commissionRefundCurrency,
+            priceInfoForm.commissionRefundRoe,
+          ),
+          notes: String(priceInfoForm.remarks || ""),
+        }
+      : null;
 
     const bookingDataTemp = new FormData();
 
     // Map frontend category to backend enum when needed.
-    const mappedQuotationType =
-      quotationType === "accommodation" ? "hotel" : quotationType;
+    const mappedQuotationType = isFlightQuotation
+      ? "flight"
+      : quotationType === "accommodation"
+        ? "hotel"
+        : quotationType;
     bookingDataTemp.append("quotationType", mappedQuotationType);
     bookingDataTemp.append("channel", "B2C");
     bookingDataTemp.append("businessId", businessId._id);
     bookingDataTemp.append("formFields", JSON.stringify(formFields));
+    if (mappedPriceInfo) {
+      bookingDataTemp.append("priceInfo", JSON.stringify(mappedPriceInfo));
+    }
 
-    // Ensure totalAmount is a valid number (selling price from form)
-    const totalAmountValue = Number(flatInfoForm.sellingprice) || 0;
+    const totalAmountValue =
+      numericValue(priceInfoForm.sellingprice) ||
+      numericValue((input as any).totalAmount);
     bookingDataTemp.append("totalAmount", String(totalAmountValue));
 
     if (flatInfoForm.bookingstatus && flatInfoForm.bookingstatus !== "") {
-      bookingDataTemp.append("status", flatInfoForm.bookingstatus);
+      bookingDataTemp.append(
+        "status",
+        String(flatInfoForm.bookingstatus).toLowerCase(),
+      );
     }
     bookingDataTemp.append("serviceStatus", serviceStatus);
     bookingDataTemp.append("createdAt", new Date().toISOString());
@@ -727,30 +1037,47 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       JSON.stringify(filteredSecondaryOwnerIds),
     );
     bookingDataTemp.append("owner", JSON.stringify(legacyOwnerIds));
-    bookingDataTemp.append("travelDate", traveldate || flatInfoForm.traveldate);
-    const resolvedCustomerId = resolveMongoObjectId(
-      input.customer,
-      (input as any)?.customerId,
-      (input as any)?.customerId?._id,
+    bookingDataTemp.append(
+      "travelDate",
+      toIsoString(traveldate || flatInfoForm.traveldate),
     );
+    bookingDataTemp.append(
+      "bookingDate",
+      toIsoString(priceInfoForm.bookingdate || flatInfoForm.bookingdate),
+    );
+    const resolvedCustomerId = customerIds[0] || "";
     const resolvedVendorId = resolveMongoObjectId(
       input.vendor,
       (input as any)?.vendorId,
       (input as any)?.vendorId?._id,
     );
 
-    // Only send valid ids; never send empty string (breaks backend casting)
-    if (resolvedCustomerId)
-      bookingDataTemp.append("customerId", resolvedCustomerId);
+    if (customerIds.length > 0) {
+      bookingDataTemp.append(
+        "customerId",
+        customerIds.length === 1
+          ? customerIds[0]!
+          : JSON.stringify(customerIds),
+      );
+    }
     if (resolvedVendorId) bookingDataTemp.append("vendorId", resolvedVendorId);
+    if (customerPricing.length > 0) {
+      bookingDataTemp.append("customerPricing", JSON.stringify(customerPricing));
+    }
     bookingDataTemp.append("adultTravelers", JSON.stringify(adultTravelers));
     bookingDataTemp.append("childTravelers", JSON.stringify(childTravelers));
     bookingDataTemp.append("adultNumber", String(adults ?? 0));
     // Always send from infants only
     bookingDataTemp.append("childNumber", String(infants ?? 0));
     bookingDataTemp.append("remarks", remarks ?? "");
-    bookingDocuments.map((file) => {
-      bookingDataTemp.append("documents", file);
+    bookingDocuments.forEach(({ file, category }) => {
+      const targetKey =
+        category === "vendorVoucher"
+          ? "vendorVoucherDocuments"
+          : category === "vendorInvoice"
+            ? "vendorInvoiceDocuments"
+            : "documents";
+      bookingDataTemp.append(targetKey, file);
     });
     bookingDataTemp.append("customId", bookingCodeProp || "");
 
@@ -1074,7 +1401,23 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
   // Memoized title (returns JSX to allow styled divider)
   const title = useMemo(() => {
-    if (!selectedService) return <span>Booking Form</span>;
+    if (!selectedService) {
+      return (
+        <div className="flex items-center">
+          <span className="text-[16px] text-[#020202] font-[600]">
+            Add Service
+          </span>
+          {bookingCode ? (
+            <>
+              <span className="mx-[7px] w-px h-4 bg-gray-200" aria-hidden />
+              <span className="font-mono text-[16px] font-[600] text-[#020202]">
+                {bookingCode}
+              </span>
+            </>
+          ) : null}
+        </div>
+      );
+    }
     return (
       <div className="flex items-center">
         <span className="text-[16px] text-[#020202] font-[600]">
@@ -1282,6 +1625,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   onRemoveDocuments={removeBookingDocuments}
                   existingDocuments={existingBookingDocuments}
                   customerCount={formData?.customerCount ?? 1}
+                  generalInfoData={formData}
                 />
               </div>
             </div>

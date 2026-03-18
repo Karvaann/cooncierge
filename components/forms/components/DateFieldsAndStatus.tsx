@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import SingleCalendar from "@/components/SingleCalendar";
 import DropDown from "@/components/DropDown";
-import { isAfterDate } from "@/utils/helper";
 import { useBookingFieldSync } from "@/context/BookingFieldSyncContext";
+import ConfirmationModal from "@/components/popups/ConfirmationModal";
 
 const statusOptions = [
   { value: "confirmed", label: "Confirmed" },
@@ -12,11 +12,29 @@ const statusOptions = [
   { value: "cancelled", label: "Cancelled" },
 ];
 
+type PendingAction =
+  | {
+      type: "booking-date";
+      value: string;
+    }
+  | {
+      type: "travel-date";
+      value: string;
+      requiresPreBookingCopy?: boolean;
+    }
+  | {
+      type: "status";
+      value: string;
+    }
+  | null;
+
 interface DateFieldsAndStatusProps {
   bookingdate: string;
   traveldate: string;
   bookingstatus: string;
   cancellationDate?: string;
+  fieldOwner?: string;
+  userNickname?: string;
   onBookingDateChange: (date: string) => void;
   onTravelDateChange: (date: string) => void;
   onBookingStatusChange: (status: string) => void;
@@ -30,6 +48,8 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
   traveldate,
   bookingstatus,
   cancellationDate,
+  fieldOwner = "shared",
+  userNickname,
   onBookingDateChange,
   onTravelDateChange,
   onBookingStatusChange,
@@ -47,6 +67,9 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
   const prevSyncNewTravelRef = useRef(sync?.newTravelDate ?? "");
   const prevSyncBookingRef = useRef(sync?.bookingDate ?? "");
   const prevSyncTravelRef = useRef(sync?.travelDate ?? "");
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+
+  const displayName = userNickname?.trim() || "";
 
   // When the shared context bookingStatus changes,
   // propagate to this form's parent via the existing callback.
@@ -105,8 +128,20 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
 
   const handleStatusChange = (value: string) => {
     const v = String(value || "");
+    const shouldConfirm =
+      Boolean(bookingstatus) &&
+      bookingstatus !== v &&
+      sync?.bookingStatusSource &&
+      sync.bookingStatusSource !== fieldOwner;
+
+    if (shouldConfirm) {
+      setPendingAction({ type: "status", value: v });
+      return;
+    }
+
     onBookingStatusChange(v);
     sync?.setBookingStatus(v);
+    sync?.setBookingStatusSource(fieldOwner);
     prevSyncStatusRef.current = v;
   };
 
@@ -117,29 +152,49 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
   };
 
   const handleBookingDateChange = (date: string) => {
-    // notify parent
-    onBookingDateChange(date);
+    const shouldConfirm =
+      Boolean(bookingdate) &&
+      bookingdate !== date &&
+      sync?.bookingDateSource &&
+      sync.bookingDateSource !== fieldOwner;
 
-    // update shared state so other forms see it
-    sync?.setBookingDate(date);
-    prevSyncBookingRef.current = date;
-
-    if (bookingdate !== date) {
-      // clear travel date if booking date changed to something else
-      onTravelDateChange("");
-      sync?.setTravelDate("");
+    if (shouldConfirm) {
+      setPendingAction({ type: "booking-date", value: date });
       return;
     }
 
-    if (traveldate && isAfterDate(date, traveldate)) {
-      onTravelDateChange("");
-      sync?.setTravelDate("");
-    }
+    onBookingDateChange(date);
+    sync?.setBookingDate(date);
+    sync?.setBookingDateSource(fieldOwner);
+    prevSyncBookingRef.current = date;
   };
 
   const handleTravelDateChange = (date: string) => {
+    const bookingDateOnly = bookingdate ? new Date(bookingdate) : null;
+    const nextTravelDateOnly = date ? new Date(date) : null;
+    const isPreBookingDate = Boolean(
+      bookingDateOnly &&
+        nextTravelDateOnly &&
+        nextTravelDateOnly.getTime() < bookingDateOnly.getTime(),
+    );
+    const shouldConfirmSourceChange =
+      Boolean(traveldate) &&
+      traveldate !== date &&
+      sync?.travelDateSource &&
+      sync.travelDateSource !== fieldOwner;
+
+    if (isPreBookingDate || shouldConfirmSourceChange) {
+      setPendingAction({
+        type: "travel-date",
+        value: date,
+        requiresPreBookingCopy: isPreBookingDate,
+      });
+      return;
+    }
+
     onTravelDateChange(date);
     sync?.setTravelDate(date);
+    sync?.setTravelDateSource(fieldOwner);
     prevSyncTravelRef.current = date;
   };
 
@@ -155,9 +210,61 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
     prevSyncNewTravelRef.current = date;
   };
 
+  const closePendingAction = () => setPendingAction(null);
+
+  const confirmPendingAction = () => {
+    if (!pendingAction) return;
+
+    if (pendingAction.type === "booking-date") {
+      onBookingDateChange(pendingAction.value);
+      sync?.setBookingDate(pendingAction.value);
+      sync?.setBookingDateSource(fieldOwner);
+      prevSyncBookingRef.current = pendingAction.value;
+    }
+
+    if (pendingAction.type === "travel-date") {
+      onTravelDateChange(pendingAction.value);
+      sync?.setTravelDate(pendingAction.value);
+      sync?.setTravelDateSource(fieldOwner);
+      prevSyncTravelRef.current = pendingAction.value;
+    }
+
+    if (pendingAction.type === "status") {
+      onBookingStatusChange(pendingAction.value);
+      sync?.setBookingStatus(pendingAction.value);
+      sync?.setBookingStatusSource(fieldOwner);
+      prevSyncStatusRef.current = pendingAction.value;
+    }
+
+    setPendingAction(null);
+  };
+
+  const confirmationTitle = (() => {
+    if (!pendingAction) return "";
+    if (pendingAction.type === "booking-date") {
+      return displayName
+        ? `Hey ${displayName}, Are you sure you want to change the date?`
+        : "Are you sure you want to change the date?";
+    }
+    if (pendingAction.type === "travel-date") {
+      if (pendingAction.requiresPreBookingCopy) {
+        return displayName
+          ? `Hey ${displayName}, Are you sure you want to set the travel date before booking date?`
+          : "Are you sure you want to set the travel date before booking date?";
+      }
+      return displayName
+        ? `Hey ${displayName}, Are you sure you want to change the date?`
+        : "Are you sure you want to change the date?";
+    }
+    return displayName
+      ? `Hey ${displayName}, Are you sure you want to change the status?`
+      : "Are you sure you want to change the status?";
+  })();
+
   return (
-    <div className="flex flex-wrap items-start justify-between mb-3">
-      <div className="">
+    <>
+      <div className="flex flex-wrap items-start justify-between mb-3">
+        <div className="">
         {/* Left section: Booking + Travel Date */}
         <div className="flex items-end flex-wrap gap-2">
           {/* Booking Date */}
@@ -176,8 +283,6 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
             value={traveldate}
             onChange={handleTravelDateChange}
             placeholder="Select Date"
-            minDate={bookingdate}
-            minTypeable={bookingdate}
             readOnly={false}
             customWidth="w-[12rem]"
             showCalendarIcon={true}
@@ -224,7 +329,7 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
         )}
 
         
-      </div>
+        </div>
 
       {/* Right section: Booking Status */}
         <div>
@@ -238,7 +343,18 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
           noButtonRadius
         />
       </div>
-    </div>
+      </div>
+
+      <ConfirmationModal
+        isOpen={Boolean(pendingAction)}
+        onClose={closePendingAction}
+        onConfirm={confirmPendingAction}
+        title={confirmationTitle}
+        confirmText="Yes"
+        cancelText="No"
+        confirmButtonColor="bg-[#1A7F64]"
+      />
+    </>
   );
 };
 

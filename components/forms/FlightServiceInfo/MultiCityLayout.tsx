@@ -33,7 +33,7 @@ interface FlightSegment {
     | "First Class"
     | string;
   pnr?: string;
-  preview?: SegmentPreview;
+  preview?: SegmentPreview | undefined;
   tripId?: number;
   cabinBaggagePcs?: number | string;
   cabinBaggageWt?: number | string;
@@ -52,17 +52,35 @@ interface ReturnFlightSegment {
     | "First Class"
     | string;
   pnr?: string;
-  preview?: SegmentPreview;
+  preview?: SegmentPreview | undefined;
 }
 
 export default function MultiCityLayout({
   formData,
   setFormData,
+  sharedPnrEnabled,
+  onMainTravelDateChange,
 }: {
   formData: FlightInfoFormData;
   setFormData: React.Dispatch<React.SetStateAction<FlightInfoFormData>>;
+  sharedPnrEnabled: boolean;
+  onMainTravelDateChange: (date: string) => void;
 }) {
-  const [trips, setTrips] = useState<number[]>([1]);
+  const [trips, setTrips] = useState<number[]>([1, 2]);
+
+  React.useEffect(() => {
+    const nextTrips = Array.from(
+      new Set(
+        formData.segments
+          .map((segment) => Number(segment.tripId))
+          .filter((tripId) => Number.isFinite(tripId) && tripId > 0),
+      ),
+    ).sort((a, b) => a - b);
+
+    if (nextTrips.length > 0) {
+      setTrips(nextTrips);
+    }
+  }, [formData.segments]);
 
   const addTrip = () => {
     setTrips((prev) => [...prev, (prev[prev.length - 1] ?? 0) + 1]);
@@ -76,7 +94,7 @@ export default function MultiCityLayout({
     const newSegmentBase = {
       id: Date.now().toString() + Math.random().toString(36).slice(2),
       flightnumber: "",
-      traveldate: "",
+      traveldate: formData.traveldate,
       cabinclass: "",
     } as FlightSegment;
     const newSegment: FlightSegment =
@@ -115,7 +133,7 @@ export default function MultiCityLayout({
     }));
   };
 
-  const handlePreviewChange = (segmentId: string, preview: SegmentPreview) => {
+  const handlePreviewChange = (segmentId: string, preview?: SegmentPreview) => {
     setFormData((prev) => ({
       ...prev,
       segments: prev.segments.map((s) =>
@@ -152,6 +170,7 @@ export default function MultiCityLayout({
 
   const addSegmentButton = (onClick: () => void) => (
     <button
+      type="button"
       onClick={onClick}
       className="flex items-center gap-1.5 px-3 py-1.5 bg-[#7135AD] font-[500] text-white rounded-[10px] text-[0.75rem] hover:cursor-pointer transition"
     >
@@ -181,7 +200,7 @@ export default function MultiCityLayout({
       {trips.map((tripId, tripIndex) => {
         const segs = getSegmentsForTrip(tripIndex, tripId);
         return (
-          <>
+          <div key={`flight_trip_${tripIndex}`}>
             <div
               key={tripId}
               className="bg-white border border-gray-200 rounded-[15px] p-3 w-full"
@@ -217,10 +236,11 @@ export default function MultiCityLayout({
                       onPreviewChange={handlePreviewChange}
                       traveldate={segment.traveldate}
                       bookingdate={formData.bookingdate}
-                      onTraveldateChange={(date) =>
-                        handleSegmentChange(segment.id!, { traveldate: date })
-                      }
-                      showPnr={!formData.pnrEnabled}
+                      onTraveldateChange={(date) => {
+                        handleSegmentChange(segment.id!, { traveldate: date });
+                        onMainTravelDateChange(date);
+                      }}
+                      showPnr={!sharedPnrEnabled}
                       onPnrChange={(val) => handleSegmentPnr(segment.id!, val)}
                     />
                   </div>
@@ -229,12 +249,13 @@ export default function MultiCityLayout({
                 {addSegmentButton(() => addSegment(tripId))}
               </div>
             </div>
-          </>
+          </div>
         );
       })}
 
       {/* Add Trip Button */}
       <button
+        type="button"
         onClick={addTrip}
         className="flex items-center gap-1.5 px-4 py-1.5 bg-[#7135AD] text-white text-[0.75rem] font-[500] rounded-[10px] hover:cursor-pointer transition"
       >

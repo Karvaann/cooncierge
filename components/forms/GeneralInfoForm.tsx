@@ -28,10 +28,16 @@ import { CiCirclePlus } from "react-icons/ci";
 import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 import RemarksField from "@/components/forms/components/RemarksField";
 import RightSideIcons from "@/components/forms/components/RightSideIcons";
+import { useBookingFieldSync } from "@/context/BookingFieldSyncContext";
+import { getAuthUser } from "@/services/storage/authStorage";
+import ConfirmationModal from "@/components/popups/ConfirmationModal";
 
 // Type definitions
 interface GeneralInfoFormData {
   customer: string;
+  customerIds?: string[];
+  customerNames?: string[];
+  customerName?: string;
   vendor: string;
   vendorName: string;
   adults: number;
@@ -46,6 +52,7 @@ interface GeneralInfoFormData {
   secondaryBookingOwner: string;
   secondaryBookingOwners: string[];
   remarks: string;
+  ownerName?: string;
   customerCount?: number;
 }
 
@@ -96,6 +103,9 @@ interface TeamDataType {
   id?: string;
   name: string;
   email?: string;
+  customId?: string;
+  alias?: string;
+  nickname?: string;
 }
 
 interface TravellerDataType {
@@ -435,6 +445,23 @@ const buildInitialState = (externalFormData: any = {}): GeneralInfoFormData => {
 
   return {
     customer: externalFormData?.customerId?._id || "",
+    customerIds: Array.isArray(externalFormData?.customerId)
+      ? externalFormData.customerId
+          .map((customer: any) =>
+            typeof customer === "string" ? customer : customer?._id,
+          )
+          .filter(Boolean)
+      : externalFormData?.customerId?._id
+        ? [externalFormData.customerId._id]
+        : [],
+    customerNames: Array.isArray(externalFormData?.customerId)
+      ? externalFormData.customerId
+          .map((customer: any) => customer?.name || "")
+          .filter(Boolean)
+      : externalFormData?.customerId?.name
+        ? [externalFormData.customerId.name]
+        : [],
+    customerName: externalFormData?.customerId?.name || "",
     vendor: externalFormData?.vendorId?._id || "",
     vendorName:
       externalFormData?.vendorId?.contactPerson ||
@@ -469,6 +496,25 @@ const buildInitialState = (externalFormData: any = {}): GeneralInfoFormData => {
   };
 };
 
+const getMinSearchLength = (term: string, minCharacters = 3) =>
+  term.trim().length >= minCharacters;
+
+const computeAgeFromDob = (dob?: string) => {
+  if (!dob) return null;
+  const birthDate = new Date(dob);
+  if (Number.isNaN(birthDate.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
+    age -= 1;
+  }
+  return Math.max(0, age);
+};
+
 const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   initialFormData: externalFormData = {},
   onFormDataUpdate,
@@ -479,9 +525,16 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   formRef,
   hideVendor = false,
 }) => {
+  const sync = useBookingFieldSync();
   const [formData, setFormData] = useState<GeneralInfoFormData>(
     buildInitialState(externalFormData),
   );
+  const [childAgeConfirmation, setChildAgeConfirmation] = useState<{
+    index: number;
+    computedAge: number;
+    selectedAge: number;
+    dob: string;
+  } | null>(null);
 
   const [showSecondaryOwnerField, setShowSecondaryOwnerField] =
     useState<boolean>(
@@ -493,6 +546,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const isSameState = (next: GeneralInfoFormData, prev: GeneralInfoFormData) =>
     JSON.stringify(next) === JSON.stringify(prev);
   const lastPushedFormData = useRef<GeneralInfoFormData>(formData);
+  const hasAppliedDefaultPrimaryOwnerRef = useRef(false);
 
   // Reset/prefill when incoming data truly changes (avoids render loops)
   const externalSignature = useMemo(
@@ -513,6 +567,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     );
 
     lastExternalSignature.current = externalSignature;
+    hasAppliedDefaultPrimaryOwnerRef.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [externalSignature]);
 
@@ -523,6 +578,20 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       lastPushedFormData.current = formData;
     }
   }, [formData, onFormDataUpdate]);
+
+  useEffect(() => {
+    if ((sync?.internalNotes ?? "") === String(formData.remarks ?? "")) return;
+    sync?.setInternalNotes(String(formData.remarks ?? ""));
+  }, [formData.remarks, sync]);
+
+  useEffect(() => {
+    if (!sync?.internalNotes) return;
+    setFormData((prev) =>
+      prev.remarks === sync.internalNotes
+        ? prev
+        : { ...prev, remarks: sync.internalNotes },
+    );
+  }, [sync?.internalNotes]);
 
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -548,6 +617,18 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       return { ...prev, customerCount: customerList.length };
     });
   }, [customerList.length]);
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      customer: customerList[0]?.id || "",
+      customerIds: customerList.map((customer) => customer.id).filter(Boolean),
+      customerNames: customerList
+        .map((customer) => customer.name.trim())
+        .filter(Boolean),
+      customerName: customerList[0]?.name || "",
+    }));
+  }, [customerList]);
 
   const [vendorList, setVendorList] = useState<{ id: string; name: string }[]>([
     { id: "", name: "" },
@@ -874,6 +955,41 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     fetchLists();
   }, []);
 
+  useEffect(() => {
+    if (!Array.isArray(allTeams) || allTeams.length === 0) return;
+    if (hasAppliedDefaultPrimaryOwnerRef.current) return;
+
+    if (String(formData.bookingOwner || "").trim()) {
+      hasAppliedDefaultPrimaryOwnerRef.current = true;
+      return;
+    }
+
+    const authUser = getAuthUser() as any;
+    const authUserId = String(authUser?._id || authUser?.id || "").trim();
+    if (!authUserId) {
+      hasAppliedDefaultPrimaryOwnerRef.current = true;
+      return;
+    }
+
+    const match = allTeams.find((team) => String(team._id || team.id) === authUserId);
+    if (!match) {
+      hasAppliedDefaultPrimaryOwnerRef.current = true;
+      return;
+    }
+
+    setOwnerList([{ id: match._id, name: match.name }]);
+    setFormData((prev) =>
+      prev.bookingOwner
+        ? prev
+        : {
+            ...prev,
+            bookingOwner: match._id,
+            ownerName: match.name,
+          },
+    );
+    hasAppliedDefaultPrimaryOwnerRef.current = true;
+  }, [allTeams, formData.bookingOwner]);
+
   // If this component was previously unmounted, clear local state on mount
   useEffect(() => {
     if (wasUnmounted.current) {
@@ -1052,13 +1168,29 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     if (!externalFormData?.customerId) return;
     if (!Array.isArray(allCustomers) || allCustomers.length === 0) return;
 
-    const match = allCustomers.find(
-      (c) => c._id === externalFormData.customerId?._id,
-    );
+    if (Array.isArray(externalFormData.customerId)) {
+      const nextCustomers = externalFormData.customerId
+        .map((customer: any) => {
+          if (typeof customer === "string") {
+            const match = allCustomers.find((item) => item._id === customer);
+            return match ? { id: match._id, name: match.name } : null;
+          }
+          if (customer?._id) {
+            return { id: customer._id, name: customer.name || "" };
+          }
+          return null;
+        })
+        .filter(Boolean) as Array<{ id: string; name: string }>;
+      if (nextCustomers.length > 0) {
+        setCustomerList(nextCustomers);
+      }
+      return;
+    }
+
+    const match = allCustomers.find((c) => c._id === externalFormData.customerId?._id);
     if (match) {
       setCustomerList([{ id: match._id, name: match.name }]);
     } else if (externalFormData.customerId.name) {
-      // If we can't find in customers, use the name from external data
       setCustomerList([
         {
           id: externalFormData.customerId._id,
@@ -1218,8 +1350,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
     list: T[],
     term: string,
     keys: (keyof T)[],
+    minCharacters = 3,
   ): T[] => {
-    if (!term.trim()) return [];
+    if (!getMinSearchLength(term, minCharacters)) return [];
 
     const fuse = new Fuse(list, {
       threshold: 0.3,
@@ -1249,6 +1382,14 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
   const getAlias = (obj: unknown): string => {
     const anyObj = obj as any;
     return (anyObj?.alias || anyObj?.nickname || "") as string;
+  };
+
+  const getOwnerPillLabel = (owner: TeamDataType | undefined | null) => {
+    if (!owner) return "";
+    const nickname = getAlias(owner);
+    return [owner.name, owner.customId || owner.id || "", nickname]
+      .filter(Boolean)
+      .join(" | ");
   };
 
   const customersById = useMemo(() => {
@@ -1626,7 +1767,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               >
                 <InputField
                   name="customer"
-                  placeholder="Search by Customer Name/ID"
+                  placeholder="Search by Customer Name / ID / Nickname"
                   required
                   className="w-full text-[13px] py-2"
                   type="text"
@@ -1656,12 +1797,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         }
                       }
 
-                      const results = runFuzzySearch(allCustomers, value, [
-                        "name",
-                        "id",
-                        "tier",
-                        "phone",
-                      ]);
+                      const results = runFuzzySearch(
+                        allCustomers,
+                        value,
+                        ["name", "customId", "alias", "nickname"],
+                        3,
+                      );
                       if (value.trim() === "") {
                         setCustomerResults([]);
                         setShowCustomerDropdown(false);
@@ -1861,7 +2002,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             <div className="w-[60%] relative" ref={vendorRef}>
               <InputField
                 name="vendor"
-                placeholder="Search by Vendor Name/ID"
+                placeholder="Search by Vendor Name / ID / POC"
                 required
                 className="w-full text-[13px] py-2"
                 value={vendorList[0]?.name ?? ""}
@@ -1879,12 +2020,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   };
                   setFormData(newFormData);
 
-                  const results = runFuzzySearch(allVendors, value, [
-                    "companyName",
-                    "alias",
-                    "tier",
-                    "id",
-                  ]);
+                  const results = runFuzzySearch(
+                    allVendors,
+                    value,
+                    ["companyName", "contactPerson", "customId", "alias"],
+                    3,
+                  );
                   if (value.trim() === "") {
                     setVendorResults([]);
                     setShowVendorDropdown(false);
@@ -2052,86 +2193,112 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
             <label className="block text-[12px] font-[500] ml-5 text-[#414141] mb-1">
               Adults
             </label>
-            <div className="w-[5rem] flex items-center justify-between border border-[#7135AD] rounded-[15px] px-2.5 py-1">
+            {formData.adults === 0 ? (
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
                 onClick={() =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    adults:
-                      (prev.infants ?? 0) > 0 || (prev.children ?? 0) > 0
-                        ? Math.max(0, prev.adults - 1) // children exist → allow 0
-                        : Math.max(1, prev.adults - 1), // otherwise → min 1
-                  }))
+                  setFormData((prev) => ({ ...prev, adults: 1 }))
                 }
-                className={`text-lg font-[600] ${
-                  isReadOnly || isSubmitting
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
-                }`}
+                className="w-[5rem] border border-[#7135AD] rounded-[15px] px-2.5 py-1 text-[13px] font-[600] text-[#7135AD]"
               >
-                <FiMinus size={12} className="text-[#7135AD]" />
+                Add
               </button>
-              <span className="text-[13px] font-[600] text-[#7135AD]">
-                {formData.adults}
-              </span>
-              <button
-                type="button"
-                disabled={isReadOnly || isSubmitting}
-                onClick={() =>
-                  setFormData({ ...formData, adults: formData.adults + 1 })
-                }
-                className={`text-lg font-[600] ${
-                  isReadOnly || isSubmitting
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
-                }`}
-              >
-                <GoPlus size={12} className="text-[#7135AD]" />
-              </button>
-            </div>
+            ) : (
+              <div className="w-[5rem] flex items-center justify-between border border-[#7135AD] rounded-[15px] px-2.5 py-1">
+                <button
+                  type="button"
+                  disabled={isReadOnly || isSubmitting}
+                  onClick={() =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      adults:
+                        (prev.infants ?? 0) > 0 || (prev.children ?? 0) > 0
+                          ? Math.max(0, prev.adults - 1)
+                          : Math.max(1, prev.adults - 1),
+                    }))
+                  }
+                  className={`text-lg font-[600] ${
+                    isReadOnly || isSubmitting
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
+                  }`}
+                >
+                  <FiMinus size={12} className="text-[#7135AD]" />
+                </button>
+                <span className="text-[13px] font-[600] text-[#7135AD]">
+                  {formData.adults}
+                </span>
+                <button
+                  type="button"
+                  disabled={isReadOnly || isSubmitting}
+                  onClick={() =>
+                    setFormData({ ...formData, adults: formData.adults + 1 })
+                  }
+                  className={`text-lg font-[600] ${
+                    isReadOnly || isSubmitting
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
+                  }`}
+                >
+                  <GoPlus size={12} className="text-[#7135AD]" />
+                </button>
+              </div>
+            )}
           </div>
           <div className="flex flex-col">
             <label className="block text-[12px] ml-4 font-[500] text-[#414141] mb-1">
               Children
             </label>
-            <div className="w-[5rem] flex items-center justify-between border border-[#7135AD] rounded-[15px] px-2.5 py-1">
+            {formData.infants === 0 ? (
               <button
                 type="button"
                 disabled={isReadOnly || isSubmitting}
                 onClick={() =>
-                  setFormData({
-                    ...formData,
-                    infants: Math.max(0, formData.infants - 1),
-                  })
+                  setFormData((prev) => ({ ...prev, infants: 1 }))
                 }
-                className={`text-lg font-[600] ${
-                  isReadOnly || isSubmitting
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
-                }`}
+                className="w-[5rem] border border-[#7135AD] rounded-[15px] px-2.5 py-1 text-[13px] font-[600] text-[#7135AD]"
               >
-                <FiMinus size={12} className="text-[#7135AD]" />
+                Add
               </button>
-              <span className="text-[13px] text-[#7135AD] font-[600] ">
-                {formData.infants}
-              </span>
-              <button
-                type="button"
-                disabled={isReadOnly || isSubmitting}
-                onClick={() =>
-                  setFormData({ ...formData, infants: formData.infants + 1 })
-                }
-                className={`text-lg font-[600] ${
-                  isReadOnly || isSubmitting
-                    ? "opacity-50 cursor-not-allowed"
-                    : ""
-                }`}
-              >
-                <GoPlus size={12} className="text-[#7135AD]" />
-              </button>
-            </div>
+            ) : (
+              <div className="w-[5rem] flex items-center justify-between border border-[#7135AD] rounded-[15px] px-2.5 py-1">
+                <button
+                  type="button"
+                  disabled={isReadOnly || isSubmitting}
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      infants: Math.max(0, formData.infants - 1),
+                    })
+                  }
+                  className={`text-lg font-[600] ${
+                    isReadOnly || isSubmitting
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
+                  }`}
+                >
+                  <FiMinus size={12} className="text-[#7135AD]" />
+                </button>
+                <span className="text-[13px] text-[#7135AD] font-[600] ">
+                  {formData.infants}
+                </span>
+                <button
+                  type="button"
+                  disabled={isReadOnly || isSubmitting}
+                  onClick={() =>
+                    setFormData({ ...formData, infants: formData.infants + 1 })
+                  }
+                  className={`text-lg font-[600] ${
+                    isReadOnly || isSubmitting
+                      ? "opacity-50 cursor-not-allowed"
+                      : ""
+                  }`}
+                >
+                  <GoPlus size={12} className="text-[#7135AD]" />
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -2152,7 +2319,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 >
                   <InputField
                     name="adultTravellers"
-                    placeholder="Search by Traveller Name/ID"
+                    placeholder="Search by Traveller Name / ID / Nickname"
                     required
                     type="text"
                     {...getInputProps("adultTravellers", {
@@ -2162,10 +2329,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                         updateTraveller("adultTravellers", index, value);
 
-                        const results = runFuzzySearch(allTravellers, value, [
-                          "name",
-                          "id",
-                        ]);
+                        const results = runFuzzySearch(
+                          allTravellers,
+                          value,
+                          ["name", "customId", "alias", "nickname"],
+                          3,
+                        );
                         if (value.trim() === "") {
                           setTravellerResults([]);
                           setActiveTravellerDropdown(null);
@@ -2341,7 +2510,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               <div className="w-[30rem] flex items-center justify-between mb-2">
                 <label className=" text-[12px] font-[400] text-[#414141]">
                   <span className="text-[#FF3B30]">*</span>
-                  {`Child ${index + 1}`}
+                  {`Child ${index + 1}${formData.adults === 0 && index === 0 ? " (Lead Pax)" : ""}`}
                 </label>
 
                 <DropDown
@@ -2353,6 +2522,27 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                   value={formData.childAges?.[index]?.toString() ?? ""}
                   onChange={(val) => {
                     const numVal = val === "" ? null : Number(val);
+                    const selectedTraveller =
+                      travellersById.get(formData.infantTravellerIds?.[index] ?? "") ||
+                      null;
+                    const computedAge = computeAgeFromDob(
+                      selectedTraveller?.dateOfBirth,
+                    );
+
+                    if (
+                      selectedTraveller?.dateOfBirth &&
+                      computedAge !== null &&
+                      numVal !== null &&
+                      numVal !== computedAge
+                    ) {
+                      setChildAgeConfirmation({
+                        index,
+                        computedAge,
+                        selectedAge: numVal,
+                        dob: selectedTraveller.dateOfBirth,
+                      });
+                      return;
+                    }
                     setFormData((prev) => {
                       const ages = [...(prev.childAges || [])];
                       ages[index] = numVal;
@@ -2377,7 +2567,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                 >
                   <InputField
                     name="infantTravellers"
-                    placeholder="Search by Traveller Name/ID"
+                    placeholder="Search by Traveller Name / ID / Nickname"
                     required
                     {...getInputProps("infantTravellers", {
                       value: trav,
@@ -2386,11 +2576,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         updateTraveller("infantTravellers", index, value);
 
                         // Run fuzzy search
-                        const results = runFuzzySearch(allTravellers, value, [
-                          "name",
-                          "email",
-                          "phone",
-                        ]);
+                        const results = runFuzzySearch(
+                          allTravellers,
+                          value,
+                          ["name", "customId", "alias", "nickname"],
+                          3,
+                        );
                         if (value.trim() === "") {
                           setTravellerResults([]);
                           setActiveTravellerDropdown(null);
@@ -2479,6 +2670,16 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                   getTravellerDisplayName(t),
                                   t._id,
                                 );
+                                const computedAge = computeAgeFromDob(
+                                  t.dateOfBirth,
+                                );
+                                if (computedAge !== null) {
+                                  setFormData((prev) => {
+                                    const ages = [...(prev.childAges || [])];
+                                    ages[index] = computedAge;
+                                    return { ...prev, childAges: ages };
+                                  });
+                                }
                                 setActiveTravellerDropdown(null);
                                 setTravellerResults([]);
                               }}
@@ -2555,13 +2756,26 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
         <div className="w-[60%] relative" ref={teamsPrimaryRef}>
           <InputField
             name="bookingOwner"
-            placeholder="Search by User's Name"
+            placeholder="Search by Owner Name / ID / Nickname"
             required
             className="mt-1 text-[13px] py-2"
             readOnly={isReadOnly}
             disabled={isReadOnly || isSubmitting}
             // show the NAME from ownerList
             value={ownerList[0]?.name || ""}
+            selectedDisplay={(() => {
+              const selected = allTeams.find(
+                (team) => team._id === ownerList[0]?.id,
+              );
+              if (!selected || !ownerList[0]?.id) return null;
+              return (
+                <div className="flex items-center justify-between w-full">
+                  <span className="truncate text-[13px] text-[#020202]">
+                    {getOwnerPillLabel(selected)}
+                  </span>
+                </div>
+              );
+            })()}
             onChange={(e) => {
               if (isReadOnly) return;
               const value = allowTextAndNumbers(e.target.value);
@@ -2575,10 +2789,12 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
               };
               setFormData(newFormData);
 
-              const results = runFuzzySearch(allTeams, value, [
-                "name",
-                "email",
-              ]);
+              const results = runFuzzySearch(
+                allTeams,
+                value,
+                ["name", "customId", "alias", "nickname", "email"],
+                2,
+              );
               if (value.trim() === "") {
                 setPrimaryOwnerResults([]);
                 setShowPrimaryOwnerDropdown(false);
@@ -2608,7 +2824,9 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       setShowPrimaryOwnerDropdown(false);
                     }}
                   >
-                    <p className="font-[500] text-[13px]">{t.name}</p>
+                    <p className="font-[500] text-[13px]">
+                      {getOwnerPillLabel(t)}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -2741,12 +2959,15 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         >
                           <IoClose size={16} className="text-[#818181]" />
                         </button>
-                        {o.name}
+                        {(() => {
+                          const owner = allTeams.find((team) => team._id === o.id);
+                          return getOwnerPillLabel(owner) || o.name;
+                        })()}
                       </span>
                     ))
                   ) : (
                     <span className="text-[#9CA3AF] font-[500 ]text-[12px] flex items-center flex-1">
-                      Search by User's Name
+                      Search by Owner Name / ID / Nickname
                     </span>
                   )}
 
@@ -2841,7 +3062,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                               </div>
 
                               <span className="text-black text-[14px]">
-                                {t.name}
+                                {getOwnerPillLabel(t)}
                               </span>
                             </label>
                           );
@@ -2864,10 +3085,45 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
       {/* Remarks */}
       <RemarksField
+        label="Internal Notes"
         value={formData.remarks}
         onChange={(val) => setFormData((prev) => ({ ...prev, remarks: val }))}
         readOnly={isReadOnly}
         isSubmitting={isSubmitting}
+      />
+
+      <ConfirmationModal
+        isOpen={Boolean(childAgeConfirmation)}
+        onClose={() => {
+          if (!childAgeConfirmation) return;
+          setFormData((prev) => {
+            const ages = [...(prev.childAges || [])];
+            ages[childAgeConfirmation.index] = childAgeConfirmation.computedAge;
+            return { ...prev, childAges: ages };
+          });
+          setChildAgeConfirmation(null);
+        }}
+        onConfirm={() => {
+          if (!childAgeConfirmation) return;
+          setFormData((prev) => {
+            const ages = [...(prev.childAges || [])];
+            ages[childAgeConfirmation.index] = childAgeConfirmation.selectedAge;
+            return { ...prev, childAges: ages };
+          });
+          setChildAgeConfirmation(null);
+        }}
+        title={
+          childAgeConfirmation
+            ? `The age of child ${childAgeConfirmation.index + 1} does not match the DOB mentioned in child info which is ${new Date(childAgeConfirmation.dob).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}, i.e. ${childAgeConfirmation.computedAge} years. Do you wish to override this and proceed?`
+            : ""
+        }
+        confirmText="Yes"
+        cancelText="No"
+        confirmButtonColor="bg-[#1A7F64]"
       />
 
       <AddCustomerSideSheet

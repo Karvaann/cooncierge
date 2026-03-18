@@ -41,9 +41,11 @@ interface ReturnFlightSegment {
 export default function OneWayLayout({
   formData,
   setFormData,
+  onMainTravelDateChange,
 }: {
   formData: FlightInfoFormData;
   setFormData: React.Dispatch<React.SetStateAction<FlightInfoFormData>>;
+  onMainTravelDateChange: (date: string) => void;
 }) {
   const calculateLayover = (
     arrival: string | undefined,
@@ -63,7 +65,7 @@ export default function OneWayLayout({
     const newSegment: FlightSegmentData = {
       id: Date.now().toString(),
       flightnumber: "",
-      traveldate: "",
+      traveldate: formData.traveldate,
       cabinclass: "",
     };
     setFormData({
@@ -93,7 +95,7 @@ export default function OneWayLayout({
     }));
   };
 
-  const handlePreviewChange = (segmentId: string, preview: SegmentPreview) => {
+  const handlePreviewChange = (segmentId: string, preview?: SegmentPreview) => {
     setFormData((prev) => ({
       ...prev,
       segments: prev.segments.map((s) =>
@@ -143,9 +145,7 @@ export default function OneWayLayout({
                 onPreviewChange={handlePreviewChange}
                 traveldate={formData.traveldate}
                 bookingdate={formData.bookingdate}
-                onTraveldateChange={(date) =>
-                  setFormData((prev) => ({ ...prev, traveldate: date }))
-                }
+                onTraveldateChange={onMainTravelDateChange}
               />
             </div>
 
@@ -186,6 +186,7 @@ export default function OneWayLayout({
 
         {/* Add Segment Button */}
         <button
+          type="button"
           onClick={addSegment}
           className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-[#7135AD] text-white text-[11px] font-[500] rounded-[10px] hover:cursor-pointer transition"
         >

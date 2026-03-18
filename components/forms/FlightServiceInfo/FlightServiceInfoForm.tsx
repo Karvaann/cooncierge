@@ -2,7 +2,6 @@
 
 import React, {
   useState,
-  useCallback,
   useMemo,
   useEffect,
   useRef,
@@ -12,18 +11,21 @@ import OneWayLayout from "./OneWayLayout";
 import RoundTripLayout from "./RoundTripLayout";
 import MultiCityLayout from "./MultiCityLayout";
 import { allowUppercaseAlphanumeric6 } from "@/utils/inputValidators";
-import { isAfterDate } from "@/utils/helper";
 import { CancellationModalFormState } from "@/components/Modals/CancellationModal";
 import DateFieldsAndStatus from "@/components/forms/components/DateFieldsAndStatus";
 import Documents from "@/components/forms/components/Documents";
 import RemarksField from "@/components/forms/components/RemarksField";
+import DropDown from "@/components/DropDown";
+import { useBookingFieldSync } from "@/context/BookingFieldSyncContext";
 
 // Type definitions
 interface FlightInfoFormData {
   bookingdate: string;
   traveldate: string;
-  bookingstatus: "Confirmed" | "Canceled" | "In Progress" | string;
+  bookingstatus: "confirmed" | "cancelled" | "rescheduled" | string;
   cancellationDate?: string;
+  newBookingDate?: string;
+  newTravelDate?: string;
   PNR: number | string;
   pnrEnabled: boolean;
   segments: FlightSegment[]; // Array of flight segments
@@ -32,6 +34,8 @@ interface FlightInfoFormData {
   flightType: "One Way" | "Round Trip" | "Multi-City";
   remarks: string;
   importantinfo?: string;
+  rulesAndConditions?: string;
+  rulesTemplate?: string;
 
   // Persist cancellation modal form data with the booking
   cancellationForm?: CancellationModalFormState;
@@ -92,10 +96,11 @@ interface FlightInfoFormProps {
   showValidation?: boolean;
   formRef?: React.RefObject<HTMLFormElement | null>;
   onFormDataUpdate: (data: any) => void;
-  onAddDocuments?: (files: File[]) => void;
-  onRemoveDocuments?: (files: File[]) => void;
+  onAddDocuments?: (files: File[], category?: string) => void;
+  onRemoveDocuments?: (files: File[], category?: string) => void;
   externalFormData?: ExternalFormData | Record<string, unknown>;
   bookingCode?: string;
+  generalInfoData?: Record<string, any>;
   existingDocuments?: Array<{
     originalName?: string;
     fileName?: string;
@@ -108,6 +113,117 @@ interface FlightInfoFormProps {
   }>;
 }
 
+const cabinDefaults = {
+  cabinBaggagePcs: 1,
+  cabinBaggageWt: "",
+  checkInBaggagePcs: 1,
+  checkInBaggageWt: "",
+};
+
+const createSegment = (id: string, traveldate = "", tripId?: number) => ({
+  id,
+  flightnumber: "",
+  traveldate,
+  cabinclass: "",
+  ...(typeof tripId === "number" ? { tripId } : {}),
+  ...cabinDefaults,
+});
+
+const normalizeSegment = (segment: any, fallbackId: string) => ({
+  id: segment.id ?? fallbackId,
+  ...segment,
+  cabinBaggagePcs: segment.cabinBaggagePcs ?? 1,
+  cabinBaggageWt: segment.cabinBaggageWt ?? "",
+  checkInBaggagePcs: segment.checkInBaggagePcs ?? 1,
+  checkInBaggageWt: segment.checkInBaggageWt ?? "",
+});
+
+const ensureFlightTypeDefaults = (
+  data: Partial<FlightInfoFormData>,
+  fallbackTravelDate = "",
+) => {
+  const flightType = (data.flightType as FlightInfoFormData["flightType"]) || "One Way";
+  const topTravelDate = String(data.traveldate ?? fallbackTravelDate ?? "");
+  const incomingSegments = Array.isArray(data.segments)
+    ? data.segments.map((segment, index) => normalizeSegment(segment, `seg-${index + 1}`))
+    : [];
+  const incomingReturnSegments = Array.isArray(data.returnSegments)
+    ? data.returnSegments.map((segment, index) =>
+        normalizeSegment(segment, `return-${index + 1}`),
+      )
+    : [];
+
+  if (flightType === "One Way") {
+    return {
+      flightType,
+      segments:
+        incomingSegments.length > 0
+          ? incomingSegments.map((segment, index) => ({
+              ...segment,
+              id: segment.id ?? `seg-${index + 1}`,
+              traveldate: String(segment.traveldate ?? topTravelDate),
+            }))
+          : [createSegment("seg-1", topTravelDate)],
+      returnSegments: [],
+    };
+  }
+
+  if (flightType === "Round Trip") {
+    return {
+      flightType,
+      segments:
+        incomingSegments.length > 0
+          ? incomingSegments
+          : [createSegment("seg-1", topTravelDate)],
+      returnSegments:
+        incomingReturnSegments.length > 0
+          ? incomingReturnSegments
+          : [createSegment("return-1", topTravelDate)],
+    };
+  }
+
+  const multiCitySegments =
+    incomingSegments.length >= 2
+      ? incomingSegments.map((segment, index) => ({
+          ...segment,
+          tripId: (segment as any).tripId ?? index + 1,
+        }))
+      : [
+          createSegment("seg-1", topTravelDate, 1),
+          createSegment("seg-2", topTravelDate, 2),
+        ];
+
+  return {
+    flightType,
+    segments: multiCitySegments,
+    returnSegments: [],
+  };
+};
+
+const sanitizeFlightNumber = (value: string) =>
+  value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+
+const sanitizePNR = (value: string) => allowUppercaseAlphanumeric6(value);
+
+const getUserNickname = (generalInfoData?: Record<string, any>, externalFormData?: Record<string, any>) => {
+  const candidates = [
+    generalInfoData?.nickname,
+    generalInfoData?.customerNickname,
+    generalInfoData?.alias,
+    generalInfoData?.customerAlias,
+    (externalFormData as any)?.nickname,
+    (externalFormData as any)?.customerNickname,
+    (externalFormData as any)?.alias,
+  ];
+  return candidates.find((value) => String(value ?? "").trim()) ?? "";
+};
+
+const ruleTemplateOptions = [
+  { value: "standard-fare-rules", label: "Standard Fare Rules" },
+  { value: "refund-policy", label: "Refund Policy" },
+  { value: "reschedule-policy", label: "Reschedule Policy" },
+];
+
 const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   onSubmit,
   isSubmitting = false,
@@ -119,8 +235,10 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
   onRemoveDocuments,
   externalFormData,
   bookingCode,
+  generalInfoData,
   existingDocuments = [],
 }) => {
+  const sync = useBookingFieldSync();
   // Normalize incoming data so we can hydrate the form from either
   // `externalFormData`, `externalFormData.formFields`, `externalFormData.flightinfoform`,
   // passed from BookingFormSideSheet when editing.
@@ -139,63 +257,21 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
     traveldate: normalizedExternalData?.traveldate || "",
     bookingstatus: normalizedExternalData?.bookingstatus || "",
     cancellationDate: (normalizedExternalData as any)?.cancellationDate || "",
+    newBookingDate: (normalizedExternalData as any)?.newBookingDate || "",
+    newTravelDate: (normalizedExternalData as any)?.newTravelDate || "",
     PNR: normalizedExternalData?.PNR || "",
-    segments:
-      normalizedExternalData?.segments && normalizedExternalData.segments.length
-        ? normalizedExternalData.segments.map((seg, idx) => ({
-            id: seg.id ?? `seg-${idx}`,
-            ...seg,
-            cabinBaggagePcs: (seg as any).cabinBaggagePcs ?? 1,
-            cabinBaggageWt: (seg as any).cabinBaggageWt ?? "",
-            checkInBaggagePcs: (seg as any).checkInBaggagePcs ?? 1,
-            checkInBaggageWt: (seg as any).checkInBaggageWt ?? "",
-          }))
-        : [
-            {
-              id: "1",
-              flightnumber: "",
-              traveldate: "",
-              cabinclass: "",
-              cabinBaggagePcs: 1,
-              cabinBaggageWt: "",
-              checkInBaggagePcs: 1,
-              checkInBaggageWt: "",
-            },
-          ],
-    returnSegments:
-      normalizedExternalData?.returnSegments &&
-      normalizedExternalData.returnSegments.length
-        ? normalizedExternalData.returnSegments.map((seg, idx) => ({
-            id: seg.id ?? `return-${idx + 1}`,
-            ...seg,
-            cabinBaggagePcs: (seg as any).cabinBaggagePcs ?? 1,
-            cabinBaggageWt: (seg as any).cabinBaggageWt ?? "",
-            checkInBaggagePcs: (seg as any).checkInBaggagePcs ?? 1,
-            checkInBaggageWt: (seg as any).checkInBaggageWt ?? "",
-          }))
-        : [
-            {
-              id: "return-1",
-              flightnumber: "",
-              traveldate: "",
-              cabinclass: "",
-              cabinBaggagePcs: 1,
-              cabinBaggageWt: "",
-              checkInBaggagePcs: 1,
-              checkInBaggageWt: "",
-            },
-          ],
+    ...ensureFlightTypeDefaults(normalizedExternalData),
     pnrEnabled:
       normalizedExternalData?.pnrEnabled !== undefined
         ? Boolean(normalizedExternalData.pnrEnabled)
-        : true,
+        : Boolean(normalizedExternalData?.samePNRForAllSegments ?? true),
     samePNRForAllSegments:
-      normalizedExternalData?.samePNRForAllSegments ?? false,
-    flightType:
-      (normalizedExternalData?.flightType as FlightInfoFormData["flightType"]) ||
-      "One Way",
+      normalizedExternalData?.samePNRForAllSegments ?? true,
+    flightType: ensureFlightTypeDefaults(normalizedExternalData).flightType,
     remarks: normalizedExternalData?.remarks || "",
     importantinfo: normalizedExternalData?.importantinfo || "",
+    rulesAndConditions: (normalizedExternalData as any)?.rulesAndConditions || "",
+    rulesTemplate: (normalizedExternalData as any)?.rulesTemplate || "",
 
     cancellationForm: (normalizedExternalData as any)?.cancellationForm,
   }));
@@ -207,49 +283,77 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
     setFormData((prev) => ({
       ...prev,
       ...normalizedExternalData,
-      segments:
-        normalizedExternalData.segments &&
-        normalizedExternalData.segments.length
-          ? normalizedExternalData.segments.map((seg, idx) => ({
-              id: seg.id ?? `seg-${idx}`,
-              ...seg,
-              cabinBaggagePcs: (seg as any).cabinBaggagePcs ?? 1,
-              cabinBaggageWt: (seg as any).cabinBaggageWt ?? "",
-              checkInBaggagePcs: (seg as any).checkInBaggagePcs ?? 1,
-              checkInBaggageWt: (seg as any).checkInBaggageWt ?? "",
-            }))
-          : prev.segments,
-      returnSegments:
-        normalizedExternalData.returnSegments &&
-        normalizedExternalData.returnSegments.length
-          ? normalizedExternalData.returnSegments.map((seg, idx) => ({
-              id: seg.id ?? `return-${idx + 1}`,
-              ...seg,
-              cabinBaggagePcs: (seg as any).cabinBaggagePcs ?? 1,
-              cabinBaggageWt: (seg as any).cabinBaggageWt ?? "",
-              checkInBaggagePcs: (seg as any).checkInBaggagePcs ?? 1,
-              checkInBaggageWt: (seg as any).checkInBaggageWt ?? "",
-            }))
-          : prev.returnSegments,
-      pnrEnabled: normalizedExternalData.pnrEnabled ?? prev.pnrEnabled ?? true,
+      ...ensureFlightTypeDefaults(
+        normalizedExternalData,
+        String(normalizedExternalData.traveldate ?? prev.traveldate ?? ""),
+      ),
+      pnrEnabled:
+        normalizedExternalData.pnrEnabled ??
+        normalizedExternalData.samePNRForAllSegments ??
+        prev.pnrEnabled ??
+        true,
       samePNRForAllSegments:
         normalizedExternalData.samePNRForAllSegments ??
         prev.samePNRForAllSegments ??
-        false,
-      flightType:
-        (normalizedExternalData.flightType as
-          | "One Way"
-          | "Round Trip"
-          | "Multi-City") ?? prev.flightType,
+        true,
       cancellationDate:
         (normalizedExternalData as any)?.cancellationDate ??
         prev.cancellationDate,
+      newBookingDate:
+        (normalizedExternalData as any)?.newBookingDate ?? prev.newBookingDate,
+      newTravelDate:
+        (normalizedExternalData as any)?.newTravelDate ?? prev.newTravelDate,
     }));
   }, [externalFormData, isReadOnly, normalizedExternalData]);
 
   useEffect(() => {
     onFormDataUpdate({ flightinfoform: formData });
   }, [formData]);
+
+  useEffect(() => {
+    if ((sync?.internalNotes ?? "") === String(formData.remarks ?? "")) return;
+    sync?.setInternalNotes(String(formData.remarks ?? ""));
+  }, [formData.remarks, sync]);
+
+  useEffect(() => {
+    if (!sync?.internalNotes) return;
+    setFormData((prev) =>
+      prev.remarks === sync.internalNotes
+        ? prev
+        : { ...prev, remarks: sync.internalNotes },
+    );
+  }, [sync?.internalNotes]);
+
+  useEffect(() => {
+    if (!formData.samePNRForAllSegments) return;
+
+    const mainPnr = sanitizePNR(String(formData.PNR ?? ""));
+    setFormData((prev) => {
+      const segments = prev.segments.map((segment) => ({
+        ...segment,
+        pnr: mainPnr,
+      }));
+      const returnSegments = prev.returnSegments.map((segment) => ({
+        ...segment,
+        pnr: mainPnr,
+      }));
+      const hasDiff =
+        segments.some((segment, index) => segment.pnr !== prev.segments[index]?.pnr) ||
+        returnSegments.some(
+          (segment, index) => segment.pnr !== prev.returnSegments[index]?.pnr,
+        );
+      return hasDiff ? { ...prev, segments, returnSegments } : prev;
+    });
+  }, [formData.PNR, formData.samePNRForAllSegments]);
+
+  const userNickname = useMemo(
+    () =>
+      getUserNickname(
+        generalInfoData,
+        externalFormData as Record<string, any> | undefined,
+      ),
+    [externalFormData, generalInfoData],
+  );
 
   // Smooth pill indicator for flight type tabs
   const flightTabContainerRef = useRef<HTMLDivElement | null>(null);
@@ -302,25 +406,39 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             bookingdate={formData.bookingdate}
             traveldate={formData.traveldate}
             bookingstatus={formData.bookingstatus}
-            cancellationDate={formData.cancellationDate}
+            cancellationDate={formData.cancellationDate ?? ""}
+            fieldOwner="flight-service-info"
+            userNickname={String(userNickname || "")}
             onBookingDateChange={(date) =>
               setFormData((prev) => ({
                 ...prev,
                 bookingdate: date,
-                traveldate:
-                  prev.traveldate && isAfterDate(date, prev.traveldate)
-                    ? ""
-                    : prev.traveldate,
               }))
             }
             onTravelDateChange={(date) =>
-              setFormData((prev) => ({ ...prev, traveldate: date }))
+              setFormData((prev) => ({
+                ...prev,
+                traveldate: date,
+                segments:
+                  prev.flightType === "One Way"
+                    ? prev.segments.map((segment) => ({
+                        ...segment,
+                        traveldate: date,
+                      }))
+                    : prev.segments,
+              }))
             }
             onBookingStatusChange={(status) =>
               setFormData((prev) => ({ ...prev, bookingstatus: status }))
             }
             onCancellationDateChange={(date) =>
               setFormData((prev) => ({ ...prev, cancellationDate: date }))
+            }
+            onNewBookingDateChange={(date) =>
+              setFormData((prev) => ({ ...prev, newBookingDate: date }))
+            }
+            onNewTravelDateChange={(date) =>
+              setFormData((prev) => ({ ...prev, newTravelDate: date }))
             }
           />
 
@@ -344,12 +462,7 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                   type="text"
                   value={formData.PNR}
                   onChange={(e) => {
-                    const sanitizedValue = allowUppercaseAlphanumeric6(
-                      e.target.value,
-                    )
-                      .replace(/[^a-zA-Z0-9]/g, "") // allow only alphanumeric
-                      .toUpperCase(); // convert to uppercase
-
+                    const sanitizedValue = sanitizePNR(e.target.value);
                     setFormData((prev) => ({ ...prev, PNR: sanitizedValue }));
                   }}
                   placeholder="Enter PNR"
@@ -360,19 +473,23 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
               {formData.flightType !== "One Way" && (
                 <div className="flex items-center gap-1 pb-1">
                   <button
+                    type="button"
                     onClick={() =>
                       setFormData((prev) => ({
                         ...prev,
-                        pnrEnabled: !prev.pnrEnabled,
+                        samePNRForAllSegments: !prev.samePNRForAllSegments,
+                        pnrEnabled: !prev.samePNRForAllSegments,
                       }))
                     }
                     className={`relative inline-flex h-5 w-8 items-center rounded-full transition-colors ${
-                      formData.pnrEnabled ? "bg-[#7135AD]" : "bg-gray-300"
+                      formData.samePNRForAllSegments
+                        ? "bg-[#7135AD]"
+                        : "bg-gray-300"
                     }`}
                   >
                     <span
                       className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        formData.pnrEnabled
+                        formData.samePNRForAllSegments
                           ? "translate-x-3.5"
                           : "translate-x-0.5"
                       }`}
@@ -405,8 +522,18 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
                   <button
                     key={type}
                     data-tab={type}
+                    type="button"
                     onClick={() =>
-                      setFormData((prev) => ({ ...prev, flightType: type }))
+                      setFormData((prev) => ({
+                        ...prev,
+                        ...ensureFlightTypeDefaults(
+                          {
+                            ...prev,
+                            flightType: type,
+                          },
+                          prev.traveldate,
+                        ),
+                      }))
                     }
                     className={`relative z-10 px-3.5 py-1.5 text-[0.7rem] font-[500] transition-colors duration-300 rounded-[15px]
         ${
@@ -426,6 +553,16 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
               <OneWayLayout
                 formData={formData as any}
                 setFormData={setFormData as any}
+                onMainTravelDateChange={(date: string) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    traveldate: date,
+                    segments: prev.segments.map((segment) => ({
+                      ...segment,
+                      traveldate: date,
+                    })),
+                  }))
+                }
               />
             )}
 
@@ -433,6 +570,10 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
               <RoundTripLayout
                 formData={formData as any}
                 setFormData={setFormData as any}
+                sharedPnrEnabled={formData.samePNRForAllSegments}
+                onMainTravelDateChange={(date: string) =>
+                  setFormData((prev) => ({ ...prev, traveldate: date }))
+                }
               />
             )}
 
@@ -440,6 +581,10 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
               <MultiCityLayout
                 formData={formData as any}
                 setFormData={setFormData as any}
+                sharedPnrEnabled={formData.samePNRForAllSegments}
+                onMainTravelDateChange={(date: string) =>
+                  setFormData((prev) => ({ ...prev, traveldate: date }))
+                }
               />
             )}
           </div>
@@ -452,8 +597,35 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             isReadOnly={isReadOnly}
           />
 
-          {/* Remarks Section */}
           <RemarksField
+            label="Rules and Conditions"
+            headerRight={
+              <div className="min-w-[12rem]">
+                <DropDown
+                  options={ruleTemplateOptions}
+                  placeholder="Choose Template"
+                  value={String(formData.rulesTemplate ?? "")}
+                  onChange={(value) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      rulesTemplate: String(value ?? ""),
+                    }))
+                  }
+                  buttonClassName="px-3 py-1.5 hover:border-[#C6AEDE] rounded-[15px]"
+                  noButtonRadius
+                />
+              </div>
+            }
+            value={String(formData.rulesAndConditions ?? "")}
+            onChange={(val) =>
+              setFormData((prev) => ({ ...prev, rulesAndConditions: val }))
+            }
+            readOnly={isReadOnly}
+            isSubmitting={isSubmitting}
+          />
+
+          <RemarksField
+            label="Internal Notes"
             value={String(formData.remarks ?? "")}
             onChange={(val) =>
               setFormData((prev) => ({ ...prev, remarks: val }))

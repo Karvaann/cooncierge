@@ -23,6 +23,7 @@ export interface SegmentPreview {
   arrivalTime?: string;
   flightNumber?: string;
   duration?: string;
+  pnr?: string;
 }
 
 export interface FlightSegmentData {
@@ -35,7 +36,7 @@ export interface FlightSegmentData {
     | "Business"
     | "First Class"
     | string;
-  preview?: SegmentPreview;
+  preview?: SegmentPreview | undefined;
   pnr?: string;
   cabinBaggagePcs?: number | string;
   cabinBaggageWt?: number | string;
@@ -123,6 +124,12 @@ const buildDurationValue = (hours?: string, minutes?: string) => {
 
   return `${normalizedHours}h ${normalizedMinutes}m`;
 };
+
+const sanitizeFlightNumber = (value: string) =>
+  value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+
+const sanitizePNR = (value: string) =>
+  value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
 
 const formatTime = (datetime: any) => {
   if (!datetime) return "--";
@@ -218,7 +225,7 @@ export default function FlightSegmentCard({
         timeoutRef.current = null;
       }
     };
-  }, [segment.flightnumber, segId]);
+  }, [segment.flightnumber, segment.traveldate, segId]);
 
   // Reset lastFetchedRef when flight number is cleared by parent so next input triggers fetch
   useEffect(() => {
@@ -232,7 +239,8 @@ export default function FlightSegmentCard({
     setIsEditing(true);
     setEditingData({
       airline: preview?.airline ?? "",
-      flightNumber: preview?.flightNumber ?? String(segment.flightnumber ?? ""),
+      flightNumber:
+        preview?.flightNumber ?? sanitizeFlightNumber(String(segment.flightnumber ?? "")),
       origin: preview?.origin ?? "",
       destination: preview?.destination ?? "",
       departureTime: toTimeInput(
@@ -240,6 +248,7 @@ export default function FlightSegmentCard({
       ),
       arrivalTime: toTimeInput(preview?.arrivalTimeRaw ?? preview?.arrivalTime),
       duration: preview?.duration ?? "",
+      pnr: preview?.pnr ?? sanitizePNR(String(segment.pnr ?? "")),
     });
   };
 
@@ -299,9 +308,15 @@ export default function FlightSegmentCard({
         preview?.flightNumber ??
         String(segment.flightnumber ?? ""),
       duration: durationVal || preview?.duration || "",
+      pnr: d.pnr ?? preview?.pnr ?? String(segment.pnr ?? ""),
     };
 
     onPreviewChange(segId, newPreview);
+    onSegmentChange(segId, {
+      flightnumber: sanitizeFlightNumber(String(newPreview.flightNumber ?? "")),
+      pnr: sanitizePNR(String(newPreview.pnr ?? "")),
+    });
+    onPnrChange?.(sanitizePNR(String(newPreview.pnr ?? "")));
     setIsEditing(false);
     setEditingData({});
   };
@@ -316,6 +331,7 @@ export default function FlightSegmentCard({
       "departureTime",
       "arrivalTime",
       "duration",
+      "pnr",
     ];
     return !keys.some((k) => {
       const v = d[k];
@@ -352,7 +368,9 @@ export default function FlightSegmentCard({
               placeholder="Enter Flight Number"
               value={segment.flightnumber}
               onChange={(e) =>
-                onSegmentChange(segId, { flightnumber: e.target.value })
+                onSegmentChange(segId, {
+                  flightnumber: sanitizeFlightNumber(e.target.value),
+                })
               }
               className="w-full px-2.5 py-1.5 border border-gray-300 rounded-[15px] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
             />
@@ -368,7 +386,7 @@ export default function FlightSegmentCard({
                 type="text"
                 placeholder="Enter PNR"
                 value={segment.pnr || ""}
-                onChange={(e) => onPnrChange?.(e.target.value)}
+                onChange={(e) => onPnrChange?.(sanitizePNR(e.target.value))}
                 className="w-full px-2.5 py-1.5 border border-gray-300 rounded-[15px] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
               />
             </div>
@@ -379,9 +397,15 @@ export default function FlightSegmentCard({
             <SingleCalendar
               label="Travel Date"
               value={traveldate}
-              onChange={onTraveldateChange}
+              onChange={(date) => {
+                const shouldConfirm =
+                  Boolean(traveldate) &&
+                  traveldate !== date &&
+                  window.confirm("Are you sure you want to change the date?");
+                if (traveldate && traveldate !== date && !shouldConfirm) return;
+                onTraveldateChange(date);
+              }}
               placeholder="DD-MM-YYYY"
-              minDate={bookingdate}
               customWidth="w-full"
               showCalendarIcon={false}
               inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
@@ -551,7 +575,24 @@ export default function FlightSegmentCard({
                 onChange={(e) =>
                   setEditingData((prev) => ({
                     ...prev,
-                    flightNumber: e.target.value,
+                    flightNumber: sanitizeFlightNumber(e.target.value),
+                  }))
+                }
+                className="w-full px-4 py-2.5 border border-[#D9D9D9] rounded-[18px] text-[#020202] text-[0.95rem] outline-none focus:border-[#C6AEDE]"
+              />
+            </div>
+
+            <div>
+              <label className="text-[#414141] font-[500] text-[12px] mb-1.5 block">
+                PNR
+              </label>
+              <input
+                type="text"
+                value={editingData.pnr ?? ""}
+                onChange={(e) =>
+                  setEditingData((prev) => ({
+                    ...prev,
+                    pnr: sanitizePNR(e.target.value),
                   }))
                 }
                 className="w-full px-4 py-2.5 border border-[#D9D9D9] rounded-[18px] text-[#020202] text-[0.95rem] outline-none focus:border-[#C6AEDE]"

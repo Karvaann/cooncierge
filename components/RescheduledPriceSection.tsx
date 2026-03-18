@@ -109,7 +109,18 @@ interface RescheduledPriceSectionProps {
   isReadOnly?: boolean | undefined;
   isSubmitting?: boolean | undefined;
   customerCount?: number;
+  customerLabels?: string[];
 }
+
+const FormulaTooltip = ({ text }: { text: string }) => (
+  <span
+    className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#D0C3E0] text-[10px] text-[#7135AD] cursor-help"
+    title={text}
+    aria-label={text}
+  >
+    i
+  </span>
+);
 
 const inputBase =
   "w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-green-600";
@@ -136,6 +147,7 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
   isReadOnly = false,
   isSubmitting = false,
   customerCount = 1,
+  customerLabels = [],
 }) => {
   const { user } = useAuth();
   const businessCurrency = getBusinessCurrency(user as any);
@@ -302,6 +314,9 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
       flat.additionalSellingNotes = first.additionalSellingNotes;
     onChange(flat as RescheduledAmountValue);
   };
+
+  const displayCustomerLabel = (index: number) =>
+    customerLabels[index] || `Customer ${index + 1}`;
 
   return (
     <div className="space-y-2">
@@ -918,7 +933,10 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
 
                 <div className="grid grid-cols-[280px_1fr]">
                   <div className="bg-[#F9F9F9] border-r border-t border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
-                    Net Cost Price
+                    <span className="flex items-center">
+                      Net Cost Price
+                      <FormulaTooltip text="Cost Price = [Vendor Invoice (Base old + additional)] - [Vendor Incentive Received old + additional] + [Commission Payout old + additional]" />
+                    </span>
                   </div>
                   <div className="p-4 border-t border-[#E2E1E1]">
                     <div className="px-3 py-1.5 w-fit text-[#7135AD] bg-[#7135AD0D] rounded-[10px] font-[500] text-[13px]">
@@ -944,7 +962,7 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
                 <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
                   Old Selling Price
                   {rescheduledSellingPrices.length > 1
-                    ? ` (Customer ${idx + 1})`
+                    ? ` (${displayCustomerLabel(idx)})`
                     : ""}
                   {displayBookingDate ? (
                     <div className="mt-1 text-[12px] border border-[#E2E1E1] text-[#414141] rounded-[8px] bg-white px-2 py-0.5">
@@ -1023,7 +1041,7 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
                 <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
                   Additional Selling Price
                   {rescheduledSellingPrices.length > 1
-                    ? ` (Customer ${idx + 1})`
+                    ? ` (${displayCustomerLabel(idx)})`
                     : ""}
                   {displayNewBookingDate ? (
                     <div className="mt-1 text-[12px] border border-[#E2E1E1] text-[#414141] rounded-[8px] bg-white px-2 py-0.5">

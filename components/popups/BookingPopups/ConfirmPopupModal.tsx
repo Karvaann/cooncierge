@@ -34,11 +34,11 @@ const ConfirmPopupModal: React.FC<ConfirmPopupModalProps> = ({
       className="p-0"
       zIndexClass="z-[1000]"
     >
-      <div className="relative px-1 -mt-4 pb-1.5 flex flex-col items-center">
+      <div className="relative p-5 flex flex-col items-center">
         {/* ❌ Custom Close Button */}
         <button
           onClick={onClose}
-          className="absolute -right-3 -top-2 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
+          className="absolute right-2 top-1 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
         >
           <svg
             className="w-5 h-5"

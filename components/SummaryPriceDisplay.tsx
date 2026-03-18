@@ -13,6 +13,16 @@ interface Props {
   variant?: "cancellation" | "rescheduled";
 }
 
+const FormulaTooltip = ({ text }: { text: string }) => (
+  <span
+    className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full border border-[#D0C3E0] text-[10px] text-[#7135AD] cursor-help"
+    title={text}
+    aria-label={text}
+  >
+    i
+  </span>
+);
+
 const SummaryPriceDisplay: React.FC<Props> = ({
   value: v,
   showAdvancedPricing,
@@ -298,8 +308,17 @@ const SummaryPriceDisplay: React.FC<Props> = ({
     <div className="mt-4 space-y-2 px-1">
       <div className="flex items-center gap-2">
         <div>
-          <div className="text-[13px] font-[500] text-[#414141] mb-1">
+          <div className="text-[13px] font-[500] text-[#414141] mb-1 flex items-center">
             Old Cost Price
+            {showAdvancedPricing && (
+              <FormulaTooltip
+                text={
+                  variant === "rescheduled"
+                    ? "Old Cost Price = Vendor Invoice (Base old) - Vendor Incentive Received old + Commission Payout old"
+                    : "Old Cost Price = Vendor Invoice (Base) - Vendor Incentive Received + Commission Payout"
+                }
+              />
+            )}
           </div>
           <div className="w-fit min-w-[116px] font-medium rounded-[12px] px-3 py-1.5 text-[14px] text-[#818181] bg-[#F9F9F9]">
             {getStoredCurrencySymbol()} {formatCurrency(oldCostPrice)}
@@ -334,8 +353,17 @@ const SummaryPriceDisplay: React.FC<Props> = ({
 
       <div className="flex items-center gap-2">
         <div>
-          <div className="text-[13px] font-[500] text-[#414141] mb-1">
+          <div className="text-[13px] font-[500] text-[#414141] mb-1 flex items-center">
             New Cost Price
+            {showAdvancedPricing && (
+              <FormulaTooltip
+                text={
+                  variant === "rescheduled"
+                    ? "New Cost Price = Additional Vendor Invoice (Base) - Additional Vendor Incentive Received + Additional Commission Payout"
+                    : "New Cost Price = Refund Received - Vendor Incentive Chargeback + Commission Payout Chargeback"
+                }
+              />
+            )}
           </div>
           <div className="w-fit min-w-[116px] font-[500] rounded-[12px] px-3 py-1.5 text-[14px] text-[#7135AD] bg-[#7135AD0D]">
             {getStoredCurrencySymbol()} {formatCurrency(newCostPrice)}

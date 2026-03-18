@@ -12,13 +12,15 @@ import AmountSection from "@/components/AmountSection";
 import type { AmountSectionValue } from "@/components/AmountSection";
 import Documents from "@/components/forms/components/Documents";
 import RemarksField from "@/components/forms/components/RemarksField";
-import { isAfterDate } from "@/utils/helper";
 import { getDefaultShowAdvancedPricing } from "@/utils/advancedPricing";
+import { useBookingFieldSync } from "@/context/BookingFieldSyncContext";
 
 interface PriceInfoFormData {
   bookingdate: string;
   traveldate: string;
   bookingstatus: string;
+  newBookingDate?: string;
+  newTravelDate?: string;
   remarks: string;
   costprice: string;
   costCurrency: "INR" | "USD";
@@ -88,6 +90,7 @@ interface PriceInfoProps {
   onRemoveDocuments?: (files: File[]) => void;
   externalFormData?: ExternalFormData | Record<string, unknown>;
   bookingCode?: string;
+  generalInfoData?: Record<string, any>;
   existingDocuments?: Array<{
     originalName?: string;
     fileName?: string;
@@ -110,9 +113,11 @@ const PriceInfoForm: React.FC<PriceInfoProps> = ({
   onRemoveDocuments,
   externalFormData,
   bookingCode,
+  generalInfoData,
   existingDocuments = [],
   customerCount = 1,
 }) => {
+  const sync = useBookingFieldSync();
   const normalizedExternalData = useMemo(() => {
     const source = externalFormData ?? {};
     const fields =
@@ -273,6 +278,62 @@ const PriceInfoForm: React.FC<PriceInfoProps> = ({
     onFormDataUpdate({ priceinfoform: formData });
   }, [formData]);
 
+  useEffect(() => {
+    if ((sync?.internalNotes ?? "") === String(formData.remarks ?? "")) return;
+    sync?.setInternalNotes(String(formData.remarks ?? ""));
+  }, [formData.remarks, sync]);
+
+  useEffect(() => {
+    if (!sync?.internalNotes) return;
+    setFormData((prev) =>
+      prev.remarks === sync.internalNotes
+        ? prev
+        : { ...prev, remarks: sync.internalNotes },
+    );
+  }, [sync?.internalNotes]);
+
+  useEffect(() => {
+    if (!showAdvancedPricing) return;
+
+    setFormData((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      if (!String(next.vendorBasePrice ?? "").trim() && String(next.costprice ?? "").trim()) {
+        next.vendorBasePrice = next.costprice;
+        next.vendorBaseCurrency = next.costCurrency;
+        next.vendorBaseRoe = next.costRoe;
+        next.vendorBaseInr = next.costInr;
+        next.vendorBaseNotes = next.costNotes;
+        changed = true;
+      }
+
+      if (!String(next.sellingprice ?? "").trim() && Array.isArray(next.sellingPrices) && next.sellingPrices[0]?.sellingprice) {
+        next.sellingprice = String(next.sellingPrices[0]?.sellingprice ?? "");
+        next.sellingCurrency = next.sellingPrices[0]?.sellingCurrency || next.sellingCurrency;
+        next.sellingRoe = String(next.sellingPrices[0]?.sellingRoe ?? "");
+        next.sellingInr = String(next.sellingPrices[0]?.sellingInr ?? "");
+        next.sellingNotes = String(next.sellingPrices[0]?.sellingNotes ?? "");
+        changed = true;
+      }
+
+      return changed ? next : prev;
+    });
+  }, [showAdvancedPricing]);
+
+  const customerLabels = useMemo(() => {
+    const customers = Array.isArray(generalInfoData?.customerNames)
+      ? generalInfoData.customerNames
+      : Array.isArray((externalFormData as any)?.customerNames)
+        ? (externalFormData as any).customerNames
+        : [];
+
+    return Array.from({ length: customerCount }, (_, index) => {
+      const name = String(customers[index] ?? "").trim();
+      return name ? `Customer ${index + 1} (${name})` : `Customer ${index + 1}`;
+    });
+  }, [customerCount, externalFormData, generalInfoData]);
+
   const handleAmountChange = useCallback((updated: AmountSectionValue) => {
     setFormData((prev) => ({ ...prev, ...updated }));
   }, []);
@@ -294,14 +355,11 @@ const PriceInfoForm: React.FC<PriceInfoProps> = ({
           traveldate={formData.traveldate}
           bookingstatus={formData.bookingstatus}
           cancellationDate={formData.cancellationDate}
+          fieldOwner="price-info"
           onBookingDateChange={(date) =>
             setFormData((prev) => ({
               ...prev,
               bookingdate: date,
-              traveldate:
-                prev.traveldate && isAfterDate(date, prev.traveldate)
-                  ? ""
-                  : prev.traveldate,
             }))
           }
           onTravelDateChange={(date) =>
@@ -312,6 +370,12 @@ const PriceInfoForm: React.FC<PriceInfoProps> = ({
           }
           onCancellationDateChange={(date) =>
             setFormData((prev) => ({ ...prev, cancellationDate: date }))
+          }
+          onNewBookingDateChange={(date) =>
+            setFormData((prev) => ({ ...prev, newBookingDate: date } as any))
+          }
+          onNewTravelDateChange={(date) =>
+            setFormData((prev) => ({ ...prev, newTravelDate: date } as any))
           }
         />
 
@@ -325,6 +389,7 @@ const PriceInfoForm: React.FC<PriceInfoProps> = ({
           isReadOnly={isReadOnly}
           isSubmitting={isSubmitting}
           customerCount={customerCount}
+          customerLabels={customerLabels}
         />
 
         {/* Remarks */}

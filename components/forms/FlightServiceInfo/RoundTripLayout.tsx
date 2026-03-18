@@ -32,7 +32,7 @@ interface FlightSegment {
     | "First Class"
     | string;
   pnr?: string;
-  preview?: SegmentPreview;
+  preview?: SegmentPreview | undefined;
   cabinBaggagePcs?: number | string;
   cabinBaggageWt?: number | string;
   checkInBaggagePcs?: number | string;
@@ -50,7 +50,7 @@ interface ReturnFlightSegment {
     | "First Class"
     | string;
   pnr?: string;
-  preview?: SegmentPreview;
+  preview?: SegmentPreview | undefined;
   cabinBaggagePcs?: number | string;
   cabinBaggageWt?: number | string;
   checkInBaggagePcs?: number | string;
@@ -60,16 +60,20 @@ interface ReturnFlightSegment {
 export default function RoundTripLayout({
   formData,
   setFormData,
+  sharedPnrEnabled,
+  onMainTravelDateChange,
 }: {
   formData: FlightInfoFormData;
   setFormData: React.Dispatch<React.SetStateAction<FlightInfoFormData>>;
+  sharedPnrEnabled: boolean;
+  onMainTravelDateChange: (date: string) => void;
 }) {
   // Onwards segment handlers
   const addSegment = () => {
     const newSegment: FlightSegment = {
       id: Date.now().toString(),
       flightnumber: "",
-      traveldate: "",
+      traveldate: formData.traveldate,
       cabinclass: "",
     };
     setFormData({
@@ -99,7 +103,7 @@ export default function RoundTripLayout({
     }));
   };
 
-  const handlePreviewChange = (segmentId: string, preview: SegmentPreview) => {
+  const handlePreviewChange = (segmentId: string, preview?: SegmentPreview) => {
     setFormData((prev) => ({
       ...prev,
       segments: prev.segments.map((s) =>
@@ -113,7 +117,7 @@ export default function RoundTripLayout({
     const newSegment: ReturnFlightSegment = {
       id: `return-${Date.now()}`,
       flightnumber: "",
-      traveldate: "",
+      traveldate: formData.traveldate,
       cabinclass: "",
     };
     setFormData({
@@ -145,7 +149,7 @@ export default function RoundTripLayout({
 
   const handleReturnPreviewChange = (
     segmentId: string,
-    preview: SegmentPreview,
+    preview?: SegmentPreview,
   ) => {
     setFormData((prev) => ({
       ...prev,
@@ -189,6 +193,7 @@ export default function RoundTripLayout({
 
   const addSegmentButton = (onClick: () => void) => (
     <button
+      type="button"
       onClick={onClick}
       className="flex items-center gap-1.5 px-3 py-1.5 mt-3 bg-[#7135AD] text-white text-[0.75rem] rounded-[10px] hover:cursor-pointer transition"
     >
@@ -240,10 +245,11 @@ export default function RoundTripLayout({
                   onPreviewChange={handlePreviewChange}
                   traveldate={segment.traveldate}
                   bookingdate={formData.bookingdate}
-                  onTraveldateChange={(date) =>
-                    handleSegmentChange(segment.id!, { traveldate: date })
-                  }
-                  showPnr={!formData.pnrEnabled}
+                  onTraveldateChange={(date) => {
+                    handleSegmentChange(segment.id!, { traveldate: date });
+                    onMainTravelDateChange(date);
+                  }}
+                  showPnr={!sharedPnrEnabled}
                   onPnrChange={(val) =>
                     handleSegmentPnr(index, val, "segments")
                   }
@@ -278,12 +284,13 @@ export default function RoundTripLayout({
                     onPreviewChange={handleReturnPreviewChange}
                     traveldate={segment.traveldate}
                     bookingdate={formData.bookingdate}
-                    onTraveldateChange={(date) =>
+                    onTraveldateChange={(date) => {
                       handleReturnSegmentChange(segment.id!, {
                         traveldate: date,
-                      })
-                    }
-                    showPnr={!formData.pnrEnabled}
+                      });
+                      onMainTravelDateChange(date);
+                    }}
+                    showPnr={!sharedPnrEnabled}
                     onPnrChange={(val) =>
                       handleSegmentPnr(index, val, "returnSegments")
                     }

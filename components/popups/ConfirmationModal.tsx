@@ -35,11 +35,11 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       zIndexClass="z-[1200]"
       disableOverlayClick={false}
     >
-      <div className="relative px-2 -mt-3 pb-2 -ml-2 flex flex-col items-center">
+      <div className="relative p-5 flex flex-col items-center">
         {/* 🔥 Custom Close Button */}
         <button
           onClick={onClose}
-          className="absolute -right-3 -top-2 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
+          className="absolute right-2 top-1 text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
         >
           <svg
             className="w-5 h-5"

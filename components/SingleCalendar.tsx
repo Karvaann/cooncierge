@@ -50,6 +50,7 @@ export default function SingleCalendar({
   const [inputValue, setInputValue] = useState("");
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [showYearPicker, setShowYearPicker] = useState(false);
+  const [yearPageStart, setYearPageStart] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
   const [lastSelectedDate, setLastSelectedDate] = useState<Date | null>(null);
@@ -194,18 +195,22 @@ export default function SingleCalendar({
     setCurrentMonth(newMonth);
   };
 
+  const navigateYear = (direction: number) => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setFullYear(currentMonth.getFullYear() + direction);
+    setCurrentMonth(newMonth);
+  };
+
   const formatDateForInput = (date: Date | null) => {
     if (!date) return "";
 
     const day = String(date.getDate()).padStart(2, "0");
 
-    const month = date.toLocaleString("en-US", {
-      month: "long",
-    });
+    const month = date.toLocaleString("en-US", { month: "short" });
 
     const year = String(date.getFullYear()).slice(-2);
 
-    return `${day} ${month}'${year}`;
+    return `${day} ${month} '${year}`;
   };
 
   const parseInputDate = (input: string): Date | null => {
@@ -360,10 +365,6 @@ export default function SingleCalendar({
     }
   };
 
-  const formatMonthYear = (date: Date) => {
-    return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
-  };
-
   const handleClearDate = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -401,11 +402,17 @@ export default function SingleCalendar({
     newMonth.setFullYear(year);
     setCurrentMonth(newMonth);
     setShowYearPicker(false);
+    setShowMonthPicker(true);
   };
 
-  // Generate years for year picker (65 years back to 1960 and 10 years forward)
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 76 }, (_, i) => currentYear - 65 + i);
+  const YEAR_BATCH_SIZE = 12;
+  const yearBatchStart =
+    yearPageStart ||
+    Math.floor(currentMonth.getFullYear() / YEAR_BATCH_SIZE) * YEAR_BATCH_SIZE;
+  const years = Array.from(
+    { length: YEAR_BATCH_SIZE },
+    (_, index) => yearBatchStart + index,
+  );
 
   const Calendar = ({ month }: { month: Date }) => {
     const days = getDaysInMonth(month);
@@ -471,11 +478,7 @@ export default function SingleCalendar({
                         ? "text-gray-700 hover:bg-gray-100"
                         : ""
                     }
-                    ${
-                      isCurrentMonth && isToday && !selectedDate
-                        ? "ring-1 ring-green-500 rounded-sm font-bold"
-                        : ""
-                    }
+                    ${isCurrentMonth && isToday ? "ring-1 ring-green-500 rounded-sm font-bold" : ""}
                   `}
                   style={
                     // When calendar is open we show an outlined selected date;
@@ -521,7 +524,35 @@ export default function SingleCalendar({
   );
 
   const YearPicker = () => (
-    <div className="grid grid-cols-4 gap-1 p-2 max-h-[12rem] overflow-y-auto">
+    <div className="p-2">
+      <div className="mb-3 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setYearPageStart((prev) => prev - YEAR_BATCH_SIZE);
+          }}
+          className="rounded px-2 py-1 text-[14px] text-gray-600 transition-colors hover:bg-gray-100"
+        >
+          ‹
+        </button>
+        <div className="text-[12px] font-medium text-gray-700">
+          {years[0]} - {years[years.length - 1]}
+        </div>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setYearPageStart((prev) => prev + YEAR_BATCH_SIZE);
+          }}
+          className="rounded px-2 py-1 text-[14px] text-gray-600 transition-colors hover:bg-gray-100"
+        >
+          ›
+        </button>
+      </div>
+      <div className="grid grid-cols-4 gap-1">
       {years.map((year) => (
         <button
           key={year}
@@ -542,6 +573,7 @@ export default function SingleCalendar({
           {year}
         </button>
       ))}
+      </div>
     </div>
   );
 
@@ -634,38 +666,63 @@ export default function SingleCalendar({
         >
           {/* Calendar navigation */}
           <div className="flex items-center justify-between mb-3">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                navigateMonth(-1);
-              }}
-              className="p-1 hover:bg-gray-100 rounded"
-            >
-              <MdKeyboardArrowLeft size={18} className="text-gray-500" />
-            </button>
-
-            {/* Month/Year header  */}
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  setShowMonthPicker(!showMonthPicker);
-                  setShowYearPicker(false);
+                  if (showYearPicker) {
+                    setYearPageStart((prev) => prev - YEAR_BATCH_SIZE);
+                    return;
+                  }
+                  navigateYear(-1);
                 }}
-                className={`text-[13px] font-medium px-2 py-1 rounded transition-colors ${showMonthPicker ? "text-[#7135AD]" : "text-gray-700 hover:bg-gray-100"}`}
+                className="p-1 hover:bg-gray-100 rounded"
               >
-                {months[currentMonth.getMonth()]}
+                <span className="flex items-center text-gray-500">
+                  <MdKeyboardArrowLeft size={15} />
+                  <MdKeyboardArrowLeft size={15} className="-ml-2" />
+                </span>
               </button>
               <button
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  setShowYearPicker(!showYearPicker);
+                  if (showYearPicker) return;
+                  navigateMonth(-1);
+                }}
+                className={`p-1 rounded ${showYearPicker ? "text-gray-300 cursor-default" : "hover:bg-gray-100"}`}
+                disabled={showYearPicker}
+              >
+                <MdKeyboardArrowLeft size={18} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowMonthPicker(true);
+                  setShowYearPicker(false);
+                }}
+                className={`text-[13px] font-medium px-2 py-1 rounded transition-colors ${showMonthPicker ? "text-[#7135AD]" : "text-gray-700 hover:bg-gray-100"}`}
+              >
+                {currentMonth.toLocaleString("en-US", { month: "short" })}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setYearPageStart(
+                    Math.floor(currentMonth.getFullYear() / YEAR_BATCH_SIZE) *
+                      YEAR_BATCH_SIZE,
+                  );
+                  setShowYearPicker(true);
                   setShowMonthPicker(false);
                 }}
                 className={`text-[13px] font-medium px-2 py-1 rounded transition-colors ${showYearPicker ? "text-[#7135AD]" : "text-gray-700 hover:bg-gray-100"}`}
@@ -674,17 +731,39 @@ export default function SingleCalendar({
               </button>
             </div>
 
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                navigateMonth(1);
-              }}
-              className="p-1 hover:bg-gray-100 rounded"
-            >
-              <MdKeyboardArrowRight size={18} className="text-gray-500" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (showYearPicker) return;
+                  navigateMonth(1);
+                }}
+                className={`p-1 rounded ${showYearPicker ? "text-gray-300 cursor-default" : "hover:bg-gray-100"}`}
+                disabled={showYearPicker}
+              >
+                <MdKeyboardArrowRight size={18} className="text-gray-500" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (showYearPicker) {
+                    setYearPageStart((prev) => prev + YEAR_BATCH_SIZE);
+                    return;
+                  }
+                  navigateYear(1);
+                }}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <span className="flex items-center text-gray-500">
+                  <MdKeyboardArrowRight size={15} />
+                  <MdKeyboardArrowRight size={15} className="-ml-2" />
+                </span>
+              </button>
+            </div>
           </div>
 
           {/* Month Picker */}
