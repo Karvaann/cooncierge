@@ -906,6 +906,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       .filter((v, i, a) => a.indexOf(v) === i);
 
     const customerIds = [
+      ...sanitizeObjectIdList((input as any)?.customerIds),
       ...sanitizeObjectIdList((input as any)?.customerId),
       resolveMongoObjectId(
         input.customer,
@@ -924,18 +925,17 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           },
         ];
 
-    const customerPricing = customerPricingSource
-      .map((entry: any, index: number) => {
-        const customerId = customerIds[index] || customerIds[0];
-        if (!customerId) return null;
+    const customerPricing = customerIds.map(
+      (customerId: string, index: number) => {
+        const entry = customerPricingSource[index] ?? customerPricingSource[0];
         return {
           customerId,
           sellingPrice: numericValue(
             entry?.sellingprice ?? priceInfoForm.sellingprice,
           ),
         };
-      })
-      .filter(Boolean);
+      },
+    );
 
     const formFields = isFlightQuotation
       ? {
