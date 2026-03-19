@@ -256,6 +256,7 @@ interface InputFieldProps {
   onBlur?: (
     e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   readOnly?: boolean;
   disabled?: boolean;
   hasError?: boolean;
@@ -283,6 +284,7 @@ const InputField: React.FC<InputFieldProps> = ({
   isValidating = false,
   isViewMode = false,
   selectedDisplay,
+  onFocus,
 }) => {
   return (
     <div className="relative">
@@ -292,6 +294,7 @@ const InputField: React.FC<InputFieldProps> = ({
         value={value}
         onChange={onChange}
         onBlur={onBlur}
+        onFocus={onFocus}
         placeholder={placeholder}
         required={required}
         min={min}
@@ -2296,31 +2299,31 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                         updateTraveller("adultTravellers", index, value);
 
+                        // Run fuzzy search with no minimum length
                         const results = runFuzzySearch(
                           allTravellers,
                           value,
                           ["name", "customId", "alias", "nickname"],
-                          3,
+                          0,
                         );
-                        if (value.trim() === "") {
-                          setTravellerResults([]);
-                          setActiveTravellerDropdown(null);
-                          return;
-                        }
                         setTravellerResults(results);
-                        if (results.length > 0) {
-                          setActiveTravellerDropdown({
-                            type: "adultTravellers",
-                            index,
-                          });
-                        } else {
-                          setActiveTravellerDropdown(null);
-                          setTravellerResults([]);
-                        }
+                        setActiveTravellerDropdown({
+                          type: "adultTravellers",
+                          index,
+                        });
                       },
                       skipValidation: true,
                     })}
                     readOnly={!!formData.adultTravellerIds?.[index]}
+                    onFocus={() => {
+                      if (isReadOnly) return;
+                      setActiveTravellerDropdown({
+                        type: "adultTravellers",
+                        index,
+                      });
+                      // show staple (TBA)
+                      setTravellerResults([]);
+                    }}
                     selectedDisplay={(() => {
                       const selectedId =
                         formData.adultTravellerIds?.[index] ?? "";
@@ -2367,8 +2370,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                   {/* Traveller Dropdown */}
                   {activeTravellerDropdown?.type === "adultTravellers" &&
-                    activeTravellerDropdown?.index === index &&
-                    travellerResults.length > 0 && (
+                    activeTravellerDropdown?.index === index && (
                       <div className="absolute bg-white border border-gray-200 rounded-md w-full mt-1 max-h-60 overflow-y-auto shadow-md z-50">
                         {travellerResults.map((t: TravellerDataType) => (
                           <div
@@ -2543,32 +2545,30 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         const value = allowTextAndNumbers(e.target.value);
                         updateTraveller("infantTravellers", index, value);
 
-                        // Run fuzzy search
+                        // Run fuzzy search with no min-length restriction
                         const results = runFuzzySearch(
                           allTravellers,
                           value,
                           ["name", "customId", "alias", "nickname"],
-                          3,
+                          0,
                         );
-                        if (value.trim() === "") {
-                          setTravellerResults([]);
-                          setActiveTravellerDropdown(null);
-                          return;
-                        }
                         setTravellerResults(results);
-                        if (results.length > 0) {
-                          setActiveTravellerDropdown({
-                            type: "infantTravellers",
-                            index,
-                          });
-                        } else {
-                          setActiveTravellerDropdown(null);
-                          setTravellerResults([]);
-                        }
+                        setActiveTravellerDropdown({
+                          type: "infantTravellers",
+                          index,
+                        });
                       },
                       skipValidation: true,
                     })}
                     readOnly={!!formData.infantTravellerIds?.[index]}
+                    onFocus={() => {
+                      if (isReadOnly) return;
+                      setActiveTravellerDropdown({
+                        type: "infantTravellers",
+                        index,
+                      });
+                      setTravellerResults([]);
+                    }}
                     selectedDisplay={(() => {
                       const selectedId =
                         formData.infantTravellerIds?.[index] ?? "";
@@ -2607,8 +2607,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                   {/* Traveller Dropdown for Children */}
                   {activeTravellerDropdown?.type === "infantTravellers" &&
-                    activeTravellerDropdown?.index === index &&
-                    travellerResults.length > 0 && (
+                    activeTravellerDropdown?.index === index && (
                       <div className="absolute bg-white border border-gray-200 rounded-md w-full mt-1 max-h-60 overflow-y-auto shadow-md z-50">
                         {travellerResults.map((t: TravellerDataType) => {
                           let rating: number | null = null;

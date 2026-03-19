@@ -1087,6 +1087,45 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       "bookingDate",
       toIsoString(priceInfoForm.bookingdate || flatInfoForm.bookingdate),
     );
+
+    // Status-dependent date fields per Quotation schema
+    const effectiveStatus = String(
+      flatInfoForm.bookingstatus || "",
+    ).toLowerCase();
+    const firstDate = (...candidates: unknown[]) => {
+      for (const c of candidates) {
+        const iso = toIsoString(c);
+        if (iso) return iso;
+      }
+      return "";
+    };
+
+    if (effectiveStatus === "cancelled") {
+      const iso = firstDate(
+        (cancellationFormCandidate as any)?.cancellationDate,
+        (cancellationFormCandidate as any)?.date,
+        flatInfoForm.cancellationDate,
+        formFieldsBase.cancellationDate,
+      );
+      if (iso) bookingDataTemp.append("cancellationDate", iso);
+    }
+
+    if (effectiveStatus === "rescheduled") {
+      const nbd = firstDate(
+        priceInfoForm.newBookingDate,
+        flatInfoForm.newBookingDate,
+        formFieldsBase.newBookingDate,
+        priceInfoForm.bookingdate,
+      );
+      const ntd = firstDate(
+        flatInfoForm.newTravelDate,
+        formFieldsBase.newTravelDate,
+        segments[0]?.traveldate || segments[0]?.travelDate,
+      );
+      if (nbd) bookingDataTemp.append("newBookingDate", nbd);
+      if (ntd) bookingDataTemp.append("newTravelDate", ntd);
+    }
+
     const resolvedCustomerId = customerIds[0] || "";
     const resolvedVendorId = resolveMongoObjectId(
       input.vendor,
