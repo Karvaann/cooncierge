@@ -167,6 +167,7 @@ export default function FlightSegmentCard({
   const [editingData, setEditingData] = useState<Partial<SegmentPreview>>({});
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDate, setPendingDate] = useState<string | null>(null);
+  const [suppressConfirm, setSuppressConfirm] = useState(false);
 
   // Internal API fetch logic
   const API_KEY = process.env.NEXT_PUBLIC_AVIATIONSTACK_KEY ?? "";
@@ -398,11 +399,14 @@ export default function FlightSegmentCard({
               label="Travel Date"
               value={traveldate}
               onChange={(date) => {
-                if (traveldate && traveldate !== date) {
+                const existing = String(traveldate ?? "").trim();
+                if (existing !== "" && existing !== date && !suppressConfirm) {
                   setPendingDate(date);
                   setConfirmOpen(true);
                   return;
                 }
+                // If user changes directly, clear any suppression
+                setSuppressConfirm(false);
                 onTraveldateChange(date);
               }}
               placeholder="DD-MM-YYYY"
@@ -862,14 +866,17 @@ export default function FlightSegmentCard({
       <ConfirmationModal
         isOpen={confirmOpen}
         onClose={() => {
+          // User cancelled — suppress future confirmation prompts for this session
           setConfirmOpen(false);
           setPendingDate(null);
+          setSuppressConfirm(true);
         }}
         onConfirm={() => {
-          // Clear the current travel date so user can pick a new one
+          // User confirmed — clear the current travel date so user can pick a new one
           onTraveldateChange("");
           setConfirmOpen(false);
           setPendingDate(null);
+          setSuppressConfirm(false);
         }}
         title={"Are you sure you want to change the date?"}
         confirmText="Yes"
