@@ -3,7 +3,7 @@ import { clearAuthStorage, getAuthToken } from "@/services/storage/authStorage";
 import { pushToast } from "@/utils/toastService";
 
 const apiClient = axios.create({
-  baseURL: "http://localhost:8080",
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080",
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",
