@@ -52,7 +52,14 @@ const ChooseBookingTypeModal: React.FC<ChooseBookingTypeModalProps> = ({
           pills={[
             {
               label: "Flight",
-              icon: <Image src="/icons/service-icons/flight.svg" alt="Flight" height={15} width={15} />,
+              icon: (
+                <Image
+                  src="/icons/service-icons/flight.svg"
+                  alt="Flight"
+                  height={15}
+                  width={15}
+                />
+              ),
             },
             {
               label: "Accommodation",
@@ -60,44 +67,75 @@ const ChooseBookingTypeModal: React.FC<ChooseBookingTypeModalProps> = ({
                 <Image
                   src="/icons/service-icons/accommodation.svg"
                   alt="Accommodation"
-                   height={15} width={15}
+                  height={15}
+                  width={15}
                 />
               ),
             },
             {
               label: "Transportation",
               icon: (
-                <Image src="/icons/service-icons/transport.svg" alt="Transportation" height={15} width={15} />
+                <Image
+                  src="/icons/service-icons/transport.svg"
+                  alt="Transportation"
+                  height={15}
+                  width={15}
+                />
               ),
             },
             {
               label: "Ticket (Attraction)",
               icon: (
-                <Image src="/icons/service-icons/ticket.svg" alt="Ticket" height={15} width={15} />
+                <Image
+                  src="/icons/service-icons/ticket.svg"
+                  alt="Ticket"
+                  height={15}
+                  width={15}
+                />
               ),
             },
             {
               label: "Activity",
               icon: (
-                <Image src="/icons/service-icons/activity.svg" alt="Activity" height={15} width={15} />
+                <Image
+                  src="/icons/service-icons/activity.svg"
+                  alt="Activity"
+                  height={15}
+                  width={15}
+                />
               ),
             },
             {
               label: "Visas",
               icon: (
-                <Image src="/icons/service-icons/visa-icon-final.svg" alt="Visa" height={15} width={15} />
+                <Image
+                  src="/icons/service-icons/visa-icon-final.svg"
+                  alt="Visa"
+                  height={15}
+                  width={15}
+                />
               ),
             },
             {
               label: "Travel Insurance",
               icon: (
-                <Image src="/icons/service-icons/insurance.svg" alt="Insurance" height={15} width={15} />
+                <Image
+                  src="/icons/service-icons/insurance.svg"
+                  alt="Insurance"
+                  height={15}
+                  width={15}
+                />
               ),
             },
             {
               label: "Others",
               icon: (
-                <Image src="/icons/service-icons/others.svg" alt="Others" height={15} width={15} />
+                <Image
+                  src="/icons/service-icons/others.svg"
+                  alt="Others"
+                  height={15}
+                  width={15}
+                />
               ),
             },
           ]}
