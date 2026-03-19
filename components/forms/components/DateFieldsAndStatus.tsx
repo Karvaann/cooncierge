@@ -142,8 +142,7 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
     }
 
     onBookingStatusChange(v);
-    sync?.setBookingStatus(v);
-    sync?.setBookingStatusSource(fieldOwner);
+    sync.updateBookingStatus(v, fieldOwner);
     prevSyncStatusRef.current = v;
   };
 
@@ -166,8 +165,7 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
     }
 
     onBookingDateChange(date);
-    sync?.setBookingDate(date);
-    sync?.setBookingDateSource(fieldOwner);
+    sync.updateBookingDate(date, fieldOwner);
     prevSyncBookingRef.current = date;
   };
 
@@ -195,8 +193,7 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
     }
 
     onTravelDateChange(date);
-    sync?.setTravelDate(date);
-    sync?.setTravelDateSource(fieldOwner);
+    sync.updateTravelDate(date, fieldOwner);
     prevSyncTravelRef.current = date;
   };
 
@@ -219,22 +216,19 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
 
     if (pendingAction.type === "booking-date") {
       onBookingDateChange(pendingAction.value);
-      sync?.setBookingDate(pendingAction.value);
-      sync?.setBookingDateSource(fieldOwner);
+      sync.updateBookingDate(pendingAction.value, fieldOwner);
       prevSyncBookingRef.current = pendingAction.value;
     }
 
     if (pendingAction.type === "travel-date") {
       onTravelDateChange(pendingAction.value);
-      sync?.setTravelDate(pendingAction.value);
-      sync?.setTravelDateSource(fieldOwner);
+      sync.updateTravelDate(pendingAction.value, fieldOwner);
       prevSyncTravelRef.current = pendingAction.value;
     }
 
     if (pendingAction.type === "status") {
       onBookingStatusChange(pendingAction.value);
-      sync?.setBookingStatus(pendingAction.value);
-      sync?.setBookingStatusSource(fieldOwner);
+      sync.updateBookingStatus(pendingAction.value, fieldOwner);
       prevSyncStatusRef.current = pendingAction.value;
     }
 

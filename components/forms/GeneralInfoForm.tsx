@@ -931,7 +931,16 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
         setAllCustomers(cRes || []);
         setAllVendors(vRes || []);
-        setAllTeams(tRes.data || []);
+        const teams = Array.isArray((tRes as any)?.data)
+          ? ((tRes as any).data as TeamDataType[])
+          : Array.isArray((tRes as any)?.users)
+            ? ((tRes as any).users as TeamDataType[])
+            : Array.isArray((tRes as any)?.data?.data)
+              ? ((tRes as any).data.data as TeamDataType[]) || []
+              : Array.isArray(tRes)
+                ? (tRes as TeamDataType[])
+                : [];
+        setAllTeams(teams);
         setAllTravellers(travellerRes || []);
       } catch (err) {
         // console.error("[GeneralInfoForm] Failed loading lists", err);
@@ -1050,6 +1059,41 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
   // Keep selected secondary owner pills aligned with ids in formData
   useEffect(() => {
+    const normalizeId = (value: unknown): string => {
+      if (!value) return "";
+      if (typeof value === "string") return value.trim();
+      if (typeof value === "object") {
+        const maybeId = (value as any)?._id ?? (value as any)?.id;
+        if (typeof maybeId === "string") return maybeId.trim();
+      }
+      return "";
+    };
+
+    const externalSecondaryOwners: any[] = Array.isArray(
+      (externalFormData as any)?.secondaryOwner,
+    )
+      ? ((externalFormData as any)?.secondaryOwner as any[])
+      : (externalFormData as any)?.secondaryOwner
+        ? [(externalFormData as any)?.secondaryOwner]
+        : [];
+
+    const externalOwners: any[] = Array.isArray(
+      (externalFormData as any)?.owner,
+    )
+      ? (((externalFormData as any)?.owner as any[]) || []).slice(1)
+      : [];
+
+    const externalOwnerNameById = new Map<string, string>();
+    [...externalSecondaryOwners, ...externalOwners].forEach((o) => {
+      const id = normalizeId(o);
+      if (!id) return;
+      const label =
+        String(
+          (o as any)?.name || (o as any)?.nickname || (o as any)?.alias || "",
+        ).trim() || String((o as any)?.email || "").trim();
+      if (label) externalOwnerNameById.set(id, label);
+    });
+
     const idsFromArray: string[] = Array.isArray(
       formData.secondaryBookingOwners,
     )
@@ -1059,21 +1103,46 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       ? [String(formData.secondaryBookingOwner)]
       : [];
 
+    // If formData was wiped (e.g. by strict-mode remount), derive IDs from props directly
+    const externalIds = externalSecondaryOwners
+      .map((o) => normalizeId(o))
+      .filter(Boolean);
+
     const primaryId = String(formData.bookingOwner || "");
-    const uniqueIds = [...idsFromArray, ...fallbackIds]
+    const combinedIds = idsFromArray.length > 0 ? idsFromArray : externalIds;
+    const uniqueIds = [...combinedIds, ...fallbackIds]
       .map((v) => String(v).trim())
       .filter(Boolean)
       .filter((id) => id !== primaryId)
       .filter((id, i, a) => a.indexOf(id) === i);
 
+    if (uniqueIds.length > 0) {
+      setShowSecondaryOwnerField(true);
+    }
+
     setSelectedSecondaryOwners(
       uniqueIds.map((id) => {
-        const match = allTeams.find((t) => t._id === id);
-        return { id, name: match?.name || id };
+        const match = allTeams.find((t) => String(t._id || t.id) === id);
+        const fallbackName = externalOwnerNameById.get(id);
+        return { id, name: match?.name || fallbackName || id };
       }),
     );
+
+    // Also restore formData.secondaryBookingOwners if it was wiped but props have data
+    if (idsFromArray.length === 0 && uniqueIds.length > 0) {
+      setFormData((prev) => {
+        if ((prev.secondaryBookingOwners || []).length > 0) return prev;
+        return {
+          ...prev,
+          secondaryBookingOwners: uniqueIds,
+          secondaryBookingOwner: uniqueIds[0] || "",
+        };
+      });
+    }
   }, [
     allTeams,
+    externalFormData?.secondaryOwner,
+    externalFormData?.owner,
     formData.secondaryBookingOwners,
     formData.secondaryBookingOwner,
     formData.bookingOwner,
@@ -2928,7 +2997,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                         </button>
                         {(() => {
                           const owner = allTeams.find(
-                            (team) => team._id === o.id,
+                            (team) => String(team._id || team.id) === o.id,
                           );
                           return getOwnerPillLabel(owner) || o.name;
                         })()}

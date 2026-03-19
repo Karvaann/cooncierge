@@ -9,18 +9,20 @@ interface BookingFieldSyncContextValue {
   newTravelDate: string;
   bookingDate: string;
   travelDate: string;
+
   bookingStatusSource: string;
   bookingDateSource: string;
   travelDateSource: string;
-  setBookingStatus: (status: string) => void;
+
+  // Atomic setters
+  updateBookingStatus: (status: string, source: string) => void;
+  updateBookingDate: (date: string, source: string) => void;
+  updateTravelDate: (date: string, source: string) => void;
+
+  // These don't need source tracking
   setCancellationDate: (date: string) => void;
   setNewBookingDate: (date: string) => void;
   setNewTravelDate: (date: string) => void;
-  setBookingDate: (date: string) => void;
-  setTravelDate: (date: string) => void;
-  setBookingStatusSource: (source: string) => void;
-  setBookingDateSource: (source: string) => void;
-  setTravelDateSource: (source: string) => void;
 }
 
 const BookingFieldSyncContext =
@@ -37,9 +39,26 @@ export function BookingFieldSyncProvider({
   const [newTravelDate, setNewTravelDate] = useState("");
   const [bookingDate, setBookingDate] = useState("");
   const [travelDate, setTravelDate] = useState("");
+
   const [bookingStatusSource, setBookingStatusSource] = useState("");
   const [bookingDateSource, setBookingDateSource] = useState("");
   const [travelDateSource, setTravelDateSource] = useState("");
+
+  // Atomic updates
+  const updateBookingStatus = (status: string, source: string) => {
+    setBookingStatus(status);
+    setBookingStatusSource(source);
+  };
+
+  const updateBookingDate = (date: string, source: string) => {
+    setBookingDate(date);
+    setBookingDateSource(source);
+  };
+
+  const updateTravelDate = (date: string, source: string) => {
+    setTravelDate(date);
+    setTravelDateSource(source);
+  };
 
   const value = useMemo(
     () => ({
@@ -49,18 +68,18 @@ export function BookingFieldSyncProvider({
       newTravelDate,
       bookingDate,
       travelDate,
+
       bookingStatusSource,
       bookingDateSource,
       travelDateSource,
-      setBookingStatus,
+
+      updateBookingStatus,
+      updateBookingDate,
+      updateTravelDate,
+
       setCancellationDate,
       setNewBookingDate,
       setNewTravelDate,
-      setBookingDate,
-      setTravelDate,
-      setBookingStatusSource,
-      setBookingDateSource,
-      setTravelDateSource,
     }),
     [
       bookingStatus,
@@ -82,6 +101,15 @@ export function BookingFieldSyncProvider({
   );
 }
 
+// Safe hook
 export function useBookingFieldSync() {
-  return useContext(BookingFieldSyncContext);
+  const context = useContext(BookingFieldSyncContext);
+
+  if (!context) {
+    throw new Error(
+      "useBookingFieldSync must be used within BookingFieldSyncProvider",
+    );
+  }
+
+  return context;
 }
