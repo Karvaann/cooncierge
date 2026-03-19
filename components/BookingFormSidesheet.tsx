@@ -1154,16 +1154,35 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     // Always send from infants only
     bookingDataTemp.append("childNumber", String(infants ?? 0));
     bookingDataTemp.append("remarks", remarks ?? "");
-    bookingDocuments.forEach(({ file, category }) => {
-      const targetKey =
-        category === "vendorVoucher"
-          ? "vendorVoucherDocuments"
-          : category === "vendorInvoice"
-            ? "vendorInvoiceDocuments"
-            : "documents";
-      bookingDataTemp.append(targetKey, file);
+    // bookingDocuments.forEach(({ file, category }) => {
+    //   const targetKey =
+    //     category === "vendorVoucher"
+    //       ? "vendorVoucherDocuments"
+    //       : category === "vendorInvoice"
+    //         ? "vendorInvoiceDocuments"
+    //         : "documents";
+    //   bookingDataTemp.append(targetKey, file);
+    // });
+
+    const vendorVoucherFiles = bookingDocuments
+      .filter((d) => d.category === "vendorVoucher")
+      .map((d) => d.file);
+
+    const vendorInvoiceFiles = bookingDocuments
+      .filter((d) => d.category === "vendorInvoice")
+      .map((d) => d.file);
+
+    // Append separately
+    vendorVoucherFiles.forEach((file) => {
+      bookingDataTemp.append("vendorVoucherDocuments", file);
     });
-    bookingDataTemp.append("customId", bookingCodeProp || "");
+
+    vendorInvoiceFiles.forEach((file) => {
+      bookingDataTemp.append("vendorInvoiceDocuments", file);
+    });
+    if (bookingCodeProp) {
+      bookingDataTemp.append("customId", bookingCodeProp);
+    }
 
     return bookingDataTemp;
   }
