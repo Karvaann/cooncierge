@@ -741,11 +741,24 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       amount: unknown,
       currency: unknown,
       exchangeRate: unknown,
-    ) => ({
-      amount: numericValue(amount),
-      currency: String(currency || "INR"),
-      exchangeRate: Number(String(exchangeRate ?? "").replace(/,/g, "")) || 1,
-    });
+      notes?: unknown,
+    ) => {
+      const parsedAmount = numericValue(amount);
+      const parsedExchangeRate =
+        Number(String(exchangeRate ?? "").replace(/,/g, "")) || undefined;
+      const normalizedNotes = String(notes ?? "").trim();
+
+      if (!parsedAmount && !normalizedNotes) {
+        return undefined;
+      }
+
+      return {
+        amount: parsedAmount,
+        currency: String(currency || "INR"),
+        ...(parsedExchangeRate ? { exchangeRate: parsedExchangeRate } : {}),
+        ...(normalizedNotes ? { notes: normalizedNotes } : {}),
+      };
+    };
 
     const mapFlightPreview = (preview: any) => {
       if (!preview || typeof preview !== "object") return undefined;
@@ -905,8 +918,17 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       .filter((v) => isValidMongoObjectId(v))
       .filter((v, i, a) => a.indexOf(v) === i);
 
+    const normalizeObjectIdList = (values: unknown): string[] => {
+      if (!Array.isArray(values)) return [];
+      return values
+        .map((value) => resolveMongoObjectId(value))
+        .filter(Boolean)
+        .filter((value, index, array) => array.indexOf(value) === index);
+    };
+
     const customerIds = [
-      ...sanitizeObjectIdList((input as any)?.customerId),
+      ...normalizeObjectIdList((input as any)?.customerIds),
+      ...normalizeObjectIdList((input as any)?.customerId),
       resolveMongoObjectId(
         input.customer,
         (input as any)?.customerId,
@@ -924,16 +946,41 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
           },
         ];
 
+    const effectiveStatus = String(
+      flatInfoForm.bookingstatus || priceInfoForm.bookingstatus || "",
+    ).toLowerCase();
+
     const customerPricing = customerPricingSource
       .map((entry: any, index: number) => {
-        const customerId = customerIds[index] || customerIds[0];
+        const customerId = customerIds[index];
         if (!customerId) return null;
-        return {
+
+        const currentSelling = mapMoney(
+          entry?.sellingprice ?? priceInfoForm.sellingprice,
+          entry?.sellingCurrency ?? priceInfoForm.sellingCurrency,
+          entry?.sellingRoe ?? priceInfoForm.sellingRoe,
+          entry?.sellingNotes ?? priceInfoForm.sellingNotes,
+        );
+        const refundPaid = mapMoney(
+          entry?.sellingRefundAmount ?? priceInfoForm.sellingRefundAmount,
+          entry?.sellingRefundCurrency ?? priceInfoForm.sellingRefundCurrency,
+          entry?.sellingRefundRoe ?? priceInfoForm.sellingRefundRoe,
+          entry?.sellingRefundNotes ?? priceInfoForm.sellingRefundNotes,
+        );
+
+        const pricingEntry: Record<string, any> = {
           customerId,
-          sellingPrice: numericValue(
-            entry?.sellingprice ?? priceInfoForm.sellingprice,
-          ),
         };
+
+        if (effectiveStatus === "rescheduled") {
+          if (currentSelling) pricingEntry.oldSellingPrice = currentSelling;
+          if (refundPaid) pricingEntry.newSellingPrice = refundPaid;
+        } else {
+          if (currentSelling) pricingEntry.sellingPrice = currentSelling;
+          if (refundPaid) pricingEntry.refundPaid = refundPaid;
+        }
+
+        return Object.keys(pricingEntry).length > 1 ? pricingEntry : null;
       })
       .filter(Boolean);
 
@@ -969,79 +1016,84 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     const mappedPriceInfo = isFlightQuotation
       ? {
           advancedPricing: Boolean(priceInfoForm.showAdvancedPricing),
-          sellingPrice: mapMoney(
-            priceInfoForm.sellingprice,
-            priceInfoForm.sellingCurrency,
-            priceInfoForm.sellingRoe,
-          ),
           costPrice: mapMoney(
             priceInfoForm.costprice,
             priceInfoForm.costCurrency,
             priceInfoForm.costRoe,
+            priceInfoForm.costNotes,
           ),
           vendorInvoiceBase: mapMoney(
             priceInfoForm.vendorBasePrice,
             priceInfoForm.vendorBaseCurrency,
             priceInfoForm.vendorBaseRoe,
+            priceInfoForm.vendorBaseNotes,
           ),
           vendorIncentiveReceived: mapMoney(
             priceInfoForm.vendorIncentiveReceived,
             priceInfoForm.vendorIncentiveCurrency,
             priceInfoForm.vendorIncentiveRoe,
+            priceInfoForm.vendorIncentiveNotes,
           ),
           commissionPayout: mapMoney(
             priceInfoForm.commissionPaid,
             priceInfoForm.commissionCurrency,
             priceInfoForm.commissionRoe,
+            priceInfoForm.commissionNotes,
           ),
           additionalVendorInvoiceBase: mapMoney(
             priceInfoForm.vendorInvoiceRefundAmount,
             priceInfoForm.vendorInvoiceRefundCurrency,
             priceInfoForm.vendorInvoiceRefundRoe,
+            priceInfoForm.vendorInvoiceRefundNotes,
           ),
           refundReceived: mapMoney(
             priceInfoForm.costRefundAmount,
             priceInfoForm.costRefundCurrency,
             priceInfoForm.costRefundRoe,
-          ),
-          refundPaid: mapMoney(
-            priceInfoForm.sellingRefundAmount,
-            priceInfoForm.sellingRefundCurrency,
-            priceInfoForm.sellingRefundRoe,
+            priceInfoForm.costRefundNotes,
           ),
           vendorIncentiveChargeback: mapMoney(
             priceInfoForm.chargebackAmount,
             priceInfoForm.chargebackCurrency,
             priceInfoForm.chargebackRoe,
+            priceInfoForm.chargebackNotes,
           ),
           commissionPayoutChargeback: mapMoney(
             priceInfoForm.commissionRefundAmount,
             priceInfoForm.commissionRefundCurrency,
             priceInfoForm.commissionRefundRoe,
+            priceInfoForm.commissionRefundNotes,
           ),
           additionalCostPrice: mapMoney(
             priceInfoForm.costRefundAmount,
             priceInfoForm.costRefundCurrency,
             priceInfoForm.costRefundRoe,
-          ),
-          additionalSellingPrice: mapMoney(
-            priceInfoForm.sellingRefundAmount,
-            priceInfoForm.sellingRefundCurrency,
-            priceInfoForm.sellingRefundRoe,
+            priceInfoForm.costRefundNotes,
           ),
           additionalVendorIncentiveReceived: mapMoney(
             priceInfoForm.chargebackAmount,
             priceInfoForm.chargebackCurrency,
             priceInfoForm.chargebackRoe,
+            priceInfoForm.chargebackNotes,
           ),
           additionalCommissionPayout: mapMoney(
             priceInfoForm.commissionRefundAmount,
             priceInfoForm.commissionRefundCurrency,
             priceInfoForm.commissionRefundRoe,
+            priceInfoForm.commissionRefundNotes,
           ),
           notes: String(priceInfoForm.remarks || ""),
         }
       : null;
+
+    const cleanedMappedPriceInfo =
+      mappedPriceInfo && typeof mappedPriceInfo === "object"
+        ? Object.fromEntries(
+            Object.entries(mappedPriceInfo).filter(
+              ([, value]) => value !== undefined,
+            ),
+          )
+        : null;
 
     const bookingDataTemp = new FormData();
 
@@ -1055,13 +1107,22 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     bookingDataTemp.append("channel", "B2C");
     bookingDataTemp.append("businessId", businessId._id);
     bookingDataTemp.append("formFields", JSON.stringify(formFields));
-    if (mappedPriceInfo) {
-      bookingDataTemp.append("priceInfo", JSON.stringify(mappedPriceInfo));
+    if (cleanedMappedPriceInfo) {
+      bookingDataTemp.append(
+        "priceInfo",
+        JSON.stringify(cleanedMappedPriceInfo),
+      );
     }
 
     const totalAmountValue =
-      numericValue(priceInfoForm.sellingprice) ||
-      numericValue((input as any).totalAmount);
+      customerPricing.reduce((sum: number, entry: any) => {
+        const amount =
+          entry?.sellingPrice?.amount ??
+          entry?.oldSellingPrice?.amount ??
+          entry?.newSellingPrice?.amount ??
+          0;
+        return sum + (Number(amount) || 0);
+      }, 0) || numericValue((input as any).totalAmount);
     bookingDataTemp.append("totalAmount", String(totalAmountValue));
 
     if (flatInfoForm.bookingstatus && flatInfoForm.bookingstatus !== "") {
@@ -1089,9 +1150,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     );
 
     // Status-dependent date fields per Quotation schema
-    const effectiveStatus = String(
-      flatInfoForm.bookingstatus || "",
-    ).toLowerCase();
     const firstDate = (...candidates: unknown[]) => {
       for (const c of candidates) {
         const iso = toIsoString(c);

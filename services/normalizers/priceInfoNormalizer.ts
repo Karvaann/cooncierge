@@ -6,6 +6,7 @@ interface ApiMoney {
   amount?: number;
   currency?: Currency;
   exchangeRate?: number;
+  notes?: string;
 }
 
 // ================= HELPERS =================
@@ -14,9 +15,14 @@ interface ApiMoney {
 export const extractMoney = (obj?: ApiMoney) => {
   const rawAmount = obj?.amount;
   return {
-    amount: rawAmount ? String(rawAmount) : "",
+    amount:
+      rawAmount === 0 || rawAmount ? String(rawAmount) : "",
     currency: (obj?.currency || "INR") as Currency,
-    roe: obj?.exchangeRate ? String(obj.exchangeRate) : "",
+    roe:
+      obj?.exchangeRate === 0 || obj?.exchangeRate
+        ? String(obj.exchangeRate)
+        : "",
+    notes: obj?.notes ? String(obj.notes) : "",
   };
 };
 
@@ -27,8 +33,16 @@ export const getArray = (primary: any, fallback: any) =>
 // ================= DETECTION =================
 
 export const hasPriceApiSchema = (source: Record<string, any>) => {
-  const pi = source.priceInfo;
-  return pi && typeof pi === "object" && (pi.costPrice || pi.sellingPrice);
+  const pi = source.priceInfo ?? {};
+  return (
+    (pi &&
+      typeof pi === "object" &&
+      (pi.costPrice ||
+        pi.vendorInvoiceBase ||
+        pi.refundReceived ||
+        pi.additionalCostPrice)) ||
+    Array.isArray(source.customerPricing)
+  );
 };
 
 // ================= CORE EXTRACTION =================
@@ -104,21 +118,35 @@ export const resolveAdditionalPricing = ({
 
 export const buildCustomerSellingPrices = (
   source: Record<string, any>,
-  selling: ReturnType<typeof extractMoney>,
+  status: string,
 ) => {
   const customerPricingArr = Array.isArray(source.customerPricing)
     ? source.customerPricing
     : [];
 
-  if (customerPricingArr.length <= 1) return undefined;
+  return customerPricingArr.map((cp: any) => {
+    const primarySelling =
+      status === "rescheduled"
+        ? extractMoney(cp.oldSellingPrice)
+        : extractMoney(cp.sellingPrice);
+    const secondarySelling =
+      status === "rescheduled"
+        ? extractMoney(cp.newSellingPrice)
+        : extractMoney(cp.refundPaid);
 
-  return customerPricingArr.map((cp: any) => ({
-    sellingprice: cp.sellingPrice ? String(cp.sellingPrice) : "",
-    sellingCurrency: selling.currency,
-    sellingRoe: selling.roe,
-    sellingInr: "",
-    sellingNotes: "",
-  }));
+    return {
+      sellingprice: primarySelling.amount,
+      sellingCurrency: primarySelling.currency,
+      sellingRoe: primarySelling.roe,
+      sellingInr: "",
+      sellingNotes: primarySelling.notes,
+      sellingRefundAmount: secondarySelling.amount,
+      sellingRefundCurrency: secondarySelling.currency,
+      sellingRefundRoe: secondarySelling.roe,
+      sellingRefundInr: "",
+      sellingRefundNotes: secondarySelling.notes,
+    };
+  });
 };
 
 // ================= MAIN NORMALIZER =================
@@ -156,10 +184,8 @@ export const normalizePriceInfo = (
     reschedule,
   });
 
-  const sellingPrices = buildCustomerSellingPrices(
-    source,
-    core.selling,
-  );
+  const sellingPrices = buildCustomerSellingPrices(source, status);
+  const primaryCustomerPricing = sellingPrices[0];
 
   // FINAL OBJECT (UNCHANGED LOGIC)
   return {
@@ -175,31 +201,32 @@ export const normalizePriceInfo = (
     costCurrency: core.cost.currency,
     costRoe: core.cost.roe,
     costInr: "",
-    costNotes: "",
+    costNotes: core.cost.notes,
 
-    sellingprice: core.selling.amount,
-    sellingCurrency: core.selling.currency,
-    sellingRoe: core.selling.roe,
+    sellingprice: primaryCustomerPricing?.sellingprice ?? core.selling.amount,
+    sellingCurrency:
+      primaryCustomerPricing?.sellingCurrency ?? core.selling.currency,
+    sellingRoe: primaryCustomerPricing?.sellingRoe ?? core.selling.roe,
     sellingInr: "",
-    sellingNotes: "",
+    sellingNotes: primaryCustomerPricing?.sellingNotes ?? core.selling.notes,
 
     vendorBasePrice: core.vendorBase.amount,
     vendorBaseCurrency: core.vendorBase.currency,
     vendorBaseRoe: core.vendorBase.roe,
     vendorBaseInr: "",
-    vendorBaseNotes: "",
+    vendorBaseNotes: core.vendorBase.notes,
 
     vendorIncentiveReceived: core.vendorIncentive.amount,
     vendorIncentiveCurrency: core.vendorIncentive.currency,
     vendorIncentiveRoe: core.vendorIncentive.roe,
     vendorIncentiveInr: "",
-    vendorIncentiveNotes: "",
+    vendorIncentiveNotes: core.vendorIncentive.notes,
 
     commissionPaid: core.commission.amount,
     commissionCurrency: core.commission.currency,
     commissionRoe: core.commission.roe,
     commissionInr: "",
-    commissionNotes: "",
+    commissionNotes: core.commission.notes,
 
     showAdvancedPricing: Boolean(pi.advancedPricing),
 
@@ -207,32 +234,37 @@ export const normalizePriceInfo = (
     costRefundCurrency: additional.addCost.currency,
     costRefundRoe: additional.addCost.roe,
     costRefundInr: "",
-    costRefundNotes: "",
+    costRefundNotes: additional.addCost.notes,
 
-    sellingRefundAmount: additional.addSelling.amount,
-    sellingRefundCurrency: additional.addSelling.currency,
-    sellingRefundRoe: additional.addSelling.roe,
+    sellingRefundAmount:
+      primaryCustomerPricing?.sellingRefundAmount ?? additional.addSelling.amount,
+    sellingRefundCurrency:
+      primaryCustomerPricing?.sellingRefundCurrency ??
+      additional.addSelling.currency,
+    sellingRefundRoe:
+      primaryCustomerPricing?.sellingRefundRoe ?? additional.addSelling.roe,
     sellingRefundInr: "",
-    sellingRefundNotes: "",
+    sellingRefundNotes:
+      primaryCustomerPricing?.sellingRefundNotes ?? additional.addSelling.notes,
 
     vendorInvoiceRefundAmount: additional.addVendorInvoice.amount,
     vendorInvoiceRefundCurrency: additional.addVendorInvoice.currency,
     vendorInvoiceRefundRoe: additional.addVendorInvoice.roe,
     vendorInvoiceRefundInr: "",
-    vendorInvoiceRefundNotes: "",
+    vendorInvoiceRefundNotes: additional.addVendorInvoice.notes,
 
     chargebackAmount: additional.addVendorIncentive.amount,
     chargebackCurrency: additional.addVendorIncentive.currency,
     chargebackRoe: additional.addVendorIncentive.roe,
     chargebackInr: "",
-    chargebackNotes: "",
+    chargebackNotes: additional.addVendorIncentive.notes,
 
     commissionRefundAmount: additional.addCommission.amount,
     commissionRefundCurrency: additional.addCommission.currency,
     commissionRefundRoe: additional.addCommission.roe,
     commissionRefundInr: "",
-    commissionRefundNotes: "",
+    commissionRefundNotes: additional.addCommission.notes,
 
-    ...(sellingPrices ? { sellingPrices } : {}),
+    ...(sellingPrices.length ? { sellingPrices } : {}),
   };
 };
