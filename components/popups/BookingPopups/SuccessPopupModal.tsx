@@ -47,7 +47,7 @@ const SuccessPopupModal: React.FC<SuccessPopupModalProps> = ({
       showCloseButton={true}
       closeOnOverlayClick={true}
       closeOnEscape={true}
-      className="p-0"
+      className="py-6"
       zIndexClass="z-[1000]"
     >
       <div className="flex flex-col items-center justify-center -mt-4 px-2 py-2">

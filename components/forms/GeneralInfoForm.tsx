@@ -12,7 +12,6 @@ import { CiSearch } from "react-icons/ci";
 import { FiMinus } from "react-icons/fi";
 import { GoPlus } from "react-icons/go";
 import { IoClose } from "react-icons/io5";
-import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { useBooking } from "@/context/BookingContext";
 import Fuse from "fuse.js";
 import { getCustomers, getCustomerById } from "@/services/customerApi";
@@ -24,8 +23,6 @@ import { getTravellers, getTravellerById } from "@/services/travellerApi";
 import DropDown from "@/components/DropDown";
 import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerForm";
 import { allowTextAndNumbers } from "@/utils/inputValidators";
-import { CiCirclePlus } from "react-icons/ci";
-import LoadingSpinner from "@/components/atoms/LoadingSpinner";
 import RemarksField from "@/components/forms/components/RemarksField";
 import RightSideIcons from "@/components/forms/components/RightSideIcons";
 import { getAuthUser } from "@/services/storage/authStorage";
@@ -1792,10 +1789,6 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
       className="space-y-4 px-[10px] py-[28px] relative"
       onSubmit={(e) => e.preventDefault()}
     >
-      {isLoadingLists && (isReadOnly || hasInitialData) && (
-        <LoadingSpinner overlay size="lg" message="Loading form data..." />
-      )}
-
       {/* Customer Section */}
       <div className="border border-gray-200 rounded-[15px] p-3.5">
         <h2 className="text-[12px] text-[#020202] font-[500] mb-2">
