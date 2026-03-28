@@ -979,7 +979,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
               <div className="relative">
                 <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-green-400">
-                  <span className="text-gray-500 mr-2 text-[13px]">{getStoredCurrencySymbol()}</span>
+                  <span className="text-gray-500 mr-2 text-[13px]">
+                    {getStoredCurrencySymbol()}
+                  </span>
                   <input
                     type="text"
                     value={balanceAmount}
@@ -1004,11 +1006,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 <div className="absolute right-3 top-2 text-sm font-medium">
                   {balanceType === "debit" ? (
                     <span className=" text-green-500 text-[13px]">
-                      Customer pays you {getStoredCurrencySymbol()} {balanceAmount || ""}
+                      Customer pays you {getStoredCurrencySymbol()}{" "}
+                      {balanceAmount || ""}
                     </span>
                   ) : (
                     <span className="text-red-500 text-[13px]">
-                      You pay the customer {getStoredCurrencySymbol()} {balanceAmount || ""}
+                      You pay the customer {getStoredCurrencySymbol()}{" "}
+                      {balanceAmount || ""}
                     </span>
                   )}
                 </div>
@@ -1027,7 +1031,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       label: (
                         <div className="flex items-center gap-2">
                           <img
-                            src="/icons/tier-1.png"
+                            src="/icons/tier-1.svg"
                             alt="Tier 1"
                             className="w-5 h-5"
                           />
@@ -1040,7 +1044,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       label: (
                         <div className="flex items-center gap-2">
                           <img
-                            src="/icons/tier-2.png"
+                            src="/icons/tier-2.svg"
                             alt="Tier 2"
                             className="w-5 h-5"
                           />
@@ -1053,7 +1057,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       label: (
                         <div className="flex items-center gap-2">
                           <img
-                            src="/icons/tier-3.png"
+                            src="/icons/tier-3.svg"
                             alt="Tier 3"
                             className="w-5 h-5"
                           />
@@ -1066,7 +1070,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       label: (
                         <div className="flex items-center gap-2">
                           <img
-                            src="/icons/tier-4.png"
+                            src="/icons/tier-4.svg"
                             alt="Tier 4"
                             className="w-5 h-5"
                           />
@@ -1079,7 +1083,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       label: (
                         <div className="flex items-center gap-2">
                           <img
-                            src="/icons/tier-5.png"
+                            src="/icons/tier-5.svg"
                             alt="Tier 5"
                             className="w-5 h-5"
                           />

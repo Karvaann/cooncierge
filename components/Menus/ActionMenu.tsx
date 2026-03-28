@@ -48,7 +48,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({ actions, width, right }) => {
     >
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="p-1.5 hover:bg-gray-100 border border-gray-200 rounded-sm transition-colors"
+        className="p-1.5 hover:bg-gray-100 border border-gray-200 rounded-[8px] transition-colors"
         aria-label="More actions"
       >
         <PiDotsThreeBold className="w-4.5 h-4.5 text-[#414141]" />
@@ -58,20 +58,20 @@ const ActionMenu: React.FC<ActionMenuProps> = ({ actions, width, right }) => {
         <div
           className={`
             absolute ${menuRightClass} top-1/2 -translate-y-1/2
-            bg-white border border-gray-200 rounded-md shadow-xl 
+            bg-white border border-gray-200 rounded-[15px] shadow-xl 
             ${menuWidthClass} z-20
           `}
         >
           <div
-            className={`
-              absolute
-              -right-2
-              top-1/2 -translate-y-1/2
-              w-3 h-3
-              bg-white
-              border-t border-r border-gray-200
-              rotate-45
-            `}
+          // className={`
+          //   absolute
+          //   -right-2
+          //   top-1/2 -translate-y-1/2
+          //   w-3 h-3
+          //   bg-white
+          //   border-t border-r border-gray-200
+          //   rotate-45
+          // `}
           ></div>
 
           {/* Menu items */}
@@ -84,8 +84,8 @@ const ActionMenu: React.FC<ActionMenuProps> = ({ actions, width, right }) => {
                     setIsOpen(false);
                   }}
                   className={`
-                    flex items-center gap-1 px-2 py-0.5 
-  hover:bg-gray-50 transition-colors
+                    flex items-center gap-1 px-2 py-1 
+  hover:cursor-pointer transition-colors
   whitespace-nowrap
   ${action.color ?? "text-gray-700"}
                   `}
@@ -98,9 +98,9 @@ const ActionMenu: React.FC<ActionMenuProps> = ({ actions, width, right }) => {
                   <span className="font-medium">{action.label}</span>
                 </button>
 
-                {index < actions.length - 1 && (
+                {/* {index < actions.length - 1 && (
                   <hr className="my-1 border-t border-gray-200" />
-                )}
+                )} */}
               </React.Fragment>
             ))}
           </div>
