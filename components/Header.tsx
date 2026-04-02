@@ -183,8 +183,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen, setIsOpen }) => {
 
   const dropdownClasses = useMemo(
     () =>
-      `absolute right-0 top-full mt-4 -mr-3 w-70 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden transition-all duration-300 ease-in-out ${
-        isDropDownOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+      `absolute right-0 top-full mt-4 -mr-3 w-70 bg-white rounded-xl shadow-xl border border-gray-200 z-50 overflow-hidden transition-all duration-300 ease-in-out ${isDropDownOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
       }`,
     [isDropDownOpen],
   );
@@ -198,7 +197,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen, setIsOpen }) => {
     <>
       <header className="sticky top-0 z-30">
         {/* Header Main Row */}
-        <div className="flex items-center justify-between px-7 py-8">
+        <div className="flex items-center justify-between px-7 py-6">
 
           <div className="flex items-center gap-[22px]">
             <div onClick={() => setIsOpen(!_isOpen)}>
@@ -328,7 +327,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen, setIsOpen }) => {
         </div>
 
         {/* Breadcrumb Row */}
-        
+
 
         <RaiseRequestModal
           isOpen={isRaiseRequestModalOpen}

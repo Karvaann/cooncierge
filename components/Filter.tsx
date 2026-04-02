@@ -715,7 +715,7 @@ const Filter: React.FC<FilterProps> = ({
           </div>
         )}
         </div>
-        <div className="flex w-2/7 items-center gap-3">
+        <div className="flex w-4/13 items-center gap-3">
           {/* Search */}
           <div className="w-full min-w-0">
             <div

@@ -304,7 +304,7 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
           {bookingstatus?.toLowerCase() === "rescheduled" && (
             <div className="flex items-end flex-wrap gap-2 mb-5 mt-[14px]">
               <SingleCalendar
-                label="New Booking Date"
+                label="Reschedule Booking Date"
                 value={sync?.newBookingDate || ""}
                 onChange={handleNewBookingDateChange}
                 placeholder="Select Date"
@@ -313,7 +313,7 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
               />
 
               <SingleCalendar
-                label="New Travel Date"
+                label="Reschedule Travel Date"
                 value={sync?.newTravelDate || ""}
                 onChange={handleNewTravelDateChange}
                 placeholder="Select Date"

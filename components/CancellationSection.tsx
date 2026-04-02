@@ -142,10 +142,10 @@ const CancellationSection: React.FC<CancellationSectionProps> = ({
             <h4 className="text-[13px] font-[500] text-[#414141] mb-3">
               Vendor Payment Summary
             </h4>
-            <div className="border border-[#E2E1E1] overflow-hidden">
+            <div className="border border-[#E2E1E1] rounded-[14px] overflow-hidden">
               {/* (Cost) */}
               <div className="grid grid-cols-[280px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
+                <div className="bg-[#F9F9F9] border-r border-b border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
                   Cost Price
                 </div>
                 <div className="p-4 border-b border-[#E2E1E1]">
@@ -259,7 +259,7 @@ const CancellationSection: React.FC<CancellationSectionProps> = ({
             <h4 className="text-[13px] font-[500] text-[#414141] mb-3">
               Vendor Payment Summary
             </h4>
-            <div className="border border-[#E2E1E1] overflow-hidden">
+            <div className="border border-[#E2E1E1]  rounded-[14px] overflow-hidden">
               <>
                 {/* ADVANCED PRICING: Vendor Base Price */}
 
@@ -678,12 +678,12 @@ const CancellationSection: React.FC<CancellationSectionProps> = ({
           Customer Revenue Summary
         </h4>
 
-        <div className="border border-[#E2E1E1] overflow-hidden">
+        <div className="border border-[#E2E1E1] rounded-[14px] overflow-hidden">
           {sellingPrices.map((sp, i) => (
             <React.Fragment key={i}>
               {/* Selling Price */}
               <div className="grid grid-cols-[280px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
+                <div className="bg-[#F9F9F9] border-r border-b border-[#E2E1E1] flex items-center justify-center text-[13px] font-medium text-[#414141]">
                   {customerCount > 1
                     ? `Selling Price (${displayCustomerLabel(i)})`
                     : "Selling Price"}

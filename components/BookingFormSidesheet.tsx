@@ -1702,7 +1702,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         width="xl"
         zIndex={900}
       >
-        <div className="relative h-full">
+        <div className="relative flex h-full flex-col">
           {(mode === "view" || isEditingExisting) &&
             (isOpening || isLoadingData) && (
               <LoadingSpinner
@@ -1716,7 +1716,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                 }
               />
             )}
-          <div className="flex flex-col h-full">
+          <div className="flex h-full min-h-0 flex-col">
             {/* Tabs - Fixed at top */}
             <div
               className="absolute top-0 left-0 right-0 z-10 pt-[16px] mb-[16px] flex w-full space-x-0 bg-white"
@@ -1730,7 +1730,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
             {/* Tab Content - Scrollable with padding for fixed header and footer */}
             <div
-              className="overflow-y-auto mt-[18px] pt-7 pb-8"
+              className="mt-[18px] flex-1 overflow-y-auto pt-7 pb-8 min-h-0"
               role="tabpanel"
             >
               {/* dont unmount General Info */}

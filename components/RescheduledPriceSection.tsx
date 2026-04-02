@@ -323,10 +323,10 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
             <h4 className="text-[13px] font-[500] text-[#414141] mb-3">
               Vendor Payment Summary
             </h4>
-            <div className="border border-[#E2E1E1] overflow-hidden">
+            <div className="border border-[#E2E1E1] rounded-[14px] overflow-hidden">
               {/* (Cost) */}
               <div className="grid grid-cols-[280px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
+                <div className="bg-[#F9F9F9] border-r border-b border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
                   Old Cost Price
                   {displayBookingDate ? (
                     <div className="mt-1 text-[12px] border border-[#E2E1E1] text-[#414141] rounded-[8px] bg-white px-2 py-0.5">
@@ -456,7 +456,7 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
             <h4 className="text-[13px] font-[500] text-[#414141] mb-3">
               Vendor Payment Summary
             </h4>
-            <div className="border border-[#E2E1E1] overflow-hidden">
+            <div className="border border-[#E2E1E1] rounded-[14px] overflow-hidden">
               <>
                 {/* ADVANCED PRICING: Vendor Base Price */}
 
@@ -951,12 +951,12 @@ const RescheduledPriceSection: React.FC<RescheduledPriceSectionProps> = ({
           Customer Revenue Summary
         </h4>
 
-        <div className="border border-[#E2E1E1] overflow-hidden">
+        <div className="border border-[#E2E1E1] rounded-[14px] overflow-hidden">
           {rescheduledSellingPrices.map((sp, idx) => (
             <React.Fragment key={idx}>
               {/* Old Selling Price */}
               <div className="grid grid-cols-[280px_1fr]">
-                <div className="bg-[#F9F9F9] border-r border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
+                <div className="bg-[#F9F9F9] border-r border-b border-[#E2E1E1] flex flex-col items-center justify-center text-[13px] font-medium text-[#414141]">
                   Old Selling Price
                   {rescheduledSellingPrices.length > 1
                     ? ` (Customer ${idx + 1})`
