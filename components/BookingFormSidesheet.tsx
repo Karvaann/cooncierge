@@ -652,6 +652,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       bookingOwner,
       secondaryBookingOwner,
       secondaryBookingOwners,
+      serviceStatus: _existingServiceStatus,
       ...rest
     } = input;
 
@@ -659,28 +660,64 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       String(quotationType).toLowerCase() === "travel" ||
       String(quotationType).toLowerCase() === "flight";
 
-    const flightInfoForm =
-      typeof input.flightinfoform === "object"
-        ? { ...input.flightinfoform }
+    const normalizeServiceKey = (value: string) => {
+      const v = String(value || "").toLowerCase().trim();
+      const map: Record<string, string> = {
+        flight: "travel",
+        flights: "travel",
+        travel: "travel",
+        accommodation: "accommodation",
+        hotel: "accommodation",
+        hotels: "accommodation",
+        "transport-land": "transport-land",
+        "land-transport": "transport-land",
+        land: "transport-land",
+        car: "transport-land",
+        transportation: "transport-land",
+        maritime: "transport-maritime",
+        "transport-maritime": "transport-maritime",
+        tickets: "tickets",
+        ticket: "tickets",
+        activity: "activity",
+        activities: "activity",
+        insurance: "travel insurance",
+        "travel insurance": "travel insurance",
+        visa: "visas",
+        visas: "visas",
+        others: "others",
+        limitless: "limitless",
+      };
+      return map[v] || v;
+    };
+
+    const infoFormKeyByService: Record<string, string> = {
+      travel: "flightinfoform",
+      accommodation: "accommodationinfoform",
+      "transport-land": "landtransportinfoform",
+      "transport-maritime": "maritimeinfoform",
+      tickets: "ticketsinfoform",
+      activity: "activityinfoform",
+      "travel insurance": "insuranceinfoform",
+      visas: "visainfoform",
+      others: "othersinfoform",
+      limitless: "limitlessinfoform",
+    };
+
+    const normalizedQuotationType = normalizeServiceKey(quotationType);
+
+    const selectedInfoFormKey = infoFormKeyByService[normalizedQuotationType];
+    const selectedInfoForm =
+      selectedInfoFormKey && typeof input[selectedInfoFormKey] === "object"
+        ? { ...input[selectedInfoFormKey] }
         : {};
     const priceInfoForm =
       typeof input.priceinfoform === "object" ? { ...input.priceinfoform } : {};
 
-    const infoFormKey = Object.keys(input).find((k) =>
-      k.toLowerCase().endsWith("infoform"),
-    );
-    const fallbackInfoForm =
-      infoFormKey && typeof input[infoFormKey] === "object"
-        ? { ...input[infoFormKey] }
-        : {};
-    const flatInfoForm =
-      Object.keys(flightInfoForm).length > 0
-        ? flightInfoForm
-        : fallbackInfoForm;
+    const flatInfoForm = selectedInfoForm;
 
     const formFieldsBase = Object.fromEntries(
       Object.entries(rest).filter(
-        ([key]) => key !== infoFormKey && key !== "priceinfoform",
+        ([key]) => !key.toLowerCase().endsWith("infoform") && key !== "priceinfoform",
       ),
     );
 
@@ -984,6 +1021,99 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       })
       .filter(Boolean);
 
+    const mappedPriceInfo = {
+      advancedPricing: Boolean(priceInfoForm.showAdvancedPricing),
+      costPrice: mapMoney(
+        priceInfoForm.costprice,
+        priceInfoForm.costCurrency,
+        priceInfoForm.costRoe,
+        priceInfoForm.costNotes,
+      ),
+      vendorInvoiceBase: mapMoney(
+        priceInfoForm.vendorBasePrice,
+        priceInfoForm.vendorBaseCurrency,
+        priceInfoForm.vendorBaseRoe,
+        priceInfoForm.vendorBaseNotes,
+      ),
+      vendorIncentiveReceived: mapMoney(
+        priceInfoForm.vendorIncentiveReceived,
+        priceInfoForm.vendorIncentiveCurrency,
+        priceInfoForm.vendorIncentiveRoe,
+        priceInfoForm.vendorIncentiveNotes,
+      ),
+      commissionPayout: mapMoney(
+        priceInfoForm.commissionPaid,
+        priceInfoForm.commissionCurrency,
+        priceInfoForm.commissionRoe,
+        priceInfoForm.commissionNotes,
+      ),
+      additionalVendorInvoiceBase: mapMoney(
+        priceInfoForm.vendorInvoiceRefundAmount,
+        priceInfoForm.vendorInvoiceRefundCurrency,
+        priceInfoForm.vendorInvoiceRefundRoe,
+        priceInfoForm.vendorInvoiceRefundNotes,
+      ),
+      refundReceived: mapMoney(
+        priceInfoForm.costRefundAmount,
+        priceInfoForm.costRefundCurrency,
+        priceInfoForm.costRefundRoe,
+        priceInfoForm.costRefundNotes,
+      ),
+      vendorIncentiveChargeback: mapMoney(
+        priceInfoForm.chargebackAmount,
+        priceInfoForm.chargebackCurrency,
+        priceInfoForm.chargebackRoe,
+        priceInfoForm.chargebackNotes,
+      ),
+      commissionPayoutChargeback: mapMoney(
+        priceInfoForm.commissionRefundAmount,
+        priceInfoForm.commissionRefundCurrency,
+        priceInfoForm.commissionRefundRoe,
+        priceInfoForm.commissionRefundNotes,
+      ),
+      additionalCostPrice: mapMoney(
+        priceInfoForm.costRefundAmount,
+        priceInfoForm.costRefundCurrency,
+        priceInfoForm.costRefundRoe,
+        priceInfoForm.costRefundNotes,
+      ),
+      additionalVendorIncentiveReceived: mapMoney(
+        priceInfoForm.chargebackAmount,
+        priceInfoForm.chargebackCurrency,
+        priceInfoForm.chargebackRoe,
+        priceInfoForm.chargebackNotes,
+      ),
+      additionalCommissionPayout: mapMoney(
+        priceInfoForm.commissionRefundAmount,
+        priceInfoForm.commissionRefundCurrency,
+        priceInfoForm.commissionRefundRoe,
+        priceInfoForm.commissionRefundNotes,
+      ),
+      notes: String(priceInfoForm.remarks || ""),
+    };
+
+    const rawFlatInfoForm = flatInfoForm as Record<string, any>;
+    const {
+      serviceStatus: _formFieldServiceStatus,
+      ...baseSanitizedFlatInfoForm
+    } = rawFlatInfoForm;
+
+    const sanitizedFlatInfoForm =
+      normalizedQuotationType === "visas"
+        ? {
+            ...baseSanitizedFlatInfoForm,
+            bookingdate:
+              rawFlatInfoForm.bookingdate || priceInfoForm.bookingdate || "",
+            traveldate:
+              rawFlatInfoForm.traveldate || priceInfoForm.traveldate || "",
+            ...(rawFlatInfoForm.visaStatus
+              ? { serviceStatus: rawFlatInfoForm.visaStatus }
+              : rawFlatInfoForm.serviceStatus
+                ? { serviceStatus: rawFlatInfoForm.serviceStatus }
+                : {}),
+          }
+        : baseSanitizedFlatInfoForm;
+
     const formFields = isFlightQuotation
       ? {
           pnr: String(flatInfoForm.PNR || flatInfoForm.pnr || "").trim(),
@@ -1010,81 +1140,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         }
       : {
           ...formFieldsBase,
-          ...flatInfoForm,
+          ...sanitizedFlatInfoForm,
         };
-
-    const mappedPriceInfo = isFlightQuotation
-      ? {
-          advancedPricing: Boolean(priceInfoForm.showAdvancedPricing),
-          costPrice: mapMoney(
-            priceInfoForm.costprice,
-            priceInfoForm.costCurrency,
-            priceInfoForm.costRoe,
-            priceInfoForm.costNotes,
-          ),
-          vendorInvoiceBase: mapMoney(
-            priceInfoForm.vendorBasePrice,
-            priceInfoForm.vendorBaseCurrency,
-            priceInfoForm.vendorBaseRoe,
-            priceInfoForm.vendorBaseNotes,
-          ),
-          vendorIncentiveReceived: mapMoney(
-            priceInfoForm.vendorIncentiveReceived,
-            priceInfoForm.vendorIncentiveCurrency,
-            priceInfoForm.vendorIncentiveRoe,
-            priceInfoForm.vendorIncentiveNotes,
-          ),
-          commissionPayout: mapMoney(
-            priceInfoForm.commissionPaid,
-            priceInfoForm.commissionCurrency,
-            priceInfoForm.commissionRoe,
-            priceInfoForm.commissionNotes,
-          ),
-          additionalVendorInvoiceBase: mapMoney(
-            priceInfoForm.vendorInvoiceRefundAmount,
-            priceInfoForm.vendorInvoiceRefundCurrency,
-            priceInfoForm.vendorInvoiceRefundRoe,
-            priceInfoForm.vendorInvoiceRefundNotes,
-          ),
-          refundReceived: mapMoney(
-            priceInfoForm.costRefundAmount,
-            priceInfoForm.costRefundCurrency,
-            priceInfoForm.costRefundRoe,
-            priceInfoForm.costRefundNotes,
-          ),
-          vendorIncentiveChargeback: mapMoney(
-            priceInfoForm.chargebackAmount,
-            priceInfoForm.chargebackCurrency,
-            priceInfoForm.chargebackRoe,
-            priceInfoForm.chargebackNotes,
-          ),
-          commissionPayoutChargeback: mapMoney(
-            priceInfoForm.commissionRefundAmount,
-            priceInfoForm.commissionRefundCurrency,
-            priceInfoForm.commissionRefundRoe,
-            priceInfoForm.commissionRefundNotes,
-          ),
-          additionalCostPrice: mapMoney(
-            priceInfoForm.costRefundAmount,
-            priceInfoForm.costRefundCurrency,
-            priceInfoForm.costRefundRoe,
-            priceInfoForm.costRefundNotes,
-          ),
-          additionalVendorIncentiveReceived: mapMoney(
-            priceInfoForm.chargebackAmount,
-            priceInfoForm.chargebackCurrency,
-            priceInfoForm.chargebackRoe,
-            priceInfoForm.chargebackNotes,
-          ),
-          additionalCommissionPayout: mapMoney(
-            priceInfoForm.commissionRefundAmount,
-            priceInfoForm.commissionRefundCurrency,
-            priceInfoForm.commissionRefundRoe,
-            priceInfoForm.commissionRefundNotes,
-          ),
-          notes: String(priceInfoForm.remarks || ""),
-        }
-      : null;
 
     const cleanedMappedPriceInfo =
       mappedPriceInfo && typeof mappedPriceInfo === "object"
@@ -1102,6 +1159,8 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
       ? "flight"
       : quotationType === "accommodation"
         ? "hotel"
+        : quotationType === "visas"
+          ? "visa"
         : quotationType;
     bookingDataTemp.append("quotationType", mappedQuotationType);
     bookingDataTemp.append("channel", "B2C");
@@ -1142,7 +1201,9 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     bookingDataTemp.append("owner", JSON.stringify(legacyOwnerIds));
     bookingDataTemp.append(
       "travelDate",
-      toIsoString(traveldate || flatInfoForm.traveldate),
+      toIsoString(
+        traveldate || flatInfoForm.traveldate || priceInfoForm.traveldate,
+      ),
     );
     bookingDataTemp.append(
       "bookingDate",
@@ -1285,9 +1346,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     };
 
     const selectedServiceValue =
-      typeof selectedService === "string"
+      serviceOverride ||
+      (typeof selectedService === "string"
         ? selectedService
-        : (selectedService as any)?.category;
+        : (selectedService as any)?.category);
 
     const quotationTypeForDraft =
       selectedServiceValue ||
@@ -1376,6 +1438,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     }
   }, [
     selectedService,
+    serviceOverride,
     collectAllFormData,
     onClose,
     bookingDocuments,
@@ -1394,9 +1457,10 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
         ...currentFormData,
       };
       const selectedServiceValue =
-        typeof selectedService === "string"
+        serviceOverride ||
+        (typeof selectedService === "string"
           ? selectedService
-          : (selectedService as any)?.category;
+          : (selectedService as any)?.category);
 
       const quotationTypeForSubmit =
         selectedServiceValue ||
@@ -1492,6 +1556,7 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
     }
   }, [
     selectedService,
+    serviceOverride,
     collectAllFormData,
     onClose,
     convertToBookingData,

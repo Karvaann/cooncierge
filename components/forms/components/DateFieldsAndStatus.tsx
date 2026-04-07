@@ -33,6 +33,8 @@ interface DateFieldsAndStatusProps {
   traveldate: string;
   bookingstatus: string;
   cancellationDate?: string;
+  rescheduledBookingDateLabel?: string;
+  rescheduledTravelDateLabel?: string;
   fieldOwner?: string;
   userNickname?: string;
   onBookingDateChange: (date: string) => void;
@@ -49,6 +51,8 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
   traveldate,
   bookingstatus,
   cancellationDate,
+  rescheduledBookingDateLabel = "Reschedule Booking Date",
+  rescheduledTravelDateLabel = "Reschedule Travel Date",
   fieldOwner = "shared",
   userNickname,
   onBookingDateChange,
@@ -304,7 +308,7 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
           {bookingstatus?.toLowerCase() === "rescheduled" && (
             <div className="flex items-end flex-wrap gap-2 mb-5 mt-[14px]">
               <SingleCalendar
-                label="Reschedule Booking Date"
+                label={rescheduledBookingDateLabel}
                 value={sync?.newBookingDate || ""}
                 onChange={handleNewBookingDateChange}
                 placeholder="Select Date"
@@ -313,7 +317,7 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
               />
 
               <SingleCalendar
-                label="Reschedule Travel Date"
+                label={rescheduledTravelDateLabel}
                 value={sync?.newTravelDate || ""}
                 onChange={handleNewTravelDateChange}
                 placeholder="Select Date"

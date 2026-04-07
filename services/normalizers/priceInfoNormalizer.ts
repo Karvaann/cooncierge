@@ -47,7 +47,7 @@ export const hasPriceApiSchema = (source: Record<string, any>) => {
 
 // ================= CORE EXTRACTION =================
 
-export const extractCorePricing = (pi: Record<string, any>) => {
+export const extractCorePricing = (pi: Record<string, any> = {}) => {
   return {
     cost: extractMoney(pi.costPrice),
     selling: extractMoney(pi.sellingPrice),
@@ -57,7 +57,7 @@ export const extractCorePricing = (pi: Record<string, any>) => {
   };
 };
 
-export const extractRefundPricing = (pi: Record<string, any>) => {
+export const extractRefundPricing = (pi: Record<string, any> = {}) => {
   return {
     refundReceived: extractMoney(pi.refundReceived),
     refundPaid: extractMoney(pi.refundPaid),
@@ -71,7 +71,7 @@ export const extractRefundPricing = (pi: Record<string, any>) => {
   };
 };
 
-export const extractReschedulePricing = (pi: Record<string, any>) => {
+export const extractReschedulePricing = (pi: Record<string, any> = {}) => {
   return {
     additionalCost: extractMoney(pi.additionalCostPrice),
     additionalSelling: extractMoney(pi.additionalSellingPrice),
@@ -167,7 +167,7 @@ export const normalizePriceInfo = (
     return fields;
   }
 
-  const pi = source.priceInfo;
+  const pi = source.priceInfo ?? {};
 
   // Extract all groups
   const core = extractCorePricing(pi);

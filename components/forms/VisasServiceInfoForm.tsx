@@ -1,848 +1,765 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
-import { validateOtherServiceInfoForm } from "@/services/bookingApi";
-import { MdOutlineFileUpload } from "react-icons/md";
-import { FiTrash2 } from "react-icons/fi";
-import { useRef } from "react";
-import StyledDescription from "../StyledDescription";
+import React, { useEffect, useMemo, useState } from "react";
+import DateFieldsAndStatus from "@/components/forms/components/DateFieldsAndStatus";
+import Documents from "@/components/forms/components/Documents";
+import type {
+  DocumentCategory,
+  ExistingDocument,
+} from "@/components/forms/components/Documents";
+import RemarksField from "@/components/forms/components/RemarksField";
 import DropDown from "@/components/DropDown";
-import SingleCalendar from "@/components/SingleCalendar";
-import { FaRegFolder } from "react-icons/fa";
-import CancellationModal, {
-  CancellationModalFormState,
-} from "../Modals/CancellationModal";
-import AmountSection from "../AmountSection";
-import { getDefaultShowAdvancedPricing } from "@/utils/advancedPricing";
-import { allowUppercaseAlphanumeric6 } from "@/utils/inputValidators";
+import { IoChevronDown, IoChevronForward } from "react-icons/io5";
+import { LuBadgeInfo } from "react-icons/lu";
 
-// Type definitions
-interface OtherServiceInfoFormData {
-  bookingdate: string;
-  traveldate: string; // This can be the main/first travel date
-  bookingstatus: "Confirmed" | "Canceled" | "In Progress" | string;
-  costprice: number | string;
-  sellingprice: number | string;
-  confirmationNumber: number | string;
-  title: string;
-  description: string;
-  documents?: string | File;
-  remarks: string;
-  showAdvancedPricing?: boolean;
-  vendorBasePrice?: number | string;
-  vendorIncentiveReceived?: number | string;
-  commissionPaid?: number | string;
-  cancellationForm?: CancellationModalFormState;
+interface CustomerScopedValue {
+  label: string;
+  value: string;
 }
 
-interface ValidationErrors {
-  [key: string]: string;
+interface VisaServiceInfoFormData {
+  bookingdate: string;
+  traveldate: string;
+  bookingstatus: "confirmed" | "cancelled" | "rescheduled" | string;
+  cancellationDate?: string;
+  newBookingDate?: string;
+  newTravelDate?: string;
+  destination: string;
+  nationality: string;
+  visaStatus: "drafted" | "applied" | "approved" | "rejected" | string;
+  visaType: string;
+  description: string;
+  applicantNumbers?: CustomerScopedValue[];
+  visaNumbers?: CustomerScopedValue[];
+  remarks: string;
 }
 
 interface ExternalFormData {
-  formFields?: Partial<OtherServiceInfoFormData>;
-  visainfoform?: Partial<OtherServiceInfoFormData>;
+  formFields?: Partial<VisaServiceInfoFormData>;
+  visainfoform?: Partial<VisaServiceInfoFormData>;
 }
 
-interface OtherInfoFormProps {
-  onSubmit?: (data: OtherServiceInfoFormData) => void;
+interface VisasServiceInfoFormProps {
+  onSubmit?: (data: VisaServiceInfoFormData) => void;
   isSubmitting?: boolean;
   isReadOnly?: boolean;
   showValidation?: boolean;
-  formRef?: React.RefObject<HTMLDivElement | null>;
+  formRef?: React.RefObject<HTMLDivElement | HTMLFormElement | null>;
   onFormDataUpdate: (data: any) => void;
-  onAddDocuments?: (files: File[]) => void;
-  onRemoveDocuments?: (files: File[]) => void;
+  onAddDocuments?: (files: File[], category?: DocumentCategory | string) => void;
+  onRemoveDocuments?: (
+    files: File[],
+    category?: DocumentCategory | string,
+  ) => void;
   externalFormData?: ExternalFormData | Record<string, unknown>;
-  existingDocuments?: Array<{
-    originalName?: string;
-    fileName?: string;
-    url?: string;
-    key?: string;
-    size?: number;
-    mimeType?: string;
-    uploadedAt?: string | Date;
-    _id?: string;
-  }>;
+  bookingCode?: string;
+  generalInfoData?: Record<string, any>;
+  existingDocuments?: ExistingDocument[];
 }
 
-const VisasServiceInfoForm: React.FC<OtherInfoFormProps> = ({
+const BOOKING_STATUS_OPTIONS = [
+  { value: "confirmed", label: "Confirmed" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "rescheduled", label: "Rescheduled" },
+];
+
+const SERVICE_STATUS_OPTIONS = [
+  { value: "drafted", label: "Drafted" },
+  { value: "applied", label: "Applied" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Rejected" },
+];
+
+const DESTINATION_OPTIONS = [
+  "Australia",
+  "Canada",
+  "France",
+  "Germany",
+  "Japan",
+  "New Zealand",
+  "Singapore",
+  "Thailand",
+  "UAE",
+  "UK",
+  "USA",
+].map((value) => ({ value, label: value }));
+
+const NATIONALITY_OPTIONS = [
+  "American",
+  "Australian",
+  "British",
+  "Canadian",
+  "Emirati",
+  "French",
+  "German",
+  "Indian",
+  "Japanese",
+  "Singaporean",
+  "Thai",
+].map((value) => ({ value, label: value }));
+
+const VISA_EXEMPTION_RULES: Record<string, string[]> = {
+  uk: ["american", "canadian", "australian", "japanese", "singaporean"],
+  singapore: ["american", "british", "canadian", "australian", "japanese"],
+  thailand: ["american", "british", "canadian", "australian", "japanese"],
+  uae: ["american", "british", "canadian", "australian"],
+};
+
+const normalizeBookingStatus = (value: unknown) => {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (normalized === "canceled") return "cancelled";
+  if (
+    normalized === "confirmed" ||
+    normalized === "cancelled" ||
+    normalized === "rescheduled"
+  ) {
+    return normalized;
+  }
+  return "";
+};
+
+const normalizeServiceStatus = (value: unknown) => {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  if (
+    normalized === "drafted" ||
+    normalized === "applied" ||
+    normalized === "approved" ||
+    normalized === "rejected"
+  ) {
+    return normalized;
+  }
+  return "";
+};
+
+const getUserNickname = (
+  generalInfoData?: Record<string, any>,
+  externalFormData?: Record<string, any>,
+) => {
+  const candidates = [
+    generalInfoData?.nickname,
+    generalInfoData?.customerNickname,
+    generalInfoData?.alias,
+    generalInfoData?.customerAlias,
+    (externalFormData as any)?.nickname,
+    (externalFormData as any)?.customerNickname,
+    (externalFormData as any)?.alias,
+  ];
+  return candidates.find((value) => String(value ?? "").trim()) ?? "";
+};
+
+const normalizeCustomerScopedValues = (
+  source: unknown,
+  customerLabels: string[],
+): CustomerScopedValue[] => {
+  const incoming = Array.isArray(source) ? source : [];
+
+  return customerLabels.map((label, index) => {
+    const existing = incoming[index];
+
+    if (typeof existing === "string") {
+      return { label, value: existing };
+    }
+
+    if (existing && typeof existing === "object") {
+      return {
+        label,
+        value: String((existing as any).value ?? (existing as any).number ?? ""),
+      };
+    }
+
+    return { label, value: "" };
+  });
+};
+
+const areCustomerScopedValuesEqual = (
+  left: CustomerScopedValue[] = [],
+  right: CustomerScopedValue[] = [],
+) =>
+  left.length === right.length &&
+  left.every(
+    (item, index) =>
+      item.label === right[index]?.label && item.value === right[index]?.value,
+  );
+
+const TravelerValueAccordion = ({
+  title,
+  placeholder,
+  items,
+  isOpen,
+  onToggle,
+  onChange,
+  isReadOnly,
+  isSubmitting,
+}: {
+  title: string;
+  placeholder: string;
+  items: CustomerScopedValue[];
+  isOpen: boolean;
+  onToggle: () => void;
+  onChange: (index: number, value: string) => void;
+  isReadOnly: boolean;
+  isSubmitting: boolean;
+}) => (
+  <div className="rounded-[12px] border border-[#E2E1E1] bg-white overflow-hidden">
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={isReadOnly || isSubmitting}
+      className="w-full flex items-center justify-between px-4 py-3 text-left"
+    >
+      <span className="text-[13px] font-[400] text-[#020202]">{title}</span>
+      <span className="flex items-center gap-3">
+        <span className="inline-flex min-w-6 h-6 items-center justify-center rounded-full bg-[#F4ECFF] px-2 text-[12px] font-[600] text-[#7135AD]">
+          {items.length}
+        </span>
+        {isOpen ? (
+          <IoChevronDown className="text-[#818181]" size={16} />
+        ) : (
+          <IoChevronForward className="text-[#818181]" size={16} />
+        )}
+      </span>
+    </button>
+
+    {isOpen ? (
+      <div className="border-t border-[#F0F0F0] bg-[#FCFCFC] px-4 py-3">
+        <div className="space-y-3">
+          {items.map((item, index) => {
+            const isLeadPax = index === 0;
+
+            return (
+              <div
+                key={`${title}-${index}`}
+                className="rounded-[12px] bg-white px-3 py-2 shadow-[0_0_0_1px_rgba(226,225,225,1)]"
+              >
+                <div className="mb-2 flex items-center gap-2 text-[13px] font-[500] text-[#414141]">
+                  <LuBadgeInfo size={14} className="text-[#9CA3AF]" />
+                  <span>
+                    {item.label}
+                    {isLeadPax ? (
+                      <span className="ml-1 text-[12px] font-[500] text-[#9CA3AF]">
+                        (Lead Pax)
+                      </span>
+                    ) : null}
+                  </span>
+                </div>
+
+                <input
+                  type="text"
+                  value={item.value}
+                  onChange={(event) => onChange(index, event.target.value)}
+                  placeholder={placeholder}
+                  disabled={isReadOnly || isSubmitting}
+                  className="w-full border border-[#D1D5DB] rounded-[15px] px-3 py-2 text-[13px] outline-none transition-colors hover:border-[#C6AEDE] focus:ring-1 focus:ring-[#C6AEDE] disabled:cursor-not-allowed disabled:bg-gray-100"
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ) : null}
+  </div>
+);
+
+const VisasServiceInfoForm: React.FC<VisasServiceInfoFormProps> = ({
   onSubmit,
   isSubmitting = false,
   isReadOnly = false,
-  showValidation = true,
   formRef,
   onFormDataUpdate,
   onAddDocuments,
   onRemoveDocuments,
   externalFormData,
+  generalInfoData,
   existingDocuments = [],
 }) => {
   const normalizedExternalData = useMemo(() => {
-    const source = externalFormData ?? {};
-    const fields =
-      (source as ExternalFormData)?.formFields ??
-      (source as ExternalFormData)?.visainfoform ??
-      source;
-    return fields as Partial<OtherServiceInfoFormData>;
+    const source = (externalFormData ?? {}) as Record<string, any>;
+
+    if (source.visainfoform) {
+      return source.visainfoform as Partial<VisaServiceInfoFormData>;
+    }
+
+    const rootFormFields =
+      (source.formFields as Record<string, any> | undefined) ?? source;
+    const formFields =
+      (rootFormFields?.visainfoform as Record<string, any> | undefined) ??
+      rootFormFields;
+    const hasApiSchema =
+      source &&
+      typeof source === "object" &&
+      (source.bookingDate || source.travelDate || source.status);
+
+    if (!hasApiSchema) {
+      return formFields as Partial<VisaServiceInfoFormData>;
+    }
+
+    return {
+      bookingdate: source.bookingDate || formFields.bookingdate || "",
+      traveldate: source.travelDate || formFields.traveldate || "",
+      bookingstatus:
+        formFields.bookingstatus || source.status || formFields.status || "",
+      destination:
+        formFields.destination ||
+        formFields.country ||
+        formFields.countryDestination ||
+        "",
+      nationality: formFields.nationality || "",
+      visaStatus:
+        formFields.visaStatus ||
+        formFields.serviceFormStatus ||
+        formFields.serviceStatus ||
+        "",
+      visaType: formFields.visaType || formFields.title || "",
+      description: formFields.description || "",
+      remarks: formFields.remarks || formFields.internalNotes || "",
+      cancellationDate:
+        source.cancellationDate || formFields.cancellationDate || "",
+      newBookingDate: source.newBookingDate || formFields.newBookingDate || "",
+      newTravelDate: source.newTravelDate || formFields.newTravelDate || "",
+      applicantNumbers: Array.isArray(formFields.applicantNumbers)
+        ? formFields.applicantNumbers
+        : [],
+      visaNumbers: Array.isArray(formFields.visaNumbers)
+        ? formFields.visaNumbers
+        : [],
+    } as Partial<VisaServiceInfoFormData>;
   }, [externalFormData]);
 
-  const defaultShowAdvancedPricing = useMemo(
-    () => getDefaultShowAdvancedPricing(normalizedExternalData, isReadOnly),
-    [isReadOnly, normalizedExternalData],
-  );
+  const customerLabels = useMemo(() => {
+    const customers = Array.isArray(generalInfoData?.customerNames)
+      ? generalInfoData.customerNames
+      : Array.isArray((externalFormData as any)?.customerNames)
+        ? (externalFormData as any).customerNames
+        : [];
 
-  // Internal form state
-  const [formData, setFormData] = useState<OtherServiceInfoFormData>({
-    bookingdate: normalizedExternalData?.bookingdate || "",
-    traveldate: normalizedExternalData?.traveldate || "",
-    bookingstatus: normalizedExternalData?.bookingstatus || "",
-    costprice: normalizedExternalData?.costprice || "",
-    sellingprice: normalizedExternalData?.sellingprice || "",
-    confirmationNumber: normalizedExternalData?.confirmationNumber || "",
-    title: normalizedExternalData?.title || "",
-    description: normalizedExternalData?.description || "",
-    documents: "",
-    remarks: normalizedExternalData?.remarks || "",
-    showAdvancedPricing: defaultShowAdvancedPricing,
-    vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
-    vendorIncentiveReceived: String(
-      normalizedExternalData?.vendorIncentiveReceived ?? "",
+    const fallbackCount = Number(
+      generalInfoData?.customerCount ?? (externalFormData as any)?.customerCount ?? 1,
+    );
+    const count = Math.max(customers.length, fallbackCount || 1);
+
+    return Array.from({ length: count }, (_, index) => {
+      const name = String(customers[index] ?? "").trim();
+      return name ? name : `Customer ${index + 1}`;
+    });
+  }, [externalFormData, generalInfoData]);
+
+  const [formData, setFormData] = useState<VisaServiceInfoFormData>(() => ({
+    bookingdate: String(normalizedExternalData?.bookingdate ?? ""),
+    traveldate: String(normalizedExternalData?.traveldate ?? ""),
+    bookingstatus:
+      normalizeBookingStatus(normalizedExternalData?.bookingstatus) ||
+      "confirmed",
+    cancellationDate: String(normalizedExternalData?.cancellationDate ?? ""),
+    newBookingDate: String(normalizedExternalData?.newBookingDate ?? ""),
+    newTravelDate: String(normalizedExternalData?.newTravelDate ?? ""),
+    destination: String(normalizedExternalData?.destination ?? ""),
+    nationality: String(normalizedExternalData?.nationality ?? ""),
+    visaStatus:
+      normalizeServiceStatus((normalizedExternalData as any)?.visaStatus) ||
+      "drafted",
+    visaType: String(normalizedExternalData?.visaType ?? ""),
+    description: String(normalizedExternalData?.description ?? ""),
+    applicantNumbers: normalizeCustomerScopedValues(
+      normalizedExternalData?.applicantNumbers,
+      customerLabels,
     ),
-    commissionPaid: String(normalizedExternalData?.commissionPaid ?? ""),
-  });
+    visaNumbers: normalizeCustomerScopedValues(
+      normalizedExternalData?.visaNumbers,
+      customerLabels,
+    ),
+    remarks: String(normalizedExternalData?.remarks ?? ""),
+  }));
+  const [isApplicantAccordionOpen, setIsApplicantAccordionOpen] = useState(true);
+  const [isVisaAccordionOpen, setIsVisaAccordionOpen] = useState(false);
 
-  const [errors, setErrors] = useState<ValidationErrors>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [isValidating, setIsValidating] = useState<boolean>(false);
-
-  // Advanced Pricing State
-  const [showAdvancedPricing, setShowAdvancedPricing] = useState(
-    defaultShowAdvancedPricing,
-  );
-
-  // Vendor payment summary fields
-  const [vendorBasePrice, setVendorBasePrice] = useState<string>(
-    String(normalizedExternalData?.vendorBasePrice ?? ""),
-  );
-  const [vendorIncentiveReceived, setVendorIncentiveReceived] =
-    useState<string>(
-      String(normalizedExternalData?.vendorIncentiveReceived ?? ""),
-    );
-  const [commissionPaid, setCommissionPaid] = useState<string>(
-    String(normalizedExternalData?.commissionPaid ?? ""),
-  );
-
-  // Cancellation modal state
-  const [isCancellationModalOpen, setIsCancellationModalOpen] = useState(false);
-  const [pendingPrevBookingStatus, setPendingPrevBookingStatus] = useState<
-    string | null
-  >(null);
-
-  const derivedCostPrice = useMemo(() => {
-    const a = Number(vendorBasePrice) || 0;
-    const b = Number(vendorIncentiveReceived) || 0;
-    const c = Number(commissionPaid) || 0;
-    return a - b + c;
-  }, [commissionPaid, vendorBasePrice, vendorIncentiveReceived]);
-
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
-
-  const MAX_DOCUMENTS = 3;
-  const existingDocumentsCount = Array.isArray(existingDocuments)
-    ? existingDocuments.length
-    : 0;
-  const totalDocumentsCount = existingDocumentsCount + attachedFiles.length;
-  const isDocumentLimitReached = totalDocumentsCount >= MAX_DOCUMENTS;
-
-  // Allow only digits and a single decimal point for price fields
-  const sanitizeNumeric = (val: string) => {
-    const v = String(val || "").replace(/[^0-9.]/g, "");
-    const parts = v.split(".");
-    if (parts.length <= 1) return parts[0];
-    // join remaining parts (remove extra dots) and keep first dot only
-    return parts[0] + "." + parts.slice(1).join("");
-  };
-
-  const handlePriceChange =
-    (field: "costprice" | "sellingprice") =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const raw = e.target.value;
-      const sanitized = sanitizeNumeric(raw);
-      setFormData((prev) => ({ ...prev, [field]: sanitized }));
-      if ((errors as any)[field]) {
-        setErrors((prev) => ({ ...prev, [field]: "" }));
-      }
-      setTouched((prev) => ({ ...prev, [field]: true }));
-    };
-
-  // Handle selecting multiple files
-  const handleFileChange = () => {
-    const files = fileInputRef.current?.files;
-    if (!files) return;
-
-    const selected = Array.from(files);
-
-    const remainingSlots = MAX_DOCUMENTS - totalDocumentsCount;
-    const toAdd = remainingSlots > 0 ? selected.slice(0, remainingSlots) : [];
-
-    if (toAdd.length === 0) {
-      if (fileInputRef.current) fileInputRef.current.value = "";
-      return;
-    }
-
-    setAttachedFiles((prev) => [...prev, ...toAdd]);
-
-    onAddDocuments?.(toAdd);
-
-    // Reset so selecting the same file again is possible
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  // Remove one file
-  const handleDeleteFile = (index: number) => {
-    const removed = attachedFiles[index];
-    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
-    if (removed) onRemoveDocuments?.([removed]);
-  };
-
-  const options = [
-    { value: "confirmed", label: "Confirmed" },
-    { value: "cancelled", label: "Cancelled" },
-    // { value: "", label: "Booking Status" },
-  ];
-
-  const handleBookingStatusChange = (value: string) => {
-    const v = String(value ?? "");
-    if (v.toLowerCase() === "cancelled" || v.toLowerCase() === "canceled") {
-      setPendingPrevBookingStatus(formData.bookingstatus || null);
-      setFormData((prev) => ({ ...prev, bookingstatus: v }));
-      setIsCancellationModalOpen(true);
-      return;
-    }
-
-    setFormData((prev) => ({ ...prev, bookingstatus: v }));
-  };
-
-  const cancellationModalInitialValues: Partial<CancellationModalFormState> =
-    useMemo(() => {
-      const existing = (formData as any).cancellationForm ?? {};
-      return {
-        ...existing,
-        showAdvancedPricing: Boolean(
-          existing.showAdvancedPricing ??
-          formData.showAdvancedPricing ??
-          showAdvancedPricing,
-        ),
-        vendorBasePrice: String(
-          existing.vendorBasePrice ??
-            formData.vendorBasePrice ??
-            vendorBasePrice ??
-            "",
-        ),
-        vendorIncentiveReceived: String(
-          existing.vendorIncentiveReceived ??
-            formData.vendorIncentiveReceived ??
-            vendorIncentiveReceived ??
-            "",
-        ),
-        commissionPaid: String(
-          existing.commissionPaid ??
-            formData.commissionPaid ??
-            commissionPaid ??
-            "",
-        ),
-        costprice: String(existing.costprice ?? formData.costprice ?? ""),
-        sellingprice: String(
-          existing.sellingprice ?? formData.sellingprice ?? "",
-        ),
-      } as Partial<CancellationModalFormState>;
-    }, [
-      formData,
-      vendorBasePrice,
-      vendorIncentiveReceived,
-      commissionPaid,
-      showAdvancedPricing,
-    ]);
-
-  const handleCancellationSave = (data: CancellationModalFormState) => {
-    setFormData((prev) => ({
-      ...prev,
-      cancellationForm: data,
-      showAdvancedPricing: data.showAdvancedPricing,
-      vendorBasePrice: data.vendorBasePrice ?? prev.vendorBasePrice,
-      vendorIncentiveReceived:
-        data.vendorIncentiveReceived ?? prev.vendorIncentiveReceived,
-      commissionPaid: data.commissionPaid ?? prev.commissionPaid,
-    }));
-
-    setVendorBasePrice(String(data.vendorBasePrice ?? vendorBasePrice));
-    setVendorIncentiveReceived(
-      String(data.vendorIncentiveReceived ?? vendorIncentiveReceived),
-    );
-    setCommissionPaid(String(data.commissionPaid ?? commissionPaid));
-
-    setIsCancellationModalOpen(false);
-    setPendingPrevBookingStatus(null);
-  };
-
-  // Sync with external form data when it changes
   useEffect(() => {
     if (!externalFormData || Object.keys(externalFormData).length === 0) return;
 
-    const nextShowAdvancedPricing = getDefaultShowAdvancedPricing(
-      normalizedExternalData,
-      isReadOnly,
-    );
-    const nextPricing = {
-      showAdvancedPricing: nextShowAdvancedPricing,
-      vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
-      vendorIncentiveReceived: String(
-        normalizedExternalData?.vendorIncentiveReceived ?? "",
-      ),
-      commissionPaid: String(normalizedExternalData?.commissionPaid ?? ""),
-    };
-    setShowAdvancedPricing(nextPricing.showAdvancedPricing);
-    setVendorBasePrice(nextPricing.vendorBasePrice);
-    setVendorIncentiveReceived(nextPricing.vendorIncentiveReceived);
-    setCommissionPaid(nextPricing.commissionPaid);
-    setFormData((prev) => ({
-      ...prev,
-      ...normalizedExternalData,
-      ...nextPricing,
-    }));
-  }, [externalFormData, isReadOnly, normalizedExternalData]);
+    setFormData((prev) => {
+      const nextApplicantNumbers = normalizeCustomerScopedValues(
+        normalizedExternalData?.applicantNumbers,
+        customerLabels,
+      );
+      const nextVisaNumbers = normalizeCustomerScopedValues(
+        normalizedExternalData?.visaNumbers,
+        customerLabels,
+      );
+
+      const nextState = {
+        ...prev,
+        ...normalizedExternalData,
+        bookingdate: String(normalizedExternalData?.bookingdate ?? ""),
+        traveldate: String(normalizedExternalData?.traveldate ?? ""),
+        bookingstatus:
+        normalizeBookingStatus(normalizedExternalData?.bookingstatus) ||
+        prev.bookingstatus ||
+        "confirmed",
+        cancellationDate: String(normalizedExternalData?.cancellationDate ?? ""),
+        newBookingDate: String(normalizedExternalData?.newBookingDate ?? ""),
+        newTravelDate: String(normalizedExternalData?.newTravelDate ?? ""),
+        destination: String(normalizedExternalData?.destination ?? ""),
+        nationality: String(normalizedExternalData?.nationality ?? ""),
+        visaStatus:
+        normalizeServiceStatus((normalizedExternalData as any)?.visaStatus) ||
+        prev.visaStatus ||
+        "drafted",
+        visaType: String(normalizedExternalData?.visaType ?? ""),
+        description: String(normalizedExternalData?.description ?? ""),
+        applicantNumbers: nextApplicantNumbers,
+        visaNumbers: nextVisaNumbers,
+        remarks: String(normalizedExternalData?.remarks ?? ""),
+      };
+
+      const isSame =
+        prev.bookingdate === nextState.bookingdate &&
+        prev.traveldate === nextState.traveldate &&
+        prev.bookingstatus === nextState.bookingstatus &&
+        prev.cancellationDate === nextState.cancellationDate &&
+        prev.newBookingDate === nextState.newBookingDate &&
+        prev.newTravelDate === nextState.newTravelDate &&
+        prev.destination === nextState.destination &&
+        prev.nationality === nextState.nationality &&
+        prev.visaStatus === nextState.visaStatus &&
+        prev.visaType === nextState.visaType &&
+        prev.description === nextState.description &&
+        prev.remarks === nextState.remarks &&
+        areCustomerScopedValuesEqual(
+          prev.applicantNumbers,
+          nextApplicantNumbers,
+        ) &&
+        areCustomerScopedValuesEqual(prev.visaNumbers, nextVisaNumbers);
+
+      return isSame ? prev : nextState;
+    });
+  }, [customerLabels, externalFormData, normalizedExternalData]);
 
   useEffect(() => {
-    setFormData((prev) => ({
-      ...prev,
-      showAdvancedPricing,
-      vendorBasePrice,
-      vendorIncentiveReceived,
-      commissionPaid,
-    }));
-  }, [
-    commissionPaid,
-    showAdvancedPricing,
-    vendorBasePrice,
-    vendorIncentiveReceived,
-  ]);
+    setFormData((prev) => {
+      const nextApplicantNumbers = normalizeCustomerScopedValues(
+        prev.applicantNumbers,
+        customerLabels,
+      );
+      const nextVisaNumbers = normalizeCustomerScopedValues(
+        prev.visaNumbers,
+        customerLabels,
+      );
 
-  // Notify parent of form data changes
+      if (
+        areCustomerScopedValuesEqual(prev.applicantNumbers, nextApplicantNumbers) &&
+        areCustomerScopedValuesEqual(prev.visaNumbers, nextVisaNumbers)
+      ) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        applicantNumbers: nextApplicantNumbers,
+        visaNumbers: nextVisaNumbers,
+      };
+    });
+  }, [customerLabels]);
+
   useEffect(() => {
     onFormDataUpdate({ visainfoform: formData });
   }, [formData, onFormDataUpdate]);
 
-  type FieldRule = {
-    required: boolean;
-    message: string;
-    minLength?: number;
-    pattern?: RegExp;
-  };
-
-  const validationRules: Record<string, FieldRule> = useMemo(
-    () => ({
-      firstname: {
-        required: true,
-        minLength: 2,
-        message: "First name is required (minimum 2 characters)",
-      },
-      lastname: {
-        required: true,
-        minLength: 2,
-        message: "Last name is required (minimum 2 characters)",
-      },
-      contactnumber: {
-        required: true,
-        pattern: /^\d{10}$/,
-        message: "Contact number must be 10 digits",
-      },
-      emailId: {
-        required: true,
-        pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-        message: "Invalid email format",
-      },
-    }),
-    [],
+  const userNickname = useMemo(
+    () =>
+      getUserNickname(
+        generalInfoData,
+        externalFormData as Record<string, any> | undefined,
+      ),
+    [externalFormData, generalInfoData],
   );
 
-  // Enhanced validation function using API validation
-  const validateField = useCallback(
-    (name: string, value: any): string => {
-      // API-level validation only for OtherServiceInfoForm fields
-      const apiErrors = validateOtherServiceInfoForm({
-        bookingdate: "",
-        traveldate: "",
-        bookingstatus: "",
-        confirmationNumber: "",
-        title: "",
-        description: "",
-        documents: "",
-        remarks: "",
-      });
+  const visaRequirementMessage = useMemo(() => {
+    const destination = formData.destination.trim().toLowerCase();
+    const nationality = formData.nationality.trim().toLowerCase();
 
-      if (apiErrors[name]) return apiErrors[name];
+    if (!destination || !nationality) return "";
 
-      // Local field-level validation (firstname, lastname, etc.)
-      const rule = validationRules[name as keyof typeof validationRules];
-      if (!rule) return "";
+    const exemptNationalities = VISA_EXEMPTION_RULES[destination] ?? [];
+    const nationalityLabel = formData.nationality.trim();
 
-      if (
-        rule.required &&
-        (!value || (typeof value === "string" && value.trim() === ""))
-      ) {
-        return rule.message;
-      }
-
-      if (
-        rule.minLength &&
-        typeof value === "string" &&
-        value.trim().length < rule.minLength
-      ) {
-        return rule.message;
-      }
-
-      if (
-        rule.pattern &&
-        typeof value === "string" &&
-        !rule.pattern.test(value)
-      ) {
-        return rule.message;
-      }
-
-      return "";
-    },
-    [validationRules],
-  );
-
-  // Validate all fields
-  const validateForm = useCallback((): boolean => {
-    const newErrors: ValidationErrors = {};
-    let isValid = true;
-
-    Object.keys(validationRules).forEach((fieldName) => {
-      const error = validateField(
-        fieldName,
-        formData[fieldName as keyof OtherServiceInfoFormData],
-      );
-      if (error) {
-        newErrors[fieldName] = error;
-        isValid = false;
-      }
-    });
-
-    setErrors(newErrors);
-    return isValid;
-  }, [formData, validateField, validationRules]);
-
-  // Normal handleChange that only updates local state
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
-    const { name, value, type } = e.target;
-    const newValue =
-      name === "confirmationNumber"
-        ? allowUppercaseAlphanumeric6(value)
-        : value;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
-
-    // Clear error when user types
-    if (errors[name as keyof OtherServiceInfoFormData]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+    if (exemptNationalities.includes(nationality)) {
+      return `Visa is not required for ${nationalityLabel} Citizens for this destination`;
     }
 
-    // Mark field touched
-    setTouched((prev) => ({ ...prev, [name]: true }));
-  };
+    return `Visa may be required for ${nationalityLabel} Citizens for this destination`;
+  }, [formData.destination, formData.nationality]);
 
-  // Enhanced blur handler with API validation
-  const handleBlur = useCallback(
-    async (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const { name, value } = e.target;
-
-      if (showValidation) {
-        const error = validateField(name, value);
-        setErrors((prev) => ({ ...prev, [name]: error }));
-      }
-
-      setTouched((prev) => ({ ...prev, [name]: true }));
-    },
-    [validateField, showValidation],
+  const selectedBookingStatus = useMemo(
+    () =>
+      BOOKING_STATUS_OPTIONS.find(
+        (option) => option.value === formData.bookingstatus,
+      )?.label ?? "Confirmed",
+    [formData.bookingstatus],
   );
 
-  // Handle form submission
-  const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-
-      if (validateForm()) {
-        onSubmit?.(formData);
-      } else {
-        // Mark all fields as touched to show validation errors
-        const allTouched = Object.keys(validationRules).reduce(
-          (acc, key) => {
-            acc[key] = true;
-            return acc;
-          },
-          {} as Record<string, boolean>,
-        );
-        setTouched(allTouched);
-      }
-    },
-    [formData, validateForm, onSubmit, validationRules],
+  const selectedServiceStatus = useMemo(
+    () =>
+      SERVICE_STATUS_OPTIONS.find(
+        (option) => option.value === formData.visaStatus,
+      )?.label ?? "Drafted",
+    [formData.visaStatus],
   );
 
-  // Enhanced input field component with validation indicators
-  const InputField: React.FC<{
-    name: keyof OtherServiceInfoFormData;
-    id?: string;
-    type?: string;
-    placeholder?: string;
-    required?: boolean;
-    className?: string;
-    min?: number;
-  }> = ({
-    name,
-    type = "text",
-    placeholder,
-    required,
-    className = "",
-    min,
-  }) => {
-    const isValidatingField = name === "bookingdate" && isValidating;
-    const hasError = errors[name] && touched[name];
-    const hasValue = formData[name] && String(formData[name]).trim();
-    const isValid = hasValue && !hasError && !isValidatingField;
-
-    return (
-      <div className="relative">
-        <input
-          type={type}
-          name={name}
-          value={type === "file" ? undefined : String(formData[name] ?? "")}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          placeholder={placeholder}
-          required={required}
-          min={min}
-          disabled={isSubmitting || isValidatingField}
-          className={`
-            w-full border rounded-md px-3 py-2 pr-10 text-sm transition-colors
-            ${
-              hasError
-                ? "border-red-300 focus:ring-red-200"
-                : isValid && touched[name]
-                  ? "border-green-300 focus:ring-green-200"
-                  : "border-gray-200 focus:ring-blue-200"
-            }
-            ${
-              isSubmitting || isValidatingField
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }
-            ${className}
-          `}
-        />
-
-        {/* Validation indicator */}
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-          {isValidatingField && (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
-          )}
-          {!isValidatingField && isValid && touched[name] && (
-            <svg
-              className="h-4 w-4 text-green-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          )}
-          {!isValidatingField && hasError && (
-            <svg
-              className="h-4 w-4 text-red-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          )}
-        </div>
-
-        {hasError && (
-          <p className="text-red-500 text-xs mt-1">{errors[name]}</p>
-        )}
-      </div>
-    );
+  const handleDestinationChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      destination: value,
+      nationality: "",
+      visaType: "",
+      description: "",
+    }));
   };
+
+  const handleFieldChange =
+    (field: keyof VisaServiceInfoFormData) =>
+    (
+      event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    ) => {
+      const value = event.target.value;
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    };
+
+  const handleScopedValueChange = (
+    field: "applicantNumbers" | "visaNumbers",
+    index: number,
+    value: string,
+  ) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: (prev[field] ?? []).map((item, itemIndex) =>
+        itemIndex === index ? { ...item, value } : item,
+      ),
+    }));
+  };
+
+  const searchableButtonClass =
+    "w-full px-3 py-2 hover:border-[#C6AEDE] rounded-[15px] text-[13px]";
 
   return (
-    <>
-      <div
-        className={`space-y-4 p-4 -mt-1 ${
-          isReadOnly
-            ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-200 [&_select]:!bg-gray-200"
-            : ""
-        }`}
-        ref={formRef as any}
-      >
-        <div className="px-0 py-1">
-          {/* Booking and Travel Date */}
-          <div className="flex flex-wrap items-end justify-between mb-3 px-5 -mx-5">
-            {/* Left section: Booking + Travel Date */}
-            <div className="flex items-end flex-wrap gap-2">
-              {/* Booking Date */}
-              <SingleCalendar
-                label="Booking Date"
-                value={formData.bookingdate}
-                onChange={(date) =>
+    <form
+      className={`space-y-4 py-4 px-2.5 -mt-1 overflow-x-hidden ${
+        isReadOnly
+          ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-300 [&_select]:!bg-gray-200"
+          : ""
+      }`}
+      ref={formRef as React.RefObject<HTMLFormElement>}
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSubmit?.(formData);
+      }}
+    >
+      <div className="px-0 py-1.5">
+        <DateFieldsAndStatus
+          bookingdate={formData.bookingdate}
+          traveldate={formData.traveldate}
+          bookingstatus={formData.bookingstatus}
+          cancellationDate={formData.cancellationDate ?? ""}
+          rescheduledBookingDateLabel="New Booking Date"
+          rescheduledTravelDateLabel="New Travel Date"
+          fieldOwner="visa-service-info"
+          userNickname={String(userNickname || "")}
+          onBookingDateChange={(date) =>
+            setFormData((prev) => ({ ...prev, bookingdate: date }))
+          }
+          onTravelDateChange={(date) =>
+            setFormData((prev) => ({ ...prev, traveldate: date }))
+          }
+          onBookingStatusChange={(status) =>
+            setFormData((prev) => ({
+              ...prev,
+              bookingstatus: normalizeBookingStatus(status) || "confirmed",
+            }))
+          }
+          onCancellationDateChange={(date) =>
+            setFormData((prev) => ({ ...prev, cancellationDate: date }))
+          }
+          onNewBookingDateChange={(date) =>
+            setFormData((prev) => ({ ...prev, newBookingDate: date }))
+          }
+          onNewTravelDateChange={(date) =>
+            setFormData((prev) => ({ ...prev, newTravelDate: date }))
+          }
+          isReadOnly={isReadOnly}
+        />
+
+        <div className="w-full border border-[#E2E1E1] rounded-[12px] mb-3 p-3">
+          <h2 className="text-[15px] font-[400] mb-2">Visa Info</h2>
+          <hr className="mt-1 mb-4 border-t border-[#E2E1E1]" />
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div>
+              <label className="block text-[13px] font-[400] text-[#020202] mb-1">
+                Country (Destination)
+              </label>
+              <DropDown
+                options={DESTINATION_OPTIONS}
+                placeholder="Choose Country"
+                value={formData.destination}
+                onChange={handleDestinationChange}
+                searchable
+                searchPlaceholder="Search destination"
+                customWidth="w-full"
+                menuClassName="rounded-[14px] px-1.5"
+                buttonClassName={searchableButtonClass}
+                noButtonRadius
+                readOnly={isReadOnly}
+              />
+            </div>
+
+            <div>
+              <label className="block text-[13px] font-[400] text-[#020202] mb-1">
+                Nationality
+              </label>
+              <DropDown
+                options={NATIONALITY_OPTIONS}
+                placeholder="Choose Nationality"
+                value={formData.nationality}
+                onChange={(value) =>
+                  setFormData((prev) => ({ ...prev, nationality: value }))
+                }
+                searchable
+                searchPlaceholder="Search nationality"
+                customWidth="w-full"
+                menuClassName="rounded-[14px] px-1.5"
+                buttonClassName={searchableButtonClass}
+                noButtonRadius
+                readOnly={isReadOnly}
+              />
+            </div>
+
+            <div>
+              <label className="block text-[13px] font-[400] text-[#020202] mb-1">
+                Select Service Status
+              </label>
+              <DropDown
+                options={SERVICE_STATUS_OPTIONS}
+                placeholder="Select Service Status"
+                  value={formData.visaStatus}
+                onChange={(value) =>
                   setFormData((prev) => ({
                     ...prev,
-                    bookingdate: date,
-                    traveldate:
-                      prev.bookingdate !== date ? "" : prev.traveldate,
+                    visaStatus: normalizeServiceStatus(value) || "drafted",
                   }))
                 }
-                placeholder="DD-MM-YYYY"
-                showCalendarIcon={false}
-              />
-
-              {/* Travel Date */}
-              <SingleCalendar
-                label="Travel Date"
-                value={formData.traveldate}
-                onChange={(date) =>
-                  setFormData((prev) => ({ ...prev, traveldate: date }))
-                }
-                placeholder="DD-MM-YYYY"
-                minDate={formData.bookingdate}
-                showCalendarIcon={false}
-                readOnly={!formData.bookingdate}
-              />
-            </div>
-
-            {/* Right section: Booking Status */}
-            <div>
-              <DropDown
-                options={options}
-                placeholder="Booking Status"
-                value={formData.bookingstatus}
-                onChange={handleBookingStatusChange}
+                customWidth="w-full"
+                menuClassName="rounded-[14px] px-1.5"
+                buttonClassName={searchableButtonClass}
+                noButtonRadius
+                readOnly={isReadOnly}
               />
             </div>
           </div>
 
-          {/* Amount Section (shared component) */}
-
-          <AmountSection
-            value={formData as any}
-            onChange={(updated) =>
-              setFormData((prev) => ({ ...prev, ...updated }))
-            }
-            bookingStatus={formData.bookingstatus}
-            cancellationForm={formData.cancellationForm}
-            showAdvancedPricing={showAdvancedPricing}
-            onToggleAdvancedPricing={setShowAdvancedPricing}
-            isReadOnly={isReadOnly}
-            isSubmitting={isSubmitting}
-          />
-
-          {/* ================= Visas INFO ================ */}
-          <div className="w-[48vw] border border-gray-200 rounded-[12px] p-3 mt-4">
-            <h1 className="text-[0.85rem] font-medium text-gray-800 mb-2">
-              Visas Info
-            </h1>
-
-            <hr className="mt-1 mb-3 border-t border-gray-200" />
-
-            {/* Confirmation number + Title (stacked) */}
-            <div className="flex flex-col gap-3 w-full mb-4">
-              {/* Confirmation number */}
-              <div className="flex flex-col w-full">
-                <label className="text-[13px] font-medium text-gray-700 mb-1">
-                  Confirmation number
-                </label>
-                <input
-                  type="text"
-                  name="confirmationNumber"
-                  value={formData.confirmationNumber}
-                  onChange={handleChange}
-                  placeholder="Enter Confirmation Number"
-                  className="w-[30%] px-3 py-1.5 border border-gray-300 rounded-md text-[13px] focus:outline-none focus:ring-1 hover:border-green-300"
-                />
-              </div>
-
-              {/* Title */}
-              <div className="flex flex-col w-full">
-                <label className="text-[13px] font-medium text-gray-700 mb-1">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  name="title"
-                  value={formData.title}
-                  onChange={handleChange}
-                  placeholder="Title …"
-                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[13px] focus:outline-none focus:ring-1 hover:border-green-300"
-                />
-              </div>
+          {visaRequirementMessage ? (
+            <div className="mb-4 rounded-[12px] border border-[#E5D8F6] bg-[#FAF6FF] px-3 py-2 text-[12px] font-[500] text-[#7135AD]">
+              {visaRequirementMessage}
             </div>
+          ) : null}
 
-            {/* Description */}
-
-            <StyledDescription
-              value={formData.description}
-              onChange={(val) =>
-                setFormData((prev) => ({ ...prev, description: val }))
-              }
+          <div className="mb-4">
+            <label className="block text-[13px] font-[400] text-[#020202] mb-1">
+              Visa Type / Title
+            </label>
+            <input
+              type="text"
+              value={formData.visaType}
+              onChange={handleFieldChange("visaType")}
+              placeholder="Enter Visa Type / Title"
+              disabled={isReadOnly || isSubmitting}
+              className="w-full border border-[#D1D5DB] rounded-[15px] px-3 py-2 text-[13px] outline-none transition-colors hover:border-[#C6AEDE] focus:ring-1 focus:ring-[#C6AEDE] disabled:cursor-not-allowed"
             />
           </div>
-        </div>
 
-        {/* ID PROOFS */}
-        <div className=" w-[98%] ml-2 border border-gray-200 rounded-[12px] p-3">
-          <h2 className="text-[13px] font-medium mb-2">Documents</h2>
-          <hr className="mt-1 mb-2 border-t border-gray-200" />
+          <div className="mb-2">
+            <RemarksField
+              label="Description"
+              value={formData.description}
+              onChange={(value) =>
+                setFormData((prev) => ({ ...prev, description: value }))
+              }
+              readOnly={isReadOnly}
+              isSubmitting={isSubmitting}
+              showBorder={false}
+            />
+          </div>
 
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            onChange={handleFileChange}
-            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt"
-            multiple
-          />
+          <div className="space-y-3">
+            <TravelerValueAccordion
+              title="Applicant Number"
+              placeholder="Enter Applicant Number"
+              items={formData.applicantNumbers ?? []}
+              isOpen={isApplicantAccordionOpen}
+              onToggle={() =>
+                setIsApplicantAccordionOpen((prev) => !prev)
+              }
+              onChange={(index, value) =>
+                handleScopedValueChange("applicantNumbers", index, value)
+              }
+              isReadOnly={isReadOnly}
+              isSubmitting={isSubmitting}
+            />
 
-          <button
-            type="button"
-            onClick={() => {
-              if (isDocumentLimitReached) return;
-              fileInputRef.current?.click();
-            }}
-            disabled={isDocumentLimitReached}
-            className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
-                                                                               border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
-          >
-            <MdOutlineFileUpload size={16} /> Attach Files
-          </button>
+            <TravelerValueAccordion
+              title="Visa Number"
+              placeholder="Enter Visa Number"
+              items={formData.visaNumbers ?? []}
+              isOpen={isVisaAccordionOpen}
+              onToggle={() => setIsVisaAccordionOpen((prev) => !prev)}
+              onChange={(index, value) =>
+                handleScopedValueChange("visaNumbers", index, value)
+              }
+              isReadOnly={isReadOnly}
+              isSubmitting={isSubmitting}
+            />
+          </div>
 
-          {/* PREVIEW FILES */}
-          <div className="mt-2 flex flex-col gap-2">
-            {Array.isArray(existingDocuments) &&
-              existingDocuments.length > 0 &&
-              existingDocuments.map((doc, i) => (
-                <div
-                  key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
-                  className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
-                >
-                  <button
-                    type="button"
-                    onClick={() => doc.url && window.open(doc.url, "_blank")}
-                    className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
-                    title="Click to view document"
-                  >
-                    <FaRegFolder className="text-blue-500 w-3 h-3" />
-                    {doc.originalName || doc.fileName}
-                  </button>
+          {(formData.bookingstatus === "rescheduled" ||
+            formData.bookingstatus === "cancelled") && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-[12px] border border-[#E2E1E1] bg-[#FCFCFC] p-3">
+              <div>
+                <div className="text-[12px] text-[#818181] mb-1">
+                  Booking Status
                 </div>
-              ))}
-
-            {attachedFiles.map((file, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between w-full 
-                                                         bg-white rounded-md 
-                                                         px-3 py-2 hover:bg-gray-50 transition"
-              >
-                {/* File Name */}
-                <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
-                  <FaRegFolder className="text-blue-500 w-3 h-3" />
-                  {file.name}
-                </span>
-
-                {/* Delete Icon */}
-                <button
-                  type="button"
-                  onClick={() => handleDeleteFile(i)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  <FiTrash2 size={16} />
-                </button>
+                <div className="text-[13px] font-[500] text-[#020202]">
+                  {selectedBookingStatus}
+                </div>
               </div>
-            ))}
-          </div>
-
-          <div className="text-red-600 text-[0.65rem]">
-            Note: A maximum of 3 documents can be uploaded.
-          </div>
+              <div>
+                <div className="text-[12px] text-[#818181] mb-1">
+                  Service Status
+                </div>
+                <div className="text-[13px] font-[500] text-[#020202]">
+                  {selectedServiceStatus}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Remarks Section */}
-        <div className="border border-gray-200 w-[48vw] ml-2.5 rounded-[12px] p-3 mt-4">
-          <label className="block text-[13px] font-medium text-gray-700">
-            Remarks
-          </label>
-          <hr className="mt-1 mb-2 border-t border-gray-200" />
-          <textarea
-            name="remarks"
-            rows={4}
-            value={formData.remarks}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            placeholder="Enter Your Remarks Here"
-            disabled={isSubmitting}
-            className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[13px] mt-1 transition-colors focus:ring hover:border-green-300 ${
-              isSubmitting ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-          />
-        </div>
+        <Documents
+          existingDocuments={existingDocuments}
+          onAddDocuments={(files, category) => onAddDocuments?.(files, category)}
+          onRemoveDocuments={(files, category) =>
+            onRemoveDocuments?.(files, category)
+          }
+          isReadOnly={isReadOnly}
+        />
 
-        {/* Submit Button */}
-        {/* <div className="flex justify-end mt-3">
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-5 py-1.5 bg-[#114958] text-[0.8rem] text-white rounded-md hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? "Saving..." : "Save"}
-          </button>
-        </div> */}
+        <RemarksField
+          label="Internal Notes"
+          value={formData.remarks}
+          onChange={(value) =>
+            setFormData((prev) => ({ ...prev, remarks: value }))
+          }
+          readOnly={isReadOnly}
+          isSubmitting={isSubmitting}
+        />
       </div>
-
-      <CancellationModal
-        isOpen={isCancellationModalOpen}
-        onClose={() => {
-          setIsCancellationModalOpen(false);
-          // revert booking status if user closed without saving
-          setFormData((prev) => ({
-            ...prev,
-            bookingstatus: pendingPrevBookingStatus ?? prev.bookingstatus,
-          }));
-          setPendingPrevBookingStatus(null);
-        }}
-        onSave={handleCancellationSave}
-        initialValues={cancellationModalInitialValues}
-        linkedShowAdvancedPricing={showAdvancedPricing}
-        onLinkedShowAdvancedPricingChange={(v) => setShowAdvancedPricing(v)}
-      />
-    </>
+    </form>
   );
 };
 
