@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useCallback, useMemo } from "react";
+import React, { useEffect, useCallback, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 interface ModalProps {
@@ -42,6 +42,8 @@ const Modal: React.FC<ModalProps> = ({
   disableOverlayClick = false,
   headerLeft,
 }) => {
+  const [isVisible, setIsVisible] = useState(false);
+
   const sizeClasses: ModalSize = useMemo(
     () => ({
       sm: "max-w-sm",
@@ -81,12 +83,19 @@ const Modal: React.FC<ModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
+      const frame = window.requestAnimationFrame(() => {
+        setIsVisible(true);
+      });
+
       if (closeOnEscape) document.addEventListener("keydown", handleEscape);
       return () => {
+        window.cancelAnimationFrame(frame);
         document.body.style.overflow = "unset";
         document.removeEventListener("keydown", handleEscape);
       };
     }
+
+    setIsVisible(false);
     return;
   }, [isOpen, closeOnEscape, handleEscape]);
 
@@ -97,16 +106,19 @@ const Modal: React.FC<ModalProps> = ({
 
   const modalContent = (
     <div
-      className={`fixed inset-0 ${zIndexClass} bg-black/50 flex justify-center items-center transition-opacity duration-300`}
+      className={`fixed inset-0 ${zIndexClass} flex justify-center items-center bg-black/50 transition-opacity duration-300 ${
+        isVisible ? "opacity-100" : "opacity-0"
+      }`}
       onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
     >
       <div
         className={`
-          relative bg-white rounded-lg shadow-xl overflow-hidden 
-          transition-all duration-300 transform ${modalWidthClass} ${modalHeightClass}
+          relative bg-white  rounded-3xl shadow-xl overflow-hidden 
+          transform transition-all duration-300 ${modalWidthClass} ${modalHeightClass}
           pointer-events-auto
+          ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"}
           ${isMobile ? "absolute bottom-0 w-full rounded-t-2xl" : ""}
           ${className}
         `}

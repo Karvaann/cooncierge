@@ -26,7 +26,6 @@ const ChooseBookingTypeModal: React.FC<ChooseBookingTypeModalProps> = ({
       size="sm"
       customWidth="w-[700px]"
       customeHeight="min-h-[97vh]"
-      customBorderRadius="rounded-3xl"
       showCloseButton={true}
       title={
         <div className="px-6 pt-5 text-center">

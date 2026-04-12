@@ -135,7 +135,7 @@ const toDate = (value?: string) => {
 };
 
 const formatDisplayDate = (value: Date | null) =>
-  value ? format(value, "dd MMM yyyy") : "";
+  value ? format(value, "dd MMM yy") : "";
 
 const toIsoBoundary = (value: Date | null) =>
   value ? startOfDay(value).toISOString() : "";
@@ -347,15 +347,6 @@ export default function DateRangeInputBeta({
   }, []);
 
   const displayValue = useMemo(() => {
-    const presetLabel = getMatchingPresetLabel(parsedStart, parsedEnd);
-
-    if (presetLabel) {
-      return {
-        variant: "single" as const,
-        primaryText: presetLabel,
-      };
-    }
-
     if (parsedStart && parsedEnd && isSameDay(parsedStart, parsedEnd)) {
       return {
         variant: "single" as const,

@@ -728,14 +728,6 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             )}
           </div>
 
-          {/* Documents */}
-          <Documents
-            existingDocuments={existingDocuments}
-            onAddDocuments={onAddDocuments}
-            onRemoveDocuments={onRemoveDocuments}
-            isReadOnly={isReadOnly}
-          />
-
           <RemarksField
             label="Rules and Conditions"
             headerRight={
@@ -772,6 +764,15 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             readOnly={isReadOnly}
             isSubmitting={isSubmitting}
           />
+          {/* Documents */}
+          <div className="mt-4">
+            <Documents
+              existingDocuments={existingDocuments}
+              onAddDocuments={onAddDocuments}
+              onRemoveDocuments={onRemoveDocuments}
+              isReadOnly={isReadOnly}
+            />
+          </div>
         </div>
       </form>
     </>
