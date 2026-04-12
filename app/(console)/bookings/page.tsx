@@ -1257,7 +1257,7 @@ const OSBookingsPage = () => {
       {
         label: "Edit",
         icon: <MdOutlineEdit />,
-        color: "text-blue-600",
+        color: "text-[#126ACB]",
         onClick: () => {
           setIsSideSheetOpen(true);
           setSideSheetMode("edit");
@@ -1267,7 +1267,7 @@ const OSBookingsPage = () => {
       {
         label: "Delete",
         icon: <FaRegTrashAlt />,
-        color: "text-red-600",
+        color: "text-[#DD1425]",
         onClick: () => {
           if (id) handleDeleteClick(id);
         },
@@ -1315,9 +1315,17 @@ const OSBookingsPage = () => {
 
     if (tab === "Bookings") {
       baseActions.push({
-        label: "Move",
-        icon: <TbArrowAutofitRight />,
-        color: "text-gray-400",
+        label: "Link",
+        icon: (
+          <Image
+            src="/icons/link-icon.svg"
+            alt="Link"
+            width={12}
+            height={12}
+            className="object-contain"
+          />
+        ),
+        color: "text-[#419836]",
         onClick: () => console.log("Move", row.id),
       });
     }
@@ -1984,7 +1992,7 @@ const OSBookingsPage = () => {
           </div>
           <ActionMenu
             actions={getActionsForTab(activeTab, item)}
-            right="right-15"
+            right="right-10"
           />
         </div>
       </td>,

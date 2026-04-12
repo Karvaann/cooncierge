@@ -25,7 +25,7 @@ const ChooseBookingTypeModal: React.FC<ChooseBookingTypeModalProps> = ({
       onClose={onClose}
       size="sm"
       customWidth="w-[700px]"
-      customeHeight="h-auto"
+      customeHeight="min-h-[97vh]"
       showCloseButton={true}
       title={
         <div className="px-6 pt-5 text-center">
@@ -44,7 +44,7 @@ const ChooseBookingTypeModal: React.FC<ChooseBookingTypeModalProps> = ({
         </div>
       }
     >
-      <div className="flex flex-col gap-[28px] px-7.5 py-8 pt-[40px]">
+      <div className="flex flex-col gap-[28px] px-7.5 pt-[40px]">
         <ChooseBookingTypeCard
           title="Other Services"
           description="Select individual services to create bookings"

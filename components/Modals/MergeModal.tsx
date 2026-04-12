@@ -119,10 +119,10 @@ const MergeModal: React.FC<MergeModalProps> = ({
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [bookingHistory, setBookingHistory] = useState<any[]>([]);
   const [selectedCustomerFull, setSelectedCustomerFull] = useState<any | null>(
-    null
+    null,
   );
   const [selectedVendorFull, setSelectedVendorFull] = useState<any | null>(
-    null
+    null,
   );
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
   const [sideSheetMode, setSideSheetMode] = useState<"view" | "edit">("view");
@@ -160,7 +160,7 @@ const MergeModal: React.FC<MergeModalProps> = ({
         : Number(ratingString || 0);
 
     const rating = Math.min(Math.max(Math.round(ratingRaw) || 1, 1), 5);
-    const tierIcon = `/icons/tier-${rating}.png`;
+    const tierIcon = `/icons/tier-${rating}.svg`;
 
     return (
       <div className="flex items-center gap-2 justify-center">
@@ -359,10 +359,18 @@ const MergeModal: React.FC<MergeModalProps> = ({
         ? { page: mergeIntoPage, rowsPerPage: mergeIntoRowsPerPage }
         : { page: mergeFromPage, rowsPerPage: mergeFromRowsPerPage };
 
-    const getSourceIndex = (droppableId: string, index: number, len: number) => {
+    const getSourceIndex = (
+      droppableId: string,
+      index: number,
+      len: number,
+    ) => {
       const { page, rowsPerPage } = getPaginationForDroppable(droppableId);
       const globalIndex = (page - 1) * rowsPerPage + index;
-      if (!Number.isInteger(globalIndex) || globalIndex < 0 || globalIndex >= len)
+      if (
+        !Number.isInteger(globalIndex) ||
+        globalIndex < 0 ||
+        globalIndex >= len
+      )
         return null;
       return globalIndex;
     };
@@ -370,7 +378,7 @@ const MergeModal: React.FC<MergeModalProps> = ({
     const getDestinationIndex = (
       droppableId: string,
       index: number,
-      len: number
+      len: number,
     ) => {
       const { page, rowsPerPage } = getPaginationForDroppable(droppableId);
       const globalIndex = (page - 1) * rowsPerPage + index;
@@ -385,12 +393,12 @@ const MergeModal: React.FC<MergeModalProps> = ({
         const sourceIndex = getSourceIndex(
           source.droppableId,
           source.index,
-          updated.length
+          updated.length,
         );
         const destinationIndex = getDestinationIndex(
           destination.droppableId,
           destination.index,
-          updated.length
+          updated.length,
         );
         if (sourceIndex == null || destinationIndex == null) return;
 
@@ -403,12 +411,12 @@ const MergeModal: React.FC<MergeModalProps> = ({
         const sourceIndex = getSourceIndex(
           source.droppableId,
           source.index,
-          updated.length
+          updated.length,
         );
         const destinationIndex = getDestinationIndex(
           destination.droppableId,
           destination.index,
-          updated.length
+          updated.length,
         );
         if (sourceIndex == null || destinationIndex == null) return;
 
@@ -430,12 +438,12 @@ const MergeModal: React.FC<MergeModalProps> = ({
     const sourceIndex = getSourceIndex(
       source.droppableId,
       source.index,
-      sourceList.length
+      sourceList.length,
     );
     const destinationIndex = getDestinationIndex(
       destination.droppableId,
       destination.index,
-      destList.length
+      destList.length,
     );
     if (sourceIndex == null || destinationIndex == null) return;
 
@@ -595,8 +603,8 @@ const MergeModal: React.FC<MergeModalProps> = ({
                 .map((s) => s.name || s.id)
                 .join(", ")} into ${primaryItem.name || primaryItem.id}?`
             : mode === "customer"
-            ? "Select at least two customers to merge"
-            : "Select at least two vendors to merge"
+              ? "Select at least two customers to merge"
+              : "Select at least two vendors to merge"
         }
         cancelText="Cancel"
         confirmButtonColor="bg-[#3B8132]"

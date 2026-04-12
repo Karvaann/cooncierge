@@ -29,7 +29,7 @@ export default function ChooseBookingTypeCard({
 }: ChooseBookingTypeCardProps) {
   return (
     <div
-      className="relative rounded-[24px] border border-[#CCD0DB] bg-white px-[24px] py-[18px] transition-all duration-200 hover:border-[4px] hover:border-[#7135AD33] hover:px-[22px] hover:py-[21px]"
+      className="relative rounded-[24px] h-[300px] border border-[#CCD0DB] bg-white px-[24px] py-[18px] transition-all duration-200 hover:border-[4px] hover:border-[#7135AD33] hover:px-[22px] hover:py-[21px]"
       style={{ boxShadow: "0 2px 8px 0 rgba(0, 0, 0, 0.06)" }}
     >
       <div className="flex items-start gap-4">
