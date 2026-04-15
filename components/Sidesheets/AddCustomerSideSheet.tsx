@@ -1,22 +1,17 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { createPortal } from "react-dom";
 import SideSheet from "../SideSheet";
 import SingleCalendar from "../SingleCalendar";
 import { createCustomer } from "@/services/customerApi";
 import { getAuthUser } from "@/services/storage/authStorage";
 import { updateCustomer } from "@/services/customerApi";
 import { useBooking } from "@/context/BookingContext";
-import { FaRegFolder } from "react-icons/fa";
-import { CiCirclePlus } from "react-icons/ci";
-import { MdOutlineFileUpload } from "react-icons/md";
-import { FiTrash2 } from "react-icons/fi";
-import { LuSave } from "react-icons/lu";
 import Button from "../Button";
-import DropDown from "../DropDown";
+import TierDropDown from "@/components/dropdowns/TierDropDown";
+import RemarksField from "@/components/forms/components/RemarksField";
 import PhoneCodeSelect from "../PhoneCodeSelect";
-import generateCustomId, { getStoredCurrencySymbol } from "@/utils/helper";
+import generateCustomId from "@/utils/helper";
 import ErrorToast from "../ErrorToast";
 import ConfirmationModal from "../popups/ConfirmationModal";
 import {
@@ -31,6 +26,8 @@ import {
   splitPhoneWithDialCode,
 } from "@/utils/phoneUtils";
 import { getUsers } from "@/services/userApi";
+import AttachedFiles from "@/components/AttachedFiles";
+import OpeningBalance from "@/components/OpeningBalance";
 
 type CustomerData = {
   customId?: string;
@@ -253,6 +250,18 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
   const handleDeleteExistingDocument = (index: number) => {
     setExistingDocuments((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const onAddDocuments = (files: File[]) => {
+    setAttachedFiles((prev) => [...prev, ...files]);
+  };
+
+  const onRemoveDocuments = (files: File[]) => {
+    setAttachedFiles((prev) =>
+      prev.filter(
+        (p) => !files.some((f) => f.name === p.name && f.size === p.size),
+      ),
+    );
   };
 
   useEffect(() => {
@@ -648,7 +657,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
           ref={formRef as any}
           noValidate
         >
-          <div className="space-y-6 p-4 overflow-y-auto flex-1 pb-16">
+          <div className="space-y-6 py-6 px-2 overflow-y-auto flex-1 pb-10">
             {/* Error Alert Popup (reuse login style) */}
             {/* {mounted &&
             showError &&
@@ -689,14 +698,14 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               document.body
             )} */}
             {/* ================= BASIC DETAILS ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3 -mt-2">
-              <h2 className="text-[13px] font-medium mb-2">Basic Details</h2>
-              <hr className="mt-1 mb-2 border-t border-gray-200" />
+            <div className="border border-[#E2E1E1] rounded-[15px] p-3.5 -mt-2">
+              <h2 className="text-[13px] font-[500] mb-2">Basic Details</h2>
+              <hr className="mt-1 mb-2 border-t border-[#E2E1E1]" />
 
               {/* Row 1: Full Name */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                 <div className="flex flex-col gap-1 md:col-span-2">
-                  <label className="block text-[13px] font-medium text-gray-700">
+                  <label className="block text-[13px] font-[500] text-[#414141]">
                     Full Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -707,7 +716,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={handleChange}
                     placeholder="Enter Full Name"
                     disabled={readOnly}
-                    className={`w-full rounded-md px-3 py-2 text-[13px] focus:outline-none hover:border-green-400 focus:ring-green-400 focus:ring-1 disabled:bg-gray-100 disabled:text-gray-700 ${
+                    className={`w-full rounded-[15px] px-3 py-2 text-[13px] focus:outline-none hover:border-[#C6AEDE] focus:ring-1 focus:ring-[#C6AEDE] disabled:bg-gray-100 disabled:text-[#414141] ${
                       invalidField === "name"
                         ? "border border-red-300 focus:ring-red-200"
                         : "border border-gray-300"
@@ -719,7 +728,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               {/* Row 2: Alias + Phone */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                 <div className="flex flex-col gap-1">
-                  <label className="block text-[13px] font-medium text-gray-700">
+                  <label className="block text-[13px] font-[500] text-[#414141]">
                     Nickname/Alias
                   </label>
                   <input
@@ -729,11 +738,11 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={handleChange}
                     placeholder="Enter Nickname/Alias"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-[15px] px-3 py-2 text-[13px] focus:outline-none hover:border-[#C6AEDE] focus:ring-1 focus:ring-[#C6AEDE] disabled:bg-gray-100 disabled:text-[#414141]"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className="block text-[13px] font-medium text-gray-700">
+                  <label className="block text-[13px] font-[500] text-[#414141]">
                     Contact Number
                   </label>
                   <div className="flex items-center">
@@ -743,8 +752,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       disabled={readOnly}
                       customWidth="w-[88px]"
                       menuWidth="w-[18rem]"
-                      className="flex-shrink-0 rounded-l-md"
+                      className="flex-shrink-0 rounded-l-[15px]"
                       customHeight="h-9"
+                      buttonClassName="px-3 py-1.5 text-[#020202] font-[400] hover:border-[#C6AEDE] rounded-l-[15px]"
                     />
                     <input
                       name="phone"
@@ -754,7 +764,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       maxLength={phoneMaxLength}
                       placeholder="Enter Contact Number"
                       disabled={readOnly}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                      className="w-full border border-gray-300 rounded-r-[15px] px-3 py-2 text-[13px] focus:outline-none hover:border-[#C6AEDE] focus:ring-1 focus:ring-[#C6AEDE] disabled:bg-gray-100 disabled:text-[#414141]"
                     />
                   </div>
                 </div>
@@ -763,7 +773,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               {/* Row 3: Email + DOB */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
-                  <label className="block text-[13px] font-medium text-gray-700">
+                  <label className="block text-[13px] font-[500] text-[#414141]">
                     Email ID
                   </label>
                   <input
@@ -773,7 +783,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={handleChange}
                     placeholder="Enter Email ID"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-[15px] px-3 py-2 text-[13px] focus:outline-none hover:border-[#C6AEDE] focus:ring-1 focus:ring-[#C6AEDE] disabled:bg-gray-100 disabled:text-[#414141]"
                   />
                 </div>
                 <div className="flex flex-col gap-1 w-full">
@@ -784,26 +794,27 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       setFormData((prev) => ({ ...prev, dateOfBirth: iso }))
                     }
                     placeholder="DD-MM-YYYY"
-                    customWidth="w-full mt-1.5 py-2"
+                    customWidth="w-full py-2"
                     showCalendarIcon={true}
                     readOnly={readOnly}
                     maxDate={new Date().toISOString()}
+                    inputStyleClass="px-2.5 py-2 -mt-5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
                   />
                 </div>
               </div>
             </div>
 
             {/* ================= COMPANY DETAILS ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3">
-              <h2 className="text-[13px] font-medium mb-2">
+            <div className="border border-[#E2E1E1] rounded-[15px] p-3.5 -mt-2">
+              <h2 className="text-[13px] font-[500] mb-2">
                 Company Details (Optional)
               </h2>
-              <hr className="mt-1 mb-2 border-t border-gray-200" />
+              <hr className="mt-1 mb-2 border-t border-[#E2E1E1]" />
 
               <div className="flex gap-6">
                 {/* GSTIN */}
-                <div className="flex flex-col w-[18rem] relative">
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                <div className="flex flex-col w-[24rem] relative">
+                  <label className="block text-[13px] font-[500] text-[#414141] mb-1">
                     GSTIN
                   </label>
                   <input
@@ -813,13 +824,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={handleChange}
                     placeholder="Please Provide Your GST No."
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] pr-16 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-[15px] px-3 py-2 text-[13px] focus:outline-none hover:border-[#C6AEDE] focus:ring-1 focus:ring-[#C6AEDE] disabled:bg-gray-100 disabled:text-[#414141]"
                   />
                 </div>
 
                 {/* Company Name */}
-                <div className="flex flex-col w-[20rem]">
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1">
+                <div className="flex flex-col w-[24rem]">
+                  <label className="block text-[13px] font-[500] text-[#414141] mb-1">
                     Company Name
                   </label>
                   <input
@@ -829,283 +840,65 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={handleChange}
                     placeholder="Enter Company Name"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className="w-full border border-gray-300 rounded-[15px] px-3 py-2 text-[13px] focus:outline-none hover:border-[#C6AEDE] focus:ring-1 focus:ring-[#C6AEDE] disabled:bg-gray-100 disabled:text-[#414141]"
                   />
                 </div>
               </div>
             </div>
 
-            {/* ================= DOCUMENTS ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3">
-              <h2 className="text-[13px] font-medium mb-2">Documents</h2>
-              <hr className="mt-1 mb-2 border-t border-gray-200" />
-
-              <input
-                type="file"
-                ref={fileRef}
-                className="hidden"
-                onChange={handleFileChange}
-                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt"
-                multiple
-                disabled={readOnly || attachedFiles.length >= 3}
-              />
-
-              <button
-                type="button"
-                onClick={() => fileRef.current?.click()}
-                disabled={readOnly || attachedFiles.length >= 3}
-                className={`px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
-               border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200 ${
-                 readOnly || attachedFiles.length >= 3
-                   ? "opacity-50 cursor-not-allowed hover:bg-white"
-                   : ""
-               }`}
-              >
-                <MdOutlineFileUpload size={16} /> Attach Files
-              </button>
-
-              {/* PREVIEW FILES */}
-              <div className="mt-2 flex flex-col gap-2">
-                {existingDocuments.map((doc, i) => (
-                  <div
-                    key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
-                    className="flex items-center justify-between w-full 
-                 bg-white rounded-md 
-                 px-3 py-2 hover:bg-gray-50 transition"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => doc.url && window.open(doc.url, "_blank")}
-                      className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
-                      title="Click to view document"
-                    >
-                      <FaRegFolder className="text-blue-500 w-3 h-3" />
-                      {doc.originalName || doc.fileName}
-                    </button>
-
-                    {!readOnly && mode === "edit" ? (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteExistingDocument(i)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <FiTrash2 size={16} />
-                      </button>
-                    ) : null}
-                  </div>
-                ))}
-
-                {attachedFiles.map((file, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-between w-full 
-                 bg-white rounded-md 
-                 px-3 py-2 hover:bg-gray-50 transition"
-                  >
-                    {/* File Name */}
-                    <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
-                      <FaRegFolder className="text-blue-500 w-3 h-3" />
-                      {file.name}
-                    </span>
-
-                    {/* Delete Icon */}
-                    {!readOnly ? (
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteFile(i)}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <FiTrash2 size={16} />
-                      </button>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-
-              <div className="text-red-600 text-[0.65rem]">
-                Note: Maximum of 3 files can be uploaded
-              </div>
-            </div>
+            <AttachedFiles
+              existingDocuments={existingDocuments}
+              onAddDocuments={onAddDocuments}
+              onRemoveDocuments={onRemoveDocuments}
+              isReadOnly={readOnly}
+              maxDocuments={3}
+            />
 
             {/* ================= BILLING ADDRESS ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3">
-              <label className="block text-[13px] font-medium text-gray-700 mb-1">
+            <div className="border border-[#E2E1E1] rounded-[15px] p-3.5">
+              <label className="block text-[13px] font-[500] text-[#414141] mb-1">
                 Billing Address
               </label>
-              <hr className="mt-1 mb-3 border-t border-gray-200" />
-              <input
+              <hr className="mt-1 mb-3 border-t border-[#E2E1E1]" />
+              <textarea
                 name="address"
                 value={formData.address}
+                rows={3}
                 onChange={(e) =>
                   setFormData({ ...formData, address: e.target.value })
                 }
                 placeholder="Enter Billing Address"
                 disabled={readOnly}
-                className="w-full border border-gray-300 hover:border-green-400 focus:ring-green-400 rounded-md px-3 py-2 text-[13px] disabled:bg-gray-100 disabled:text-gray-700"
+                className="w-full border border-gray-300 focus:outline-none hover:border-[#C6AEDE] focus:ring-[#C6AEDE] rounded-[15px] px-3 py-2 text-[13px] disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
-            {/* ================= OPENING BALANCE ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3">
-              <h2 className="text-[13px] font-medium mb-2">Opening Balance</h2>
-              <hr className="mt-1 mb-3 border-t border-gray-200" />
-
-              <div className="flex items-center gap-6 mb-3">
-                <label className="flex items-center gap-2 cursor-pointer text-[13px]">
-                  <input
-                    type="radio"
-                    name="balanceType"
-                    value="debit"
-                    checked={balanceType === "debit"}
-                    onChange={() => setBalanceType("debit")}
-                    className="w-3 h-3 text-red-600"
-                    disabled={readOnly}
-                  />
-                  <span className="text-gray-700">Debit</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer text-[13px]">
-                  <input
-                    type="radio"
-                    name="balanceType"
-                    value="credit"
-                    checked={balanceType === "credit"}
-                    onChange={() => setBalanceType("credit")}
-                    className="w-3 h-3 text-red-600"
-                    disabled={readOnly}
-                  />
-                  <span className="text-gray-700">Credit</span>
-                </label>
-              </div>
-
-              <div className="relative">
-                <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-green-400">
-                  <span className="text-gray-500 mr-2 text-[13px]">
-                    {getStoredCurrencySymbol()}
-                  </span>
-                  <input
-                    type="text"
-                    value={balanceAmount}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // Only allow numbers and decimal point
-                      if (value === "" || /^\d*\.?\d*$/.test(value)) {
-                        setBalanceAmount(value);
-                      } else {
-                        // Invalid input, ignore
-                      }
-                    }}
-                    placeholder={
-                      balanceType === "debit"
-                        ? "Enter Debit Amount"
-                        : "Enter Credit Amount"
-                    }
-                    disabled={readOnly}
-                    className="flex-1 outline-none text-gray-700 text-[13px] disabled:bg-gray-100 disabled:text-gray-700"
-                  />
-                </div>
-                <div className="absolute right-3 top-2 text-sm font-medium">
-                  {balanceType === "debit" ? (
-                    <span className=" text-green-500 text-[13px]">
-                      Customer pays you {getStoredCurrencySymbol()}{" "}
-                      {balanceAmount || ""}
-                    </span>
-                  ) : (
-                    <span className="text-red-500 text-[13px]">
-                      You pay the customer {getStoredCurrencySymbol()}{" "}
-                      {balanceAmount || ""}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
+            <OpeningBalance
+              readOnly={readOnly}
+              balanceType={balanceType}
+              setBalanceType={setBalanceType}
+              balanceAmount={balanceAmount}
+              setBalanceAmount={setBalanceAmount}
+            />
 
             {/* ================= TIER ================ */}
             <div className=" p-1 -mt-4">
-              <h2 className="text-[13px] font-medium mb-2">Rating</h2>
+              <h2 className="text-[13px] font-[500] mb-2">Rating</h2>
 
               <div className="flex flex-col">
-                <DropDown
-                  options={[
-                    {
-                      value: "tier1",
-                      label: (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src="/icons/tier-1.svg"
-                            alt="Tier 1"
-                            className="w-5 h-5"
-                          />
-                          <span className="text-[13px] font-medium">1</span>
-                        </div>
-                      ),
-                    },
-                    {
-                      value: "tier2",
-                      label: (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src="/icons/tier-2.svg"
-                            alt="Tier 2"
-                            className="w-5 h-5"
-                          />
-                          <span className="text-[13px] font-medium">2</span>
-                        </div>
-                      ),
-                    },
-                    {
-                      value: "tier3",
-                      label: (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src="/icons/tier-3.svg"
-                            alt="Tier 3"
-                            className="w-5 h-5"
-                          />
-                          <span className="text-[13px] font-medium">3</span>
-                        </div>
-                      ),
-                    },
-                    {
-                      value: "tier4",
-                      label: (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src="/icons/tier-4.svg"
-                            alt="Tier 4"
-                            className="w-5 h-5"
-                          />
-                          <span className="text-[13px] font-medium">4</span>
-                        </div>
-                      ),
-                    },
-                    {
-                      value: "tier5",
-                      label: (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src="/icons/tier-5.svg"
-                            alt="Tier 5"
-                            className="w-5 h-5"
-                          />
-                          <span className="text-[13px] font-medium">5</span>
-                        </div>
-                      ),
-                    },
-                  ]}
+                <TierDropDown
                   value={tier}
                   onChange={(v) => setTier(v)}
                   disabled={readOnly}
                   customWidth="w-[10rem]"
                   menuWidth="w-[10rem]"
                   className=""
-                  // readOnly={readOnly}
                 />
               </div>
             </div>
 
             {/* ================= OWNER ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3 -mt-2">
-              <label className="block text-[13px] font-medium text-gray-700 mb-1">
+            <div className="border border-[#E2E1E1] rounded-[15px] p-3.5 -mt-2">
+              <label className="block text-[13px] font-[500] text-[#414141] mb-1">
                 Owner
               </label>
 
@@ -1115,7 +908,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   placeholder={
                     loadingUsers ? "Loading users..." : "Search by Name"
                   }
-                  className="w-full border rounded-md px-3 py-2 text-[13px] focus:outline-none hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  className="w-full border border-[#E2E1E1] rounded-[15px] px-3 py-2 text-[13px] focus:outline-none hover:border-[#C6AEDE] focus:ring-[#C6AEDE] disabled:bg-gray-100 disabled:text-gray-700"
                   value={ownerListDisplay[0]?.name || ""}
                   onChange={(e) => {
                     const value = String(e.target.value || "");
@@ -1139,7 +932,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 />
 
                 {showOwnerDropdown && ownerResults.length > 0 && (
-                  <div className="absolute bg-white border border-gray-200 rounded-md w-[22rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+                  <div className="absolute bg-white border border-[#E2E1E1] rounded-md w-[22rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
                     {ownerResults.map((u) => (
                       <div
                         key={u._id}
@@ -1164,65 +957,53 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               </div>
             </div>
 
-            {/* Remarks */}
-            <div className="border border-gray-200 rounded-xl p-3 -mt-2">
-              <label className="block text-[13px]  font-medium text-gray-700">
-                Remarks
-              </label>
-              <hr className="mt-1 mb-2 border-t border-gray-200" />
-              <textarea
-                name="remarks"
-                rows={5}
-                value={formData.remarks}
-                onChange={handleChange}
-                placeholder="Enter Your Remarks Here"
-                disabled={readOnly}
-                className={`
-            w-full border border-gray-200 rounded-md px-3 py-2 text-[13px]  mt-2 transition-colors
-            focus:ring hover:border-green-400 focus:ring-green-400
-            disabled:bg-gray-100 disabled:text-gray-700
-          `}
-              />
-            </div>
+            <RemarksField
+              value={formData.remarks || ""}
+              onChange={(val) =>
+                setFormData((prev) => ({ ...prev, remarks: val }))
+              }
+              readOnly={readOnly}
+              label="Remarks"
+              showBorder={true}
+            />
 
             {/* ================= ACTION BUTTONS ================ */}
           </div>
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 py-2 px-3 z-30">
+          <div className="sticky bottom-0 bg-white border-t border-[#E2E1E1] py-2 px-3 z-30">
             <div className="flex justify-end gap-2">
               {mode === "view" ? (
                 <Button
                   text="Close"
                   onClick={onCancel}
                   bgColor="bg-white"
-                  textColor="text-gray-700"
-                  className="border border-gray-300 hover:bg-gray-100"
+                  textColor="text-[#7135AD]"
+                  className="border border-[#E2E1E1] hover:bg-gray-100"
                 />
               ) : (
                 <>
                   <Button
-                    text="Cancel"
+                    text="Save As Draft"
                     onClick={onCancel}
                     bgColor="bg-white"
-                    textColor="text-gray-700"
-                    className="border border-gray-300 hover:bg-gray-100"
+                    textColor="text-[#7135AD]"
+                    className="mr-1 rounded-[15px] px-2 py-2 border border-[#E2E1E1]"
                   />
 
                   {mode === "edit" ? (
                     <Button
                       text="Update Customer"
                       onClick={handleUpdateCustomer}
-                      bgColor="bg-[#0D4B37]"
+                      bgColor="bg-[#7135AD]"
                       textColor="text-white"
                       className="hover:bg-green-900"
                     />
                   ) : (
                     <Button
-                      text="Save"
+                      text="Save Details"
                       type="submit"
-                      icon={<LuSave size={16} />}
-                      bgColor="bg-[#0D4B37]"
+                      bgColor="bg-[#7135AD]"
                       textColor="text-white"
-                      className="hover:bg-[#0f3d44]"
+                      className="mr-4 rounded-[15px] px-2 py-2"
                     />
                   )}
                 </>

@@ -10,7 +10,8 @@ import { getAuthUser } from "@/services/storage/authStorage";
 import Button from "@/components/Button";
 import generateCustomId from "@/utils/helper";
 import PhoneCodeSelect from "@/components/PhoneCodeSelect";
-import DropDown from "@/components/DropDown";
+import TierDropDown from "@/components/dropdowns/TierDropDown";
+import RemarksField from "@/components/forms/components/RemarksField";
 import { allowOnlyDigitsWithMax, allowOnlyText } from "@/utils/inputValidators";
 import {
   getPhoneNumberMaxLength,
@@ -527,45 +528,41 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
         onSubmit={handleSubmit}
       >
         {/* ================= BASIC DETAILS ================ */}
-        <div className="border border-gray-200 rounded-[12px] p-3">
-          <h2 className="text-[13px] font-medium mb-2">Basic Details</h2>
-          <hr className="mt-1 mb-2 border-t border-gray-200" />
+        <div className="border border-[#E2E1E1] rounded-[15px] p-3.5">
+          <h2 className="text-[13px] font-[500] mb-2">Basic Details</h2>
+          <hr className="mt-1 mb-2 border-t border-[#E2E1E1]" />
 
-          <div className="flex flex-col md:flex-row gap-4 mb-2">
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
-              <label className="block text-[13px] font-medium text-gray-700">
-                First Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.firstname}
-                onChange={handleChange}
-                name="firstname"
-                placeholder="Enter First Name"
-                required
-                disabled={readOnly}
-                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-700"
-              />
-            </div>
+          {/* Full name - single row */}
+          <div className="flex flex-col gap-1 mb-3">
+            <label className="block text-[13px] font-[500] text-[#414141]">
+              Full Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={`${formData.firstname || ""}${formData.lastname ? " " + formData.lastname : ""}`}
+              onChange={(e) => {
+                const v = String(e.target.value || "").trim();
+                const parts = v.split(" ");
+                const first = parts.shift() || "";
+                const last = parts.join(" ") || "";
+                setFormData((prev) => ({
+                  ...prev,
+                  firstname: first,
+                  lastname: last,
+                }));
+              }}
+              name="fullname"
+              placeholder="Enter Full Name"
+              required
+              disabled={readOnly}
+              className="w-full border border-gray-300 rounded-[15px] px-3 py-2 text-[13px] focus:outline-none hover:border-[#C6AEDE] focus:ring-1 focus:ring-[#C6AEDE] disabled:bg-gray-100 disabled:text-gray-700"
+            />
+          </div>
 
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
-              <label className="block text-[13px] font-medium text-gray-700">
-                Last Name
-              </label>
-              <input
-                name="lastname"
-                value={formData.lastname}
-                onChange={handleChange}
-                type="text"
-                placeholder="Enter Last Name"
-                required
-                disabled={readOnly}
-                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-700"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
-              <label className="block text-[13px] font-medium text-gray-700">
+          {/* Two-column rows: Nickname + Contact, then Email + DOB */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1">
+              <label className="block text-[13px] font-[500] text-[#414141]">
                 Nickname/Alias
               </label>
               <input
@@ -574,17 +571,13 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 onChange={handleChange}
                 type="text"
                 placeholder="Enter Nickname/Alias"
-                required
                 disabled={readOnly}
-                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-700"
+                className="w-full border border-gray-300 rounded-[15px] px-3 py-2 text-[13px] focus:outline-none hover:border-[#C6AEDE] focus:ring-1 focus:ring-[#C6AEDE] disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
-          </div>
 
-          {/* Second row */}
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
-              <label className="block text-[13px] font-medium text-gray-700">
+            <div className="flex flex-col gap-1">
+              <label className="block text-[13px] font-[500] text-[#414141]">
                 Contact Number
               </label>
               <div className="flex items-center">
@@ -594,7 +587,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   disabled={readOnly}
                   customWidth="w-[88px]"
                   menuWidth="w-[18rem]"
-                  className="flex-shrink-0 rounded-l-md"
+                  buttonClassName="flex-shrink-0 rounded-l-[15px]"
                   customHeight="h-9"
                 />
                 <input
@@ -605,13 +598,13 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   maxLength={phoneMaxLength}
                   placeholder="Enter Contact Number"
                   disabled={readOnly}
-                  className="flex-1 w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  className="flex-1 w-full border border-gray-300 rounded-r-[15px] px-3 py-2 text-[13px] focus:outline-none hover:border-[#C6AEDE] focus:ring-1 focus:ring-[#C6AEDE] disabled:bg-gray-100 disabled:text-gray-700"
                 />
               </div>
             </div>
 
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
-              <label className="block text-[13px] font-medium text-gray-700">
+            <div className="flex flex-col gap-1">
+              <label className="block text-[13px] font-[500] text-[#414141]">
                 Email ID
               </label>
               <input
@@ -620,109 +613,40 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                 onChange={handleChange}
                 type="email"
                 placeholder="Enter Email ID"
-                required
                 disabled={readOnly}
-                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-700"
+                className="w-full border border-gray-300 rounded-[15px] px-3 py-2 text-[13px] focus:outline-none hover:border-[#C6AEDE] focus:ring-1 focus:ring-[#C6AEDE] disabled:bg-gray-100 disabled:text-gray-700"
               />
             </div>
 
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
-              <label className="block text-[13px] font-medium text-gray-700">
+            <div className="flex flex-col gap-1">
+              <label className="block text-[13px] font-[500] text-[#414141]">
                 Date of Birth
               </label>
-              <div className="">
-                <SingleCalendar
-                  value={String(formData.dateofbirth || "")}
-                  onChange={(iso) => handleDOBChange(iso)}
-                  placeholder="DD-MM-YYYY"
-                  customWidth="w-full py-2 text-[13px]"
-                  showCalendarIcon={false}
-                  readOnly={readOnly}
-                  maxDate={new Date().toISOString()}
-                />
-                {errors.dateofbirth && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.dateofbirth}
-                  </p>
-                )}
-              </div>
+              <SingleCalendar
+                value={String(formData.dateofbirth || "")}
+                onChange={(iso) => handleDOBChange(iso)}
+                placeholder="DD-MM-YYYY"
+                customWidth="w-full"
+                showCalendarIcon={true}
+                readOnly={readOnly}
+                maxDate={new Date().toISOString()}
+                inputStyleClass="px-3 py-2 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+              />
+              {errors.dateofbirth && (
+                <p className="text-red-500 text-xs mt-1">
+                  {errors.dateofbirth}
+                </p>
+              )}
             </div>
           </div>
         </div>
 
         {/* ================= TIER ================ */}
-        <div className=" p-1 -mt-4">
-          <h2 className="text-[13px] font-medium mb-2">Rating</h2>
+        <div className="p-1 -mt-4 mb-0">
+          <h2 className="text-[13px] font-[500] mb-2">Rating</h2>
 
           <div className="flex flex-col">
-            <DropDown
-              options={[
-                {
-                  value: "tier1",
-                  label: (
-                    <div className="flex items-center gap-2">
-                      <img
-                        src="/icons/tier-1.svg"
-                        alt="Tier 1"
-                        className="w-5 h-5"
-                      />
-                      <span className="text-[13px] font-medium">1</span>
-                    </div>
-                  ),
-                },
-                {
-                  value: "tier2",
-                  label: (
-                    <div className="flex items-center gap-2">
-                      <img
-                        src="/icons/tier-2.svg"
-                        alt="Tier 2"
-                        className="w-5 h-5"
-                      />
-                      <span className="text-[13px] font-medium">2</span>
-                    </div>
-                  ),
-                },
-                {
-                  value: "tier3",
-                  label: (
-                    <div className="flex items-center gap-2">
-                      <img
-                        src="/icons/tier-3.svg"
-                        alt="Tier 3"
-                        className="w-5 h-5"
-                      />
-                      <span className="text-[13px] font-medium">3</span>
-                    </div>
-                  ),
-                },
-                {
-                  value: "tier4",
-                  label: (
-                    <div className="flex items-center gap-2">
-                      <img
-                        src="/icons/tier-4.svg"
-                        alt="Tier 4"
-                        className="w-5 h-5"
-                      />
-                      <span className="text-[13px] font-medium">4</span>
-                    </div>
-                  ),
-                },
-                {
-                  value: "tier5",
-                  label: (
-                    <div className="flex items-center gap-2">
-                      <img
-                        src="/icons/tier-5.svg"
-                        alt="Tier 5"
-                        className="w-5 h-5"
-                      />
-                      <span className="text-[13px] font-medium">5</span>
-                    </div>
-                  ),
-                },
-              ]}
+            <TierDropDown
               value={tier}
               onChange={(v) => setTier(v)}
               disabled={readOnly}
@@ -734,110 +658,99 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
         </div>
 
         {/* ================= REMARKS ================ */}
-        <div className="border border-gray-200 rounded-[12px] p-3">
-          <label className="block text-[13px] font-medium text-gray-700">
-            Remarks
-          </label>
-          <hr className="mt-1 mb-2 border-t border-gray-200" />
-          <textarea
-            name="remarks"
-            rows={5}
-            value={formData.remarks}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            placeholder="Enter Your Remarks Here"
-            disabled={isSubmitting || readOnly}
-            className={`w-full border border-gray-200 rounded-md px-3 py-2 text-[13px] mt-2 transition-colors focus:ring focus:ring-green-400 hover:border-green-300 ${
-              isSubmitting || readOnly ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-          />
-        </div>
-        <div className="flex justify-end mt-auto gap-2">
+        <RemarksField
+          value={formData.remarks || ""}
+          onChange={(val) => setFormData((prev) => ({ ...prev, remarks: val }))}
+          readOnly={isSubmitting || readOnly}
+          isSubmitting={isSubmitting || submitting}
+          label="Remarks"
+          showBorder={true}
+        />
+        <div className="flex justify-end mt-auto gap-2 -mr-4">
           {mode === "view" ? (
             <Button
               text="Close"
               onClick={handleClose}
-              bgColor="bg-gray-200"
-              textColor="text-gray-700"
+              bgColor="bg-white"
+              textColor="text-[#7135AD]"
+              className="border border-[#E2E1E1] hover:bg-gray-100"
             />
-          ) : mode === "edit" ? (
-            <div className="flex gap-2">
-              <Button
-                text="Cancel"
-                onClick={handleClose}
-                bgColor="bg-gray-200"
-                textColor="text-gray-700"
-              />
-              <Button
-                text={isSubmitting || submitting ? "Updating..." : "Update"}
-                onClick={async () => {
-                  try {
-                    setSubmitting(true);
-                    const name = [
-                      String(formData.firstname || "").trim(),
-                      String(formData.lastname || "").trim(),
-                    ]
-                      .filter(Boolean)
-                      .join(" ")
-                      .trim();
-                    const payload: any = {
-                      name,
-                      email: String(formData.emailId || "").trim() || undefined,
-                      phone: ((): string | undefined => {
-                        const num = String(formData.contactnumber || "");
-                        const combined =
-                          (phoneCode && !num.startsWith(phoneCode)
-                            ? phoneCode
-                            : "") + num;
-                        return combined || undefined;
-                      })(),
-                      dateOfBirth: formData.dateofbirth || undefined,
-                      tier: tier || undefined,
-                    };
-                    const id = data?._id || data?.id;
-                    if (!id) throw new Error("Missing traveller id");
-                    const updated = await updateTraveller(String(id), payload);
-                    const displayName = updated?.name || name;
-                    setLastAddedTraveller({
-                      id: updated?._id || id,
-                      name: displayName,
-                    });
-                    handleClose();
-                  } catch (err: any) {
-                    console.error(
-                      "[AddNewTravellerForm] Error updating traveller:",
-                      err?.response?.data?.message || err?.message,
-                    );
-                  } finally {
-                    setSubmitting(false);
-                  }
-                }}
-                disabled={isSubmitting || submitting}
-                bgColor="bg-[#0D4B37]"
-                textColor="text-white"
-              />
-            </div>
           ) : (
             <>
-              <div className="flex-1" />
-              <div className="flex gap-2">
+              <Button
+                text="Save As Draft"
+                onClick={handleClose}
+                bgColor="bg-white"
+                textColor="text-[#7135AD]"
+                className="mr-1 rounded-[15px] px-2 py-1 border border-[#E2E1E1]"
+              />
+
+              {mode === "edit" ? (
                 <Button
-                  text="Cancel"
-                  onClick={handleClose}
-                  className="border border-gray-400"
-                  bgColor="bg-white"
-                  textColor="text-gray-700"
+                  text={isSubmitting || submitting ? "Updating..." : "Update"}
+                  onClick={async () => {
+                    try {
+                      setSubmitting(true);
+                      const name = [
+                        String(formData.firstname || "").trim(),
+                        String(formData.lastname || "").trim(),
+                      ]
+                        .filter(Boolean)
+                        .join(" ")
+                        .trim();
+                      const payload: any = {
+                        name,
+                        email:
+                          String(formData.emailId || "").trim() || undefined,
+                        phone: ((): string | undefined => {
+                          const num = String(formData.contactnumber || "");
+                          const combined =
+                            (phoneCode && !num.startsWith(phoneCode)
+                              ? phoneCode
+                              : "") + num;
+                          return combined || undefined;
+                        })(),
+                        dateOfBirth: formData.dateofbirth || undefined,
+                        tier: tier || undefined,
+                      };
+                      const id = data?._id || data?.id;
+                      if (!id) throw new Error("Missing traveller id");
+                      const updated = await updateTraveller(
+                        String(id),
+                        payload,
+                      );
+                      const displayName = updated?.name || name;
+                      setLastAddedTraveller({
+                        id: updated?._id || id,
+                        name: displayName,
+                      });
+                      handleClose();
+                    } catch (err: any) {
+                      console.error(
+                        "[AddNewTravellerForm] Error updating traveller:",
+                        err?.response?.data?.message || err?.message,
+                      );
+                    } finally {
+                      setSubmitting(false);
+                    }
+                  }}
+                  disabled={isSubmitting || submitting}
+                  bgColor="bg-[#7135AD]"
+                  textColor="text-white"
+                  className="hover:bg-green-900"
                 />
+              ) : (
                 <Button
                   type="submit"
-                  text={isSubmitting || submitting ? "Saving..." : "Save"}
-                  icon={<LuSave className="mr-1" />}
+                  text={
+                    isSubmitting || submitting ? "Saving..." : "Save Details"
+                  }
                   disabled={isSubmitting || submitting}
-                  bgColor="bg-[#0D4B37]"
+                  bgColor="bg-[#7135AD]"
                   textColor="text-white"
-                  className="hover:bg-[#0d3a45]"
+                  className="mr-4 rounded-[15px] px-2 py-2"
                 />
-              </div>
+              )}
             </>
           )}
         </div>
