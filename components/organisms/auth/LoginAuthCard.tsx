@@ -88,7 +88,7 @@ function OwlLogo({ passwordVisible }: { passwordVisible: boolean }) {
       setEyeMotion({
         x: clamp(deltaX / 18, -12, 4),
         y: clamp(deltaY / 22, -6, 6),
-        rotation: clamp(deltaX / 9, -24, 16),
+        rotation: Math.atan2(deltaY, deltaX) * (180 / Math.PI),
       });
     }
 
@@ -168,20 +168,41 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
             />
 
             <div className="mb-4 mt-2.5 flex items-center justify-between">
-              <label className="mb-1 mt-1 flex cursor-pointer items-center gap-2 text-[14px] font-normal text-[#414141]">
+              <label className="mb-1 mt-1 flex cursor-pointer items-center gap-2 text-[14px] font-[300] text-[#414141]">
                 <input
                   type="checkbox"
                   checked={props.checked}
-                  onChange={(event) => props.setChecked(event.target.checked)}
-                  className="h-4 w-4 accent-[#0D4B37]"
+                  onChange={(e) => props.setChecked(e.target.checked)}
+                  className="peer hidden"
                 />
+
+                <div
+                  className={`flex h-4 w-4 items-center justify-center rounded-[6px] border-[1.5px] ${
+                    props.checked ? "border-[#7135AD] bg-[#7135AD]" : "border-[#E2E1E1]"
+                  }`}
+                >
+                  <svg
+                    className={`h-3 w-3 text-white ${props.checked ? "opacity-100" : "opacity-0"}`}
+                    viewBox="0 0 16 16"
+                    fill="none"
+                  >
+                    <path
+                      d="M4 8L7 11L12 5"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+
                 Remember Me
               </label>
 
               <button
                 type="button"
                 onClick={props.goToForgotPassword}
-                className="py-[14px] text-[14px] font-normal text-[#0D4B37] transition-colors hover:text-green-900 hover:underline"
+                className="py-[14px] text-[14px] font-[300] text-[#414141] transition-colors hover:text-[#7135AD] hover:underline"
               >
                 Forgot Password?
               </button>
