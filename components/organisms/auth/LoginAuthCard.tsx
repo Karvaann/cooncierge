@@ -60,16 +60,25 @@ function InlineStatus({ message }: { message: OtpMessage }) {
 
 function OwlLogo({ passwordVisible }: { passwordVisible: boolean }) {
   const owlRef = useRef<HTMLDivElement>(null);
+  const eyeRotationRef = useRef(0);
   const [eyeMotion, setEyeMotion] = useState({ x: 0, y: 0, rotation: 0 });
 
   useEffect(() => {
     if (passwordVisible) {
+      eyeRotationRef.current = 0;
       setEyeMotion({ x: 0, y: 0, rotation: 0 });
       return;
     }
 
     function clamp(value: number, min: number, max: number) {
       return Math.min(Math.max(value, min), max);
+    }
+
+    function getContinuousRotation(rotation: number) {
+      const previousRotation = eyeRotationRef.current;
+      const rotationDelta = ((((rotation - previousRotation) % 360) + 540) % 360) - 180;
+
+      return previousRotation + rotationDelta;
     }
 
     function handlePointerMove(event: PointerEvent) {
@@ -84,11 +93,14 @@ function OwlLogo({ passwordVisible }: { passwordVisible: boolean }) {
       const eyeCenterY = bounds.top + bounds.height * 0.51;
       const deltaX = event.clientX - eyeCenterX;
       const deltaY = event.clientY - eyeCenterY;
+      const rotation = getContinuousRotation(Math.atan2(deltaY, deltaX) * (180 / Math.PI));
+
+      eyeRotationRef.current = rotation;
 
       setEyeMotion({
         x: clamp(deltaX / 18, -12, 4),
         y: clamp(deltaY / 22, -6, 6),
-        rotation: Math.atan2(deltaY, deltaX) * (180 / Math.PI),
+        rotation,
       });
     }
 
