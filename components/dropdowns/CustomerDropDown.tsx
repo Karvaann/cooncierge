@@ -252,7 +252,7 @@ const CustomerDropDown: React.FC<CustomerDropDownProps> = ({
 
               <div className="flex items-center gap-1 shrink-0">
                 <img
-                  src={`/icons/tier-${displayOverlay.rating}.png`}
+                  src={`/icons/tier-${displayOverlay.rating}.svg`}
                   alt={`Tier ${displayOverlay.rating}`}
                   className="w-4 h-4 object-contain"
                 />
@@ -315,7 +315,7 @@ const CustomerDropDown: React.FC<CustomerDropDownProps> = ({
 
                   <div className="flex items-center gap-1 shrink-0">
                     <img
-                      src={`/icons/tier-${rating}.png`}
+                      src={`/icons/tier-${rating}.svg`}
                       alt={`Tier ${rating}`}
                       className="w-4 h-4 object-contain"
                     />

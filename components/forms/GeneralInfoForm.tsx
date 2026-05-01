@@ -1904,7 +1904,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                         <div className="flex items-center gap-1 shrink-0">
                           <img
-                            src={`/icons/tier-${rating}.png`}
+                            src={`/icons/tier-${rating}.svg`}
                             alt={`Tier ${rating}`}
                             className="w-4 h-4 object-contain inline-block align-middle"
                           />
@@ -1972,7 +1972,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
 
                               <div className="flex items-center gap-1">
                                 <img
-                                  src={`/icons/tier-${rating}.png`}
+                                  src={`/icons/tier-${rating}.svg`}
                                   alt={`Tier ${rating}`}
                                   className="w-4 h-4 object-contain inline-block align-middle"
                                 />
@@ -2124,7 +2124,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                       {rating !== null ? (
                         <div className="flex items-center gap-1 shrink-0">
                           <img
-                            src={`/icons/tier-${rating}.png`}
+                            src={`/icons/tier-${rating}.svg`}
                             alt={`Tier ${rating}`}
                             className="w-4 h-4 object-contain inline-block align-middle"
                           />
@@ -2200,7 +2200,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           {rating !== null ? (
                             <div className="flex items-center gap-1">
                               <img
-                                src={`/icons/tier-${rating}.png`}
+                                src={`/icons/tier-${rating}.svg`}
                                 alt={`Tier ${rating}`}
                                 className="w-4 h-4 object-contain inline-block align-middle"
                               />
@@ -2416,7 +2416,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           {rating !== null ? (
                             <div className="flex items-center gap-1 shrink-0">
                               <img
-                                src={`/icons/tier-${rating}.png`}
+                                src={`/icons/tier-${rating}.svg`}
                                 alt={`Tier ${rating}`}
                                 className="w-4 h-4 object-contain inline-block align-middle"
                               />
@@ -2488,7 +2488,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                   return (
                                     <div className="flex items-center gap-1">
                                       <img
-                                        src={`/icons/tier-${rating}.png`}
+                                        src={`/icons/tier-${rating}.svg`}
                                         alt={`Tier ${rating}`}
                                         className="w-4 h-4 object-contain inline-block align-middle"
                                       />
@@ -2653,7 +2653,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                           {rating !== null ? (
                             <div className="flex items-center gap-1 shrink-0">
                               <img
-                                src={`/icons/tier-${rating}.png`}
+                                src={`/icons/tier-${rating}.svg`}
                                 alt={`Tier ${rating}`}
                                 className="w-4 h-4 object-contain"
                               />
@@ -2727,7 +2727,7 @@ const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
                                 {rating !== null ? (
                                   <div className="flex items-center gap-1">
                                     <img
-                                      src={`/icons/tier-${rating}.png`}
+                                      src={`/icons/tier-${rating}.svg`}
                                       alt={`Tier ${rating}`}
                                       className="w-4 h-4 object-contain"
                                     />

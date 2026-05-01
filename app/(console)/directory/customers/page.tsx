@@ -116,7 +116,7 @@ const CustomerDirectory = () => {
     "create" | "edit" | "view"
   >("view");
   const [selectedTravellerRow, setSelectedTravellerRow] = useState<any | null>(
-    null
+    null,
   );
   const [selectedTravellerFull, setSelectedTravellerFull] = useState<
     any | null
@@ -189,7 +189,7 @@ const CustomerDirectory = () => {
     return sorted.filter(
       (c) =>
         (c.customerID || "").toLowerCase().includes(search) ||
-        (c.name || "").toLowerCase().includes(search)
+        (c.name || "").toLowerCase().includes(search),
     );
   }, [customers, searchValue, sortState]);
 
@@ -201,7 +201,7 @@ const CustomerDirectory = () => {
     return travellers.filter(
       (c) =>
         (c.customID || "").toLowerCase().includes(search) ||
-        (c.name || "").toLowerCase().includes(search)
+        (c.name || "").toLowerCase().includes(search),
     );
   }, [travellers, searchValue]);
 
@@ -238,7 +238,7 @@ const CustomerDirectory = () => {
 
     const rating = Math.min(Math.max(Math.round(ratingRaw), 1), 5);
 
-    const tierIcon = `/icons/tier-${rating}.png`;
+    const tierIcon = `/icons/tier-${rating}.svg`;
 
     return (
       <div className="flex items-center gap-2 justify-center">
@@ -329,7 +329,7 @@ const CustomerDirectory = () => {
             dateCreated: formatDMY(c.createdAt),
             createdAt: c.createdAt,
             actions: "⋮",
-          })
+          }),
         );
 
         setCustomers(mappedRows);
@@ -367,7 +367,7 @@ const CustomerDirectory = () => {
             dateCreated: formatDMY(c.createdAt),
             createdAt: c.createdAt,
             actions: "⋮",
-          })
+          }),
         );
 
         setCustomers(mappedRows);
@@ -443,7 +443,7 @@ const CustomerDirectory = () => {
                       (prev) =>
                         isSelected
                           ? prev.filter((id) => id !== row.customerID) // deselect
-                          : [...prev, row.customerID] // select
+                          : [...prev, row.customerID], // select
                     );
                   }}
                 />
@@ -473,7 +473,7 @@ const CustomerDirectory = () => {
                   )}
                 </label>
               </div>
-            </td>
+            </td>,
           );
         }
         cells.push(
@@ -522,19 +522,19 @@ const CustomerDirectory = () => {
                     activeTab === "Customers"
                       ? activeCustomersAction(row)
                       : activeTab === "Deleted"
-                      ? deletedCustomersAction(row)
-                      : []
+                        ? deletedCustomersAction(row)
+                        : []
                   }
                   width="w-22"
                 />
               </div>
             </div>
-          </td>
+          </td>,
         );
 
         return cells;
       }),
-    [filteredCustomers, selectMode, selectedCustomers]
+    [filteredCustomers, selectMode, selectedCustomers],
   );
 
   const travellerTableData = useMemo<JSX.Element[][]>(() => {
@@ -556,7 +556,7 @@ const CustomerDirectory = () => {
                   setSelectedTravellers((prev) =>
                     isSelected
                       ? prev.filter((id) => id !== row.travellerID)
-                      : [...prev, row.travellerID]
+                      : [...prev, row.travellerID],
                   );
                 }}
               />
@@ -582,7 +582,7 @@ const CustomerDirectory = () => {
                 )}
               </label>
             </div>
-          </td>
+          </td>,
         );
       }
 
@@ -617,7 +617,7 @@ const CustomerDirectory = () => {
                 } catch (err) {
                   console.error(
                     "Failed to load traveller booking history:",
-                    err
+                    err,
                   );
                   setBookingHistory([]);
                 }
@@ -637,7 +637,7 @@ const CustomerDirectory = () => {
                     try {
                       await deleteTraveller(row._id);
                       setTravellers((prev) =>
-                        prev.filter((t) => t._id !== row._id)
+                        prev.filter((t) => t._id !== row._id),
                       );
                     } catch (err) {
                       console.error(err);
@@ -648,7 +648,7 @@ const CustomerDirectory = () => {
               width="w-22"
             />
           </div>
-        </td>
+        </td>,
       );
 
       return cells;
@@ -773,7 +773,7 @@ const CustomerDirectory = () => {
                       setSelectedTravellers([]);
                     } else {
                       setSelectedTravellers(
-                        travellers.map((t) => t.travellerID)
+                        travellers.map((t) => t.travellerID),
                       );
                     }
                   }
@@ -786,8 +786,8 @@ const CustomerDirectory = () => {
                     ? "Deselect All"
                     : "Select All"
                   : selectedTravellers.length === travellers.length
-                  ? "Deselect All"
-                  : "Select All"}
+                    ? "Deselect All"
+                    : "Select All"}
               </button>
             </div>
           )}
@@ -934,7 +934,7 @@ const CustomerDirectory = () => {
               ? async () => {
                   try {
                     const customer = await getCustomerById(
-                      selectedCustomer._id
+                      selectedCustomer._id,
                     );
                     setSelectedCustomer(customer);
                     setMode("view");
@@ -945,27 +945,27 @@ const CustomerDirectory = () => {
                   }
                 }
               : activeTab === "Travellers" && selectedTravellerRow
-              ? async () => {
-                  try {
-                    const traveller = await getTravellerById(
-                      selectedTravellerRow._id
-                    );
-                    setSelectedTravellerFull(traveller);
-                    setTravellerMode("view");
-                    setIsTravellerSheetOpen(true);
-                    setIsHistoryOpen(false);
-                  } catch (e) {
-                    console.error("Failed to fetch traveller:", e);
+                ? async () => {
+                    try {
+                      const traveller = await getTravellerById(
+                        selectedTravellerRow._id,
+                      );
+                      setSelectedTravellerFull(traveller);
+                      setTravellerMode("view");
+                      setIsTravellerSheetOpen(true);
+                      setIsHistoryOpen(false);
+                    } catch (e) {
+                      console.error("Failed to fetch traveller:", e);
+                    }
                   }
-                }
-              : undefined
+                : undefined
           }
           onEditCustomer={
             activeTab === "Customers" && selectedCustomer
               ? async () => {
                   try {
                     const customer = await getCustomerById(
-                      selectedCustomer._id
+                      selectedCustomer._id,
                     );
                     setSelectedCustomer(customer);
                     setMode("edit");
@@ -976,20 +976,20 @@ const CustomerDirectory = () => {
                   }
                 }
               : activeTab === "Travellers" && selectedTravellerRow
-              ? async () => {
-                  try {
-                    const traveller = await getTravellerById(
-                      selectedTravellerRow._id
-                    );
-                    setSelectedTravellerFull(traveller);
-                    setTravellerMode("edit");
-                    setIsTravellerSheetOpen(true);
-                    setIsHistoryOpen(false);
-                  } catch (e) {
-                    console.error("Failed to fetch traveller:", e);
+                ? async () => {
+                    try {
+                      const traveller = await getTravellerById(
+                        selectedTravellerRow._id,
+                      );
+                      setSelectedTravellerFull(traveller);
+                      setTravellerMode("edit");
+                      setIsTravellerSheetOpen(true);
+                      setIsHistoryOpen(false);
+                    } catch (e) {
+                      console.error("Failed to fetch traveller:", e);
+                    }
                   }
-                }
-              : undefined
+                : undefined
           }
           bookings={bookingHistory}
           recordName={
@@ -999,11 +999,11 @@ const CustomerDirectory = () => {
                 selectedCustomer?.companyName ||
                 "—"
               : activeTab === "Travellers"
-              ? selectedTravellerRow?.name ||
-                selectedTravellerRow?.travellerName ||
-                selectedTravellerRow?.fullName ||
-                "—"
-              : "—"
+                ? selectedTravellerRow?.name ||
+                  selectedTravellerRow?.travellerName ||
+                  selectedTravellerRow?.fullName ||
+                  "—"
+                : "—"
           }
           recordId={
             activeTab === "Customers"
@@ -1012,11 +1012,11 @@ const CustomerDirectory = () => {
                 selectedCustomer?.id ||
                 "—"
               : activeTab === "Travellers"
-              ? selectedTravellerRow?.travellerID ||
-                selectedTravellerRow?._id ||
-                selectedTravellerRow?.id ||
-                "—"
-              : "—"
+                ? selectedTravellerRow?.travellerID ||
+                  selectedTravellerRow?._id ||
+                  selectedTravellerRow?.id ||
+                  "—"
+                : "—"
           }
           categoryName={activeTab === "Customers" ? "customers" : "travellers"}
         />

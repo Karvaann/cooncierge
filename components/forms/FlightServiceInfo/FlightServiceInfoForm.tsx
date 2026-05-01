@@ -765,12 +765,14 @@ const FlightServiceInfoForm: React.FC<FlightInfoFormProps> = ({
             isSubmitting={isSubmitting}
           />
           {/* Documents */}
-          <Documents
-            existingDocuments={existingDocuments}
-            onAddDocuments={onAddDocuments}
-            onRemoveDocuments={onRemoveDocuments}
-            isReadOnly={isReadOnly}
-          />
+          <div className="mt-4">
+            <Documents
+              existingDocuments={existingDocuments}
+              onAddDocuments={onAddDocuments}
+              onRemoveDocuments={onRemoveDocuments}
+              isReadOnly={isReadOnly}
+            />
+          </div>
         </div>
       </form>
     </>
