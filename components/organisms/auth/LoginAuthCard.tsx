@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { IoMdArrowBack } from "react-icons/io";
 import AuthPrimaryButton from "@/components/atoms/auth/AuthPrimaryButton";
@@ -57,16 +58,94 @@ function InlineStatus({ message }: { message: OtpMessage }) {
   );
 }
 
-export default function LoginAuthCard(props: LoginAuthCardProps) {
+function OwlLogo({ passwordVisible }: { passwordVisible: boolean }) {
+  const owlRef = useRef<HTMLDivElement>(null);
+  const [eyeMotion, setEyeMotion] = useState({ x: 0, y: 0, rotation: 0 });
+
+  useEffect(() => {
+    if (passwordVisible) {
+      setEyeMotion({ x: 0, y: 0, rotation: 0 });
+      return;
+    }
+
+    function clamp(value: number, min: number, max: number) {
+      return Math.min(Math.max(value, min), max);
+    }
+
+    function handlePointerMove(event: PointerEvent) {
+      const owl = owlRef.current;
+
+      if (!owl) {
+        return;
+      }
+
+      const bounds = owl.getBoundingClientRect();
+      const eyeCenterX = bounds.left + bounds.width * 0.72;
+      const eyeCenterY = bounds.top + bounds.height * 0.51;
+      const deltaX = event.clientX - eyeCenterX;
+      const deltaY = event.clientY - eyeCenterY;
+
+      setEyeMotion({
+        x: clamp(deltaX / 18, -12, 4),
+        y: clamp(deltaY / 22, -6, 6),
+        rotation: clamp(deltaX / 9, -24, 16),
+      });
+    }
+
+    window.addEventListener("pointermove", handlePointerMove);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+    };
+  }, [passwordVisible]);
+
   return (
-    <div className="fixed left-1/2 top-1/2 z-10 flex w-fit -translate-x-1/2 -translate-y-1/2 flex-col items-center rounded-2xl bg-white px-6 py-6 shadow-lg">
+    <div className="flex flex-col items-center">
+      <div ref={owlRef} className="relative h-[92px] w-[76px]" aria-hidden>
+        <Image src="/login/owl.svg" alt="" width={76} height={92} priority className="h-[92px] w-[76px]" />
+        {passwordVisible ? (
+          <Image
+            src="/login/eye_closed.svg"
+            alt=""
+            width={42}
+            height={43}
+            className="absolute left-[34px] top-[33px] h-[43px] w-[42px]"
+          />
+        ) : (
+          <Image
+            src="/login/eye.svg"
+            alt=""
+            width={18}
+            height={18}
+            className="absolute left-[54px] top-[39px] h-[18px] w-[18px] transition-transform duration-75 ease-out"
+            style={{
+              transform: `translate(${eyeMotion.x}px, ${eyeMotion.y}px) rotate(${eyeMotion.rotation}deg)`,
+            }}
+          />
+        )}
+      </div>
+
+      <Image src="/full_logo.svg" alt="Cooncierge Logo" width={190} height={53} priority className="-mt-1 h-auto w-[190px]" />
+    </div>
+  );
+}
+
+export default function LoginAuthCard(props: LoginAuthCardProps) {
+  const isAnyPasswordVisible =
+    props.showPassword || props.showCurrentPassword || props.showNewPassword || props.showConfirmPassword;
+
+  return (
+    <div className="z-10 flex h-full w-full flex-col items-center bg-white">
       <div className="flex w-full justify-center">
-        <Image src="/full_logo.svg" alt="Cooncierge Logo" width={240} height={80} priority className="h-auto w-62" />
+        <OwlLogo passwordVisible={isAnyPasswordVisible} />
       </div>
 
       {props.mode === "signin" ? (
-        <div className="w-[360px]">
-          <h2 className="mb-[18px] ml-[135px] mt-[20px] text-[17px] font-semibold text-[#020202]">Welcome!</h2>
+        <div className="mt-8 w-full">
+          <div className="mb-8 text-center">
+            <h2 className="text-[22px] font-semibold text-[#3D3D3D]">Welcome</h2>
+            <p className="mt-2 text-[13px] text-[#858585]">Please sign in to continue</p>
+          </div>
           <form className="w-full space-y-3" onSubmit={props.handleSignIn}>
             <AuthTextInput
               label="Email"
@@ -110,7 +189,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
 
             <AuthPrimaryButton
               type="submit"
-              label={props.isSubmitting ? "Signing In..." : "Sign In"}
+              label={props.isSubmitting ? "Signing In..." : "Sign In ->"}
               disabled={props.isSubmitting}
             />
           </form>
@@ -118,7 +197,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
       ) : null}
 
       {props.mode === "otp" ? (
-        <div className="flex w-[360px] flex-col items-center px-[28px]">
+        <div className="mt-8 flex w-full max-w-[390px] flex-col items-center px-0">
           <div className="mt-[23px] flex w-full items-center">
             <button
               type="button"
@@ -165,7 +244,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
       ) : null}
 
       {props.mode === "forgot" ? (
-        <div className="w-[360px]">
+        <div className="mt-8 w-full">
           {!props.success ? (
             <div className="space-y-4">
               <div className="mt-[20px] flex items-center">
@@ -187,11 +266,12 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
                 }}
               >
                 <p className="mb-[18px] mt-[18px] text-justify text-[14px] font-normal text-[#414141]">
-                  Don&apos;t worry! Just enter your email and we&apos;ll notify your admin to reset your password.
+                  Enter your email to raise password reset request
                 </p>
 
                 <AuthTextInput
                   type="email"
+                  label="Email"
                   value={props.email}
                   onChange={(event) => props.setEmail(event.target.value)}
                   placeholder="Enter Email"
@@ -204,7 +284,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
 
                 <AuthPrimaryButton
                   type="submit"
-                  label={props.isSubmitting ? "Sending..." : "Send"}
+                  label={props.isSubmitting ? "Raising Request..." : "Raise Request"}
                   disabled={props.isSubmitting}
                 />
               </form>
@@ -241,12 +321,12 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
       ) : null}
 
       {props.mode === "reset" ? (
-        <div className="w-[550px] px-0">
+        <div className="w-full px-0">
           <div className="mb-6 mt-[23px] flex items-center">
             <h2 className="w-full text-center text-[16px] font-semibold text-[#020202]">Set a new password</h2>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-4 h-[50vh] overflow-scroll">
             <AuthPasswordInput
               label="Current Password"
               value={props.currentPassword}
@@ -288,14 +368,21 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
 
             {props.otpMessage ? <InlineStatus message={props.otpMessage} /> : null}
 
-            <AuthPrimaryButton
+          </div>
+          <AuthPrimaryButton
               label={props.isSubmitting ? "Setting..." : "Set a new password"}
               onClick={props.handleSetNewPassword}
               disabled={!props.passwordChecks.canSetNewPassword || props.isSubmitting}
+              className="mt-[23px]"
             />
-          </div>
         </div>
       ) : null}
+
+      <footer className="mt-auto flex justify-center gap-8 pt-8 text-[12px] text-[#8A8A8A]">
+        <span>Privacy Policy</span>
+        <span>Terms of Use</span>
+        <span>FAQs</span>
+      </footer>
     </div>
   );
 }
