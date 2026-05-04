@@ -266,15 +266,15 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
       <div className="flex flex-wrap items-start justify-between mb-3">
         <div className="">
           {/* Left section: Booking + Travel Date */}
-          <div className="flex items-end flex-wrap gap-2">
+          <div className="flex items-end flex-wrap gap-3">
             {/* Booking Date */}
             <SingleCalendar
               label="Booking Date"
               value={bookingdate}
               onChange={handleBookingDateChange}
               placeholder="Select Date"
-              customWidth="w-[12rem]"
-              inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+              customWidth="w-[13rem]"
+              inputStyleClass="px-3 py-2 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
             />
 
             {/* Travel Date */}
@@ -284,9 +284,9 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
               onChange={handleTravelDateChange}
               placeholder="Select Date"
               readOnly={false}
-              customWidth="w-[12rem]"
+              customWidth="w-[13rem]"
               showCalendarIcon={true}
-              inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+              inputStyleClass="px-3 py-2 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
             />
           </div>
           {/* Cancellation Date row shown when booking is cancelled */}
@@ -299,21 +299,21 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
                 placeholder="Select Date"
                 customWidth="w-full"
                 showCalendarIcon={true}
-                inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+                inputStyleClass="px-2.5 py-2 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
               />
             </div>
           )}
 
           {/* New Booking/Travel Date row shown when booking is rescheduled */}
           {bookingstatus?.toLowerCase() === "rescheduled" && (
-            <div className="flex items-end flex-wrap gap-2 mb-5 mt-[14px]">
+            <div className="flex items-end flex-wrap gap-3 mb-5 mt-[14px]">
               <SingleCalendar
                 label={rescheduledBookingDateLabel}
                 value={sync?.newBookingDate || ""}
                 onChange={handleNewBookingDateChange}
                 placeholder="Select Date"
-                customWidth="w-[12rem]"
-                inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+                customWidth="w-[13rem]"
+                inputStyleClass="px-2.5 py-2 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
               />
 
               <SingleCalendar
@@ -322,8 +322,8 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
                 onChange={handleNewTravelDateChange}
                 placeholder="Select Date"
                 minDate={sync?.newBookingDate || bookingdate}
-                customWidth="w-[12rem]"
-                inputStyleClass="px-2.5 py-1.5 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
+                customWidth="w-[13rem]"
+                inputStyleClass="px-2.5 py-2 border border-gray-300 rounded-[15px] text-[13px] placeholder:text-[#9CA3AF] hover:border-[#C6AEDE] focus:outline-none focus:ring-1 focus:ring-[#C6AEDE]"
               />
             </div>
           )}
@@ -337,7 +337,7 @@ const DateFieldsAndStatus: React.FC<DateFieldsAndStatusProps> = ({
             value={bookingstatus}
             onChange={handleStatusChange}
             menuClassName="rounded-[14px] px-1.5"
-            buttonClassName="px-3 py-1.5 hover:border-[#C6AEDE] rounded-[15px]"
+            buttonClassName="px-3 py-2 hover:border-[#C6AEDE] rounded-[15px]"
             noButtonRadius
             readOnly={isReadOnly || false}
           />

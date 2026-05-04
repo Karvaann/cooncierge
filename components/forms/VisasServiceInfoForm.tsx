@@ -46,7 +46,10 @@ interface VisasServiceInfoFormProps {
   showValidation?: boolean;
   formRef?: React.RefObject<HTMLDivElement | HTMLFormElement | null>;
   onFormDataUpdate: (data: any) => void;
-  onAddDocuments?: (files: File[], category?: DocumentCategory | string) => void;
+  onAddDocuments?: (
+    files: File[],
+    category?: DocumentCategory | string,
+  ) => void;
   onRemoveDocuments?: (
     files: File[],
     category?: DocumentCategory | string,
@@ -64,10 +67,18 @@ const BOOKING_STATUS_OPTIONS = [
 ];
 
 const SERVICE_STATUS_OPTIONS = [
-  { value: "drafted", label: "Drafted" },
-  { value: "applied", label: "Applied" },
-  { value: "approved", label: "Approved" },
-  { value: "rejected", label: "Rejected" },
+  { value: "drafted", label: "Drafted", icon: "icons/visa-icons/drafted.svg" },
+  { value: "applied", label: "Applied", icon: "icons/visa-icons/applied.svg" },
+  {
+    value: "approved",
+    label: "Approved",
+    icon: "icons/visa-icons/approved.svg",
+  },
+  {
+    value: "rejected",
+    label: "Rejected",
+    icon: "icons/visa-icons/rejected.svg",
+  },
 ];
 
 const DESTINATION_OPTIONS = [
@@ -106,7 +117,9 @@ const VISA_EXEMPTION_RULES: Record<string, string[]> = {
 };
 
 const normalizeBookingStatus = (value: unknown) => {
-  const normalized = String(value ?? "").trim().toLowerCase();
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
   if (normalized === "canceled") return "cancelled";
   if (
     normalized === "confirmed" ||
@@ -119,7 +132,9 @@ const normalizeBookingStatus = (value: unknown) => {
 };
 
 const normalizeServiceStatus = (value: unknown) => {
-  const normalized = String(value ?? "").trim().toLowerCase();
+  const normalized = String(value ?? "")
+    .trim()
+    .toLowerCase();
   if (
     normalized === "drafted" ||
     normalized === "applied" ||
@@ -163,7 +178,9 @@ const normalizeCustomerScopedValues = (
     if (existing && typeof existing === "object") {
       return {
         label,
-        value: String((existing as any).value ?? (existing as any).number ?? ""),
+        value: String(
+          (existing as any).value ?? (existing as any).number ?? "",
+        ),
       };
     }
 
@@ -200,7 +217,7 @@ const TravelerValueAccordion = ({
   isReadOnly: boolean;
   isSubmitting: boolean;
 }) => (
-  <div className="rounded-[12px] border border-[#E2E1E1] bg-white overflow-hidden">
+  <div className="rounded-[14px] border border-[#E2E1E1] bg-white overflow-hidden">
     <button
       type="button"
       onClick={onToggle}
@@ -221,7 +238,7 @@ const TravelerValueAccordion = ({
     </button>
 
     {isOpen ? (
-      <div className="border-t border-[#F0F0F0] bg-[#FCFCFC] px-4 py-3">
+      <div className="bg-[#FCFCFC] px-4 py-3">
         <div className="space-y-3">
           {items.map((item, index) => {
             const isLeadPax = index === 0;
@@ -333,7 +350,9 @@ const VisasServiceInfoForm: React.FC<VisasServiceInfoFormProps> = ({
         : [];
 
     const fallbackCount = Number(
-      generalInfoData?.customerCount ?? (externalFormData as any)?.customerCount ?? 1,
+      generalInfoData?.customerCount ??
+        (externalFormData as any)?.customerCount ??
+        1,
     );
     const count = Math.max(customers.length, fallbackCount || 1);
 
@@ -369,7 +388,8 @@ const VisasServiceInfoForm: React.FC<VisasServiceInfoFormProps> = ({
     ),
     remarks: String(normalizedExternalData?.remarks ?? ""),
   }));
-  const [isApplicantAccordionOpen, setIsApplicantAccordionOpen] = useState(true);
+  const [isApplicantAccordionOpen, setIsApplicantAccordionOpen] =
+    useState(true);
   const [isVisaAccordionOpen, setIsVisaAccordionOpen] = useState(false);
 
   useEffect(() => {
@@ -391,18 +411,20 @@ const VisasServiceInfoForm: React.FC<VisasServiceInfoFormProps> = ({
         bookingdate: String(normalizedExternalData?.bookingdate ?? ""),
         traveldate: String(normalizedExternalData?.traveldate ?? ""),
         bookingstatus:
-        normalizeBookingStatus(normalizedExternalData?.bookingstatus) ||
-        prev.bookingstatus ||
-        "confirmed",
-        cancellationDate: String(normalizedExternalData?.cancellationDate ?? ""),
+          normalizeBookingStatus(normalizedExternalData?.bookingstatus) ||
+          prev.bookingstatus ||
+          "confirmed",
+        cancellationDate: String(
+          normalizedExternalData?.cancellationDate ?? "",
+        ),
         newBookingDate: String(normalizedExternalData?.newBookingDate ?? ""),
         newTravelDate: String(normalizedExternalData?.newTravelDate ?? ""),
         destination: String(normalizedExternalData?.destination ?? ""),
         nationality: String(normalizedExternalData?.nationality ?? ""),
         visaStatus:
-        normalizeServiceStatus((normalizedExternalData as any)?.visaStatus) ||
-        prev.visaStatus ||
-        "drafted",
+          normalizeServiceStatus((normalizedExternalData as any)?.visaStatus) ||
+          prev.visaStatus ||
+          "drafted",
         visaType: String(normalizedExternalData?.visaType ?? ""),
         description: String(normalizedExternalData?.description ?? ""),
         applicantNumbers: nextApplicantNumbers,
@@ -445,7 +467,10 @@ const VisasServiceInfoForm: React.FC<VisasServiceInfoFormProps> = ({
       );
 
       if (
-        areCustomerScopedValuesEqual(prev.applicantNumbers, nextApplicantNumbers) &&
+        areCustomerScopedValuesEqual(
+          prev.applicantNumbers,
+          nextApplicantNumbers,
+        ) &&
         areCustomerScopedValuesEqual(prev.visaNumbers, nextVisaNumbers)
       ) {
         return prev;
@@ -516,9 +541,7 @@ const VisasServiceInfoForm: React.FC<VisasServiceInfoFormProps> = ({
 
   const handleFieldChange =
     (field: keyof VisaServiceInfoFormData) =>
-    (
-      event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-    ) => {
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       const value = event.target.value;
       setFormData((prev) => ({ ...prev, [field]: value }));
     };
@@ -591,8 +614,8 @@ const VisasServiceInfoForm: React.FC<VisasServiceInfoFormProps> = ({
           <hr className="mt-1 mb-4 border-t border-[#E2E1E1]" />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <div>
-              <label className="block text-[13px] font-[400] text-[#020202] mb-1">
+            <div className="w-[80%]">
+              <label className="block text-[13px] font-[500] text-[#414141] mb-1">
                 Country (Destination)
               </label>
               <DropDown
@@ -602,7 +625,7 @@ const VisasServiceInfoForm: React.FC<VisasServiceInfoFormProps> = ({
                 onChange={handleDestinationChange}
                 searchable
                 searchPlaceholder="Search destination"
-                customWidth="w-full"
+                customWidth="w-[60%]"
                 menuClassName="rounded-[14px] px-1.5"
                 buttonClassName={searchableButtonClass}
                 noButtonRadius
@@ -610,8 +633,8 @@ const VisasServiceInfoForm: React.FC<VisasServiceInfoFormProps> = ({
               />
             </div>
 
-            <div>
-              <label className="block text-[13px] font-[400] text-[#020202] mb-1">
+            <div className="-ml-15 w-[80%]">
+              <label className="block text-[13px] font-[500] text-[#414141] mb-1">
                 Nationality
               </label>
               <DropDown
@@ -631,14 +654,14 @@ const VisasServiceInfoForm: React.FC<VisasServiceInfoFormProps> = ({
               />
             </div>
 
-            <div>
-              <label className="block text-[13px] font-[400] text-[#020202] mb-1">
+            <div className="w-[80%] ml-13">
+              <label className="block text-[13px] font-[500] text-[#414141] mb-1">
                 Select Service Status
               </label>
               <DropDown
                 options={SERVICE_STATUS_OPTIONS}
                 placeholder="Select Service Status"
-                  value={formData.visaStatus}
+                value={formData.visaStatus}
                 onChange={(value) =>
                   setFormData((prev) => ({
                     ...prev,
@@ -661,7 +684,7 @@ const VisasServiceInfoForm: React.FC<VisasServiceInfoFormProps> = ({
           ) : null}
 
           <div className="mb-4">
-            <label className="block text-[13px] font-[400] text-[#020202] mb-1">
+            <label className="block text-[13px] font-[500] text-[#414141] mb-1">
               Visa Type / Title
             </label>
             <input
@@ -693,9 +716,7 @@ const VisasServiceInfoForm: React.FC<VisasServiceInfoFormProps> = ({
               placeholder="Enter Applicant Number"
               items={formData.applicantNumbers ?? []}
               isOpen={isApplicantAccordionOpen}
-              onToggle={() =>
-                setIsApplicantAccordionOpen((prev) => !prev)
-              }
+              onToggle={() => setIsApplicantAccordionOpen((prev) => !prev)}
               onChange={(index, value) =>
                 handleScopedValueChange("applicantNumbers", index, value)
               }
@@ -742,7 +763,9 @@ const VisasServiceInfoForm: React.FC<VisasServiceInfoFormProps> = ({
 
         <Documents
           existingDocuments={existingDocuments}
-          onAddDocuments={(files, category) => onAddDocuments?.(files, category)}
+          onAddDocuments={(files, category) =>
+            onAddDocuments?.(files, category)
+          }
           onRemoveDocuments={(files, category) =>
             onRemoveDocuments?.(files, category)
           }

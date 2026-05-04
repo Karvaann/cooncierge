@@ -553,26 +553,26 @@ export default function SingleCalendar({
         </button>
       </div>
       <div className="grid grid-cols-4 gap-1">
-      {years.map((year) => (
-        <button
-          key={year}
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleYearSelect(year);
-          }}
-          className={`px-2 py-1.5 text-[13px] rounded-md transition-colors
+        {years.map((year) => (
+          <button
+            key={year}
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleYearSelect(year);
+            }}
+            className={`px-2 py-1.5 text-[13px] rounded-md transition-colors
             ${
               currentMonth.getFullYear() === year
                 ? "bg-[#7135AD] text-white"
                 : "text-gray-700 hover:bg-gray-100"
             }
           `}
-        >
-          {year}
-        </button>
-      ))}
+          >
+            {year}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -649,7 +649,7 @@ export default function SingleCalendar({
                 setOpen(true);
               }
             }}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            className="absolute right-2 inset-y-0 flex items-center text-gray-400 hover:text-gray-600"
             aria-label={open ? "Clear date" : "Open calendar"}
           >
             {open ? <MdClose size={14} /> : <FaRegCalendar size={14} />}

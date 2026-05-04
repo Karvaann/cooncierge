@@ -8,6 +8,7 @@ interface DropdownOption {
   label: React.ReactNode;
   buttonLabel?: React.ReactNode;
   searchLabel?: string;
+  icon?: string;
 }
 
 interface DropdownFooterAction {
@@ -115,6 +116,8 @@ const DropDown: React.FC<DropdownProps> = ({
   const displayText: React.ReactNode = selectedOption
     ? (selectedOption.buttonLabel ?? selectedOption.label)
     : placeholder;
+  const selectedIcon: string | undefined =
+    (selectedOption && (selectedOption as any).icon) || undefined;
 
   const filteredOptions = useMemo(() => {
     // typeable mode: use fuzzy match against typeableQuery
@@ -305,6 +308,10 @@ const DropDown: React.FC<DropdownProps> = ({
             noBorder ? "border border-transparent" : "border border-gray-300"
           } ${hasCustomHoverBorder ? "" : "hover:border-[#C6AEDE]"} transition-colors text-[13px] ${focusRingClass} ${buttonClassName}`}
         >
+          {selectedIcon ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={selectedIcon} alt="" className="w-4 h-4 mr-2" />
+          ) : null}
           <input
             ref={typeableInputRef}
             type="text"
@@ -379,6 +386,14 @@ const DropDown: React.FC<DropdownProps> = ({
             <span
               className={`${selectedValue ? "text-black" : "text-gray-400"}`}
             >
+              {selectedIcon ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={selectedIcon}
+                  alt=""
+                  className="w-4 h-4 inline-block mr-2 align-middle"
+                />
+              ) : null}
               {displayText}
             </span>
           )}
@@ -456,7 +471,17 @@ const DropDown: React.FC<DropdownProps> = ({
                         : "text-black hover:bg-gray-50"
                     } ${optionClassName}`}
                   >
-                    {option.label}
+                    <div className="flex items-center">
+                      {option.icon ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={option.icon}
+                          alt=""
+                          className="w-4 h-4 mr-2"
+                        />
+                      ) : null}
+                      <div className="flex-1">{option.label}</div>
+                    </div>
                   </button>
                 ))}
 
