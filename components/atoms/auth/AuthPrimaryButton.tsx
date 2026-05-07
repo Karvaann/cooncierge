@@ -14,7 +14,7 @@ export default function AuthPrimaryButton({
     <button
       {...props}
       className={[
-        "h-11 w-full rounded-[10px] bg-[#7135AD] px-4 text-[14px] font-semibold text-white shadow-[0_12px_24px_rgba(13,75,55,0.18)]",
+        "h-9 w-full rounded-[10px] bg-[#7135AD] px-4 text-[12px] font-[500] text-white shadow-[0_12px_24px_rgba(13,75,55,0.18)]",
         "transition-colors duration-200 hover:bg-[#7135AD]",
         "disabled:cursor-not-allowed disabled:opacity-60",
         className,

@@ -58,6 +58,10 @@ function InlineStatus({ message }: { message: OtpMessage }) {
   );
 }
 
+const OWL_SIZE = { width: 66, height: 92 };
+const OPEN_EYE = { left: 47, top: 39, size: 15 };
+const CLOSED_EYE = { left: 26, top: 33, width: 40, height: 41 };
+
 function OwlLogo({ passwordVisible }: { passwordVisible: boolean }) {
   const owlRef = useRef<HTMLDivElement>(null);
   const eyeRotationRef = useRef(0);
@@ -89,8 +93,8 @@ function OwlLogo({ passwordVisible }: { passwordVisible: boolean }) {
       }
 
       const bounds = owl.getBoundingClientRect();
-      const eyeCenterX = bounds.left + bounds.width * 0.72;
-      const eyeCenterY = bounds.top + bounds.height * 0.51;
+      const eyeCenterX = bounds.left + OPEN_EYE.left + OPEN_EYE.size / 2;
+      const eyeCenterY = bounds.top + OPEN_EYE.top + OPEN_EYE.size / 2;
       const deltaX = event.clientX - eyeCenterX;
       const deltaY = event.clientY - eyeCenterY;
       const rotation = getContinuousRotation(Math.atan2(deltaY, deltaX) * (180 / Math.PI));
@@ -98,8 +102,8 @@ function OwlLogo({ passwordVisible }: { passwordVisible: boolean }) {
       eyeRotationRef.current = rotation;
 
       setEyeMotion({
-        x: clamp(deltaX / 18, -12, 4),
-        y: clamp(deltaY / 22, -6, 6),
+        x: clamp(deltaX / 18, -10, 3),
+        y: clamp(deltaY / 22, -5, 5),
         rotation,
       });
     }
@@ -113,31 +117,41 @@ function OwlLogo({ passwordVisible }: { passwordVisible: boolean }) {
 
   return (
     <div className="flex flex-col items-center">
-      <div ref={owlRef} className="relative h-[92px] w-[76px]" aria-hidden>
-        <Image src="/login/owl.svg" alt="" width={76} height={92} priority className="h-[92px] w-[76px]" />
+      <div ref={owlRef} className="relative h-[92px] w-[66px]" aria-hidden>
+        <Image
+          src="/login/owl.svg"
+          alt=""
+          width={OWL_SIZE.width}
+          height={OWL_SIZE.height}
+          priority
+          className="h-[92px] w-[66px]"
+        />
         {passwordVisible ? (
           <Image
             src="/login/eye_closed.svg"
             alt=""
-            width={42}
-            height={43}
-            className="absolute left-[34px] top-[33px] h-[43px] w-[42px]"
+            width={CLOSED_EYE.width}
+            height={CLOSED_EYE.height}
+            className="absolute h-[41px] w-[40px]"
+            style={{ left: CLOSED_EYE.left, top: CLOSED_EYE.top }}
           />
         ) : (
           <Image
             src="/login/eye.svg"
             alt=""
-            width={18}
-            height={18}
-            className="absolute left-[54px] top-[39px] h-[18px] w-[18px] transition-transform duration-75 ease-out"
+            width={OPEN_EYE.size}
+            height={OPEN_EYE.size}
+            className="absolute h-[15px] w-[15px] transition-transform duration-75 ease-out"
             style={{
+              left: OPEN_EYE.left,
+              top: OPEN_EYE.top,
               transform: `translate(${eyeMotion.x}px, ${eyeMotion.y}px) rotate(${eyeMotion.rotation}deg)`,
             }}
           />
         )}
       </div>
 
-      <Image src="/full_logo.svg" alt="Cooncierge Logo" width={190} height={53} priority className="-mt-1 h-auto w-[190px]" />
+      <Image src="/full_logo.svg" alt="Cooncierge Logo" width={120} height={53} priority className="-mt-1 h-auto w-[120px]" />
     </div>
   );
 }
@@ -155,8 +169,8 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
       {props.mode === "signin" ? (
         <div className="mt-8 w-full">
           <div className="mb-8 text-center">
-            <h2 className="text-[22px] font-semibold text-[#3D3D3D]">Welcome</h2>
-            <p className="mt-2 text-[13px] text-[#858585]">Please sign in to continue</p>
+            <h2 className="text-[21px] font-[500] text-[#414141]">Welcome</h2>
+            <p className="mt-2 text-[12px] font-[400] text-[#818181]">Please sign in to continue</p>
           </div>
           <form className="w-full space-y-3" onSubmit={props.handleSignIn}>
             <AuthTextInput
@@ -180,7 +194,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
             />
 
             <div className="mb-4 mt-2.5 flex items-center justify-between">
-              <label className="mb-1 mt-1 flex cursor-pointer items-center gap-2 text-[14px] font-[300] text-[#414141]">
+              <label className="mb-1 mt-1 flex cursor-pointer items-center gap-2 text-[12px] font-[300] text-[#414141]">
                 <input
                   type="checkbox"
                   checked={props.checked}
@@ -214,7 +228,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
               <button
                 type="button"
                 onClick={props.goToForgotPassword}
-                className="py-[14px] text-[14px] font-[300] text-[#414141] transition-colors hover:text-[#7135AD] hover:underline"
+                className="py-[14px] text-[12px] font-[300] text-[#414141] transition-colors hover:text-[#7135AD] hover:underline"
               >
                 Forgot Password?
               </button>

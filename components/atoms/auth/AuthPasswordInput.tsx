@@ -10,14 +10,8 @@ interface AuthPasswordInputProps
 function EyeIcon({ open }: { open: boolean }) {
   if (open) {
     return (
-      <svg xmlns="http://www.w3.org/2000/svg" width="17" height="14" viewBox="0 0 17 14" fill="none" aria-hidden>
-        <path
-          d="M8.25 11.25C5.25 11.25 2.75025 9.50025 0.75 6C2.75025 2.49975 5.25 0.75 8.25 0.75C11.25 0.75 13.7497 2.49975 15.75 6C15.435 6.552 15.1065 7.0605 14.7667 7.52475M10.5 11.25L12 12.75L15 9.75M9.75 6C9.75 6.82843 9.07843 7.5 8.25 7.5C7.42157 7.5 6.75 6.82843 6.75 6C6.75 5.17157 7.42157 4.5 8.25 4.5C9.07843 4.5 9.75 5.17157 9.75 6Z"
-          stroke="#818181"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M2.25 2.25L15.75 15.75M7.938 7.94023C7.65653 8.22149 7.49833 8.60305 7.49819 9.00095C7.49805 9.39886 7.65598 9.78052 7.93725 10.062C8.21851 10.3434 8.60006 10.5016 8.99797 10.5018C9.39587 10.5019 9.77753 10.344 10.059 10.0627M7.02225 4.02375C7.66531 3.83979 8.33115 3.74763 9 3.75C12 3.75 14.4997 5.49975 16.5 9C15.9165 10.0207 15.291 10.893 14.6227 11.616M13.0178 13.0117C11.7945 13.8367 10.4565 14.25 9 14.25C6 14.25 3.50025 12.5002 1.5 9C2.52675 7.20375 3.68475 5.86875 4.974 4.99425" stroke="#818181" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     );
   }
@@ -44,15 +38,15 @@ export default function AuthPasswordInput({
 }: AuthPasswordInputProps) {
   return (
     <label className="block w-full">
-      <span className="mb-1 block text-left text-[14px] font-medium text-gray-700">
-        {label}
+      <span className="mb-1 block text-left text-[12px] font-[500] text-[#414141]">
+          {label}
       </span>
       <div className="relative">
         <input
           {...props}
           type={visible ? "text" : "password"}
           className={[
-            "h-11 w-full rounded-[14px] border border-[#E2E1E1] px-4 pr-10 text-[14px] font-normal",
+            "h-9 w-full rounded-[13px] border border-[#E2E1E1] px-[12px] text-[12px] font-normal",
             "placeholder:text-[#A5ADB8] hover:border-[#AFD7D2] focus:outline-none focus:ring-1 focus:ring-[#AFD7D2]",
             className,
           ].join(" ")}
@@ -60,7 +54,7 @@ export default function AuthPasswordInput({
         <button
           type="button"
           onClick={onToggleVisible}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+          className="absolute right-3 top-1/2 h-[10px] -translate-y-1/2 text-gray-500 hover:text-gray-700"
           aria-label={visible ? "Hide password" : "Show password"}
         >
           <EyeIcon open={visible} />

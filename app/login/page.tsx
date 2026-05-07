@@ -18,7 +18,7 @@ export default function SignIn() {
         <LoginBackground />
       </section>
 
-      <section className="flex min-h-screen flex-col bg-white px-6 py-8 sm:px-10 lg:px-16 lg:py-16">
+      <section className="flex min-h-screen flex-col bg-white px-6 py-8 sm:px-10 lg:px-19 lg:py-17">
         <div className="relative -mx-6 -mt-8 mb-8 block overflow-hidden bg-[#F5EEE7] sm:-mx-10 lg:hidden">
           <LoginBackground compact />
         </div>

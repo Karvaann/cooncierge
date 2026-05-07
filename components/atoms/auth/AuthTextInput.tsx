@@ -12,14 +12,14 @@ export default function AuthTextInput({
   return (
     <label className="block w-full">
       {label ? (
-        <span className="mb-1 block text-left text-[14px] font-medium text-gray-700">
+        <span className="mb-1 block text-left text-[12px] font-[500] text-[#414141]">
           {label}
         </span>
       ) : null}
       <input
         {...props}
         className={[
-          "h-11 w-full rounded-[14px] border border-[#E2E1E1] px-4 text-[14px] font-normal",
+          "h-9 w-full rounded-[13px] border border-[#E2E1E1] px-[12px] text-[12px] font-normal",
           "placeholder:text-[#A5ADB8] hover:border-[#AFD7D2] focus:outline-none focus:ring-1 focus:ring-[#AFD7D2]",
           className,
         ].join(" ")}
