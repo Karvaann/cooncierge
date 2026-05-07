@@ -254,14 +254,15 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
             >
               <IoMdArrowBack size={15} />
             </button>
-            <h2 className="w-[85%] text-center text-[15px] font-semibold text-[#020202]">Please enter OTP</h2>
+            <div className="flex flex-col items-center w-full">
+              <h2 className="text-[15px] font-[500] text-[#414141]">Enter OTP</h2>
+              <p className="mt-2 text-[12px] font-[400] text-[#818181]">OTP has been sent to {props.email}.</p>
+            </div>
           </div>
 
           <div className="m-[24px]">
             <OtpField value={props.otp} onChange={props.setOtp} hasError={props.otpMessage?.tone === "error"} />
           </div>
-
-          <p className="-mt-3 mb-4 text-center text-[12px] font-normal text-[#126ACB]">OTP has been sent to {props.email}.</p>
 
           {props.otpMessage ? <InlineStatus message={props.otpMessage} /> : null}
 
@@ -272,9 +273,9 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
           />
 
           <div className="mt-4 flex w-full justify-between">
-            <div className="text-[14px] font-normal text-[#414141]">(00:{props.timer > 9 ? props.timer : `0${props.timer}`})</div>
+            <div className="text-[12px] font-normal text-[#414141]">(00:{props.timer > 9 ? props.timer : `0${props.timer}`})</div>
             {!props.canResend ? (
-              <button type="button" disabled className="text-[15px] font-normal text-[#0D4B37] opacity-60">
+              <button type="button" disabled className="text-[12px] font-normal text-[#0D4B37] opacity-60">
                 Resend OTP
               </button>
             ) : (
