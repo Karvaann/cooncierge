@@ -47,7 +47,7 @@ export default function AuthPasswordInput({
           type={visible ? "text" : "password"}
           className={[
             "h-9 w-full rounded-[13px] border border-[#E2E1E1] px-[12px] text-[12px] font-normal",
-            "placeholder:text-[#A5ADB8] hover:border-[#AFD7D2] focus:outline-none focus:ring-1 focus:ring-[#AFD7D2]",
+            "placeholder:text-[#A5ADB8] transition-[border-color,box-shadow] hover:border-[#C6AEDE] hover:shadow-[0_2px_8px_0_rgba(198,174,222,0.25)] focus:border-[#7135AD] focus:outline-none focus:ring-1 focus:ring-[#7135AD]",
             className,
           ].join(" ")}
         />

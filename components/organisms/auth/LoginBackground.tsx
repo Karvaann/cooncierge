@@ -13,7 +13,7 @@ export default function LoginBackground({ compact = false }: LoginBackgroundProp
         fill
         priority={!compact}
         sizes={compact ? "100vw" : "65vw"}
-        className="-top-5 !h-[calc(100%+20px)] object-cover object-left-top"
+        className="-top-5 !h-[calc(100%+20px)] object-cover"
       />
     </div>
   );

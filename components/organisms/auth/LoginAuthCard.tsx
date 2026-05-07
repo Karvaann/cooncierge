@@ -59,7 +59,7 @@ function InlineStatus({ message }: { message: OtpMessage }) {
 }
 
 const OWL_SIZE = { width: 66, height: 92 };
-const OPEN_EYE = { left: 47, top: 39, size: 15 };
+const OPEN_EYE = { left: 47, top: 39, size: 14 };
 const CLOSED_EYE = { left: 26, top: 33, width: 40, height: 41 };
 
 function OwlLogo({ passwordVisible }: { passwordVisible: boolean }) {
@@ -194,7 +194,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
             />
 
             <div className="mb-4 mt-2.5 flex items-center justify-between">
-              <label className="mb-1 mt-1 flex cursor-pointer items-center gap-2 text-[12px] font-[300] text-[#414141]">
+              <label className="group mb-1 mt-1 flex cursor-pointer items-center gap-2 text-[12px] font-[300] text-[#414141]">
                 <input
                   type="checkbox"
                   checked={props.checked}
@@ -203,7 +203,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
                 />
 
                 <div
-                  className={`flex h-4 w-4 items-center justify-center rounded-[6px] border-[1.5px] ${
+                  className={`flex h-4 w-4 items-center justify-center rounded-[6px] border-[1.5px] transition-[border-color,box-shadow,background-color] group-hover:border-[#C6AEDE] group-hover:shadow-[0_2px_8px_0_rgba(198,174,222,0.25)] ${
                     props.checked ? "border-[#7135AD] bg-[#7135AD]" : "border-[#E2E1E1]"
                   }`}
                 >
@@ -228,7 +228,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
               <button
                 type="button"
                 onClick={props.goToForgotPassword}
-                className="py-[14px] text-[12px] font-[300] text-[#414141] transition-colors hover:text-[#7135AD] hover:underline"
+                className="py-[14px] text-[12px] font-[300] text-[#414141] font-[Roboto] transition-colors underline"
               >
                 Forgot Password?
               </button>
@@ -236,7 +236,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
 
             <AuthPrimaryButton
               type="submit"
-              label={props.isSubmitting ? "Signing In..." : "Sign In ->"}
+              label={props.isSubmitting ? "Signing In..." : "Sign In"}
               disabled={props.isSubmitting}
             />
           </form>
