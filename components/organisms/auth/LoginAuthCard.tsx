@@ -61,6 +61,12 @@ function InlineStatus({ message }: { message: OtpMessage }) {
 const OWL_SIZE = { width: 66, height: 92 };
 const OPEN_EYE = { left: 47, top: 39, size: 14 };
 const CLOSED_EYE = { left: 26, top: 33, width: 40, height: 41 };
+const EYE_TRAVEL = {
+  left: -8,
+  right: 2,
+  up: -4,
+  down: 4,
+};
 
 function OwlLogo({ passwordVisible }: { passwordVisible: boolean }) {
   const owlRef = useRef<HTMLDivElement>(null);
@@ -102,8 +108,8 @@ function OwlLogo({ passwordVisible }: { passwordVisible: boolean }) {
       eyeRotationRef.current = rotation;
 
       setEyeMotion({
-        x: clamp(deltaX / 18, -10, 3),
-        y: clamp(deltaY / 22, -5, 5),
+        x: clamp(deltaX / 18, EYE_TRAVEL.left, EYE_TRAVEL.right),
+        y: clamp(deltaY / 22, EYE_TRAVEL.up, EYE_TRAVEL.down),
         rotation,
       });
     }
@@ -167,12 +173,12 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
       </div>
 
       {props.mode === "signin" ? (
-        <div className="mt-8 w-full">
-          <div className="mb-8 text-center">
-            <h2 className="text-[21px] font-[500] text-[#414141]">Welcome</h2>
-            <p className="mt-2 text-[12px] font-[400] text-[#818181]">Please sign in to continue</p>
+        <div className="mt-[40px] w-full">
+          <div className="mb-[32px] text-center">
+            <h2 className="text-[20px] font-[500] text-[#414141]">Welcome</h2>
+            <p className="mt-[4px] text-[12px] font-[400] text-[#818181]">Please sign in to continue</p>
           </div>
-          <form className="w-full space-y-3" onSubmit={props.handleSignIn}>
+          <form className="w-full space-y-[16px]" onSubmit={props.handleSignIn}>
             <AuthTextInput
               label="Email"
               type="email"
@@ -192,8 +198,8 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
               visible={props.showPassword}
               onToggleVisible={() => props.setShowPassword(!props.showPassword)}
             />
-
-            <div className="mb-4 mt-2.5 flex items-center justify-between">
+          </form>
+          <div className="flex mt-[24px] mb-[32px] items-center justify-between">
               <label className="group mb-1 mt-1 flex cursor-pointer items-center gap-2 text-[12px] font-[300] text-[#414141]">
                 <input
                   type="checkbox"
@@ -203,12 +209,12 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
                 />
 
                 <div
-                  className={`flex h-4 w-4 items-center justify-center rounded-[6px] border-[1.5px] transition-[border-color,box-shadow,background-color] group-hover:border-[#C6AEDE] group-hover:shadow-[0_2px_8px_0_rgba(198,174,222,0.25)] ${
+                  className={`flex h-[20px] w-[20px] items-center justify-center rounded-[6px] border-[1.5px] transition-[border-color,box-shadow,background-color] group-hover:border-[#C6AEDE] group-hover:shadow-[0_2px_8px_0_rgba(198,174,222,0.25)] ${
                     props.checked ? "border-[#7135AD] bg-[#7135AD]" : "border-[#E2E1E1]"
                   }`}
                 >
                   <svg
-                    className={`h-3 w-3 text-white ${props.checked ? "opacity-100" : "opacity-0"}`}
+                    className={`h-[18px] w-[18px] text-white ${props.checked ? "opacity-100" : "opacity-0"}`}
                     viewBox="0 0 16 16"
                     fill="none"
                   >
@@ -228,7 +234,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
               <button
                 type="button"
                 onClick={props.goToForgotPassword}
-                className="py-[14px] text-[12px] font-[300] text-[#414141] font-[Roboto] transition-colors underline"
+                className="text-[12px] font-[300] text-[#818181] hover:text-[#777575] cursor-pointer transition-colors underline"
               >
                 Forgot Password?
               </button>
@@ -239,12 +245,11 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
               label={props.isSubmitting ? "Signing In..." : "Sign In"}
               disabled={props.isSubmitting}
             />
-          </form>
         </div>
       ) : null}
 
       {props.mode === "otp" ? (
-        <div className="mt-8 flex w-full max-w-[390px] flex-col items-center px-0">
+        <div className="mt-[40px] flex w-full max-w-[390px] flex-col items-center px-0">
           <div className="mt-[23px] flex w-full items-center">
             <button
               type="button"
@@ -292,7 +297,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
       ) : null}
 
       {props.mode === "forgot" ? (
-        <div className="mt-8 w-full">
+        <div className="mt-[40px] w-full">
           {!props.success ? (
             <div className="space-y-4">
               <div className="mt-[20px] flex items-center">
@@ -426,7 +431,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
         </div>
       ) : null}
 
-      <footer className="mt-auto flex justify-center gap-8 pt-8 text-[12px] text-[#8A8A8A]">
+      <footer className="mt-auto flex justify-center gap-8 pt-8 text-[12px] text-[#818181]">
         <span>Privacy Policy</span>
         <span>Terms of Use</span>
         <span>FAQs</span>
