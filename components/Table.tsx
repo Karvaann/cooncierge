@@ -1,0 +1,459 @@
+"use client";
+
+import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+import DropDown from "./DropDown";
+// Type definitions
+interface TableProps {
+  data: React.ReactNode[][];
+  columns: string[];
+  initialRowsPerPage?: number;
+  maxRowsPerPageOptions?: number[];
+  columnIconMap?: Record<string, React.ReactNode>;
+  columnWidthClassMap?: Record<string, string>;
+  headerAlign?: Record<string, "left" | "center" | "right">;
+  onSort?: (column: string) => void;
+  hideRowsPerPage?: boolean;
+  showCheckboxColumn?: boolean;
+  headerCheckbox?: React.ReactNode;
+  /* NEW optional DnD props */
+  enableDragAndDrop?: boolean; // default false
+  rowIds?: string[];
+  droppableId?: string;
+  headerClassName?: string;
+  headerRowTextClassName?: string;
+  headerCellTextClassName?: string;
+  categoryName?: string;
+  sortableHeaderHoverClass?: string;
+  hideEntriesText?: boolean;
+  onRowClick?: (rowIndex: number) => void;
+  onPaginationChange?: (page: number, rowsPerPage: number) => void;
+  enableRowHoverActions?: boolean;
+  rowClassNameResolver?: (rowIndex: number) => string;
+  onHeaderIconClick?: (column: string) => void;
+  headerIconClickableColumns?: string[];
+  headerDropdownMap?: Record<
+    string,
+    {
+      isOpen: boolean;
+      content: React.ReactNode;
+      align?: "left" | "center" | "right";
+    }
+  >;
+  /* Server-side pagination props */
+  externalTotalRows?: number;
+  externalPage?: number;
+}
+
+const Table: React.FC<TableProps> = ({
+  data,
+  columns,
+  initialRowsPerPage = 10,
+  maxRowsPerPageOptions = [10, 20, 50, 100],
+  columnIconMap,
+  columnWidthClassMap = {},
+  onSort,
+  hideRowsPerPage,
+  showCheckboxColumn = false,
+  headerCheckbox,
+  enableDragAndDrop = false,
+  rowIds = [],
+  droppableId = "table-droppable",
+  headerClassName = "",
+  headerRowTextClassName = "text-[#818181]",
+  headerCellTextClassName = "text-[#818181]",
+  categoryName = "",
+  sortableHeaderHoverClass = "",
+  hideEntriesText = false,
+  headerAlign = {},
+  onRowClick,
+  onPaginationChange,
+  enableRowHoverActions = false,
+  rowClassNameResolver,
+  onHeaderIconClick,
+  headerIconClickableColumns,
+  headerDropdownMap = {},
+  externalTotalRows,
+  externalPage,
+}) => {
+  const isServerPaginated = externalTotalRows !== undefined;
+  const [page, setPage] = useState<number>(externalPage ?? 1);
+  const [rowsPerPage, setRowsPerPage] = useState<number>(initialRowsPerPage);
+  const [activeVisibleRowIndex, setActiveVisibleRowIndex] = useState<
+    number | null
+  >(null);
+
+  useEffect(() => {
+    if (!enableRowHoverActions) return;
+    setActiveVisibleRowIndex(null);
+  }, [enableRowHoverActions, page, rowsPerPage, data.length]);
+
+  // Sync external page when server-side pagination is active
+  useEffect(() => {
+    if (externalPage !== undefined) {
+      setPage(externalPage);
+    }
+  }, [externalPage]);
+
+  // Memoized calculations
+  const totalRows = useMemo(
+    () => externalTotalRows ?? data.length,
+    [externalTotalRows, data.length],
+  );
+  const totalPages = useMemo(
+    () => Math.ceil(totalRows / rowsPerPage),
+    [totalRows, rowsPerPage],
+  );
+
+  const paginatedRows = useMemo(
+    () =>
+      isServerPaginated
+        ? data
+        : data.slice((page - 1) * rowsPerPage, page * rowsPerPage),
+    [data, page, rowsPerPage, isServerPaginated],
+  );
+
+  // Memoized pagination buttons
+  const paginationButtons = useMemo(
+    () =>
+      Array.from({ length: totalPages }).map((_, idx) => (
+        <button
+          key={idx}
+          className={`w-6 h-6 rounded-md font-normal text-[0.85rem] flex items-center justify-center transition-colors ${
+            page === idx + 1
+              ? "bg-gray-100 text-gray-600"
+              : "bg-white text-[#155e75] hover:bg-gray-50"
+          }`}
+          onClick={() => setPage(idx + 1)}
+          aria-label={`Go to page ${idx + 1}`}
+        >
+          {idx + 1}
+        </button>
+      )),
+    [totalPages, page],
+  );
+
+  // Optimized handlers
+  const handlePreviousPage = useCallback(() => {
+    setPage((prev) => Math.max(1, prev - 1));
+  }, []);
+
+  const handleNextPage = useCallback(() => {
+    setPage((prev) => Math.min(totalPages, prev + 1));
+  }, [totalPages]);
+
+  const handleRowsPerPageChange = useCallback((newRowsPerPage: number) => {
+    setRowsPerPage(newRowsPerPage);
+    setPage(1); // Reset to first page when changing rows per page
+  }, []);
+
+  // Memoized display text
+  const displayText = useMemo(() => {
+    const start = (page - 1) * rowsPerPage + 1;
+    const end = Math.min(page * rowsPerPage, totalRows);
+    return `Showing ${start}-${end} of ${totalRows} ${
+      categoryName || "entries"
+    }`;
+  }, [page, rowsPerPage, totalRows]);
+
+  // Helper to generate a stable draggableId for each visible row
+  const getDraggableId = (visibleIndex: number) => {
+    // compute global index for the row
+    const globalIndex = (page - 1) * rowsPerPage + visibleIndex;
+    return rowIds && rowIds[globalIndex]
+      ? String(rowIds[globalIndex])
+      : `row-${globalIndex}`;
+  };
+
+  useEffect(() => {
+    if (onPaginationChange) {
+      onPaginationChange(page, rowsPerPage);
+    }
+  }, [page, rowsPerPage, onPaginationChange]);
+
+  const renderHeaderCells = () =>
+    columns.map((col, index) => (
+      <th
+        key={`${col}-${index}`}
+        onClick={() => {
+          if (!onSort) return;
+
+          if (
+            col === "Rating" ||
+            col === "Date Modified" ||
+            col === "Last Modified" ||
+            col === "Tier" ||
+            col === "Date Created" ||
+            col === "Travel Date" ||
+            col === "Joining Date"
+          ) {
+            onSort(col);
+          }
+        }}
+        className={`sticky top-0 z-10 overflow-visible px-[18px] py-[18px] ${headerCellTextClassName} font-[500] leading-4 tracking-[0.6px] text-[13px] ${
+          columnWidthClassMap[col] || ""
+        }
+        ${headerClassName || "bg-[#F3F3F3]"}
+        select-none
+        ${
+          col === "Rating" ||
+          col === "Date Modified" ||
+          col === "Last Modified" ||
+          col === "Tier" ||
+          col === "Date Created" ||
+          col === "Travel Date" ||
+          col === "Joining Date"
+            ? `cursor-pointer ${sortableHeaderHoverClass || "hover:bg-[#ECECEC]"}`
+            : ""
+        }`}
+      >
+        <div
+          className={`flex items-center gap-2 ${
+            headerAlign?.[col] === "left"
+              ? "justify-start"
+              : headerAlign?.[col] === "right"
+                ? "justify-end"
+                : "justify-center"
+          } select-none`}
+        >
+          <span
+            className={`truncate ${
+              headerAlign?.[col] === "left"
+                ? "text-left"
+                : headerAlign?.[col] === "right"
+                  ? "text-right"
+                  : "text-center"
+            }`}
+          >
+            {col}
+          </span>
+          {columnIconMap?.[col] ? (
+            onHeaderIconClick &&
+            (headerIconClickableColumns
+              ? headerIconClickableColumns.includes(col)
+              : true) ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onHeaderIconClick(col);
+                }}
+                data-header-filter-trigger={col}
+                className="inline-flex items-center"
+              >
+                {columnIconMap[col]}
+              </button>
+            ) : (
+              columnIconMap[col]
+            )
+          ) : null}
+        </div>
+        {headerDropdownMap[col]?.isOpen && (
+          <div
+            data-header-filter-dropdown={col}
+            className={`absolute top-full mt-2 z-[120] ${
+              headerDropdownMap[col]?.align === "left"
+                ? "left-0"
+                : headerDropdownMap[col]?.align === "right"
+                  ? "right-0"
+                  : "left-1/2 -translate-x-1/2"
+            }`}
+          >
+            {headerDropdownMap[col]?.content}
+          </div>
+        )}
+      </th>
+    ));
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-gray-100">
+        <table
+          style={{ tableLayout: "fixed" }}
+          className="w-full table-fixed text-sm"
+        >
+          <thead>
+            <tr
+              className={`rounded-t-xl text-[14px] z-9999 select-none ${headerRowTextClassName} ${
+                headerClassName || "bg-[#F3F3F3]"
+              }`}
+            >
+              {showCheckboxColumn && (
+                <th
+                  className={`sticky top-0 z-10 w-[3rem] bg-[#F3F3F3] px-3 py-3 ${
+                    headerClassName || ""
+                  }`}
+                >
+                  {headerCheckbox}
+                </th>
+              )}
+              {renderHeaderCells()}
+            </tr>
+          </thead>
+          {enableDragAndDrop ? (
+            <Droppable droppableId={droppableId}>
+              {(provided) => (
+                <tbody ref={provided.innerRef} {...provided.droppableProps}>
+                  {paginatedRows.map((row, idx) => (
+                    <Draggable
+                      key={getDraggableId(idx)}
+                      draggableId={getDraggableId(idx)}
+                      index={idx}
+                    >
+                      {(drag) => (
+                        <tr
+                          ref={drag.innerRef}
+                          {...drag.draggableProps}
+                          // NOTE: We attach dragHandleProps to the entire row for simplicity.
+                          // If you want handle-only dragging later, we can change this to pass handle props
+                          // to a specific cell by cloning the row's first child.
+                          {...drag.dragHandleProps}
+                          onPointerEnter={(e) => {
+                            if (!enableRowHoverActions) return;
+                            if (e.pointerType === "touch") return;
+                            setActiveVisibleRowIndex(idx);
+                          }}
+                          onPointerLeave={(e) => {
+                            if (!enableRowHoverActions) return;
+                            if (e.pointerType === "touch") return;
+                            setActiveVisibleRowIndex(null);
+                          }}
+                          onClick={() => {
+                            if (!onRowClick) return;
+                            const globalIndex = (page - 1) * rowsPerPage + idx;
+                            onRowClick(globalIndex);
+                          }}
+                          className={`
+    table-body-text
+    ${idx % 2 === 0 ? "bg-white" : "bg-[#F8F8F8]"}
+    hover:bg-gray-100 transition-colors h-[3rem]
+    ${onRowClick ? "cursor-pointer" : ""}
+    ${enableRowHoverActions ? "group" : ""}
+    ${
+      enableRowHoverActions &&
+      (activeVisibleRowIndex === idx ||
+        (activeVisibleRowIndex === null && idx === 0))
+        ? "row-actions-active"
+        : ""
+    }
+    ${
+      rowClassNameResolver
+        ? rowClassNameResolver((page - 1) * rowsPerPage + idx)
+        : ""
+    }
+  `}
+                        >
+                          {row}
+                        </tr>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </tbody>
+              )}
+            </Droppable>
+          ) : (
+            // Non-DnD
+            <tbody>
+              {paginatedRows.map((row, idx) => {
+                return (
+                  <tr
+                    key={`row-${page}-${idx}`}
+                    onPointerEnter={(e) => {
+                      if (!enableRowHoverActions) return;
+                      if (e.pointerType === "touch") return;
+                      setActiveVisibleRowIndex(idx);
+                    }}
+                    onPointerLeave={(e) => {
+                      if (!enableRowHoverActions) return;
+                      if (e.pointerType === "touch") return;
+                      setActiveVisibleRowIndex(null);
+                    }}
+                    onClick={() => {
+                      if (!onRowClick) return;
+                      const globalIndex = (page - 1) * rowsPerPage + idx;
+                      onRowClick(globalIndex);
+                    }}
+                    className={`
+    table-body-text
+    ${idx % 2 === 0 ? "bg-white" : "bg-[#F8F8F8]"}
+    hover:bg-gray-100 transition-colors
+    ${onRowClick ? "cursor-pointer" : ""}
+    ${enableRowHoverActions ? "group" : ""}
+    ${
+      enableRowHoverActions &&
+      (activeVisibleRowIndex === idx ||
+        (activeVisibleRowIndex === null && idx === 0))
+        ? "row-actions-active"
+        : ""
+    }
+    ${
+      rowClassNameResolver
+        ? rowClassNameResolver((page - 1) * rowsPerPage + idx)
+        : ""
+    }
+  `}
+                  >
+                    {row}
+                  </tr>
+                );
+              })}
+            </tbody>
+          )}
+        </table>
+      </div>
+
+      {/* Pagination Controls */}
+      <div
+        className={`mt-4 flex shrink-0 items-center justify-between gap-4 flex-wrap ${
+          hideRowsPerPage ? "justify-between" : ""
+        }`}
+      >
+        {!hideRowsPerPage && (
+          <div className="flex items-center gap-2 ml-2">
+            <span className="text-gray-600 text-[14px]">Rows per page:</span>
+            <DropDown
+              options={maxRowsPerPageOptions.map((o) => ({
+                value: String(o),
+                label: String(o),
+              }))}
+              value={String(rowsPerPage)}
+              onChange={(v) => handleRowsPerPageChange(Number(v))}
+              customWidth="w-[3.5rem]"
+              menuWidth="w-[3.5rem]"
+              className=""
+            />
+          </div>
+        )}
+
+        {!hideEntriesText && (
+          <div className="text-gray-600 text-[14px]">{displayText}</div>
+        )}
+
+        <div className="flex items-center gap-2">
+          <button
+            className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={page === 1}
+            onClick={handlePreviousPage}
+            aria-label="Previous page"
+          >
+            {"<"}
+          </button>
+
+          {paginationButtons}
+
+          <button
+            className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[#155e75] hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={page === totalPages}
+            onClick={handleNextPage}
+            aria-label="Next page"
+          >
+            {">"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default React.memo(Table);

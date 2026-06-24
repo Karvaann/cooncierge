@@ -1,0 +1,1043 @@
+"use client";
+
+import { useMemo, useState, useEffect, useCallback } from "react";
+import { FiSearch } from "react-icons/fi";
+import type { JSX } from "react";
+import dynamic from "next/dynamic";
+import TableSkeleton from "@/components/skeletons/TableSkeleton";
+import ActionMenu from "@/components/Menus/ActionMenu";
+import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
+import { TbArrowAutofitRight } from "react-icons/tb";
+import { HiArrowsUpDown } from "react-icons/hi2";
+import { getNextTriSortState, type TriSortState } from "@/utils/sorting";
+import { PiArrowCircleUpRight } from "react-icons/pi";
+import { PiArrowCircleDownLeft } from "react-icons/pi";
+import { CiFilter } from "react-icons/ci";
+import type { FilterCardOption } from "@/components/FilterCard";
+import FilterTrigger from "@/components/FilterTrigger";
+
+import AddPaymentSidesheet from "@/components/Sidesheets/AddPaymentSidesheet";
+import ViewPaymentSidesheet from "@/components/Sidesheets/ViewPaymentSidesheet";
+import ErrorToast from "@/components/ErrorToast";
+import PaymentsApi from "@/services/paymentsApi";
+import ConfirmationModal from "@/components/popups/ConfirmationModal";
+import BankApi from "@/services/bankApi";
+import CustomIdApi from "@/services/customIdApi";
+import {
+  formatNumberByStoredCurrency,
+  formatServiceType,
+  getStoredCurrencySymbol,
+} from "@/utils/helper";
+import SlidingTabs from "@/components/organisms/navigation/SlidingTabs";
+import { MdOutlineRemoveRedEye } from "react-icons/md";
+import DateRangeInputBeta from "@/components/DateRangeInputBeta";
+
+const Table = dynamic(() => import("@/components/Table"), {
+  loading: () => <TableSkeleton />,
+  ssr: false,
+});
+
+// Column definitions
+const columns: string[] = [
+  "Payment ID",
+  "Party Name",
+  "Linked Booking",
+  "Amount",
+  "Account",
+  "Date",
+  "Actions",
+];
+
+// Service type options for linked-booking filter
+const serviceOptions: FilterCardOption[] = [
+  { value: "flights", label: "Flights" },
+  { value: "accommodation", label: "Accommodation" },
+  { value: "insurance", label: "Travel Insurance" },
+  { value: "activity", label: "Activity" },
+  { value: "visas", label: "Visas" },
+  { value: "tickets", label: "Ticket (attraction)" },
+  { value: "others", label: "Others" },
+  { value: "transportation_land", label: "Transportation (Land)" },
+  { value: "transportation_maritime", label: "Transportation (Maritime)" },
+];
+
+// Dummy payment data
+type PaymentRow = {
+  paymentId: string;
+  partyName: string;
+  linkedBooking: string;
+  serviceType?: string;
+  amount: number;
+
+  amountCurrency?: "INR" | "USD";
+  amountRoe?: number | string;
+  amountInr?: number | string;
+
+  bankCharges?: number | string;
+  bankChargesCurrency?: "INR" | "USD";
+  bankChargesRoe?: number | string;
+  bankChargesInr?: number | string;
+
+  cashbackReceived?: number | string;
+  cashbackReceivedCurrency?: "INR" | "USD";
+  cashbackReceivedRoe?: number | string;
+  cashbackReceivedInr?: number | string;
+
+  amountType: "gave" | "got";
+  account: string;
+  paymentType: string;
+  paymentDateRaw: string | null;
+  date: string;
+  createdAt: string;
+  id?: string | null;
+  bankId?: string | null;
+  partyType?: "Customer" | "Vendor";
+  // raw API object for full view/edit payloads
+  raw?: any;
+};
+
+const PaymentsPage = () => {
+  const mapQuotationTypeToServiceType = useCallback(
+    (quotationType: unknown): string | undefined => {
+      const raw = String(quotationType ?? "")
+        .trim()
+        .toLowerCase();
+
+      if (!raw) return undefined;
+
+      // Normalize arbitrary backend quotationType into our UI taxonomy first.
+      const normalizedLabel = formatServiceType(raw);
+
+      // Map normalized label -> FilterTrigger option values.
+      // Keep these in sync with `serviceOptions`.
+      const labelToValue: Record<string, string> = {
+        Flight: "flights",
+        Accommodation: "accommodation",
+        "Travel Insurance": "insurance",
+        Insurance: "insurance",
+        Activity: "activity",
+        Visa: "visas",
+        "Transportation (Land)": "transportation_land",
+        "Transportation (Maritime)": "transportation_maritime",
+        "Car Rental": "transportation_land",
+        Package: "others",
+      };
+
+      if (labelToValue[normalizedLabel]) return labelToValue[normalizedLabel];
+
+      // Fallback for types not covered by `formatServiceType`.
+      if (raw.includes("ticket") || raw.includes("attraction"))
+        return "tickets";
+
+      return "others";
+    },
+    [],
+  );
+
+  const tabOptions = useMemo(
+    () => ["Approved", "Pending", "Deleted", "Denied"],
+    [],
+  );
+  const [activeTab, setActiveTab] = useState<string>(() => tabOptions[0] ?? "");
+
+  // Filter state
+  const [linkedBookingFilter, setLinkedBookingFilter] = useState<string[]>([]);
+  const [amountFilter, setAmountFilter] = useState<("in" | "out")[]>([]);
+  const [accountFilter, setAccountFilter] = useState<string[]>([]);
+  const [bankOptions, setBankOptions] = useState<FilterCardOption[]>([]);
+
+  // Using shared `FilterTrigger` component from components/FilterTrigger.
+
+  const [payments, setPayments] = useState<PaymentRow[]>([]);
+  const [viewPayment, setViewPayment] = useState<any | null>(null);
+  const [editingPayment, setEditingPayment] = useState<PaymentRow | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<{
+    id?: string | null;
+    customId?: string | null;
+  } | null>(null);
+
+  const totalCount = useMemo(() => payments.length, [payments]);
+
+  // Date range + search state
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [searchValue, setSearchValue] = useState("");
+  // effectiveSearch mirrors the Filter component behavior: only propagate when empty or >= 3 chars
+  const [effectiveSearch, setEffectiveSearch] = useState("");
+  const [isAddPaymentOpen, setIsAddPaymentOpen] = useState(false);
+  const [addPaymentMode, setAddPaymentMode] = useState<"out" | "in">("out");
+  const [generatedPaymentCustomId, setGeneratedPaymentCustomId] = useState<
+    string | null
+  >(null);
+
+  // Toast state for success / error messages using ErrorToast
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [toastBgClass, setToastBgClass] = useState("bg-red-50");
+  const [toastMessageColor, setToastMessageColor] = useState("text-red-600");
+  const [toastBorderClass, setToastBorderClass] = useState("border-red-200");
+  const [toastCloseBtnClass, setToastCloseBtnClass] = useState(
+    "text-red-400 hover:text-red-600",
+  );
+  const [toastShowLabel, setToastShowLabel] = useState(true);
+
+  // Sorting state
+  const [sortState, setSortState] = useState<TriSortState<string>>({
+    key: null,
+    direction: "none",
+  });
+
+  const handleSort = (column: string) => {
+    if (column !== "Date") return;
+    setSortState((prev) => getNextTriSortState(prev, column));
+  };
+
+  // Column icons (Date header shows tri-state visuals based on `sortState`)
+  const columnIconMap: Record<string, JSX.Element> = {
+    Date: (
+      <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[2]" />
+    ),
+    "Linked Booking": (
+      <FilterTrigger
+        ariaLabel="Filter Linked Booking"
+        options={serviceOptions}
+        onApply={(selected) => {
+          setLinkedBookingFilter(selected);
+        }}
+        children={
+          <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
+        }
+      />
+    ),
+    Amount: (
+      <FilterTrigger
+        ariaLabel="Filter Amount"
+        options={[
+          { value: "in", label: "Payment In" },
+          { value: "out", label: "Payment Out" },
+        ]}
+        onApply={(selected) => {
+          setAmountFilter(selected as ("in" | "out")[]);
+        }}
+        children={
+          <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
+        }
+      />
+    ),
+    Account: (
+      <FilterTrigger
+        ariaLabel="Filter Account"
+        options={bankOptions}
+        onApply={(selected) => {
+          setAccountFilter(selected);
+        }}
+        children={
+          <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
+        }
+      />
+    ),
+  };
+
+  // Apply sorting to payments
+  const sortedPayments = useMemo(() => {
+    if (sortState.key !== "Date" || sortState.direction === "none") {
+      return payments;
+    }
+
+    const getPaymentTimestamp = (item: PaymentRow): number | null => {
+      try {
+        return new Date(item.paymentDateRaw || item.createdAt).getTime();
+      } catch {
+        return null;
+      }
+    };
+
+    // Stable sort: keep original order for ties.
+    const withIndex = payments.map((item, originalIndex) => ({
+      item,
+      originalIndex,
+    }));
+
+    withIndex.sort((a, b) => {
+      const at = getPaymentTimestamp(a.item);
+      const bt = getPaymentTimestamp(b.item);
+
+      // Always keep missing/invalid dates at the bottom.
+      if (at === null && bt === null) return a.originalIndex - b.originalIndex;
+      if (at === null) return 1;
+      if (bt === null) return -1;
+
+      const diff = at - bt;
+      if (diff !== 0) return sortState.direction === "asc" ? diff : -diff;
+      return a.originalIndex - b.originalIndex;
+    });
+
+    return withIndex.map((x) => x.item);
+  }, [payments, sortState.direction, sortState.key]);
+
+  // Fetch payments whenever activeTab changes (status/isDeleted)
+  const fetchPayments = useCallback(async () => {
+    try {
+      const params: any = {};
+      if (activeTab === "Pending") params.status = "pending";
+      else if (activeTab === "Approved") params.status = "approved";
+      else if (activeTab === "Denied") params.status = "denied";
+      else if (activeTab === "Deleted") params.isDeleted = true;
+
+      const data = await PaymentsApi.listPayments(params);
+      const list = (data?.payments || data?.data || data || []) as any[];
+      const mapped: PaymentRow[] = list.map((p) => {
+        const paymentId = p.customId
+          ? String(p.customId)
+          : p._id
+            ? String(p._id)
+            : "";
+
+        let partyName = "";
+        if (p.partyName) partyName = String(p.partyName);
+        else if (p.partyId) {
+          if (typeof p.partyId === "object") {
+            partyName = String(
+              p.partyId.name ||
+                p.partyId.companyName ||
+                p.partyId.customId ||
+                p.partyId._id ||
+                "",
+            );
+          } else {
+            partyName = String(p.partyId);
+          }
+        } else if (p.party) partyName = String(p.party);
+
+        let linkedBooking = "-";
+        let serviceType: string | undefined;
+
+        if (p.allocations?.length > 0) {
+          const q = p.allocations[0].quotationId;
+          if (q && typeof q === "object") {
+            linkedBooking = String(q.customId || q._id || "-");
+            serviceType = mapQuotationTypeToServiceType(
+              q.quotationType || q.serviceType || q.type,
+            );
+          }
+        }
+
+        const amount = Number(p.amount || 0);
+        const amountType = p.entryType === "credit" ? "got" : "gave";
+        const account = (p.bankId && (p.bankId.name || p.bankId)) || "Cash";
+        const paymentType = String(p.paymentType || "cash");
+        const paymentDateRaw = p.paymentDate ? String(p.paymentDate) : null;
+        const date = p.paymentDate
+          ? new Date(p.paymentDate).toLocaleDateString()
+          : p.createdAt
+            ? new Date(p.createdAt).toLocaleDateString()
+            : "";
+        const createdAt = p.createdAt || new Date().toISOString();
+        const inferredPartyType: "Customer" | "Vendor" = (():
+          | "Customer"
+          | "Vendor" => {
+          try {
+            if (p && p.partyId && typeof p.partyId === "object") {
+              // presence of companyName/contactPerson suggests a vendor
+              if (p.partyId.companyName || p.partyId.contactPerson)
+                return "Vendor";
+            }
+            return "Customer";
+          } catch {
+            return "Customer";
+          }
+        })();
+
+        return {
+          paymentId,
+          partyName,
+          linkedBooking,
+          ...(serviceType ? { serviceType } : {}),
+          amount,
+
+          amountCurrency: p.amountCurrency || p.amountCurreny || "INR",
+          amountRoe: p.amountRoe,
+          amountInr: p.amountInr,
+
+          bankCharges: p.bankCharges,
+          bankChargesCurrency: p.bankChargesCurrency || "INR",
+          bankChargesRoe: p.bankChargesRoe,
+          bankChargesInr: p.bankChargesInr,
+
+          cashbackReceived: p.cashbackReceived,
+          cashbackReceivedCurrency: p.cashbackReceivedCurrency || "INR",
+          cashbackReceivedRoe: p.cashbackReceivedRoe,
+          cashbackReceivedInr: p.cashbackReceivedInr,
+
+          amountType: amountType as "gave" | "got",
+          account,
+          paymentType,
+          paymentDateRaw,
+          date,
+          createdAt,
+          id: p._id ? String(p._id) : null,
+          bankId:
+            p.bankId && (p.bankId._id || p.bankId)
+              ? String(p.bankId._id || p.bankId)
+              : null,
+          partyType: inferredPartyType,
+          raw: p,
+        };
+      });
+      setPayments(mapped);
+    } catch (err) {
+      console.error("Failed to load payments", err);
+      setPayments([]);
+    }
+  }, [activeTab, mapQuotationTypeToServiceType]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      await fetchPayments();
+      if (cancelled) return;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchPayments]);
+
+  // Load bank list for Account filter
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const resp = await BankApi.getBanks({ isDeleted: false });
+        const list = (resp?.banks || resp?.data || resp || []) as any[];
+        const opts: FilterCardOption[] = [
+          { value: "Cash", label: "Cash" },
+          ...list.map((b) => ({
+            value: String(b.name || b._id || b),
+            label: String(b.name || b._id || b),
+          })),
+        ];
+        if (mounted) setBankOptions(opts);
+      } catch (e) {
+        console.error("Failed to load banks for filter", e);
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // Convert payments to table data
+  // apply date & search filtering
+  const visiblePayments = useMemo(() => {
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+
+    const getPaymentDate = (p: PaymentRow) =>
+      new Date(p.paymentDateRaw || p.createdAt);
+
+    // expand end to end-of-day for inclusive filtering
+    const endOfDay = end
+      ? new Date(
+          end.getFullYear(),
+          end.getMonth(),
+          end.getDate(),
+          23,
+          59,
+          59,
+          999,
+        )
+      : null;
+
+    // const byDate = (p: PaymentRow) => {
+    //   if (!start || !endOfDay) return true;
+    //   const t = new Date(p.createdAt).getTime();
+    //   return t >= start.getTime() && t <= endOfDay.getTime();
+    // };
+
+    const q =
+      effectiveSearch && effectiveSearch.length >= 3
+        ? effectiveSearch.toLowerCase()
+        : "";
+
+    return sortedPayments.filter((p) => {
+      /* Date filter */
+      if (start && endOfDay) {
+        const paymentDate = getPaymentDate(p).getTime();
+        if (paymentDate < start.getTime() || paymentDate > endOfDay.getTime()) {
+          return false;
+        }
+      }
+
+      /* Search filter */
+      if (q) {
+        const matchesSearch =
+          p.paymentId.toLowerCase().includes(q) ||
+          p.partyName.toLowerCase().includes(q);
+
+        if (!matchesSearch) return false;
+      }
+
+      /* Linked Booking filter */
+      if (linkedBookingFilter.length > 0) {
+        if (!p.serviceType) return false;
+        if (!linkedBookingFilter.includes(p.serviceType)) return false;
+      }
+
+      /* Account filter */
+      if (accountFilter.length > 0) {
+        // payments' `account` holds bank name or 'Cash'
+        const matchesAccount = accountFilter.some((val) =>
+          String(p.account || "")
+            .toLowerCase()
+            .includes(String(val || "").toLowerCase()),
+        );
+        if (!matchesAccount) return false;
+      }
+
+      /* Amount filter */
+      if (amountFilter.length > 0) {
+        const paymentType = p.amountType === "got" ? "in" : "out";
+        if (!amountFilter.includes(paymentType)) return false;
+      }
+
+      return true;
+    });
+  }, [
+    sortedPayments,
+    startDate,
+    endDate,
+    effectiveSearch,
+    linkedBookingFilter,
+    accountFilter,
+    amountFilter,
+  ]);
+
+  const getActionsForTab = (tab: string, row: PaymentRow) => {
+    const id = row?.id || row?.paymentId || null;
+
+    const baseActions = [
+      {
+        label: "Edit",
+        icon: <FaRegEdit />,
+        color: "text-blue-600",
+        onClick: () => {
+          setEditingPayment(row);
+          setIsAddPaymentOpen(true);
+        },
+      },
+      {
+        label: "Delete",
+        icon: <FaRegTrashAlt />,
+        color: "text-red-600",
+        onClick: () => {
+          setPaymentToDelete({
+            id: row.id || null,
+            customId: row.paymentId || null,
+          });
+          setIsConfirmOpen(true);
+        },
+      },
+    ];
+
+    if (tab === "Deleted") {
+      return [
+        {
+          label: "Recover",
+          icon: <TbArrowAutofitRight />,
+          color: "text-gray-400",
+          onClick: () => console.log("Recover", id),
+        },
+      ];
+    }
+
+    return baseActions;
+  };
+
+  const tableData = useMemo<JSX.Element[][]>(() => {
+    return visiblePayments.map((payment, index) => {
+      const cells: JSX.Element[] = [];
+      cells.push(
+        <td
+          key={`paymentId-${index}`}
+          className="px-4 py-3 font-[500] text-center"
+        >
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setViewPayment(payment.raw || payment);
+            }}
+            className="text-[14px] font-medium text-[#020202] hover:text-[#0D4B37]"
+          >
+            {payment.paymentId}
+          </button>
+        </td>,
+        <td key={`partyName-${index}`} className="px-4 py-3 text-center">
+          {payment.partyName}
+        </td>,
+        <td key={`linkedBooking-${index}`} className="px-4 py-3 text-center">
+          <div className="flex items-center justify-center gap-2">
+            <span>{payment.linkedBooking}</span>
+            {((payment.raw?.allocations && payment.raw.allocations.length) ||
+              0) > 1 && (
+              <button
+                type="button"
+                className="text-[#020202] underline text-[14px] ml-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // placeholder: could open a modal or details view
+                }}
+              >
+                +{payment.raw.allocations.length - 1}
+              </button>
+            )}
+          </div>
+        </td>,
+        <td key={`amount-${index}`} className="px-4 py-3 text-center">
+          <span
+            className={`font-medium ${payment.amountType === "gave" ? "text-[#E10A1B]" : "text-[#4CA640]"} flex items-center justify-center gap-2`}
+          >
+            {payment.amountType === "gave" ? (
+              <PiArrowCircleUpRight size={16} className="shrink-0" />
+            ) : (
+              <PiArrowCircleDownLeft size={16} className="shrink-0" />
+            )}
+            {getStoredCurrencySymbol()}{" "}
+            {formatNumberByStoredCurrency(payment.amount)}
+          </span>
+        </td>,
+        <td key={`account-${index}`} className="px-4 py-3 text-center">
+          <div className="relative inline-flex items-center justify-center">
+            <span className="peer cursor-default">{payment.account}</span>
+
+            <div
+              className="absolute -top-8 left-1/2 z-50 px-2 py-1 text-[0.75rem] text-white bg-gray-800 rounded-md shadow-lg pointer-events-none -translate-x-1/2 transition-opacity duration-150 ease-in-out opacity-0 invisible whitespace-nowrap peer-hover:opacity-100 peer-hover:visible"
+              role="tooltip"
+            >
+              {String(payment.paymentType || "cash").toUpperCase()}
+              <div
+                className="absolute left-1/2 -bottom-1 w-2.5 h-2.5 bg-gray-800"
+                style={{
+                  transform: "translateX(-50%) rotate(45deg)",
+                  WebkitTransform: "translateX(-50%) rotate(45deg)",
+                }}
+              />
+            </div>
+          </div>
+        </td>,
+        <td key={`date-${index}`} className="px-4 py-3 text-center">
+          <div className="text-[13px]">{payment.date}</div>
+        </td>,
+        <td
+          key={`actions-${index}`}
+          className="px-4 py-3 text-center align-middle h-[4rem]"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center justify-center gap-2 transition-all duration-200 opacity-0 pointer-events-none group-[.row-actions-active]:opacity-100 group-[.row-actions-active]:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+          >
+            <button
+              type="button"
+              className="bg-[#FFF1C2] flex gap-1 items-center text-[#0D4B37] px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-[#d0e7dc]"
+            >
+              <MdOutlineRemoveRedEye size={12} className="text-[#414141]" />{" "}View
+            </button>
+            <ActionMenu
+              actions={getActionsForTab(activeTab, payment)}
+              width="w-22"
+            />
+          </div>
+        </td>,
+      );
+
+      return cells;
+    });
+  }, [visiblePayments, activeTab]);
+
+  return (
+    <>
+      <ErrorToast
+        message={toastMessage}
+        visible={toastVisible}
+        onClose={() => setToastVisible(false)}
+        bgColorClass={toastBgClass}
+        messageColorClass={toastMessageColor}
+        borderColorClass={toastBorderClass}
+        closeButtonClass={toastCloseBtnClass}
+        showLabel={toastShowLabel}
+      />
+
+      <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
+        <div className="flex items-center justify-between rounded-2xl px-4 py-3">
+          {/* Tabs */}
+          <SlidingTabs
+            tabs={tabOptions}
+            activeTab={activeTab}
+            onChange={setActiveTab}
+            containerClassName="gap-[28px]"
+            tabClassName="px-[14px]"
+            inactiveTabClassName="text-[#818181] hover:text-gray-900 font-semibold"
+          />
+
+          {/* Total + Action Buttons */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
+              <span className="text-gray-600 text-[0.85rem] font-medium">
+                Total
+              </span>
+              <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
+                {totalCount}
+              </span>
+            </div>
+
+            <button
+              className="flex items-center gap-2 px-4 py-2 rounded-md bg-red-600 text-white font-medium"
+              onClick={async () => {
+                setAddPaymentMode("out");
+                try {
+                  const data = await CustomIdApi.generate("paymentOut");
+                  const id =
+                    data?.customId ||
+                    data?.customIdValue ||
+                    (typeof data === "string" ? data : null);
+                  setGeneratedPaymentCustomId(
+                    id || `PO-${Date.now().toString().slice(-6)}`,
+                  );
+                } catch (e) {
+                  setGeneratedPaymentCustomId(
+                    `PO-${Date.now().toString().slice(-6)}`,
+                  );
+                }
+                setIsAddPaymentOpen(true);
+              }}
+            >
+              <span className="text-sm flex items-center gap-1">
+                {" "}
+                <PiArrowCircleUpRight
+                  size={18}
+                  height="bold"
+                  strokeWidth={2}
+                />{" "}
+                You Gave
+              </span>
+            </button>
+
+            <button
+              className="flex items-center gap-2 px-4 py-2 rounded-md bg-[#4CA640] text-white font-medium"
+              onClick={async () => {
+                setAddPaymentMode("in");
+                try {
+                  const data = await CustomIdApi.generate("paymentIn");
+                  const id =
+                    data?.customId ||
+                    data?.customIdValue ||
+                    (typeof data === "string" ? data : null);
+                  setGeneratedPaymentCustomId(
+                    id || `PI-${Date.now().toString().slice(-6)}`,
+                  );
+                } catch (e) {
+                  setGeneratedPaymentCustomId(
+                    `PI-${Date.now().toString().slice(-6)}`,
+                  );
+                }
+                setIsAddPaymentOpen(true);
+              }}
+            >
+              <span className="text-sm flex items-center gap-1">
+                {" "}
+                <PiArrowCircleDownLeft
+                  size={18}
+                  height="bold"
+                  strokeWidth={2}
+                />
+                You Got
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div className="border-t border-gray-200 mb-4 mt-3"></div>
+
+        {/* Date range + Search row */}
+        <div className="flex items-center justify-between mb-4 px-2 gap-4">
+          <div className="flex items-center gap-4">
+            <DateRangeInputBeta
+              startDate={startDate}
+              endDate={endDate}
+              onChange={(s, e) => {
+                setStartDate(s);
+                setEndDate(e);
+              }}
+            />
+          </div>
+
+          <div className="flex-1 max-w-sm ml-auto">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchValue}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearchValue(value);
+                  if (value.length === 0) {
+                    setEffectiveSearch("");
+                  } else if (value.length >= 3) {
+                    setEffectiveSearch(value);
+                  }
+                }}
+                placeholder="Search by Payment ID/Party Name"
+                className="w-full text-[14px] py-3 pl-4  rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] text-gray-700 bg-white"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
+                <FiSearch />
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="min-h-[200px] mt-2 px-2">
+          <Table
+            data={tableData}
+            columns={columns}
+            columnIconMap={columnIconMap}
+            onSort={handleSort}
+            categoryName="Payments"
+            enableRowHoverActions={true}
+            rowIds={visiblePayments.map((p) => p.paymentId)}
+          />
+        </div>
+
+        <AddPaymentSidesheet
+          isOpen={isAddPaymentOpen}
+          title={
+            editingPayment
+              ? "Edit Payment"
+              : addPaymentMode === "in"
+                ? "Payment In"
+                : "Payment Out"
+          }
+          mode={editingPayment ? "edit" : "create"}
+          initialPayment={
+            editingPayment
+              ? ({
+                  _id: editingPayment.id || undefined,
+                  amount: String(editingPayment.amount || ""),
+                  amountCurrency: editingPayment.amountCurrency,
+                  amountRoe: editingPayment.amountRoe,
+                  amountInr: editingPayment.amountInr,
+
+                  bankCharges: editingPayment.bankCharges,
+                  bankChargesCurrency: editingPayment.bankChargesCurrency,
+                  bankChargesRoe: editingPayment.bankChargesRoe,
+                  bankChargesInr: editingPayment.bankChargesInr,
+
+                  cashbackReceived: editingPayment.cashbackReceived,
+                  cashbackReceivedCurrency:
+                    editingPayment.cashbackReceivedCurrency,
+                  cashbackReceivedRoe: editingPayment.cashbackReceivedRoe,
+                  cashbackReceivedInr: editingPayment.cashbackReceivedInr,
+
+                  paymentDate:
+                    editingPayment.paymentDateRaw || editingPayment.createdAt,
+
+                  bank: editingPayment.bankId || "",
+                  paymentType: String(
+                    editingPayment.paymentType || "",
+                  ).toLowerCase(),
+                  internalNotes: "",
+                } as any)
+              : undefined
+          }
+          customId={generatedPaymentCustomId}
+          // opened from payments list edit action -> hide view button
+          showViewButton={editingPayment ? false : true}
+          prefillPartyName={editingPayment ? editingPayment.partyName : null}
+          prefillPartyType={editingPayment ? editingPayment.partyType : null}
+          entryTypeDefault={addPaymentMode === "out" ? "credit" : "debit"}
+          onClose={() => {
+            setIsAddPaymentOpen(false);
+            setGeneratedPaymentCustomId(null);
+            setEditingPayment(null);
+          }}
+          onSubmit={async (data) => {
+            console.log("AddPaymentSidesheet submitted:", data);
+            setIsAddPaymentOpen(false);
+            setGeneratedPaymentCustomId(null);
+            setEditingPayment(null);
+
+            // show success toast
+            setToastMessage("Yay! the payment has been created successfully.");
+            setToastBgClass("bg-green-50");
+            setToastMessageColor("text-green-800");
+            setToastBorderClass("border-green-200");
+            setToastCloseBtnClass("text-green-600 hover:text-green-800");
+            setToastShowLabel(false);
+            setToastVisible(true);
+
+            try {
+              await fetchPayments();
+            } catch (e) {
+              console.error(
+                "Failed to refresh payments after create/update",
+                e,
+              );
+            }
+          }}
+          onError={(msg: string) => {
+            // show error toast from sidesheet errors
+            setToastMessage(String(msg || "An error occurred"));
+            setToastBgClass("bg-red-50");
+            setToastMessageColor("text-red-600");
+            setToastBorderClass("border-red-200");
+            setToastCloseBtnClass("text-red-400 hover:text-red-600");
+            setToastShowLabel(true);
+            setToastVisible(true);
+          }}
+        />
+        <ViewPaymentSidesheet
+          isOpen={!!viewPayment}
+          onClose={() => setViewPayment(null)}
+          payment={viewPayment}
+          onDeleted={() => {
+            setViewPayment(null);
+            (async () => {
+              try {
+                await fetchPayments();
+              } catch (e) {
+                console.error("Failed to refresh after delete", e);
+              }
+            })();
+          }}
+          onEdit={(payload: any) => {
+            const bankCandidate =
+              payload?.bank ||
+              payload?.data?.bankId?._id ||
+              payload?.bankId ||
+              payload?.bank?._id;
+
+            const editPayment: PaymentRow = {
+              paymentId: payload?.customId || payload?._id || payload?.id || "",
+              partyName:
+                payload?.partyName ||
+                payload?.data?.partyId?.name ||
+                payload?.party?.name ||
+                "",
+              linkedBooking:
+                (payload?.allocations &&
+                  payload?.allocations[0]?.quotationId?.customId) ||
+                payload?.linkedBooking ||
+                "-",
+              serviceType: payload?.serviceType || payload?.data?.serviceType,
+              amount: Number(payload?.amount || payload?.data?.amount || 0),
+
+              amountCurrency:
+                payload?.amountCurrency || payload?.data?.amountCurrency,
+              amountRoe: payload?.amountRoe || payload?.data?.amountRoe,
+              amountInr: payload?.amountInr || payload?.data?.amountInr,
+
+              bankCharges: payload?.bankCharges || payload?.data?.bankCharges,
+              bankChargesCurrency:
+                payload?.bankChargesCurrency ||
+                payload?.data?.bankChargesCurrency,
+              bankChargesRoe:
+                payload?.bankChargesRoe || payload?.data?.bankChargesRoe,
+              bankChargesInr:
+                payload?.bankChargesInr || payload?.data?.bankChargesInr,
+
+              cashbackReceived:
+                payload?.cashbackReceived || payload?.data?.cashbackReceived,
+              cashbackReceivedCurrency:
+                payload?.cashbackReceivedCurrency ||
+                payload?.data?.cashbackReceivedCurrency,
+              cashbackReceivedRoe:
+                payload?.cashbackReceivedRoe ||
+                payload?.data?.cashbackReceivedRoe,
+              cashbackReceivedInr:
+                payload?.cashbackReceivedInr ||
+                payload?.data?.cashbackReceivedInr,
+
+              amountType: payload?.entryType === "credit" ? "got" : "gave",
+              account: payload?.bank?.name || payload?.account || "Cash",
+              paymentType:
+                payload?.paymentType || payload?.data?.paymentType || "",
+              paymentDateRaw:
+                payload?.paymentDate ||
+                payload?.data?.paymentDate ||
+                payload?.date ||
+                payload?.createdAt ||
+                null,
+              date: payload?.paymentDate
+                ? new Date(payload.paymentDate).toLocaleDateString()
+                : payload?.createdAt
+                  ? new Date(payload.createdAt).toLocaleDateString()
+                  : "",
+              createdAt: payload?.createdAt || new Date().toISOString(),
+              id: payload?._id
+                ? String(payload._id)
+                : payload?.id
+                  ? String(payload.id)
+                  : null,
+              bankId: bankCandidate ? String(bankCandidate) : null,
+              partyType:
+                payload?.partyType ||
+                (payload?.partyId &&
+                (payload.partyId.companyName || payload.partyId.contactPerson)
+                  ? "Vendor"
+                  : "Customer"),
+              raw: payload,
+            };
+
+            setEditingPayment(editPayment);
+            setViewPayment(null);
+            setIsAddPaymentOpen(true);
+          }}
+        />
+        <ConfirmationModal
+          isOpen={isConfirmOpen}
+          onClose={() => {
+            setIsConfirmOpen(false);
+            setPaymentToDelete(null);
+          }}
+          onConfirm={async () => {
+            try {
+              if (paymentToDelete?.id) {
+                await PaymentsApi.deletePayment(String(paymentToDelete.id));
+                await fetchPayments();
+                // show success toast on delete
+                setToastMessage("Payment deleted successfully!");
+                setToastBgClass("bg-green-50");
+                setToastMessageColor("text-green-800");
+                setToastBorderClass("border-green-200");
+                setToastCloseBtnClass("text-green-600 hover:text-green-800");
+                setToastShowLabel(false);
+                setToastVisible(true);
+              }
+            } catch (err) {
+              console.error("Failed to delete payment", err);
+              const msg =
+                (err as any)?.response?.data?.message ||
+                (err as any)?.message ||
+                "Failed to delete payment";
+              setToastMessage(String(msg));
+              setToastBgClass("bg-red-50");
+              setToastMessageColor("text-red-600");
+              setToastBorderClass("border-red-200");
+              setToastCloseBtnClass("text-red-400 hover:text-red-600");
+              setToastShowLabel(true);
+              setToastVisible(true);
+            } finally {
+              setIsConfirmOpen(false);
+              setPaymentToDelete(null);
+            }
+          }}
+          title={`Do you want to Delete ${paymentToDelete?.customId || "payment"}?`}
+          confirmText="Yes, Delete"
+          cancelText="Cancel"
+        />
+      </div>
+    </>
+  );
+};
+
+export default PaymentsPage;

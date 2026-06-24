@@ -1,0 +1,555 @@
+"use client";
+
+import React, { useMemo, useState, useEffect, useCallback } from "react";
+import {
+  getUsers,
+  activateUsers,
+  deactivateUsers,
+  createOrUpdateUser,
+  deleteUser,
+} from "@/services/userApi";
+import Table from "../../../../components/Table";
+import DropDown from "../../../../components/DropDown";
+import AvatarToolTip from "../../../../components/AvatarToolTip";
+import AddUserSidesheet from "../../../../components/Sidesheets/AddUserSidesheet";
+import AddRolesSidesheet from "../../../../components/Sidesheets/AddRolesSidesheet";
+import CreateRoleModal from "../../../../components/Modals/CreateRoleModal";
+import ActivateusersModal from "../../../../components/Modals/ActivateusersModal";
+import ActionMenu from "../../../../components/Menus/ActionMenu";
+import { AuthApi } from "@/services/authApi";
+import { MdOutlineEdit } from "react-icons/md";
+import { FaRegTrashAlt } from "react-icons/fa";
+import type { JSX } from "react";
+
+const columns = ["Name", "Mobile", "Email", "Role", "User Status", "Actions"];
+
+const roleColumns = ["Role", "Users", "Access Level", "Actions"];
+
+function areAllPermissionsTrue(obj: unknown): boolean {
+  if (!obj || typeof obj !== "object") {
+    return true; // nothing to validate
+  }
+
+  return Object.values(obj).every((value) => {
+    if (typeof value === "boolean") {
+      return value === true;
+    }
+
+    if (typeof value === "object" && value !== null) {
+      return areAllPermissionsTrue(value);
+    }
+
+    return true;
+  });
+}
+
+// users will be fetched from backend
+
+export default function AllUsers(): JSX.Element {
+  const [activeTab, setActiveTab] = useState("All Users");
+  const [isAddOpen, setIsAddOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [isCreateRoleOpen, setIsCreateRoleOpen] = useState(false);
+  const [isEditRoleOpen, setIsEditRoleOpen] = useState(false);
+  const [editingRole, setEditingRole] = useState<any | null>(null);
+  const [isActivateModalOpen, setIsActivateModalOpen] = useState(false);
+  const [isDeactivateModalOpen, setIsDeactivateModalOpen] = useState(false);
+  const [users, setUsers] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [roles, setRoles] = useState<any[]>([]);
+
+  // deterministic border + text color picker for avatars (applies to short form only)
+  const BORDER_COLOR_PAIRS = [
+    "border-blue-400 text-blue-700",
+    "border-green-400 text-green-700",
+    "border-yellow-400 text-yellow-700",
+    "border-purple-400 text-purple-700",
+    "border-red-400 text-red-700",
+    "border-pink-400 text-pink-700",
+    "border-cyan-400 text-cyan-700",
+    "border-orange-400 text-orange-700",
+    "border-lime-400 text-lime-700",
+  ] as const;
+
+  const getColorForId = (id: string | number | undefined, idx: number) => {
+    if (!id)
+      return BORDER_COLOR_PAIRS[idx % BORDER_COLOR_PAIRS.length] as string;
+    const s = String(id);
+    let hash = 0;
+    for (let i = 0; i < s.length; i++) {
+      hash = (hash << 5) - hash + s.charCodeAt(i);
+      hash |= 0;
+    }
+    const index = Math.abs(hash) % BORDER_COLOR_PAIRS.length;
+    return BORDER_COLOR_PAIRS[index] as string;
+  };
+
+  const loadUsers = async () => {
+    try {
+      setIsLoading(true);
+      const res = await getUsers();
+
+      const list = res?.data || [];
+
+      setUsers(list);
+    } catch (e) {
+      console.error("Failed to load users", e);
+      setUsers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      try {
+        setIsLoading(true);
+        const res = await getUsers();
+
+        const list = res?.data || [];
+        if (!mounted) return;
+        setUsers(list);
+      } catch (e) {
+        console.error("Failed to load users", e);
+        setUsers([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  // load business roles for Roles & Permissions tab
+  useEffect(() => {
+    let mounted = true;
+    const loadRoles = async () => {
+      try {
+        const res = await AuthApi.getBusinessRoles();
+        const list = res?.output || (res as any)?.data || [];
+        if (!Array.isArray(list) || list.length === 0) {
+          if (mounted) setRoles([]);
+          return;
+        }
+
+        const mapped = list.map((r: any) => {
+          const roleId = r._id || r.id || r.roleId || String(Math.random());
+          const roleName = r.roleName || r.name || r.role || "";
+
+          const usersArr = Array.isArray(r.users)
+            ? r.users.map((u: any) => ({
+                id: u._id || u.id || u.userId || String(Math.random()),
+                name:
+                  (u.shortName && String(u.shortName)) ||
+                  (u.name || "")
+                    .split(" ")
+                    .map((p: string) => (p[0] || "").toUpperCase())
+                    .join("")
+                    .slice(0, 2) ||
+                  "U",
+                fullName: u.name || u.fullName || u.displayName || "",
+              }))
+            : [];
+
+          const access = areAllPermissionsTrue(r.permissions)
+            ? "Admin Access"
+            : "Limited Access";
+
+          return {
+            id: roleId,
+            role: roleName,
+            users: usersArr,
+            access,
+            permissions: r.permissions || r.permission || {},
+          };
+        });
+
+        if (!mounted) return;
+        setRoles(mapped);
+      } catch (e) {
+        console.error("Failed to load roles", e);
+      }
+    };
+
+    loadRoles();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const rolesTableData = useMemo<React.ReactNode[][]>(() => {
+    return roles.map((r) => {
+      const row: JSX.Element[] = [];
+
+      row.push(
+        <td key={`role-${r.id}`} className="px-6 py-4">
+          <div className="font-medium">{r.role}</div>
+        </td>
+      );
+
+      row.push(
+        <td key={`users-${r.id}`} className="px-6 py-4 text-center">
+          <div className="inline-flex items-center">
+            {r.users.map((u: any, idx: number) => (
+              <AvatarToolTip
+                key={u.id}
+                short={u.name}
+                full={u.fullName}
+                color={getColorForId(u.id, idx)}
+              />
+            ))}
+          </div>
+        </td>
+      );
+
+      row.push(
+        <td key={`access-${r.id}`} className="px-6 py-4 text-center">
+          <span
+            className={`px-3 py-1 rounded-full text-[12px] font-semibold ${
+              r.access === "Admin Access"
+                ? "bg-[#E1E5FF] text-[#4056E5]"
+                : "bg-[#FEF9C3] text-[#854D0E]"
+            }`}
+          >
+            {r.access}
+          </span>
+        </td>
+      );
+
+      row.push(
+        <td key={`actions-role-${r.id}`} className="px-6 py-4 text-center">
+          <ActionMenu
+            actions={[
+              {
+                label: "Edit",
+                icon: <MdOutlineEdit />,
+                color: "text-blue-600",
+                onClick: () => {
+                  setEditingRole(r);
+                  setIsEditRoleOpen(true);
+                },
+              },
+              {
+                label: "Delete",
+                icon: <FaRegTrashAlt />,
+                color: "text-red-600",
+                onClick: () => {
+                  console.log("delete role", r.id);
+                },
+              },
+            ]}
+            width="w-21"
+            right="right-29"
+          />
+        </td>
+      );
+
+      return row;
+    });
+  }, [roles]);
+
+  const tableData = useMemo<React.ReactNode[][]>(() => {
+    return users.map((u) => {
+      const row: JSX.Element[] = [];
+
+      row.push(
+        <td key={`name-${u._id}`} className="px-6 py-4">
+          <div className="font-medium">{u.name}</div>
+        </td>
+      );
+
+      row.push(
+        <td key={`mobile-${u._id}`} className="px-6 py-4 text-center">
+          {u.mobile}
+        </td>
+      );
+
+      row.push(
+        <td key={`email-${u._id}`} className="px-6 py-4 text-center">
+          {u.email}
+        </td>
+      );
+
+      row.push(
+        <td key={`role-${u._id}`} className="px-6 py-4 text-center">
+          <div className="inline-flex items-center gap-2 justify-center">
+            <span>{u.roleId?.roleName}</span>
+            <DropDown
+              options={roles.map((r: any) => ({
+                value: r.id,
+                label: r.role,
+              }))}
+              value={u.roleId?.roleName}
+              onChange={async (v) => {
+                const user = { ...u, roleId: v };
+                await createOrUpdateUser(user, loadUsers);
+              }}
+              className=""
+              customWidth="w-8"
+              menuWidth="w-[216px]"
+              noBorder={true}
+              iconOnly={true}
+              placeholder="Change role"
+              menuCentered={true}
+            />
+          </div>
+        </td>
+      );
+
+      row.push(
+        <td key={`status-${u._id}`} className="px-6 py-4 text-center">
+          <div className="inline-flex items-center gap-2 justify-center">
+            <span
+              className={`px-3 py-1 rounded-full text-[12px] font-semibold ${
+                u.isActive
+                  ? "bg-[#F0FDF4] text-[#15803D]"
+                  : "bg-[#FEE2E2] text-[#991B1B]"
+              }`}
+            >
+              {u.isActive ? "Active" : "Inactive"}
+            </span>
+            <DropDown
+              options={[
+                { value: "Active", label: "Active" },
+                { value: "Inactive", label: "Inactive" },
+              ]}
+              value={u.status}
+              onChange={async (v) => {
+                if (v === "Active") {
+                  await activateUsers([u._id], loadUsers);
+                } else {
+                  await deactivateUsers([u._id], loadUsers);
+                }
+              }}
+              customWidth="w-8"
+              menuWidth="w-[216px]"
+              noBorder={true}
+              iconOnly={true}
+              placeholder="Change status"
+              menuCentered={true}
+            />
+          </div>
+        </td>
+      );
+
+      row.push(
+        <td key={`actions-${u._id}`} className="px-6 py-4 text-center">
+          <ActionMenu
+            actions={[
+              {
+                label: "Edit",
+                icon: <MdOutlineEdit />,
+                color: "text-blue-600",
+                onClick: () => {
+                  setEditingUser({
+                    id: u._id,
+                    name: u.name,
+                    email: u.email,
+                    mobile: u.mobile,
+                    role: u.role,
+                    isActive: u.isActive,
+                  });
+                  setIsAddOpen(true);
+                },
+              },
+              {
+                label: "Delete",
+                icon: <FaRegTrashAlt />,
+                color: "text-red-600",
+                onClick: async () => {
+                  if (!u._id) {
+                    console.error("User _id missing", u);
+                    return;
+                  }
+
+                  if (!confirm("Delete user? This action cannot be undone."))
+                    return;
+
+                  try {
+                    await deleteUser(u._id);
+                    await loadUsers();
+                  } catch (err) {
+                    console.error("Failed to delete user:", err);
+                  }
+                },
+              },
+            ]}
+            width="w-21"
+            right="right-14"
+          />
+        </td>
+      );
+
+      return row;
+    });
+  }, [users, roles]);
+
+  return (
+    <div>
+      <h2 className="text-[15px] font-[600] mb-[12px]">All Users / Roles</h2>
+
+      <div className="mb-[14px]">
+        <nav className="flex gap-2 relative" role="tablist">
+          <span
+            className="absolute bottom-[2px] h-[2px] bg-[#0D4B37] transition-all duration-300 ease-out"
+            style={{
+              width: activeTab === "All Users" ? "72px" : "140px",
+              transform:
+                activeTab === "All Users"
+                  ? "translateX(0px)"
+                  : "translateX(91px)",
+            }}
+          />
+          <button
+            onClick={() => setActiveTab("All Users")}
+            className={`px-1 py-1.5 text-[14px] font-[400] transition-colors duration-300 relative ${
+              activeTab === "All Users"
+                ? "text-[#0D4B37]"
+                : "text-gray-500 hover:text-gray-700 font-[500]"
+            }`}
+            role="tab"
+            aria-selected={activeTab === "All Users"}
+          >
+            All Users
+            {/* {activeTab === "All Users" && (
+              <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-[100%] h-[2px] bg-[#0D4B37] z-20"></span>
+            )} */}
+          </button>
+
+          <button
+            onClick={() => setActiveTab("Roles & Permissions")}
+            className={`px-4 py-1.5 text-[14px] font-[400] transition-colors duration-300 relative ${
+              activeTab === "Roles & Permissions"
+                ? "text-[#0D4B37]"
+                : "text-gray-500 hover:text-gray-700 font-[500]"
+            }`}
+            role="tab"
+            aria-selected={activeTab === "Roles & Permissions"}
+          >
+            Roles & Permissions
+            {/* {activeTab === "Roles & Permissions" && (
+              <span className="absolute bottom-[2px] left-1/2 -translate-x-1/2 w-[100%] h-[2px] bg-[#0D4B37] z-20"></span>
+            )} */}
+          </button>
+        </nav>
+      </div>
+      {/* Divider line below tabs */}
+      <div className="absolute top-28 left-59 right-10 z-10 border-b border-gray-200"></div>
+
+      <div className="rounded-lg bg-white p-0 -mt-3">
+        <div className="px-0 py-3 flex items-center justify-between">
+          <div>
+            <div className="text-[12px] text-[#818181]">
+              {activeTab === "Roles & Permissions"
+                ? "Here is the list of roles & permissions of all the users"
+                : "Here is the list of all the users and their details"}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 mb-[10px]">
+            {activeTab === "Roles & Permissions" ? (
+              <button
+                onClick={() => setIsCreateRoleOpen(true)}
+                className="px-[14px] py-[6px] text-[14px] font-[500] leading-5 bg-[#0D4B37] text-white rounded-md"
+              >
+                + Add New Role
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => setIsActivateModalOpen(true)}
+                  className="px-[14px] py-[6px] text-[14px] font-[500] leading-5 border border-[#4CA640] text-[#4CA640] rounded-md bg-[#4CA6401A]"
+                >
+                  Activate ({users.filter((u) => !u.isActive).length} Left)
+                </button>
+                <button
+                  onClick={() => setIsDeactivateModalOpen(true)}
+                  className="px-[14px] py-[6px] text-[14px] font-[500] leading-5 border border-[#DD1425] text-[#DD1425] rounded-md bg-[#DD14251A]"
+                >
+                  Deactivate
+                </button>
+                <button
+                  onClick={() => setIsAddOpen(true)}
+                  className="px-[14px] py-[6px] text-[14px] font-[500] leading-5 bg-[#0D4B37] text-white rounded-md"
+                >
+                  + Add User
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="px-0">
+          {activeTab === "Roles & Permissions" ? (
+            <Table
+              data={rolesTableData}
+              columns={roleColumns}
+              headerClassName="bg-[#0D4B37]"
+              categoryName="Users"
+            />
+          ) : (
+            <Table
+              data={tableData}
+              columns={columns}
+              headerClassName="bg-[#0D4B37]"
+              categoryName="Users"
+            />
+          )}
+        </div>
+        <AddUserSidesheet
+          isOpen={isAddOpen}
+          onClose={() => {
+            setIsAddOpen(false);
+            setEditingUser(null);
+          }}
+          initialData={editingUser || undefined}
+          isEdit={!!editingUser}
+          onAddUser={loadUsers}
+          onUpdateUser={loadUsers}
+        />
+
+        <CreateRoleModal
+          isOpen={isCreateRoleOpen}
+          onClose={() => setIsCreateRoleOpen(false)}
+          onContinue={(payload) => {
+            // For now, simply close the modal. Implement role creation handling later.
+            setIsCreateRoleOpen(false);
+          }}
+        />
+
+        <AddRolesSidesheet
+          isOpen={isEditRoleOpen}
+          onClose={() => {
+            setIsEditRoleOpen(false);
+            setEditingRole(null);
+          }}
+          roleId={editingRole?.id}
+          roleName={editingRole?.role || ""}
+          initialPermissions={editingRole?.permissions || {}}
+        />
+        <ActivateusersModal
+          open={isActivateModalOpen}
+          onClose={() => setIsActivateModalOpen(false)}
+          users={users.filter((u) => !u.isActive)}
+          onActivate={async (ids) => {
+            await activateUsers(ids, loadUsers);
+          }}
+        />
+
+        <ActivateusersModal
+          open={isDeactivateModalOpen}
+          onClose={() => setIsDeactivateModalOpen(false)}
+          users={users.filter((u) => u.isActive)}
+          deactivate={true}
+          onDeactivate={async (ids) => {
+            await deactivateUsers(ids, loadUsers);
+          }}
+        />
+      </div>
+    </div>
+  );
+}

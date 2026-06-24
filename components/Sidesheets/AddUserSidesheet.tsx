@@ -1,0 +1,586 @@
+"use client";
+
+import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { AuthApi } from "../../services/authApi";
+import { getAuthUser } from "../../services/storage/authStorage";
+import SideSheet from "../SideSheet";
+import DropDown from "../DropDown";
+import PhoneCodeSelect from "../PhoneCodeSelect";
+import Button from "../Button";
+import ErrorToast from "../ErrorToast";
+import PasswordVisibilityIcon from "@/components/atoms/auth/PasswordVisibilityIcon";
+import { JSX } from "react";
+import {
+  allowOnlyDigitsWithMax,
+  allowOnlyText,
+  isValidEmail,
+} from "@/utils/inputValidators";
+import {
+  getPhoneNumberMaxLength,
+  isSupportedDialCode,
+} from "@/utils/phoneUtils";
+
+interface AddUserSidesheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onAddUser?: (data: any) => void;
+  initialData?: Record<string, any> | null;
+  isEdit?: boolean;
+  onUpdateUser?: (data: any) => void;
+}
+
+export default function AddUserSidesheet({
+  isOpen,
+  onClose,
+  onAddUser,
+  initialData = null,
+  isEdit = false,
+  onUpdateUser,
+}: AddUserSidesheetProps): JSX.Element {
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [countryCode, setCountryCode] = useState<string>("+91");
+  const [mobile, setMobile] = useState<string>("");
+  const [userStatus, setUserStatus] = useState<string>("");
+  const [role, setRole] = useState<string>("");
+  const [rolesOptions, setRolesOptions] = useState<
+    Array<{ value: string; label: string }>
+  >([]);
+
+  const [autoCreate, setAutoCreate] = useState(true);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [requireChange, setRequireChange] = useState(false);
+
+  const [showResetPassword, setShowResetPassword] = useState(false);
+
+  const phoneMaxLength = getPhoneNumberMaxLength(countryCode);
+
+  // Password rules (copied from login reset UI logic)
+  const hasMinLength = useMemo(() => password.length >= 8, [password]);
+  const hasUpper = useMemo(() => /[A-Z]/.test(password), [password]);
+  const hasLower = useMemo(() => /[a-z]/.test(password), [password]);
+  const hasNumber = useMemo(() => /[0-9]/.test(password), [password]);
+  const hasSpecial = useMemo(() => /[^A-Za-z0-9]/.test(password), [password]);
+
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  // Toast state
+  const [showToast, setShowToast] = useState(false);
+  const [toastMsg, setToastMsg] = useState("");
+  const [toastBold, setToastBold] = useState<string>();
+  const [toastBgClass, setToastBgClass] = useState<string>();
+  const [messageColorClass, setMessageColorClass] = useState<
+    string | undefined
+  >();
+
+  const handleAdd = useCallback(async (): Promise<void> => {
+    // prevent double submit early
+    if (isSubmitting) return;
+
+    if (email && !isValidEmail(email)) {
+      setToastMsg("Email format is invalid");
+      setToastBold(undefined);
+      setToastBgClass(undefined);
+      setMessageColorClass(undefined);
+      setShowToast(true);
+      return;
+    }
+
+    // client-side required fields validation
+    if (!fullName || String(fullName).trim() === "") {
+      setToastMsg("Full name is required");
+      setToastBold(undefined);
+      setToastBgClass(undefined);
+      setMessageColorClass(undefined);
+      setShowToast(true);
+
+      return;
+    }
+    if (!email || String(email).trim() === "") {
+      setToastMsg("Email is required");
+      setToastBold(undefined);
+      setToastBgClass(undefined);
+      setMessageColorClass(undefined);
+      setShowToast(true);
+
+      return;
+    }
+
+    const payload = {
+      name: fullName,
+      email,
+      phoneCode: countryCode,
+      mobile,
+      isActive: userStatus === "active",
+      roleId: role,
+      autoCreate,
+      password: autoCreate ? undefined : password,
+      requireChange,
+    } as any;
+
+    setIsSubmitting(true);
+    try {
+      const authUser = getAuthUser<any>();
+      const roleIdFromStorage = authUser?.roleId || authUser?.role?._id;
+      const businessIdFromStorage =
+        authUser?.businessId || authUser?.businessId?._id || undefined;
+
+      // convert phone code
+      const phoneCodeNum = Number(
+        (countryCode || "").toString().replace("+", "")
+      );
+
+      // Prefer selected role from dropdown, fallback to stored role
+      const roleIdFinal =
+        role || roleIdFromStorage || "000000000000000000000000";
+
+      console.log("initialData", initialData);
+
+      // Build request payload matching backend required fields and model
+      const reqPayload = {
+        _id: initialData?.id,
+        mobile: mobile || "",
+        email: email || "",
+        roleId: roleIdFinal,
+        phoneCode: isNaN(phoneCodeNum) ? 91 : phoneCodeNum,
+        isActive: userStatus === "active",
+        name: fullName || "",
+        businessId: businessIdFromStorage._id,
+        password: autoCreate ? undefined : password,
+        resetPasswordRequired: requireChange,
+        autoCreate,
+      } as any;
+
+      // Basic client-side validation for backend-required fields
+      if (
+        !reqPayload.mobile ||
+        !reqPayload.email ||
+        !reqPayload.roleId ||
+        !reqPayload.phoneCode
+      ) {
+        console.error("Missing required fields", reqPayload);
+        setIsSubmitting(false);
+        return;
+      }
+
+      // If editing, include userId and call update path
+      if (isEdit && initialData && (initialData.id || initialData._id)) {
+        reqPayload.userId = initialData.id || initialData._id;
+      }
+
+      const res = await AuthApi.createOrUpdateUser(reqPayload);
+
+      if (res && (res.success || res.user || res.data)) {
+        const returned = res.user || res.data || payload;
+        if (isEdit) {
+          if (onUpdateUser) onUpdateUser(returned);
+        } else {
+          if (onAddUser) onAddUser(returned);
+        }
+        // Show informational toast with email bolded
+        const emailToShow = returned?.email || email;
+        setToastMsg(`The password you set has been sent to ${emailToShow}`);
+        setToastBold(emailToShow);
+        setToastBgClass("bg-white");
+        setShowToast(true);
+        setMessageColorClass("text-[#414141]");
+
+        onClose();
+      } else {
+        console.error("Create/update user failed", res);
+      }
+    } catch (e) {
+      console.error("Error creating/updating user", e);
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    fullName,
+    email,
+    countryCode,
+    mobile,
+    userStatus,
+    role,
+    autoCreate,
+    password,
+    requireChange,
+    onAddUser,
+    onClose,
+    isSubmitting,
+    initialData,
+    isEdit,
+    onUpdateUser,
+  ]);
+
+  // Fetch business roles when the sidesheet opens
+  useEffect(() => {
+    let mounted = true;
+    const fetchRoles = async () => {
+      try {
+        // debug log
+        console.debug("AddUserSidesheet: fetching business roles...");
+        const res = await AuthApi.getBusinessRoles();
+        const output = res?.output || [];
+        const opts = output.map((r: any) => ({
+          value: String(r.id ?? r._id ?? ""),
+          label: String(
+            r.name ?? r.roleName ?? r.roleName ?? r.id ?? r._id ?? ""
+          ),
+        }));
+        if (!mounted) return;
+        setRolesOptions(opts);
+        const first = opts[0];
+        if (!role && first) setRole(first.value);
+      } catch (e) {
+        // ignore
+
+        console.error("Failed to fetch roles", e);
+      }
+    };
+
+    if (isOpen) fetchRoles();
+    return () => {
+      mounted = false;
+    };
+  }, [isOpen]);
+  // Prefill when editing
+  useEffect(() => {
+    if (isEdit && initialData) {
+      setFullName(String(initialData.name || ""));
+      setEmail(String(initialData.email || ""));
+
+      let code = "+91";
+      if (
+        initialData.phoneCode !== undefined &&
+        initialData.phoneCode !== null
+      ) {
+        const pc = String(initialData.phoneCode);
+        code = pc.startsWith("+") ? pc : `+${pc}`;
+      }
+
+      if (!isSupportedDialCode(code)) code = "+91";
+
+      setCountryCode(code);
+
+      setMobile(String(initialData.mobile || initialData.phone || ""));
+      setUserStatus(
+        String(initialData.isActive ? "Active" : "Inactive").toLowerCase()
+      );
+      setRole(String(initialData.role || ""));
+      // reset password UI state
+      setShowResetPassword(false);
+      setAutoCreate(true);
+      setPassword("");
+      setRequireChange(false);
+    } else if (!isEdit) {
+      // reset when opening add form
+      setFullName("");
+      setEmail("");
+      setCountryCode("+91");
+      setMobile("");
+      setUserStatus("");
+      setRole("");
+      setAutoCreate(true);
+      setPassword("");
+      setRequireChange(false);
+      setShowResetPassword(false);
+    }
+  }, [isEdit, initialData]);
+
+  useEffect(() => {
+    setMobile((prev) => allowOnlyDigitsWithMax(prev, phoneMaxLength));
+  }, [phoneMaxLength]);
+
+  return (
+    <SideSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEdit ? "Edit User" : "Add New User"}
+      width="lg"
+    >
+      <div className="p-4 text-[13px]">
+        <form
+          noValidate
+          onInvalid={(e) => {
+            e.preventDefault();
+            setToastMsg("Please fill all required fields correctly");
+            setToastBgClass(undefined);
+            setToastBold(undefined);
+            setMessageColorClass(undefined);
+            setShowToast(true);
+          }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleAdd();
+          }}
+        >
+          <div className="border border-gray-200 rounded-lg p-4 -mt-3">
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="text-[13px] font-medium text-[#414141]">
+                  *Full Name
+                </label>
+                <input
+                  value={fullName}
+                  onChange={(e) => setFullName(allowOnlyText(e.target.value))}
+                  placeholder="Enter Full Name"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md hover:border-green-300 focus:outline-none
+    focus:ring-2 focus:ring-green-400
+    focus:ring-offset-0"
+                />
+              </div>
+
+              <div>
+                <label className="text-[13px] font-medium text-[#414141]">
+                  *Email
+                </label>
+                <input
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter Email"
+                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+                  type="email"
+                />
+              </div>
+
+              <div className="grid grid-cols-6">
+                <div className="col-span-1">
+                  <label className="text-[13px] font-medium text-[#414141]">
+                    Mobile
+                  </label>
+                  <PhoneCodeSelect
+                    value={countryCode}
+                    onChange={(v) => setCountryCode(v)}
+                    customWidth="w-[88px]"
+                    customHeight="h-[2.2rem]"
+                    className="mt-1.5"
+                    menuWidth="w-[18rem]"
+                  />
+                </div>
+                <div className="col-span-5">
+                  <input
+                    value={mobile}
+                    onChange={(e) =>
+                      setMobile(
+                        allowOnlyDigitsWithMax(e.target.value, phoneMaxLength)
+                      )
+                    }
+                    placeholder="Enter Contact Number"
+                    className="mt-6 -ml-2.5 w-full px-3 py-2 border border-gray-300 rounded-md"
+                    maxLength={phoneMaxLength}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[13px] font-medium text-[#414141]">
+                  User Status
+                </label>
+                <DropDown
+                  options={[
+                    { value: "active", label: "Active" },
+                    { value: "inactive", label: "Inactive" },
+                  ]}
+                  value={userStatus}
+                  onChange={(v) => setUserStatus(v)}
+                  customWidth="w-full"
+                />
+              </div>
+
+              <div>
+                <label className="text-[13px] font-medium text-[#414141]">
+                  *Role
+                </label>
+                <DropDown
+                  options={rolesOptions}
+                  value={role}
+                  onChange={(v) => setRole(v)}
+                  customWidth="w-full"
+                />
+              </div>
+
+              {isEdit && (
+                <button
+                  type="button"
+                  onClick={() => setShowResetPassword(true)}
+                  className="mt-1 px-2 py-1.5 w-[130px] border border-gray-400 rounded-md text-[13px] font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Reset Password
+                </button>
+              )}
+
+              {(!isEdit || showResetPassword) && (
+                <>
+                  <div className="flex items-center gap-2 mt-1 mb-1">
+                    <input
+                      type="checkbox"
+                      id="autoCreate"
+                      className="hidden"
+                      checked={autoCreate}
+                      onChange={() => setAutoCreate(!autoCreate)}
+                    />
+                    <label
+                      htmlFor="autoCreate"
+                      className={`w-4.5 h-4.5 rounded-sm pb-0.5 pt-0.5 flex items-center justify-center cursor-pointer border transition
+      ${
+        autoCreate
+          ? "bg-[#126ACB] border-[#126ACB]"
+          : "border-[#0D4B37] bg-white"
+      }
+    `}
+                    >
+                      {autoCreate && (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="11"
+                          height="10"
+                          viewBox="0 0 11 10"
+                          fill="none"
+                        >
+                          <path
+                            d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                            stroke="#FFFFFF"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      )}
+                    </label>
+                    <span className="text-[13px] font-normal text-[#414141]">
+                      Automatically create a password
+                    </span>
+                  </div>
+
+                  {!autoCreate && (
+                    <div>
+                      <label className="text-sm font-medium">*Password</label>
+                      <div className="relative mt-1">
+                        <input
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="Enter Password"
+                          type={showPassword ? "text" : "password"}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((s) => !s)}
+                          className="absolute right-2 top-2 text-gray-500"
+                          aria-label={
+                            showPassword ? "Hide password" : "Show password"
+                          }
+                        >
+                          <PasswordVisibilityIcon visible={showPassword} />
+                        </button>
+                      </div>
+
+                      <div className="mt-3 text-sm text-gray-600">
+                        Note: Password should consist of minimum 8 characters
+                        <ul className="list-disc pl-5 mt-2 text-[13px] text-gray-600">
+                          <li
+                            className={
+                              hasUpper ? "text-emerald-600" : "text-gray-500"
+                            }
+                          >
+                            Minimum 1 uppercase letter
+                          </li>
+                          <li
+                            className={
+                              hasLower ? "text-emerald-600" : "text-gray-500"
+                            }
+                          >
+                            Minimum 1 lowercase letter
+                          </li>
+                          <li
+                            className={
+                              hasNumber ? "text-emerald-600" : "text-gray-500"
+                            }
+                          >
+                            Minimum 1 number
+                          </li>
+                          <li
+                            className={
+                              hasSpecial ? "text-emerald-600" : "text-gray-500"
+                            }
+                          >
+                            Minimum 1 special character
+                          </li>
+                          <li
+                            className={
+                              hasMinLength
+                                ? "text-emerald-600"
+                                : "text-gray-500"
+                            }
+                          >
+                            Minimum 8 characters
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="requireChange"
+                      className="hidden"
+                      checked={requireChange}
+                      onChange={() => setRequireChange(!requireChange)}
+                    />
+                    <label
+                      htmlFor="requireChange"
+                      className={`w-4.5 h-4.5 rounded-sm pb-0.5 pt-0.5 flex items-center justify-center cursor-pointer border transition
+      ${
+        requireChange
+          ? "bg-[#126ACB] border-[#126ACB]"
+          : "border-[#0D4B37] bg-white"
+      }
+    `}
+                    >
+                      {requireChange && (
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="11"
+                          height="10"
+                          viewBox="0 0 11 10"
+                          fill="none"
+                        >
+                          <path
+                            d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                            stroke="#FFFFFF"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                      )}
+                    </label>
+                    <span className="text-[13px] font-normal text-[#414141]">
+                      Require this user to change their password on their first
+                      sign in
+                    </span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="mt-4 flex justify-end">
+            <Button
+              text={isEdit ? "Save & Update" : "Add User"}
+              type="submit"
+              bgColor="bg-[#0D4B37]"
+              textColor="text-white text-[13px] py-2"
+            />
+          </div>
+        </form>
+      </div>
+      <ErrorToast
+        message={toastMsg}
+        visible={showToast}
+        onClose={() => setShowToast(false)}
+        bgColorClass={toastBgClass}
+        boldText={toastBold}
+        messageColorClass={messageColorClass}
+      />
+    </SideSheet>
+  );
+}

@@ -1,0 +1,853 @@
+"use client";
+
+import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { validateOtherServiceInfoForm } from "@/services/bookingApi";
+import { MdOutlineFileUpload } from "react-icons/md";
+import { FiTrash2 } from "react-icons/fi";
+import { useRef } from "react";
+import StyledDescription from "../StyledDescription";
+import DropDown from "@/components/DropDown";
+import SingleCalendar from "@/components/SingleCalendar";
+import { FaRegFolder } from "react-icons/fa";
+import AmountSection from "@/components/AmountSection";
+import CancellationModal, {
+  CancellationModalFormState,
+} from "@/components/Modals/CancellationModal";
+import { getDefaultShowAdvancedPricing } from "@/utils/advancedPricing";
+
+// Type definitions
+interface OtherServiceInfoFormData {
+  bookingdate: string;
+  traveldate: string; // This can be the main/first travel date
+  bookingstatus: "Confirmed" | "Canceled" | "In Progress" | string;
+  costprice: number | string;
+  sellingprice: number | string;
+  confirmationNumber: number | string;
+  title: string;
+  description: string;
+  documents?: string | File;
+  remarks: string;
+  showAdvancedPricing?: boolean;
+  vendorBasePrice?: number | string;
+  vendorIncentiveReceived?: number | string;
+  commissionPaid?: number | string;
+  vendorBaseCurrency?: "USD" | "INR";
+  vendorBaseRoe?: string;
+  vendorBaseInr?: string;
+  vendorBaseNotes?: string;
+  vendorIncentiveCurrency?: "USD" | "INR";
+  vendorIncentiveRoe?: string;
+  vendorIncentiveInr?: string;
+  vendorIncentiveNotes?: string;
+  commissionCurrency?: "USD" | "INR";
+  commissionRoe?: string;
+  commissionInr?: string;
+  commissionNotes?: string;
+  costCurrency?: "USD" | "INR";
+  costRoe?: string;
+  costInr?: string;
+  costNotes?: string;
+  sellingCurrency?: "USD" | "INR";
+  sellingRoe?: string;
+  sellingInr?: string;
+  sellingNotes?: string;
+  cancellationForm?: any;
+}
+
+interface ValidationErrors {
+  [key: string]: string;
+}
+
+interface ExternalFormData {
+  formFields?: Partial<OtherServiceInfoFormData>;
+  maritimeinfoform?: Partial<OtherServiceInfoFormData>;
+}
+
+interface OtherInfoFormProps {
+  onSubmit?: (data: OtherServiceInfoFormData) => void;
+  isSubmitting?: boolean;
+  isReadOnly?: boolean;
+  showValidation?: boolean;
+  formRef?: React.RefObject<HTMLDivElement | null>;
+  onFormDataUpdate: (data: any) => void;
+  onAddDocuments?: (files: File[]) => void;
+  onRemoveDocuments?: (files: File[]) => void;
+  externalFormData?: ExternalFormData | Record<string, unknown>;
+  existingDocuments?: Array<{
+    originalName: string;
+    fileName: string;
+    url: string;
+    key: string;
+    size: number;
+    mimeType: string;
+    uploadedAt: string | Date;
+    _id?: string;
+  }>;
+}
+
+const MaritimeTransportServiceInfoForm: React.FC<OtherInfoFormProps> = ({
+  onSubmit,
+  isSubmitting = false,
+  isReadOnly = false,
+  showValidation = true,
+  formRef,
+  onFormDataUpdate,
+  onAddDocuments,
+  onRemoveDocuments,
+  externalFormData,
+  existingDocuments = [],
+}) => {
+  const normalizedExternalData = useMemo(() => {
+    const source = externalFormData ?? {};
+    const fields =
+      (source as ExternalFormData)?.formFields ??
+      (source as ExternalFormData)?.maritimeinfoform ??
+      source;
+    return fields as Partial<OtherServiceInfoFormData>;
+  }, [externalFormData]);
+
+  const defaultShowAdvancedPricing = useMemo(
+    () => getDefaultShowAdvancedPricing(normalizedExternalData, isReadOnly),
+    [isReadOnly, normalizedExternalData],
+  );
+
+  // Internal form state
+  const [formData, setFormData] = useState<OtherServiceInfoFormData>({
+    bookingdate: normalizedExternalData?.bookingdate || "",
+    traveldate: normalizedExternalData?.traveldate || "",
+    bookingstatus: normalizedExternalData?.bookingstatus || "",
+    costprice: normalizedExternalData?.costprice || "",
+    sellingprice: normalizedExternalData?.sellingprice || "",
+    confirmationNumber: normalizedExternalData?.confirmationNumber || "",
+    title: normalizedExternalData?.title || "",
+    description: normalizedExternalData?.description || "",
+    documents: "",
+    remarks: normalizedExternalData?.remarks || "",
+    showAdvancedPricing: defaultShowAdvancedPricing,
+    vendorBasePrice: String(normalizedExternalData?.vendorBasePrice ?? ""),
+    vendorIncentiveReceived: String(
+      normalizedExternalData?.vendorIncentiveReceived ?? "",
+    ),
+    commissionPaid: String(normalizedExternalData?.commissionPaid ?? ""),
+    vendorBaseCurrency: normalizedExternalData?.vendorBaseCurrency || "INR",
+    vendorBaseRoe: String(normalizedExternalData?.vendorBaseRoe ?? ""),
+    vendorBaseInr: String(normalizedExternalData?.vendorBaseInr ?? ""),
+    vendorBaseNotes: normalizedExternalData?.vendorBaseNotes || "",
+    vendorIncentiveCurrency:
+      normalizedExternalData?.vendorIncentiveCurrency || "INR",
+    vendorIncentiveRoe: String(
+      normalizedExternalData?.vendorIncentiveRoe ?? "",
+    ),
+    vendorIncentiveInr: String(
+      normalizedExternalData?.vendorIncentiveInr ?? "",
+    ),
+    vendorIncentiveNotes: normalizedExternalData?.vendorIncentiveNotes || "",
+    commissionCurrency: normalizedExternalData?.commissionCurrency || "INR",
+    commissionRoe: String(normalizedExternalData?.commissionRoe ?? ""),
+    commissionInr: String(normalizedExternalData?.commissionInr ?? ""),
+    commissionNotes: normalizedExternalData?.commissionNotes || "",
+    costCurrency: normalizedExternalData?.costCurrency || "INR",
+    costRoe: String(normalizedExternalData?.costRoe ?? ""),
+    costInr: String(normalizedExternalData?.costInr ?? ""),
+    costNotes: normalizedExternalData?.costNotes || "",
+    sellingCurrency: normalizedExternalData?.sellingCurrency || "INR",
+    sellingRoe: String(normalizedExternalData?.sellingRoe ?? ""),
+    sellingInr: String(normalizedExternalData?.sellingInr ?? ""),
+    sellingNotes: normalizedExternalData?.sellingNotes || "",
+    cancellationForm: (normalizedExternalData as any)?.cancellationForm,
+  });
+
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [isValidating, setIsValidating] = useState<boolean>(false);
+
+  // Advanced Pricing State
+  const [showAdvancedPricing, setShowAdvancedPricing] = useState(
+    defaultShowAdvancedPricing,
+  );
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+
+  const MAX_DOCUMENTS = 3;
+  const existingDocumentsCount = Array.isArray(existingDocuments)
+    ? existingDocuments.length
+    : 0;
+  const totalDocumentsCount = existingDocumentsCount + attachedFiles.length;
+  const isDocumentLimitReached = totalDocumentsCount >= MAX_DOCUMENTS;
+
+  const [isCancellationModalOpen, setIsCancellationModalOpen] =
+    useState<boolean>(false);
+  const [, setPendingPrevBookingStatus] =
+    useState<string>("");
+
+  // Handle selecting multiple files
+  const handleFileChange = () => {
+    const files = fileInputRef.current?.files;
+    if (!files) return;
+
+    const selected = Array.from(files);
+
+    const remainingSlots = MAX_DOCUMENTS - totalDocumentsCount;
+    const toAdd = remainingSlots > 0 ? selected.slice(0, remainingSlots) : [];
+
+    if (toAdd.length === 0) {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    setAttachedFiles((prev) => [...prev, ...toAdd]);
+
+    onAddDocuments?.(toAdd);
+
+    // Reset so selecting the same file again is possible
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // Remove one file
+  const handleDeleteFile = (index: number) => {
+    const removed = attachedFiles[index];
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
+    if (removed) onRemoveDocuments?.([removed]);
+  };
+
+  const options = [
+    { value: "confirmed", label: "Confirmed" },
+    { value: "cancelled", label: "Cancelled" },
+    // { value: "", label: "Booking Status" },
+  ];
+
+  const handleBookingStatusChange = (value: string) => {
+    if (value === "cancelled" && formData.bookingstatus !== "cancelled") {
+      setPendingPrevBookingStatus(formData.bookingstatus);
+      setIsCancellationModalOpen(true);
+    } else {
+      setFormData((prev) => ({ ...prev, bookingstatus: value }));
+    }
+  };
+
+  // Sync with external form data when it changes
+  useEffect(() => {
+    if (!externalFormData || Object.keys(externalFormData).length === 0) return;
+    const nextShowAdvancedPricing = getDefaultShowAdvancedPricing(
+      normalizedExternalData,
+      isReadOnly,
+    );
+    setFormData((prev) => ({
+      ...prev,
+      ...normalizedExternalData,
+      showAdvancedPricing: nextShowAdvancedPricing,
+    }));
+    setShowAdvancedPricing(nextShowAdvancedPricing);
+  }, [externalFormData, isReadOnly, normalizedExternalData]);
+
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, showAdvancedPricing }));
+  }, [showAdvancedPricing]);
+
+  // Notify parent of form data changes
+  useEffect(() => {
+    onFormDataUpdate({ maritimeinfoform: formData });
+  }, [formData, onFormDataUpdate]);
+
+  type FieldRule = {
+    required: boolean;
+    message: string;
+    minLength?: number;
+    pattern?: RegExp;
+  };
+
+  const validationRules: Record<string, FieldRule> = useMemo(
+    () => ({
+      firstname: {
+        required: true,
+        minLength: 2,
+        message: "First name is required (minimum 2 characters)",
+      },
+      lastname: {
+        required: true,
+        minLength: 2,
+        message: "Last name is required (minimum 2 characters)",
+      },
+      contactnumber: {
+        required: true,
+        pattern: /^\d{10}$/,
+        message: "Contact number must be 10 digits",
+      },
+      emailId: {
+        required: true,
+        pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        message: "Invalid email format",
+      },
+    }),
+    [],
+  );
+
+  // Enhanced validation function using API validation
+  const validateField = useCallback(
+    (name: string, value: any): string => {
+      // API-level validation only for OtherServiceInfoForm fields
+      const apiErrors = validateOtherServiceInfoForm({
+        bookingdate: "",
+        traveldate: "",
+        bookingstatus: "",
+        confirmationNumber: "",
+        title: "",
+        description: "",
+        documents: "",
+        remarks: "",
+      });
+
+      if (apiErrors[name]) return apiErrors[name];
+
+      // Local field-level validation (firstname, lastname, etc.)
+      const rule = validationRules[name as keyof typeof validationRules];
+      if (!rule) return "";
+
+      if (
+        rule.required &&
+        (!value || (typeof value === "string" && value.trim() === ""))
+      ) {
+        return rule.message;
+      }
+
+      if (
+        rule.minLength &&
+        typeof value === "string" &&
+        value.trim().length < rule.minLength
+      ) {
+        return rule.message;
+      }
+
+      if (
+        rule.pattern &&
+        typeof value === "string" &&
+        !rule.pattern.test(value)
+      ) {
+        return rule.message;
+      }
+
+      return "";
+    },
+    [validationRules],
+  );
+
+  // Validate all fields
+  const validateForm = useCallback((): boolean => {
+    const newErrors: ValidationErrors = {};
+    let isValid = true;
+
+    Object.keys(validationRules).forEach((fieldName) => {
+      const error = validateField(
+        fieldName,
+        formData[fieldName as keyof OtherServiceInfoFormData],
+      );
+      if (error) {
+        newErrors[fieldName] = error;
+        isValid = false;
+      }
+    });
+
+    setErrors(newErrors);
+    return isValid;
+  }, [formData, validateField, validationRules]);
+
+  // Normal handleChange that only updates local state
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const { name, value, type } = e.target;
+    const processedValue =
+      type === "number" && value !== "" ? Number(value) : value;
+
+    setFormData((prev) => ({ ...prev, [name]: processedValue }));
+
+    // Clear error when user types
+    if (errors[name as keyof OtherServiceInfoFormData]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+
+    // Mark field touched
+    setTouched((prev) => ({ ...prev, [name]: true }));
+  };
+
+  // Enhanced blur handler with API validation
+  const handleBlur = useCallback(
+    async (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const { name, value } = e.target;
+
+      if (showValidation) {
+        const error = validateField(name, value);
+        setErrors((prev) => ({ ...prev, [name]: error }));
+      }
+
+      setTouched((prev) => ({ ...prev, [name]: true }));
+    },
+    [validateField, showValidation],
+  );
+
+  // Handle form submission
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+
+      if (validateForm()) {
+        onSubmit?.(formData);
+      } else {
+        // Mark all fields as touched to show validation errors
+        const allTouched = Object.keys(validationRules).reduce(
+          (acc, key) => {
+            acc[key] = true;
+            return acc;
+          },
+          {} as Record<string, boolean>,
+        );
+        setTouched(allTouched);
+      }
+    },
+    [formData, validateForm, onSubmit, validationRules],
+  );
+
+  // Enhanced input field component with validation indicators
+  const InputField: React.FC<{
+    name: keyof OtherServiceInfoFormData;
+    id?: string;
+    type?: string;
+    placeholder?: string;
+    required?: boolean;
+    className?: string;
+    min?: number;
+  }> = ({
+    name,
+    type = "text",
+    placeholder,
+    required,
+    className = "",
+    min,
+  }) => {
+    const isValidatingField = name === "bookingdate" && isValidating;
+    const hasError = errors[name] && touched[name];
+    const hasValue = formData[name] && String(formData[name]).trim();
+    const isValid = hasValue && !hasError && !isValidatingField;
+
+    return (
+      <div className="relative">
+        <input
+          type={type}
+          name={name}
+          value={type === "file" ? undefined : String(formData[name] ?? "")}
+          onChange={handleChange}
+          onBlur={handleBlur}
+          placeholder={placeholder}
+          required={required}
+          min={min}
+          disabled={isSubmitting || isValidatingField}
+          className={`
+            w-full border rounded-md px-3 py-2 pr-10 text-sm transition-colors
+            ${
+              hasError
+                ? "border-red-300 focus:ring-red-200"
+                : isValid && touched[name]
+                  ? "border-green-300 focus:ring-green-200"
+                  : "border-gray-200 focus:ring-blue-200"
+            }
+            ${
+              isSubmitting || isValidatingField
+                ? "opacity-50 cursor-not-allowed"
+                : ""
+            }
+            ${className}
+          `}
+        />
+
+        {/* Validation indicator */}
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+          {isValidatingField && (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
+          )}
+          {!isValidatingField && isValid && touched[name] && (
+            <svg
+              className="h-4 w-4 text-green-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+          )}
+          {!isValidatingField && hasError && (
+            <svg
+              className="h-4 w-4 text-red-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          )}
+        </div>
+
+        {hasError && (
+          <p className="text-red-500 text-xs mt-1">{errors[name]}</p>
+        )}
+      </div>
+    );
+  };
+  const cancellationModalInitialValues: CancellationModalFormState = {
+    cancellationDate: "",
+    showAdvancedPricing: showAdvancedPricing,
+    costprice: String(formData.costprice ?? ""),
+    costCurrency: formData.costCurrency ?? "INR",
+    costRoe: formData.costRoe ?? "",
+    costInr: formData.costInr ?? "",
+    costNotes: formData.costNotes ?? "",
+    costRefundCurrency: "INR",
+    costRefundAmount: "",
+    costRefundNotes: "",
+    costRefundRoe: "",
+    costRefundInr: "",
+    sellingprice: String(formData.sellingprice ?? ""),
+    sellingCurrency: formData.sellingCurrency ?? "INR",
+    sellingRoe: formData.sellingRoe ?? "",
+    sellingInr: formData.sellingInr ?? "",
+    sellingNotes: formData.sellingNotes ?? "",
+    sellingRefundCurrency: "INR",
+    sellingRefundAmount: "",
+    sellingRefundNotes: "",
+    sellingRefundRoe: "",
+    sellingRefundInr: "",
+    vendorBasePrice: "",
+    vendorBaseCurrency: formData.vendorBaseCurrency ?? "INR",
+    vendorBaseRoe: formData.vendorBaseRoe ?? "",
+    vendorBaseInr: formData.vendorBaseInr ?? "",
+    vendorBaseNotes: formData.vendorBaseNotes ?? "",
+    vendorInvoiceRefundCurrency: "INR",
+    vendorInvoiceRefundAmount: "",
+    vendorInvoiceRefundNotes: "",
+    vendorInvoiceRefundRoe: "",
+    vendorInvoiceRefundInr: "",
+    vendorIncentiveReceived: "",
+    vendorIncentiveCurrency: formData.vendorIncentiveCurrency ?? "INR",
+    vendorIncentiveRoe: formData.vendorIncentiveRoe ?? "",
+    vendorIncentiveInr: formData.vendorIncentiveInr ?? "",
+    vendorIncentiveNotes: formData.vendorIncentiveNotes ?? "",
+    chargebackCurrency: "INR",
+    chargebackAmount: "",
+    chargebackNotes: "",
+    chargebackRoe: "",
+    chargebackInr: "",
+    commissionPaid: "",
+    commissionCurrency: formData.commissionCurrency ?? "INR",
+    commissionRoe: formData.commissionRoe ?? "",
+    commissionInr: formData.commissionInr ?? "",
+    commissionNotes: formData.commissionNotes ?? "",
+    commissionRefundCurrency: "INR",
+    commissionRefundAmount: "",
+    commissionRefundNotes: "",
+    commissionRefundRoe: "",
+    commissionRefundInr: "",
+    summary: {
+      oldCost: "",
+      oldSelling: "",
+      oldNet: "",
+      oldMargin: "",
+      newCost: "",
+      newSelling: "",
+      newNet: "",
+      newMargin: "",
+    },
+  };
+
+  return (
+    <>
+      <div
+        className={`space-y-4 p-4 -mt-1 ${
+          isReadOnly
+            ? "[&_input]:!bg-gray-200 [&_textarea]:!bg-gray-200 [&_select]:!bg-gray-200"
+            : ""
+        }`}
+        ref={formRef}
+      >
+        <div className="px-0 py-1">
+          {/* Booking and Travel Date */}
+          <div className="flex flex-wrap items-end justify-between mb-3 px-5 -mx-5">
+            {/* Left section: Booking + Travel Date */}
+            <div className="flex items-end flex-wrap gap-2">
+              {/* Booking Date */}
+              <SingleCalendar
+                label="Booking Date"
+                value={formData.bookingdate}
+                onChange={(date) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    bookingdate: date,
+                    traveldate:
+                      prev.bookingdate !== date ? "" : prev.traveldate,
+                  }))
+                }
+                placeholder="DD-MM-YYYY"
+                showCalendarIcon={false}
+              />
+
+              {/* Travel Date */}
+              <SingleCalendar
+                label="Travel Date"
+                value={formData.traveldate}
+                onChange={(date) =>
+                  setFormData((prev) => ({ ...prev, traveldate: date }))
+                }
+                placeholder="DD-MM-YYYY"
+                minDate={formData.bookingdate}
+                showCalendarIcon={false}
+                readOnly={!formData.bookingdate}
+              />
+            </div>
+
+            {/* Right section: Booking Status */}
+            <div>
+              <DropDown
+                options={options}
+                placeholder="Booking Status"
+                value={formData.bookingstatus}
+                onChange={handleBookingStatusChange}
+              />
+            </div>
+          </div>
+
+          {/* Amount Section */}
+          <AmountSection
+            value={formData as any}
+            onChange={(updated) =>
+              setFormData((prev) => ({ ...prev, ...updated }))
+            }
+            bookingStatus={formData.bookingstatus}
+            cancellationForm={formData.cancellationForm}
+            showAdvancedPricing={showAdvancedPricing}
+            onToggleAdvancedPricing={setShowAdvancedPricing}
+            isReadOnly={isReadOnly}
+            isSubmitting={isSubmitting}
+          />
+
+          {/* ================= TRANSPORT (MARITIME) INFO ================ */}
+          <div className="w-[48vw] border border-gray-200 rounded-[12px] p-3 mt-4">
+            <h1 className="text-[0.85rem] font-medium text-gray-800 mb-2">
+              Transportation (Maritime) Info
+            </h1>
+
+            <hr className="mt-1 mb-3 border-t border-gray-200" />
+
+            {/* Confirmation number + Title (stacked) */}
+            <div className="flex flex-col gap-3 w-full mb-4">
+              {/* Confirmation number */}
+              <div className="flex flex-col w-full">
+                <label className="text-[13px] font-medium text-gray-700 mb-1">
+                  Confirmation number
+                </label>
+                <input
+                  type="text"
+                  name="confirmationNumber"
+                  value={formData.confirmationNumber}
+                  onChange={handleChange}
+                  placeholder="Enter Confirmation Number"
+                  className="w-[30%] px-3 py-1.5 border border-gray-300 rounded-md text-[13px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Title */}
+              <div className="flex flex-col w-full">
+                <label className="text-[13px] font-medium text-gray-700 mb-1">
+                  Title
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleChange}
+                  placeholder="Title …"
+                  className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-[13px] focus:outline-none focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Description */}
+
+            <StyledDescription
+              value={formData.description}
+              onChange={(val) =>
+                setFormData((prev) => ({ ...prev, description: val }))
+              }
+            />
+          </div>
+        </div>
+
+        {/* ID PROOFS */}
+        <div className=" w-[98%] ml-2 border border-gray-200 rounded-[12px] p-3">
+          <h2 className="text-[13px] font-medium mb-2">Documents</h2>
+          <hr className="mt-1 mb-2 border-t border-gray-200" />
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            onChange={handleFileChange}
+            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt"
+            multiple
+          />
+
+          <button
+            type="button"
+            onClick={() => {
+              if (isDocumentLimitReached) return;
+              fileInputRef.current?.click();
+            }}
+            disabled={isDocumentLimitReached}
+            className="px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
+                                                               border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white"
+          >
+            <MdOutlineFileUpload size={16} /> Attach Files
+          </button>
+
+          {/* PREVIEW FILES */}
+          <div className="mt-2 flex flex-col gap-2">
+            {Array.isArray(existingDocuments) &&
+              existingDocuments.length > 0 &&
+              existingDocuments.map((doc, i) => (
+                <div
+                  key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
+                  className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
+                >
+                  <button
+                    type="button"
+                    onClick={() => doc.url && window.open(doc.url, "_blank")}
+                    className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+                    title="Click to view document"
+                  >
+                    <FaRegFolder className="text-blue-500 w-3 h-3" />
+                    {doc.originalName || doc.fileName}
+                  </button>
+                </div>
+              ))}
+            {attachedFiles.map((file, i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between w-full 
+                                               bg-white rounded-md 
+                                               px-3 py-2 hover:bg-gray-50 transition"
+              >
+                {/* File Name */}
+                <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
+                  <FaRegFolder className="text-blue-500 w-3 h-3" />
+                  {file.name}
+                </span>
+
+                {/* Delete Icon */}
+                <button
+                  type="button"
+                  onClick={() => handleDeleteFile(i)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <FiTrash2 size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="text-red-600 text-[0.65rem]">
+            Note: A maximum of 3 documents can be uploaded.
+          </div>
+        </div>
+
+        {/* Remarks Section */}
+        <div className="border border-gray-200 w-[48vw] ml-2.5 rounded-[12px] p-3 mt-4">
+          <label className="block text-[13px] font-medium text-gray-700">
+            Remarks
+          </label>
+          <hr className="mt-1 mb-2 border-t border-gray-200" />
+          <textarea
+            name="remarks"
+            rows={4}
+            value={formData.remarks}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            placeholder="Enter Your Remarks Here"
+            disabled={isSubmitting}
+            className={`w-full border border-gray-200 rounded-md px-2 py-1.5 text-[13px] mt-1 transition-colors focus:ring focus:ring-blue-200 ${
+              isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+          />
+        </div>
+
+        {/* Submit Button */}
+        {/* <div className="flex justify-end mt-3">
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="px-5 py-1.5 bg-[#114958] text-[0.8rem] text-white rounded-md hover:bg-[#0d3a45] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? "Saving..." : "Save"}
+          </button>
+        </div> */}
+      </div>
+
+      <CancellationModal
+        isOpen={isCancellationModalOpen}
+        onClose={() => {
+          setIsCancellationModalOpen(false);
+          setPendingPrevBookingStatus("");
+          setFormData((prev) => ({
+            ...prev,
+            bookingstatus: "confirmed",
+          }));
+        }}
+        recordLabel="Maritime Transport"
+        statusLabel="Cancelled"
+        initialValues={cancellationModalInitialValues}
+        linkedShowAdvancedPricing={showAdvancedPricing}
+        onLinkedShowAdvancedPricingChange={setShowAdvancedPricing}
+        onSave={(data) => {
+          setFormData((prev) => ({
+            ...prev,
+            bookingstatus: "cancelled",
+            costprice: data.costprice || prev.costprice,
+            costCurrency: data.costCurrency,
+            costRoe: data.costRoe,
+            costInr: data.costInr,
+            costNotes: data.costNotes,
+            sellingprice: data.sellingprice || prev.sellingprice,
+            sellingCurrency: data.sellingCurrency,
+            sellingRoe: data.sellingRoe,
+            sellingInr: data.sellingInr,
+            sellingNotes: data.sellingNotes,
+            vendorBaseCurrency: data.vendorBaseCurrency,
+            vendorBaseRoe: data.vendorBaseRoe,
+            vendorBaseInr: data.vendorBaseInr,
+            vendorBaseNotes: data.vendorBaseNotes,
+            vendorIncentiveCurrency: data.vendorIncentiveCurrency,
+            vendorIncentiveRoe: data.vendorIncentiveRoe,
+            vendorIncentiveInr: data.vendorIncentiveInr,
+            vendorIncentiveNotes: data.vendorIncentiveNotes,
+            commissionCurrency: data.commissionCurrency,
+            commissionRoe: data.commissionRoe,
+            commissionInr: data.commissionInr,
+            commissionNotes: data.commissionNotes,
+            cancellationForm: data,
+          }));
+          setIsCancellationModalOpen(false);
+          setPendingPrevBookingStatus("");
+        }}
+      />
+    </>
+  );
+};
+
+export default React.memo(MaritimeTransportServiceInfoForm);

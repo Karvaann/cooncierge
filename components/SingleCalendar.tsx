@@ -1,0 +1,783 @@
+"use client";
+
+import { useState, useRef, useEffect } from "react";
+import { FaRegCalendar } from "react-icons/fa6";
+import {
+  MdKeyboardArrowRight,
+  MdKeyboardArrowLeft,
+  MdClose,
+} from "react-icons/md";
+
+type Props = {
+  label?: string;
+  value: string;
+  onChange: (date: string) => void;
+  placeholder?: string;
+  disablePastDates?: boolean;
+  minDate?: string; // ISO string - disables all dates before this date
+  maxDate?: string | undefined; // ISO string - disables all dates after this date
+  customWidth?: string; // Custom width class for the input container
+  labelClassName?: string; // Custom class for the label
+  inputClassName?: string; // Custom class for the input text
+  showCalendarIcon?: boolean; // Whether to show the calendar icon (default: true)
+  readOnly?: boolean; // When true, input is disabled and calendar cannot be opened
+  popupMaxHeight?: string; // Tailwind max-height class for calendar popup (e.g. 'max-h-44')
+  minTypeable?: string; // ISO string – typed dates before this are rejected and input is cleared
+  /** Override all input styling with a single Tailwind class string. When provided, replaces the default padding, text size, color, border, rounding, hover, and background classes. */
+  inputStyleClass?: string;
+};
+
+export default function SingleCalendar({
+  label,
+  value,
+  onChange,
+  placeholder = "DD-MM-YYYY",
+  disablePastDates = false,
+  minDate,
+  customWidth,
+  labelClassName,
+  inputClassName,
+  showCalendarIcon = true,
+  readOnly = false,
+  popupMaxHeight,
+  maxDate,
+  minTypeable,
+  inputStyleClass,
+  ...props
+}: Props) {
+  const [open, setOpen] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [inputValue, setInputValue] = useState("");
+  const [showMonthPicker, setShowMonthPicker] = useState(false);
+  const [showYearPicker, setShowYearPicker] = useState(false);
+  const [yearPageStart, setYearPageStart] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const [lastSelectedDate, setLastSelectedDate] = useState<Date | null>(null);
+
+  const selectedDate = value ? new Date(value) : open ? lastSelectedDate : null;
+
+  const isDateAllowed = (date: Date) => {
+    const dayOnly = new Date(date);
+    dayOnly.setHours(0, 0, 0, 0);
+
+    if (disablePastDates) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (dayOnly < today) return false;
+    }
+
+    if (minDate) {
+      const minDateObj = new Date(minDate);
+      minDateObj.setHours(0, 0, 0, 0);
+      if (dayOnly < minDateObj) return false;
+    }
+
+    if (maxDate) {
+      const maxDateObj = new Date(maxDate);
+      maxDateObj.setHours(0, 0, 0, 0);
+      if (dayOnly > maxDateObj) return false;
+    }
+
+    return true;
+  };
+
+  // Sync inputValue with value prop
+  useEffect(() => {
+    if (value) {
+      const date = new Date(value);
+      setInputValue(formatDateForInput(date));
+    } else {
+      setInputValue("");
+    }
+  }, [value]);
+
+  // Set current month to selected date's month when value changes
+  useEffect(() => {
+    if (selectedDate) {
+      setCurrentMonth(
+        new Date(selectedDate.getFullYear(), selectedDate.getMonth(), 1),
+      );
+    }
+  }, [value]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setShowMonthPicker(false);
+        setShowYearPicker(false);
+      }
+    }
+    // Use capture phase (true) for better cross-browser compatibility
+    document.addEventListener("click", handleClickOutside, true);
+    return () =>
+      document.removeEventListener("click", handleClickOutside, true);
+  }, [open]);
+
+  const handleDateClick = (date: Date, e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation();
+
+    const dateOnly = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+    );
+    // Only allow dates within allowed range
+    if (!isDateAllowed(dateOnly)) return;
+    onChange(dateOnly.toISOString());
+    setOpen(false);
+    setShowMonthPicker(false);
+    setShowYearPicker(false);
+  };
+
+  const isSelected = (date: Date) => {
+    if (!selectedDate) return false;
+    const dateOnly = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+    );
+    const selectedOnly = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+    );
+    return dateOnly.getTime() === selectedOnly.getTime();
+  };
+
+  const getDaysInMonth = (month: Date) => {
+    const year = month.getFullYear();
+    const monthIndex = month.getMonth();
+    const firstDay = new Date(year, monthIndex, 1);
+    const lastDay = new Date(year, monthIndex + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    const days: Array<{ date: Date; isCurrentMonth: boolean }> = [];
+
+    // Previous month days (shown as disabled)
+    const prevMonth = new Date(year, monthIndex, 0);
+    const prevMonthDays = prevMonth.getDate();
+    for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+      days.push({
+        date: new Date(year, monthIndex - 1, prevMonthDays - i),
+        isCurrentMonth: false,
+      });
+    }
+
+    // Current month days
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push({
+        date: new Date(year, monthIndex, i),
+        isCurrentMonth: true,
+      });
+    }
+
+    // Next month days to fill the grid (shown as disabled)
+    const remainingDays = 42 - days.length; // 6 rows * 7 days
+    for (let i = 1; i <= remainingDays; i++) {
+      days.push({
+        date: new Date(year, monthIndex + 1, i),
+        isCurrentMonth: false,
+      });
+    }
+
+    return days;
+  };
+
+  const navigateMonth = (direction: number) => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setMonth(currentMonth.getMonth() + direction);
+    setCurrentMonth(newMonth);
+  };
+
+  const navigateYear = (direction: number) => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setFullYear(currentMonth.getFullYear() + direction);
+    setCurrentMonth(newMonth);
+  };
+
+  const formatDateForInput = (date: Date | null) => {
+    if (!date) return "";
+
+    const day = String(date.getDate()).padStart(2, "0");
+
+    const month = date.toLocaleString("en-US", { month: "short" });
+
+    const year = String(date.getFullYear()).slice(-2);
+
+    return `${day} ${month} '${year}`;
+  };
+
+  const parseInputDate = (input: string): Date | null => {
+    // Expected format: DD-MM-YYYY
+    const regex = /^(\d{2})-(\d{2})-(\d{4})$/;
+    const match = input.match(regex);
+    if (!match || !match[1] || !match[2] || !match[3]) return null;
+
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1; // JS months are 0-indexed
+    const year = parseInt(match[3], 10);
+
+    const date = new Date(year, month, day);
+
+    // Validate the date is real (e.g., not 31-02-2024)
+    if (
+      date.getDate() !== day ||
+      date.getMonth() !== month ||
+      date.getFullYear() !== year
+    ) {
+      return null;
+    }
+
+    return date;
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+
+    // Allow only digits and dashes
+    val = val.replace(/[^0-9-]/g, "");
+
+    // Auto-insert dashes as user types
+    if (val.length === 2 && inputValue.length < 2) {
+      val = val + "-";
+    } else if (val.length === 5 && inputValue.length < 5) {
+      val = val + "-";
+    }
+
+    // Limit length to DD-MM-YYYY format (10 chars)
+    if (val.length > 10) {
+      val = val.slice(0, 10);
+    }
+
+    setInputValue(val);
+
+    let parts = val.split("-");
+
+    // Day correction
+    if (parts[0] && parts[0].length === 2) {
+      let day = parseInt(parts[0], 10);
+      if (day > 31) {
+        parts[0] = "31";
+        val = parts.join("-");
+        setInputValue(val);
+      }
+    }
+
+    // Month correction
+    if (parts[1] && parts[1].length === 2) {
+      let month = parseInt(parts[1], 10);
+      if (month > 12) {
+        parts[1] = "12";
+        val = parts.join("-");
+        setInputValue(val);
+      }
+    }
+
+    // Year correction
+    if (parts[2] && parts[2].length === 4) {
+      let year = parseInt(parts[2], 10);
+      if (year > 2100) {
+        parts[2] = "2100";
+        val = parts.join("-");
+        setInputValue(val);
+      }
+    }
+
+    // Try to parse and update if valid
+    if (val.length === 10) {
+      const parsedDate = parseInputDate(val);
+      if (parsedDate) {
+        // Reject typed dates before minTypeable (actively clear input)
+        if (minTypeable) {
+          const minT = new Date(minTypeable);
+          minT.setHours(0, 0, 0, 0);
+          const typed = new Date(parsedDate);
+          typed.setHours(0, 0, 0, 0);
+          if (typed < minT) {
+            setInputValue("");
+            onChange("");
+            return;
+          }
+        }
+
+        // ensure parsed date is allowed (not after maxDate / not before minDate / not disabled past)
+        if (!isDateAllowed(parsedDate)) {
+          setInputValue("");
+          onChange("");
+          return;
+        }
+
+        onChange(parsedDate.toISOString());
+        setCurrentMonth(
+          new Date(parsedDate.getFullYear(), parsedDate.getMonth(), 1),
+        );
+        // Close dropdown when complete valid date is typed
+        setOpen(false);
+        setShowMonthPicker(false);
+        setShowYearPicker(false);
+      }
+    }
+  };
+
+  const handleInputBlur = () => {
+    // If invalid, clear the input
+    if (inputValue.length === 10) {
+      const parsed = parseInputDate(inputValue);
+      if (parsed) {
+        // Reject dates before minTypeable
+        if (minTypeable) {
+          const minT = new Date(minTypeable);
+          minT.setHours(0, 0, 0, 0);
+          const typed = new Date(parsed);
+          typed.setHours(0, 0, 0, 0);
+          if (typed < minT) {
+            setInputValue("");
+            onChange("");
+            return;
+          }
+        }
+
+        if (isDateAllowed(parsed)) {
+          onChange(parsed.toISOString());
+          setCurrentMonth(new Date(parsed.getFullYear(), parsed.getMonth(), 1));
+          setOpen(false);
+          setShowMonthPicker(false);
+          setShowYearPicker(false);
+        } else {
+          setInputValue("");
+          onChange("");
+        }
+      } else {
+        // Incomplete/invalid format — clear
+        setInputValue("");
+        onChange("");
+      }
+    } else if (inputValue.length > 0) {
+      // Partially typed date on blur — clear it
+      setInputValue("");
+      onChange("");
+    }
+  };
+
+  const handleClearDate = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setInputValue("");
+    onChange("");
+    setOpen(false);
+    setShowMonthPicker(false);
+    setShowYearPicker(false);
+  };
+
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+
+  const handleMonthSelect = (monthIndex: number) => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setMonth(monthIndex);
+    setCurrentMonth(newMonth);
+    setShowMonthPicker(false);
+  };
+
+  const handleYearSelect = (year: number) => {
+    const newMonth = new Date(currentMonth);
+    newMonth.setFullYear(year);
+    setCurrentMonth(newMonth);
+    setShowYearPicker(false);
+    setShowMonthPicker(true);
+  };
+
+  const YEAR_BATCH_SIZE = 12;
+  const yearBatchStart =
+    yearPageStart ||
+    Math.floor(currentMonth.getFullYear() / YEAR_BATCH_SIZE) * YEAR_BATCH_SIZE;
+  const years = Array.from(
+    { length: YEAR_BATCH_SIZE },
+    (_, index) => yearBatchStart + index,
+  );
+
+  const Calendar = ({ month }: { month: Date }) => {
+    const days = getDaysInMonth(month);
+    const weekDays = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return (
+      <div className="flex-1">
+        <hr className="mb-1 -mt-2 border-t border-gray-200" />
+        <div className="grid grid-cols-7 gap-0 mb-1">
+          {weekDays.map((day) => (
+            <div
+              key={day}
+              className="text-center text-xs text-gray-500 font-medium py-1.5 w-9"
+            >
+              {day}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-0">
+          {days.map((dayObj, index) => {
+            const day = dayObj.date;
+            const isCurrentMonth = dayObj.isCurrentMonth;
+            const selected = isSelected(day);
+            const isToday = day.toDateString() === new Date().toDateString();
+
+            const dayOnly = new Date(day);
+            dayOnly.setHours(0, 0, 0, 0);
+
+            const allowed = isDateAllowed(dayOnly);
+            const isDisabled = !isCurrentMonth || !allowed;
+            const showOutlineForSelected = selected && open;
+
+            return (
+              <div key={index} className="relative w-9 h-8">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!isDisabled) {
+                      handleDateClick(day, e);
+                    }
+                  }}
+                  disabled={isDisabled}
+                  className={`relative w-full h-full flex items-center justify-center text-[13px] font-medium transition-colors select-none
+                    ${!isCurrentMonth ? "text-gray-300 cursor-default" : ""}
+                    ${
+                      !allowed && isCurrentMonth
+                        ? "text-gray-300 cursor-not-allowed"
+                        : ""
+                    }
+                    ${
+                      isCurrentMonth && selected && allowed
+                        ? showOutlineForSelected
+                          ? "text-white ring-2 ring-[#7135AD] rounded-sm"
+                          : "text-white rounded-sm"
+                        : ""
+                    }
+                    ${
+                      isCurrentMonth && !selected && allowed
+                        ? "text-gray-700 hover:bg-gray-100"
+                        : ""
+                    }
+                    ${isCurrentMonth && isToday ? "ring-1 ring-green-500 rounded-sm font-bold" : ""}
+                  `}
+                  style={
+                    // When calendar is open we show an outlined selected date;
+                    // when closed (or not open) keep filled purple background for selected date.
+                    isCurrentMonth && selected && allowed
+                      ? { backgroundColor: "#7135AD" }
+                      : undefined
+                  }
+                >
+                  {day.getDate()}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const MonthPicker = () => (
+    <div className="grid grid-cols-3 gap-2 p-2">
+      {months.map((month, index) => (
+        <button
+          key={month}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleMonthSelect(index);
+          }}
+          className={`px-2 py-2 text-[13px] rounded-md transition-colors
+            ${
+              currentMonth.getMonth() === index
+                ? "bg-[#7135AD] text-white"
+                : "text-gray-700 hover:bg-gray-100"
+            }
+          `}
+        >
+          {month.slice(0, 3)}
+        </button>
+      ))}
+    </div>
+  );
+
+  const YearPicker = () => (
+    <div className="p-2">
+      <div className="mb-3 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setYearPageStart((prev) => prev - YEAR_BATCH_SIZE);
+          }}
+          className="rounded px-2 py-1 text-[14px] text-gray-600 transition-colors hover:bg-gray-100"
+        >
+          ‹
+        </button>
+        <div className="text-[12px] font-medium text-gray-700">
+          {years[0]} - {years[years.length - 1]}
+        </div>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setYearPageStart((prev) => prev + YEAR_BATCH_SIZE);
+          }}
+          className="rounded px-2 py-1 text-[14px] text-gray-600 transition-colors hover:bg-gray-100"
+        >
+          ›
+        </button>
+      </div>
+      <div className="grid grid-cols-4 gap-1">
+      {years.map((year) => (
+        <button
+          key={year}
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleYearSelect(year);
+          }}
+          className={`px-2 py-1.5 text-[13px] rounded-md transition-colors
+            ${
+              currentMonth.getFullYear() === year
+                ? "bg-[#7135AD] text-white"
+                : "text-gray-700 hover:bg-gray-100"
+            }
+          `}
+        >
+          {year}
+        </button>
+      ))}
+      </div>
+    </div>
+  );
+
+  // compute width class: prefer `customWidth`, then `inputClassName`, then default
+  const widthClass = customWidth || inputClassName || "w-[12rem]";
+
+  return (
+    <div className="relative" ref={ref}>
+      {label && (
+        <label
+          className={
+            labelClassName || "block text-gray-700 mb-1 text-xs font-medium"
+          }
+        >
+          {label}
+        </label>
+      )}
+
+      <div className={`relative ${widthClass}`}>
+        <input
+          type="text"
+          value={inputValue}
+          onChange={handleInputChange}
+          onBlur={handleInputBlur}
+          onFocus={() => {
+            if (readOnly) return;
+
+            // If a date already exists, clear it for fresh selection
+            if (value) {
+              setLastSelectedDate(new Date(value)); // store previous date
+              setInputValue("");
+              onChange("");
+            }
+
+            setOpen(true);
+          }}
+          disabled={readOnly}
+          placeholder={placeholder}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          className={`relative w-full ${
+            inputStyleClass
+              ? `${inputStyleClass} ${readOnly ? "cursor-default" : "outline-none"} pr-7`
+              : `border border-gray-300 rounded-md ${
+                  readOnly
+                    ? "px-2 py-1 pr-7 text-[13px] text-gray-700 bg-gray-200 cursor-default"
+                    : "hover:border-green-400 pr-7 px-2 py-1 text-[13px] text-gray-700 outline-none bg-transparent"
+                }`
+          } transition-colors`}
+          onClick={(e) => e.stopPropagation()}
+        />
+
+        {!readOnly && showCalendarIcon && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+
+              if (open) {
+                setInputValue("");
+                onChange("");
+                setOpen(false);
+                setShowMonthPicker(false);
+                setShowYearPicker(false);
+              } else {
+                if (value) {
+                  setInputValue("");
+                  onChange("");
+                }
+                setOpen(true);
+              }
+            }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            aria-label={open ? "Clear date" : "Open calendar"}
+          >
+            {open ? <MdClose size={14} /> : <FaRegCalendar size={14} />}
+          </button>
+        )}
+      </div>
+
+      {open && (
+        <div
+          className={`absolute mt-2 z-[9999] rounded-lg shadow-2xl bg-white border border-gray-200 p-3 w-[16rem] ${
+            popupMaxHeight || "max-h-72"
+          } overflow-auto`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Calendar navigation */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (showYearPicker) {
+                    setYearPageStart((prev) => prev - YEAR_BATCH_SIZE);
+                    return;
+                  }
+                  navigateYear(-1);
+                }}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <span className="flex items-center text-gray-500">
+                  <MdKeyboardArrowLeft size={15} />
+                  <MdKeyboardArrowLeft size={15} className="-ml-2" />
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (showYearPicker) return;
+                  navigateMonth(-1);
+                }}
+                className={`p-1 rounded ${showYearPicker ? "text-gray-300 cursor-default" : "hover:bg-gray-100"}`}
+                disabled={showYearPicker}
+              >
+                <MdKeyboardArrowLeft size={18} className="text-gray-500" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowMonthPicker(true);
+                  setShowYearPicker(false);
+                }}
+                className={`text-[13px] font-medium px-2 py-1 rounded transition-colors ${showMonthPicker ? "text-[#7135AD]" : "text-gray-700 hover:bg-gray-100"}`}
+              >
+                {currentMonth.toLocaleString("en-US", { month: "short" })}
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setYearPageStart(
+                    Math.floor(currentMonth.getFullYear() / YEAR_BATCH_SIZE) *
+                      YEAR_BATCH_SIZE,
+                  );
+                  setShowYearPicker(true);
+                  setShowMonthPicker(false);
+                }}
+                className={`text-[13px] font-medium px-2 py-1 rounded transition-colors ${showYearPicker ? "text-[#7135AD]" : "text-gray-700 hover:bg-gray-100"}`}
+              >
+                {currentMonth.getFullYear()}
+              </button>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (showYearPicker) return;
+                  navigateMonth(1);
+                }}
+                className={`p-1 rounded ${showYearPicker ? "text-gray-300 cursor-default" : "hover:bg-gray-100"}`}
+                disabled={showYearPicker}
+              >
+                <MdKeyboardArrowRight size={18} className="text-gray-500" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (showYearPicker) {
+                    setYearPageStart((prev) => prev + YEAR_BATCH_SIZE);
+                    return;
+                  }
+                  navigateYear(1);
+                }}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <span className="flex items-center text-gray-500">
+                  <MdKeyboardArrowRight size={15} />
+                  <MdKeyboardArrowRight size={15} className="-ml-2" />
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Month Picker */}
+          {showMonthPicker && <MonthPicker />}
+
+          {/* Year Picker */}
+          {showYearPicker && <YearPicker />}
+
+          {/* Calendar */}
+          {!showMonthPicker && !showYearPicker && (
+            <Calendar month={currentMonth} />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -1,0 +1,3195 @@
+"use client";
+
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+  useRef,
+} from "react";
+import { createPortal } from "react-dom";
+import { CiSearch } from "react-icons/ci";
+import { FiMinus } from "react-icons/fi";
+import { GoPlus } from "react-icons/go";
+import { IoClose } from "react-icons/io5";
+import { useBooking } from "@/context/BookingContext";
+import Fuse from "fuse.js";
+import { getCustomers, getCustomerById } from "@/services/customerApi";
+import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
+import { getVendorById, getVendors } from "@/services/vendorApi";
+import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
+import { getUsers } from "@/services/userApi";
+import { getTravellers, getTravellerById } from "@/services/travellerApi";
+import DropDown from "@/components/DropDown";
+import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerForm";
+import { allowTextAndNumbers } from "@/utils/inputValidators";
+import RemarksField from "@/components/forms/components/RemarksField";
+import RightSideIcons from "@/components/forms/components/RightSideIcons";
+import { getAuthUser } from "@/services/storage/authStorage";
+import ConfirmationModal from "@/components/popups/ConfirmationModal";
+
+// Type definitions
+interface GeneralInfoFormData {
+  customer: string;
+  customerIds?: string[];
+  customerNames?: string[];
+  customerName?: string;
+  vendor: string;
+  vendorName: string;
+  adults: number;
+  children: number;
+  infants: number;
+  childAges?: (number | null)[];
+  adultTravellers: string[]; // Names for display
+  infantTravellers: string[]; // Names for display
+  adultTravellerIds: string[]; // IDs for backend
+  infantTravellerIds: string[]; // IDs for backend
+  bookingOwner: string;
+  secondaryBookingOwner: string;
+  secondaryBookingOwners: string[];
+  remarks: string;
+  ownerName?: string;
+  customerCount?: number;
+}
+
+interface CustomerDataType {
+  _id: string;
+  customId?: string;
+  id?: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  tier?: string | number;
+  firstname?: string;
+  lastname?: string;
+  alias?: string;
+  dateOfBirth?: string;
+  gstin?: string | number;
+  companyName?: string;
+  address?: string | number;
+  remarks?: string;
+  openingBalance?: string;
+  balanceType?: "credit" | "debit";
+  nickname?: string;
+}
+
+interface VendorDataType {
+  _id: string;
+  id?: string;
+  customId?: string;
+  name?: string;
+  contactPerson?: string;
+  companyName?: string;
+  email?: string;
+  phone?: string;
+  tier?: string | number;
+  firstname?: string;
+  lastname?: string;
+  alias?: string;
+  countryCode?: string;
+  dateOfBirth?: string;
+  GSTIN?: string;
+  address?: string;
+  openingBalance?: string;
+  balanceType?: "credit" | "debit";
+  remarks?: string;
+}
+
+interface TeamDataType {
+  _id: string;
+  id?: string;
+  name: string;
+  email?: string;
+  customId?: string;
+  alias?: string;
+  nickname?: string;
+}
+
+interface TravellerDataType {
+  _id: string;
+  customId?: string;
+  id?: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  tier?: string | number;
+  alias?: string;
+  nickname?: string;
+  dateOfBirth?: string;
+  remarks?: string;
+}
+
+interface OwnerData {
+  _id: string;
+  name: string;
+  email: string;
+}
+
+interface Segment {
+  id: string;
+  flightnumber: string;
+  traveldate: string;
+  cabinclass: string;
+}
+
+interface ExternalFormData {
+  _id?: string;
+  customId?: string;
+  quotationType?: string;
+  businessId?: {
+    _id: string;
+    businessName: string;
+    businessType: string;
+  };
+  formFields?: {
+    adultTravellers?: string[];
+    infantTravellers?: string[];
+    bookingOwner?: string;
+    costprice?: string;
+    sellingprice?: string;
+    vendorName?: string;
+    infants?: number;
+    childAges?: (number | null)[];
+    customerName?: string;
+    ownerName?: string;
+    bookingdate?: string;
+    traveldate?: string;
+    bookingstatus?: string;
+    PNR?: string;
+    segments?: Segment[];
+    returnSegments?: Segment[];
+    pnrEnabled?: boolean;
+    samePNRForAllSegments?: boolean;
+    flightType?: string;
+    remarks?: string;
+    adults?: number;
+    children?: number;
+    adultTravellerIds?: string[];
+    infantTravellerIds?: string[];
+  };
+  totalAmount?: number;
+  status?: string;
+  owner?: OwnerData[];
+  primaryOwner?: string | OwnerData;
+  secondaryOwner?: Array<string | OwnerData> | string | OwnerData;
+  serviceStatus?: string;
+  travelDate?: string;
+  customerId?: {
+    _id: string;
+    name: string;
+    email: string;
+    phone: string;
+  };
+  vendorId?: {
+    _id: string;
+    companyName?: string;
+    contactPerson?: string;
+    email: string;
+    phone: string;
+  };
+  travelers?: TravellerDataType[];
+  adultTravelers?: Array<string | TravellerDataType>;
+  childTravelers?: Array<{
+    id: string | TravellerDataType;
+    age?: number | null;
+  }>;
+  adultNumber?: number;
+  childNumber?: number;
+  adultTravlers?: number;
+  childTravlers?: number;
+  remarks?: string;
+  isDeleted?: boolean;
+  documents?: Array<{
+    originalName: string;
+    fileName: string;
+    url: string;
+    key: string;
+    size: number;
+    mimeType: string;
+    uploadedAt: string;
+    _id: string;
+  }>;
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
+  __owners?: string[];
+  customer?: string;
+  vendor?: string;
+  adults?: number;
+  children?: number;
+  infants?: number;
+  childAges?: (number | null)[];
+  adultTravellers?: string[];
+  infantTravellers?: string[];
+  adultTravellerIds?: string[];
+  infantTravellerIds?: string[];
+  bookingOwner?: string;
+  flightinfoform?: {
+    bookingdate?: string;
+    traveldate?: string;
+    bookingstatus?: string;
+    costprice?: string;
+    sellingprice?: string;
+    PNR?: string;
+    segments?: Segment[];
+    returnSegments?: Segment[];
+    pnrEnabled?: boolean;
+    samePNRForAllSegments?: boolean;
+    flightType?: string;
+    remarks?: string;
+  };
+}
+
+// InputField component moved OUTSIDE of GeneralInfoForm to prevent re-creation on each render
+interface InputFieldProps {
+  name: string;
+  type?: string;
+  placeholder?: string;
+  required?: boolean;
+  className?: string;
+  min?: number;
+  value: string | number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (
+    e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  readOnly?: boolean;
+  disabled?: boolean;
+  hasError?: boolean;
+  errorMessage?: string | undefined;
+  isValidating?: boolean;
+  isValid?: boolean;
+  selectedDisplay?: React.ReactNode;
+  isViewMode?: boolean;
+}
+
+const InputField: React.FC<InputFieldProps> = ({
+  name,
+  type = "text",
+  placeholder,
+  required,
+  className = "",
+  min,
+  value,
+  onChange,
+  onBlur,
+  readOnly = false,
+  disabled = false,
+  hasError = false,
+  errorMessage,
+  isValidating = false,
+  isViewMode = false,
+  selectedDisplay,
+  onFocus,
+}) => {
+  return (
+    <div className="relative">
+      <input
+        type={type}
+        name={name}
+        value={value}
+        onChange={onChange}
+        onBlur={onBlur}
+        onFocus={onFocus}
+        placeholder={placeholder}
+        required={required}
+        min={min}
+        readOnly={readOnly}
+        disabled={disabled || isValidating}
+        className={`
+          w-full border rounded-[15px] px-3 py-2.5 ${selectedDisplay ? "" : "pr-10"} placeholder:text-[12px] placeholder:text-[#9CA3AF] font-[400] text-[12px] transition-[border-color] duration-150 hover:border-[#C6AEDE] 
+          ${
+            hasError
+              ? "border-red-300 focus:ring-red-200"
+              : "border-gray-200 focus:ring-[#C6AEDE]"
+          }
+
+          ${
+            disabled
+              ? "bg-gray-200 cursor-not-allowed"
+              : readOnly
+                ? "bg-white cursor-default"
+                : "bg-white"
+          }
+          ${selectedDisplay ? "text-transparent caret-transparent" : ""}
+          ${className}
+        `}
+      />
+
+      {selectedDisplay && (
+        <div className="absolute inset-0 flex items-center px-3 pointer-events-none">
+          {selectedDisplay}
+        </div>
+      )}
+
+      {/* Validation indicator */}
+      <div className="absolute inset-y-0 right-0 flex items-center pr-3 gap-1 translate-y-[1px]">
+        {!selectedDisplay && (
+          <CiSearch size={16} className="text-[#818181]" strokeWidth={1} />
+        )}
+        {isValidating && (
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
+        )}
+        {!isValidating && hasError && (
+          <svg
+            className="h-4 w-4 text-red-500"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        )}
+      </div>
+      <div className="">
+        {hasError && errorMessage && (
+          <p className="absolute -bottom-4 left-0 text-red-500 text-xs px-1">
+            {errorMessage}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface ValidationErrors {
+  [key: string]: string;
+}
+
+interface GeneralInfoFormProps {
+  initialFormData?: Partial<ExternalFormData>;
+  onFormDataUpdate?: (data: Partial<GeneralInfoFormData>) => void;
+  onSubmit?: (data: GeneralInfoFormData) => void;
+  isSubmitting?: boolean;
+  isReadOnly?: boolean;
+  showValidation?: boolean;
+  formRef?: React.RefObject<HTMLFormElement>;
+  hideVendor?: boolean;
+}
+
+const buildInitialState = (externalFormData: any = {}): GeneralInfoFormData => {
+  const isValidMongoObjectId = (value: unknown): boolean => {
+    if (typeof value !== "string") return false;
+    const v = value.trim();
+    if (!v) return false;
+    if (v.toLowerCase() === "tba") return false;
+    return /^[a-f\d]{24}$/i.test(v);
+  };
+
+  const normalizeId = (value: unknown): string => {
+    if (!value) return "";
+    if (typeof value === "string") return value.trim();
+    if (typeof value === "object") {
+      const maybeId = (value as any)?._id ?? (value as any)?.id;
+      if (typeof maybeId === "string") return maybeId.trim();
+    }
+    return "";
+  };
+
+  const normalizeIdList = (value: unknown): string[] => {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.map(normalizeId).filter(Boolean);
+    const single = normalizeId(value);
+    return single ? [single] : [];
+  };
+
+  const primaryOwnerIdCandidate: string =
+    normalizeId(externalFormData?.primaryOwner) ||
+    normalizeId(externalFormData?.owner?.[0]) ||
+    normalizeId(externalFormData?.bookingOwner) ||
+    normalizeId(externalFormData?.formFields?.bookingOwner) ||
+    "";
+
+  const primaryOwnerId: string = isValidMongoObjectId(primaryOwnerIdCandidate)
+    ? primaryOwnerIdCandidate.trim()
+    : "";
+
+  const secondaryOwnerIds: string[] = (() => {
+    const candidates: string[] = [];
+
+    // backend schema
+    candidates.push(...normalizeIdList(externalFormData?.secondaryOwner));
+
+    // populated owner array (objects) or legacy owner array (ids)
+    if (Array.isArray(externalFormData?.owner)) {
+      externalFormData.owner.forEach((o: any, idx: number) => {
+        if (idx === 0) return;
+        const id = normalizeId(o);
+        if (id) candidates.push(id);
+      });
+    }
+
+    // internal/legacy helper fields
+    if (Array.isArray(externalFormData?.__owners)) {
+      candidates.push(
+        ...externalFormData.__owners
+          .filter((v: unknown) => typeof v === "string")
+          .map((v: string) => v.trim())
+          .filter(Boolean),
+      );
+    }
+
+    return candidates
+      .map((v) => String(v).trim())
+      .filter(Boolean)
+      .filter((id) => isValidMongoObjectId(id))
+      .filter((id) => id !== String(primaryOwnerId || "").trim())
+      .filter((id, i, a) => a.indexOf(id) === i);
+  })();
+
+  return {
+    customer: externalFormData?.customerId?._id || "",
+    customerIds: Array.isArray(externalFormData?.customerId)
+      ? externalFormData.customerId
+          .map((customer: any) =>
+            typeof customer === "string" ? customer : customer?._id,
+          )
+          .filter(Boolean)
+      : externalFormData?.customerId?._id
+        ? [externalFormData.customerId._id]
+        : [],
+    customerNames: Array.isArray(externalFormData?.customerId)
+      ? externalFormData.customerId
+          .map((customer: any) => customer?.name || "")
+          .filter(Boolean)
+      : externalFormData?.customerId?.name
+        ? [externalFormData.customerId.name]
+        : [],
+    customerName: externalFormData?.customerId?.name || "",
+    vendor: externalFormData?.vendorId?._id || "",
+    vendorName:
+      externalFormData?.vendorId?.contactPerson ||
+      externalFormData?.vendorId?.companyName ||
+      externalFormData?.formFields?.vendorName ||
+      "",
+    adults:
+      externalFormData?.adultNumber ??
+      externalFormData?.adults ??
+      externalFormData?.formFields?.adults ??
+      1,
+    children:
+      externalFormData?.children || externalFormData?.formFields?.children || 0,
+    infants:
+      externalFormData?.childNumber ??
+      externalFormData?.infants ??
+      externalFormData?.formFields?.infants ??
+      0,
+    childAges:
+      externalFormData?.childAges ||
+      externalFormData?.formFields?.childAges ||
+      [],
+    adultTravellers: externalFormData?.formFields?.adultTravellers || [""], // Adult 1 (Lead Pax) - Names for display
+    infantTravellers: externalFormData?.formFields?.infantTravellers || [], // Names for display (start empty)
+    adultTravellerIds: externalFormData?.formFields?.adultTravellerIds || [""], // IDs for backend
+    infantTravellerIds: externalFormData?.formFields?.infantTravellerIds || [], // IDs for backend (start empty)
+    bookingOwner: primaryOwnerId,
+    secondaryBookingOwner: secondaryOwnerIds[0] || "",
+    secondaryBookingOwners: secondaryOwnerIds,
+    remarks:
+      externalFormData?.remarks || externalFormData?.formFields?.remarks || "",
+  };
+};
+
+const getMinSearchLength = (term: string, minCharacters = 3) =>
+  term.trim().length >= minCharacters;
+
+const computeAgeFromDob = (dob?: string) => {
+  if (!dob) return null;
+  const birthDate = new Date(dob);
+  if (Number.isNaN(birthDate.getTime())) return null;
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
+    age -= 1;
+  }
+  return Math.max(0, age);
+};
+
+const GeneralInfoForm: React.FC<GeneralInfoFormProps> = ({
+  initialFormData: externalFormData = {},
+  onFormDataUpdate,
+  onSubmit,
+  isSubmitting = false,
+  isReadOnly = false,
+  showValidation = true,
+  formRef,
+  hideVendor = false,
+}) => {
+  const [formData, setFormData] = useState<GeneralInfoFormData>(
+    buildInitialState(externalFormData),
+  );
+  const [childAgeConfirmation, setChildAgeConfirmation] = useState<{
+    index: number;
+    computedAge: number;
+    selectedAge: number;
+    dob: string;
+  } | null>(null);
+
+  const [showSecondaryOwnerField, setShowSecondaryOwnerField] =
+    useState<boolean>(
+      () =>
+        (buildInitialState(externalFormData).secondaryBookingOwners || [])
+          .length > 0,
+    );
+
+  const isSameState = (next: GeneralInfoFormData, prev: GeneralInfoFormData) =>
+    JSON.stringify(next) === JSON.stringify(prev);
+  const lastPushedFormData = useRef<GeneralInfoFormData>(formData);
+  const hasAppliedDefaultPrimaryOwnerRef = useRef(false);
+
+  // Reset/prefill when incoming data truly changes (avoids render loops)
+  const externalSignature = useMemo(
+    () => JSON.stringify(externalFormData ?? {}),
+    [externalFormData],
+  );
+  const lastExternalSignature = useRef(externalSignature);
+
+  useEffect(() => {
+    if (externalSignature === lastExternalSignature.current) return;
+
+    const nextState = buildInitialState(externalFormData);
+    setFormData((prev) => (isSameState(nextState, prev) ? prev : nextState));
+
+    setShowSecondaryOwnerField(
+      Array.isArray(nextState.secondaryBookingOwners) &&
+        nextState.secondaryBookingOwners.length > 0,
+    );
+
+    lastExternalSignature.current = externalSignature;
+    hasAppliedDefaultPrimaryOwnerRef.current = false;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [externalSignature]);
+
+  // Push changes upward after local state settles (avoid duplicate pushes)
+  useEffect(() => {
+    if (!isSameState(formData, lastPushedFormData.current)) {
+      onFormDataUpdate?.(formData);
+      lastPushedFormData.current = formData;
+    }
+  }, [formData, onFormDataUpdate]);
+
+  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const {
+    openAddCustomer,
+    openAddVendor,
+    openAddTraveller,
+    lastAddedCustomer,
+    lastAddedVendor,
+    lastAddedTraveller,
+    setLastAddedTraveller,
+    travellerTarget,
+    setTravellerTarget,
+  } = useBooking();
+  const [customerList, setCustomerList] = useState<
+    { id: string; name: string }[]
+  >([{ id: "", name: "" }]);
+
+  // Sync customer count to formData for price info
+  useEffect(() => {
+    setFormData((prev) => {
+      if (prev.customerCount === customerList.length) return prev;
+      return { ...prev, customerCount: customerList.length };
+    });
+  }, [customerList.length]);
+
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      customer: customerList[0]?.id || "",
+      customerIds: customerList.map((customer) => customer.id).filter(Boolean),
+      customerNames: customerList
+        .map((customer) => customer.name.trim())
+        .filter(Boolean),
+      customerName: customerList[0]?.name || "",
+    }));
+  }, [customerList]);
+
+  const [vendorList, setVendorList] = useState<{ id: string; name: string }[]>([
+    { id: "", name: "" },
+  ]);
+
+  const [adultTravellerList, setAdultTravellerList] = useState<
+    { id: string; name: string }[]
+  >([{ id: "", name: "" }]);
+
+  // const [vendorData, setVendorData] = useState<{ id: string; name: string }>({
+  //   id: "",
+  //   name: "",
+  // });
+
+  // Loading state for initial data fetch
+  const [isLoadingLists, setIsLoadingLists] = useState(true);
+
+  // presence of incoming externalFormData is edit mode
+  const hasInitialData = useMemo(
+    () => Boolean(externalFormData && Object.keys(externalFormData).length > 0),
+    [externalFormData],
+  );
+
+  // Search data states
+  const [allCustomers, setAllCustomers] = useState<CustomerDataType[]>([]);
+  const [allVendors, setAllVendors] = useState<VendorDataType[]>([]);
+  const [allTeams, setAllTeams] = useState<TeamDataType[]>([]);
+  const [allTravellers, setAllTravellers] = useState<TravellerDataType[]>([]);
+
+  const [customerResults, setCustomerResults] = useState<CustomerDataType[]>(
+    [],
+  );
+  const [vendorResults, setVendorResults] = useState<VendorDataType[]>([]);
+  const [primaryOwnerResults, setPrimaryOwnerResults] = useState<
+    TeamDataType[]
+  >([]);
+  const [travellerResults, setTravellerResults] = useState<TravellerDataType[]>(
+    [],
+  );
+
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [showVendorDropdown, setShowVendorDropdown] = useState(false);
+  const [showPrimaryOwnerDropdown, setShowPrimaryOwnerDropdown] =
+    useState(false);
+
+  const [secondaryOwnerDropdownOpen, setSecondaryOwnerDropdownOpen] =
+    useState(false);
+  const [selectedSecondaryOwners, setSelectedSecondaryOwners] = useState<
+    { id: string; name: string }[]
+  >([]);
+  const secondaryOwnerPortalRef = useRef<HTMLDivElement | null>(null);
+  const [secondaryOwnerPos, setSecondaryOwnerPos] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
+
+  // Track which traveller input is showing dropdown: { type: 'adultTravellers' | 'infantTravellers', index: number } | null
+  const [activeTravellerDropdown, setActiveTravellerDropdown] = useState<{
+    type: "adultTravellers" | "infantTravellers";
+    index: number;
+  } | null>(null);
+
+  const [activeCustomerIndex, setActiveCustomerIndex] = useState<number | null>(
+    null,
+  );
+
+  const [ownerList, setOwnerList] = useState<{ id: string; name: string }[]>([
+    { id: "", name: "" },
+  ]);
+
+  // Keep traveller display lists aligned with stored ids/names
+  useEffect(() => {
+    setAdultTravellerList(
+      (formData.adultTravellers || [""]).map((name, idx) => ({
+        id: formData.adultTravellerIds?.[idx] ?? "",
+        name: name || "",
+      })),
+    );
+  }, [formData.adultTravellers, formData.adultTravellerIds]);
+
+  // View customer sidesheet state
+  const [isViewCustomerOpen, setIsViewCustomerOpen] = useState(false);
+  const [viewCustomerData, setViewCustomerData] =
+    useState<CustomerDataType | null>(null);
+  // View vendor sidesheet state
+  const [isViewVendorOpen, setIsViewVendorOpen] = useState(false);
+  const [viewVendorData, setViewVendorData] = useState<VendorDataType | null>(
+    null,
+  );
+  // View traveller sidesheet state
+  const [isViewTravellerOpen, setIsViewTravellerOpen] = useState(false);
+  const [viewTravellerData, setViewTravellerData] =
+    useState<TravellerDataType | null>(null);
+  // Track whether this component was previously unmounted
+  const wasUnmounted = useRef(false);
+
+  const resetLocalStateToEmpty = () => {
+    setFormData(buildInitialState({}));
+    setErrors({});
+    setTouched({});
+    setCustomerList([{ id: "", name: "" }]);
+    setVendorList([{ id: "", name: "" }]);
+    setAdultTravellerList([{ id: "", name: "" }]);
+    setAllCustomers([]);
+    setAllVendors([]);
+    setAllTeams([]);
+    setAllTravellers([]);
+    setCustomerResults([]);
+    setVendorResults([]);
+    setPrimaryOwnerResults([]);
+    setTravellerResults([]);
+    setShowCustomerDropdown(false);
+    setShowVendorDropdown(false);
+    setShowPrimaryOwnerDropdown(false);
+    setSecondaryOwnerDropdownOpen(false);
+    setSelectedSecondaryOwners([]);
+    setActiveTravellerDropdown(null);
+    setActiveCustomerIndex(null);
+    setOwnerList([{ id: "", name: "" }]);
+    setIsViewCustomerOpen(false);
+    setViewCustomerData(null);
+    setIsViewVendorOpen(false);
+    setViewVendorData(null);
+    setIsViewTravellerOpen(false);
+    setViewTravellerData(null);
+    setIsLoadingLists(false);
+  };
+
+  // Add refs for click-outside detection
+  const customerRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
+  const vendorRef = useRef<HTMLDivElement | null>(null);
+  const teamsPrimaryRef = useRef<HTMLDivElement | null>(null);
+  const teamsSecondaryRef = useRef<HTMLDivElement | null>(null);
+  const travellerRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+  useEffect(() => {
+    const isEventInside = (e: Event, el: HTMLElement | null): boolean => {
+      if (!el) return false;
+      const target = e.target as Node | null;
+
+      // Prefer composedPath() when available (more accurate with nested targets)
+      const anyEvent = e as Event & { composedPath?: () => EventTarget[] };
+      if (typeof anyEvent.composedPath === "function") {
+        const path = anyEvent.composedPath();
+        if (path.includes(el)) return true;
+      }
+
+      return !!(target && el.contains(target));
+    };
+
+    const handleGlobalPointerDown = (e: PointerEvent) => {
+      if (e.isPrimary === false) return;
+
+      let isInCustomer = false;
+      customerRefs.current.forEach((ref) => {
+        if (isEventInside(e, ref)) isInCustomer = true;
+      });
+      const isInVendor = isEventInside(e, vendorRef.current);
+      const isInPrimaryOwner = isEventInside(e, teamsPrimaryRef.current);
+      const isInSecondaryOwner = isEventInside(e, teamsSecondaryRef.current);
+      const isInSecondaryOwnerPortal = isEventInside(
+        e,
+        secondaryOwnerPortalRef.current,
+      );
+
+      let isInTraveller = false;
+      travellerRefs.current.forEach((ref) => {
+        if (isEventInside(e, ref)) {
+          isInTraveller = true;
+        }
+      });
+
+      if (!isInCustomer) {
+        setShowCustomerDropdown(false);
+        setActiveCustomerIndex(null);
+      }
+      if (!isInVendor) {
+        setShowVendorDropdown(false);
+      }
+      if (!isInPrimaryOwner) setShowPrimaryOwnerDropdown(false);
+      if (!isInSecondaryOwner && !isInSecondaryOwnerPortal)
+        setSecondaryOwnerDropdownOpen(false);
+      if (!isInTraveller) {
+        setActiveTravellerDropdown(null);
+      }
+    };
+
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowCustomerDropdown(false);
+        setActiveCustomerIndex(null);
+        setShowVendorDropdown(false);
+        setShowPrimaryOwnerDropdown(false);
+        setSecondaryOwnerDropdownOpen(false);
+        setActiveTravellerDropdown(null);
+      }
+    };
+
+    document.addEventListener("pointerdown", handleGlobalPointerDown, {
+      capture: true,
+    });
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("pointerdown", handleGlobalPointerDown, {
+        capture: true,
+      });
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, []);
+
+  // Handler to open view sidesheet for customer
+  const handleViewCustomer = async (index: number) => {
+    const idFromList = customerList[index]?.id;
+    const id = idFromList || (formData.customer as string) || "";
+    if (!id) return;
+
+    // Try local cache first
+    let cust = allCustomers.find((c) => c._id === id || c.id === id);
+    if (!cust) {
+      try {
+        cust = await getCustomerById(id);
+      } catch (err) {
+        console.error("Failed to fetch customer for view:", err);
+        return;
+      }
+    }
+
+    setViewCustomerData(cust || null);
+    setIsViewCustomerOpen(true);
+  };
+
+  // Handler to open view sidesheet for vendor
+  const handleViewVendor = async () => {
+    // vendorList[0] is used as single vendor selection in this form
+    const idFromList = vendorList?.[0]?.id;
+    const id = idFromList || (formData.vendor as string) || "";
+    if (!id) return;
+
+    let vendor = allVendors.find((v) => v._id === id || v.id === id);
+    if (!vendor) {
+      try {
+        vendor = await getVendorById(id);
+      } catch (err) {
+        console.error("Failed to fetch vendor for view:", err);
+        return;
+      }
+    }
+
+    setViewVendorData(vendor || null);
+    setIsViewVendorOpen(true);
+  };
+
+  // Handler to open view sidesheet for traveller
+  const handleViewTraveller = async (
+    type: "adultTravellers" | "infantTravellers",
+    index: number,
+  ) => {
+    const idsArray =
+      type === "adultTravellers"
+        ? formData.adultTravellerIds
+        : formData.infantTravellerIds;
+    const nameArray = formData[type];
+
+    const idFromState = idsArray?.[index];
+    const nameFromState = nameArray?.[index] || "";
+
+    let traveller: TravellerDataType | undefined = undefined;
+
+    // Try cached list first (match by id or name)
+    if (idFromState) {
+      traveller = allTravellers.find(
+        (t) => t._id === idFromState || t.id === idFromState,
+      );
+    }
+
+    if (!traveller && nameFromState) {
+      traveller = allTravellers.find(
+        (t) => t.name === nameFromState || t.email === nameFromState,
+      );
+    }
+
+    if (!traveller && idFromState) {
+      try {
+        traveller = await getTravellerById(idFromState);
+      } catch (err) {
+        // console.error("Failed to fetch traveller by id:", err);
+        return;
+      }
+    }
+
+    if (!traveller) {
+      // nothing to view
+      return;
+    }
+
+    setViewTravellerData(traveller || null);
+    setIsViewTravellerOpen(true);
+  };
+
+  // Fetch all customers, vendors, Teamss on mount
+  useEffect(() => {
+    const fetchLists = async () => {
+      setIsLoadingLists(true);
+      try {
+        const [cRes, travellerRes, vRes, tRes] = await Promise.all([
+          getCustomers({ isDeleted: false }),
+          getTravellers(),
+          getVendors({ isDeleted: false }),
+          getUsers(),
+        ]);
+
+        setAllCustomers(cRes || []);
+        setAllVendors(vRes || []);
+        const teams = Array.isArray((tRes as any)?.data)
+          ? ((tRes as any).data as TeamDataType[])
+          : Array.isArray((tRes as any)?.users)
+            ? ((tRes as any).users as TeamDataType[])
+            : Array.isArray((tRes as any)?.data?.data)
+              ? ((tRes as any).data.data as TeamDataType[]) || []
+              : Array.isArray(tRes)
+                ? (tRes as TeamDataType[])
+                : [];
+        setAllTeams(teams);
+        setAllTravellers(travellerRes || []);
+      } catch (err) {
+        // console.error("[GeneralInfoForm] Failed loading lists", err);
+      } finally {
+        setIsLoadingLists(false);
+      }
+    };
+
+    fetchLists();
+  }, []);
+
+  useEffect(() => {
+    if (!Array.isArray(allTeams) || allTeams.length === 0) return;
+    if (hasAppliedDefaultPrimaryOwnerRef.current) return;
+
+    if (String(formData.bookingOwner || "").trim()) {
+      hasAppliedDefaultPrimaryOwnerRef.current = true;
+      return;
+    }
+
+    const authUser = getAuthUser() as any;
+    const authUserId = String(authUser?._id || authUser?.id || "").trim();
+    if (!authUserId) {
+      hasAppliedDefaultPrimaryOwnerRef.current = true;
+      return;
+    }
+
+    const match = allTeams.find(
+      (team) => String(team._id || team.id) === authUserId,
+    );
+    if (!match) {
+      hasAppliedDefaultPrimaryOwnerRef.current = true;
+      return;
+    }
+
+    setOwnerList([{ id: match._id, name: match.name }]);
+    setFormData((prev) =>
+      prev.bookingOwner
+        ? prev
+        : {
+            ...prev,
+            bookingOwner: match._id,
+            ownerName: match.name,
+          },
+    );
+    hasAppliedDefaultPrimaryOwnerRef.current = true;
+  }, [allTeams, formData.bookingOwner]);
+
+  // If this component was previously unmounted, clear local state on mount
+  useEffect(() => {
+    if (wasUnmounted.current) {
+      resetLocalStateToEmpty();
+    }
+    wasUnmounted.current = false;
+    return () => {
+      wasUnmounted.current = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Hydrate owner from externalFormData
+  useEffect(() => {
+    if (
+      !externalFormData?.primaryOwner &&
+      !externalFormData?.bookingOwner &&
+      !externalFormData?.owner?.[0]
+    )
+      return;
+    if (!Array.isArray(allTeams) || allTeams.length === 0) return;
+
+    const normalizeId = (value: unknown): string => {
+      if (!value) return "";
+      if (typeof value === "string") return value.trim();
+      if (typeof value === "object") {
+        const maybeId = (value as any)?._id ?? (value as any)?.id;
+        if (typeof maybeId === "string") return maybeId.trim();
+      }
+      return "";
+    };
+
+    const primaryOwnerObj =
+      (externalFormData?.primaryOwner &&
+        typeof externalFormData.primaryOwner === "object" &&
+        externalFormData.primaryOwner) ||
+      (externalFormData?.owner?.[0] &&
+        typeof externalFormData.owner[0] === "object" &&
+        externalFormData.owner[0]) ||
+      null;
+
+    const ownerId =
+      normalizeId(externalFormData?.primaryOwner) ||
+      normalizeId(externalFormData?.owner?.[0]) ||
+      normalizeId(externalFormData?.bookingOwner) ||
+      "";
+
+    if (!ownerId) return;
+
+    const match = allTeams.find((t) => t._id === ownerId);
+    if (match) {
+      setOwnerList([{ id: match._id, name: match.name }]);
+      return;
+    }
+
+    const fallbackName =
+      (primaryOwnerObj as any)?.name || (primaryOwnerObj as any)?.email || "";
+    if (fallbackName) {
+      // If we can't find in teams, use the name from external data
+      setOwnerList([{ id: ownerId, name: String(fallbackName) }]);
+    }
+  }, [
+    externalFormData?.primaryOwner,
+    externalFormData?.bookingOwner,
+    externalFormData?.owner,
+    allTeams,
+  ]);
+
+  // Keep selected secondary owner pills aligned with ids in formData
+  useEffect(() => {
+    const normalizeId = (value: unknown): string => {
+      if (!value) return "";
+      if (typeof value === "string") return value.trim();
+      if (typeof value === "object") {
+        const maybeId = (value as any)?._id ?? (value as any)?.id;
+        if (typeof maybeId === "string") return maybeId.trim();
+      }
+      return "";
+    };
+
+    const externalSecondaryOwners: any[] = Array.isArray(
+      (externalFormData as any)?.secondaryOwner,
+    )
+      ? ((externalFormData as any)?.secondaryOwner as any[])
+      : (externalFormData as any)?.secondaryOwner
+        ? [(externalFormData as any)?.secondaryOwner]
+        : [];
+
+    const externalOwners: any[] = Array.isArray(
+      (externalFormData as any)?.owner,
+    )
+      ? (((externalFormData as any)?.owner as any[]) || []).slice(1)
+      : [];
+
+    const externalOwnerNameById = new Map<string, string>();
+    [...externalSecondaryOwners, ...externalOwners].forEach((o) => {
+      const id = normalizeId(o);
+      if (!id) return;
+      const label =
+        String(
+          (o as any)?.name || (o as any)?.nickname || (o as any)?.alias || "",
+        ).trim() || String((o as any)?.email || "").trim();
+      if (label) externalOwnerNameById.set(id, label);
+    });
+
+    const idsFromArray: string[] = Array.isArray(
+      formData.secondaryBookingOwners,
+    )
+      ? formData.secondaryBookingOwners
+      : [];
+    const fallbackIds: string[] = formData.secondaryBookingOwner
+      ? [String(formData.secondaryBookingOwner)]
+      : [];
+
+    // If formData was wiped (e.g. by strict-mode remount), derive IDs from props directly
+    const externalIds = externalSecondaryOwners
+      .map((o) => normalizeId(o))
+      .filter(Boolean);
+
+    const primaryId = String(formData.bookingOwner || "");
+    const combinedIds = idsFromArray.length > 0 ? idsFromArray : externalIds;
+    const uniqueIds = [...combinedIds, ...fallbackIds]
+      .map((v) => String(v).trim())
+      .filter(Boolean)
+      .filter((id) => id !== primaryId)
+      .filter((id, i, a) => a.indexOf(id) === i);
+
+    if (uniqueIds.length > 0) {
+      setShowSecondaryOwnerField(true);
+    }
+
+    setSelectedSecondaryOwners(
+      uniqueIds.map((id) => {
+        const match = allTeams.find((t) => String(t._id || t.id) === id);
+        const fallbackName = externalOwnerNameById.get(id);
+        return { id, name: match?.name || fallbackName || id };
+      }),
+    );
+
+    // Also restore formData.secondaryBookingOwners if it was wiped but props have data
+    if (idsFromArray.length === 0 && uniqueIds.length > 0) {
+      setFormData((prev) => {
+        if ((prev.secondaryBookingOwners || []).length > 0) return prev;
+        return {
+          ...prev,
+          secondaryBookingOwners: uniqueIds,
+          secondaryBookingOwner: uniqueIds[0] || "",
+        };
+      });
+    }
+  }, [
+    allTeams,
+    externalFormData?.secondaryOwner,
+    externalFormData?.owner,
+    formData.secondaryBookingOwners,
+    formData.secondaryBookingOwner,
+    formData.bookingOwner,
+  ]);
+
+  // Ensure primary owner is never present in secondary owners
+  useEffect(() => {
+    setFormData((prev) => {
+      const primaryId = String(prev.bookingOwner || "");
+      const current = Array.isArray(prev.secondaryBookingOwners)
+        ? prev.secondaryBookingOwners
+        : [];
+      const next = current
+        .map((v) => String(v).trim())
+        .filter(Boolean)
+        .filter((id) => id !== primaryId);
+      if (next.length === current.length) return prev;
+      return {
+        ...prev,
+        secondaryBookingOwners: next,
+        secondaryBookingOwner: next[0] || "",
+      };
+    });
+  }, [formData.bookingOwner]);
+
+  // Recalculate secondary owner dropdown position when open or on resize/scroll
+  useEffect(() => {
+    if (!secondaryOwnerDropdownOpen) return;
+
+    const recalc = () => {
+      const rect = teamsSecondaryRef.current?.getBoundingClientRect();
+      if (rect) {
+        setSecondaryOwnerPos({
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
+        });
+      }
+    };
+
+    recalc();
+    window.addEventListener("resize", recalc);
+    window.addEventListener("scroll", recalc, true);
+    return () => {
+      window.removeEventListener("resize", recalc);
+      window.removeEventListener("scroll", recalc, true);
+    };
+  }, [secondaryOwnerDropdownOpen]);
+
+  // Hydrate vendor from externalFormData
+  useEffect(() => {
+    if (!externalFormData?.vendorId) return;
+    if (!Array.isArray(allVendors) || allVendors.length === 0) return;
+
+    const match = allVendors.find(
+      (v) => v._id === externalFormData.vendorId?._id,
+    );
+    if (match) {
+      setVendorList([
+        { id: match._id, name: match.contactPerson || match.companyName || "" },
+      ]);
+    } else if (
+      externalFormData.vendorId.contactPerson ||
+      externalFormData.vendorId.companyName
+    ) {
+      // If we can't find in vendors, use the name from external data
+      setVendorList([
+        {
+          id: externalFormData.vendorId._id,
+          name:
+            externalFormData.vendorId.contactPerson ||
+            externalFormData.vendorId.companyName ||
+            "",
+        },
+      ]);
+    }
+  }, [externalFormData?.vendorId, allVendors]);
+
+  // Hydrate customer from externalFormData
+  useEffect(() => {
+    if (!externalFormData?.customerId) return;
+    if (!Array.isArray(allCustomers) || allCustomers.length === 0) return;
+
+    if (Array.isArray(externalFormData.customerId)) {
+      const nextCustomers = externalFormData.customerId
+        .map((customer: any) => {
+          if (typeof customer === "string") {
+            const match = allCustomers.find((item) => item._id === customer);
+            return match ? { id: match._id, name: match.name } : null;
+          }
+          if (customer?._id) {
+            return { id: customer._id, name: customer.name || "" };
+          }
+          return null;
+        })
+        .filter(Boolean) as Array<{ id: string; name: string }>;
+      if (nextCustomers.length > 0) {
+        setCustomerList(nextCustomers);
+      }
+      return;
+    }
+
+    const match = allCustomers.find(
+      (c) => c._id === externalFormData.customerId?._id,
+    );
+    if (match) {
+      setCustomerList([{ id: match._id, name: match.name }]);
+    } else if (externalFormData.customerId.name) {
+      setCustomerList([
+        {
+          id: externalFormData.customerId._id,
+          name: externalFormData.customerId.name,
+        },
+      ]);
+    }
+  }, [externalFormData?.customerId, allCustomers]);
+
+  // Hydrate travellers from externalFormData
+  useEffect(() => {
+    const normalizeId = (value: unknown): string => {
+      if (!value) return "";
+      if (typeof value === "string") return value.trim();
+      if (typeof value === "object") {
+        const maybeId = (value as any)?._id ?? (value as any)?.id;
+        if (typeof maybeId === "string") return maybeId.trim();
+      }
+      return "";
+    };
+
+    const normalizeTravellerName = (value: unknown): string => {
+      if (!value) return "TBA";
+      if (typeof value === "string") {
+        const v = value.trim();
+        return v === "" ? "TBA" : v;
+      }
+      return "TBA";
+    };
+
+    const normalizeName = (value: unknown): string => {
+      if (!value || typeof value !== "object") return "";
+      const maybeName = (value as any)?.name ?? (value as any)?.fullName;
+      return typeof maybeName === "string" ? maybeName : "";
+    };
+
+    const travellerNameById = (id: string): string => {
+      const match = allTravellers.find((t) => t._id === id || t.id === id);
+      return match?.name || "";
+    };
+
+    const adultFromBackend = Array.isArray(externalFormData?.adultTravelers)
+      ? (externalFormData.adultTravelers as Array<string | TravellerDataType>)
+      : null;
+    const childFromBackend = Array.isArray(externalFormData?.childTravelers)
+      ? (externalFormData.childTravelers as Array<{
+          id: string | TravellerDataType;
+          age?: number | null;
+        }>)
+      : null;
+
+    const legacyTravellers = Array.isArray(externalFormData?.travelers)
+      ? (externalFormData.travelers as TravellerDataType[])
+      : null;
+
+    const hasStructuredTravellers = !!(adultFromBackend || childFromBackend);
+    const hasLegacyTravellers = !!legacyTravellers;
+    if (!hasStructuredTravellers && !hasLegacyTravellers) return;
+
+    // Adults
+    const adultEntries: Array<string | TravellerDataType> = adultFromBackend
+      ? adultFromBackend
+      : legacyTravellers
+        ? legacyTravellers
+        : [];
+    const adultIds = adultEntries.map((t) => normalizeId(t)).filter(Boolean);
+    const adultNames = adultEntries.map((t) => {
+      const id = normalizeId(t);
+      const fromObj = normalizeName(t);
+      return normalizeTravellerName(
+        fromObj || (id ? travellerNameById(id) : ""),
+      );
+    });
+
+    // Children
+    const childEntries = childFromBackend ?? [];
+    const childIds = childEntries
+      .map((c) => normalizeId(c?.id))
+      .filter(Boolean);
+    const childNames = childEntries.map((c) => {
+      const id = normalizeId(c?.id);
+      const fromObj = normalizeName(c?.id);
+
+      return normalizeTravellerName(
+        fromObj || (id ? travellerNameById(id) : ""),
+      );
+    });
+
+    const childAges = childEntries.map((c) => {
+      const age = c?.age;
+      return typeof age === "number" ? age : null;
+    });
+
+    const adultsCount =
+      typeof externalFormData?.adultNumber === "number"
+        ? externalFormData.adultNumber
+        : adultIds.length;
+    const childCount =
+      typeof externalFormData?.childNumber === "number"
+        ? externalFormData.childNumber
+        : childIds.length;
+
+    const safeAdultsCount = Number.isFinite(adultsCount)
+      ? Math.max(0, adultsCount)
+      : 0;
+    const safeChildCount = Number.isFinite(childCount)
+      ? Math.max(0, childCount)
+      : 0;
+
+    const padTo = (arr: string[], count: number, filler: string) => {
+      const next = [...arr];
+      while (next.length < count) next.push(filler);
+      while (next.length > count) next.pop();
+      return next;
+    };
+
+    setFormData((prev) => {
+      // Only hydrate when external data is present; keep user's edits intact otherwise.
+      const nextAdultIds = padTo(adultIds, safeAdultsCount, "");
+      const nextAdultNames = padTo(adultNames, safeAdultsCount, "TBA");
+      const nextChildIds = padTo(childIds, safeChildCount, "");
+      const nextChildNames = padTo(childNames, safeChildCount, "TBA");
+      const nextChildAges: Array<number | null> = (() => {
+        const next = [...childAges];
+        while (next.length < safeChildCount) next.push(null);
+        while (next.length > safeChildCount) next.pop();
+        return next;
+      })();
+
+      return {
+        ...prev,
+        adults: safeAdultsCount === 0 ? prev.adults : safeAdultsCount,
+        infants: safeChildCount,
+        adultTravellerIds: nextAdultIds.length
+          ? nextAdultIds
+          : prev.adultTravellerIds,
+        adultTravellers: nextAdultNames.length
+          ? nextAdultNames
+          : prev.adultTravellers,
+        infantTravellerIds: nextChildIds,
+        infantTravellers: nextChildNames,
+        childAges: nextChildAges,
+      };
+    });
+  }, [
+    externalSignature,
+    allTravellers,
+    externalFormData?.adultNumber,
+    externalFormData?.childNumber,
+    externalFormData?.adultTravelers,
+    externalFormData?.childTravelers,
+    externalFormData?.travelers,
+  ]);
+
+  // Fuzzy search helper
+  const runFuzzySearch = <T,>(
+    list: T[],
+    term: string,
+    keys: (keyof T)[],
+    minCharacters = 3,
+  ): T[] => {
+    if (!getMinSearchLength(term, minCharacters)) return [];
+
+    const fuse = new Fuse(list, {
+      threshold: 0.3,
+      keys: keys as string[],
+    });
+
+    const results = fuse.search(term).map((r) => r.item);
+    return results;
+  };
+
+  const getTierRating = (tier: unknown): number | null => {
+    try {
+      if (!tier) return null;
+      if (typeof tier === "number")
+        return Math.min(Math.max(Math.round(tier), 1), 5);
+      if (typeof tier === "string") {
+        const m = tier.match(/\d+/);
+        if (!m) return null;
+        return Math.min(Math.max(Number(m[0]), 1), 5);
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  };
+
+  const getAlias = (obj: unknown): string => {
+    const anyObj = obj as any;
+    return (anyObj?.alias || anyObj?.nickname || "") as string;
+  };
+
+  const getOwnerPillLabel = (owner: TeamDataType | undefined | null) => {
+    if (!owner) return "";
+    const nickname = getAlias(owner);
+    return [owner.name, owner.customId || owner.id || "", nickname]
+      .filter(Boolean)
+      .join(" | ");
+  };
+
+  const customersById = useMemo(() => {
+    const map = new Map<string, CustomerDataType>();
+    allCustomers.forEach((c) => map.set(c._id, c));
+    return map;
+  }, [allCustomers]);
+
+  const vendorsById = useMemo(() => {
+    const map = new Map<string, VendorDataType>();
+    allVendors.forEach((v) => map.set(v._id, v));
+    return map;
+  }, [allVendors]);
+
+  const travellersById = useMemo(() => {
+    const map = new Map<string, TravellerDataType>();
+    allTravellers.forEach((t) => map.set(t._id, t));
+    return map;
+  }, [allTravellers]);
+
+  const getTravellerDisplayName = (t: TravellerDataType) =>
+    t.name || (t as any)?.fullName || (t as any)?.travellerName;
+
+  // when adults change
+  useEffect(() => {
+    setFormData((prev) => {
+      const adults = [...prev.adultTravellers];
+      const adultIds = [...prev.adultTravellerIds];
+
+      // If adults = 0 → clear inputs
+      if (prev.adults === 0) {
+        return {
+          ...prev,
+          adultTravellers: [],
+          adultTravellerIds: [],
+        };
+      }
+
+      // otherwise at least 1 adult
+      if (adults.length === 0) adults.push("");
+      if (adultIds.length === 0) adultIds.push("");
+
+      while (adults.length < prev.adults) {
+        adults.push("");
+        adultIds.push("");
+      }
+      while (adults.length > prev.adults && adults.length > 1) {
+        adults.pop();
+        adultIds.pop();
+      }
+
+      return { ...prev, adultTravellers: adults, adultTravellerIds: adultIds };
+    });
+  }, [formData.adults]);
+
+  useEffect(() => {
+    setFormData((prev) => {
+      const infants = [...prev.infantTravellers];
+      const infantIds = [...prev.infantTravellerIds];
+
+      // If infants count is zero, clear infant inputs/ids
+      if (prev.infants === 0) {
+        return { ...prev, infantTravellers: [], infantTravellerIds: [] };
+      }
+
+      while (infants.length < prev.infants) {
+        infants.push("");
+        infantIds.push("");
+      }
+      while (infants.length > prev.infants) {
+        infants.pop();
+        infantIds.pop();
+      }
+
+      return {
+        ...prev,
+        infantTravellers: infants,
+        infantTravellerIds: infantIds,
+      };
+    });
+  }, [formData.infants]);
+
+  // Sync childAges array with infants count, defaulting to null
+  useEffect(() => {
+    setFormData((prev) => {
+      const ages = [...(prev.childAges || [])];
+
+      // If there are no infants- clear ages
+      if (prev.infants === 0) return { ...prev, childAges: [] };
+
+      while (ages.length < prev.infants) ages.push(null);
+      while (ages.length > prev.infants) ages.pop();
+
+      return { ...prev, childAges: ages };
+    });
+  }, [formData.infants]);
+
+  const removeCustomerField = (index: number) => {
+    setCustomerList(customerList.filter((_, i) => i !== index));
+  };
+
+  // update customer field from customer array
+  const updateCustomerField = (
+    index: number,
+    data: { id: string; name: string },
+  ) => {
+    const updated = [...customerList];
+    updated[index] = data;
+    setCustomerList(updated);
+
+    // Sync to main form
+    if (index === 0) {
+      setFormData((prev) => ({ ...prev, customer: data.id })); // VALIDATION USES ID
+    }
+  };
+
+  // update traveller field from traveller array
+  const updateTraveller = (
+    type: "adultTravellers" | "infantTravellers",
+    index: number,
+    value: string,
+    id?: string,
+  ) => {
+    const idType =
+      type === "adultTravellers" ? "adultTravellerIds" : "infantTravellerIds";
+
+    if (type === "adultTravellers") {
+      setAdultTravellerList((prev) => {
+        const updated = [...prev];
+        updated[index] = { id: id ?? "", name: value };
+        return updated;
+      });
+    }
+
+    setFormData((prev) => {
+      const updated = [...prev[type]];
+      while (updated.length <= index) updated.push("");
+      updated[index] = value;
+
+      // console.log("Updated traveller:", updated);
+
+      const updatedIds = [...prev[idType]];
+      while (updatedIds.length <= index) updatedIds.push("");
+      updatedIds[index] = id ?? "";
+
+      return { ...prev, [type]: updated, [idType]: updatedIds };
+    });
+  };
+
+  const clearField = (fieldName: string) => {
+    setFormData((prev) => ({ ...prev, [fieldName]: "" }));
+    setErrors((prev) => ({ ...prev, [fieldName]: "" }));
+    setTouched((prev) => ({ ...prev, [fieldName]: false }));
+  };
+
+  // Hydrate UI when a new customer is created via sidesheet
+  useEffect(() => {
+    if (!lastAddedCustomer) return;
+    const lac: any = lastAddedCustomer;
+    // Inject the new customer into allCustomers so customersById picks it up
+    setAllCustomers((prev) => {
+      if (prev.some((c) => c._id === lac.id)) return prev;
+      return [
+        ...prev,
+        {
+          _id: lac.id,
+          name: lac.name,
+          alias: lac.alias || "",
+          customId: lac.customId || "",
+          tier: lac.tier || "",
+        } as CustomerDataType,
+      ];
+    });
+    // Update first customer field with new entry
+    setCustomerList((prev) => {
+      const next = [...prev];
+      next[0] = { id: lac.id, name: lac.name };
+      return next;
+    });
+    const newFormData = { ...formData, customer: lac.id };
+    setFormData(newFormData);
+    // Clear any error on customer field
+    setErrors((prev) => ({ ...prev, customer: "" }));
+  }, [lastAddedCustomer]);
+
+  // Hydrate UI when a new vendor is created via sidesheet
+  useEffect(() => {
+    if (!lastAddedVendor) return;
+    const lav: any = lastAddedVendor;
+    // Inject the new vendor into allVendors so vendorsById picks it up
+    setAllVendors((prev) => {
+      if (prev.some((v) => v._id === lav.id)) return prev;
+      return [
+        ...prev,
+        {
+          _id: lav.id,
+          alias: lav.alias || "",
+          customId: lav.customId || "",
+          tier: lav.tier || "",
+          companyName: lav.companyName || "",
+          contactPerson: lav.contactPerson || "",
+        } as VendorDataType,
+      ];
+    });
+    setVendorList([{ id: lav.id, name: lav.name }]);
+    const newFormData = { ...formData, vendor: lav.id };
+    setFormData(newFormData);
+    setErrors((prev) => ({ ...prev, vendor: "" }));
+  }, [lastAddedVendor]);
+
+  // Hydrate UI when a new traveller is created via sidesheet
+  useEffect(() => {
+    if (!lastAddedTraveller || !travellerTarget) return;
+    const lat: any = lastAddedTraveller;
+    const name = lat.name || "";
+    const id = lat.id || "";
+    if (!name) return;
+
+    // Inject the new traveller into allTravellers so traveller dropdowns and view pick it up
+    setAllTravellers((prev) => {
+      if (prev.some((t) => t._id === id)) return prev;
+      return [
+        ...prev,
+        {
+          _id: id,
+          name: lat.name,
+          alias: lat.alias || "",
+          customId: lat.customId || "",
+          tier: lat.tier || "",
+        } as TravellerDataType,
+      ];
+    });
+
+    // Update the form immediately with name + id
+    setFormData((prev) => {
+      let newFormData;
+      if (travellerTarget.type === "adultTravellers") {
+        const adults = [...prev.adultTravellers];
+        const adultIds = [...prev.adultTravellerIds];
+        adults[travellerTarget.index] = name;
+        adultIds[travellerTarget.index] = id;
+        newFormData = {
+          ...prev,
+          adultTravellers: adults,
+          adultTravellerIds: adultIds,
+        };
+      } else {
+        const infants = [...prev.infantTravellers];
+        const infantIds = [...prev.infantTravellerIds];
+        infants[travellerTarget.index] = name;
+        infantIds[travellerTarget.index] = id;
+        newFormData = {
+          ...prev,
+          infantTravellers: infants,
+          infantTravellerIds: infantIds,
+        };
+      }
+      return newFormData;
+    });
+
+    setErrors((prev) => ({ ...prev, traveller1: "" }));
+    setLastAddedTraveller(null);
+    setTravellerTarget(null);
+  }, [
+    lastAddedTraveller,
+    travellerTarget,
+    setLastAddedTraveller,
+    setTravellerTarget,
+  ]);
+
+  useEffect(() => {
+    setFormData((prev) => {
+      // Allow 0 adults only when at least 1 child input exists.
+      const hasAnyChildInput =
+        (prev.infants ?? 0) > 0 ||
+        (prev.infantTravellers?.length ?? 0) > 0 ||
+        (prev.children ?? 0) > 0;
+
+      // If there are no child inputs, always keep at least 1 adult.
+      if (!hasAnyChildInput && prev.adults === 0) {
+        return { ...prev, adults: 1 };
+      }
+
+      return prev;
+    });
+  }, [`${formData.adults}|${formData.children}|${formData.infants}`]);
+
+  // Handle input changes
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    const { name, value, type } = e.target;
+    const processedValue = type === "number" ? value : value;
+
+    // build next state from current formData
+    if (name !== "vendor") {
+      setFormData((prev) => ({ ...prev, [name]: processedValue }));
+    }
+
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+    setTouched((prev) => ({ ...prev, [name]: true }));
+  };
+
+  // Helper to get input field props
+  const getInputProps = (
+    name: keyof GeneralInfoFormData,
+    options?: {
+      value?: string | number;
+      onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+      skipValidation?: boolean;
+    },
+  ) => {
+    const value = options?.value !== undefined ? options.value : "";
+
+    const hasError = !!(errors[name] && touched[name]);
+    const hasValue =
+      typeof value === "string"
+        ? value.trim().length > 0
+        : value.toString() !== "";
+
+    const isValid = !options?.skipValidation && hasValue && !hasError;
+
+    return {
+      value,
+      onChange: options?.onChange || handleChange,
+
+      disabled: isSubmitting,
+      hasError,
+      errorMessage: errors[name],
+      isValid,
+    };
+  };
+
+  return (
+    <form
+      ref={formRef}
+      className="space-y-4 px-[10px] py-[28px] relative"
+      onSubmit={(e) => e.preventDefault()}
+    >
+      {/* Customer Section */}
+      <div className="border border-gray-200 rounded-[15px] p-3.5">
+        <h2 className="text-[12px] text-[#020202] font-[500] mb-2">
+          Billed To
+        </h2>
+        <hr className="mt-1 mb-2 border-t border-gray-200" />
+
+        {customerList.map((customer, index) => (
+          <div key={index} className="">
+            <div className="flex items-center gap-1 mt-3">
+              <label className="text-[12px] font-[500] text-[#414141]">
+                <span className="text-[#FF3B30]">*</span>{" "}
+                {customerList.length > 1 ? `Customer ${index + 1}` : "Customer"}
+              </label>
+
+              {index > 0 && (
+                <button
+                  type="button"
+                  onClick={() => removeCustomerField(index)}
+                  className="w-4 h-4 mb-1 flex items-center justify-center rounded-full border border-gray-300 hover:bg-gray-100 transition-colors"
+                >
+                  <FiMinus size={14} className="text-black" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center mt-1 w-full">
+              <div
+                className="w-[60%] relative"
+                ref={(el) => {
+                  customerRefs.current.set(index, el);
+                }}
+              >
+                <InputField
+                  name="customer"
+                  placeholder="Search by Customer Name / ID / Nickname"
+                  required
+                  className="w-full text-[13px] py-2"
+                  type="text"
+                  {...getInputProps("customer", {
+                    value: customer?.name ?? "", // SHOW NAME
+                    onChange: (e) => {
+                      const value = allowTextAndNumbers(e.target.value);
+
+                      // typing resets selection
+                      if ((customer?.id ?? "").trim() !== "") {
+                        updateCustomerField(index, { id: "", name: value });
+                      }
+
+                      // Update name only, ID stays same until selected from dropdown
+                      updateCustomerField(index, {
+                        id: customer?.id ?? "",
+                        name: value,
+                      });
+
+                      // IF FIELD CLEARED then also clear stored value so validation becomes empty
+                      if (value.trim() === "") {
+                        if (index === 0) {
+                          setFormData((prev) => ({
+                            ...prev,
+                            customer: "",
+                          }));
+                        }
+                      }
+
+                      const results = runFuzzySearch(
+                        allCustomers,
+                        value,
+                        ["name", "customId", "alias", "nickname"],
+                        3,
+                      );
+                      if (value.trim() === "") {
+                        setCustomerResults([]);
+                        setShowCustomerDropdown(false);
+
+                        return;
+                      }
+                      setCustomerResults(results);
+                      if (results.length > 0) {
+                        setShowCustomerDropdown(true);
+                        setActiveCustomerIndex(index);
+                      } else {
+                        setShowCustomerDropdown(false);
+                        setActiveCustomerIndex(null);
+                      }
+                    },
+                  })}
+                  readOnly={!!customer?.id || isReadOnly}
+                  disabled={isReadOnly || isSubmitting}
+                  selectedDisplay={(() => {
+                    const selected = customer?.id
+                      ? customersById.get(customer.id)
+                      : null;
+                    if (!selected) return null;
+                    const rating = getTierRating(selected.tier) ?? 4;
+                    const alias = getAlias(selected) || "-";
+                    return (
+                      <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center gap-1 min-w-0">
+                          <p className="font-[400] text-[13px] text-[#020202] truncate">
+                            {selected.name}
+                          </p>
+                          <span className="text-gray-300">|</span>
+                          <p className="text-[13px] font-[400] text-[#414141] truncate">
+                            {selected.customId}
+                          </p>
+
+                          <span className="text-gray-300">|</span>
+                          <p className="text-[13px] font-[400] text-[#414141] truncate">
+                            {alias}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <img
+                            src={`/icons/tier-${rating}.svg`}
+                            alt={`Tier ${rating}`}
+                            className="w-4 h-4 object-contain inline-block align-middle"
+                          />
+                          <span className="text-[13px] font-[600] text-[#020202] leading-none inline-flex items-center justify-center">
+                            {rating}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                />
+
+                {activeCustomerIndex === index &&
+                  showCustomerDropdown &&
+                  customerResults.length > 0 && (
+                    <div className="absolute bg-white border border-gray-200 rounded-md w-[100%] max-h-60 mt-1 overflow-y-auto shadow-md z-50">
+                      {customerResults.map((cust) => {
+                        // derive numeric rating (1-5) from cust.tier if available
+                        let rating = 4;
+                        try {
+                          if (cust?.tier) {
+                            if (typeof cust.tier === "string") {
+                              const match = cust.tier.match(/\d+/);
+                              if (match) rating = Number(match[0]);
+                            } else if (typeof cust.tier === "number") {
+                              rating = Math.round(cust.tier);
+                            }
+                          }
+                        } catch (e) {
+                          rating = 4;
+                        }
+                        rating = Math.min(Math.max(rating || 4, 1), 5);
+                        const alias =
+                          (cust as any)?.alias || (cust as any)?.nickname || "";
+
+                        return (
+                          <div
+                            key={cust._id}
+                            className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
+                            onClick={() => {
+                              updateCustomerField(index, {
+                                id: cust._id,
+                                name: cust.name,
+                              });
+                              setActiveCustomerIndex(null);
+                              setCustomerResults([]);
+                              setShowCustomerDropdown(false);
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1 min-w-0">
+                                <p className="font-[400] text-[13px] text-[#020202] truncate">
+                                  {cust.name}
+                                </p>
+                                <span className="text-gray-300">|</span>
+                                <p className="text-[13px] font-[400] text-[#414141] truncate">
+                                  {cust.customId}
+                                </p>
+
+                                <span className="text-gray-300">|</span>
+                                <p className="text-[13px] font-[400] text-[#414141] truncate">
+                                  {alias || "-"}
+                                </p>
+                              </div>
+
+                              <div className="flex items-center gap-1">
+                                <img
+                                  src={`/icons/tier-${rating}.svg`}
+                                  alt={`Tier ${rating}`}
+                                  className="w-4 h-4 object-contain inline-block align-middle"
+                                />
+                                <span className="text-[13px] font-[600] leading-none inline-flex items-center justify-center text-[#020202]">
+                                  {rating}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {/* Staple option removed */}
+                    </div>
+                  )}
+              </div>
+
+              <RightSideIcons
+                value={customerList[index]?.name ?? ""}
+                disabled={isSubmitting}
+                onClear={() => {
+                  updateCustomerField(index, { id: "", name: "" });
+                  if (index === 0) {
+                    setFormData((prev) => ({
+                      ...prev,
+                      customer: "",
+                      customerName: "",
+                    }));
+                  }
+                  setCustomerResults([]);
+                  setShowCustomerDropdown(false);
+                  setActiveCustomerIndex(null);
+                }}
+                onClickPlus={openAddCustomer}
+                onClickView={() => handleViewCustomer(index)}
+              />
+            </div>
+          </div>
+        ))}
+
+        {!isReadOnly && (
+          <button
+            type="button"
+            onClick={() =>
+              setCustomerList((prev) => [...prev, { id: "", name: "" }])
+            }
+            disabled={isSubmitting}
+            className="flex items-center gap-2.5 mt-3 text-[13px] font-[400] text-[#414141] hover:text-[#414141]"
+          >
+            <div className="border border-[#818181] rounded-full p-0.25 flex items-center justify-center">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 5v14M5 12h14"
+                  stroke="#818181"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </div>
+            <span className="-ml-1 text-[11px] font-[500] text-[#818181]">
+              Add Another Customer
+            </span>
+          </button>
+        )}
+      </div>
+      {/* Vendor Section */}
+      {!hideVendor && (
+        <div className="border border-gray-200 rounded-[15px] px-3 py-4">
+          <h2 className="text-[12px] text-[#020202] font-[500] mb-2">Vendor</h2>
+          <hr className="mt-1 mb-2 border-t border-gray-200" />
+
+          <label className="text-[12px] font-[500] text-[#414141]">
+            <span className="text-[#FF3B30]">*</span> Vendor
+          </label>
+
+          <div className="flex items-center gap-2">
+            <div className="w-[60%] relative" ref={vendorRef}>
+              <InputField
+                name="vendor"
+                placeholder="Search by Vendor Name / ID / POC"
+                required
+                className="w-full text-[13px] py-2"
+                value={vendorList[0]?.name ?? ""}
+                onChange={(e) => {
+                  const value = allowTextAndNumbers(e.target.value);
+
+                  // Update vendor name only
+                  setVendorList([{ id: "", name: value }]);
+
+                  // clear actual vendor ID but keep the name for draft display
+                  const newFormData = {
+                    ...formData,
+                    vendor: "",
+                    vendorName: value,
+                  };
+                  setFormData(newFormData);
+
+                  const results = runFuzzySearch(
+                    allVendors,
+                    value,
+                    ["companyName", "contactPerson", "customId", "alias"],
+                    3,
+                  );
+                  if (value.trim() === "") {
+                    setVendorResults([]);
+                    setShowVendorDropdown(false);
+
+                    return;
+                  }
+                  setVendorResults(results);
+
+                  setShowVendorDropdown(results.length > 0);
+                }}
+                readOnly={!!vendorList?.[0]?.id || isReadOnly}
+                disabled={isReadOnly || isSubmitting}
+                selectedDisplay={(() => {
+                  const selectedId = vendorList?.[0]?.id ?? "";
+                  if (!selectedId) return null;
+                  const selected = vendorsById.get(selectedId);
+                  if (!selected) return null;
+                  const rating = getTierRating(selected.tier);
+                  const alias = getAlias(selected) || "-";
+                  const primary =
+                    selected.companyName || selected.contactPerson || "";
+                  return (
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-1 min-w-0">
+                        <p className="font-[400] text-[13px] text-[#020202] truncate">
+                          {primary}
+                        </p>
+                        <span className="text-gray-300">|</span>
+                        <p className="text-[13px] font-[400] text-[#414141] truncate">
+                          {selected.customId || "-"}
+                        </p>
+
+                        <span className="text-gray-300">|</span>
+                        <p className="text-[13px] font-[400] text-[#414141] truncate">
+                          {alias}
+                        </p>
+                      </div>
+
+                      {rating !== null ? (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <img
+                            src={`/icons/tier-${rating}.svg`}
+                            alt={`Tier ${rating}`}
+                            className="w-4 h-4 object-contain inline-block align-middle"
+                          />
+                          <span className="text-[0.75rem] font-[600] text-[#020202] leading-none inline-flex items-center">
+                            {rating}
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })()}
+              />
+
+              {showVendorDropdown && vendorResults.length > 0 && (
+                <div className="absolute bg-white border border-gray-200 rounded-md w-[100%] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+                  {vendorResults.map((v) => {
+                    // derive rating only if tier present
+                    let rating: number | null = null;
+                    try {
+                      if (v?.tier) {
+                        if (typeof v.tier === "string") {
+                          const m = v.tier.match(/\d+/);
+                          if (m) rating = Number(m[0]);
+                        } else if (typeof v.tier === "number") {
+                          rating = Math.round(v.tier);
+                        }
+                      }
+                    } catch (e) {
+                      rating = null;
+                    }
+                    if (rating !== null)
+                      rating = Math.min(Math.max(rating, 1), 5);
+                    const alias =
+                      (v as any)?.alias || (v as any)?.nickname || "";
+
+                    return (
+                      <div
+                        key={v._id}
+                        className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
+                        onClick={() => {
+                          setShowVendorDropdown(false);
+                          setVendorList([
+                            {
+                              id: v._id,
+                              name: v.companyName ?? v.contactPerson ?? "",
+                            },
+                          ]);
+                          const newFormData = {
+                            ...formData,
+                            vendor: v._id,
+                            vendorName: v.name ?? v.contactPerson ?? "",
+                          };
+                          setFormData(newFormData);
+                          setVendorResults([]);
+                        }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1">
+                            <p className="font-[400] text-[13px] text-[#020202] truncate">
+                              {v.companyName || v.contactPerson}
+                            </p>
+                            <span className="text-gray-300">|</span>
+                            <p className="text-[13px] font-[400] text-[#414141] truncate">
+                              {v.customId || "-"}
+                            </p>
+
+                            <span className="text-gray-300">|</span>
+                            <p className="text-[13px] font-[400] text-[#414141] truncate">
+                              {alias || "-"}
+                            </p>
+                          </div>
+
+                          {rating !== null ? (
+                            <div className="flex items-center gap-1">
+                              <img
+                                src={`/icons/tier-${rating}.svg`}
+                                alt={`Tier ${rating}`}
+                                className="w-4 h-4 object-contain inline-block align-middle"
+                              />
+                              <span className="text-[0.75rem] font-[600] text-[#020202] leading-none inline-flex items-center">
+                                {rating}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {/* Staple option removed */}
+                </div>
+              )}
+            </div>
+
+            <RightSideIcons
+              value={vendorList[0]?.name ?? ""}
+              disabled={isSubmitting}
+              onClear={() => {
+                setVendorList([{ id: "", name: "" }]);
+                setFormData((prev) => ({
+                  ...prev,
+                  vendor: "",
+                  vendorName: "",
+                }));
+                setVendorResults([]);
+                setShowVendorDropdown(false);
+              }}
+              onClickPlus={openAddVendor}
+              onClickView={() => handleViewVendor()}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Travellers Counter Section */}
+      <div className="border border-gray-200 rounded-[15px] px-3.5 pb-0 pt-4">
+        <h2 className="text-[12px] text-[#020202] font-[500] mb-1">
+          Travellers
+        </h2>
+        <hr className="mt-1 mb-2 border-t border-gray-200" />
+
+        <div className="flex gap-6 mb-5 mt-3">
+          <div className="flex flex-col">
+            <label className="block text-[12px] font-[500] ml-5 text-[#414141] mb-1">
+              Adults
+            </label>
+
+            <div className="w-[5rem] flex items-center justify-between border border-[#7135AD] rounded-[15px] px-2.5 py-1">
+              <button
+                type="button"
+                disabled={isReadOnly || isSubmitting}
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    adults:
+                      (prev.infants ?? 0) > 0 || (prev.children ?? 0) > 0
+                        ? Math.max(0, prev.adults - 1)
+                        : Math.max(1, prev.adults - 1),
+                  }))
+                }
+                className={`text-lg font-[600] -mt-0.5 ${
+                  isReadOnly || isSubmitting
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
+              >
+                <FiMinus size={12} className="text-[#7135AD]" />
+              </button>
+              <span className="text-[13px] font-[600] text-[#7135AD]">
+                {formData.adults}
+              </span>
+              <button
+                type="button"
+                disabled={isReadOnly || isSubmitting}
+                onClick={() =>
+                  setFormData({ ...formData, adults: formData.adults + 1 })
+                }
+                className={`text-lg font-[600] -mt-0.5 ${
+                  isReadOnly || isSubmitting
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
+              >
+                <GoPlus size={12} className="text-[#7135AD]" />
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-col">
+            <label className="block text-[12px] ml-4 font-[500] text-[#414141] mb-1">
+              Children
+            </label>
+            <div className="w-[5rem] flex items-center justify-between border border-[#7135AD] rounded-[15px] px-2.5 py-1">
+              <button
+                type="button"
+                disabled={isReadOnly || isSubmitting}
+                onClick={() =>
+                  setFormData({
+                    ...formData,
+                    infants: Math.max(0, formData.infants - 1),
+                  })
+                }
+                className={`text-lg font-[600] -mt-0.5 ${
+                  isReadOnly || isSubmitting
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
+              >
+                <FiMinus size={12} className="text-[#7135AD]" />
+              </button>
+              <span className="text-[13px] text-[#7135AD] font-[600] ">
+                {formData.infants}
+              </span>
+              <button
+                type="button"
+                disabled={isReadOnly || isSubmitting}
+                onClick={() =>
+                  setFormData({ ...formData, infants: formData.infants + 1 })
+                }
+                className={`text-lg font-[600] -mt-0.5 ${
+                  isReadOnly || isSubmitting
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
+              >
+                <GoPlus size={12} className="text-[#7135AD]" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Traveller Details */}
+        <div className="mt-4 space-y-2">
+          {adultTravellerList.map((_, index) => (
+            <div key={index} className="mb-6">
+              <label className="block w-[60%] text-[12px] font-[400] text-[#414141] mb-1">
+                <span className="text-[#FF3B30]">*</span>
+                {`Adult ${index + 1}${index === 0 ? " (Lead Pax)" : ""}`}
+              </label>
+              <div className="flex items-center gap-1">
+                <div
+                  className="w-[60%] relative"
+                  ref={(el) => {
+                    travellerRefs.current.set(`adult-${index}`, el);
+                  }}
+                >
+                  <InputField
+                    name="adultTravellers"
+                    placeholder="Search by Traveller Name / ID / Nickname"
+                    required
+                    type="text"
+                    {...getInputProps("adultTravellers", {
+                      value: formData.adultTravellers[index] ?? "",
+                      onChange: (e) => {
+                        const value = allowTextAndNumbers(e.target.value);
+
+                        updateTraveller("adultTravellers", index, value);
+
+                        // Run fuzzy search with no minimum length
+                        const results = runFuzzySearch(
+                          allTravellers,
+                          value,
+                          ["name", "customId", "alias", "nickname"],
+                          0,
+                        );
+                        setTravellerResults(results);
+                        setActiveTravellerDropdown({
+                          type: "adultTravellers",
+                          index,
+                        });
+                      },
+                      skipValidation: true,
+                    })}
+                    readOnly={!!formData.adultTravellerIds?.[index]}
+                    onFocus={() => {
+                      if (isReadOnly) return;
+                      setActiveTravellerDropdown({
+                        type: "adultTravellers",
+                        index,
+                      });
+                      // show staple (TBA)
+                      setTravellerResults([]);
+                    }}
+                    selectedDisplay={(() => {
+                      const selectedId =
+                        formData.adultTravellerIds?.[index] ?? "";
+                      if (!selectedId) return null;
+                      const selected = travellersById.get(selectedId);
+                      if (!selected) return null;
+                      const rating = getTierRating(selected.tier);
+                      return (
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <p className="font-[400] text-[13px] text-[#020202] truncate">
+                              {selected.name}
+                            </p>
+                            <span className="text-gray-300">|</span>
+                            <p className="text-[13px] font-[400] text-[#414141] truncate">
+                              {selected.customId}
+                            </p>
+                            {getAlias(selected) ? (
+                              <>
+                                <span className="text-gray-300">|</span>
+                                <p className="text-[13px] font-[400] text-[#414141] truncate">
+                                  {getAlias(selected)}
+                                </p>
+                              </>
+                            ) : null}
+                          </div>
+
+                          {rating !== null ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <img
+                                src={`/icons/tier-${rating}.svg`}
+                                alt={`Tier ${rating}`}
+                                className="w-4 h-4 object-contain inline-block align-middle"
+                              />
+                              <span className="text-[13px] font-[600] text-[#020202] leading-none inline-flex items-center">
+                                {rating}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
+                  />
+
+                  {/* Traveller Dropdown */}
+                  {activeTravellerDropdown?.type === "adultTravellers" &&
+                    activeTravellerDropdown?.index === index && (
+                      <div className="absolute bg-white border border-gray-200 rounded-md w-full mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+                        {travellerResults.map((t: TravellerDataType) => (
+                          <div
+                            key={t._id}
+                            className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
+                            onClick={() => {
+                              updateTraveller(
+                                "adultTravellers",
+                                index,
+                                getTravellerDisplayName(t),
+                                t._id,
+                              );
+                              setActiveTravellerDropdown(null);
+                              setTravellerResults([]);
+                            }}
+                          >
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1">
+                                <p className="font-normal text-[13px] text-[#020202] truncate">
+                                  {t.name}
+                                </p>
+                                <span className="text-gray-300">|</span>
+                                <p className="text-[13px] font-[400] text-[#414141] truncate">
+                                  {t.customId}
+                                </p>
+                                {getAlias(t) ? (
+                                  <>
+                                    <span className="text-gray-300">|</span>
+                                    <p className="text-[13px] font-[400] text-[#414141] truncate">
+                                      {getAlias(t)}
+                                    </p>
+                                  </>
+                                ) : null}
+                              </div>
+
+                              {/* show rating only when available */}
+                              {(() => {
+                                let rating: number | null = null;
+                                try {
+                                  if (t?.tier) {
+                                    if (typeof t.tier === "string") {
+                                      const m = t.tier.match(/\d+/);
+                                      if (m) rating = Number(m[0]);
+                                    } else if (typeof t.tier === "number") {
+                                      rating = Math.round(t.tier);
+                                    }
+                                  }
+                                } catch (e) {
+                                  rating = null;
+                                }
+                                if (rating !== null) {
+                                  rating = Math.min(Math.max(rating, 1), 5);
+                                  return (
+                                    <div className="flex items-center gap-1">
+                                      <img
+                                        src={`/icons/tier-${rating}.svg`}
+                                        alt={`Tier ${rating}`}
+                                        className="w-4 h-4 object-contain inline-block align-middle"
+                                      />
+                                      <span className="text-[13px] font-[600] text-[#020202] leading-none inline-flex items-center">
+                                        {rating}
+                                      </span>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
+                          </div>
+                        ))}
+                        {/* Staple option */}
+                        <div
+                          className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
+                          onClick={() => {
+                            // Set this traveller to TBA
+                            updateTraveller("adultTravellers", index, "TBA");
+                            setActiveTravellerDropdown(null);
+                            setTravellerResults([]);
+                          }}
+                        >
+                          <p className="font-[500] text-center text-[13px] text-[#818181]">
+                            Don&apos;t have the name? Enter TBA
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                </div>
+
+                <RightSideIcons
+                  value={formData.adultTravellers[index] ?? ""}
+                  disabled={isSubmitting}
+                  onClear={() => updateTraveller("adultTravellers", index, "")}
+                  onClickPlus={() =>
+                    openAddTraveller({ type: "adultTravellers", index })
+                  }
+                  onClickView={() =>
+                    handleViewTraveller("adultTravellers", index)
+                  }
+                />
+              </div>
+            </div>
+          ))}
+
+          {formData.infantTravellers.map((trav, index) => (
+            <div key={index} className="mb-4">
+              <div className="w-[60%] flex items-center justify-between mb-2">
+                <label className=" text-[12px] font-[400] text-[#414141]">
+                  <span className="text-[#FF3B30]">*</span>
+                  {`Child ${index + 1}${formData.adults === 0 && index === 0 ? " (Lead Pax)" : ""}`}
+                </label>
+
+                <DropDown
+                  options={Array.from({ length: 18 }, (_, i) => ({
+                    value: String(i),
+                    label: String(i),
+                  }))}
+                  placeholder="Select Age"
+                  value={formData.childAges?.[index]?.toString() ?? ""}
+                  onChange={(val) => {
+                    const numVal = val === "" ? null : Number(val);
+                    const selectedTraveller =
+                      travellersById.get(
+                        formData.infantTravellerIds?.[index] ?? "",
+                      ) || null;
+                    const computedAge = computeAgeFromDob(
+                      selectedTraveller?.dateOfBirth,
+                    );
+
+                    if (
+                      selectedTraveller?.dateOfBirth &&
+                      computedAge !== null &&
+                      numVal !== null &&
+                      numVal !== computedAge
+                    ) {
+                      setChildAgeConfirmation({
+                        index,
+                        computedAge,
+                        selectedAge: numVal,
+                        dob: selectedTraveller.dateOfBirth,
+                      });
+                      return;
+                    }
+                    setFormData((prev) => {
+                      const ages = [...(prev.childAges || [])];
+                      ages[index] = numVal;
+                      return { ...prev, childAges: ages };
+                    });
+                  }}
+                  customWidth="w-[9rem]"
+                  customHeight="h-[33px]"
+                  buttonClassName="px-3 rounded-[15px] bg-[#F9F9F9] hover:border hover:border-[#C6AEDE]"
+                  noBorder
+                  noButtonRadius
+                />
+              </div>
+
+              {/* CHILD INPUT */}
+              <div className="flex items-center gap-2">
+                <div
+                  className="w-[60%] relative"
+                  ref={(el) => {
+                    travellerRefs.current.set(`infant-${index}`, el);
+                  }}
+                >
+                  <InputField
+                    name="infantTravellers"
+                    placeholder="Search by Traveller Name / ID / Nickname"
+                    required
+                    {...getInputProps("infantTravellers", {
+                      value: trav,
+                      onChange: (e) => {
+                        const value = allowTextAndNumbers(e.target.value);
+                        updateTraveller("infantTravellers", index, value);
+
+                        // Run fuzzy search with no min-length restriction
+                        const results = runFuzzySearch(
+                          allTravellers,
+                          value,
+                          ["name", "customId", "alias", "nickname"],
+                          0,
+                        );
+                        setTravellerResults(results);
+                        setActiveTravellerDropdown({
+                          type: "infantTravellers",
+                          index,
+                        });
+                      },
+                      skipValidation: true,
+                    })}
+                    readOnly={!!formData.infantTravellerIds?.[index]}
+                    onFocus={() => {
+                      if (isReadOnly) return;
+                      setActiveTravellerDropdown({
+                        type: "infantTravellers",
+                        index,
+                      });
+                      setTravellerResults([]);
+                    }}
+                    selectedDisplay={(() => {
+                      const selectedId =
+                        formData.infantTravellerIds?.[index] ?? "";
+                      if (!selectedId) return null;
+                      const selected = travellersById.get(selectedId);
+                      if (!selected) return null;
+                      const rating = getTierRating(selected.tier);
+                      return (
+                        <div className="flex items-center justify-between w-full">
+                          <div className="flex items-center gap-1 min-w-0">
+                            <p className="font-normal text-[13px] text-gray-900 truncate">
+                              {selected.name}
+                            </p>
+                            <span className="text-gray-300">|</span>
+                            <p className="text-[13px] font-[400] text-[#414141] truncate">
+                              {selected.customId}
+                            </p>
+                          </div>
+
+                          {rating !== null ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <img
+                                src={`/icons/tier-${rating}.svg`}
+                                alt={`Tier ${rating}`}
+                                className="w-4 h-4 object-contain"
+                              />
+                              <span className="text-[13px] font-[600] text-[#020202]">
+                                {rating}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })()}
+                  />
+
+                  {/* Traveller Dropdown for Children */}
+                  {activeTravellerDropdown?.type === "infantTravellers" &&
+                    activeTravellerDropdown?.index === index && (
+                      <div className="absolute bg-white border border-gray-200 rounded-md w-full mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+                        {travellerResults.map((t: TravellerDataType) => {
+                          let rating: number | null = null;
+                          try {
+                            if (t?.tier) {
+                              if (typeof t.tier === "string") {
+                                const m = t.tier.match(/\d+/);
+                                if (m) rating = Number(m[0]);
+                              } else if (typeof t.tier === "number") {
+                                rating = Math.round(t.tier);
+                              }
+                            }
+                          } catch (e) {
+                            rating = null;
+                          }
+                          if (rating !== null)
+                            rating = Math.min(Math.max(rating, 1), 5);
+
+                          return (
+                            <div
+                              key={t._id}
+                              className="p-2 cursor-pointer hover:bg-gray-100 rounded-md"
+                              onClick={() => {
+                                updateTraveller(
+                                  "infantTravellers",
+                                  index,
+                                  getTravellerDisplayName(t),
+                                  t._id,
+                                );
+                                const computedAge = computeAgeFromDob(
+                                  t.dateOfBirth,
+                                );
+                                if (computedAge !== null) {
+                                  setFormData((prev) => {
+                                    const ages = [...(prev.childAges || [])];
+                                    ages[index] = computedAge;
+                                    return { ...prev, childAges: ages };
+                                  });
+                                }
+                                setActiveTravellerDropdown(null);
+                                setTravellerResults([]);
+                              }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1">
+                                  <p className="font-normal text-[13px] text-[#020202] truncate">
+                                    {t.name}
+                                  </p>
+                                  <span className="text-gray-300">|</span>
+                                  <p className="text-[13px] font-[400] text-[#414141] truncate">
+                                    {t.customId}
+                                  </p>
+                                </div>
+
+                                {rating !== null ? (
+                                  <div className="flex items-center gap-1">
+                                    <img
+                                      src={`/icons/tier-${rating}.svg`}
+                                      alt={`Tier ${rating}`}
+                                      className="w-4 h-4 object-contain"
+                                    />
+                                    <span className="text-[13px] font-[600] text-[#020202]">
+                                      {rating}
+                                    </span>
+                                  </div>
+                                ) : null}
+                              </div>
+                            </div>
+                          );
+                        })}
+                        {/* Staple option */}
+                        <div
+                          className="p-2 cursor-pointer bg-[#f9f9f9] hover:bg-gray-100 border-t border-gray-200 rounded-b-md"
+                          onClick={() => {
+                            // Set this infant traveller to TBA
+                            updateTraveller("infantTravellers", index, "TBA");
+                            setActiveTravellerDropdown(null);
+                            setTravellerResults([]);
+                          }}
+                        >
+                          <p className="font-[500] text-center text-[13px] text-[#818181]">
+                            Don&apos;t have the name? Enter TBA
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                </div>
+
+                <RightSideIcons
+                  value={trav}
+                  disabled={isSubmitting}
+                  onClear={() => updateTraveller("infantTravellers", index, "")}
+                  onClickPlus={() =>
+                    openAddTraveller({ type: "infantTravellers", index })
+                  }
+                  onClickView={() =>
+                    handleViewTraveller("infantTravellers", index)
+                  }
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Booking Owner */}
+      <div className="border border-gray-200 rounded-[15px] p-3.5">
+        <h2 className="text-[13px] font-[500] mb-2">Booking Owner</h2>
+        <hr className="mt-1 mb-2 border-t border-gray-200" />
+        <label className="block text-[13px] font-[500] text-[#414141]">
+          <span className="text-[#FF3B30]">*</span> Primary
+        </label>
+        <div className="w-[60%] relative" ref={teamsPrimaryRef}>
+          <InputField
+            name="bookingOwner"
+            placeholder="Search by Owner Name / ID / Nickname"
+            required
+            className="mt-1 text-[13px] py-2"
+            readOnly={isReadOnly}
+            disabled={isReadOnly || isSubmitting}
+            // show the NAME from ownerList
+            value={ownerList[0]?.name || ""}
+            selectedDisplay={(() => {
+              const selected = allTeams.find(
+                (team) => team._id === ownerList[0]?.id,
+              );
+              if (!selected || !ownerList[0]?.id) return null;
+              return (
+                <div className="flex items-center justify-between w-full">
+                  <span className="truncate text-[13px] text-[#020202]">
+                    {getOwnerPillLabel(selected)}
+                  </span>
+                </div>
+              );
+            })()}
+            onChange={(e) => {
+              if (isReadOnly) return;
+              const value = allowTextAndNumbers(e.target.value);
+              // show typed text, clear ID until selection
+              setOwnerList([{ id: "", name: value }]);
+              // don't send name as ID, but keep the name for draft display
+              const newFormData = {
+                ...formData,
+                bookingOwner: "",
+                ownerName: value,
+              };
+              setFormData(newFormData);
+
+              const results = runFuzzySearch(
+                allTeams,
+                value,
+                ["name", "customId", "alias", "nickname", "email"],
+                2,
+              );
+              if (value.trim() === "") {
+                setPrimaryOwnerResults([]);
+                setShowPrimaryOwnerDropdown(false);
+                return;
+              }
+              setPrimaryOwnerResults(results);
+              setShowPrimaryOwnerDropdown(results.length > 0);
+            }}
+          />
+          {!isReadOnly &&
+            showPrimaryOwnerDropdown &&
+            primaryOwnerResults.length > 0 && (
+              <div className="absolute bg-white border border-gray-200 rounded-md w-[30rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
+                {primaryOwnerResults.map((t: TeamDataType) => (
+                  <div
+                    key={t._id}
+                    className="p-2 cursor-pointer hover:bg-gray-100"
+                    onClick={() => {
+                      setOwnerList([{ id: t._id, name: t.name }]); // Save both ID and name
+                      const newFormData = {
+                        ...formData,
+                        bookingOwner: t._id,
+                        ownerName: t.name,
+                      };
+                      setFormData(newFormData);
+                      setPrimaryOwnerResults([]);
+                      setShowPrimaryOwnerDropdown(false);
+                    }}
+                  >
+                    <p className="font-[500] text-[13px]">
+                      {getOwnerPillLabel(t)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+        </div>
+
+        <div className="mt-3">
+          {!showSecondaryOwnerField ? (
+            <button
+              type="button"
+              onClick={() => !isReadOnly && setShowSecondaryOwnerField(true)}
+              disabled={isReadOnly}
+              className={`flex items-center gap-2.5 text-[13px] font-[400] text-[#414141] ${
+                isReadOnly
+                  ? "opacity-50 cursor-not-allowed"
+                  : "hover:text-[#414141]"
+              }`}
+            >
+              <div className="border border-[#818181] -mt-0.5 rounded-full p-0.25 flex items-center justify-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M12 5v14M5 12h14"
+                    stroke="#818181"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <span className="-ml-1 text-[11px] font-[500] text-[#818181] ">
+                {" "}
+                Add Secondary User{" "}
+              </span>
+            </button>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-1">
+                <label className="block text-[13px] font-[500] text-[#414141]">
+                  <span className="text-red-500">*</span> Secondary
+                </label>
+                <button
+                  type="button"
+                  aria-label="Remove secondary owner"
+                  onClick={() => {
+                    if (isReadOnly) return;
+                    setShowSecondaryOwnerField(false);
+                    setSelectedSecondaryOwners([]);
+                    setSecondaryOwnerDropdownOpen(false);
+                    setSecondaryOwnerPos(null);
+                    setFormData((prev) => ({
+                      ...prev,
+                      secondaryBookingOwner: "",
+                      secondaryBookingOwners: [],
+                    }));
+                  }}
+                  disabled={isReadOnly}
+                  className={`w-5 h-5 flex items-center justify-center mb-1 rounded-full border border-gray-200 bg-white ${
+                    isReadOnly
+                      ? "opacity-50 cursor-not-allowed"
+                      : "hover:bg-gray-50"
+                  }`}
+                >
+                  <FiMinus size={12} />
+                </button>
+              </div>
+
+              <div className="w-[60%]" ref={teamsSecondaryRef}>
+                {/* Filter-style multi-select pills input */}
+                <div
+                  className={`w-full min-h-[1.5rem] text-[12px] -mt-0.5 border border-gray-200 rounded-[15px] px-3 py-2.5 flex items-center flex-wrap gap-1 ${
+                    isReadOnly
+                      ? "bg-gray-200 text-[#020202] cursor-not-allowed"
+                      : "hover:border-[#C6AEDE] cursor-pointer"
+                  }`}
+                  onClick={(e) => {
+                    if (isReadOnly) return;
+                    e.stopPropagation();
+                    const rect =
+                      teamsSecondaryRef.current?.getBoundingClientRect();
+                    if (rect) {
+                      setSecondaryOwnerPos({
+                        left: rect.left,
+                        top: rect.top,
+                        width: rect.width,
+                        height: rect.height,
+                      });
+                    }
+                    setSecondaryOwnerDropdownOpen((prev) => !prev);
+                  }}
+                >
+                  {selectedSecondaryOwners.length > 0 ? (
+                    selectedSecondaryOwners.map((o) => (
+                      <span
+                        key={o.id}
+                        className="flex items-center gap-1 bg-white border border-gray-200 text-black px-2 py-0.5 rounded-full text-[12px]"
+                      >
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isReadOnly) return;
+
+                            setSelectedSecondaryOwners((prev) =>
+                              prev.filter((p) => p.id !== o.id),
+                            );
+
+                            setFormData((prev) => {
+                              const nextIds = (
+                                prev.secondaryBookingOwners || []
+                              )
+                                .map((v) => String(v).trim())
+                                .filter(Boolean)
+                                .filter((id) => id !== o.id);
+                              return {
+                                ...prev,
+                                secondaryBookingOwners: nextIds,
+                                secondaryBookingOwner: nextIds[0] || "",
+                              };
+                            });
+                          }}
+                          disabled={isReadOnly}
+                          className={`py-1 ${isReadOnly ? "opacity-50 cursor-not-allowed" : ""}`}
+                        >
+                          <IoClose size={16} className="text-[#818181]" />
+                        </button>
+                        {(() => {
+                          const owner = allTeams.find(
+                            (team) => String(team._id || team.id) === o.id,
+                          );
+                          return getOwnerPillLabel(owner) || o.name;
+                        })()}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-[#9CA3AF] font-[500 ]text-[12px] flex items-center flex-1">
+                      Search by Owner Name / ID / Nickname
+                    </span>
+                  )}
+
+                  {selectedSecondaryOwners.length === 0 && (
+                    <CiSearch
+                      size={16}
+                      className="text-[#818181]"
+                      strokeWidth={1}
+                    />
+                  )}
+                </div>
+
+                {secondaryOwnerDropdownOpen &&
+                  secondaryOwnerPos &&
+                  createPortal(
+                    <div
+                      ref={secondaryOwnerPortalRef}
+                      style={{
+                        position: "fixed",
+                        left: secondaryOwnerPos.left,
+                        top:
+                          secondaryOwnerPos.top + secondaryOwnerPos.height + 6,
+                        width: secondaryOwnerPos.width,
+                        zIndex: 9999,
+                        minHeight: 32,
+                      }}
+                      className="bg-white border border-gray-200 rounded-md shadow-xl max-h-48 overflow-y-auto"
+                    >
+                      {Array.isArray(allTeams) && allTeams.length > 0 ? (
+                        allTeams.map((t: TeamDataType) => {
+                          const checked = selectedSecondaryOwners.some(
+                            (o) => o.id === t._id,
+                          );
+
+                          return (
+                            <label
+                              key={t._id}
+                              className={`flex items-center gap-2 px-2 py-2 border-b border-gray-200 ${isReadOnly ? "cursor-default" : "hover:bg-gray-50 cursor-pointer"}`}
+                              onClick={(e) => {
+                                if (isReadOnly) return;
+                                e.stopPropagation();
+
+                                // Don't allow primary as secondary
+                                if (
+                                  String(formData.bookingOwner || "") === t._id
+                                )
+                                  return;
+
+                                setSelectedSecondaryOwners((prev) => {
+                                  const exists = prev.some(
+                                    (o) => o.id === t._id,
+                                  );
+                                  const next = exists
+                                    ? prev.filter((o) => o.id !== t._id)
+                                    : [...prev, { id: t._id, name: t.name }];
+
+                                  setFormData((statePrev) => {
+                                    const nextIds = next
+                                      .map((o) => String(o.id).trim())
+                                      .filter(Boolean)
+                                      .filter(
+                                        (id, i, a) => a.indexOf(id) === i,
+                                      );
+                                    return {
+                                      ...statePrev,
+                                      secondaryBookingOwners: nextIds,
+                                      secondaryBookingOwner: nextIds[0] || "",
+                                    };
+                                  });
+
+                                  return next;
+                                });
+                              }}
+                            >
+                              <div className="w-4 h-4 border border-gray-300 rounded-md flex items-center justify-center">
+                                {checked && (
+                                  <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="12"
+                                    height="11"
+                                    viewBox="0 0 12 11"
+                                    fill="none"
+                                  >
+                                    <path
+                                      d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                                      stroke="#0D4B37"
+                                      strokeWidth="1.5"
+                                      strokeLinecap="round"
+                                    />
+                                  </svg>
+                                )}
+                              </div>
+
+                              <span className="text-black text-[14px]">
+                                {getOwnerPillLabel(t)}
+                              </span>
+                            </label>
+                          );
+                        })
+                      ) : (
+                        <div className="px-3 py-2 text-gray-500 text-[0.75rem]">
+                          No owners found
+                        </div>
+                      )}
+                    </div>,
+                    typeof document !== "undefined"
+                      ? document.body
+                      : (null as any),
+                  )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Remarks */}
+      <RemarksField
+        label="Internal Notes"
+        value={formData.remarks}
+        onChange={(val) => setFormData((prev) => ({ ...prev, remarks: val }))}
+        readOnly={isReadOnly}
+        isSubmitting={isSubmitting}
+      />
+
+      <ConfirmationModal
+        isOpen={Boolean(childAgeConfirmation)}
+        onClose={() => {
+          if (!childAgeConfirmation) return;
+          setFormData((prev) => {
+            const ages = [...(prev.childAges || [])];
+            ages[childAgeConfirmation.index] = childAgeConfirmation.computedAge;
+            return { ...prev, childAges: ages };
+          });
+          setChildAgeConfirmation(null);
+        }}
+        onConfirm={() => {
+          if (!childAgeConfirmation) return;
+          setFormData((prev) => {
+            const ages = [...(prev.childAges || [])];
+            ages[childAgeConfirmation.index] = childAgeConfirmation.selectedAge;
+            return { ...prev, childAges: ages };
+          });
+          setChildAgeConfirmation(null);
+        }}
+        title={
+          childAgeConfirmation
+            ? `The age of child ${childAgeConfirmation.index + 1} does not match the DOB mentioned in child info which is ${new Date(
+                childAgeConfirmation.dob,
+              ).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}, i.e. ${childAgeConfirmation.computedAge} years. Do you wish to override this and proceed?`
+            : ""
+        }
+        confirmText="Yes"
+        cancelText="No"
+        confirmButtonColor="bg-[#1A7F64]"
+      />
+
+      <AddCustomerSideSheet
+        isOpen={isViewCustomerOpen}
+        onCancel={() => {
+          setIsViewCustomerOpen(false);
+          setViewCustomerData(null);
+        }}
+        mode="view"
+        data={viewCustomerData as any}
+      />
+
+      <AddVendorSideSheet
+        isOpen={isViewVendorOpen}
+        onCancel={() => {
+          setIsViewVendorOpen(false);
+          setViewVendorData(null);
+        }}
+        mode="view"
+        data={viewVendorData as any}
+      />
+
+      <AddNewTravellerForm
+        isOpen={isViewTravellerOpen}
+        onClose={() => {
+          setIsViewTravellerOpen(false);
+          setViewTravellerData(null);
+        }}
+        mode="view"
+        data={viewTravellerData}
+      />
+    </form>
+  );
+};
+
+export default React.memo(GeneralInfoForm);
