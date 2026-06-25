@@ -60,7 +60,7 @@ const Table: React.FC<TableProps> = ({
   rowIds = [],
   droppableId = "table-droppable",
   headerClassName = "",
-  headerRowTextClassName = "text-white",
+  headerRowTextClassName = "text-[#818181]",
   headerCellTextClassName = "text-[#818181]",
   categoryName = "",
   sortableHeaderHoverClass = "",
@@ -181,6 +181,8 @@ const Table: React.FC<TableProps> = ({
           if (
             col === "Rating" ||
             col === "Date Modified" ||
+            col === "Last Modified" ||
+            col === "Tier" ||
             col === "Date Created" ||
             col === "Travel Date" ||
             col === "Joining Date"
@@ -188,7 +190,7 @@ const Table: React.FC<TableProps> = ({
             onSort(col);
           }
         }}
-        className={`top-0 z-10 relative overflow-visible px-[18px] py-[18px] ${headerCellTextClassName} font-[500] leading-4 tracking-[0.6px] text-[13px] ${
+        className={`sticky top-0 z-10 overflow-visible px-[18px] py-[18px] ${headerCellTextClassName} font-[500] leading-4 tracking-[0.6px] text-[13px] ${
           columnWidthClassMap[col] || ""
         }
         ${headerClassName || "bg-[#F3F3F3]"}
@@ -196,10 +198,12 @@ const Table: React.FC<TableProps> = ({
         ${
           col === "Rating" ||
           col === "Date Modified" ||
+          col === "Last Modified" ||
+          col === "Tier" ||
           col === "Date Created" ||
           col === "Travel Date" ||
           col === "Joining Date"
-            ? `cursor-pointer hover:${sortableHeaderHoverClass || "bg-[#0f5a43]"}`
+            ? `cursor-pointer ${sortableHeaderHoverClass || "hover:bg-[#ECECEC]"}`
             : ""
         }`}
       >
@@ -276,8 +280,8 @@ const Table: React.FC<TableProps> = ({
             >
               {showCheckboxColumn && (
                 <th
-                  className={`sticky top-0 z-10 w-[3rem] px-3 py-3 ${
-                    headerClassName || "bg-[#F3F3F3]"
+                  className={`sticky top-0 z-10 w-[3rem] bg-[#F3F3F3] px-3 py-3 ${
+                    headerClassName || ""
                   }`}
                 >
                   {headerCheckbox}
@@ -320,8 +324,9 @@ const Table: React.FC<TableProps> = ({
                             onRowClick(globalIndex);
                           }}
                           className={`
-    ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
-    hover:bg-gray-100 transition-colors h-[3rem] text-[12px]
+    table-body-text
+    ${idx % 2 === 0 ? "bg-white" : "bg-[#F8F8F8]"}
+    hover:bg-gray-100 transition-colors h-[3rem]
     ${onRowClick ? "cursor-pointer" : ""}
     ${enableRowHoverActions ? "group" : ""}
     ${
@@ -370,8 +375,9 @@ const Table: React.FC<TableProps> = ({
                       onRowClick(globalIndex);
                     }}
                     className={`
-    ${idx % 2 === 0 ? "bg-white" : "bg-gray-50"}
-    hover:bg-gray-100 transition-colors text-[14px]
+    table-body-text
+    ${idx % 2 === 0 ? "bg-white" : "bg-[#F8F8F8]"}
+    hover:bg-gray-100 transition-colors
     ${onRowClick ? "cursor-pointer" : ""}
     ${enableRowHoverActions ? "group" : ""}
     ${

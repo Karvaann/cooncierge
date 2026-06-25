@@ -52,6 +52,7 @@ import {
 import { getNextTriSortState, type TriSortState } from "@/utils/sorting";
 import UnderlineTabs from "@/components/UnderlineTabs";
 import { RiRefreshLine } from "react-icons/ri";
+import BookingsPageViewport from "@/components/bookings/BookingsPageViewport";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -2681,7 +2682,7 @@ const OSBookingsPage = () => {
   );
 
   return (
-    <div className="h-[83vh] overflow-hidden bg-[#F9F9F9] px-7 py-0">
+    <BookingsPageViewport>
       {paymentTooltip &&
         typeof document !== "undefined" &&
         createPortal(
@@ -2696,7 +2697,7 @@ const OSBookingsPage = () => {
           </div>,
           document.body,
         )}
-      <div className="flex h-full flex-col bg-[#F9F9F9]">
+      <div className="flex h-full min-h-0 w-full max-w-full min-w-0 flex-col overflow-x-hidden bg-[#F9F9F9]">
         <div className="flex h-full min-h-0 flex-col">
           <div className="flex w-full mb-6 items-center justify-between">
             <TableTabs
@@ -2709,8 +2710,9 @@ const OSBookingsPage = () => {
             />
 
             <button
+              type="button"
               onClick={() => handleCreateRequested()}
-              className="text-white text-[14px] font-[500] bg-[#7135AD] rounded-[14px] px-[14px] py-[8px]"
+              className="cursor-pointer rounded-[14px] bg-[#7135AD] px-[14px] py-[8px] text-[14px] font-[500] text-white"
             >
               + Create
             </button>
@@ -2766,7 +2768,7 @@ const OSBookingsPage = () => {
           />
 
           {bookingSourceTab === "My Bookings" ? (
-            <div className="relative mt-4 flex min-h-0 flex-1 flex-col rounded-2xl border-[1px] border-[#E5E7EB] bg-white">
+            <div className="relative mt-4 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-hidden rounded-2xl border-[1px] border-[#E5E7EB] bg-white">
               <div className="flex items-center justify-between border-b border-[#E5E7EB]">
                 <UnderlineTabs
                   tabs={tabOptions}
@@ -2778,8 +2780,9 @@ const OSBookingsPage = () => {
                 <div className="flex items-center gap-[20px] px-4">
                   <div className="flex items-center gap-[6px]">
                     <button
+                      type="button"
                       onClick={() => setShowIncompleteOnly((prev) => !prev)}
-                      className={`relative inline-flex h-5 w-8 items-center rounded-full transition-colors ${
+                      className={`relative inline-flex h-5 w-8 cursor-pointer items-center rounded-full transition-colors ${
                         showIncompleteOnly ? "bg-[#7135AD]" : "bg-[#C9CCCE]"
                       }`}
                     >
@@ -2844,8 +2847,9 @@ const OSBookingsPage = () => {
                 <div className="flex items-center gap-[14px]">
                   <div className="flex items-center gap-[6px]">
                     <button
+                      type="button"
                       onClick={() => setShowIncompleteOnly((prev) => !prev)}
-                      className={`relative inline-flex h-5 w-8 items-center rounded-full transition-colors ${
+                      className={`relative inline-flex h-5 w-8 cursor-pointer items-center rounded-full transition-colors ${
                         showIncompleteOnly ? "bg-[#7135AD]" : "bg-[#C9CCCE]"
                       }`}
                     >
@@ -3109,7 +3113,7 @@ const OSBookingsPage = () => {
           mode={sideSheetMode}
         />
       </div>
-    </div>
+    </BookingsPageViewport>
   );
 };
 

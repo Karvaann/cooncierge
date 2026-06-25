@@ -1,0 +1,89 @@
+[
+  {
+    "_id": "mock-ve-1",
+    "vendorID": "VE-AB001",
+    "name": "Arjun Patel",
+    "subtitle": "Patel & Sons Pvt. Ltd.",
+    "source": { "type": "meta", "label": "Meta (Organic)" },
+    "tier": 1,
+    "dateModified": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-ve-2",
+    "vendorID": "VE-AB002",
+    "name": "Neha Gupta",
+    "subtitle": "GSTIN: GST6129QWRNM5678",
+    "source": { "type": "google", "label": "Google (Organic)" },
+    "tier": 2,
+    "dateModified": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-ve-3",
+    "vendorID": "VE-AB003",
+    "name": "Amit Verma",
+    "subtitle": "Verma Logistics",
+    "source": { "type": "seo", "label": "SEO (Paid)" },
+    "tier": 2,
+    "dateModified": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-ve-4",
+    "vendorID": "VE-AB004",
+    "name": "Priya Sethi",
+    "source": { "type": "referral", "label": "Referral" },
+    "tier": 1,
+    "dateModified": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-ve-5",
+    "vendorID": "VE-AB005",
+    "name": "Karan Malhotra",
+    "subtitle": "GSTIN: GST8821KLMNO4523",
+    "source": { "type": "word-of-mouth", "label": "Word of Mouth" },
+    "tier": 3,
+    "dateModified": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-ve-6",
+    "vendorID": "VE-AB006",
+    "name": "Kavya Nair",
+    "subtitle": "Nair Travels",
+    "source": { "type": "meta", "label": "Meta (Paid)" },
+    "tier": 1,
+    "dateModified": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-ve-7",
+    "vendorID": "VE-AB007",
+    "name": "Sunil Rao",
+    "subtitle": "Rao Transport Co.",
+    "source": { "type": "google", "label": "Google (Paid)" },
+    "tier": 2,
+    "dateModified": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-ve-8",
+    "vendorID": "VE-AB008",
+    "name": "Sumit Jha",
+    "subtitle": "Jha Exports",
+    "source": { "type": "seo", "label": "SEO (Organic)" },
+    "tier": 1,
+    "dateModified": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  }
+]

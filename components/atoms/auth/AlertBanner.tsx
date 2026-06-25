@@ -5,7 +5,7 @@ interface AlertBannerProps {
 
 export default function AlertBanner({ message, onClose }: AlertBannerProps) {
   return (
-    <div className="fixed left-1/2 top-8 z-[100] mt-4 flex w-auto max-w-[90vw] -translate-x-1/2 items-center justify-between whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-4 py-2 text-red-600 shadow-lg">
+    <div className="auth-notification-scale fixed left-1/2 top-8 z-[100] mt-4 flex w-auto max-w-[90vw] -translate-x-1/2 items-center justify-between whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-4 py-2 text-red-600 shadow-lg">
       <div className="flex items-center gap-2">
         <svg
           className="h-5 w-5 text-red-500"

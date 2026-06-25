@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { createPortal } from "react-dom";
+import Image from "next/image";
 import SideSheet from "../SideSheet";
 import SingleCalendar from "../SingleCalendar";
 import { createCustomer } from "@/services/customerApi";
@@ -9,13 +9,14 @@ import { getAuthUser } from "@/services/storage/authStorage";
 import { updateCustomer } from "@/services/customerApi";
 import { useBooking } from "@/context/BookingContext";
 import { FaRegFolder } from "react-icons/fa";
-import { CiCirclePlus } from "react-icons/ci";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
-import { LuSave } from "react-icons/lu";
+import { HiOutlineInformationCircle } from "react-icons/hi";
 import Button from "../Button";
 import DropDown from "../DropDown";
 import PhoneCodeSelect from "../PhoneCodeSelect";
+import ActionMenu from "../Menus/ActionMenu";
+import RemarksField from "../forms/components/RemarksField";
 import generateCustomId, { getStoredCurrencySymbol } from "@/utils/helper";
 import ErrorToast from "../ErrorToast";
 import ConfirmationModal from "../popups/ConfirmationModal";
@@ -26,6 +27,10 @@ import {
   allowTextAndNumbers,
 } from "@/utils/inputValidators";
 import { isValidEmail } from "@/utils/inputValidators";
+import {
+  mapApiSourceToUiDropdown,
+  mapUiSourceToApi,
+} from "@/utils/directoryApiMappers";
 import {
   getPhoneNumberMaxLength,
   splitPhoneWithDialCode,
@@ -59,7 +64,93 @@ type CustomerData = {
   tier?: string;
   openingBalance?: string;
   balanceType?: "credit" | "debit";
+  alternatePhone?: string;
+  customerType?: string;
+  source?: string;
 };
+
+const CUSTOMER_TYPE_OPTIONS = [
+  { value: "individual", label: "Individual" },
+  { value: "corporate", label: "Corporate" },
+  { value: "agent", label: "Agent" },
+  { value: "travel-agent", label: "Travel Agent" },
+];
+
+const SOURCE_OPTIONS = [
+  {
+    value: "meta",
+    label: "Meta (Organic)",
+    icon: "/icons/source-icons/meta.svg",
+  },
+  {
+    value: "google",
+    label: "Google (Organic)",
+    icon: "/icons/source-icons/google-organic.svg",
+  },
+  {
+    value: "seo",
+    label: "SEO (Paid)",
+    icon: "/icons/source-icons/seo.svg",
+  },
+  {
+    value: "word-of-mouth",
+    label: "Word of Mouth",
+    icon: "/icons/source-icons/word-of-mouth.svg",
+  },
+  {
+    value: "referral",
+    label: "Referral",
+    icon: "/icons/source-icons/referal.svg",
+  },
+];
+
+const TIER_OPTIONS = [
+  {
+    value: "tier1",
+    label: (
+      <div className="flex items-center gap-2">
+        <img src="/icons/tier-1.svg" alt="Tier 1" className="w-5 h-5" />
+        <span className="text-[13px] font-medium">1</span>
+      </div>
+    ),
+  },
+  {
+    value: "tier2",
+    label: (
+      <div className="flex items-center gap-2">
+        <img src="/icons/tier-2.svg" alt="Tier 2" className="w-5 h-5" />
+        <span className="text-[13px] font-medium">2</span>
+      </div>
+    ),
+  },
+  {
+    value: "tier3",
+    label: (
+      <div className="flex items-center gap-2">
+        <img src="/icons/tier-3.svg" alt="Tier 3" className="w-5 h-5" />
+        <span className="text-[13px] font-medium">3</span>
+      </div>
+    ),
+  },
+  {
+    value: "tier4",
+    label: (
+      <div className="flex items-center gap-2">
+        <img src="/icons/tier-4.svg" alt="Tier 4" className="w-5 h-5" />
+        <span className="text-[13px] font-medium">4</span>
+      </div>
+    ),
+  },
+  {
+    value: "tier5",
+    label: (
+      <div className="flex items-center gap-2">
+        <img src="/icons/tier-5.svg" alt="Tier 5" className="w-5 h-5" />
+        <span className="text-[13px] font-medium">5</span>
+      </div>
+    ),
+  },
+];
 
 type AddCustomerSideSheetProps = {
   data?: CustomerData | null;
@@ -69,6 +160,19 @@ type AddCustomerSideSheetProps = {
   formRef?: React.RefObject<HTMLFormElement | null>;
   onSuccess?: () => void;
   customerCode?: string;
+};
+
+const getCustomerErrorMessage = (error: unknown): string => {
+  const raw =
+    (error as { message?: string; error?: string })?.message ||
+    (error as { message?: string; error?: string })?.error ||
+    "Something went wrong";
+
+  if (raw.includes("E11000") && raw.toLowerCase().includes("email")) {
+    return "A customer with this email already exists.";
+  }
+
+  return raw;
 };
 
 type UserOption = {
@@ -89,6 +193,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   const { updateGeneralInfo, setLastAddedCustomer } = useBooking();
   const readOnly = mode === "view";
   const [phoneCode, setPhoneCode] = useState<string>("+91");
+  const [alternatePhoneCode, setAlternatePhoneCode] = useState<string>("+91");
+  const [customerType, setCustomerType] = useState<string>("");
+  const [source, setSource] = useState<string>("");
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [existingDocuments, setExistingDocuments] = useState<
@@ -110,12 +217,20 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     address: "",
     remarks: "",
     tier: "",
+    alternatePhone: "",
+    customerType: "",
+    source: "",
   });
+
+  const inputClassName =
+    "w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 focus:ring-[#7135AD] focus:border-[#7135AD] hover:border-[#7135AD33] disabled:bg-gray-100 disabled:text-gray-700";
 
   // Validation helpers / UI state for required fields
   const nameRef = useRef<HTMLInputElement | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [invalidField, setInvalidField] = useState<"name" | null>(null);
+  const [invalidField, setInvalidField] = useState<
+    "name" | "customerType" | null
+  >(null);
   const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const [customerCode, setCustomerCode] = useState("");
@@ -140,6 +255,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   const buildSnapshot = (snapshot: {
     formData: CustomerData;
     phoneCodeValue: string;
+    alternatePhoneCodeValue: string;
+    customerTypeValue: string;
+    sourceValue: string;
     tierValue: string;
     balanceAmountValue: string;
     balanceTypeValue: "debit" | "credit";
@@ -157,8 +275,14 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         companyName: snapshot.formData.companyName || "",
         address: snapshot.formData.address || "",
         remarks: snapshot.formData.remarks || "",
+        alternatePhone: snapshot.formData.alternatePhone || "",
+        customerType: snapshot.formData.customerType || "",
+        source: snapshot.formData.source || "",
       },
       phoneCode: snapshot.phoneCodeValue || "",
+      alternatePhoneCode: snapshot.alternatePhoneCodeValue || "",
+      customerType: snapshot.customerTypeValue || "",
+      source: snapshot.sourceValue || "",
       tier: snapshot.tierValue || "",
       balanceAmount: snapshot.balanceAmountValue || "",
       balanceType: snapshot.balanceTypeValue || "debit",
@@ -185,6 +309,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
   }, [mode, data, customerCodeProp]);
 
   const phoneMaxLength = getPhoneNumberMaxLength(phoneCode);
+  const alternatePhoneMaxLength = getPhoneNumberMaxLength(alternatePhoneCode);
 
   // Mounted flag to ensure portal renders client-side only
   const [mounted, setMounted] = useState(false);
@@ -208,7 +333,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
           ? allowOnlyNumbers(value)
           : name === "phone"
             ? allowOnlyDigitsWithMax(value, phoneMaxLength)
-            : name === "alias"
+            : name === "alternatePhone"
+              ? allowOnlyDigitsWithMax(value, alternatePhoneMaxLength)
+              : name === "alias"
               ? allowTextAndNumbers(value)
               : value;
 
@@ -273,6 +400,18 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       const trimmed = allowOnlyDigitsWithMax(digitsOnly, maxLen);
       setPhoneCode(parsed.dialCode);
 
+      const rawAlternatePhone = String(
+        (data as CustomerData).alternatePhone || "",
+      );
+      const parsedAlternate = splitPhoneWithDialCode(rawAlternatePhone, "+91");
+      const alternateDigitsOnly = parsedAlternate.number.replace(/\D/g, "");
+      const alternateMaxLen = getPhoneNumberMaxLength(parsedAlternate.dialCode);
+      const trimmedAlternate = allowOnlyDigitsWithMax(
+        alternateDigitsOnly,
+        alternateMaxLen,
+      );
+      setAlternatePhoneCode(parsedAlternate.dialCode);
+
       if (data?.ownerId) {
         // ownerId can be a string id or populated object { _id, name, email }
         let id = "";
@@ -311,6 +450,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         address: data.address || "",
         remarks: data.remarks || "",
         tier: data.tier || "",
+        alternatePhone: trimmedAlternate || "",
+        customerType: data.customerType || "",
+        source: mapApiSourceToUiDropdown(data.source || ""),
       };
       setFormData(nextFormData);
 
@@ -322,13 +464,20 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         ? String(data.openingBalance)
         : "";
       const nextBalanceType = data.balanceType || "debit";
+      const nextCustomerType = data.customerType || "";
+      const nextSource = mapApiSourceToUiDropdown(data.source || "");
       setTier(nextTier);
       setBalanceAmount(nextBalanceAmount);
       setBalanceType(nextBalanceType);
+      setCustomerType(nextCustomerType);
+      setSource(nextSource);
 
       initialSnapshotRef.current = buildSnapshot({
         formData: nextFormData,
         phoneCodeValue: parsed.dialCode,
+        alternatePhoneCodeValue: parsedAlternate.dialCode,
+        customerTypeValue: nextCustomerType,
+        sourceValue: nextSource,
         tierValue: nextTier,
         balanceAmountValue: nextBalanceAmount,
         balanceTypeValue: nextBalanceType,
@@ -347,23 +496,35 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         address: "",
         remarks: "",
         tier: "",
+        alternatePhone: "",
+        customerType: "",
+        source: "",
       };
       setFormData(nextFormData);
 
       setExistingDocuments([]);
       setAttachedFiles([]);
       const nextPhoneCode = "+91";
+      const nextAlternatePhoneCode = "+91";
       const nextTier = "";
       const nextBalanceAmount = "";
       const nextBalanceType: "debit" | "credit" = "debit";
+      const nextCustomerType = "";
+      const nextSource = "";
       setPhoneCode(nextPhoneCode);
+      setAlternatePhoneCode(nextAlternatePhoneCode);
       setTier(nextTier);
       setBalanceAmount(nextBalanceAmount);
       setBalanceType(nextBalanceType);
+      setCustomerType(nextCustomerType);
+      setSource(nextSource);
 
       initialSnapshotRef.current = buildSnapshot({
         formData: nextFormData,
         phoneCodeValue: nextPhoneCode,
+        alternatePhoneCodeValue: nextAlternatePhoneCode,
+        customerTypeValue: nextCustomerType,
+        sourceValue: nextSource,
         tierValue: nextTier,
         balanceAmountValue: nextBalanceAmount,
         balanceTypeValue: nextBalanceType,
@@ -408,6 +569,17 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       return { ...prev, phone: trimmed };
     });
   }, [phoneMaxLength]);
+
+  useEffect(() => {
+    setFormData((prev) => {
+      const trimmed = allowOnlyDigitsWithMax(
+        String(prev.alternatePhone || ""),
+        alternatePhoneMaxLength,
+      );
+      if (trimmed === prev.alternatePhone) return prev;
+      return { ...prev, alternatePhone: trimmed };
+    });
+  }, [alternatePhoneMaxLength]);
 
   // Fetch users for Owner select
   useEffect(() => {
@@ -454,6 +626,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     const currentSnapshot = buildSnapshot({
       formData,
       phoneCodeValue: phoneCode,
+      alternatePhoneCodeValue: alternatePhoneCode,
+      customerTypeValue: customerType,
+      sourceValue: source,
       tierValue: tier,
       balanceAmountValue: balanceAmount,
       balanceTypeValue: balanceType,
@@ -465,6 +640,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     mode,
     formData,
     phoneCode,
+    alternatePhoneCode,
+    customerType,
+    source,
     tier,
     balanceAmount,
     balanceType,
@@ -488,40 +666,55 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     onCancel();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // Validate required fields: if missing, show toast and focus the field
-    if (!formData.name || String(formData.name).trim() === "") {
-      showErrorToast("Please enter full name to proceed");
+  const submitCustomer = async ({
+    requireFullValidation = true,
+    isDraft = false,
+  }: {
+    requireFullValidation?: boolean;
+    isDraft?: boolean;
+  } = {}) => {
+    if (requireFullValidation) {
+      if (!formData.name || String(formData.name).trim() === "") {
+        showErrorToast("Please enter full name to proceed");
+        setInvalidField("name");
+        setTimeout(() => {
+          nameRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+          nameRef.current?.focus();
+        }, 100);
+        return;
+      }
 
-      setInvalidField("name");
-
-      setTimeout(() => {
-        nameRef.current?.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
-        nameRef.current?.focus();
-      }, 100);
-      return;
+      if (!customerType) {
+        showErrorToast("Please select customer type to proceed");
+        setInvalidField("customerType");
+        return;
+      }
     }
+
     const user = getAuthUser() as any;
     const ownerIdFromAuth = user?._id;
     const businessId = user?.businessId;
 
     try {
-      // Validate email format if provided
       if (formData.email && !isValidEmail(String(formData.email))) {
         showErrorToast("Email format is invalid");
         return;
       }
-      // Build FormData
+
       const formDataToSend = new FormData();
 
-      // APPEND every customer field
       formDataToSend.append("name", String(formData.name || ""));
       formDataToSend.append("email", formData.email || "");
       formDataToSend.append("phone", `${phoneCode}${formData.phone}`);
+      if (formData.alternatePhone) {
+        formDataToSend.append(
+          "alternatePhone",
+          `${alternatePhoneCode}${formData.alternatePhone}`,
+        );
+      }
       formDataToSend.append("alias", formData.alias || "");
       formDataToSend.append("dateOfBirth", formData.dateOfBirth || "");
       formDataToSend.append("gstin", String(formData.gstin || ""));
@@ -529,22 +722,30 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       formDataToSend.append("address", String(formData.address || ""));
       formDataToSend.append("remarks", formData.remarks || "");
       formDataToSend.append("tier", tier || "");
-
+      formDataToSend.append("customerType", customerType || "");
+      formDataToSend.append(
+        "source",
+        mapUiSourceToApi(
+          source,
+          SOURCE_OPTIONS.find((option) => option.value === source)?.label,
+        ),
+      );
       formDataToSend.append(
         "ownerId",
         String(formData.ownerId || ownerId || ownerIdFromAuth || ""),
       );
-
       formDataToSend.append("businessId", businessId || "");
-
       formDataToSend.append("customId", customerCode || "");
+
+      if (isDraft) {
+        formDataToSend.append("isDraft", "true");
+      }
 
       if (balanceAmount) {
         formDataToSend.append("openingBalance", String(balanceAmount));
         formDataToSend.append("balanceType", balanceType);
       }
 
-      // Append selected files
       attachedFiles.forEach((file) => {
         formDataToSend.append("documents", file);
       });
@@ -554,16 +755,26 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       console.log("Customer created successfully:", created);
 
       if (created?._id) {
-        // Update booking general info and notify listeners
         updateGeneralInfo({ customer: created._id });
         setLastAddedCustomer({ id: created._id, name: created.name || "" });
         onSuccess?.();
       }
 
       onCancel();
-    } catch (error: any) {
-      console.error("Error creating customer:", error.message || error);
+    } catch (error: unknown) {
+      const message = getCustomerErrorMessage(error);
+      showErrorToast(message);
+      console.error("Error creating customer:", message);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitCustomer({ requireFullValidation: true });
+  };
+
+  const handleSaveAsDraft = async () => {
+    await submitCustomer({ requireFullValidation: false, isDraft: true });
   };
 
   const handleUpdateCustomer = async () => {
@@ -589,6 +800,12 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         return;
       }
 
+      if (!customerType) {
+        showErrorToast("Please select customer type to proceed");
+        setInvalidField("customerType");
+        return;
+      }
+
       // Validate email format if provided
       if (formData.email && !isValidEmail(String(formData.email))) {
         showErrorToast("Email format is invalid");
@@ -599,6 +816,9 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         name: String(formData.name || ""),
         email: formData.email,
         phone: `${phoneCode}${formData.phone}`,
+        alternatePhone: formData.alternatePhone
+          ? `${alternatePhoneCode}${formData.alternatePhone}`
+          : undefined,
         alias: formData.alias || undefined,
         dateOfBirth: formData.dateOfBirth
           ? new Date(formData.dateOfBirth)
@@ -609,6 +829,12 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         openingBalance: balanceAmount ? Number(balanceAmount) : undefined,
         balanceType: balanceType,
         tier: tier || undefined,
+        customerType: customerType || undefined,
+        source:
+          mapUiSourceToApi(
+            source,
+            SOURCE_OPTIONS.find((option) => option.value === source)?.label,
+          ) || undefined,
         remarks: formData.remarks || undefined,
         ownerId: formData.ownerId || ownerId || undefined,
 
@@ -619,10 +845,124 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       console.log("Customer updated:", updated);
       onSuccess?.();
       onCancel(); // close sheet
-    } catch (error) {
-      console.error("Update error:", error);
+    } catch (error: unknown) {
+      const message = getCustomerErrorMessage(error);
+      showErrorToast(message);
+      console.error("Update error:", message);
     }
   };
+
+  const sheetTitle = useMemo(() => {
+    const label =
+      mode === "view"
+        ? "Customer Details"
+        : mode === "edit"
+          ? "Edit Customer"
+          : "Add New Customer";
+
+    if (!customerCode) return label;
+
+    return (
+      <span className="flex items-center gap-2">
+        <span>{label}</span>
+        <span className="text-[#D1D5DB] font-normal">|</span>
+        <span className="font-semibold text-[#1F2937]">{customerCode}</span>
+      </span>
+    );
+  }, [mode, customerCode]);
+
+  const headerRight = useMemo(
+    () => (
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="flex items-center gap-1.5 rounded-full border border-[#E8E8E8] bg-white px-3 py-1 text-[12px] font-medium text-[#7135AD] hover:bg-[#7135AD0D] transition-colors"
+        >
+          <Image
+            src="/icons/link-icon.svg"
+            alt=""
+            width={12}
+            height={12}
+            className="object-contain"
+          />
+          Vendor 0
+        </button>
+        <button
+          type="button"
+          className="flex items-center gap-1.5 rounded-full border border-[#E8E8E8] bg-white px-3 py-1 text-[12px] font-medium text-[#7135AD] hover:bg-[#7135AD0D] transition-colors"
+        >
+          <Image
+            src="/icons/link-icon.svg"
+            alt=""
+            width={12}
+            height={12}
+            className="object-contain"
+          />
+          Traveller 0
+        </button>
+        <ActionMenu
+          width="w-36"
+          right="right-0"
+          actions={[
+            {
+              label: "Reset Form",
+              onClick: () => {
+                setFormData({
+                  name: "",
+                  alias: "",
+                  phone: "",
+                  email: "",
+                  dateOfBirth: "",
+                  gstin: "",
+                  companyName: "",
+                  address: "",
+                  remarks: "",
+                  tier: "",
+                  alternatePhone: "",
+                  customerType: "",
+                  source: "",
+                });
+                setPhoneCode("+91");
+                setAlternatePhoneCode("+91");
+                setCustomerType("");
+                setSource("");
+                setTier("");
+                setBalanceAmount("");
+                setBalanceType("debit");
+                setAttachedFiles([]);
+              },
+            },
+          ]}
+        />
+      </div>
+    ),
+    [],
+  );
+
+  const sourceDropdownOptions = useMemo(
+    () =>
+      SOURCE_OPTIONS.map((option) => ({
+        value: option.value,
+        label: (
+          <div className="flex items-center gap-2">
+            <img src={option.icon} alt="" className="h-4 w-4 object-contain" />
+            <span className="text-[13px]">{option.label}</span>
+          </div>
+        ),
+        searchLabel: option.label,
+      })),
+    [],
+  );
+
+  const customerTypeDropdownOptions = useMemo(
+    () =>
+      CUSTOMER_TYPE_OPTIONS.map((option) => ({
+        value: option.value,
+        label: <span className="text-[13px]">{option.label}</span>,
+        searchLabel: option.label,
+      })),
+    [],
+  );
 
   return (
     <>
@@ -630,25 +970,19 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         isOpen={isOpen}
         onClose={handleRequestClose}
         onCloseButtonClick={handleRequestClose}
-        title={`${
-          mode === "view"
-            ? "Customer Details"
-            : mode === "edit"
-              ? "Edit Customer"
-              : "Add Customer"
-        }${customerCode ? " | " + customerCode : ""}`}
+        title={sheetTitle}
+        headerRight={headerRight}
         width="lg2"
         position="right"
-        showLinkButton={true}
         zIndex={1000}
       >
         <form
-          className="flex flex-col h-full"
+          className="flex h-full min-h-0 flex-col"
           onSubmit={handleSubmit}
           ref={formRef as any}
           noValidate
         >
-          <div className="space-y-6 p-4 overflow-y-auto flex-1 pb-16">
+          <div className="sidesheet-scroll-body space-y-6 p-4 pb-6">
             {/* Error Alert Popup (reuse login style) */}
             {/* {mounted &&
             showError &&
@@ -691,11 +1025,10 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             {/* ================= BASIC DETAILS ================ */}
             <div className="border border-gray-200 rounded-[12px] p-3 -mt-2">
               <h2 className="text-[13px] font-medium mb-2">Basic Details</h2>
-              <hr className="mt-1 mb-2 border-t border-gray-200" />
+              <hr className="mt-1 mb-3 border-t border-gray-200" />
 
-              {/* Row 1: Full Name */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                <div className="flex flex-col gap-1 md:col-span-2">
+                <div className="flex flex-col gap-1">
                   <label className="block text-[13px] font-medium text-gray-700">
                     Full Name <span className="text-red-500">*</span>
                   </label>
@@ -707,17 +1040,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={handleChange}
                     placeholder="Enter Full Name"
                     disabled={readOnly}
-                    className={`w-full rounded-md px-3 py-2 text-[13px] focus:outline-none hover:border-green-400 focus:ring-green-400 focus:ring-1 disabled:bg-gray-100 disabled:text-gray-700 ${
+                    className={`${inputClassName} ${
                       invalidField === "name"
-                        ? "border border-red-300 focus:ring-red-200"
-                        : "border border-gray-300"
+                        ? "border-red-300 focus:ring-red-200"
+                        : ""
                     }`}
                   />
                 </div>
-              </div>
-
-              {/* Row 2: Alias + Phone */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                 <div className="flex flex-col gap-1">
                   <label className="block text-[13px] font-medium text-gray-700">
                     Nickname/Alias
@@ -729,9 +1058,12 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={handleChange}
                     placeholder="Enter Nickname/Alias"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className={inputClassName}
                   />
                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
                 <div className="flex flex-col gap-1">
                   <label className="block text-[13px] font-medium text-gray-700">
                     Contact Number
@@ -754,13 +1086,38 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       maxLength={phoneMaxLength}
                       placeholder="Enter Contact Number"
                       disabled={readOnly}
-                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                      className={`${inputClassName} rounded-l-none`}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Alternate Contact Number
+                  </label>
+                  <div className="flex items-center">
+                    <PhoneCodeSelect
+                      value={alternatePhoneCode}
+                      onChange={(v) => setAlternatePhoneCode(v)}
+                      disabled={readOnly}
+                      customWidth="w-[88px]"
+                      menuWidth="w-[18rem]"
+                      className="flex-shrink-0 rounded-l-md"
+                      customHeight="h-9"
+                    />
+                    <input
+                      name="alternatePhone"
+                      type="text"
+                      value={formData.alternatePhone}
+                      onChange={handleChange}
+                      maxLength={alternatePhoneMaxLength}
+                      placeholder="Enter Contact Number"
+                      disabled={readOnly}
+                      className={`${inputClassName} rounded-l-none`}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Row 3: Email + DOB */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1">
                   <label className="block text-[13px] font-medium text-gray-700">
@@ -773,7 +1130,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={handleChange}
                     placeholder="Enter Email ID"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className={inputClassName}
                   />
                 </div>
                 <div className="flex flex-col gap-1 w-full">
@@ -783,7 +1140,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     onChange={(iso) =>
                       setFormData((prev) => ({ ...prev, dateOfBirth: iso }))
                     }
-                    placeholder="DD-MM-YYYY"
+                    placeholder="Select Date"
                     customWidth="w-full mt-1.5 py-2"
                     showCalendarIcon={true}
                     readOnly={readOnly}
@@ -793,43 +1150,136 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               </div>
             </div>
 
-            {/* ================= COMPANY DETAILS ================ */}
+            {/* ================= BUSINESS & IDENTITY ================ */}
             <div className="border border-gray-200 rounded-[12px] p-3">
               <h2 className="text-[13px] font-medium mb-2">
-                Company Details (Optional)
+                Business &amp; Identity
               </h2>
-              <hr className="mt-1 mb-2 border-t border-gray-200" />
+              <hr className="mt-1 mb-3 border-t border-gray-200" />
 
-              <div className="flex gap-6">
-                {/* GSTIN */}
-                <div className="flex flex-col w-[18rem] relative">
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1">
-                    GSTIN
-                  </label>
+              <div className="flex flex-col gap-1">
+                <label className="block text-[13px] font-medium text-gray-700">
+                  Customer Type <span className="text-red-500">*</span>
+                </label>
+                <DropDown
+                  options={customerTypeDropdownOptions}
+                  value={customerType}
+                  onChange={(v) => {
+                    setCustomerType(v);
+                    if (invalidField === "customerType") {
+                      setInvalidField(null);
+                    }
+                  }}
+                  placeholder="Select Customer Type"
+                  disabled={readOnly}
+                  customWidth="w-full"
+                  menuWidth="w-full"
+                  focusRingClass="focus:ring-1 focus:ring-[#7135AD]"
+                  className={
+                    invalidField === "customerType"
+                      ? "border border-red-300 rounded-md"
+                      : ""
+                  }
+                />
+              </div>
+            </div>
+
+            {/* ================= OPENING BALANCE ================ */}
+            <div className="border border-gray-200 rounded-[12px] p-3">
+              <h2 className="text-[13px] font-medium mb-2">Opening Balance</h2>
+              <hr className="mt-1 mb-3 border-t border-gray-200" />
+
+              <div className="flex items-center gap-6 mb-3">
+                <label className="flex items-center gap-2 cursor-pointer text-[13px]">
                   <input
-                    name="gstin"
-                    type="text"
-                    value={formData.gstin}
-                    onChange={handleChange}
-                    placeholder="Please Provide Your GST No."
+                    type="radio"
+                    name="balanceType"
+                    value="debit"
+                    checked={balanceType === "debit"}
+                    onChange={() => setBalanceType("debit")}
+                    className="w-4 h-4 text-[#7135AD] border-gray-300 focus:ring-[#7135AD]"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] pr-16 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  />
+                  <span className="text-gray-700">Debit</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-[13px]">
+                  <input
+                    type="radio"
+                    name="balanceType"
+                    value="credit"
+                    checked={balanceType === "credit"}
+                    onChange={() => setBalanceType("credit")}
+                    className="w-4 h-4 text-[#7135AD] border-gray-300 focus:ring-[#7135AD]"
+                    disabled={readOnly}
+                  />
+                  <span className="text-gray-700">Credit</span>
+                </label>
+              </div>
+
+              <div className="relative mb-3">
+                <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-[#7135AD] focus-within:border-[#7135AD]">
+                  <span className="text-gray-500 mr-2 text-[13px]">
+                    {getStoredCurrencySymbol()}
+                  </span>
+                  <input
+                    type="text"
+                    value={balanceAmount}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "" || /^\d*\.?\d*$/.test(value)) {
+                        setBalanceAmount(value);
+                      }
+                    }}
+                    placeholder={
+                      balanceType === "debit"
+                        ? "Enter Debit Amount"
+                        : "Enter Credit Amount"
+                    }
+                    disabled={readOnly}
+                    className="flex-1 outline-none text-gray-700 text-[13px] disabled:bg-gray-100 disabled:text-gray-700 pr-44"
+                  />
+                  <span
+                    className={`absolute right-3 whitespace-nowrap text-[12px] font-medium ${
+                      balanceType === "debit" ? "text-[#419836]" : "text-red-500"
+                    }`}
+                  >
+                    {balanceType === "debit"
+                      ? `Customer pays you ${getStoredCurrencySymbol()}`
+                      : `You pay the customer ${getStoredCurrencySymbol()}`}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Source
+                  </label>
+                  <DropDown
+                    options={sourceDropdownOptions}
+                    value={source}
+                    onChange={(v) => setSource(v)}
+                    placeholder="Select Source"
+                    disabled={readOnly}
+                    customWidth="w-full"
+                    menuWidth="w-full"
+                    focusRingClass="focus:ring-1 focus:ring-[#7135AD]"
                   />
                 </div>
-
-                {/* Company Name */}
-                <div className="flex flex-col w-[20rem]">
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1">
-                    Company Name
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Tier
                   </label>
-                  <input
-                    name="companyName"
-                    type="text"
-                    value={formData.companyName}
-                    onChange={handleChange}
-                    placeholder="Enter Company Name"
+                  <DropDown
+                    options={TIER_OPTIONS}
+                    value={tier}
+                    onChange={(v) => setTier(v)}
+                    placeholder="Select Tier"
                     disabled={readOnly}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    customWidth="w-full"
+                    menuWidth="w-full"
+                    focusRingClass="focus:ring-1 focus:ring-[#7135AD]"
                   />
                 </div>
               </div>
@@ -838,7 +1288,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             {/* ================= DOCUMENTS ================ */}
             <div className="border border-gray-200 rounded-[12px] p-3">
               <h2 className="text-[13px] font-medium mb-2">Documents</h2>
-              <hr className="mt-1 mb-2 border-t border-gray-200" />
+              <hr className="mt-1 mb-3 border-t border-gray-200" />
 
               <input
                 type="file"
@@ -854,32 +1304,28 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 disabled={readOnly || attachedFiles.length >= 3}
-                className={`px-3 py-1.5 flex gap-1 bg-white text-[#126ACB] border 
-               border-[#126ACB] rounded-md text-[13px] hover:bg-gray-200 ${
-                 readOnly || attachedFiles.length >= 3
-                   ? "opacity-50 cursor-not-allowed hover:bg-white"
-                   : ""
-               }`}
+                className={`px-3 py-1.5 flex items-center gap-1.5 bg-white text-[#7135AD] border border-[#7135AD] rounded-md text-[13px] font-medium hover:bg-[#7135AD0D] transition-colors ${
+                  readOnly || attachedFiles.length >= 3
+                    ? "opacity-50 cursor-not-allowed hover:bg-white"
+                    : ""
+                }`}
               >
                 <MdOutlineFileUpload size={16} /> Attach Files
               </button>
 
-              {/* PREVIEW FILES */}
               <div className="mt-2 flex flex-col gap-2">
                 {existingDocuments.map((doc, i) => (
                   <div
                     key={`${doc.key || doc.fileName || doc.originalName}-${i}`}
-                    className="flex items-center justify-between w-full 
-                 bg-white rounded-md 
-                 px-3 py-2 hover:bg-gray-50 transition"
+                    className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
                   >
                     <button
                       type="button"
                       onClick={() => doc.url && window.open(doc.url, "_blank")}
-                      className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-blue-50 hover:border-blue-300 transition-colors cursor-pointer"
+                      className="text-[#7135AD] border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2 hover:bg-[#7135AD0D] hover:border-[#7135AD33] transition-colors cursor-pointer"
                       title="Click to view document"
                     >
-                      <FaRegFolder className="text-blue-500 w-3 h-3" />
+                      <FaRegFolder className="text-[#7135AD] w-3 h-3" />
                       {doc.originalName || doc.fileName}
                     </button>
 
@@ -898,17 +1344,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 {attachedFiles.map((file, i) => (
                   <div
                     key={i}
-                    className="flex items-center justify-between w-full 
-                 bg-white rounded-md 
-                 px-3 py-2 hover:bg-gray-50 transition"
+                    className="flex items-center justify-between w-full bg-white rounded-md px-3 py-2 hover:bg-gray-50 transition"
                   >
-                    {/* File Name */}
-                    <span className="text-blue-700 border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
-                      <FaRegFolder className="text-blue-500 w-3 h-3" />
+                    <span className="text-[#7135AD] border border-gray-200 p-1 -ml-2 rounded-md bg-gray-100 text-[13px] truncate flex items-center gap-2">
+                      <FaRegFolder className="text-[#7135AD] w-3 h-3" />
                       {file.name}
                     </span>
 
-                    {/* Delete Icon */}
                     {!readOnly ? (
                       <button
                         type="button"
@@ -922,272 +1364,27 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 ))}
               </div>
 
-              <div className="text-red-600 text-[0.65rem]">
-                Note: Maximum of 3 files can be uploaded
+              <div className="flex items-center gap-1 mt-2 text-[11px] text-[#9CA3AF]">
+                <HiOutlineInformationCircle size={14} />
+                Maximum of 3 files can be uploaded
               </div>
             </div>
 
-            {/* ================= BILLING ADDRESS ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3">
-              <label className="block text-[13px] font-medium text-gray-700 mb-1">
-                Billing Address
-              </label>
-              <hr className="mt-1 mb-3 border-t border-gray-200" />
-              <input
-                name="address"
-                value={formData.address}
-                onChange={(e) =>
-                  setFormData({ ...formData, address: e.target.value })
-                }
-                placeholder="Enter Billing Address"
-                disabled={readOnly}
-                className="w-full border border-gray-300 hover:border-green-400 focus:ring-green-400 rounded-md px-3 py-2 text-[13px] disabled:bg-gray-100 disabled:text-gray-700"
-              />
-            </div>
-            {/* ================= OPENING BALANCE ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3">
-              <h2 className="text-[13px] font-medium mb-2">Opening Balance</h2>
-              <hr className="mt-1 mb-3 border-t border-gray-200" />
-
-              <div className="flex items-center gap-6 mb-3">
-                <label className="flex items-center gap-2 cursor-pointer text-[13px]">
-                  <input
-                    type="radio"
-                    name="balanceType"
-                    value="debit"
-                    checked={balanceType === "debit"}
-                    onChange={() => setBalanceType("debit")}
-                    className="w-3 h-3 text-red-600"
-                    disabled={readOnly}
-                  />
-                  <span className="text-gray-700">Debit</span>
-                </label>
-
-                <label className="flex items-center gap-2 cursor-pointer text-[13px]">
-                  <input
-                    type="radio"
-                    name="balanceType"
-                    value="credit"
-                    checked={balanceType === "credit"}
-                    onChange={() => setBalanceType("credit")}
-                    className="w-3 h-3 text-red-600"
-                    disabled={readOnly}
-                  />
-                  <span className="text-gray-700">Credit</span>
-                </label>
-              </div>
-
-              <div className="relative">
-                <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-green-400">
-                  <span className="text-gray-500 mr-2 text-[13px]">
-                    {getStoredCurrencySymbol()}
-                  </span>
-                  <input
-                    type="text"
-                    value={balanceAmount}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // Only allow numbers and decimal point
-                      if (value === "" || /^\d*\.?\d*$/.test(value)) {
-                        setBalanceAmount(value);
-                      } else {
-                        // Invalid input, ignore
-                      }
-                    }}
-                    placeholder={
-                      balanceType === "debit"
-                        ? "Enter Debit Amount"
-                        : "Enter Credit Amount"
-                    }
-                    disabled={readOnly}
-                    className="flex-1 outline-none text-gray-700 text-[13px] disabled:bg-gray-100 disabled:text-gray-700"
-                  />
-                </div>
-                <div className="absolute right-3 top-2 text-sm font-medium">
-                  {balanceType === "debit" ? (
-                    <span className=" text-green-500 text-[13px]">
-                      Customer pays you {getStoredCurrencySymbol()}{" "}
-                      {balanceAmount || ""}
-                    </span>
-                  ) : (
-                    <span className="text-red-500 text-[13px]">
-                      You pay the customer {getStoredCurrencySymbol()}{" "}
-                      {balanceAmount || ""}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* ================= TIER ================ */}
-            <div className=" p-1 -mt-4">
-              <h2 className="text-[13px] font-medium mb-2">Rating</h2>
-
-              <div className="flex flex-col">
-                <DropDown
-                  options={[
-                    {
-                      value: "tier1",
-                      label: (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src="/icons/tier-1.svg"
-                            alt="Tier 1"
-                            className="w-5 h-5"
-                          />
-                          <span className="text-[13px] font-medium">1</span>
-                        </div>
-                      ),
-                    },
-                    {
-                      value: "tier2",
-                      label: (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src="/icons/tier-2.svg"
-                            alt="Tier 2"
-                            className="w-5 h-5"
-                          />
-                          <span className="text-[13px] font-medium">2</span>
-                        </div>
-                      ),
-                    },
-                    {
-                      value: "tier3",
-                      label: (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src="/icons/tier-3.svg"
-                            alt="Tier 3"
-                            className="w-5 h-5"
-                          />
-                          <span className="text-[13px] font-medium">3</span>
-                        </div>
-                      ),
-                    },
-                    {
-                      value: "tier4",
-                      label: (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src="/icons/tier-4.svg"
-                            alt="Tier 4"
-                            className="w-5 h-5"
-                          />
-                          <span className="text-[13px] font-medium">4</span>
-                        </div>
-                      ),
-                    },
-                    {
-                      value: "tier5",
-                      label: (
-                        <div className="flex items-center gap-2">
-                          <img
-                            src="/icons/tier-5.svg"
-                            alt="Tier 5"
-                            className="w-5 h-5"
-                          />
-                          <span className="text-[13px] font-medium">5</span>
-                        </div>
-                      ),
-                    },
-                  ]}
-                  value={tier}
-                  onChange={(v) => setTier(v)}
-                  disabled={readOnly}
-                  customWidth="w-[10rem]"
-                  menuWidth="w-[10rem]"
-                  className=""
-                  // readOnly={readOnly}
-                />
-              </div>
-            </div>
-
-            {/* ================= OWNER ================ */}
-            <div className="border border-gray-200 rounded-[12px] p-3 -mt-2">
-              <label className="block text-[13px] font-medium text-gray-700 mb-1">
-                Owner
-              </label>
-
-              <div className="w-full relative" ref={ownerRef}>
-                <input
-                  name="owner"
-                  placeholder={
-                    loadingUsers ? "Loading users..." : "Search by Name"
-                  }
-                  className="w-full border rounded-md px-3 py-2 text-[13px] focus:outline-none hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
-                  value={ownerListDisplay[0]?.name || ""}
-                  onChange={(e) => {
-                    const value = String(e.target.value || "");
-                    setOwnerListDisplay([{ id: "", name: value }]);
-
-                    if (value.trim() === "") {
-                      setOwnerResults([]);
-                      setShowOwnerDropdown(false);
-                      return;
-                    }
-
-                    const results = users.filter((u) =>
-                      String(u.name || "")
-                        .toLowerCase()
-                        .includes(value.toLowerCase()),
-                    );
-                    setOwnerResults(results);
-                    setShowOwnerDropdown(results.length > 0);
-                  }}
-                  disabled={readOnly || loadingUsers}
-                />
-
-                {showOwnerDropdown && ownerResults.length > 0 && (
-                  <div className="absolute bg-white border border-gray-200 rounded-md w-[22rem] mt-1 max-h-60 overflow-y-auto shadow-md z-50">
-                    {ownerResults.map((u) => (
-                      <div
-                        key={u._id}
-                        className="p-2 cursor-pointer hover:bg-gray-100"
-                        onClick={() => {
-                          setOwnerListDisplay([
-                            { id: u._id, name: u.name || "Unnamed User" },
-                          ]);
-                          setOwnerId(u._id);
-                          setFormData((prev) => ({ ...prev, ownerId: u._id }));
-                          setOwnerResults([]);
-                          setShowOwnerDropdown(false);
-                        }}
-                      >
-                        <p className="font-medium text-[13px]">
-                          {u.name || "Unnamed User"}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Remarks */}
-            <div className="border border-gray-200 rounded-xl p-3 -mt-2">
-              <label className="block text-[13px]  font-medium text-gray-700">
-                Remarks
-              </label>
-              <hr className="mt-1 mb-2 border-t border-gray-200" />
-              <textarea
-                name="remarks"
-                rows={5}
-                value={formData.remarks}
-                onChange={handleChange}
-                placeholder="Enter Your Remarks Here"
-                disabled={readOnly}
-                className={`
-            w-full border border-gray-200 rounded-md px-3 py-2 text-[13px]  mt-2 transition-colors
-            focus:ring hover:border-green-400 focus:ring-green-400
-            disabled:bg-gray-100 disabled:text-gray-700
-          `}
-              />
-            </div>
+            {/* ================= INTERNAL NOTES ================ */}
+            <RemarksField
+              label="Internal Notes"
+              value={formData.remarks}
+              onChange={(val) =>
+                setFormData((prev) => ({ ...prev, remarks: val }))
+              }
+              readOnly={readOnly}
+              placeholder="Enter your internal notes here..."
+              className="mt-0"
+            />
 
             {/* ================= ACTION BUTTONS ================ */}
           </div>
-          <div className="sticky bottom-0 bg-white border-t border-gray-200 py-2 px-3 z-30">
+          <div className="z-30 shrink-0 border-t border-gray-200 bg-white px-4 py-3">
             <div className="flex justify-end gap-2">
               {mode === "view" ? (
                 <Button
@@ -1195,36 +1392,41 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   onClick={onCancel}
                   bgColor="bg-white"
                   textColor="text-gray-700"
-                  className="border border-gray-300 hover:bg-gray-100"
+                  className="border border-gray-300 hover:bg-gray-100 rounded-[15px] px-4 py-2"
                 />
-              ) : (
+              ) : mode === "edit" ? (
                 <>
                   <Button
                     text="Cancel"
                     onClick={onCancel}
                     bgColor="bg-white"
-                    textColor="text-gray-700"
-                    className="border border-gray-300 hover:bg-gray-100"
+                    textColor="text-[#7135AD]"
+                    className="border border-[#7135AD] hover:bg-[#7135AD0D] rounded-[15px] px-4 py-2"
                   />
-
-                  {mode === "edit" ? (
-                    <Button
-                      text="Update Customer"
-                      onClick={handleUpdateCustomer}
-                      bgColor="bg-[#0D4B37]"
-                      textColor="text-white"
-                      className="hover:bg-green-900"
-                    />
-                  ) : (
-                    <Button
-                      text="Save"
-                      type="submit"
-                      icon={<LuSave size={16} />}
-                      bgColor="bg-[#0D4B37]"
-                      textColor="text-white"
-                      className="hover:bg-[#0f3d44]"
-                    />
-                  )}
+                  <Button
+                    text="Update Customer"
+                    onClick={handleUpdateCustomer}
+                    bgColor="bg-[#7135AD]"
+                    textColor="text-white"
+                    className="hover:opacity-90 rounded-[15px] px-4 py-2"
+                  />
+                </>
+              ) : (
+                <>
+                  <Button
+                    text="Save as Draft"
+                    onClick={handleSaveAsDraft}
+                    bgColor="bg-white border border-[#7135AD]"
+                    textColor="text-[#7135AD]"
+                    className="hover:bg-[#7135AD0D] rounded-[15px] px-4 py-2"
+                  />
+                  <Button
+                    text="Save Details"
+                    type="submit"
+                    bgColor="bg-[#7135AD]"
+                    textColor="text-white"
+                    className="hover:opacity-90 rounded-[15px] px-4 py-2"
+                  />
                 </>
               )}
             </div>

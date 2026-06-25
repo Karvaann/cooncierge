@@ -1,31 +1,60 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { PiDotsThreeBold } from "react-icons/pi";
+import DeleteConfirmModal from "../popups/DeleteConfirmModal";
+import DuplicateConfirmModal from "../popups/DuplicateConfirmModal";
 
 type MenuAction = {
   label: string;
   icon?: React.ReactNode;
   color?: string;
   onClick: () => void;
+  /** When set, clicking this action opens a centered delete confirmation modal. */
+  confirmDeleteId?: string;
+  /** When set, clicking this action opens a centered duplicate confirmation modal. */
+  confirmDuplicateId?: string;
 };
 
 interface ActionMenuProps {
   actions: MenuAction[];
   /** Tailwind width class */
   width?: string;
-
+  /** Legacy positioning class when align is not used */
   right?: string;
+  /** Opens menu to the left or right of the trigger */
+  align?: "left" | "right";
+  /** Show only when parent row has `.row-actions-active` */
+  revealClassName?: string;
 }
 
-const ActionMenu: React.FC<ActionMenuProps> = ({ actions, width, right }) => {
+const ActionMenu: React.FC<ActionMenuProps> = ({
+  actions,
+  width,
+  right,
+  align = "right",
+  revealClassName,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<{
+    itemId: string;
+    onConfirm: () => void;
+  } | null>(null);
+  const [pendingDuplicate, setPendingDuplicate] = useState<{
+    itemId: string;
+    onConfirm: () => void;
+  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const menuWidthClass = width ?? "w-30";
-  const menuRightClass = right ?? "right-10";
+  const menuWidthClass = width ?? "min-w-[7.5rem]";
+  const menuPositionClass =
+    align === "left"
+      ? "right-full mr-2 top-1/2 -translate-y-1/2"
+      : `${right ?? "right-10"} top-1/2 -translate-y-1/2`;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      if (pendingDelete || pendingDuplicate) return;
+
       if (
         containerRef.current &&
         !containerRef.current.contains(e.target as Node)
@@ -39,74 +68,109 @@ const ActionMenu: React.FC<ActionMenuProps> = ({ actions, width, right }) => {
     }
 
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen]);
+  }, [isOpen, pendingDelete, pendingDuplicate]);
+
+  const closeMenu = () => {
+    setIsOpen(false);
+  };
+
+  const closeDeleteModal = () => {
+    setPendingDelete(null);
+  };
+
+  const closeDuplicateModal = () => {
+    setPendingDuplicate(null);
+  };
 
   return (
-    <div
-      ref={containerRef}
-      className="relative flex items-center justify-center"
-    >
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="p-1.5 hover:bg-gray-100 border border-gray-200 rounded-[8px] transition-colors"
-        aria-label="More actions"
+    <>
+      <div
+        ref={containerRef}
+        className={`relative flex items-center justify-center ${revealClassName ?? ""} ${
+          isOpen && revealClassName ? "!opacity-100 pointer-events-auto" : ""
+        }`}
       >
-        <PiDotsThreeBold className="w-4.5 h-4.5 text-[#414141]" />
-      </button>
-
-      {isOpen && (
-        <div
-          className={`
-            absolute ${menuRightClass} top-1/2 -translate-y-1/2
-            bg-white border border-gray-200 rounded-[15px] shadow-xl 
-            ${menuWidthClass} z-20
-          `}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            if (isOpen) {
+              closeMenu();
+            } else {
+              setIsOpen(true);
+            }
+          }}
+          className="cursor-pointer rounded-[8px] border border-[#E2E1E1] bg-[#FAFAFA] p-1.5 transition-colors hover:bg-[#F3F3F3]"
+          aria-label="More actions"
         >
-          <div
-          // className={`
-          //   absolute
-          //   -right-2
-          //   top-1/2 -translate-y-1/2
-          //   w-3 h-3
-          //   bg-white
-          //   border-t border-r border-gray-200
-          //   rotate-45
-          // `}
-          ></div>
+          <PiDotsThreeBold className="h-[18px] w-[18px] text-[#414141]" />
+        </button>
 
-          {/* Menu items */}
-          <div className="flex flex-col py-1 px-1 mr-2 text-xs">
-            {actions.map((action, index) => (
-              <React.Fragment key={index}>
+        {isOpen && (
+          <div
+            className={`absolute ${menuPositionClass} z-50 overflow-hidden rounded-[12px] border border-[#E2E1E1] bg-white py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.08)] ${menuWidthClass}`}
+          >
+            <div className="flex flex-col px-1">
+              {actions.map((action, index) => (
                 <button
-                  onClick={() => {
+                  key={index}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (action.confirmDeleteId) {
+                      setPendingDelete({
+                        itemId: action.confirmDeleteId,
+                        onConfirm: action.onClick,
+                      });
+                      closeMenu();
+                      return;
+                    }
+                    if (action.confirmDuplicateId) {
+                      setPendingDuplicate({
+                        itemId: action.confirmDuplicateId,
+                        onConfirm: action.onClick,
+                      });
+                      closeMenu();
+                      return;
+                    }
                     action.onClick();
-                    setIsOpen(false);
+                    closeMenu();
                   }}
-                  className={`
-                    flex items-center gap-1 px-2 py-1 
-  hover:cursor-pointer transition-colors
-  whitespace-nowrap
-  ${action.color ?? "text-gray-700"}
-                  `}
+                  className={`flex w-full items-center gap-2 whitespace-nowrap rounded-[8px] px-2.5 py-2 text-left text-[13px] font-medium transition-colors hover:bg-[#FAFAFA] ${action.color ?? "text-gray-700"}`}
                 >
                   {action.icon && (
-                    <span className="w-4 h-4 flex items-center justify-center">
+                    <span className="flex h-4 w-4 shrink-0 items-center justify-center">
                       {action.icon}
                     </span>
                   )}
-                  <span className="font-medium">{action.label}</span>
+                  {action.label}
                 </button>
-
-                {/* {index < actions.length - 1 && (
-                  <hr className="my-1 border-t border-gray-200" />
-                )} */}
-              </React.Fragment>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+
+      <DeleteConfirmModal
+        isOpen={Boolean(pendingDelete)}
+        itemId={pendingDelete?.itemId ?? ""}
+        onCancel={closeDeleteModal}
+        onConfirm={() => {
+          pendingDelete?.onConfirm();
+          closeDeleteModal();
+        }}
+      />
+
+      <DuplicateConfirmModal
+        isOpen={Boolean(pendingDuplicate)}
+        itemId={pendingDuplicate?.itemId ?? ""}
+        onCancel={closeDuplicateModal}
+        onConfirm={() => {
+          pendingDuplicate?.onConfirm();
+          closeDuplicateModal();
+        }}
+      />
+    </>
   );
 };
 

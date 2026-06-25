@@ -1306,9 +1306,9 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
         ) : undefined
       }
     >
-      <div className="flex flex-col h-full">
+      <div className="flex h-full min-h-0 flex-col">
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto px-6 pb-24">
+        <div className="sidesheet-scroll-body px-6 pb-24">
           {/* Party Type + Customer/Vendor Search */}
           <div className="mb-4 p-3 border border-gray-200 rounded-lg bg-white">
             <div className="flex items-center gap-4 flex-wrap">

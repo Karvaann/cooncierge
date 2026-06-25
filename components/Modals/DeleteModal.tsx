@@ -47,6 +47,11 @@ export interface DeletableItem {
   dateCreated?: string; // traveller date created
   isLinked?: boolean; // legacy flag (kept if upstream still passes)
   isDeletable?: boolean; // new flag controlling deletion permission
+  source?: {
+    type: string;
+    label: string;
+  };
+  mongoId?: string;
   // vendor specific
   vendorName?: string;
   poc?: string;

@@ -11,6 +11,11 @@ type DownloadMergeMenuProps = {
   entity?: "customer" | "vendor" | "team" | "traveller";
   items?: DeletableItem[];
   callback: () => void;
+  rootRef?: React.RefObject<HTMLDivElement | null>;
+  /** Floating dropdown under trigger (select mode) vs attached panel */
+  menuVariant?: "attached" | "dropdown";
+  /** When provided, parent owns the merge modal and receives a snapshot of selected items */
+  onMergeClick?: (items: DeletableItem[]) => void;
 };
 
 const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
@@ -19,22 +24,59 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
   entity = "customer",
   items = [],
   callback,
+  rootRef,
+  menuVariant = "attached",
+  onMergeClick,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = React.useState(false);
   const [isMergeModalOpen, setIsMergeModalOpen] = React.useState(false);
+  const [mergeModalItems, setMergeModalItems] = React.useState<DeletableItem[]>(
+    [],
+  );
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
-  const containerClass = `absolute right-10 -mt-4 -translate-y-1/2 bg-white border border-gray-300 rounded-md shadow-xl w-[5.8rem] ${
-    entity === "team" ? "h-auto py-1" : "h-[4.8rem]"
-  } z-50`;
+  const isDropdown = Boolean(rootRef) && menuVariant === "dropdown";
+
+  const containerClass = isDropdown
+    ? "absolute right-0 top-full z-50 mt-2 min-w-[9.5rem] overflow-hidden rounded-[14px] border border-[#E2E1E1] bg-white py-1 shadow-[0_4px_16px_rgba(0,0,0,0.08)]"
+    : rootRef
+      ? `absolute left-0 top-full z-50 w-full min-w-[9.5rem] overflow-hidden border border-[#7135AD66] bg-white py-1 shadow-[0_4px_16px_rgba(0,0,0,0.08)] rounded-b-[14px] rounded-t-none border-t-0`
+      : `absolute right-10 -mt-4 -translate-y-1/2 bg-white border border-gray-300 rounded-md shadow-xl w-[5.8rem] ${
+          entity === "team" ? "h-auto py-1" : "h-[4.8rem]"
+        } z-50`;
+
+  const itemBaseClass = isDropdown
+    ? "flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] font-medium transition-colors hover:bg-[#FAFAFA]"
+    : rootRef
+      ? "flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] font-medium text-[#414141] transition-colors hover:bg-[#FAFAFA]"
+      : "flex w-full items-center gap-2 text-left transition-colors hover:bg-gray-50";
+
+  const dividerClass = isDropdown
+    ? "border-t border-[#ECECEC]"
+    : rootRef
+      ? "border-t border-[#ECECEC]"
+      : "border border-gray-100";
 
   const handleMergeClick = () => {
-    setIsMergeModalOpen(true);
+    const snapshot = [...items];
+    if (onMergeClick) {
+      onMergeClick(snapshot);
+    } else {
+      setMergeModalItems(snapshot);
+      setIsMergeModalOpen(true);
+    }
+    onClose();
   };
 
   const handleDownloadClick = () => {
     setIsDownloadModalOpen(true);
+    onClose();
+  };
+
+  const handleDeleteClick = () => {
+    setIsDeleteModalOpen(true);
+    onClose();
   };
 
   const handleEscape = useCallback(
@@ -51,10 +93,8 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
 
   const handleClickOutside = useCallback(
     (event: MouseEvent) => {
-      const menuEl = menuRef.current;
-
-      // if menu ref doesn't exist or click is inside it, do nothing
-      if (!menuEl || menuEl.contains(event.target as Node)) return;
+      const container = rootRef?.current ?? menuRef.current;
+      if (!container || container.contains(event.target as Node)) return;
 
       if (isMergeModalOpen || isDownloadModalOpen || isDeleteModalOpen) {
         return;
@@ -71,88 +111,159 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
 
       onClose();
     },
-    [isDeleteModalOpen, isDownloadModalOpen, isMergeModalOpen, onClose]
+    [isDeleteModalOpen, isDownloadModalOpen, isMergeModalOpen, onClose, rootRef]
   );
 
   useEffect(() => {
-    if (isOpen) {
-      document.addEventListener("keydown", handleEscape);
-      document.addEventListener("mousedown", handleClickOutside);
+    if (!isOpen) return;
 
-      return () => {
-        document.removeEventListener("keydown", handleEscape);
-        document.removeEventListener("mousedown", handleClickOutside);
-      };
-    }
-    return;
+    document.addEventListener("keydown", handleEscape);
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, [isOpen, handleEscape, handleClickOutside]);
-  if (!isOpen) return null;
 
   return (
     <>
+      {isOpen && (
       <div ref={menuRef} className={containerClass}>
-        {/* Arrow Tail */}
-        <div
-          className="absolute -right-2 top-1/2 -translate-y-1/2 
+        {!rootRef && (
+          <div
+            className="absolute -right-2 top-1/2 -translate-y-1/2 
                  w-3 h-3 bg-white border-t border-r border-gray-300 
                  rotate-45"
-        ></div>
+          ></div>
+        )}
 
-        {/* Menu Items */}
         <button
+          type="button"
           onClick={handleDownloadClick}
-          className="w-full flex items-center gap-1 px-3 py-1 hover:bg-gray-50 transition-colors text-left"
+          className={`${itemBaseClass} ${
+            isDropdown
+              ? "text-[#126ACB]"
+              : rootRef
+                ? "text-[#414141]"
+                : "gap-1 px-3 py-1"
+          }`}
         >
-          <div className="flex items-center justify-center">
-            <FiDownload size={14} className="text-blue-600" />
-          </div>
-          <span className="text-blue-600 text-[0.65rem] font-medium">
+          <FiDownload
+            size={14}
+            className={
+              isDropdown
+                ? "shrink-0 text-[#126ACB]"
+                : rootRef
+                  ? "shrink-0 text-[#818181]"
+                  : "text-blue-600"
+            }
+          />
+          <span
+            className={
+              isDropdown
+                ? "text-[#126ACB]"
+                : rootRef
+                  ? ""
+                  : "text-blue-600 text-[0.65rem] font-medium"
+            }
+          >
             Download
           </span>
         </button>
 
         {entity === "team" ? (
-          <hr className="border border-gray-100" />
+          <hr className={dividerClass} />
         ) : (
           <>
-            <hr className="border border-gray-100" />
+            <hr className={dividerClass} />
 
             <button
+              type="button"
               onClick={handleMergeClick}
-              className="w-full flex items-center gap-1 px-3 py-1 hover:bg-gray-50 transition-colors text-left"
+              className={`${itemBaseClass} ${
+                isDropdown
+                  ? "text-[#818181]"
+                  : rootRef
+                    ? "text-[#414141]"
+                    : "gap-1 px-3 py-1"
+              }`}
             >
-              <div className="flex items-center justify-center">
-                <TbLayersIntersect size={14} className="text-[#818181]" />
-              </div>
-              <span className="text-[#818181] text-[0.65rem] font-medium">
+              <TbLayersIntersect
+                size={14}
+                className={
+                  isDropdown
+                    ? "shrink-0 text-[#818181]"
+                    : rootRef
+                      ? "shrink-0 text-[#818181]"
+                      : "text-[#818181]"
+                }
+              />
+              <span
+                className={
+                  isDropdown
+                    ? "text-[#818181]"
+                    : rootRef
+                      ? ""
+                      : "text-[#818181] text-[0.65rem] font-medium"
+                }
+              >
                 Merge
               </span>
             </button>
 
-            <hr className="border border-gray-100" />
+            <hr className={dividerClass} />
           </>
         )}
 
         <button
-          onClick={() => setIsDeleteModalOpen(true)}
-          className="w-full flex items-center gap-1 px-3 py-1 hover:bg-gray-50 transition-colors text-left"
+          type="button"
+          onClick={handleDeleteClick}
+          className={`${itemBaseClass} ${
+            isDropdown
+              ? "text-red-500"
+              : rootRef
+                ? "text-[#414141]"
+                : "gap-1 px-3 py-1"
+          }`}
         >
-          <div className="flex items-center justify-center">
-            <FiTrash2 size={14} className="text-red-600" />
-          </div>
-          <span className="text-red-600 text-[0.65rem] font-medium">
+          <FiTrash2
+            size={14}
+            className={
+              isDropdown
+                ? "shrink-0 text-red-500"
+                : rootRef
+                  ? "shrink-0 text-red-500"
+                  : "text-red-600"
+            }
+          />
+          <span
+            className={
+              isDropdown
+                ? "text-red-500"
+                : rootRef
+                  ? "text-red-500"
+                  : "text-red-600 text-[0.65rem] font-medium"
+            }
+          >
             Delete
           </span>
         </button>
       </div>
+      )}
 
       {/* Modals */}
-      <MergeModal
-        isOpen={isMergeModalOpen}
-        onClose={() => setIsMergeModalOpen(false)}
-        items={items}
-        mode={entity as "customer" | "vendor"}
-      />
+      {!onMergeClick && (
+        <MergeModal
+          isOpen={isMergeModalOpen}
+          onClose={() => {
+            setIsMergeModalOpen(false);
+            setMergeModalItems([]);
+          }}
+          items={mergeModalItems}
+          mode={entity === "vendor" ? "vendor" : "customer"}
+        />
+      )}
       <DownloadModal
         isOpen={isDownloadModalOpen}
         onClose={() => setIsDownloadModalOpen(false)}

@@ -1,33 +1,53 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
-import { FiSearch } from "react-icons/fi";
-import { CiFilter } from "react-icons/ci";
-import { HiArrowsUpDown } from "react-icons/hi2";
+import { CiFilter, CiSearch } from "react-icons/ci";
+import { TbArrowsUpDown } from "react-icons/tb";
+import { MdOutlineKeyboardArrowDown } from "react-icons/md";
+import { IoEllipsisHorizontal } from "react-icons/io5";
+import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
+import { FiCopy } from "react-icons/fi";
 import {
   getVendors,
   deleteVendor,
   getVendorBookingHistory,
   getVendorById,
 } from "@/services/vendorApi";
-import { IoEllipsisHorizontal } from "react-icons/io5";
 import type { JSX } from "react";
 import { BookingProvider } from "@/context/BookingContext";
 import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
-import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
 import DownloadMergeMenu from "@/components/Menus/DownloadMergeMenu";
 import type { DeletableItem } from "@/components/Modals/DeleteModal";
-import ConfirmationModal from "@/components/popups/ConfirmationModal";
-import { FaRegStar } from "react-icons/fa";
+import LinkProfilesModal, {
+  type LinkProfileSource,
+} from "@/components/Modals/LinkProfilesModal";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import { MdHistory } from "react-icons/md";
 import Image from "next/image";
 import CustomIdApi from "@/services/customIdApi";
-import SlidingTabs from "@/components/organisms/navigation/SlidingTabs";
+import TableTabs from "@/components/TableTabs";
+import CustomerNameTypeFilterDropdown, {
+  DEFAULT_CUSTOMER_NAME_TYPE_FILTER,
+} from "@/components/Filters/CustomerNameTypeFilterDropdown";
+import CustomerSourceFilterDropdown, {
+  DEFAULT_SOURCE_FILTER,
+  resolveSourceFilterValue,
+} from "@/components/Filters/CustomerSourceFilterDropdown";
+import {
+  passesMultiSelectFilter,
+  useMultiSelectFilter,
+} from "@/hooks/useMultiSelectFilter";
+import { MOCK_BOOKING_HISTORY } from "@/mock-data/directory";
+import {
+  formatDirectoryDisplayDate,
+  mapApiSourceToUi,
+  mapTierToNumber,
+} from "@/utils/directoryApiMappers";
 import {
   getNextTriSortState,
   type TriSortState,
@@ -39,104 +59,188 @@ const Table = dynamic(() => import("@/components/Table"), {
   ssr: false,
 });
 
+type VendorSourceType =
+  | "meta"
+  | "google"
+  | "referral"
+  | "seo"
+  | "word-of-mouth"
+  | "none";
+
+type VendorSource = {
+  type: VendorSourceType;
+  label: string;
+};
+
+const SOURCE_ICON_MAP: Record<Exclude<VendorSourceType, "none">, string> = {
+  meta: "/icons/source-icons/meta.svg",
+  google: "/icons/source-icons/google-organic.svg",
+  referral: "/icons/source-icons/referal.svg",
+  seo: "/icons/source-icons/seo.svg",
+  "word-of-mouth": "/icons/source-icons/word-of-mouth.svg",
+};
+
+type VendorType = "individual" | "corporate";
+
 type VendorRow = {
   vendorID: string;
-  vendorCode?: string;
-  vendorName: string;
-  rating: string;
-  poc: string;
+  _id: string;
+  name: string;
+  subtitle?: string;
+  vendorType?: VendorType;
+  source: VendorSource;
+  tier: number;
   dateModified: string;
   createdAt?: string;
   actions: React.ComponentType<any> | string;
 };
 
+const TIER_LABELS: Record<number, string> = {
+  1: "Tier I",
+  2: "Tier II",
+  3: "Tier III",
+};
+
+const ROW_HOVER_ACTION_CLASS =
+  "opacity-0 pointer-events-none transition-opacity duration-300 ease-in-out [.row-actions-active_&]:opacity-100 [.row-actions-active_&]:pointer-events-auto";
+
 const columns: string[] = [
   "Vendor ID",
-  "Vendor Name",
-  "POC",
-  "Date Modified",
-  "Rating",
+  "Name",
+  "Source",
+  "Tier",
+  "Last Modified",
   "Actions",
 ];
 
-const columnIconMap: Record<string, JSX.Element> = {
-  // "Vendor Name": (
-  //   <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
-  // ),
-  POC: (
-    <CiFilter className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
-  ),
-  Rating: (
-    <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
-  ),
-  "Date Modified": (
-    <HiArrowsUpDown className="inline w-3 h-3 text-white font-semibold stroke-[1]" />
-  ),
+const resolveVendorType = (row: {
+  vendorType?: VendorType;
+  subtitle?: string;
+}): VendorType => {
+  if (row.vendorType === "individual" || row.vendorType === "corporate") {
+    return row.vendorType;
+  }
+
+  if ((row.subtitle || "").toUpperCase().includes("GSTIN")) {
+    return "corporate";
+  }
+
+  return "individual";
 };
 
-// const VendorTableSeed: VendorRow[] = [
-//   {
-//     vendorID: "#C001",
-//     name: "Amit Verma",
-//     owner: "Riya Kapoor",
-//     rating: "⭐️⭐️⭐️⭐️",
-//     dateCreated: "05-09-2025",
-//     actions: "⋮",
-//   },
-//   {
-//     vendorID: "#C002",
-//     name: "Neha Gupta",
-//     owner: "Arjun Mehta",
-//     rating: "⭐️⭐️⭐️⭐️⭐️",
-//     dateCreated: "10-09-2025",
-//     actions: "⋮",
-//   },
-//   {
-//     vendorID: "#C003",
-//     name: "Suresh Raina",
-//     owner: "Priya Nair",
-//     rating: "⭐️⭐️⭐️",
-//     dateCreated: "15-09-2025",
-//     actions: "⋮",
-//   },
-//   {
-//     vendorID: "#C004",
-//     name: "Anjali Sharma",
-//     owner: "Karan Malhotra",
-//     rating: "⭐️⭐️⭐️⭐️",
-//     dateCreated: "20-09-2025",
-//     actions: "⋮",
-//   },
-//   {
-//     vendorID: "#C005",
-//     name: "Rohit Yadav",
-//     owner: "Sneha Joshi",
-//     rating: "⭐️⭐️⭐️⭐️⭐️",
-//     dateCreated: "25-09-2025",
-//     actions: "⋮",
-//   },
-// ];
+
+const mapVendorToRow = (v: any, index: number): VendorRow => {
+  const subtitle =
+    v.companyName && v.companyName !== v.contactPerson
+      ? v.companyName
+      : v.gstin
+        ? `GSTIN: ${v.gstin}`
+        : undefined;
+
+  const sourceRaw = v.source;
+  const source: VendorSource = mapApiSourceToUi(sourceRaw);
+
+  return {
+    _id: v._id || "",
+    vendorID: v.customId || v.vendorID || `VE-AB${String(index + 1).padStart(3, "0")}`,
+    name: v.contactPerson || v.name || "—",
+    subtitle,
+    vendorType: resolveVendorType({ subtitle }),
+    source,
+    tier: mapTierToNumber(v.tier),
+    dateModified: formatDirectoryDisplayDate(v.updatedAt || v.createdAt),
+    createdAt: v.updatedAt || v.createdAt,
+    actions: "⋮",
+  };
+};
+
+function renderSelectCheckbox(
+  inputId: string,
+  checked: boolean,
+  onToggle: () => void,
+  indeterminate = false,
+) {
+  const isActive = checked || indeterminate;
+
+  return (
+    <div className="flex items-center justify-center">
+      <input
+        type="checkbox"
+        id={inputId}
+        className="sr-only"
+        checked={checked}
+        onClick={(e) => e.stopPropagation()}
+        onChange={onToggle}
+      />
+      <label
+        htmlFor={inputId}
+        onClick={(e) => e.stopPropagation()}
+        className={`flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-[5px] border transition ${
+          isActive
+            ? "border-[#7135AD] bg-[#7135AD]"
+            : "border-[#D1D5DB] bg-white"
+        }`}
+      >
+        {checked && (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="10"
+            height="8"
+            viewBox="0 0 12 11"
+            fill="none"
+            aria-hidden
+          >
+            <path
+              d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+              stroke="#FFFFFF"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        )}
+        {indeterminate && !checked && (
+          <span className="block h-[2px] w-[10px] rounded-full bg-white" aria-hidden />
+        )}
+      </label>
+    </div>
+  );
+}
 
 const VendorDirectory = () => {
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Vendors");
   const [searchValue, setSearchValue] = useState("");
+  const [searchBy, setSearchBy] = useState("vendorId");
+  const [searchByOpen, setSearchByOpen] = useState(false);
+  const searchByRef = useRef<HTMLButtonElement | null>(null);
+  const moreActionsRef = useRef<HTMLDivElement | null>(null);
+  const [searchByPos, setSearchByPos] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const [vendors, setVendors] = useState<VendorRow[]>([]);
   const [sortState, setSortState] = useState<TriSortState<string>>({
     key: null,
     direction: "none",
   });
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const tabOptions = useMemo(() => ["Vendors", "Deleted"], []);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [selectMode, setSelectMode] = useState(false);
   const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
-  const [menuMode, setMenuMode] = useState<"main" | "action">("main");
+  const [activeHeaderFilter, setActiveHeaderFilter] = useState<
+    "Name" | "Source" | null
+  >(null);
+  const nameTypeFilter = useMultiSelectFilter(DEFAULT_CUSTOMER_NAME_TYPE_FILTER);
+  const sourceFilter = useMultiSelectFilter(DEFAULT_SOURCE_FILTER);
 
   const [generatedVendorCode, setGeneratedVendorCode] = useState("");
-
   const [selectedVendor, setSelectedVendor] = useState<any | null>(null);
   const [mode, setMode] = useState<"create" | "edit" | "view">("create");
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkSourceProfile, setLinkSourceProfile] =
+    useState<LinkProfileSource | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historyBookings, setHistoryBookings] = useState<
     {
@@ -148,10 +252,112 @@ const VendorDirectory = () => {
     }[]
   >([]);
 
-  const filteredVendors = useMemo(() => {
-    const list = vendors;
+  const mapStatusForModal = (status?: string) => {
+    switch ((status || "").toLowerCase()) {
+      case "confirmed":
+        return "Confirmed" as const;
+      case "cancelled":
+        return "Failed" as const;
+      case "draft":
+      default:
+        return "In Progress" as const;
+    }
+  };
 
-    // Apply tri-state sorting when active
+  useEffect(() => {
+    if (!activeHeaderFilter) return;
+
+    const handleOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      if (
+        target.closest("[data-header-filter-trigger]") ||
+        target.closest("[data-header-filter-dropdown]")
+      ) {
+        return;
+      }
+      setActiveHeaderFilter(null);
+    };
+
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [activeHeaderFilter]);
+
+  useEffect(() => {
+    if (activeHeaderFilter === "Name") {
+      nameTypeFilter.syncPendingFromApplied();
+    }
+    if (activeHeaderFilter === "Source") {
+      sourceFilter.syncPendingFromApplied();
+    }
+  }, [
+    activeHeaderFilter,
+    nameTypeFilter.syncPendingFromApplied,
+    sourceFilter.syncPendingFromApplied,
+  ]);
+
+  const handleHeaderIconClick = useCallback((column: string) => {
+    if (column !== "Name" && column !== "Source") return;
+    setActiveHeaderFilter((prev) => (prev === column ? null : column));
+  }, []);
+
+  const headerDropdownMap = useMemo(
+    () => ({
+      Name: {
+        isOpen: activeHeaderFilter === "Name",
+        align: "center" as const,
+        content: (
+          <CustomerNameTypeFilterDropdown
+            pendingValues={nameTypeFilter.pending}
+            onToggle={nameTypeFilter.togglePending}
+            onDeselectAll={nameTypeFilter.deselectAllPending}
+            onReset={nameTypeFilter.resetPending}
+            onApply={() => {
+              nameTypeFilter.applyPending();
+              setActiveHeaderFilter(null);
+            }}
+          />
+        ),
+      },
+      Source: {
+        isOpen: activeHeaderFilter === "Source",
+        align: "center" as const,
+        content: (
+          <CustomerSourceFilterDropdown
+            pendingValues={sourceFilter.pending}
+            onToggle={sourceFilter.togglePending}
+            onDeselectAll={sourceFilter.deselectAllPending}
+            onReset={sourceFilter.resetPending}
+            onApply={() => {
+              sourceFilter.applyPending();
+              setActiveHeaderFilter(null);
+            }}
+          />
+        ),
+      },
+    }),
+    [activeHeaderFilter, nameTypeFilter, sourceFilter],
+  );
+
+  const filteredVendors = useMemo(() => {
+    let list = vendors;
+
+    list = list.filter((vendor) =>
+      passesMultiSelectFilter(
+        nameTypeFilter.applied,
+        DEFAULT_CUSTOMER_NAME_TYPE_FILTER,
+        resolveVendorType(vendor),
+      ),
+    );
+
+    list = list.filter((vendor) =>
+      passesMultiSelectFilter(
+        sourceFilter.applied,
+        DEFAULT_SOURCE_FILTER,
+        resolveSourceFilterValue(vendor.source),
+      ),
+    );
+
     const sorted = (() => {
       if (!sortState.key || sortState.direction === "none") return list;
 
@@ -162,11 +368,9 @@ const VendorDirectory = () => {
 
       withIndex.sort((a, b) => {
         let cmp = 0;
-        if (sortState.key === "Rating") {
-          const ra = Number(a.item.rating) || 0;
-          const rb = Number(b.item.rating) || 0;
-          cmp = ra - rb;
-        } else if (sortState.key === "Date Modified") {
+        if (sortState.key === "Tier") {
+          cmp = (a.item.tier || 0) - (b.item.tier || 0);
+        } else if (sortState.key === "Last Modified") {
           const ta = getItemTimestamp({ createdAt: a.item.createdAt }) ?? 0;
           const tb = getItemTimestamp({ createdAt: b.item.createdAt }) ?? 0;
           cmp = ta - tb;
@@ -184,40 +388,25 @@ const VendorDirectory = () => {
     const search = searchValue.toLowerCase();
 
     return sorted.filter((v) => {
-      return (
-        v.vendorName?.toLowerCase().includes(search) ||
-        v.vendorID?.toLowerCase().includes(search) ||
-        v.vendorCode?.toLowerCase().includes(search) ||
-        v.poc?.toLowerCase().includes(search)
-      );
+      if (searchBy === "name") {
+        return (
+          (v.name || "").toLowerCase().includes(search) ||
+          (v.subtitle || "").toLowerCase().includes(search)
+        );
+      }
+      return (v.vendorID || "").toLowerCase().includes(search);
     });
-  }, [vendors, searchValue, sortState]);
-
-  const handleMenuToggle = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const handleOpenConfirmDeleteModal = () => {
-    setIsConfirmModalOpen(true);
-  };
-
-  const handleCloseMenu = () => setIsMenuOpen(false);
-
-  const handleSelectClick = () => {
-    setSelectMode(true);
-    setMenuMode("action"); // switch to new action menu
-
-    setIsMenuOpen(false); // Close current menu once
-  };
-
-  const handleCancelSelectMode = () => {
-    setSelectMode(false);
-    setSelectedVendors([]);
-    setMenuMode("main");
-  };
+  }, [
+    vendors,
+    searchValue,
+    searchBy,
+    sortState,
+    nameTypeFilter.applied,
+    sourceFilter.applied,
+  ]);
 
   const handleSort = (column: string) => {
-    if (column === "Rating" || column === "Date Modified") {
+    if (column === "Tier" || column === "Last Modified") {
       setSortState((prev) => getNextTriSortState(prev, column));
       return;
     }
@@ -229,88 +418,124 @@ const VendorDirectory = () => {
     setVendors(sorted);
   };
 
-  const getRatingBadge = (ratingString: string | number) => {
-    const ratingRaw =
-      typeof ratingString === "string"
-        ? ratingString.match(/⭐️/g)?.length || Number(ratingString)
-        : Number(ratingString);
+  const handleMenuToggle = () => setIsMenuOpen(!isMenuOpen);
+  const handleCloseMenu = () => setIsMenuOpen(false);
 
-    const rating = Math.min(Math.max(Math.round(ratingRaw), 1), 5);
+  const handleSelectClick = () => {
+    setSelectMode(true);
+    setIsMenuOpen(false);
+  };
 
+  const handleCancelSelectMode = () => {
+    setSelectMode(false);
+    setSelectedVendors([]);
+    setIsMenuOpen(false);
+  };
+
+  const handleSelectAllToggle = () => {
+    if (selectedVendors.length === vendors.length) {
+      setSelectedVendors([]);
+    } else {
+      setSelectedVendors(vendors.map((v) => v.vendorID));
+    }
+  };
+
+  const isAllSelected =
+    selectedVendors.length === vendors.length && vendors.length > 0;
+  const isSomeSelected =
+    selectedVendors.length > 0 && selectedVendors.length < vendors.length;
+
+  const selectAllHeaderCheckbox = renderSelectCheckbox(
+    "header-select-vendors",
+    isAllSelected,
+    handleSelectAllToggle,
+    isSomeSelected,
+  );
+
+  const getTierBadge = (tier: number) => {
+    const rating = Math.min(Math.max(Math.round(tier), 1), 3);
     const tierIcon = `/icons/tier-${rating}.svg`;
+    const tierLabel = TIER_LABELS[rating] ?? `Tier ${rating}`;
 
     return (
-      <div className="flex items-center gap-2 justify-center">
-        {/* Your custom tier icon */}
-        <div className="w-6 h-6 relative">
+      <div className="flex items-center justify-center gap-2">
+        <div className="relative h-5 w-5">
           <Image
             src={tierIcon}
-            alt={`Tier ${rating}`}
+            alt={tierLabel}
             width={20}
             height={20}
             className="object-contain"
-            unoptimized // Important for local PNGs served from /public
+            unoptimized
           />
         </div>
-        <span className="text-[0.75rem] font-semibold text-gray-700">
-          {rating}
+        <span className="text-[#414141]">{tierLabel}</span>
+      </div>
+    );
+  };
+
+  const renderSource = (source: VendorSource) => {
+    if (source.type === "none") {
+      return (
+        <div className="flex h-full w-full items-center justify-center">
+          <span className="text-[#414141]">—</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="mx-auto flex h-full w-full flex-col items-center justify-center gap-1">
+        <Image
+          src={SOURCE_ICON_MAP[source.type]}
+          alt={source.label}
+          width={20}
+          height={20}
+          className="h-5 w-5 shrink-0 object-contain"
+          unoptimized
+        />
+        <span className="text-center font-[400] text-[#414141]">
+          {source.label}
         </span>
       </div>
     );
   };
 
-  const formatDMY = (dateString: string) => {
-    const date = new Date(dateString);
+  const renderNameCell = (row: { name: string; subtitle?: string }) => (
+    <div className="mx-auto w-fit text-center">
+      <div className="font-[500] text-[#020202]">{row.name}</div>
+      {row.subtitle ? (
+        <div className="table-cell-subtext mt-0.5 text-[#818181]">
+          {row.subtitle}
+        </div>
+      ) : null}
+    </div>
+  );
 
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
+  const columnIconMap = useMemo<Record<string, JSX.Element>>(
+    () => ({
+      Name: (
+        <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+      ),
+      Source: (
+        <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+      ),
+      Tier: (
+        <span className="inline-flex items-center gap-2">
+          <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+          <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+        </span>
+      ),
+      "Last Modified": (
+        <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+      ),
+    }),
+    [],
+  );
 
-    return `${day}-${month}-${year}`;
-  };
-
-  const mapStatusForModal = (status?: string) => {
-    switch ((status || "").toLowerCase()) {
-      case "confirmed":
-        return "Confirmed" as const;
-      case "cancelled":
-        // Align with BookingHistoryModal expected status union which uses 'Failed'
-        return "Failed" as const;
-      case "draft":
-      default:
-        return "In Progress" as const;
-    }
-  };
-
-  const openHistoryForVendor = async (row: VendorRow) => {
-    try {
-      // Fetch full vendor data first
-      const fullVendorData = await getVendorById(row.vendorID);
-      setSelectedVendor(fullVendorData);
-
-      const resp = await getVendorBookingHistory(row.vendorID, {
-        sortBy: "createdAt",
-        sortOrder: "desc",
-        page: 1,
-        limit: 10,
-      });
-
-      const quotations = resp?.quotations || [];
-      setHistoryBookings(quotations);
-      setIsHistoryOpen(true);
-    } catch (e) {
-      console.error("Failed to open vendor history:", e);
-      setHistoryBookings([]);
-      setIsHistoryOpen(true);
-    }
-  };
-
-  // Handle Delete Vendor
   const handleDeleteVendor = async (vendorId: string) => {
     try {
       await deleteVendor(vendorId);
-      // Refresh your vendor list or remove from state
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error deleting vendor:", error);
       throw error;
     }
@@ -318,313 +543,507 @@ const VendorDirectory = () => {
 
   const fetchVendors = async () => {
     try {
-      const data = await getVendors({ isDeleted: activeTab === "Deleted" });
-      const mappedRows: VendorRow[] = data.map((v: any, index: number) => ({
-        ...v,
+      if (activeTab === "Deleted") {
+        const data = await getVendors({ isDeleted: true });
+        setVendors(data.map(mapVendorToRow));
+        return;
+      }
 
-        // - Use Mongo _id for all API calls.
-        // - Keep customId only for display.
-        vendorID: v._id || "",
-        vendorCode: v.customId || "",
-        vendorName: v.companyName || v.name || "—",
-        poc: v.contactPerson || "—",
-        rating: v.tier ? Number(v.tier.replace("tier", "")) : 4,
-        dateModified: formatDMY(v.createdAt),
-        createdAt: v.createdAt,
-        actions: "⋮",
-      }));
-      setVendors(mappedRows);
+      const data = await getVendors({ isDeleted: false });
+      setVendors(data.map(mapVendorToRow));
     } catch (err) {
-      console.error("Failed to fetch Vendors:", err);
+      console.error("Failed to fetch vendors:", err);
+      setVendors([]);
     }
   };
+
   useEffect(() => {
     fetchVendors();
   }, [activeTab]);
+
+  const openHistoryForVendor = async (row: VendorRow) => {
+    try {
+      const fullVendorData = await getVendorById(row._id);
+      setSelectedVendor(fullVendorData);
+
+      const resp = await getVendorBookingHistory(row._id, {
+        sortBy: "createdAt",
+        sortOrder: "desc",
+        page: 1,
+        limit: 10,
+      });
+
+      const quotations = resp?.quotations || [];
+      setHistoryBookings(
+        quotations.map((q: any) => ({
+          id: q.customId || q._id,
+          bookingDate: q.createdAt
+            ? new Date(q.createdAt).toLocaleDateString("en-IN")
+            : "—",
+          travelDate: q.travelDate ? String(q.travelDate) : "",
+          status: mapStatusForModal(q.status),
+          amount: q.totalAmount != null ? String(q.totalAmount) : "0",
+        })),
+      );
+      setIsHistoryOpen(true);
+    } catch (e) {
+      console.error("Failed to open vendor history:", e);
+      setSelectedVendor(row);
+      setHistoryBookings(
+        MOCK_BOOKING_HISTORY.map((q) => ({
+          id: q.customId,
+          bookingDate: "—",
+          travelDate: q.travelDate,
+          status: mapStatusForModal(q.status),
+          amount: String(q.totalAmount),
+        })),
+      );
+      setIsHistoryOpen(true);
+    }
+  };
+
+  const handleVendorRowClick = async (row: VendorRow) => {
+    if (selectMode) return;
+
+    try {
+      const vendor = await getVendorById(row._id);
+      setSelectedVendor(vendor);
+      setMode("view");
+      setIsSideSheetOpen(true);
+    } catch (e) {
+      console.error("Failed to fetch vendor:", e);
+      setSelectedVendor(row);
+      setMode("view");
+      setIsSideSheetOpen(true);
+    }
+  };
+
+  const activeVendorsAction = (row: VendorRow) => [
+    {
+      label: "Edit",
+      icon: <FaRegEdit size={14} />,
+      color: "text-[#126ACB]",
+      onClick: async () => {
+        try {
+          const vendor = await getVendorById(row._id);
+          setSelectedVendor(vendor);
+          setMode("edit");
+          setIsSideSheetOpen(true);
+        } catch (e) {
+          console.error("Failed to fetch vendor for edit:", e);
+        }
+      },
+    },
+    {
+      label: "Delete",
+      icon: <FaRegTrashAlt size={14} />,
+      color: "text-red-600",
+      confirmDeleteId: row.vendorID,
+      onClick: async () => {
+        await handleDeleteVendor(row._id);
+        fetchVendors();
+      },
+    },
+    {
+      label: "Link",
+      icon: (
+        <Image
+          src="/icons/link-icon.svg"
+          alt="Link"
+          width={14}
+          height={14}
+          className="object-contain"
+        />
+      ),
+      color: "text-[#419836]",
+      onClick: () => {
+        setLinkSourceProfile({
+          profileType: "Vendor",
+          id: row.vendorID,
+          name: row.name,
+          ...(row.subtitle ? { nickname: row.subtitle } : {}),
+          tier: row.tier,
+        });
+        setIsLinkModalOpen(true);
+      },
+    },
+    {
+      label: "Duplicate",
+      icon: <FiCopy size={14} />,
+      color: "text-[#818181]",
+      confirmDuplicateId: row.vendorID,
+      onClick: async () => {
+        try {
+          const vendor = await getVendorById(row._id);
+          const res = await CustomIdApi.generate("vendor");
+          setGeneratedVendorCode(res?.customId || "");
+          setSelectedVendor({
+            ...vendor,
+            _id: undefined,
+            customId: res?.customId || "",
+          });
+          setMode("create");
+          setIsSideSheetOpen(true);
+        } catch (e) {
+          console.error("Failed to duplicate vendor:", e);
+        }
+      },
+    },
+  ];
+
+  const deletedVendorsAction = (row: VendorRow) => [
+    {
+      label: "Resolve",
+      icon: <FaRegEdit size={14} />,
+      color: "text-[#126ACB]",
+      onClick: () => {
+        console.log(row);
+      },
+    },
+  ];
 
   const tableData = useMemo<JSX.Element[][]>(
     () =>
       filteredVendors.map((row, index) => {
         const cells: JSX.Element[] = [];
 
-        // Checkbox column when selectMode ON
         if (selectMode) {
           const isSelected = selectedVendors.includes(row.vendorID);
 
           cells.push(
             <td key={`select-${index}`} className="px-4 py-3 text-center">
-              <div className="flex items-center justify-center">
-                {/* Hidden checkbox */}
-                <input
-                  type="checkbox"
-                  id={`vendor-select-${row.vendorID}`}
-                  className="hidden peer"
-                  checked={isSelected}
-                  onChange={() => {
-                    setSelectedVendors(
-                      (prev) =>
-                        isSelected
-                          ? prev.filter((id) => id !== row.vendorID) // deselect
-                          : [...prev, row.vendorID], // select
-                    );
-                  }}
-                />
-
-                {/* Styled custom checkbox */}
-                <label
-                  htmlFor={`vendor-select-${row.vendorID}`}
-                  className={`w-5 h-5 border border-gray-400 rounded-md flex items-center justify-center cursor-pointer transition 
-        `}
-                >
-                  {isSelected && (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="12"
-                      height="11"
-                      viewBox="0 0 12 11"
-                      fill="none"
-                    >
-                      <path
-                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                        stroke="#0D4B37"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  )}
-                </label>
-              </div>
+              {renderSelectCheckbox(
+                `vendor-select-${row.vendorID}`,
+                isSelected,
+                () => {
+                  setSelectedVendors((prev) =>
+                    isSelected
+                      ? prev.filter((id) => id !== row.vendorID)
+                      : [...prev, row.vendorID],
+                  );
+                },
+              )}
             </td>,
           );
         }
 
-        // Normal Table Columns
         cells.push(
           <td
             key={`vendorID-${index}`}
-            className="px-4 py-3 font-[500] text-left"
+            className="h-[4rem] px-4 py-3 text-center align-middle text-[#020202]"
           >
-            {row.vendorCode || row.vendorID || "—"}
+            {row.vendorID}
           </td>,
-          <td key={`vendorName-${index}`} className="px-4 py-3  text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedVendor(row);
-                setMode("view");
-                setIsSideSheetOpen(true);
-              }}
-              className="p-0 m-0 bg-transparent border-0 hover:underline font-medium"
-              aria-label={`View ${row.vendorName}`}
-            >
-              {row.vendorName}
-            </button>
+          <td key={`name-${index}`} className="h-[4rem] px-4 py-3 text-center align-middle">
+            {renderNameCell(row)}
           </td>,
-          <td key={`poc-${index}`} className="px-4 py-3  text-center">
-            {row.poc}
+          <td key={`source-${index}`} className="h-[4rem] px-4 py-3 text-center align-middle">
+            {renderSource(row.source)}
           </td>,
-          <td key={`dateModified-${index}`} className="px-4 py-3  text-center">
+          <td key={`tier-${index}`} className="h-[4rem] px-4 py-3 text-center align-middle">
+            {getTierBadge(row.tier)}
+          </td>,
+          <td
+            key={`dateModified-${index}`}
+            className="h-[4rem] px-4 py-3 text-center align-middle text-[#414141]"
+          >
             {row.dateModified}
           </td>,
-          <td key={`rating-${index}`} className="px-4 py-3  text-center">
-            {getRatingBadge(row.rating)}
-          </td>,
-
-          // Action menu
-          <td key={`actions-${index}`} className="px-4 py-3  text-center">
-            <div className="flex items-center justify-center gap-2">
-              <button
-                type="button"
-                className="bg-[#E9ECF0] text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
-                onClick={() => openHistoryForVendor(row)}
-              >
-                <MdHistory className="inline mr-1" size={14} />
-                Booking History
-              </button>
-              <ActionMenu
-                actions={[
-                  {
-                    label: "Edit",
-                    icon: <FaRegEdit />,
-                    color: "text-blue-600",
-                    onClick: () => {
-                      setSelectedVendor(row);
-                      setIsSideSheetOpen(true);
-                      setMode("edit");
-                    },
-                  },
-                  {
-                    label: "Delete",
-                    icon: <FaRegTrashAlt />,
-                    color: "text-red-600",
-                    onClick: () => {
-                      setSelectedVendor(row);
-                      handleOpenConfirmDeleteModal();
-                    },
-                  },
-                ]}
-                width="w-22"
-              />
+          <td key={`actions-${index}`} className="h-[4rem] px-4 py-3 text-center align-middle">
+            <div
+              className="mx-auto grid w-[12rem] grid-cols-[1fr_2rem] items-center gap-2"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex min-h-[34px] items-center justify-end">
+                {activeTab === "Vendors" && (
+                  <button
+                    type="button"
+                    className={`inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-[8px] border border-[#F0E4C8] bg-[#FFF1C2] px-3 py-1.5 font-[500] text-[#414141] hover:bg-[#FFE9A8] ${ROW_HOVER_ACTION_CLASS}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openHistoryForVendor(row);
+                    }}
+                  >
+                    <MdHistory size={14} />
+                    Booking History
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center justify-center">
+                <ActionMenu
+                  revealClassName={ROW_HOVER_ACTION_CLASS}
+                  actions={
+                    activeTab === "Vendors"
+                      ? activeVendorsAction(row)
+                      : deletedVendorsAction(row)
+                  }
+                  align="left"
+                  width="min-w-[7.5rem]"
+                />
+              </div>
             </div>
           </td>,
         );
 
         return cells;
       }),
-    [filteredVendors, selectMode, selectedVendors],
+    [filteredVendors, selectMode, selectedVendors, activeTab],
   );
 
   const selectedDeletables: DeletableItem[] = useMemo(() => {
-    return vendors
-      .filter((v) => selectedVendors.includes(v.vendorID))
+    const rowById = new Map(vendors.map((v) => [v.vendorID, v]));
+
+    return selectedVendors
+      .map((id) => rowById.get(id))
+      .filter((v): v is VendorRow => Boolean(v))
       .map((v) => ({
         id: v.vendorID,
-        vendorName: v.vendorName,
-        poc: v.poc,
-        rating: Number(v.rating),
+        mongoId: v._id,
+        name: v.name,
+        ...(v.subtitle ? { subtitle: v.subtitle } : {}),
+        source: v.source,
+        rating: Number(v.tier),
         dateModified: v.dateModified,
       }));
   }, [vendors, selectedVendors]);
 
+  const totalCount = vendors.length;
+
+  const tableSharedProps = {
+    columnIconMap,
+    onHeaderIconClick: handleHeaderIconClick,
+    headerIconClickableColumns: ["Name", "Source"] as string[],
+    headerDropdownMap,
+    showCheckboxColumn: selectMode,
+    headerCheckbox: selectMode ? selectAllHeaderCheckbox : undefined,
+    onSort: handleSort,
+    categoryName: "Vendors" as const,
+    initialRowsPerPage: 8,
+    maxRowsPerPageOptions: [8, 16, 24, 48],
+    headerClassName: "bg-[#F3F3F3]",
+    headerRowTextClassName: "text-[#818181]",
+    headerCellTextClassName: "text-[#818181]",
+    headerAlign: {
+      "Vendor ID": "center" as const,
+      Name: "center" as const,
+      Source: "center" as const,
+      Tier: "center" as const,
+      "Last Modified": "center" as const,
+      Actions: "center" as const,
+    },
+    columnWidthClassMap: {
+      "Vendor ID": "w-[8rem]",
+      Name: "w-[12rem]",
+      Source: "w-[11rem]",
+      Tier: "w-[8rem]",
+      "Last Modified": "w-[9rem]",
+      Actions: "w-[14rem]",
+    },
+    enableRowHoverActions: true,
+  };
+
   return (
-    <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
-      <div className="flex items-center justify-between rounded-2xl px-4 py-3">
-        {/*  Tabs */}
-        <SlidingTabs
-          tabs={tabOptions}
-          activeTab={activeTab}
-          onChange={setActiveTab}
-        />
-
-        {/*  Total Count + Add Button */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
-            <span className="text-gray-600 text-[0.85rem] font-medium">
-              Total
-            </span>
-            <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
-              {vendors.length}
-            </span>
-          </div>
-          <button
-            onClick={async () => {
-              try {
-                const res = await CustomIdApi.generate("vendor");
-
-                // IMPORTANT: use backend field name
-                setGeneratedVendorCode(res?.customId);
-
-                setSelectedVendor(null);
-                setMode("create");
-                setIsSideSheetOpen(true);
-              } catch (err) {
-                console.error("Failed to generate vendor code", err);
-              }
-            }}
-            className="flex items-center text-[14px] cursor-pointer gap-[8px] px-[16px] py-[7px] rounded-[6px] bg-[#0D4B37] text-white font-[500]"
-            type="button"
-          >
-            + Add Vendor
-          </button>
-        </div>
-      </div>
-
-      <div className="border-t border-gray-200 mb-4 mt-2"></div>
-
-      {/* SEARCH & SORT */}
-      <div className="flex items-center justify-between mb-4 px-2">
-        <div className="relative w-[24rem] ">
-          <input
-            type="text"
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            placeholder="Search by Vendor ID/Name/POC"
-            className="w-full text-[0.85rem] py-2 pl-4 pr-10 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-900 text-gray-700 bg-white"
+    <div className="console-page-viewport overflow-hidden bg-[#F9F9F9] px-7 py-0">
+      <div className="flex h-full min-h-0 w-full max-w-full min-w-0 flex-col overflow-x-hidden">
+        <div className="relative mb-6 mt-4 flex w-full shrink-0 items-center justify-between">
+          <TableTabs
+            tabs={tabOptions}
+            activeTab={activeTab}
+            onChange={setActiveTab}
+            totalCount={totalCount}
           />
 
-          <FiSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-[0.85rem] pointer-events-none" />
-        </div>
+          <div className="relative flex items-center gap-3">
+            {selectMode ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCancelSelectMode}
+                  className="inline-flex h-10 cursor-pointer items-center rounded-[14px] border border-[#E2E1E1] bg-white px-5 text-[14px] font-medium text-[#414141] transition-colors hover:bg-[#FAFAFA]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSelectAllToggle}
+                  className="inline-flex h-10 cursor-pointer items-center rounded-[14px] border border-[#E2E1E1] bg-white px-5 text-[14px] font-medium text-[#414141] transition-colors hover:bg-[#FAFAFA]"
+                >
+                  {isAllSelected ? "Deselect all" : "Select all"}
+                </button>
+                <div className="relative inline-flex items-center" ref={moreActionsRef}>
+                  <button
+                    type="button"
+                    onClick={handleMenuToggle}
+                    className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-[14px] text-[#414141] transition-colors hover:bg-[#F3F3F3]"
+                    aria-label="More actions"
+                    aria-expanded={isMenuOpen}
+                  >
+                    <IoEllipsisHorizontal className="text-[22px]" />
+                  </button>
+                  <DownloadMergeMenu
+                    isOpen={isMenuOpen}
+                    onClose={handleCloseMenu}
+                    callback={fetchVendors}
+                    entity="vendor"
+                    items={selectedDeletables}
+                    rootRef={moreActionsRef}
+                    menuVariant="dropdown"
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="relative inline-flex" ref={moreActionsRef}>
+                <button
+                  type="button"
+                  onClick={handleMenuToggle}
+                  className={`inline-flex cursor-pointer items-stretch overflow-hidden border border-[#7135AD66] bg-white text-[14px] font-[600] text-[#414141] transition-colors hover:bg-[#FAFAFA] ${
+                    isMenuOpen
+                      ? "rounded-t-[14px] rounded-b-none"
+                      : "rounded-[14px]"
+                  }`}
+                >
+                  <span className="flex items-center px-[14px] py-[8px]">
+                    More Actions
+                  </span>
+                  <span className="flex items-center border-l border-[#7135AD66] px-[10px] py-[8px]">
+                    <MdOutlineKeyboardArrowDown className="text-[18px] text-[#414141]" />
+                  </span>
+                </button>
 
-        <div className="flex items-center gap-2 relative">
-          {/* Show these two only in select mode selecting functionality of customer array */}
-          {selectMode && (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleCancelSelectMode}
-                className="px-2 py-1.5 w-[5rem] text-[0.75rem] font-semibold text-[#414141] border border-gray-200 bg-[#F9F9F9] hover:bg-gray-100 rounded-md"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  if (selectedVendors.length === vendors.length) {
-                    setSelectedVendors([]); // deselect all
-                  } else {
-                    setSelectedVendors(vendors.map((v) => v.vendorID)); // select all
-                  }
-                }}
-                className="px-2 py-1.5 w-[5rem] mr-3 text-[0.75rem] font-semibold rounded-md border border-gray-300 bg-white hover:bg-gray-100"
-              >
-                {selectedVendors.length === vendors.length
-                  ? "Deselect All"
-                  : "Select All"}
-              </button>
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={handleMenuToggle}
-            className="p-2 rounded-lg mr-1 border border-gray-200 bg-white hover:bg-gray-100 relative z-[30]"
-          >
-            <IoEllipsisHorizontal className="text-[0.85rem] text-gray-500" />
-          </button>
-
-          {/* Conditionally render menus */}
-          {isMenuOpen && (
-            <div
-              className="
-        absolute
-        top-full
-        right-0
-        
-        z-[40]
-      "
-              style={{ pointerEvents: "auto" }}
-            >
-              {menuMode === "main" ? (
                 <SelectUploadMenu
                   isOpen={isMenuOpen}
                   onClose={handleCloseMenu}
-                  onSelect={handleSelectClick} // triggers the switch
+                  onSelect={handleSelectClick}
                   entity="vendor"
+                  rootRef={moreActionsRef}
                 />
-              ) : (
-                <DownloadMergeMenu
-                  isOpen={isMenuOpen}
-                  onClose={handleCloseMenu}
-                  entity="vendor"
-                  items={selectedDeletables}
-                  callback={() => {
-                    fetchVendors();
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const res = await CustomIdApi.generate("vendor");
+                  setGeneratedVendorCode(res?.customId || "");
+                  setSelectedVendor(null);
+                  setMode("create");
+                  setIsSideSheetOpen(true);
+                } catch (err) {
+                  console.error("Failed to generate vendor code", err);
+                }
+              }}
+              className="cursor-pointer rounded-[14px] bg-[#7135AD] px-[14px] py-[8px] text-[14px] font-[500] text-white"
+            >
+              + Add Vendor
+            </button>
+          </div>
+        </div>
+
+        <div className="relative flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
+          <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[#E5E7EB] px-5 py-4">
+            <div className="min-w-0 flex-1">
+              <div className="flex h-[44px] max-w-[34rem] items-stretch overflow-hidden rounded-[14px] border border-[#E2E1E1] bg-white">
+                <button
+                  ref={searchByRef}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const rect = searchByRef.current?.getBoundingClientRect();
+                    if (rect) {
+                      setSearchByPos({
+                        left: rect.left,
+                        top: rect.top,
+                        width: rect.width,
+                        height: rect.height,
+                      });
+                    }
+                    setSearchByOpen((prev) => !prev);
                   }}
-                />
-              )}
+                  className="flex h-full shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap px-3 text-[12px] font-[400] text-[#020202]"
+                >
+                  <span>{searchBy === "name" ? "Name" : "Vendor ID"}</span>
+                  <MdOutlineKeyboardArrowDown className="text-[20px] text-[#7A7A7A]" />
+                </button>
+
+                <div className="flex min-w-0 flex-1 items-center border-l border-[#D9D9D9]">
+                  <input
+                    type="text"
+                    placeholder="Type here"
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    className="h-full min-w-0 flex-1 bg-transparent pl-3 pr-3 text-[12px] font-normal text-[#111111] outline-none placeholder:text-[#A0A9BA]"
+                  />
+                  <CiSearch className="mr-4 shrink-0 text-[#808080]" size={22} />
+                </div>
+              </div>
+
+              {searchByOpen &&
+                searchByPos &&
+                createPortal(
+                  <div
+                    style={{
+                      position: "fixed",
+                      left: searchByPos.left,
+                      top: searchByPos.top + searchByPos.height + 4,
+                      minWidth: searchByPos.width,
+                      zIndex: 9999,
+                    }}
+                    className="overflow-hidden rounded-[16px] border border-[#D9D9D9] bg-white shadow-[0_10px_25px_rgba(0,0,0,0.10)]"
+                  >
+                    {[
+                      { value: "vendorId", label: "Vendor ID" },
+                      { value: "name", label: "Name" },
+                    ].map((option, index, arr) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => {
+                          setSearchBy(option.value);
+                          setSearchByOpen(false);
+                        }}
+                        className={`block w-full cursor-pointer whitespace-nowrap px-3 py-2 text-left text-[12px] ${
+                          searchBy === option.value
+                            ? "text-[#7C3AED]"
+                            : "text-[#444444]"
+                        } ${index < arr.length - 1 ? "border-b border-[#D9D9D9]" : ""}`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>,
+                  document.body,
+                )}
             </div>
-          )}
+
+            <div className="flex shrink-0 items-center rounded-full border border-[#C6B2DE] px-[14px] py-[6px] align-middle font-[Poppins,sans-serif] text-[12px] leading-[20px] tracking-[0] text-[#4B4B4B]">
+              <span className="font-normal italic">Total : </span>
+              <span className="font-normal not-italic text-[#7135AD]">
+                {totalCount}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-4 flex min-h-0 flex-1 flex-col px-5 pb-4 pt-[4px]">
+            <Table
+              data={tableData}
+              columns={columns}
+              externalTotalRows={totalCount}
+              {...tableSharedProps}
+              {...(selectMode
+                ? {}
+                : {
+                    onRowClick: (index: number) => {
+                      const row = filteredVendors[index];
+                      if (!row) return;
+                      handleVendorRowClick(row);
+                    },
+                  })}
+            />
+          </div>
         </div>
       </div>
 
-      <div className="min-h-screen mt-2 px-2">
-        <Table
-          data={tableData}
-          columns={columns}
-          columnIconMap={columnIconMap}
-          showCheckboxColumn={selectMode}
-          onSort={handleSort}
-          categoryName="Vendors"
-        />
-      </div>
       {isSideSheetOpen && (
         <BookingProvider>
           <AddVendorSideSheet
@@ -635,7 +1054,7 @@ const VendorDirectory = () => {
               setMode("create");
               setGeneratedVendorCode("");
             }}
-            data={selectedVendor} // REQUIRED
+            data={selectedVendor}
             mode={mode}
             vendorCode={generatedVendorCode}
             onSuccess={fetchVendors}
@@ -643,22 +1062,17 @@ const VendorDirectory = () => {
         </BookingProvider>
       )}
 
-      {isConfirmModalOpen && (
-        <ConfirmationModal
-          isOpen={isConfirmModalOpen}
-          onClose={() => setIsConfirmModalOpen(false)}
-          title="Are you sure you want to delete the selected vendor?"
-          confirmText="Yes, Delete"
-          cancelText="Cancel"
-          confirmButtonColor="bg-red-600"
-          onConfirm={() => {
-            if (!selectedVendor) return;
-
-            handleDeleteVendor(selectedVendor.vendorID || selectedVendor._id);
-            setIsConfirmModalOpen(false);
+      {isLinkModalOpen && (
+        <LinkProfilesModal
+          isOpen={isLinkModalOpen}
+          onClose={() => {
+            setIsLinkModalOpen(false);
+            setLinkSourceProfile(null);
           }}
+          sourceProfile={linkSourceProfile}
         />
       )}
+
       {isHistoryOpen && (
         <BookingHistoryModal
           isOpen={isHistoryOpen}
@@ -667,7 +1081,6 @@ const VendorDirectory = () => {
             selectedVendor
               ? async () => {
                   try {
-                    // Fetch fresh vendor data if needed
                     const vendorData = await getVendorById(
                       selectedVendor._id || selectedVendor.vendorID,
                     );
@@ -685,7 +1098,6 @@ const VendorDirectory = () => {
             selectedVendor
               ? async () => {
                   try {
-                    // Fetch fresh vendor data if needed
                     const vendorData = await getVendorById(
                       selectedVendor._id || selectedVendor.vendorID,
                     );

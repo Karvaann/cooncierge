@@ -660,11 +660,11 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
             </div>
             <div className="absolute right-3 top-2 text-sm font-medium">
               {balanceType === "debit" ? (
-                <span className="text-red-500 text-[0.75rem]">
+                <span className="text-[0.75rem] text-[#419836]">
                   Customer pays you {getStoredCurrencySymbol()} {balanceAmount || ""}
                 </span>
               ) : (
-                <span className="text-green-500 text-[0.75rem]">
+                <span className="text-[0.75rem] text-red-500">
                   You pay the customer {getStoredCurrencySymbol()} {balanceAmount || ""}
                 </span>
               )}

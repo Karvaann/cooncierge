@@ -1,0 +1,31 @@
+[
+  {
+    "_id": "mock-bh-1",
+    "customId": "OS-ABC12",
+    "quotationType": "flight",
+    "travelDate": "2026-03-05",
+    "status": "confirmed",
+    "totalAmount": 5000,
+    "taskCount": 1
+  },
+  {
+    "_id": "mock-bh-2",
+    "customId": "LI-ABC13",
+    "quotationType": "land",
+    "travelDate": "2026-03-05",
+    "status": "confirmed",
+    "totalAmount": 5000,
+    "taskCount": 1,
+    "secondaryStatus": "Travelled"
+  },
+  {
+    "_id": "mock-bh-3",
+    "customId": "OS-ABC14",
+    "quotationType": "others",
+    "travelDate": "2026-03-05",
+    "status": "cancelled",
+    "totalAmount": 5000,
+    "taskCount": 1,
+    "exploreTag": "Explore UAE"
+  }
+]

@@ -100,8 +100,8 @@ const AddBankSidesheet: React.FC<AddBankSidesheetProps> = ({
       position="right"
       zIndex={1050}
     >
-      <div className="flex flex-col h-full">
-        <div className="flex-1 overflow-y-auto px-6 pb-24">
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="sidesheet-scroll-body px-6 pb-24">
           <div className="mt-3 p-4 border border-gray-200 rounded-lg bg-white">
             <div className="grid grid-cols-1 gap-4">
               <div>

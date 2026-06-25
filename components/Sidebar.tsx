@@ -1,11 +1,16 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
-import { MdKeyboardArrowUp } from "react-icons/md";
-import { menuItems } from "@/components/navigation/menuItems";
+import { useEffect, useMemo, useState } from "react";
+import { IoChevronForward } from "react-icons/io5";
+import { TbLayoutSidebarLeftCollapse } from "react-icons/tb";
+import SidebarNavIcon from "@/components/navigation/SidebarNavIcon";
+import {
+  menuItems,
+  SIDEBAR_WIDTH_OPEN,
+  type MenuItem,
+} from "@/components/navigation/menuItems";
 import { useAuth } from "@/context/AuthContext";
 
 interface SidebarProps {
@@ -13,217 +18,213 @@ interface SidebarProps {
   setIsOpen: (isOpen: boolean) => void;
 }
 
+function getLabelClassName(isActive: boolean, isShifted = isActive) {
+  return [
+    "sidebar-nav-label flex-1 text-left",
+    isShifted ? "is-active" : "",
+    "group-focus-visible:text-[#7135AD]",
+    isActive
+      ? "font-medium text-[#7135AD]"
+      : "font-normal text-[#818181] group-hover:text-[#7135AD]",
+  ].join(" ");
+}
+
+function getSubLabelClassName(isActive: boolean) {
+  return [
+    "sidebar-nav-label",
+    isActive ? "is-active" : "",
+    "group-focus-visible:text-[#7135AD]",
+    isActive
+      ? "font-medium text-[#7135AD]"
+      : "font-normal text-[#818181] group-hover:text-[#7135AD]",
+  ].join(" ");
+}
+
+function getMenuItemClassName(isHighlighted: boolean) {
+  return [
+    "group flex w-full items-center gap-3 rounded-[10px] px-3 py-2 transition-colors duration-200 outline-none",
+    "focus-visible:bg-[#F5F5F5]",
+    isHighlighted
+      ? "bg-[#F5F5F5] text-[#7135AD]"
+      : "text-[#818181]",
+  ].join(" ");
+}
+
+function isItemActive(pathname: string, item: MenuItem): boolean {
+  if (item.href) {
+    const baseHref = item.href.split("#")[0] ?? item.href;
+    return pathname === baseHref || pathname.startsWith(`${baseHref}/`);
+  }
+
+  return (item.subMenu ?? []).some((sub) => {
+    const baseHref = sub.href.split("#")[0] ?? sub.href;
+    return pathname === baseHref || pathname.startsWith(`${baseHref}/`);
+  });
+}
+
+function isSubItemActive(pathname: string, href: string): boolean {
+  const baseHref = href.split("#")[0] ?? href;
+  return pathname === baseHref || pathname.startsWith(`${baseHref}/`);
+}
+
 export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [openSubMenuIndex, setOpenSubMenuIndex] = useState<number | null>(null);
-  const sidebarRef = useRef<HTMLDivElement | null>(null);
   const { user } = useAuth();
   const pathname = usePathname();
 
-  let itemsToRender = menuItems;
+  const itemsToRender = useMemo(() => {
+    if (!user?.isBookingChecker) {
+      return menuItems.filter((item) => item.label !== "Approvals");
+    }
 
-  if (!user?.isBookingChecker) {
-    itemsToRender = itemsToRender.filter((it) => it.label !== "Approvals");
-  }
+    return menuItems;
+  }, [user?.isBookingChecker]);
 
   const settingsItem = itemsToRender.find((item) => item.label === "Settings");
   const primaryItems = itemsToRender.filter((item) => item.label !== "Settings");
 
-  const renderMenuItem = (item: (typeof menuItems)[number], index: number) => {
-    const isRouteSelected = item.href
-      ? pathname === item.href || pathname.startsWith(`${item.href}/`)
-      : (item.subMenu ?? []).some(
-          (sub) => pathname === sub.href || pathname.startsWith(`${sub.href}/`),
-        );
+  useEffect(() => {
+    const activeIndex = itemsToRender.findIndex((item) => isItemActive(pathname, item));
+    if (activeIndex >= 0 && itemsToRender[activeIndex]?.subMenu) {
+      setOpenSubMenuIndex(activeIndex);
+    }
+  }, [pathname, itemsToRender]);
+
+  const renderMenuItem = (item: MenuItem, index: number) => {
+    const isRouteSelected = isItemActive(pathname, item);
     const isExpanded = openSubMenuIndex === index;
-    const isActive = isExpanded || isRouteSelected;
-    const showArrow = isOpen && Boolean(item.subMenu);
-    const commonItemClasses = "flex items-center gap-3 px-4 h-8";
-    const labelClassName =
-      "text-[13px] transition-transform duration-300 group-hover:translate-x-1";
+    const showSubMenu = Boolean(item.subMenu?.length);
+    const isLabelActive = isRouteSelected || isExpanded;
+    const isHighlighted = isRouteSelected || isExpanded;
+    const itemClasses = getMenuItemClassName(isHighlighted);
+
+    const content = (
+      <>
+        <SidebarNavIcon
+          src={item.icon}
+          active={isRouteSelected || isExpanded}
+          className={
+            isRouteSelected || isExpanded ? "" : "group-hover:bg-[#7135AD]"
+          }
+        />
+        {isOpen ? (
+          <>
+            <span className={getLabelClassName(isLabelActive, !showSubMenu && isRouteSelected)}>
+              {item.label}
+            </span>
+            {showSubMenu ? (
+              <IoChevronForward
+                className={`sidebar-nav-chevron shrink-0 transition-transform duration-200 ${
+                  isLabelActive
+                    ? "text-[#7135AD]"
+                    : "text-[#818181] group-hover:text-[#7135AD]"
+                } ${isExpanded ? "rotate-90" : ""}`}
+              />
+            ) : null}
+          </>
+        ) : null}
+      </>
+    );
 
     return (
-      <li
-        key={item.label}
-        className={`relative group px-[3px] py-[8px] flex flex-col font-[400] items-center justify-center rounded-[16px] ${
-          isRouteSelected
-            ? "bg-gradient-to-r from-[#3E1466] to-[#110919] text-white shadow-[0_2px_8px_0_rgba(92,44,138,0.25)]"
-            : isExpanded || hoveredIndex === index
-              ? "bg-gradient-to-r from-[#585D7D] to-[#43527A] text-white"
-              : "text-[#9CA3AF]"
-        }`}
-        style={{
-          transition: "background 0.3s",
-        }}
-        onMouseEnter={() => setHoveredIndex(index)}
-        onMouseLeave={() => setHoveredIndex(null)}
-      >
-        {item.subMenu ? (
-          <button
-            type="button"
-            className={`${commonItemClasses} w-full text-left`}
-            onClick={() => setOpenSubMenuIndex(isActive ? null : index)}
+      <li key={item.label}>
+        {showSubMenu ? (
+          <div
+            className={
+              isExpanded ? "overflow-hidden rounded-[10px] bg-[#F5F5F5]" : ""
+            }
           >
-            <item.icon className="w-4 h-4" />
-            {isOpen && <span className={labelClassName}>{item.label}</span>}
-            {showArrow && (
-              <MdKeyboardArrowUp
-                size={16}
-                className={`ml-auto transform transition-transform duration-300 text-gray-100 ${
-                  !isActive ? "rotate-90" : "rotate-180"
-                }`}
-              />
-            )}
-          </button>
+            <button
+              type="button"
+              className={
+                isExpanded
+                  ? "group flex w-full items-center gap-3 px-3 py-2 text-[#7135AD] transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#7135AD]/30"
+                  : itemClasses
+              }
+              onClick={() => setOpenSubMenuIndex(isExpanded ? null : index)}
+              title={!isOpen ? item.label : undefined}
+            >
+              {content}
+            </button>
+
+            {isOpen && isExpanded ? (
+              <ul className="flex flex-col gap-0.5 border-l border-[#E8E8E8] pb-1.5 pl-6 ml-4">
+                {item.subMenu?.map((sub) => {
+                  const isSubActive = isSubItemActive(pathname, sub.href);
+
+                  return (
+                    <li key={sub.href}>
+                      <Link
+                        prefetch
+                        href={sub.href}
+                        className="group block rounded-[8px] px-2 py-1.5 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-[#7135AD]/30"
+                        aria-current={isSubActive ? "page" : undefined}
+                      >
+                        <span className={getSubLabelClassName(isSubActive)}>
+                          {sub.label}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+          </div>
         ) : item.href ? (
           <Link
             prefetch
             href={item.href}
-            className={`${commonItemClasses} block w-full`}
+            className={itemClasses}
+            title={!isOpen ? item.label : undefined}
+            aria-current={isRouteSelected ? "page" : undefined}
           >
-            <item.icon className="w-4 h-4" />
-            {isOpen && <span className={labelClassName}>{item.label}</span>}
+            {content}
           </Link>
         ) : (
-          <button
-            type="button"
-            className={`${commonItemClasses} w-full text-left font-[400] cursor-default`}
-            disabled
-          >
-            <item.icon className="w-4 h-4" />
-            {isOpen && <span className={labelClassName}>{item.label}</span>}
+          <button type="button" className={`${itemClasses} cursor-default`} disabled title={item.label}>
+            {content}
           </button>
-        )}
-        {!isOpen && hoveredIndex === index && (
-          <div className="absolute left-[calc(100%+12px)] top-1/2 z-[70] -translate-y-1/2">
-            {item.subMenu ? (
-              <div className="relative overflow-hidden rounded-[12px] bg-gradient-to-r from-[#121226] via-[#1D1A2F] to-[#2D2B39] px-5 py-3 text-white shadow-[0_20px_45px_rgba(0,0,0,0.30)]">
-                <span className="absolute left-0 top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[6px] bg-[#171528]" />
-                <div className="flex items-start gap-2">
-                  <div className="text-[14px] flex flex-col items-center gap-1 font-[500] leading-none">
-                    <div>{item.label}</div>
-                    <div className="bg-[rgb(216,178,255)] w-[1px]" />
-                  </div>
-                  <div className="flex flex-col gap-3 pt-2">
-                    {item.subMenu.map((sub) => (
-                      <Link
-                        key={sub.href}
-                        prefetch
-                        href={sub.href}
-                        className="whitespace-nowrap text-[12px] font-[400] leading-none text-white transition-transform duration-200 hover:translate-x-1 hover:text-[#D8B2FF]"
-                      >
-                        {sub.label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="pointer-events-none relative rounded-[14px] bg-[#2F343D] px-5 py-3 text-[14px] font-[400] text-white shadow-[0_18px_40px_rgba(0,0,0,0.25)]">
-                <span className="whitespace-nowrap">{item.label}</span>
-                <span className="absolute left-0 top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rotate-45 rounded-[4px] bg-[#2F343D]" />
-              </div>
-            )}
-          </div>
-        )}
-        {item.subMenu && isOpen && (
-          <ul
-            className={`relative pl-4 border-l flex flex-col gap-2 mt-1 border-l-[rgba(235,215,255,0.40)] transition-all duration-300 ease-in-out overflow-hidden ${
-              isActive ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
-            }`}
-            style={{
-              transition: "background 0.3s",
-            }}
-          >
-            {item.subMenu.map((sub) => (
-              <li key={sub.href}>
-                {(() => {
-                  const isSubRouteSelected =
-                    pathname === sub.href || pathname.startsWith(`${sub.href}/`);
-
-                  return (
-                <Link
-                  prefetch
-                  href={sub.href}
-                  className={`block rounded px-2 text-left font-[400] text-[12px] leading-[19px] transition-all duration-300 cursor-pointer ${
-                    isSubRouteSelected
-                      ? "translate-x-1 text-[#D8B2FF]"
-                      : "text-white hover:translate-x-1 hover:text-[#D8B2FF]"
-                  }`}
-                >
-                  {sub.label}
-                </Link>
-                  );
-                })()}
-              </li>
-            ))}
-          </ul>
         )}
       </li>
     );
   };
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        sidebarRef.current &&
-        event.target instanceof Node &&
-        !sidebarRef.current.contains(event.target)
-      ) {
-        setIsOpen(false);
-      }
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [setIsOpen]);
-
   return (
-    <aside
-      className="flex"
-      aria-label="Primary navigation"
-    >
+    <aside aria-label="Primary navigation">
+      {!isOpen ? null : (
       <div
-        ref={sidebarRef}
-        className={`fixed m-3 left-0 rounded-[33px] bg-[#110919] top-0 z-50 flex h-[95vh] flex-col shadow-[0_2px_8px_0_rgba(0,0,0,0.06)] pt-5 text-white transition-[width] duration-300 ease-out ${
-          isOpen ? "w-48" : "w-[68px]"
-        }`}
+        className="sidebar-shell fixed left-0 top-0 z-50 flex h-screen flex-col overflow-hidden border-r border-[#F0F0F0] bg-white transition-[width] duration-300 ease-out"
+        style={{ width: SIDEBAR_WIDTH_OPEN }}
       >
-        <div className="flex justify-center items-center w-full">
-          {isOpen ? (
-            <Image
-              src="/icons/sidebar/cooncierge-full.svg"
-              alt="Cooncierge wordmark"
-              width={120}
-              height={28}
-              className="h-[66px] w-auto"
-              priority
-            />
-          ) : (
-            <Image
-              src="/icons/sidebar/cooncierge.svg"
-              alt="Cooncierge logo"
-              width={84}
-              height={68}
-              className="h-[64px] w-[120px]"
-              priority
-            />
-          )}
+        <div className="flex shrink-0 items-center justify-between border-b border-[#F0F0F0] px-4 py-5">
+          <span className="font-[Poppins,sans-serif] text-[22px] font-semibold leading-none text-[#7135AD]">
+            ciergo
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#818181] transition-colors hover:bg-[#F5F5F5] hover:text-[#414141]"
+            aria-label="Collapse sidebar"
+          >
+            <TbLayoutSidebarLeftCollapse size={18} />
+          </button>
         </div>
 
-        <nav aria-label="Sidebar" className="mt-0 flex min-h-0 flex-1 flex-col justify-between">
-          <ul className="p-[8px] space-y-1">
-            {primaryItems.map((item, index) => renderMenuItem(item, index))}
-          </ul>
+        <nav
+          aria-label="Sidebar"
+          className="flex min-h-0 flex-1 flex-col justify-between overflow-y-auto px-3 py-4"
+        >
+          <ul className="flex flex-col gap-1">{primaryItems.map(renderMenuItem)}</ul>
+
           {settingsItem ? (
-            <ul className="p-[8px] pt-0">
+            <ul className="mt-4 flex flex-col gap-1 border-t border-[#F0F0F0] pt-4">
               {renderMenuItem(settingsItem, primaryItems.length)}
             </ul>
           ) : null}
         </nav>
       </div>
+      )}
     </aside>
   );
 }

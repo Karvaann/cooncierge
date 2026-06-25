@@ -1,5 +1,3 @@
-import axios from "axios";
-
 const TOKEN_KEY = "token";
 const USER_KEY = "user";
 
@@ -36,17 +34,7 @@ export const getAuthUser = <T = unknown>(): T | null => {
   }
   const raw = localStorage.getItem(USER_KEY);
   if (!raw) {
-      axios.get("http://localhost:8080/auth/get-current-user", {
-        headers: {
-          "x-access-token": getAuthToken() || "",
-        },
-      })
-      .then((res) => {
-        setAuthUser(res.data.user);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch current user", err);
-      });
+    return null;
   }
 
   try {

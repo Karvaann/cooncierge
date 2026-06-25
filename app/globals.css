@@ -393,6 +393,15 @@ body {
   border-color: #0D4B37;
 }
 
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 /* Remove number input arrows */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
@@ -447,6 +456,450 @@ select:-webkit-autofill {
   -webkit-box-shadow: 0 0 0 1000px white inset !important;
   box-shadow: 0 0 0 1000px white inset !important;
   -webkit-text-fill-color: inherit !important;
+}
+
+@keyframes auth-error-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  12% {
+    transform: translateX(-6px);
+  }
+
+  24% {
+    transform: translateX(6px);
+  }
+
+  36% {
+    transform: translateX(-5px);
+  }
+
+  48% {
+    transform: translateX(5px);
+  }
+
+  60% {
+    transform: translateX(-3px);
+  }
+
+  72% {
+    transform: translateX(3px);
+  }
+
+  84% {
+    transform: translateX(-2px);
+  }
+}
+
+@keyframes auth-error-border-flicker {
+  0%,
+  100% {
+    border-color: #eb382b;
+    box-shadow: 0 0 0 1px rgba(235, 56, 43, 0.35);
+  }
+
+  25%,
+  75% {
+    border-color: #ff5a4d;
+    box-shadow: 0 0 8px rgba(235, 56, 43, 0.55);
+  }
+
+  50% {
+    border-color: #eb382b;
+    box-shadow: 0 0 0 2px rgba(235, 56, 43, 0.25);
+  }
+}
+
+@keyframes auth-error-text-flicker {
+  0%,
+  100% {
+    opacity: 1;
+    color: #eb382b;
+  }
+
+  25%,
+  75% {
+    opacity: 0.75;
+    color: #ff5a4d;
+  }
+
+  50% {
+    opacity: 1;
+    color: #eb382b;
+  }
+}
+
+@keyframes auth-error-jiggle {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  15% {
+    transform: translateX(-4px);
+  }
+
+  30% {
+    transform: translateX(4px);
+  }
+
+  45% {
+    transform: translateX(-3px);
+  }
+
+  60% {
+    transform: translateX(3px);
+  }
+
+  75% {
+    transform: translateX(-2px);
+  }
+
+  90% {
+    transform: translateX(2px);
+  }
+}
+
+.animate-auth-validation-error {
+  animation:
+    auth-error-shake 0.5s ease-in-out,
+    auth-error-border-flicker 0.5s ease-in-out;
+}
+
+.animate-auth-validation-error-shake {
+  animation: auth-error-shake 0.5s ease-in-out;
+}
+
+.animate-auth-validation-error-border {
+  animation: auth-error-border-flicker 0.5s ease-in-out;
+}
+
+.animate-auth-validation-error-text {
+  animation:
+    auth-error-shake 0.5s ease-in-out,
+    auth-error-text-flicker 0.5s ease-in-out;
+}
+
+.animate-auth-error-jiggle {
+  animation: auth-error-jiggle 0.45s ease-in-out;
+}
+
+@keyframes auth-cta-label-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-auth-cta-label {
+  animation: auth-cta-label-in 0.25s ease-out;
+}
+
+.sidebar-shell {
+  --sidebar-label-size: 12.5px;
+  --sidebar-label-line-height: 24px;
+  --sidebar-icon-size: 18px;
+  --sidebar-chevron-size: 14px;
+  --sidebar-label-slide: 5px;
+}
+
+.sidebar-logo-collapsed {
+  width: fit-content;
+  transition:
+    transform 0.3s ease-out,
+    opacity 0.3s ease-out,
+    border-radius 0.3s ease-out,
+    background-color 0.3s ease-out;
+  animation: sidebar-logo-in 0.3s ease-out;
+}
+
+@keyframes sidebar-logo-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (min-width: 1728px) {
+  .sidebar-shell {
+    --sidebar-label-size: 14px;
+    --sidebar-label-line-height: 27px;
+    --sidebar-icon-size: 20px;
+    --sidebar-chevron-size: 16px;
+    --sidebar-label-slide: 6px;
+  }
+}
+
+.sidebar-nav-icon {
+  width: var(--sidebar-icon-size);
+  height: var(--sidebar-icon-size);
+}
+
+.sidebar-nav-chevron {
+  width: var(--sidebar-chevron-size);
+  height: var(--sidebar-chevron-size);
+}
+
+.sidebar-nav-label {
+  display: inline-block;
+  font-family: Poppins, sans-serif;
+  font-size: var(--sidebar-label-size);
+  line-height: var(--sidebar-label-line-height);
+  letter-spacing: 0;
+  vertical-align: middle;
+  transform: translate3d(0, 0, 0);
+  transition:
+    transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) 0s,
+    color 0.2s ease 0s,
+    font-weight 0.2s ease 0s;
+}
+
+.sidebar-nav-label.is-active,
+.group:hover .sidebar-nav-label,
+.group:focus-visible .sidebar-nav-label {
+  transform: translate3d(var(--sidebar-label-slide), 0, 0);
+  transition:
+    transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1) 0.1s,
+    color 0.2s ease 0s,
+    font-weight 0.2s ease 0s;
+}
+
+/* Console UI scale: 16" MacBook baseline (100%), ~13" MacBook (80%) */
+:root {
+  --console-ui-scale: 1;
+  --ui-text-sm: 12.5px;
+  --ui-text-sm-leading: 20px;
+}
+
+@media (min-width: 1728px) {
+  :root {
+    --ui-text-sm: 14px;
+    --ui-text-sm-leading: 22px;
+  }
+}
+
+.ui-text-sm {
+  font-size: var(--ui-text-sm);
+  line-height: var(--ui-text-sm-leading);
+}
+
+@media (max-width: 1727px) {
+  :root {
+    --console-ui-scale: 0.8;
+  }
+
+  body {
+    overflow-x: hidden;
+  }
+
+  .console-ui-scale .ui-text-sm,
+  .auth-ui-scale .ui-text-sm {
+    font-size: calc(var(--ui-text-sm) / var(--console-ui-scale));
+    line-height: calc(var(--ui-text-sm-leading) / var(--console-ui-scale));
+  }
+
+  .console-ui-scale .sidebar-nav-label {
+    font-size: calc(var(--sidebar-label-size) / var(--console-ui-scale));
+    line-height: calc(var(--sidebar-label-line-height) / var(--console-ui-scale));
+  }
+}
+
+.console-shell-content {
+  max-width: 100%;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+.console-shell-content[data-sidebar-collapsed="true"] .console-page-viewport,
+.console-shell-content[data-sidebar-collapsed="true"] .bookings-page-viewport {
+  padding-left: 14px;
+}
+
+.console-ui-scale {
+  zoom: var(--console-ui-scale);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Table body data text — 14px / 20px (scales with console-ui zoom on ~13") */
+.table-body-text td {
+  font-family: Poppins, sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  line-height: 20px;
+  letter-spacing: 0;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.table-body-text td .table-cell-subtext {
+  font-weight: 400;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+/* Console table pages — compensate for shell zoom on smaller screens */
+.console-page-viewport,
+.bookings-page-viewport {
+  height: 83vh;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1727px) {
+  .console-page-viewport,
+  .bookings-page-viewport {
+    height: calc(83vh / var(--console-ui-scale));
+  }
+}
+
+@supports not (zoom: 1) {
+  .console-ui-scale {
+    zoom: unset;
+    transform: scale(var(--console-ui-scale));
+    transform-origin: top left;
+  }
+}
+
+/* Portaled modals render on document.body outside .console-ui-scale */
+.console-modal-scale {
+  zoom: var(--console-ui-scale);
+  max-width: calc((100vw - 2rem) / var(--console-ui-scale));
+  box-sizing: border-box;
+}
+
+@supports not (zoom: 1) {
+  .console-modal-scale {
+    zoom: unset;
+    transform: scale(var(--console-ui-scale));
+    transform-origin: center center;
+  }
+}
+
+/* Auth pages (login, forgot password, reset) — same 80% scale as console on ~13" */
+.auth-ui-scale {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1727px) {
+  .auth-ui-scale {
+    zoom: var(--console-ui-scale);
+    width: calc(100% / var(--console-ui-scale));
+    max-width: calc(100% / var(--console-ui-scale));
+  }
+
+  .auth-notification-scale {
+    zoom: var(--console-ui-scale);
+  }
+}
+
+@supports not (zoom: 1) {
+  @media (max-width: 1727px) {
+    .auth-ui-scale {
+      zoom: unset;
+      width: 100%;
+      max-width: 100%;
+      transform: scale(var(--console-ui-scale));
+      transform-origin: top center;
+    }
+
+    .auth-notification-scale {
+      zoom: unset;
+      transform: scale(var(--console-ui-scale));
+      transform-origin: top center;
+    }
+  }
+}
+
+/* Portaled sidesheets — same vw ratio as large screen, content scaled to match console UI */
+.console-sidesheet-panel {
+  width: var(--console-sidesheet-width, 50.43vw);
+  max-width: 100vw;
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidesheet-scroll-body {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 1727px) {
+  .console-sidesheet-responsive {
+    zoom: var(--console-ui-scale);
+    width: calc(var(--console-sidesheet-width, 50.43vw) / var(--console-ui-scale));
+    max-width: calc(100vw / var(--console-ui-scale));
+    /* Compensate height so 80% zoom still fills the viewport */
+    height: calc(100dvh / var(--console-ui-scale));
+    max-height: calc(100dvh / var(--console-ui-scale));
+  }
+}
+
+@supports not (zoom: 1) {
+  @media (max-width: 1727px) {
+    .console-sidesheet-responsive {
+      zoom: unset;
+      width: calc(var(--console-sidesheet-width, 50.43vw) * var(--console-ui-scale));
+      max-width: 100vw;
+      height: 100dvh;
+      max-height: 100dvh;
+      transform: scale(var(--console-ui-scale));
+      transform-origin: top right;
+    }
+  }
+}
+
+@keyframes slide-strip-in {
+  from {
+    transform: translateY(-100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-strip-out {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(-100%);
+  }
+}
+
+.animate-slide-strip-in {
+  animation: slide-strip-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-slide-strip-out {
+  animation: slide-strip-out 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes loader-spin {

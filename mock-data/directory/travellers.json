@@ -1,0 +1,96 @@
+[
+  {
+    "_id": "mock-tr-1",
+    "travellerID": "TR-AB001",
+    "name": "Arjun Patel",
+    "subtitle": "Patel & Sons",
+    "source": { "type": "meta", "label": "Meta (Organic)" },
+    "tier": 1,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-tr-2",
+    "travellerID": "TR-AB002",
+    "name": "Anita Desai",
+    "subtitle": "Anita Tours",
+    "source": { "type": "meta", "label": "Meta (Organic)" },
+    "tier": 1,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-tr-3",
+    "travellerID": "TR-AB003",
+    "name": "Rohit Gupta",
+    "subtitle": "VA",
+    "source": { "type": "meta", "label": "Meta (Paid)" },
+    "tier": 3,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-tr-4",
+    "travellerID": "TR-AB004",
+    "name": "Kavya Nair",
+    "subtitle": "Kavya Holidays",
+    "source": { "type": "google", "label": "Google (Organic)" },
+    "tier": 1,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-tr-5",
+    "travellerID": "TR-AB005",
+    "name": "Sumit Jha",
+    "subtitle": "GSTIN: GST6129QWRNM5678",
+    "source": { "type": "seo", "label": "SEO (Paid)" },
+    "tier": 2,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-tr-6",
+    "travellerID": "TR-AB006",
+    "name": "Rahul Verma",
+    "source": { "type": "word-of-mouth", "label": "Word of Mouth" },
+    "tier": 2,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-tr-7",
+    "travellerID": "TR-AB007",
+    "name": "Neha Kapoor",
+    "source": { "type": "referral", "label": "Referral" },
+    "tier": 1,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-tr-8",
+    "travellerID": "TR-AB008",
+    "name": "Karan Singh",
+    "subtitle": "Karan Co.",
+    "source": { "type": "referral", "label": "Referral" },
+    "tier": 3,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  }
+]

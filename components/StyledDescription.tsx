@@ -17,6 +17,7 @@ interface StyledDescriptionProps {
   labelSize?: string; // Tailwind text size class for the label (e.g. "text-[15px]")
   boxWidth?: string; // Tailwind width class for the description box (e.g. "w-full")
   rows?: number; // Number of rows for the description box (optional, can be used to set min-height)
+  placeholder?: string;
 }
 
 export default function StyledDescription({
@@ -27,6 +28,7 @@ export default function StyledDescription({
   labelSize = "text-[12px]",
   boxWidth = "w-[99%]",
   rows = 3,
+  placeholder = "Enter Your Remarks Here",
 }: StyledDescriptionProps): JSX.Element {
   const editorRef = useRef<HTMLDivElement>(null);
   const isSettingRef = useRef(false);
@@ -498,6 +500,22 @@ export default function StyledDescription({
     execCommand(command);
   };
 
+  const handleEditorWheel = (event: React.WheelEvent<HTMLDivElement>) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+
+    let parent = editor.parentElement;
+    while (parent) {
+      const { overflowY } = window.getComputedStyle(parent);
+      if (overflowY === "auto" || overflowY === "scroll") {
+        parent.scrollTop += event.deltaY;
+        event.preventDefault();
+        return;
+      }
+      parent = parent.parentElement;
+    }
+  };
+
   return (
     <>
       {/* Header */}
@@ -571,7 +589,7 @@ export default function StyledDescription({
         <div className="relative">
           {isEmpty && (
             <div className="absolute top-0 left-0 px-3 py-2 text-[13px] font-[400] text-[#9CA3AF] pointer-events-none select-none">
-              Enter Your Remarks Here
+              {placeholder}
             </div>
           )}
           <div
@@ -580,6 +598,7 @@ export default function StyledDescription({
             className={`px-3 py-1 min-h-[48px] text-[13px] text-[#020202] rounded-[15px] outline-none focus:ring-0 ${readOnly ? "bg-gray-200 cursor-not-allowed" : ""}`}
             style={{ color: "#020202", minHeight: `${(rows ?? 3) * 22}px` }}
             onInput={handleEditorInput}
+            onWheel={handleEditorWheel}
             onMouseUp={updateActiveFormats}
             onKeyUp={updateActiveFormats}
             onSelect={updateActiveFormats}

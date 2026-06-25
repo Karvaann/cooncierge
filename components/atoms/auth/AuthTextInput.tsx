@@ -1,14 +1,25 @@
 import type { InputHTMLAttributes } from "react";
+import { AuthFieldError, getAuthInputClassName } from "@/components/atoms/auth/AuthFieldError";
+import { shouldPlayValidationShake } from "@/components/atoms/auth/useValidationShake";
 
 interface AuthTextInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
+  invalid?: boolean;
+  error?: string;
+  errorShakeKey?: number;
 }
 
 export default function AuthTextInput({
   label,
+  invalid = false,
+  error,
+  errorShakeKey = 0,
   className = "",
   ...props
 }: AuthTextInputProps) {
+  const hasError = invalid || Boolean(error);
+  const shouldShake = shouldPlayValidationShake(hasError, errorShakeKey);
+
   return (
     <label className="block w-full">
       {label ? (
@@ -18,12 +29,16 @@ export default function AuthTextInput({
       ) : null}
       <input
         {...props}
-        className={[
-          "h-[40px] w-full rounded-[13px] border border-[#E2E1E1] px-[12px] text-[12px] font-normal",
-          "placeholder:text-[#9CA3AF] transition-[border-color,box-shadow] hover:border-[#C6AEDE] hover:shadow-[0_2px_8px_0_rgba(198,174,222,0.25)] focus:border-[#7135AD] focus:outline-none focus:ring-1 focus:ring-[#7135AD]",
+        key={shouldShake ? `input-shake-${errorShakeKey}` : "input-stable"}
+        aria-invalid={hasError}
+        className={getAuthInputClassName(hasError, [
           className,
-        ].join(" ")}
+          shouldShake ? "animate-auth-validation-error" : "",
+        ]
+          .filter(Boolean)
+          .join(" "))}
       />
+      {error ? <AuthFieldError message={error} shakeKey={errorShakeKey} /> : null}
     </label>
   );
 }

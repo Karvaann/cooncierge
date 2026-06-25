@@ -8,7 +8,6 @@ import React, {
   useRef,
 } from "react";
 import { GoSignOut } from "react-icons/go";
-import { IoPersonOutline } from "react-icons/io5";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { HiOutlineHandRaised } from "react-icons/hi2";
@@ -18,13 +17,12 @@ import RaiseRequestModal from "./Modals/RaiseRequestModal";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
+import { TbLayoutSidebarLeftExpand } from "react-icons/tb";
 
-// Type definitions
 interface HeaderProps {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
+  isSidebarOpen: boolean;
+  onSidebarExpand: () => void;
 }
-
 type PieceMapKey =
   | "other-services"
   | "limitless"
@@ -92,7 +90,9 @@ const PIECE_MAP: Record<PieceMapKey, string> = {
   approvals: "Approvals",
 } as const;
 
-const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen, setIsOpen }) => {
+const PROFILE_IMAGE_SRC = "/images/profile/profile-img.png";
+
+const Header: React.FC<HeaderProps> = ({ isSidebarOpen, onSidebarExpand }) => {
   const [isDropDownOpen, setIsDropDownOpen] = useState<boolean>(false);
   const [isRaiseRequestModalOpen, setIsRaiseRequestModalOpen] =
     useState<boolean>(false);
@@ -197,14 +197,35 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen, setIsOpen }) => {
     <>
       <header className="sticky top-0 z-30">
         {/* Header Main Row */}
-        <div className="flex items-center justify-between px-7 py-6">
+        <div
+          className={`flex items-center justify-between py-6 ${
+            isSidebarOpen ? "px-7" : "pl-[14px] pr-7"
+          }`}
+        >
+          <div className="flex min-w-0 items-center gap-[22px]">
+            {!isSidebarOpen && (
+              <div className="sidebar-logo-collapsed flex shrink-0 items-center gap-2 rounded-[12px] border border-[#F0F0F0] bg-white px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
+                <Image
+                  src="/full_logo.svg"
+                  alt="ciergo"
+                  width={90}
+                  height={28}
+                  className="h-7 w-auto object-contain"
+                  unoptimized
+                />
+                <button
+                  type="button"
+                  onClick={onSidebarExpand}
+                  className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#818181] transition-colors hover:bg-[#F5F5F5] hover:text-[#414141]"
+                  aria-label="Expand sidebar"
+                >
+                  <TbLayoutSidebarLeftExpand size={18} />
+                </button>
+              </div>
+            )}
 
-          <div className="flex items-center gap-[22px]">
-            <div onClick={() => setIsOpen(!_isOpen)}>
-              <Image width={18} height={18} src="/icons/header/menu.svg" alt="menu" />
-            </div>
             {pathname !== "/settings" && (
-              <div className="flex gap-[3px] items-center">
+              <div className="flex min-w-0 items-center gap-[3px]">
                 <Image width={22} height={22} src="/icons/header/home.svg" alt="Home" />
                 {breadcrumbElements}
               </div>
@@ -235,7 +256,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen, setIsOpen }) => {
             <div className="relative">
               <button
                 type="button"
-                className="text-gray-500 hover:text-[#114958] transition-colors mt-1"
+                className="mt-1 cursor-pointer text-gray-500 transition-colors hover:text-[#114958]"
                 aria-label="Notifications"
               >
                 <Image width={22} height={22} src="/icons/header/notification.svg" alt="notofication" />
@@ -253,13 +274,17 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen, setIsOpen }) => {
               <button
                 type="button"
                 onClick={toggleDropdown}
-                className="flex items-center gap-3 text-gray-700 font-medium text-[0.75rem] hover:text-[#114958] transition-colors"
+                className="flex cursor-pointer items-center gap-3 text-[0.75rem] font-medium text-gray-700 transition-colors hover:text-[#114958]"
                 aria-expanded={isDropDownOpen}
                 aria-haspopup="true"
               >
-                <div className="w-6 h-6 rounded-full bg-[#7135AD] flex items-center justify-center">
-                  <IoPersonOutline className="text-white w-5 h-5" />
-                </div>
+                <Image
+                  src={PROFILE_IMAGE_SRC}
+                  alt={user?.name || "Profile"}
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 shrink-0 cursor-pointer rounded-full border-2 border-[#D2D2D2] object-cover"
+                />
                 <div>
                   <div className="text-gray-900 text-[14px] text-left font-medium">
                     {user?.name || "User Name"}
@@ -275,9 +300,13 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen, setIsOpen }) => {
                 <div className="border-t border-gray-100 py-2 px-3 text-[14px]">
                   {/* User Info */}
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-[#0D4B37] rounded-full flex items-center justify-center text-white">
-                      <IoPersonOutline className="w-5 h-5" />
-                    </div>
+                    <Image
+                      src={PROFILE_IMAGE_SRC}
+                      alt={user?.name || "Profile"}
+                      width={32}
+                      height={32}
+                      className="h-8 w-8 shrink-0 rounded-full border-2 border-[#D2D2D2] object-cover"
+                    />
                     <div>
                       <div className="text-gray-900 text-[14px] font-medium">
                         {user?.name || "User Name"}
@@ -294,7 +323,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen, setIsOpen }) => {
                   <button
                     type="button"
                     onClick={handleSettingsClick}
-                    className="flex items-center w-full px-2 py-1.5 text-[14px] hover:text-gray-700 transition-colors"
+                    className="flex w-full cursor-pointer items-center px-2 py-1.5 text-[14px] transition-colors hover:text-gray-700"
                   >
                     <SlSettings className="mr-2 text-gray-600 w-3.5 h-3.5" />
                     Profile Info
@@ -304,7 +333,7 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen, setIsOpen }) => {
                   <button
                     type="button"
                     onClick={openRaiseRequestModal}
-                    className="flex items-center w-full px-2 py-1.5 text-[14px] hover:text-gray-700 transition-colors"
+                    className="flex w-full cursor-pointer items-center px-2 py-1.5 text-[14px] transition-colors hover:text-gray-700"
                   >
                     <HiOutlineHandRaised className="mr-2 text-gray-600 w-3.5 h-3.5" />
                     Raise Request
@@ -314,7 +343,8 @@ const Header: React.FC<HeaderProps> = ({ isOpen: _isOpen, setIsOpen }) => {
 
                   {/* Logout */}
                   <button
-                    className="flex items-center w-full px-2 py-1.5 text-red-500 text-[14px] transition-colors"
+                    type="button"
+                    className="flex w-full cursor-pointer items-center px-2 py-1.5 text-[14px] text-red-500 transition-colors"
                     onClick={handleLogOut}
                   >
                     <GoSignOut className="mr-2 w-3.5 h-3.5" />

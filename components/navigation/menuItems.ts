@@ -1,12 +1,3 @@
-import type { IconType } from "react-icons";
-import { LuLayoutDashboard } from "react-icons/lu";
-import { TbGraph, TbLuggage, TbBrandNetbeans } from "react-icons/tb";
-import { PiCurrencyCircleDollar } from "react-icons/pi";
-import { RiContactsBook3Line } from "react-icons/ri";
-import { IoSettingsOutline } from "react-icons/io5";
-import { IoMdCheckboxOutline } from "react-icons/io";
-import { TbFileReport } from "react-icons/tb";
-
 export interface SubMenuItem {
   label: string;
   href: string;
@@ -14,20 +5,23 @@ export interface SubMenuItem {
 
 export interface MenuItem {
   label: string;
-  icon: IconType;
-  href?: string | undefined;
+  icon: string;
+  href?: string;
   subMenu?: SubMenuItem[];
 }
 
+export const SIDEBAR_WIDTH_OPEN = 200;
+export const SIDEBAR_WIDTH_COLLAPSED = 72;
+
 export const menuItems: MenuItem[] = [
   {
-    label: "Tasks",
-    icon: LuLayoutDashboard,
-    href: "/dashboard",
+    label: "Dashboard",
+    icon: "/icons/sidebar-icons/dashboard.svg",
+    href: "/tasks",
   },
   {
     label: "Sales",
-    icon: TbGraph,
+    icon: "/icons/sidebar-icons/sales.svg",
     subMenu: [
       { label: "Leads", href: "/sales/leads" },
       { label: "Quotations", href: "/sales/quotations" },
@@ -35,35 +29,40 @@ export const menuItems: MenuItem[] = [
   },
   {
     label: "Operations",
-    icon: TbBrandNetbeans,
+    icon: "/icons/sidebar-icons/operations.svg",
     href: "/operations",
   },
   {
-    label: "My Bookings",
-    icon: TbLuggage,
+    label: "Bookings",
+    icon: "/icons/sidebar-icons/bookings.svg",
     href: "/bookings",
   },
   {
     label: "Approvals",
-    icon: IoMdCheckboxOutline,
-    href: "/approvals",
+    icon: "/icons/sidebar-icons/approvals.svg",
+    subMenu: [{ label: "Other Services", href: "/approvals/other-services" }],
+  },
+  {
+    label: "Content",
+    icon: "/icons/sidebar-icons/content.svg",
+    href: "/content",
   },
   {
     label: "Finance",
-    icon: PiCurrencyCircleDollar,
+    icon: "/icons/sidebar-icons/finance.svg",
     subMenu: [
       { label: "Bookings", href: "/finance/bookings" },
       { label: "Customers", href: "/finance/customers" },
       { label: "Vendors", href: "/finance/vendors" },
       { label: "Payments", href: "/finance/payments" },
       { label: "Journals", href: "/finance/journals" },
-      
     ],
   },
   {
     label: "Directory",
-    icon: RiContactsBook3Line,
+    icon: "/icons/sidebar-icons/directory.svg",
     subMenu: [
+      { label: "Travellers", href: "/directory/travellers" },
       { label: "Customers", href: "/directory/customers" },
       { label: "Vendors", href: "/directory/vendors" },
       { label: "Team", href: "/directory/team" },
@@ -71,13 +70,18 @@ export const menuItems: MenuItem[] = [
   },
   {
     label: "Reports",
-    icon: TbFileReport,
+    icon: "/icons/sidebar-icons/reports.svg",
     href: "/reports",
   },
   {
     label: "Settings",
-    icon: IoSettingsOutline,
+    icon: "/icons/sidebar-icons/settings.svg",
     href: "/settings",
+    subMenu: [
+      { label: "Company Details", href: "/settings#company" },
+      { label: "All Users / Roles", href: "/settings#users" },
+      { label: "Approvals", href: "/settings#approvals" },
+    ],
   },
 ];
 
@@ -85,7 +89,7 @@ export const sidebarRouteHrefs = Array.from(
   new Set(
     menuItems.flatMap((item) => [
       item.href,
-      ...(item.subMenu?.map((sub) => sub.href) ?? []),
-    ])
-  )
+      ...(item.subMenu?.map((sub) => sub.href.split("#")[0]) ?? []),
+    ]),
+  ),
 ).filter(Boolean) as string[];

@@ -157,11 +157,11 @@ export default function TableTabs({
         className={`flex items-center bg-[#FFF] rounded-xl relative py-1.5 gap-1.5 ${tabsClassName}`}
       >
         <div
-          className={`absolute h-[calc(100%-0.5rem)] bg-[#7135AD] rounded-xl shadow-sm top-1 ${
+          className={`absolute top-1 h-[calc(100%-0.5rem)] rounded-xl bg-[#7135AD12] ${
             draggableIndicator
               ? isDraggingIndicator
-                ? "transition-none cursor-grabbing"
-                : "transition-all duration-300 ease-in-out cursor-grab"
+                ? "cursor-grabbing transition-none"
+                : "cursor-grab transition-all duration-300 ease-in-out"
               : "transition-all duration-300 ease-in-out"
           }`}
           style={{
@@ -190,10 +190,10 @@ export default function TableTabs({
             type="button"
             data-tab={tab}
             onClick={() => onChange(tab)}
-            className={`relative z-10 py-1 px-4 rounded-lg text-[13px] font-medium transition-colors duration-300 text-center ${
+            className={`relative z-10 cursor-pointer rounded-lg px-4 py-1 text-center text-[13px] font-medium transition-colors duration-300 ${
               activeTab === tab
-                ? "text-white"
-                : "text-[#818181] hover:text-gray-900 font-[500]"
+                ? "font-[500] text-[#7135AD]"
+                : "font-[500] text-[#818181] hover:text-gray-900"
             }`}
           >
             {tab}

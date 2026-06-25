@@ -9,8 +9,10 @@ interface RemarksFieldProps {
   readOnly?: boolean;
   isSubmitting?: boolean;
   label?: string;
+  placeholder?: string;
   headerRight?: React.ReactNode;
   showBorder?: boolean;
+  className?: string;
 }
 
 const RemarksField: React.FC<RemarksFieldProps> = ({
@@ -19,11 +21,15 @@ const RemarksField: React.FC<RemarksFieldProps> = ({
   readOnly = false,
   isSubmitting = false,
   label = "Remarks",
+  placeholder,
   headerRight,
-  showBorder=true
+  showBorder = true,
+  className = "mt-4",
 }) => {
   return (
-    <div className={`flex flex-col ${showBorder ? 'border border-[#E2E1E1] px-3 py-3' : ''} w-full rounded-[12px] mt-4`}>
+    <div
+      className={`flex flex-col ${showBorder ? "border border-[#E2E1E1] px-3 py-3" : ""} w-full rounded-[12px] ${className}`}
+    >
       <div className="flex items-center justify-between gap-3">
         <label className="block text-[13px] font-[500] text-[#020202]">
           {label}
@@ -36,7 +42,7 @@ const RemarksField: React.FC<RemarksFieldProps> = ({
           value={String(value ?? "")}
           onChange={(val) => onChange(val)}
           readOnly={readOnly}
-          // disabled prop intentionally left to match existing usage
+          placeholder={placeholder}
         />
       </div>
     </div>

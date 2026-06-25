@@ -1,13 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import { AuthApi } from "@/services/authApi";
 import { useAuth } from "@/context/AuthContext";
-import type { LoginMode, OtpMessage, PasswordChecks } from "@/app/login/types";
+import type { LoginMode, OtpMessage, OtpPurpose, ResetEmailFlow, SignInErrorState } from "@/app/login/types";
+import {
+  clearPasswordResetSession,
+  setPasswordResetSession,
+} from "@/services/storage/passwordResetStorage";
+import { useForgotEmailLookup } from "@/app/login/hooks/useForgotEmailLookup";
+import { usePasswordChecks } from "@/app/login/hooks/usePasswordChecks";
+import {
+  emptySignInErrorState,
+  getSignInApiFieldErrors,
+  hasFieldErrors,
+  toSignInErrorState,
+  validateSignInFields,
+  type SignInFieldErrors,
+} from "@/app/login/validation";
 
-const DEFAULT_ERROR_MESSAGE = "Invalid Email or Password, please retry.";
 const OTP_SECONDS = 30;
 
 export function useLoginFlow() {
@@ -15,30 +28,39 @@ export function useLoginFlow() {
   const { isAuthenticated, refreshUser } = useAuth();
 
   const [mode, setMode] = useState<LoginMode>("signin");
+  const [otpPurpose, setOtpPurpose] = useState<OtpPurpose>("login");
   const [success, setSuccess] = useState(false);
   const [checked, setChecked] = useState(false);
 
   const [otp, setOtp] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [resetToken, setResetToken] = useState<string | null>(null);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [resetPasswordError, setResetPasswordError] = useState<string | null>(null);
+  const [isResetPasswordSubmitting, setIsResetPasswordSubmitting] = useState(false);
 
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
-  const [currentPassword, setCurrentPassword] = useState("");
+  const passwordChecks = usePasswordChecks(newPassword, confirmNewPassword);
 
   const [showError, setShowError] = useState(false);
-  const [errorMessage, setErrorMessage] = useState(DEFAULT_ERROR_MESSAGE);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [signInError, setSignInError] = useState<SignInErrorState>(emptySignInErrorState());
+  const [validationErrorTick, setValidationErrorTick] = useState(0);
   const [otpMessage, setOtpMessage] = useState<OtpMessage | null>(null);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOtpSubmitting, setIsOtpSubmitting] = useState(false);
   const [timer, setTimer] = useState(OTP_SECONDS);
   const [canResend, setCanResend] = useState(false);
+
+  const resetEmailFlow = useForgotEmailLookup(email, mode === "forgot" && !success);
+  const canSubmitForgotReset =
+    resetEmailFlow === "otp" || resetEmailFlow === "admin_request";
 
   useEffect(() => {
     if (!showError) {
@@ -75,38 +97,41 @@ export function useLoginFlow() {
     return () => window.clearInterval(interval);
   }, [mode, timer]);
 
-  const passwordChecks = useMemo<PasswordChecks>(() => {
-    const hasMinLength = newPassword.length >= 8;
-    const hasUpper = /[A-Z]/.test(newPassword);
-    const hasLower = /[a-z]/.test(newPassword);
-    const hasNumber = /[0-9]/.test(newPassword);
-    const hasSpecial = /[^A-Za-z0-9]/.test(newPassword);
-    const passwordsMatch = newPassword.length > 0 && newPassword === confirmNewPassword;
+  const clearSignInErrors = useCallback(() => {
+    setSignInError(emptySignInErrorState());
+  }, []);
 
-    return {
-      hasMinLength,
-      hasUpper,
-      hasLower,
-      hasNumber,
-      hasSpecial,
-      passwordsMatch,
-      canSetNewPassword:
-        hasMinLength && hasUpper && hasLower && hasNumber && hasSpecial && passwordsMatch,
-    };
-  }, [newPassword, confirmNewPassword]);
+  const bumpValidationError = useCallback(() => {
+    setValidationErrorTick((tick) => tick + 1);
+  }, []);
+
+  const showSignInError = useCallback((fieldErrors: SignInFieldErrors) => {
+    setSignInError(toSignInErrorState(fieldErrors));
+    bumpValidationError();
+  }, [bumpValidationError]);
+
+  const clearResetPasswordState = useCallback(() => {
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setResetToken(null);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+    setResetPasswordError(null);
+    clearPasswordResetSession();
+  }, []);
 
   const goToSignIn = useCallback(() => {
     setMode("signin");
+    setOtpPurpose("login");
     setOtpMessage(null);
-  }, []);
+    clearSignInErrors();
+    clearResetPasswordState();
+  }, [clearSignInErrors, clearResetPasswordState]);
 
   const goToForgotPassword = useCallback(() => {
     setMode("forgot");
-    setOtpMessage(null);
-  }, []);
-
-  const goToResetMode = useCallback(() => {
-    setMode("reset");
+    setOtpPurpose("forgot");
+    setOtp("");
     setOtpMessage(null);
   }, []);
 
@@ -114,37 +139,41 @@ export function useLoginFlow() {
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
 
-      if (!email || !password) {
-        setErrorMessage(DEFAULT_ERROR_MESSAGE);
-        setShowError(true);
+      const fieldErrors = validateSignInFields(email, password);
+
+      if (hasFieldErrors(fieldErrors)) {
+        showSignInError(fieldErrors);
         return;
       }
 
-      setShowError(false);
+      clearSignInErrors();
       setOtpMessage(null);
       setIsSubmitting(true);
 
       try {
-        await AuthApi.login({ email, password });
+        await AuthApi.login({ email: email.trim(), password });
+        setOtpPurpose("login");
         setOtp("");
         setTimer(OTP_SECONDS);
         setCanResend(false);
         setMode("otp");
       } catch (error: unknown) {
-        const err = error as AxiosError<{ message?: string }>;
-        setErrorMessage(err.response?.data?.message || err.message || "Login failed");
-        setShowError(true);
+        showSignInError(getSignInApiFieldErrors(error));
       } finally {
         setIsSubmitting(false);
       }
     },
-    [email, password],
+    [clearSignInErrors, email, password, showSignInError],
   );
+
+  const clearOtpMessage = useCallback(() => {
+    setOtpMessage(null);
+  }, []);
 
   const handleOtpSubmit = useCallback(async () => {
     if (otp.length < 6) {
-      setErrorMessage("Invalid OTP, please retry.");
-      setShowError(true);
+      setOtpMessage({ text: "Invalid OTP entered", tone: "error" });
+      bumpValidationError();
       return;
     }
 
@@ -153,29 +182,46 @@ export function useLoginFlow() {
     setIsOtpSubmitting(true);
 
     try {
-      const response = await AuthApi.verifyTwoFa(
-        { email, twoFACode: otp },
-        setMode,
-      );
+      if (otpPurpose === "forgot") {
+        const response = await AuthApi.verifyResetOtp({ email: email.trim(), otp });
 
-      if (response.token && !response.user?.resetPasswordRequired) {
-        await refreshUser();
-        router.replace("/bookings");
+        if (response.resetToken && response.email) {
+          setPasswordResetSession({
+            email: response.email,
+            resetToken: response.resetToken,
+          });
+          setResetToken(response.resetToken);
+          setOtp("");
+          setMode("reset-password");
+          return;
+        }
+      } else {
+        const response = await AuthApi.verifyTwoFa({ email, twoFACode: otp });
+
+        if (response.token) {
+          await refreshUser();
+          router.replace("/bookings");
+        }
       }
     } catch (error: unknown) {
-      const err = error as AxiosError<{ message?: string }>;
       setOtpMessage({
-        text: err.response?.data?.message || err.message || "Invalid OTP",
+        text: "Invalid OTP entered",
         tone: "error",
       });
+      bumpValidationError();
     } finally {
       setIsOtpSubmitting(false);
     }
-  }, [email, otp, refreshUser, router]);
+  }, [email, otp, otpPurpose, refreshUser, router, bumpValidationError]);
 
   const handlePasswordResetRequest = useCallback(async () => {
     if (!email) {
       setOtpMessage({ text: "Please enter your email address", tone: "error" });
+      bumpValidationError();
+      return;
+    }
+
+    if (!canSubmitForgotReset) {
       return;
     }
 
@@ -183,7 +229,17 @@ export function useLoginFlow() {
     setIsSubmitting(true);
 
     try {
-      await AuthApi.requestPasswordReset({ email });
+      const response = await AuthApi.requestPasswordReset({ email: email.trim() });
+
+      if (response.requiresOtp) {
+        setOtpPurpose("forgot");
+        setOtp("");
+        setTimer(OTP_SECONDS);
+        setCanResend(false);
+        setMode("otp");
+        return;
+      }
+
       setSuccess(true);
     } catch (error: unknown) {
       const err = error as AxiosError<{ message?: string }>;
@@ -192,87 +248,130 @@ export function useLoginFlow() {
     } finally {
       setIsSubmitting(false);
     }
-  }, [email]);
+  }, [email, bumpValidationError, canSubmitForgotReset]);
 
-  const handleSetNewPassword = useCallback(async () => {
-    if (!passwordChecks.canSetNewPassword) {
-      return;
-    }
-
-    setIsSubmitting(true);
+  const handleResendOtp = useCallback(async () => {
+    setTimer(OTP_SECONDS);
+    setCanResend(false);
     setOtpMessage(null);
 
     try {
-      await AuthApi.resetPassword({ email, newPassword });
-      setMode("signin");
-      setOtpMessage({
-        text: "Password updated successfully. Please sign in.",
-        tone: "info",
-      });
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmNewPassword("");
+      if (otpPurpose === "forgot") {
+        await AuthApi.requestPasswordReset({ email: email.trim() });
+        setOtp("");
+        setOtpMessage({ text: "A new OTP has been sent.", tone: "info" });
+        return;
+      }
+
+      if (!email || !password) {
+        setOtpMessage({ text: "Please go back and sign in again.", tone: "error" });
+        bumpValidationError();
+        return;
+      }
+
+      await AuthApi.login({ email, password });
+      setOtp("");
+      setOtpMessage({ text: "A new OTP has been sent.", tone: "info" });
     } catch (error: unknown) {
       const err = error as AxiosError<{ message?: string }>;
       setOtpMessage({
-        text: err.response?.data?.message || err.message || "Failed to set new password.",
+        text: err.response?.data?.message || err.message || "Failed to resend OTP",
         tone: "error",
       });
-    } finally {
-      setIsSubmitting(false);
+      bumpValidationError();
+      setCanResend(true);
     }
-  }, [email, newPassword, passwordChecks.canSetNewPassword]);
+  }, [email, password, otpPurpose, bumpValidationError]);
 
-  const handleResendOtp = useCallback(() => {
-    setTimer(OTP_SECONDS);
-    setCanResend(false);
-    setOtpMessage({ text: "A new OTP has been requested.", tone: "info" });
-  }, []);
+  const handleResetPasswordSubmit = useCallback(async () => {
+    if (!passwordChecks.canSetNewPassword || isResetPasswordSubmitting || !resetToken) {
+      return;
+    }
+
+    setResetPasswordError(null);
+    setIsResetPasswordSubmitting(true);
+
+    try {
+      await AuthApi.resetPassword({
+        email: email.trim(),
+        newPassword,
+        resetToken,
+      });
+
+      clearResetPasswordState();
+      setMode("signin");
+      setOtpPurpose("login");
+      setOtpMessage({
+        text: "Password reset successfully. Please sign in with your new password.",
+        tone: "info",
+      });
+    } catch (error: unknown) {
+      const err = error as AxiosError<{ message?: string }>;
+      setResetPasswordError(
+        err.response?.data?.message || err.message || "Failed to reset password. Please try again.",
+      );
+      bumpValidationError();
+    } finally {
+      setIsResetPasswordSubmitting(false);
+    }
+  }, [
+    bumpValidationError,
+    clearResetPasswordState,
+    email,
+    isResetPasswordSubmitting,
+    newPassword,
+    passwordChecks.canSetNewPassword,
+    resetToken,
+  ]);
 
   return {
     mode,
+    otpPurpose,
     success,
     checked,
     otp,
     email,
     password,
+    newPassword,
+    confirmNewPassword,
     showPassword,
     showNewPassword,
     showConfirmPassword,
-    showCurrentPassword,
-    newPassword,
-    confirmNewPassword,
-    currentPassword,
+    passwordChecks,
+    resetPasswordError,
+    isResetPasswordSubmitting,
     showError,
     errorMessage,
+    signInError,
+    validationErrorTick,
     otpMessage,
     isSubmitting,
     isOtpSubmitting,
     timer,
     canResend,
-    passwordChecks,
+    resetEmailFlow,
+    canSubmitForgotReset,
 
     setChecked,
     setOtp,
     setEmail,
     setPassword,
-    setShowPassword,
-    setShowNewPassword,
-    setShowConfirmPassword,
-    setShowCurrentPassword,
     setNewPassword,
     setConfirmNewPassword,
-    setCurrentPassword,
+    setShowNewPassword,
+    setShowConfirmPassword,
+    clearSignInErrors,
+    clearOtpMessage,
+    setShowPassword,
     setShowError,
     setSuccess,
 
     goToSignIn,
     goToForgotPassword,
-    goToResetMode,
     handleSignIn,
     handleOtpSubmit,
     handlePasswordResetRequest,
-    handleSetNewPassword,
     handleResendOtp,
+    handleResetPasswordSubmit,
   };
 }

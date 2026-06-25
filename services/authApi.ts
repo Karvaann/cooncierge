@@ -1,11 +1,9 @@
-import { LoginMode } from "@/app/login/types";
 import apiClient from "@/services/apiClient";
 import {
   clearAuthStorage,
   setAuthToken,
   setAuthUser,
 } from "@/services/storage/authStorage";
-import { SetStateAction } from "react";
 
 export interface LoginRequest {
   email: string;
@@ -34,6 +32,34 @@ export interface VerifyTwoFaResponse {
 
 export interface PasswordResetRequest {
   email: string;
+}
+
+export interface PasswordResetRequestResponse {
+  success?: boolean;
+  requiresOtp?: boolean;
+  email?: string;
+  message?: string;
+}
+
+export interface CheckResetEmailRequest {
+  email: string;
+}
+
+export interface CheckResetEmailResponse {
+  found: boolean;
+  flow: "otp" | "admin_request" | null;
+}
+
+export interface VerifyResetOtpRequest {
+  email: string;
+  otp: string;
+}
+
+export interface VerifyResetOtpResponse {
+  success?: boolean;
+  email?: string;
+  resetToken?: string;
+  message?: string;
 }
 
 export interface CreateOrUpdateUserRequest {
@@ -75,6 +101,8 @@ const AUTH_ROUTES = {
   login: "/auth/login",
   verifyTwoFa: "/auth/verify-2fa",
   requestPasswordReset: "/auth/forgot-password",
+  checkResetEmail: "/auth/check-reset-email",
+  verifyResetOtp: "/auth/verify-reset-otp",
   logout: "/auth/logout",
   createOrUpdateUser: "/auth/create-or-update-user",
   resetPassword: "/auth/reset-password",
@@ -103,10 +131,7 @@ export const AuthApi = {
     return data;
   },
 
-  async verifyTwoFa(
-    payload: VerifyTwoFaRequest,
-    setMode?: React.Dispatch<SetStateAction<LoginMode>>
-  ): Promise<VerifyTwoFaResponse> {
+  async verifyTwoFa(payload: VerifyTwoFaRequest): Promise<VerifyTwoFaResponse> {
     const { data } = await apiClient.post<VerifyTwoFaResponse>(
       AUTH_ROUTES.verifyTwoFa,
       payload
@@ -114,20 +139,35 @@ export const AuthApi = {
 
     if (data.token) {
       setAuthToken(data.token);
-      if (data.user?.resetPasswordRequired) {
-        setMode?.("reset");
-      } else {
-        if (data.user) {
-          setAuthUser(data.user);
-        }
+      if (data.user) {
+        setAuthUser(data.user);
       }
     }
 
     return data;
   },
 
-  async requestPasswordReset(payload: PasswordResetRequest): Promise<void> {
-    await apiClient.post(AUTH_ROUTES.requestPasswordReset, payload);
+  async requestPasswordReset(
+    payload: PasswordResetRequest
+  ): Promise<PasswordResetRequestResponse> {
+    const { data } = await apiClient.post<PasswordResetRequestResponse>(
+      AUTH_ROUTES.requestPasswordReset,
+      payload
+    );
+    return data;
+  },
+
+  async checkResetEmail(
+    payload: CheckResetEmailRequest,
+    options?: { signal?: AbortSignal },
+  ): Promise<CheckResetEmailResponse> {
+    const config = options?.signal ? { signal: options.signal } : undefined;
+    const { data } = await apiClient.post<CheckResetEmailResponse>(
+      AUTH_ROUTES.checkResetEmail,
+      payload,
+      config,
+    );
+    return data;
   },
 
   async logout(): Promise<void> {
@@ -143,7 +183,19 @@ export const AuthApi = {
     return data;
   },
 
-  async resetPassword(payload: { email: string; newPassword: string }): Promise<void> {
+  async verifyResetOtp(payload: VerifyResetOtpRequest): Promise<VerifyResetOtpResponse> {
+    const { data } = await apiClient.post<VerifyResetOtpResponse>(
+      AUTH_ROUTES.verifyResetOtp,
+      payload
+    );
+    return data;
+  },
+
+  async resetPassword(payload: {
+    email: string;
+    newPassword: string;
+    resetToken: string;
+  }): Promise<void> {
     await apiClient.post(AUTH_ROUTES.resetPassword, payload);
   },
 

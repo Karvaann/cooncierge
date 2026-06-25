@@ -115,7 +115,8 @@ const Modal: React.FC<ModalProps> = ({
     >
       <div
         className={`
-          relative bg-white  rounded-3xl shadow-xl overflow-hidden 
+          console-modal-scale
+          relative flex max-h-[90dvh] flex-col overflow-hidden bg-white rounded-3xl shadow-xl
           transform transition-all duration-300 ${modalWidthClass} ${modalHeightClass}
           pointer-events-auto
           ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"}
@@ -126,7 +127,7 @@ const Modal: React.FC<ModalProps> = ({
       >
         {/* HEADER FIXED LAYOUT */}
 
-        <div className="relative flex items-center justify-between">
+        <div className="relative flex shrink-0 items-center justify-between">
           {headerLeft ? (
             <div className="w-[95%]">{headerLeft}</div>
           ) : (
@@ -170,7 +171,7 @@ const Modal: React.FC<ModalProps> = ({
         </div>
 
         {/* ✅ CONTENT AREA */}
-        <div className="">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain">
           {children}
         </div>
       </div>

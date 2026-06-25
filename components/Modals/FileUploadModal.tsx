@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { LuTrash2 } from "react-icons/lu";
+import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import {
   downloadBulkTemplate,
   uploadBulkCustomers,
@@ -11,15 +12,12 @@ import {
   downloadBulkTeamTemplate,
 } from "@/services/uploadApi";
 
-// Modal Component
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
   title?: string;
-  customWidth?: string;
-  customeHeight?: string;
-  size?: "sm" | "md" | "lg" | "xl" | "full";
+  subtitle?: string;
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
   showCloseButton?: boolean;
@@ -31,31 +29,19 @@ const Modal: React.FC<ModalProps> = ({
   onClose,
   children,
   title = "Modal Title",
-  size = "sm",
-  customWidth,
-  customeHeight,
+  subtitle,
   closeOnOverlayClick = true,
   closeOnEscape = true,
   showCloseButton = true,
   className = "",
 }) => {
-  const sizeClasses = {
-    sm: "max-w-sm",
-    md: "max-w-md",
-    lg: "max-w-lg",
-    xl: "max-w-xl",
-    full: "max-w-full mx-4",
-  };
-
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-
   const handleEscape = useCallback(
     (event: KeyboardEvent) => {
       if (event.key === "Escape" && closeOnEscape) {
         onClose();
       }
     },
-    [onClose, closeOnEscape]
+    [onClose, closeOnEscape],
   );
 
   const handleOverlayClick = useCallback(
@@ -64,10 +50,10 @@ const Modal: React.FC<ModalProps> = ({
         onClose();
       }
     },
-    [onClose, closeOnOverlayClick]
+    [onClose, closeOnOverlayClick],
   );
 
-  React.useEffect(() => {
+  useEffect(() => {
     const cleanup = () => {
       document.body.style.overflow = "unset";
       document.removeEventListener("keydown", handleEscape);
@@ -81,46 +67,45 @@ const Modal: React.FC<ModalProps> = ({
     return cleanup;
   }, [isOpen, closeOnEscape, handleEscape]);
 
-  const modalWidthClass = customWidth ? customWidth : sizeClasses[size];
-  const modalHeightClass = customeHeight ? customeHeight : "";
-
   if (!isOpen) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[9999] bg-black/50 flex justify-center items-center md:items-center transition-opacity duration-300"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 transition-opacity duration-300"
       onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? "modal-title" : undefined}
     >
       <div
-        className={`
-          bg-white rounded-t-2xl md:rounded-lg shadow-xl overflow-hidden
-          transition-all duration-300 transform ${modalWidthClass} ${modalHeightClass}
-          ${isMobile ? "absolute bottom-0 w-full" : ""}
-          ${className}
-        `}
+        className={`flex w-[min(700px,calc(100vw-2rem))] max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-[24px] border border-[#E2E1E1] bg-white p-6 shadow-xl transition-all duration-300 md:h-[495px] md:w-[700px] md:max-h-[495px] ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-center px-4 pt-5">
+        <div className="relative shrink-0">
           <h2
             id="modal-title"
-            className="text-black text-base md:text-lg font-semibold flex-1 text-center ml-2"
+            className="text-center text-[18px] font-semibold text-[#020202]"
           >
             {title}
           </h2>
+          {subtitle && (
+            <p className="mt-1 text-center text-[13px] font-normal text-[#818181]">
+              {subtitle}
+            </p>
+          )}
           {showCloseButton && (
             <button
+              type="button"
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+              className="absolute right-0 top-0 rounded-full p-1 text-[#818181] transition-colors hover:bg-[#F3F3F3] hover:text-[#414141]"
               aria-label="Close modal"
             >
               <svg
-                className="w-6 h-6"
+                className="h-5 w-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
+                aria-hidden
               >
                 <path
                   strokeLinecap="round"
@@ -132,15 +117,91 @@ const Modal: React.FC<ModalProps> = ({
             </button>
           )}
         </div>
-        <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
-          {children}
-        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto pt-5">{children}</div>
       </div>
     </div>
   );
 };
 
-// File Upload Component
+function UploadCloudIcon() {
+  return (
+    <svg
+      width="48"
+      height="48"
+      viewBox="0 0 48 48"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <path
+        d="M32 34H16C12.6863 34 10 31.3137 10 28C10 25.0416 12.0416 22.6667 14.8 22.1333C15.5467 17.6 19.4667 14 24 14C28.5333 14 32.4533 17.6 33.2 22.1333C35.9584 22.6667 38 25.0416 38 28C38 31.3137 35.3137 34 32 34Z"
+        stroke="#7135AD"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M24 22V30"
+        stroke="#7135AD"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path
+        d="M20 26L24 22L28 26"
+        stroke="#7135AD"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function DownloadTemplateIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <path
+        d="M8 2.5V9"
+        stroke="#126ACB"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M5.5 6.5L8 9L10.5 6.5"
+        stroke="#126ACB"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3.5 12.5H12.5"
+        stroke="#126ACB"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4.5 10.5V12.5"
+        stroke="#126ACB"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M11.5 10.5V12.5"
+        stroke="#126ACB"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 interface FileUploadProps {
   isOpen: boolean;
   onClose: () => void;
@@ -163,8 +224,16 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
   const [selectedFormat, setSelectedFormat] = useState("CSV");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadResult, setUploadResult] = useState<any>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setUploadedFiles([]);
+      setUploadError(null);
+      setIsDragging(false);
+      setIsUploading(false);
+    }
+  }, [isOpen]);
 
   const handleSaveFiles = async () => {
     if (uploadedFiles.length === 0) return;
@@ -174,24 +243,25 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
 
     setIsUploading(true);
     setUploadError(null);
-    setUploadResult(null);
 
     try {
       const result =
         entity === "vendor"
           ? await uploadBulkVendors(firstFile)
           : entity === "team"
-          ? await uploadBulkTeams(firstFile)
-          : await uploadBulkCustomers(firstFile);
+            ? await uploadBulkTeams(firstFile)
+            : await uploadBulkCustomers(firstFile);
 
-      setUploadResult(result);
+      onUpload?.(uploadedFiles);
       setUploadedFiles([]);
       setIsUploading(false);
-
       onClose();
-    } catch (error: any) {
+      return result;
+    } catch (error: unknown) {
       console.error("Upload error:", error);
-      const message = error.response?.data?.message || "Upload failed";
+      const message =
+        (error as { response?: { data?: { message?: string } } })?.response
+          ?.data?.message || "Upload failed";
       setUploadError(message);
       setIsUploading(false);
     }
@@ -207,11 +277,11 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
 
     const allowedFormat = format === "csv" ? "csv" : "xlsx";
     if (entity === "vendor") {
-      await downloadBulkVendorTemplate(allowedFormat as "csv" | "xlsx");
+      await downloadBulkVendorTemplate(allowedFormat);
     } else if (entity === "team") {
-      await downloadBulkTeamTemplate(allowedFormat as "csv" | "xlsx");
+      await downloadBulkTeamTemplate(allowedFormat);
     } else {
-      await downloadBulkTemplate(allowedFormat as "csv" | "xlsx");
+      await downloadBulkTemplate(allowedFormat);
     }
   };
 
@@ -243,29 +313,30 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
       e.stopPropagation();
       setIsDragging(false);
 
-      if (uploadedFiles.length >= 1) return;
+      if (uploadedFiles.length >= maxFiles) return;
 
       const files = Array.from(e.dataTransfer.files);
       const validFiles = files.filter(validateFile).slice(0, maxFiles);
       setUploadedFiles((prev) => [...prev, ...validFiles].slice(0, maxFiles));
     },
-    [maxFiles, acceptedTypes, uploadedFiles.length]
+    [maxFiles, uploadedFiles.length],
   );
 
   const handleFileSelect = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (uploadedFiles.length >= 1) return;
+      if (uploadedFiles.length >= maxFiles) return;
       if (e.target.files) {
         const files = Array.from(e.target.files);
         const validFiles = files.filter(validateFile).slice(0, maxFiles);
         setUploadedFiles((prev) => [...prev, ...validFiles].slice(0, maxFiles));
       }
+      e.target.value = "";
     },
-    [maxFiles, acceptedTypes, uploadedFiles.length]
+    [maxFiles, uploadedFiles.length],
   );
 
   const handleBrowseClick = () => {
-    if (uploadedFiles.length >= 1) return;
+    if (uploadedFiles.length >= maxFiles) return;
     fileInputRef.current?.click();
   };
 
@@ -273,192 +344,143 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
     setUploadedFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const dropZoneDisabled = uploadedFiles.length >= maxFiles;
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Upload Files"
-      size="xl"
-      customWidth="w-[600px]"
-      customeHeight="h-[57vh]"
-      className="max-w-3xl"
+      title="Upload"
+      subtitle="Please upload the required file(s) here"
     >
-      <div className="space-y-2 p-2">
-        <p className="text-gray-500 text-center -mt-5 mb-4 text-[0.75rem]">
-          Please upload the required file here
-        </p>
-
-        <div className="border border-gray-200 rounded-[10px] py-3 px-3">
-          {/* Download Template Section */}
-          <div className="flex items-center mb-4">
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="min-h-0 flex-1 space-y-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex h-[45px] w-full max-w-[282px] items-stretch overflow-hidden rounded-[16px] border border-[#E2E1E1] bg-white md:w-[282px]">
             <button
+              type="button"
               onClick={handleDownloadTemplate}
-              className="flex items-center gap-1.5 px-3 py-1 border border-[#5856D6] text-[#5856D6] rounded-l-md hover:bg-blue-50 transition-colors text-[0.75rem] font-medium"
+              className="group flex flex-1 items-center justify-center gap-2 whitespace-nowrap px-3 font-[Poppins,sans-serif] text-[14px] font-medium leading-[24px] tracking-[0] text-[#126ACB] transition-colors hover:bg-[#F0F6FD]"
             >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                />
-              </svg>
-              Download Template
+              <DownloadTemplateIcon />
+              <span className="group-hover:underline">Download Template</span>
             </button>
 
-            {/* Format Dropdown */}
-            <div className="relative">
+            <div className="w-px shrink-0 self-stretch bg-[#E2E1E1]" aria-hidden />
+
+            <div className="relative flex w-[76px] shrink-0 items-center">
               <select
                 value={selectedFormat}
                 onChange={(e) => setSelectedFormat(e.target.value)}
-                className="appearance-none px-3 py-1 pr-4 border border-[#5856D6] border-l-0 rounded-r-md bg-white cursor-pointer hover:border-gray-400 transition-colors text-[0.75rem] font-medium w-[5rem]"
+                className="h-[45px] w-full cursor-pointer appearance-none bg-white py-0 pl-3 pr-8 text-center font-[Poppins,sans-serif] text-[14px] font-medium leading-[24px] tracking-[0] text-[#020202] transition-colors hover:bg-[#FAFAFA]"
               >
                 <option value="CSV">CSV</option>
                 <option value="XLSX">XLSX</option>
               </select>
-
-              <svg
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none text-gray-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 9l-7 7-7-7"
-                />
-              </svg>
+              <MdOutlineKeyboardArrowDown
+                className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-[#818181]"
+                aria-hidden
+              />
             </div>
           </div>
 
-          {/* Drag and Drop Area */}
-          <div
-            onDragEnter={handleDragEnter}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`border-2 border-dashed bg-blue-100 rounded-md p-4 mb-2 text-center transition-colors ${
-              uploadedFiles.length >= 1
-                ? "border-gray-200 bg-gray-100 opacity-50 cursor-not-allowed"
-                : isDragging
-                ? "border-blue-500 bg-blue-50"
-                : "border-gray-300 bg-gray-50"
-            }`}
+          <button
+            type="button"
+            className="text-[13px] font-medium text-[#818181] underline underline-offset-2 transition-colors hover:text-[#414141]"
           >
-            <div className="flex flex-col items-center gap-3">
-              <svg
-                className="w-10 h-10 text-gray-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
-              <div>
-                <p className="text-gray-700 font-medium mb-0.5 text-[0.75rem]">
-                  {uploadedFiles.length >= 1
-                    ? "File already uploaded"
-                    : "Drag and drop files here"}
-                </p>
-                {uploadedFiles.length < 1 && (
-                  <>
-                    <p className="text-gray-500 mb-2 text-[0.7rem]">OR</p>
-                    <button
-                      onClick={handleBrowseClick}
-                      className="text-blue-600 hover:text-blue-700 font-medium underline text-[0.75rem]"
-                    >
-                      Browse Files
-                    </button>
-                  </>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept={acceptedTypes.join(",")}
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-              </div>
-            </div>
-          </div>
-
-          <p className="text-[0.7rem] text-gray-500 mb-3">
-            Accepted File Types: {acceptedTypes.join(", ")}
-          </p>
-
-          {/* Uploaded Files List */}
-          {uploadedFiles.length > 0 && (
-            <div className="space-y-1.5 mt-2">
-              <h3 className="font-medium text-gray-700 text-[0.75rem]">
-                Uploaded Files:
-              </h3>
-              {uploadedFiles.map((file, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-2 bg-gray-50 rounded-md border border-gray-200"
-                >
-                  <div className="flex items-center gap-2">
-                    <svg
-                      className="w-4 h-4 text-blue-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                      />
-                    </svg>
-                    <span className="text-[0.75rem] text-gray-700 truncate max-w-[10rem]">
-                      {file.name}
-                    </span>
-                    <span className="text-[0.7rem] text-gray-500">
-                      ({(file.size / 1024).toFixed(2)} KB)
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => removeFile(index)}
-                    className="text-red-500 hover:text-red-600 p-0.5"
-                    aria-label="Remove file"
-                    title="Remove file"
-                  >
-                    <LuTrash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
+            Past Uploads
+          </button>
         </div>
 
-        {/* Save Button */}
-        <div className="flex justify-end">
+        <div
+          onDragEnter={handleDragEnter}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`rounded-[12px] border-2 border-dashed px-6 py-10 text-center transition-colors ${
+            dropZoneDisabled
+              ? "cursor-not-allowed border-[#E2E1E1] bg-[#FAFAFA] opacity-60"
+              : isDragging
+                ? "border-[#7135AD] bg-[#FAF7FD]"
+                : "border-[#D1D5DB] bg-white"
+          }`}
+        >
+          <div className="flex flex-col items-center gap-3">
+            <UploadCloudIcon />
+            <div className="space-y-1">
+              <p className="text-[14px] font-medium text-[#020202]">
+                {dropZoneDisabled
+                  ? "Maximum files selected"
+                  : "Choose a file or drag & drop it here"}
+              </p>
+              <p className="text-[12px] text-[#818181]">
+                PDF, CSV and DOCX, up to 50KB
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleBrowseClick}
+              disabled={dropZoneDisabled}
+              className="mt-1 rounded-[8px] border border-[#7135AD] bg-white px-5 py-2 text-[13px] font-medium text-[#7135AD] transition-colors hover:bg-[#FAF7FD] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Browse File
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple={maxFiles > 1}
+              accept={acceptedTypes.join(",")}
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          </div>
+        </div>
+
+        {uploadError && (
+          <p className="text-center text-[13px] text-[#DD1425]">{uploadError}</p>
+        )}
+
+        {uploadedFiles.length > 0 && (
+          <div className="space-y-2">
+            {uploadedFiles.map((file, index) => (
+              <div
+                key={`${file.name}-${index}`}
+                className="flex items-center justify-between rounded-[8px] border border-[#E2E1E1] bg-[#FAFAFA] px-3 py-2"
+              >
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="truncate text-[13px] text-[#414141]">
+                    {file.name}
+                  </span>
+                  <span className="shrink-0 text-[12px] text-[#818181]">
+                    ({(file.size / 1024).toFixed(1)} KB)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeFile(index)}
+                  className="shrink-0 p-1 text-[#818181] transition-colors hover:text-[#DD1425]"
+                  aria-label={`Remove ${file.name}`}
+                >
+                  <LuTrash2 className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        </div>
+
+        <div className="flex shrink-0 justify-end pt-1">
           <button
+            type="button"
             onClick={handleSaveFiles}
             disabled={uploadedFiles.length === 0 || isUploading}
-            className={`px-4 py-1.5 rounded-md text-white text-[0.75rem] font-medium transition-colors 
-              ${
-                isUploading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-[#0D4B37] hover:bg-green-800"
-              }
-            `}
+            className={`rounded-[10px] px-5 py-2.5 text-[14px] font-medium text-white transition-colors ${
+              uploadedFiles.length === 0 || isUploading
+                ? "cursor-not-allowed bg-[#C9A8E8]"
+                : "bg-[#7135AD] hover:bg-[#5C2B8E]"
+            }`}
           >
-            {isUploading ? "Uploading..." : "Upload File(s)"}
+            {isUploading ? "Uploading..." : "Save File(s)"}
           </button>
         </div>
       </div>

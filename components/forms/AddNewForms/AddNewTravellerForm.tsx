@@ -1,848 +1,817 @@
 "use client";
 
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import Image from "next/image";
 import SingleCalendar from "@/components/SingleCalendar";
-import { validateTravellerForm } from "@/services/bookingApi";
 import SideSheet from "@/components/SideSheet";
 import { useBooking } from "@/context/BookingContext";
 import { createTraveller, updateTraveller } from "@/services/travellerApi";
 import { getAuthUser } from "@/services/storage/authStorage";
-import Button from "@/components/Button";
 import generateCustomId from "@/utils/helper";
 import PhoneCodeSelect from "@/components/PhoneCodeSelect";
 import DropDown from "@/components/DropDown";
-import { allowOnlyDigitsWithMax, allowOnlyText } from "@/utils/inputValidators";
+import ActionMenu from "@/components/Menus/ActionMenu";
+import RemarksField from "@/components/forms/components/RemarksField";
+import DirectoryFormFooter from "@/components/directory/DirectoryFormFooter";
+import ConfirmationModal from "@/components/popups/ConfirmationModal";
+import { FaRegFolder } from "react-icons/fa";
+import { MdOutlineFileUpload } from "react-icons/md";
+import { FiTrash2 } from "react-icons/fi";
+import { HiOutlineInformationCircle } from "react-icons/hi";
+import {
+  mapApiSourceToUiDropdown,
+  mapUiSourceToApi,
+} from "@/utils/directoryApiMappers";
+import {
+  allowOnlyDigitsWithMax,
+  allowOnlyText,
+  isValidEmail,
+} from "@/utils/inputValidators";
 import {
   getPhoneNumberMaxLength,
   splitPhoneWithDialCode,
 } from "@/utils/phoneUtils";
-import { LuSave } from "react-icons/lu";
-// Type definitions
-interface TravellerFormData {
-  firstname: string;
-  lastname: string;
-  nickname: string;
-  countryCode?: string;
-  contactnumber: number | string;
-  emailId: string;
-  dateofbirth: number | string;
-  remarks: string;
-}
+import { countryDialCodes } from "@/utils/countryDialCodes";
 
-interface ValidationErrors {
-  [key: string]: string;
+interface TravellerFormData {
+  name: string;
+  alias: string;
+  phone: string;
+  alternatePhone: string;
+  email: string;
+  dateOfBirth: string;
+  address: string;
+  city: string;
+  pinCode: string;
+  country: string;
+  remarks: string;
 }
 
 interface AddNewTravellerFormProps {
   onSubmit?: (data: TravellerFormData) => void;
   isSubmitting?: boolean;
-  showValidation?: boolean;
   formRef?: React.RefObject<HTMLFormElement | null>;
-  // Extended controls for external usage
   isOpen?: boolean;
   onClose?: () => void;
   mode?: "create" | "edit" | "view";
   data?: any;
+  travellerCode?: string;
 }
 
+const SOURCE_OPTIONS = [
+  {
+    value: "meta",
+    label: "Meta (Organic)",
+    icon: "/icons/source-icons/meta.svg",
+  },
+  {
+    value: "google",
+    label: "Google (Organic)",
+    icon: "/icons/source-icons/google-organic.svg",
+  },
+  {
+    value: "seo",
+    label: "SEO (Paid)",
+    icon: "/icons/source-icons/seo.svg",
+  },
+  {
+    value: "word-of-mouth",
+    label: "Word of Mouth",
+    icon: "/icons/source-icons/word-of-mouth.svg",
+  },
+  {
+    value: "referral",
+    label: "Referral",
+    icon: "/icons/source-icons/referal.svg",
+  },
+];
+
+const TIER_OPTIONS = [
+  {
+    value: "tier1",
+    label: (
+      <div className="flex items-center gap-2">
+        <img src="/icons/tier-1.svg" alt="Tier 1" className="h-5 w-5" />
+        <span className="text-[13px] font-medium">Tier I</span>
+      </div>
+    ),
+  },
+  {
+    value: "tier2",
+    label: (
+      <div className="flex items-center gap-2">
+        <img src="/icons/tier-2.svg" alt="Tier 2" className="h-5 w-5" />
+        <span className="text-[13px] font-medium">Tier II</span>
+      </div>
+    ),
+  },
+  {
+    value: "tier3",
+    label: (
+      <div className="flex items-center gap-2">
+        <img src="/icons/tier-3.svg" alt="Tier 3" className="h-5 w-5" />
+        <span className="text-[13px] font-medium">Tier III</span>
+      </div>
+    ),
+  },
+];
+
+const inputClassName =
+  "w-full rounded-md border border-gray-300 px-3 py-2 text-[13px] hover:border-[#7135AD33] focus:border-[#7135AD] focus:outline-none focus:ring-1 focus:ring-[#7135AD] disabled:bg-gray-100 disabled:text-gray-700";
+
+const emptyFormData = (): TravellerFormData => ({
+  name: "",
+  alias: "",
+  phone: "",
+  alternatePhone: "",
+  email: "",
+  dateOfBirth: "",
+  address: "",
+  city: "",
+  pinCode: "",
+  country: "",
+  remarks: "",
+});
+
 const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
-  onSubmit,
   isSubmitting = false,
-  showValidation = true,
   formRef,
   isOpen,
   onClose,
   mode = "create",
   data,
+  travellerCode: travellerCodeProp,
 }) => {
-  // Internal form state
-  const [formData, setFormData] = useState<TravellerFormData>({
-    firstname: "",
-    lastname: "",
-    nickname: "",
-    contactnumber: "",
-    emailId: "",
-    dateofbirth: "",
-    remarks: "",
-  });
-
-  const [errors, setErrors] = useState<ValidationErrors>({});
+  const [formData, setFormData] = useState<TravellerFormData>(emptyFormData());
   const [phoneCode, setPhoneCode] = useState<string>("+91");
-  const phoneMaxLength = getPhoneNumberMaxLength(phoneCode);
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [isValidating, setIsValidating] = useState<boolean>(false);
-  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [alternatePhoneCode, setAlternatePhoneCode] = useState<string>("+91");
+  const [source, setSource] = useState<string>("");
+  const [tier, setTier] = useState<string>("");
+  const [submitting, setSubmitting] = useState(false);
+  const [travellerCode, setTravellerCode] = useState("");
+  const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const fileRef = useRef<HTMLInputElement | null>(null);
+  const nameRef = useRef<HTMLInputElement | null>(null);
+
   const { isAddTravellerOpen, closeAddTraveller, setLastAddedTraveller } =
     useBooking();
   const readOnly = mode === "view";
   const open = typeof isOpen === "boolean" ? isOpen : isAddTravellerOpen;
   const handleClose = onClose || closeAddTraveller;
 
-  const [travellerCode, setTravellerCode] = useState("");
-  const [tier, setTier] = useState<string>("");
+  const phoneMaxLength = getPhoneNumberMaxLength(phoneCode);
+  const alternatePhoneMaxLength = getPhoneNumberMaxLength(alternatePhoneCode);
 
   useEffect(() => {
     if (mode === "create") {
-      setTravellerCode(generateCustomId("traveller"));
+      setTravellerCode(travellerCodeProp || generateCustomId("traveller"));
     } else {
-      // Prefer backend customId
-      setTravellerCode(data?.customId || data?._id || "");
+      setTravellerCode(data?.customId || data?.travellerID || data?._id || "");
     }
-  }, [mode, data]);
+  }, [mode, data, travellerCodeProp]);
 
-  // Prefill when data provided
   useEffect(() => {
     if (!data) return;
-    const fullName: string = data.name || "";
-    const [firstname = "", lastname = ""] = fullName.split(" ");
+
     const parsedPhone = splitPhoneWithDialCode(
       String(data.phone || data.contactnumber || ""),
       "+91",
     );
-    setFormData((prev) => ({
-      ...prev,
-      firstname,
-      lastname,
-      nickname: data.nickname || data.alias || "",
-      contactnumber: allowOnlyDigitsWithMax(
+    const parsedAlternatePhone = splitPhoneWithDialCode(
+      String(data.alternatePhone || ""),
+      "+91",
+    );
+
+    setFormData({
+      name: data.name || "",
+      alias: data.alias || data.nickname || "",
+      phone: allowOnlyDigitsWithMax(
         parsedPhone.number || "",
         getPhoneNumberMaxLength(parsedPhone.dialCode),
       ),
-      emailId: data.email || data.emailId || "",
-      dateofbirth: data.dateOfBirth || data.dateofbirth || "",
+      alternatePhone: allowOnlyDigitsWithMax(
+        parsedAlternatePhone.number || "",
+        getPhoneNumberMaxLength(parsedAlternatePhone.dialCode),
+      ),
+      email: data.email || data.emailId || "",
+      dateOfBirth: data.dateOfBirth || data.dateofbirth || "",
+      address: data.address || "",
+      city: data.city || "",
+      pinCode: data.pinCode || data.pincode || "",
+      country: data.country || "",
       remarks: data.remarks || "",
-    }));
+    });
     setPhoneCode(parsedPhone.dialCode || "+91");
+    setAlternatePhoneCode(parsedAlternatePhone.dialCode || "+91");
     setTier(data.tier || "");
+    setSource(
+      mapApiSourceToUiDropdown(
+        typeof data.source === "string"
+          ? data.source
+          : data.source?.type || "",
+      ),
+    );
   }, [data]);
 
-  type FieldRule = {
-    required: boolean;
-    message: string;
-    minLength?: number;
-    pattern?: RegExp;
-  };
+  const resetForm = useCallback(() => {
+    setFormData(emptyFormData());
+    setPhoneCode("+91");
+    setAlternatePhoneCode("+91");
+    setSource("");
+    setTier("");
+    setAttachedFiles([]);
+    if (mode === "create") {
+      setTravellerCode(generateCustomId("traveller"));
+    }
+  }, [mode]);
 
-  // Validation rules
-  const contactNumberPattern = useMemo(
-    () => new RegExp(`^\\\\d{${phoneMaxLength}}$`),
-    [phoneMaxLength],
-  );
-
-  const validationRules: Record<string, FieldRule> = useMemo(
-    () => ({
-      firstname: {
-        required: true,
-        minLength: 2,
-        message: "First name is required (minimum 2 characters)",
-      },
-      lastname: {
-        required: true,
-        minLength: 2,
-        message: "Last name is required (minimum 2 characters)",
-      },
-      contactnumber: {
-        required: true,
-        pattern: contactNumberPattern,
-        message: `Contact number must be ${phoneMaxLength} digits`,
-      },
-      emailId: {
-        required: true,
-        pattern: /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/,
-        message: "Invalid email format",
-      },
-    }),
-    [contactNumberPattern, phoneMaxLength],
-  );
-
-  // Enhanced validation function using API validation
-  const validateField = useCallback(
-    (name: string, value: any): string => {
-      // Prepare an empty traveller object
-      const emptyTraveller = {
-        firstname: "",
-        lastname: "",
-        nickname: "",
-        contactnumber: "",
-        emailId: "",
-        dateofbirth: "",
-        remarks: "",
-      };
-
-      // Insert the current field value into the object
-      const testData: TravellerFormData = {
-        ...emptyTraveller,
-        [name]: value,
-      };
-
-      // Run API-level validation
-      const apiErrors = validateTravellerForm(testData);
-      if (apiErrors[name]) return apiErrors[name];
-
-      // Apply basic validation rules
-      const rule = validationRules[name as keyof typeof validationRules];
-      if (!rule) return "";
-
-      // Required rule
-      if (
-        rule.required &&
-        (!value || (typeof value === "string" && value.trim() === ""))
-      ) {
-        return rule.message;
-      }
-
-      // Min length rule
-      if (
-        rule.minLength &&
-        typeof value === "string" &&
-        value.trim().length < rule.minLength
-      ) {
-        return rule.message;
-      }
-
-      // Pattern rule
-      if (
-        rule.pattern &&
-        typeof value === "string" &&
-        !rule.pattern.test(value)
-      ) {
-        return rule.message;
-      }
-
-      return "";
-    },
-    [validationRules],
-  );
-
-  // Validate all fields
-  const validateForm = useCallback((): boolean => {
-    const newErrors: ValidationErrors = {};
-    let isValid = true;
-
-    Object.keys(validationRules).forEach((fieldName) => {
-      const error = validateField(
-        fieldName,
-        formData[fieldName as keyof TravellerFormData],
-      );
-      if (error) {
-        newErrors[fieldName] = error;
-        isValid = false;
-      }
-    });
-
-    setErrors(newErrors);
-    return isValid;
-  }, [formData, validateField, validationRules]);
-
-  // Normal handleChange that only updates local state
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
-    const { name, value, type } = e.target;
-    const newValue =
-      name === "firstname" || name === "lastname" || name === "nickname"
-        ? allowOnlyText(value)
-        : name === "contactnumber"
-          ? allowOnlyDigitsWithMax(value, phoneMaxLength)
-          : value;
+    const { name, value } = e.target;
+    let nextValue = value;
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
-
-    // Clear error when user types
-    if (errors[name as keyof TravellerFormData]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+    if (name === "name" || name === "alias" || name === "city") {
+      nextValue = allowOnlyText(value);
+    } else if (name === "phone") {
+      nextValue = allowOnlyDigitsWithMax(value, phoneMaxLength);
+    } else if (name === "alternatePhone") {
+      nextValue = allowOnlyDigitsWithMax(value, alternatePhoneMaxLength);
+    } else if (name === "pinCode") {
+      nextValue = allowOnlyDigitsWithMax(value, 6);
     }
 
-    // Mark field touched
-    setTouched((prev) => ({ ...prev, [name]: true }));
+    setFormData((prev) => ({ ...prev, [name]: nextValue }));
   };
 
-  useEffect(() => {
-    setFormData((prev) => ({
-      ...prev,
-      contactnumber: allowOnlyDigitsWithMax(
-        String(prev.contactnumber || ""),
-        phoneMaxLength,
-      ),
-    }));
-  }, [phoneMaxLength]);
-
-  // Enhanced blur handler with API validation
-  const handleBlur = useCallback(
-    async (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const { name, value } = e.target;
-
-      if (showValidation) {
-        const error = validateField(name, value);
-        setErrors((prev) => ({ ...prev, [name]: error }));
-      }
-
-      setTouched((prev) => ({ ...prev, [name]: true }));
-    },
-    [validateField, showValidation],
-  );
-
-  // Handle date of birth changes coming from SingleCalendar (ISO string)
-  const handleDOBChange = (isoDate: string) => {
-    if (!isoDate) {
-      setFormData((prev) => ({ ...prev, dateofbirth: "" }));
-      setErrors((prev) => ({ ...prev, dateofbirth: "" }));
-      setTouched((prev) => ({ ...prev, dateofbirth: true }));
-      return;
-    }
-
-    const date = new Date(isoDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const d = new Date(date);
-    d.setHours(0, 0, 0, 0);
-
-    if (d > today) {
-      setErrors((prev) => ({
-        ...prev,
-        dateofbirth: "Date of birth cannot be in the future",
-      }));
-      setTouched((prev) => ({ ...prev, dateofbirth: true }));
-      return;
-    }
-
-    setErrors((prev) => ({ ...prev, dateofbirth: "" }));
-    setFormData((prev) => ({ ...prev, dateofbirth: date.toISOString() }));
-    setTouched((prev) => ({ ...prev, dateofbirth: true }));
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    setAttachedFiles((prev) => [...prev, ...files].slice(0, 3));
+    e.target.value = "";
   };
 
-  // Handle form submission
+  const handleRemoveFile = (index: number) => {
+    setAttachedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const buildPayload = (isDraft = false) => {
+    const storedUser = getAuthUser<any>();
+    const ownerId = storedUser?.id || storedUser?._id;
+
+    const phonePayload = formData.phone
+      ? `${phoneCode}${formData.phone}`
+      : undefined;
+    const alternatePhonePayload = formData.alternatePhone
+      ? `${alternatePhoneCode}${formData.alternatePhone}`
+      : undefined;
+
+    return {
+      name: String(formData.name || "").trim(),
+      alias: formData.alias || undefined,
+      email: String(formData.email || "").trim() || undefined,
+      phone: phonePayload,
+      alternatePhone: alternatePhonePayload,
+      dateOfBirth: formData.dateOfBirth || undefined,
+      address: formData.address || undefined,
+      city: formData.city || undefined,
+      pinCode: formData.pinCode || undefined,
+      country: formData.country || undefined,
+      tier: tier || undefined,
+      source: mapUiSourceToApi(
+        source,
+        SOURCE_OPTIONS.find((option) => option.value === source)?.label,
+      ) || undefined,
+      remarks: formData.remarks || undefined,
+      ownerId,
+      customId: travellerCode,
+      ...(isDraft ? { isDraft: true } : {}),
+    };
+  };
+
+  const validateBeforeSubmit = (requireFullValidation = true) => {
+    if (requireFullValidation && !formData.name.trim()) {
+      nameRef.current?.focus();
+      return false;
+    }
+    if (formData.email && !isValidEmail(formData.email)) {
+      return false;
+    }
+    return true;
+  };
+
+  const submitTraveller = async ({
+    requireFullValidation = true,
+    isDraft = false,
+  }: {
+    requireFullValidation?: boolean;
+    isDraft?: boolean;
+  } = {}) => {
+    if (!validateBeforeSubmit(requireFullValidation)) return;
+
+    try {
+      setSubmitting(true);
+      const payload = buildPayload(isDraft);
+      const created = await createTraveller(payload);
+      const id: string = created?._id || created?.id || "";
+      const displayName = created?.name || payload.name;
+      setLastAddedTraveller({ id, name: displayName });
+      handleClose();
+      resetForm();
+    } catch (err: any) {
+      console.error(
+        "[AddNewTravellerForm] Error creating traveller:",
+        err?.response?.data?.message || err?.message,
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSubmit = useCallback(
     async (e?: React.FormEvent) => {
-      if (e) e.preventDefault();
-
-      if (!validateForm()) {
-        const allTouched = Object.keys(validationRules).reduce(
-          (acc, key) => {
-            acc[key] = true;
-            return acc;
-          },
-          {} as Record<string, boolean>,
-        );
-        setTouched(allTouched);
-        return;
-      }
-
-      try {
-        setSubmitting(true);
-        const name = [
-          String(formData.firstname || "").trim(),
-          String(formData.lastname || "").trim(),
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .trim();
-
-        const storedUser = getAuthUser<any>();
-        const ownerId = storedUser?.id || storedUser?._id;
-
-        const phonePayload = phoneCode
-          ? String(formData.contactnumber || "").startsWith(phoneCode)
-            ? String(formData.contactnumber || "")
-            : phoneCode + String(formData.contactnumber || "")
-          : String(formData.contactnumber || "");
-
-        const payload: any = {
-          name,
-          email: String(formData.emailId || "").trim() || undefined,
-          phone: phonePayload || undefined,
-          dateOfBirth: formData.dateofbirth || undefined,
-          tier: tier || undefined,
-          ownerId,
-          customId: travellerCode,
-          // remarks is not part of traveller schema in docs; include only if backend accepts it
-        };
-
-        if (!payload.ownerId) {
-          console.error(
-            "[AddNewTravellerForm] Missing ownerId. Ensure user is authenticated.",
-          );
-        }
-
-        const created = await createTraveller(payload);
-        const id: string = created?._id || created?.id || "";
-        const displayName = created?.name || name;
-
-        setLastAddedTraveller({ id, name: displayName });
-        console.log("[AddNewTravellerForm] Traveller created successfully:", {
-          id,
-          displayName,
-        });
-        closeAddTraveller();
-        // Optionally reset form
-        setFormData({
-          firstname: "",
-          lastname: "",
-          nickname: "",
-          contactnumber: "",
-          emailId: "",
-          dateofbirth: "",
-          remarks: "",
-        });
-        setTier("");
-      } catch (err: any) {
-        const msg =
-          err?.response?.data?.message ||
-          err?.message ||
-          "Failed to create traveller";
-        console.error(
-          "[AddNewTravellerForm] Error creating traveller:",
-          msg,
-          err?.response?.data || err,
-        );
-      } finally {
-        setSubmitting(false);
-      }
+      e?.preventDefault();
+      await submitTraveller({ requireFullValidation: true });
     },
-    [
-      closeAddTraveller,
-      formData,
-      setLastAddedTraveller,
-      validateForm,
-      validationRules,
-    ],
+    [formData, phoneCode, alternatePhoneCode, source, tier, travellerCode],
   );
 
-  // Enhanced input field component with validation indicators
-  const InputField: React.FC<{
-    name: keyof TravellerFormData;
-    id?: string;
-    type?: string;
-    placeholder?: string;
-    required?: boolean;
-    className?: string;
-    min?: number;
-  }> = ({
-    name,
-    type = "text",
-    placeholder,
-    required,
-    className = "",
-    min,
-  }) => {
-    const isValidatingField = name === "firstname" && isValidating; // Example for one field, can be extended
-    const hasError = errors[name] && touched[name];
-    const hasValue = formData[name] && String(formData[name]).trim();
-    const isValid = hasValue && !hasError && !isValidatingField;
-
-    return (
-      <div className="relative">
-        <input
-          type={type}
-          name={name}
-          value={type === "file" ? undefined : String(formData[name] ?? "")}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          placeholder={placeholder}
-          required={required}
-          min={min}
-          disabled={isSubmitting || isValidatingField}
-          className={`
-            w-full border rounded-md px-3 py-2 pr-10 text-sm transition-colors
-            ${
-              hasError
-                ? "border-red-300 focus:ring-red-200"
-                : isValid && touched[name]
-                  ? "border-green-300 focus:ring-green-200"
-                  : "border-gray-200 focus:ring-blue-200"
-            }
-            ${
-              isSubmitting || isValidatingField
-                ? "opacity-50 cursor-not-allowed"
-                : ""
-            }
-            ${className}
-          `}
-        />
-
-        {/* Validation indicator */}
-        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-          {isValidatingField && (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
-          )}
-          {!isValidatingField && isValid && touched[name] && (
-            <svg
-              className="h-4 w-4 text-green-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-          )}
-          {!isValidatingField && hasError && (
-            <svg
-              className="h-4 w-4 text-red-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          )}
-        </div>
-
-        {hasError && (
-          <p className="text-red-500 text-xs mt-1">{errors[name]}</p>
-        )}
-      </div>
-    );
+  const handleSaveAsDraft = async () => {
+    await submitTraveller({ requireFullValidation: false, isDraft: true });
   };
 
-  return (
-    <SideSheet
-      isOpen={open}
-      onClose={handleClose}
-      title={`${
-        mode === "view"
-          ? "Traveller Details"
-          : mode === "edit"
-            ? "Edit Traveller"
-            : "Add Traveller"
-      }${travellerCode ? " | " + travellerCode : ""}`}
-      width="lg2"
-      zIndex={1000}
-    >
-      <form
-        className="space-y-6 p-4 flex flex-col min-h-full"
-        ref={formRef as any}
-        onSubmit={handleSubmit}
-      >
-        {/* ================= BASIC DETAILS ================ */}
-        <div className="border border-gray-200 rounded-[12px] p-3">
-          <h2 className="text-[13px] font-medium mb-2">Basic Details</h2>
-          <hr className="mt-1 mb-2 border-t border-gray-200" />
+  const handleUpdate = async () => {
+    if (!validateBeforeSubmit(true)) return;
 
-          <div className="flex flex-col md:flex-row gap-4 mb-2">
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
-              <label className="block text-[13px] font-medium text-gray-700">
-                First Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.firstname}
-                onChange={handleChange}
-                name="firstname"
-                placeholder="Enter First Name"
-                required
-                disabled={readOnly}
-                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-700"
-              />
-            </div>
+    try {
+      setSubmitting(true);
+      const id = data?._id || data?.id;
+      if (!id) throw new Error("Missing traveller id");
+      const updated = await updateTraveller(String(id), buildPayload());
+      setLastAddedTraveller({
+        id: updated?._id || id,
+        name: updated?.name || formData.name,
+      });
+      handleClose();
+    } catch (err: any) {
+      console.error(
+        "[AddNewTravellerForm] Error updating traveller:",
+        err?.response?.data?.message || err?.message,
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
-              <label className="block text-[13px] font-medium text-gray-700">
-                Last Name
-              </label>
-              <input
-                name="lastname"
-                value={formData.lastname}
-                onChange={handleChange}
-                type="text"
-                placeholder="Enter Last Name"
-                required
-                disabled={readOnly}
-                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-700"
-              />
-            </div>
+  const handleRequestClose = () => {
+    if (readOnly) {
+      handleClose();
+      return;
+    }
+    if (mode === "create") {
+      setIsCloseConfirmOpen(true);
+      return;
+    }
+    handleClose();
+  };
 
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
-              <label className="block text-[13px] font-medium text-gray-700">
-                Nickname/Alias
-              </label>
-              <input
-                name="nickname"
-                value={formData.nickname}
-                onChange={handleChange}
-                type="text"
-                placeholder="Enter Nickname/Alias"
-                required
-                disabled={readOnly}
-                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-700"
-              />
-            </div>
-          </div>
+  const sheetTitle = useMemo(() => {
+    const label =
+      mode === "view"
+        ? "Traveller Details"
+        : mode === "edit"
+          ? "Edit Traveller"
+          : "Add New Traveller";
 
-          {/* Second row */}
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
-              <label className="block text-[13px] font-medium text-gray-700">
-                Contact Number
-              </label>
-              <div className="flex items-center">
-                <PhoneCodeSelect
-                  value={phoneCode}
-                  onChange={(v) => setPhoneCode(v)}
-                  disabled={readOnly}
-                  customWidth="w-[88px]"
-                  menuWidth="w-[18rem]"
-                  className="flex-shrink-0 rounded-l-md"
-                  customHeight="h-9"
-                />
-                <input
-                  name="contactnumber"
-                  type="text"
-                  value={formData.contactnumber}
-                  onChange={handleChange}
-                  maxLength={phoneMaxLength}
-                  placeholder="Enter Contact Number"
-                  disabled={readOnly}
-                  className="flex-1 w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
-                />
-              </div>
-            </div>
+    if (!travellerCode) return label;
 
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
-              <label className="block text-[13px] font-medium text-gray-700">
-                Email ID
-              </label>
-              <input
-                name="emailId"
-                value={formData.emailId}
-                onChange={handleChange}
-                type="email"
-                placeholder="Enter Email ID"
-                required
-                disabled={readOnly}
-                className="w-full text-[13px] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-green-400 hover:border-green-300 disabled:bg-gray-100 disabled:text-gray-700"
-              />
-            </div>
+    return (
+      <span className="flex items-center gap-2">
+        <span>{label}</span>
+        <span className="font-normal text-[#D1D5DB]">|</span>
+        <span className="font-semibold text-[#1F2937]">{travellerCode}</span>
+      </span>
+    );
+  }, [mode, travellerCode]);
 
-            <div className="flex flex-col gap-1 w-full md:w-1/3">
-              <label className="block text-[13px] font-medium text-gray-700">
-                Date of Birth
-              </label>
-              <div className="">
-                <SingleCalendar
-                  value={String(formData.dateofbirth || "")}
-                  onChange={(iso) => handleDOBChange(iso)}
-                  placeholder="DD-MM-YYYY"
-                  customWidth="w-full py-2 text-[13px]"
-                  showCalendarIcon={false}
-                  readOnly={readOnly}
-                  maxDate={new Date().toISOString()}
-                />
-                {errors.dateofbirth && (
-                  <p className="text-red-500 text-xs mt-1">
-                    {errors.dateofbirth}
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ================= TIER ================ */}
-        <div className=" p-1 -mt-4">
-          <h2 className="text-[13px] font-medium mb-2">Rating</h2>
-
-          <div className="flex flex-col">
-            <DropDown
-              options={[
-                {
-                  value: "tier1",
-                  label: (
-                    <div className="flex items-center gap-2">
-                      <img
-                        src="/icons/tier-1.svg"
-                        alt="Tier 1"
-                        className="w-5 h-5"
-                      />
-                      <span className="text-[13px] font-medium">1</span>
-                    </div>
-                  ),
-                },
-                {
-                  value: "tier2",
-                  label: (
-                    <div className="flex items-center gap-2">
-                      <img
-                        src="/icons/tier-2.svg"
-                        alt="Tier 2"
-                        className="w-5 h-5"
-                      />
-                      <span className="text-[13px] font-medium">2</span>
-                    </div>
-                  ),
-                },
-                {
-                  value: "tier3",
-                  label: (
-                    <div className="flex items-center gap-2">
-                      <img
-                        src="/icons/tier-3.svg"
-                        alt="Tier 3"
-                        className="w-5 h-5"
-                      />
-                      <span className="text-[13px] font-medium">3</span>
-                    </div>
-                  ),
-                },
-                {
-                  value: "tier4",
-                  label: (
-                    <div className="flex items-center gap-2">
-                      <img
-                        src="/icons/tier-4.svg"
-                        alt="Tier 4"
-                        className="w-5 h-5"
-                      />
-                      <span className="text-[13px] font-medium">4</span>
-                    </div>
-                  ),
-                },
-                {
-                  value: "tier5",
-                  label: (
-                    <div className="flex items-center gap-2">
-                      <img
-                        src="/icons/tier-5.svg"
-                        alt="Tier 5"
-                        className="w-5 h-5"
-                      />
-                      <span className="text-[13px] font-medium">5</span>
-                    </div>
-                  ),
-                },
-              ]}
-              value={tier}
-              onChange={(v) => setTier(v)}
-              disabled={readOnly}
-              customWidth="w-[10rem]"
-              menuWidth="w-[10rem]"
-              className=""
-            />
-          </div>
-        </div>
-
-        {/* ================= REMARKS ================ */}
-        <div className="border border-gray-200 rounded-[12px] p-3">
-          <label className="block text-[13px] font-medium text-gray-700">
-            Remarks
-          </label>
-          <hr className="mt-1 mb-2 border-t border-gray-200" />
-          <textarea
-            name="remarks"
-            rows={5}
-            value={formData.remarks}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            placeholder="Enter Your Remarks Here"
-            disabled={isSubmitting || readOnly}
-            className={`w-full border border-gray-200 rounded-md px-3 py-2 text-[13px] mt-2 transition-colors focus:ring focus:ring-green-400 hover:border-green-300 ${
-              isSubmitting || readOnly ? "opacity-50 cursor-not-allowed" : ""
-            }`}
+  const headerRight = useMemo(
+    () => (
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="flex items-center gap-1.5 rounded-full border border-[#E8E8E8] bg-white px-3 py-1 text-[12px] font-medium text-[#7135AD] transition-colors hover:bg-[#7135AD0D]"
+        >
+          <Image
+            src="/icons/link-icon.svg"
+            alt=""
+            width={12}
+            height={12}
+            className="object-contain"
           />
-        </div>
-        <div className="flex justify-end mt-auto gap-2">
-          {mode === "view" ? (
-            <Button
-              text="Close"
-              onClick={handleClose}
-              bgColor="bg-gray-200"
-              textColor="text-gray-700"
-            />
-          ) : mode === "edit" ? (
-            <div className="flex gap-2">
-              <Button
-                text="Cancel"
-                onClick={handleClose}
-                bgColor="bg-gray-200"
-                textColor="text-gray-700"
-              />
-              <Button
-                text={isSubmitting || submitting ? "Updating..." : "Update"}
-                onClick={async () => {
-                  try {
-                    setSubmitting(true);
-                    const name = [
-                      String(formData.firstname || "").trim(),
-                      String(formData.lastname || "").trim(),
-                    ]
-                      .filter(Boolean)
-                      .join(" ")
-                      .trim();
-                    const payload: any = {
-                      name,
-                      email: String(formData.emailId || "").trim() || undefined,
-                      phone: ((): string | undefined => {
-                        const num = String(formData.contactnumber || "");
-                        const combined =
-                          (phoneCode && !num.startsWith(phoneCode)
-                            ? phoneCode
-                            : "") + num;
-                        return combined || undefined;
-                      })(),
-                      dateOfBirth: formData.dateofbirth || undefined,
-                      tier: tier || undefined,
-                    };
-                    const id = data?._id || data?.id;
-                    if (!id) throw new Error("Missing traveller id");
-                    const updated = await updateTraveller(String(id), payload);
-                    const displayName = updated?.name || name;
-                    setLastAddedTraveller({
-                      id: updated?._id || id,
-                      name: displayName,
-                    });
-                    handleClose();
-                  } catch (err: any) {
-                    console.error(
-                      "[AddNewTravellerForm] Error updating traveller:",
-                      err?.response?.data?.message || err?.message,
-                    );
-                  } finally {
-                    setSubmitting(false);
-                  }
-                }}
-                disabled={isSubmitting || submitting}
-                bgColor="bg-[#0D4B37]"
-                textColor="text-white"
-              />
+          Customer 0
+        </button>
+        <button
+          type="button"
+          className="flex items-center gap-1.5 rounded-full border border-[#E8E8E8] bg-white px-3 py-1 text-[12px] font-medium text-[#7135AD] transition-colors hover:bg-[#7135AD0D]"
+        >
+          <Image
+            src="/icons/link-icon.svg"
+            alt=""
+            width={12}
+            height={12}
+            className="object-contain"
+          />
+          Vendor 1
+        </button>
+        <ActionMenu
+          width="w-36"
+          right="right-0"
+          actions={[
+            {
+              label: "Reset Form",
+              onClick: resetForm,
+            },
+          ]}
+        />
+      </div>
+    ),
+    [resetForm],
+  );
+
+  const sourceDropdownOptions = useMemo(
+    () =>
+      SOURCE_OPTIONS.map((option) => ({
+        value: option.value,
+        label: (
+          <div className="flex items-center gap-2">
+            <img src={option.icon} alt="" className="h-4 w-4 object-contain" />
+            <span className="text-[13px]">{option.label}</span>
+          </div>
+        ),
+        searchLabel: option.label,
+      })),
+    [],
+  );
+
+  const countryDropdownOptions = useMemo(
+    () =>
+      countryDialCodes.map((country) => ({
+        value: country.name,
+        label: <span className="text-[13px]">{country.name}</span>,
+        searchLabel: country.name,
+      })),
+    [],
+  );
+
+  return (
+    <>
+      <SideSheet
+        isOpen={open}
+        onClose={handleRequestClose}
+        onCloseButtonClick={handleRequestClose}
+        title={sheetTitle}
+        headerRight={headerRight}
+        width="lg2"
+        position="right"
+        zIndex={1000}
+      >
+        <form
+          className="flex h-full min-h-0 flex-col"
+          ref={formRef as React.RefObject<HTMLFormElement>}
+          onSubmit={handleSubmit}
+          noValidate
+        >
+          <div className="sidesheet-scroll-body space-y-6 p-4 pb-6">
+            {/* Basic Details */}
+            <div className="-mt-2 rounded-[12px] border border-gray-200 p-3">
+              <h2 className="mb-2 text-[13px] font-medium">Basic Details</h2>
+              <hr className="mb-3 mt-1 border-t border-gray-200" />
+
+              <div className="mb-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    ref={nameRef}
+                    name="name"
+                    type="text"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Enter Full Name"
+                    disabled={readOnly}
+                    className={inputClassName}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Nickname/Alias
+                  </label>
+                  <input
+                    name="alias"
+                    type="text"
+                    value={formData.alias}
+                    onChange={handleChange}
+                    placeholder="Enter Nickname/Alias"
+                    disabled={readOnly}
+                    className={inputClassName}
+                  />
+                </div>
+              </div>
+
+              <div className="mb-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Contact Number
+                  </label>
+                  <div className="flex items-center">
+                    <PhoneCodeSelect
+                      value={phoneCode}
+                      onChange={setPhoneCode}
+                      disabled={readOnly}
+                      customWidth="w-[88px]"
+                      menuWidth="w-[18rem]"
+                      className="flex-shrink-0 rounded-l-md"
+                      customHeight="h-9"
+                    />
+                    <input
+                      name="phone"
+                      type="text"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      maxLength={phoneMaxLength}
+                      placeholder="Enter Contact Number"
+                      disabled={readOnly}
+                      className={`${inputClassName} rounded-l-none`}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Alternate Contact Number
+                  </label>
+                  <div className="flex items-center">
+                    <PhoneCodeSelect
+                      value={alternatePhoneCode}
+                      onChange={setAlternatePhoneCode}
+                      disabled={readOnly}
+                      customWidth="w-[88px]"
+                      menuWidth="w-[18rem]"
+                      className="flex-shrink-0 rounded-l-md"
+                      customHeight="h-9"
+                    />
+                    <input
+                      name="alternatePhone"
+                      type="text"
+                      value={formData.alternatePhone}
+                      onChange={handleChange}
+                      maxLength={alternatePhoneMaxLength}
+                      placeholder="Enter Contact Number"
+                      disabled={readOnly}
+                      className={`${inputClassName} rounded-l-none`}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Email ID
+                  </label>
+                  <input
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Enter Email ID"
+                    disabled={readOnly}
+                    className={inputClassName}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <SingleCalendar
+                    label="Date of Birth"
+                    value={formData.dateOfBirth || ""}
+                    onChange={(iso) =>
+                      setFormData((prev) => ({ ...prev, dateOfBirth: iso }))
+                    }
+                    placeholder="Select Date"
+                    customWidth="w-full mt-1.5 py-2"
+                    showCalendarIcon
+                    readOnly={readOnly}
+                    maxDate={new Date().toISOString()}
+                  />
+                </div>
+              </div>
             </div>
-          ) : (
-            <>
-              <div className="flex-1" />
-              <div className="flex gap-2">
-                <Button
-                  text="Cancel"
-                  onClick={handleClose}
-                  className="border border-gray-400"
-                  bgColor="bg-white"
-                  textColor="text-gray-700"
-                />
-                <Button
-                  type="submit"
-                  text={isSubmitting || submitting ? "Saving..." : "Save"}
-                  icon={<LuSave className="mr-1" />}
-                  disabled={isSubmitting || submitting}
-                  bgColor="bg-[#0D4B37]"
-                  textColor="text-white"
-                  className="hover:bg-[#0d3a45]"
+
+            {/* Address */}
+            <div className="rounded-[12px] border border-gray-200 p-3">
+              <h2 className="mb-2 text-[13px] font-medium">Address</h2>
+              <hr className="mb-3 mt-1 border-t border-gray-200" />
+
+              <div className="mb-3 flex flex-col gap-1">
+                <label className="block text-[13px] font-medium text-gray-700">
+                  Address
+                </label>
+                <textarea
+                  name="address"
+                  value={formData.address}
+                  onChange={handleChange}
+                  placeholder="Enter Address"
+                  rows={3}
+                  disabled={readOnly}
+                  className={inputClassName}
                 />
               </div>
-            </>
-          )}
-        </div>
-      </form>
-    </SideSheet>
+
+              <div className="mb-3 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    City
+                  </label>
+                  <input
+                    name="city"
+                    type="text"
+                    value={formData.city}
+                    onChange={handleChange}
+                    placeholder="Enter City"
+                    disabled={readOnly}
+                    className={inputClassName}
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    PIN Code
+                  </label>
+                  <input
+                    name="pinCode"
+                    type="text"
+                    value={formData.pinCode}
+                    onChange={handleChange}
+                    placeholder="Enter PIN Code"
+                    maxLength={6}
+                    disabled={readOnly}
+                    className={inputClassName}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="block text-[13px] font-medium text-gray-700">
+                  Country
+                </label>
+                <DropDown
+                  options={countryDropdownOptions}
+                  value={formData.country}
+                  onChange={(value) =>
+                    setFormData((prev) => ({ ...prev, country: value }))
+                  }
+                  placeholder="Select Country"
+                  disabled={readOnly}
+                  searchable
+                  searchPlaceholder="Search country..."
+                  customWidth="w-full"
+                  menuWidth="w-full"
+                  focusRingClass="focus:ring-1 focus:ring-[#7135AD]"
+                />
+              </div>
+            </div>
+
+            {/* Source & Tier */}
+            <div className="rounded-[12px] border border-gray-200 p-3">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Source
+                  </label>
+                  <DropDown
+                    options={sourceDropdownOptions}
+                    value={source}
+                    onChange={setSource}
+                    placeholder="Select Source"
+                    disabled={readOnly}
+                    customWidth="w-full"
+                    menuWidth="w-full"
+                    focusRingClass="focus:ring-1 focus:ring-[#7135AD]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Tier
+                  </label>
+                  <DropDown
+                    options={TIER_OPTIONS}
+                    value={tier}
+                    onChange={setTier}
+                    placeholder="Select Tier"
+                    disabled={readOnly}
+                    customWidth="w-full"
+                    menuWidth="w-full"
+                    focusRingClass="focus:ring-1 focus:ring-[#7135AD]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Documents */}
+            <div className="rounded-[12px] border border-gray-200 p-3">
+              <h2 className="mb-2 text-[13px] font-medium">Documents</h2>
+              <hr className="mb-3 mt-1 border-t border-gray-200" />
+
+              <input
+                type="file"
+                ref={fileRef}
+                className="hidden"
+                onChange={handleFileChange}
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.txt"
+                multiple
+                disabled={readOnly || attachedFiles.length >= 3}
+              />
+
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                disabled={readOnly || attachedFiles.length >= 3}
+                className={`flex items-center gap-1.5 rounded-md border border-[#7135AD] bg-white px-3 py-1.5 text-[13px] font-medium text-[#7135AD] transition-colors hover:bg-[#7135AD0D] ${
+                  readOnly || attachedFiles.length >= 3
+                    ? "cursor-not-allowed opacity-50 hover:bg-white"
+                    : ""
+                }`}
+              >
+                <MdOutlineFileUpload size={16} /> Attach Files
+              </button>
+
+              <div className="mt-2 flex flex-col gap-2">
+                {attachedFiles.map((file, i) => (
+                  <div
+                    key={`${file.name}-${i}`}
+                    className="flex w-full items-center justify-between rounded-md bg-white px-3 py-2 transition hover:bg-gray-50"
+                  >
+                    <span className="-ml-2 flex items-center gap-2 truncate rounded-md border border-gray-200 bg-gray-100 p-1 text-[13px] text-[#7135AD]">
+                      <FaRegFolder className="h-3 w-3 text-[#7135AD]" />
+                      {file.name}
+                    </span>
+                    {!readOnly ? (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFile(i)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        <FiTrash2 size={16} />
+                      </button>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-2 flex items-center gap-1 text-[11px] text-[#9CA3AF]">
+                <HiOutlineInformationCircle size={14} />
+                Maximum of 3 files can be uploaded
+              </div>
+            </div>
+
+            <RemarksField
+              label="Internal Notes"
+              value={formData.remarks}
+              onChange={(val) =>
+                setFormData((prev) => ({ ...prev, remarks: val }))
+              }
+              readOnly={readOnly}
+              placeholder="Enter your internal notes here..."
+              className="mt-0 mb-[200px]"
+            />
+          </div>
+
+          <DirectoryFormFooter
+            mode={mode}
+            onClose={handleRequestClose}
+            onSaveDraft={handleSaveAsDraft}
+            onUpdate={handleUpdate}
+            updateLabel="Update Traveller"
+            isSubmitting={isSubmitting || submitting}
+            submittingLabel={mode === "edit" ? "Updating..." : "Saving..."}
+          />
+        </form>
+      </SideSheet>
+
+      {isCloseConfirmOpen && (
+        <ConfirmationModal
+          isOpen={isCloseConfirmOpen}
+          onClose={() => setIsCloseConfirmOpen(false)}
+          title="You have unsaved changes. Are you sure you want to close?"
+          confirmText="Yes, Close"
+          cancelText="Cancel"
+          confirmButtonColor="bg-red-600"
+          onConfirm={() => {
+            setIsCloseConfirmOpen(false);
+            handleClose();
+          }}
+        />
+      )}
+    </>
   );
 };
 

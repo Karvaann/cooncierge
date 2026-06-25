@@ -1,0 +1,25 @@
+[
+  {
+    "_id": "mock-draft-1",
+    "customerID": "CU-DR001",
+    "name": "Incomplete Profile",
+    "source": { "type": "none", "label": "—" },
+    "tier": 2,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-draft-2",
+    "customerID": "CU-DR002",
+    "name": "Pending Details",
+    "subtitle": "Draft",
+    "source": { "type": "google", "label": "Google (Organic)" },
+    "tier": 3,
+    "owner": "—",
+    "dateCreated": "04 Mar '26",
+    "createdAt": "2026-03-04",
+    "actions": "⋮"
+  }
+]

@@ -1,170 +1,92 @@
-import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import { IoMdArrowBack } from "react-icons/io";
 import AuthPrimaryButton from "@/components/atoms/auth/AuthPrimaryButton";
 import AuthTextInput from "@/components/atoms/auth/AuthTextInput";
 import AuthPasswordInput from "@/components/atoms/auth/AuthPasswordInput";
 import OtpField from "@/components/molecules/auth/OtpField";
-import PasswordRules from "@/components/molecules/auth/PasswordRules";
-import type { OtpMessage, PasswordChecks } from "@/app/login/types";
+import OwlLogo from "@/components/organisms/auth/OwlLogo";
+import type { OtpMessage, OtpPurpose, PasswordChecks, ResetEmailFlow, SignInErrorState } from "@/app/login/types";
+import { AuthFieldErrorSlot } from "@/components/atoms/auth/AuthFieldError";
+import ResetPasswordCard from "@/components/organisms/auth/ResetPasswordCard";
 
 interface LoginAuthCardProps {
-  mode: "signin" | "otp" | "forgot" | "reset";
+  mode: "signin" | "otp" | "forgot" | "reset-password";
+  otpPurpose: OtpPurpose;
   success: boolean;
   checked: boolean;
   otp: string;
   email: string;
   password: string;
+  newPassword: string;
+  confirmNewPassword: string;
   showPassword: boolean;
   showNewPassword: boolean;
   showConfirmPassword: boolean;
-  showCurrentPassword: boolean;
-  newPassword: string;
-  confirmNewPassword: string;
-  currentPassword: string;
+  passwordChecks: PasswordChecks;
+  resetPasswordError: string | null;
+  isResetPasswordSubmitting: boolean;
+  signInError: SignInErrorState;
+  validationErrorTick: number;
   otpMessage: OtpMessage | null;
   isSubmitting: boolean;
   isOtpSubmitting: boolean;
   timer: number;
   canResend: boolean;
-  passwordChecks: PasswordChecks;
+  resetEmailFlow: ResetEmailFlow;
+  canSubmitForgotReset: boolean;
   setChecked: (checked: boolean) => void;
   setOtp: (value: string) => void;
   setEmail: (value: string) => void;
   setPassword: (value: string) => void;
-  setShowPassword: (value: boolean) => void;
-  setShowNewPassword: (value: boolean) => void;
-  setShowConfirmPassword: (value: boolean) => void;
-  setShowCurrentPassword: (value: boolean) => void;
   setNewPassword: (value: string) => void;
   setConfirmNewPassword: (value: string) => void;
-  setCurrentPassword: (value: string) => void;
+  setShowNewPassword: (value: boolean) => void;
+  setShowConfirmPassword: (value: boolean) => void;
+  clearSignInErrors: () => void;
+  clearOtpMessage: () => void;
+  setShowPassword: (value: boolean) => void;
   setSuccess: (value: boolean) => void;
   goToSignIn: () => void;
   goToForgotPassword: () => void;
-  goToResetMode: () => void;
   handleSignIn: (event: React.FormEvent<HTMLFormElement>) => Promise<void>;
   handleOtpSubmit: () => Promise<void>;
   handlePasswordResetRequest: () => Promise<void>;
-  handleSetNewPassword: () => Promise<void>;
   handleResendOtp: () => void;
+  handleResetPasswordSubmit: () => Promise<void>;
 }
 
-function InlineStatus({ message }: { message: OtpMessage }) {
-  return (
-    <p className={`text-center text-sm ${message.tone === "error" ? "text-red-600" : "text-green-600"}`}>
-      {message.text}
-    </p>
-  );
+function getForgotPasswordHelperText(flow: ResetEmailFlow): string {
+  switch (flow) {
+    case "otp":
+      return "Enter your email to receive a password reset OTP";
+    case "admin_request":
+      return "Enter your email to raise a password reset request with your administrator";
+    default:
+      return "Enter your email to continue";
+  }
 }
 
-const OWL_SIZE = { width: 66, height: 92 };
-const OPEN_EYE = { left: 47, top: 39, size: 14 };
-const CLOSED_EYE = { left: 26, top: 33, width: 40, height: 41 };
-const EYE_TRAVEL = {
-  left: -8,
-  right: 2,
-  up: -4,
-  down: 4,
-};
+function getForgotPasswordCtaLabel(
+  flow: ResetEmailFlow,
+  isSubmitting: boolean,
+): string {
+  if (isSubmitting) {
+    return flow === "admin_request" ? "Raising Request..." : "Sending OTP...";
+  }
 
-function OwlLogo({ passwordVisible }: { passwordVisible: boolean }) {
-  const owlRef = useRef<HTMLDivElement>(null);
-  const eyeRotationRef = useRef(0);
-  const [eyeMotion, setEyeMotion] = useState({ x: 0, y: 0, rotation: 0 });
+  if (flow === "otp") {
+    return "Send OTP";
+  }
 
-  useEffect(() => {
-    if (passwordVisible) {
-      eyeRotationRef.current = 0;
-      setEyeMotion({ x: 0, y: 0, rotation: 0 });
-      return;
-    }
+  if (flow === "admin_request") {
+    return "Raise Request";
+  }
 
-    function clamp(value: number, min: number, max: number) {
-      return Math.min(Math.max(value, min), max);
-    }
-
-    function getContinuousRotation(rotation: number) {
-      const previousRotation = eyeRotationRef.current;
-      const rotationDelta = ((((rotation - previousRotation) % 360) + 540) % 360) - 180;
-
-      return previousRotation + rotationDelta;
-    }
-
-    function handlePointerMove(event: PointerEvent) {
-      const owl = owlRef.current;
-
-      if (!owl) {
-        return;
-      }
-
-      const bounds = owl.getBoundingClientRect();
-      const eyeCenterX = bounds.left + OPEN_EYE.left + OPEN_EYE.size / 2;
-      const eyeCenterY = bounds.top + OPEN_EYE.top + OPEN_EYE.size / 2;
-      const deltaX = event.clientX - eyeCenterX;
-      const deltaY = event.clientY - eyeCenterY;
-      const rotation = getContinuousRotation(Math.atan2(deltaY, deltaX) * (180 / Math.PI));
-
-      eyeRotationRef.current = rotation;
-
-      setEyeMotion({
-        x: clamp(deltaX / 18, EYE_TRAVEL.left, EYE_TRAVEL.right),
-        y: clamp(deltaY / 22, EYE_TRAVEL.up, EYE_TRAVEL.down),
-        rotation,
-      });
-    }
-
-    window.addEventListener("pointermove", handlePointerMove);
-
-    return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
-    };
-  }, [passwordVisible]);
-
-  return (
-    <div className="flex flex-col items-center">
-      <div ref={owlRef} className="relative h-[92px] w-[66px]" aria-hidden>
-        <Image
-          src="/login/owl.svg"
-          alt=""
-          width={OWL_SIZE.width}
-          height={OWL_SIZE.height}
-          priority
-          className="h-[92px] w-[66px]"
-        />
-        {passwordVisible ? (
-          <Image
-            src="/login/eye_closed.svg"
-            alt=""
-            width={CLOSED_EYE.width}
-            height={CLOSED_EYE.height}
-            className="absolute h-[41px] w-[40px]"
-            style={{ left: CLOSED_EYE.left, top: CLOSED_EYE.top }}
-          />
-        ) : (
-          <Image
-            src="/login/eye.svg"
-            alt=""
-            width={OPEN_EYE.size}
-            height={OPEN_EYE.size}
-            className="absolute h-[15px] w-[15px] transition-transform duration-75 ease-out"
-            style={{
-              left: OPEN_EYE.left,
-              top: OPEN_EYE.top,
-              transform: `translate(${eyeMotion.x}px, ${eyeMotion.y}px) rotate(${eyeMotion.rotation}deg)`,
-            }}
-          />
-        )}
-      </div>
-
-      <Image src="/full_logo.svg" alt="Cooncierge Logo" width={120} height={53} priority className="-mt-1 h-auto w-[120px]" />
-    </div>
-  );
+  return "Send OTP / Raise Request";
 }
 
 export default function LoginAuthCard(props: LoginAuthCardProps) {
   const isAnyPasswordVisible =
-    props.showPassword || props.showCurrentPassword || props.showNewPassword || props.showConfirmPassword;
+    props.showPassword || props.showNewPassword || props.showConfirmPassword;
 
   return (
     <div className="z-10 flex h-full w-full flex-col items-center bg-white">
@@ -183,23 +105,39 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
               label="Email"
               type="email"
               value={props.email}
-              onChange={(event) => props.setEmail(event.target.value)}
+              onChange={(event) => {
+                props.setEmail(event.target.value);
+                props.clearSignInErrors();
+              }}
               placeholder="Enter Email"
               autoComplete="off"
               data-lpignore="true"
+              invalid={props.signInError.fields.email}
+              errorShakeKey={props.signInError.fields.email ? props.validationErrorTick : 0}
             />
 
-            <AuthPasswordInput
-              label="Password"
-              value={props.password}
-              onChange={(event) => props.setPassword(event.target.value)}
-              placeholder="Enter Password"
-              autoComplete="new-password"
-              visible={props.showPassword}
-              onToggleVisible={() => props.setShowPassword(!props.showPassword)}
-            />
-          </form>
-          <div className="flex mt-[24px] mb-[32px] items-center justify-between">
+            <div>
+              <AuthPasswordInput
+                label="Password"
+                value={props.password}
+                onChange={(event) => {
+                  props.setPassword(event.target.value);
+                  props.clearSignInErrors();
+                }}
+                placeholder="Enter Password"
+                autoComplete="new-password"
+                visible={props.showPassword}
+                onToggleVisible={() => props.setShowPassword(!props.showPassword)}
+                invalid={props.signInError.fields.password}
+                errorShakeKey={props.signInError.fields.password ? props.validationErrorTick : 0}
+              />
+              <AuthFieldErrorSlot
+                message={props.signInError.message}
+                jiggleKey={props.validationErrorTick}
+              />
+            </div>
+
+            <div className="flex mt-[8px] mb-[16px] items-center justify-between">
               <label className="group mb-1 mt-1 flex cursor-pointer items-center gap-2 text-[12px] font-[300] text-[#414141]">
                 <input
                   type="checkbox"
@@ -234,7 +172,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
               <button
                 type="button"
                 onClick={props.goToForgotPassword}
-                className="text-[12px] font-[300] text-[#818181] hover:text-[#777575] cursor-pointer transition-colors underline"
+                className="ui-text-sm cursor-pointer text-right align-middle font-normal tracking-[0] text-[#818181] no-underline transition-colors hover:text-[#777575] hover:underline"
               >
                 Forgot Password?
               </button>
@@ -245,6 +183,8 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
               label={props.isSubmitting ? "Signing In..." : "Sign In"}
               disabled={props.isSubmitting}
             />
+
+          </form>
         </div>
       ) : null}
 
@@ -253,23 +193,40 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
           <div className="mt-[23px] flex w-full items-center">
             <button
               type="button"
-              onClick={props.goToSignIn}
+              onClick={props.otpPurpose === "forgot" ? props.goToForgotPassword : props.goToSignIn}
               className="rounded-full p-1 transition-colors hover:bg-gray-200"
               aria-label="Back"
             >
               <IoMdArrowBack size={15} />
             </button>
             <div className="flex flex-col items-center w-full">
-              <h2 className="text-[15px] font-[500] text-[#414141]">Enter OTP</h2>
-              <p className="mt-2 text-[12px] font-[400] text-[#818181]">OTP has been sent to {props.email}.</p>
+              <h2 className="text-[15px] font-[500] text-[#414141]">
+                {props.otpPurpose === "forgot" ? "Enter password reset OTP" : "Enter OTP"}
+              </h2>
+              <p className="mt-2 text-[12px] font-[400] text-[#818181]">
+                OTP has been sent to{" "}
+                <span className="underline">{props.email}</span>.
+              </p>
             </div>
           </div>
 
-          <div className="m-[24px]">
-            <OtpField value={props.otp} onChange={props.setOtp} hasError={props.otpMessage?.tone === "error"} />
+          <div className="my-[24px] flex w-full justify-center">
+            <div className="flex flex-col items-start">
+              <OtpField
+                value={props.otp}
+                onChange={(value) => {
+                  props.setOtp(value);
+                  props.clearOtpMessage();
+                }}
+                hasError={props.otpMessage?.tone === "error"}
+                errorShakeKey={props.otpMessage?.tone === "error" ? props.validationErrorTick : 0}
+              />
+              <AuthFieldErrorSlot
+                message={props.otpMessage?.tone === "error" ? props.otpMessage.text : null}
+                jiggleKey={props.otpMessage?.tone === "error" ? props.validationErrorTick : 0}
+              />
+            </div>
           </div>
-
-          {props.otpMessage ? <InlineStatus message={props.otpMessage} /> : null}
 
           <AuthPrimaryButton
             onClick={props.handleOtpSubmit}
@@ -280,14 +237,18 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
           <div className="mt-4 flex w-full justify-between">
             <div className="text-[12px] font-normal text-[#414141]">(00:{props.timer > 9 ? props.timer : `0${props.timer}`})</div>
             {!props.canResend ? (
-              <button type="button" disabled className="text-[12px] font-normal text-[#0D4B37] opacity-60">
+              <button
+                type="button"
+                disabled
+                className="ui-text-sm cursor-not-allowed text-right align-middle font-[Roboto,sans-serif] font-normal tracking-[0] text-[#0D4B37] opacity-60"
+              >
                 Resend OTP
               </button>
             ) : (
               <button
                 type="button"
                 onClick={props.handleResendOtp}
-                className="text-[15px] font-normal text-[#0D4B37] underline hover:text-[#125E45]"
+                className="ui-text-sm cursor-pointer text-right align-middle font-[Roboto,sans-serif] font-normal tracking-[0] text-[#0D4B37] no-underline transition-colors hover:text-[#0a3b2b]"
               >
                 Resend OTP
               </button>
@@ -318,27 +279,44 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
                   void props.handlePasswordResetRequest();
                 }}
               >
-                <p className="mb-[18px] mt-[18px] text-justify text-[14px] font-normal text-[#414141]">
-                  Enter your email to raise password reset request
+                <p
+                  key={props.resetEmailFlow === "otp" || props.resetEmailFlow === "admin_request" ? props.resetEmailFlow : "default"}
+                  className="mb-[18px] mt-[18px] text-justify text-[14px] font-normal text-[#414141] transition-colors duration-300 ease-out animate-auth-cta-label"
+                >
+                  {getForgotPasswordHelperText(props.resetEmailFlow)}
                 </p>
 
                 <AuthTextInput
                   type="email"
                   label="Email"
                   value={props.email}
-                  onChange={(event) => props.setEmail(event.target.value)}
+                  onChange={(event) => {
+                    props.setEmail(event.target.value);
+                    props.clearOtpMessage();
+                  }}
                   placeholder="Enter Email"
                   autoComplete="off"
                   data-lpignore="true"
-                  className="mb-[18px]"
+                  invalid={props.otpMessage?.tone === "error"}
+                  errorShakeKey={props.otpMessage?.tone === "error" ? props.validationErrorTick : 0}
                 />
 
-                {props.otpMessage ? <InlineStatus message={props.otpMessage} /> : null}
+                <div className="mb-[18px]">
+                  <AuthFieldErrorSlot
+                    message={props.otpMessage?.tone === "error" ? props.otpMessage.text : null}
+                    jiggleKey={props.otpMessage?.tone === "error" ? props.validationErrorTick : 0}
+                  />
+                </div>
 
                 <AuthPrimaryButton
                   type="submit"
-                  label={props.isSubmitting ? "Raising Request..." : "Raise Request"}
-                  disabled={props.isSubmitting}
+                  label={getForgotPasswordCtaLabel(props.resetEmailFlow, props.isSubmitting)}
+                  animateLabel
+                  disabled={
+                    props.isSubmitting ||
+                    props.resetEmailFlow === "checking" ||
+                    !props.canSubmitForgotReset
+                  }
                 />
               </form>
             </div>
@@ -373,62 +351,25 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
         </div>
       ) : null}
 
-      {props.mode === "reset" ? (
-        <div className="w-full px-0">
-          <div className="mb-6 mt-[23px] flex items-center">
-            <h2 className="w-full text-center text-[16px] font-semibold text-[#020202]">Set a new password</h2>
-          </div>
-
-          <div className="space-y-4 h-[50vh] overflow-scroll">
-            <AuthPasswordInput
-              label="Current Password"
-              value={props.currentPassword}
-              onChange={(event) => props.setCurrentPassword(event.target.value)}
-              placeholder="Enter Password"
-              autoComplete="current-password"
-              visible={props.showCurrentPassword}
-              onToggleVisible={() => props.setShowCurrentPassword(!props.showCurrentPassword)}
-            />
-
-            <AuthTextInput
-              label="Email"
-              type="email"
-              value={props.email}
-              readOnly
-              className="cursor-not-allowed bg-gray-100 text-gray-600"
-            />
-
-            <div>
-              <AuthPasswordInput
-                label="New Password"
-                value={props.newPassword}
-                onChange={(event) => props.setNewPassword(event.target.value)}
-                placeholder="Enter Password"
-                visible={props.showNewPassword}
-                onToggleVisible={() => props.setShowNewPassword(!props.showNewPassword)}
-              />
-              <PasswordRules checks={props.passwordChecks} />
-            </div>
-
-            <AuthPasswordInput
-              label="Confirm New Password"
-              value={props.confirmNewPassword}
-              onChange={(event) => props.setConfirmNewPassword(event.target.value)}
-              placeholder="Re-enter Password"
-              visible={props.showConfirmPassword}
-              onToggleVisible={() => props.setShowConfirmPassword(!props.showConfirmPassword)}
-            />
-
-            {props.otpMessage ? <InlineStatus message={props.otpMessage} /> : null}
-
-          </div>
-          <AuthPrimaryButton
-              label={props.isSubmitting ? "Setting..." : "Set a new password"}
-              onClick={props.handleSetNewPassword}
-              disabled={!props.passwordChecks.canSetNewPassword || props.isSubmitting}
-              className="mt-[23px]"
-            />
-        </div>
+      {props.mode === "reset-password" ? (
+        <ResetPasswordCard
+          embedded
+          email={props.email}
+          newPassword={props.newPassword}
+          confirmNewPassword={props.confirmNewPassword}
+          showNewPassword={props.showNewPassword}
+          showConfirmPassword={props.showConfirmPassword}
+          passwordChecks={props.passwordChecks}
+          isSubmitting={props.isResetPasswordSubmitting}
+          submitError={props.resetPasswordError}
+          validationErrorTick={props.validationErrorTick}
+          setNewPassword={props.setNewPassword}
+          setConfirmNewPassword={props.setConfirmNewPassword}
+          setShowNewPassword={props.setShowNewPassword}
+          setShowConfirmPassword={props.setShowConfirmPassword}
+          onBack={props.goToSignIn}
+          onSubmit={() => void props.handleResetPasswordSubmit()}
+        />
       ) : null}
 
       <footer className="mt-auto flex justify-center gap-8 pt-8 text-[12px] text-[#818181]">

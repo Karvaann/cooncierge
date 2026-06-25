@@ -8,7 +8,7 @@ import DropDown from "../DropDown";
 import PhoneCodeSelect from "../PhoneCodeSelect";
 import Button from "../Button";
 import ErrorToast from "../ErrorToast";
-import { IoEyeOffOutline, IoEyeOutline } from "react-icons/io5";
+import PasswordVisibilityIcon from "@/components/atoms/auth/PasswordVisibilityIcon";
 import { JSX } from "react";
 import {
   allowOnlyDigitsWithMax,
@@ -470,11 +470,7 @@ export default function AddUserSidesheet({
                             showPassword ? "Hide password" : "Show password"
                           }
                         >
-                          {showPassword ? (
-                            <IoEyeOutline />
-                          ) : (
-                            <IoEyeOffOutline />
-                          )}
+                          <PasswordVisibilityIcon visible={showPassword} />
                         </button>
                       </div>
 

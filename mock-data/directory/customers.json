@@ -1,0 +1,92 @@
+[
+  {
+    "_id": "mock-cu-1",
+    "customerID": "CU-AB001",
+    "name": "Piyush Mehta",
+    "subtitle": "Mikku",
+    "source": { "type": "meta", "label": "Meta (Organic)" },
+    "tier": 1,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-cu-2",
+    "customerID": "CU-AB002",
+    "name": "Anand Mishra",
+    "source": { "type": "meta", "label": "Meta (Paid)" },
+    "tier": 3,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-cu-3",
+    "customerID": "CU-AB003",
+    "name": "Kavya Nair",
+    "source": { "type": "google", "label": "Google (Organic)" },
+    "tier": 1,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-cu-4",
+    "customerID": "CU-AB004",
+    "name": "Sumit Jha",
+    "subtitle": "GSTIN: GST6129QWRNM5678",
+    "source": { "type": "seo", "label": "SEO (Paid)" },
+    "tier": 2,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-cu-5",
+    "customerID": "CU-AB005",
+    "name": "Rahul Verma",
+    "source": { "type": "word-of-mouth", "label": "Word of Mouth" },
+    "tier": 2,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-cu-6",
+    "customerID": "CU-AB006",
+    "name": "Neha Kapoor",
+    "source": { "type": "referral", "label": "Referral" },
+    "tier": 2,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-cu-7",
+    "customerID": "CU-AB007",
+    "name": "Priya Sharma",
+    "source": { "type": "google", "label": "Google (Organic)" },
+    "tier": 2,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  },
+  {
+    "_id": "mock-cu-8",
+    "customerID": "CU-AB008",
+    "name": "Arjun Desai",
+    "source": { "type": "none", "label": "—" },
+    "tier": 3,
+    "owner": "—",
+    "dateCreated": "05 Mar '26",
+    "createdAt": "2026-03-05",
+    "actions": "⋮"
+  }
+]

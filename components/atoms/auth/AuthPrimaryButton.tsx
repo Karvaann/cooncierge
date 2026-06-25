@@ -3,10 +3,12 @@ import type { ButtonHTMLAttributes } from "react";
 interface AuthPrimaryButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement> {
   label: string;
+  animateLabel?: boolean;
 }
 
 export default function AuthPrimaryButton({
   label,
+  animateLabel = false,
   className = "",
   ...props
 }: AuthPrimaryButtonProps) {
@@ -22,7 +24,12 @@ export default function AuthPrimaryButton({
         className,
       ].join(" ")}
     >
-      <span>{label}</span>
+      <span
+        key={animateLabel ? label : undefined}
+        className={animateLabel ? "animate-auth-cta-label inline-block" : undefined}
+      >
+        {label}
+      </span>
       {showSignInArrow ? (
         <svg
           xmlns="http://www.w3.org/2000/svg"
