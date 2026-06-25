@@ -10,6 +10,7 @@ import { TbArrowsUpDown } from "react-icons/tb";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { IoEllipsisHorizontal } from "react-icons/io5";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
+import { FiCopy } from "react-icons/fi";
 import {
   getVendors,
   deleteVendor,
@@ -22,6 +23,9 @@ import AddVendorSideSheet from "@/components/Sidesheets/AddVendorSideSheet";
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
 import DownloadMergeMenu from "@/components/Menus/DownloadMergeMenu";
 import type { DeletableItem } from "@/components/Modals/DeleteModal";
+import LinkProfilesModal, {
+  type LinkProfileSource,
+} from "@/components/Modals/LinkProfilesModal";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import { MdHistory } from "react-icons/md";
 import Image from "next/image";
@@ -38,7 +42,12 @@ import {
   passesMultiSelectFilter,
   useMultiSelectFilter,
 } from "@/hooks/useMultiSelectFilter";
-import { MOCK_BOOKING_HISTORY, MOCK_VENDORS } from "@/mock-data/directory";
+import { MOCK_BOOKING_HISTORY } from "@/mock-data/directory";
+import {
+  formatDirectoryDisplayDate,
+  mapApiSourceToUi,
+  mapTierToNumber,
+} from "@/utils/directoryApiMappers";
 import {
   getNextTriSortState,
   type TriSortState,
@@ -119,30 +128,6 @@ const resolveVendorType = (row: {
   return "individual";
 };
 
-const formatDisplayDate = (dateString?: string) => {
-  if (!dateString) return "—";
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return dateString;
-
-  const day = String(date.getDate()).padStart(2, "0");
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  const month = months[date.getMonth()];
-  const year = String(date.getFullYear()).slice(-2);
-  return `${day} ${month} '${year}`;
-};
 
 const mapVendorToRow = (v: any, index: number): VendorRow => {
   const subtitle =
@@ -153,10 +138,7 @@ const mapVendorToRow = (v: any, index: number): VendorRow => {
         : undefined;
 
   const sourceRaw = v.source;
-  const source: VendorSource =
-    sourceRaw && typeof sourceRaw === "object"
-      ? sourceRaw
-      : { type: "none", label: "—" };
+  const source: VendorSource = mapApiSourceToUi(sourceRaw);
 
   return {
     _id: v._id || "",
@@ -165,8 +147,8 @@ const mapVendorToRow = (v: any, index: number): VendorRow => {
     subtitle,
     vendorType: resolveVendorType({ subtitle }),
     source,
-    tier: v.tier ? Number(String(v.tier).replace("tier", "")) : 2,
-    dateModified: formatDisplayDate(v.updatedAt || v.createdAt),
+    tier: mapTierToNumber(v.tier),
+    dateModified: formatDirectoryDisplayDate(v.updatedAt || v.createdAt),
     createdAt: v.updatedAt || v.createdAt,
     actions: "⋮",
   };
@@ -238,7 +220,7 @@ const VendorDirectory = () => {
     width: number;
     height: number;
   } | null>(null);
-  const [vendors, setVendors] = useState<VendorRow[]>(MOCK_VENDORS);
+  const [vendors, setVendors] = useState<VendorRow[]>([]);
   const [sortState, setSortState] = useState<TriSortState<string>>({
     key: null,
     direction: "none",
@@ -256,6 +238,9 @@ const VendorDirectory = () => {
   const [generatedVendorCode, setGeneratedVendorCode] = useState("");
   const [selectedVendor, setSelectedVendor] = useState<any | null>(null);
   const [mode, setMode] = useState<"create" | "edit" | "view">("create");
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkSourceProfile, setLinkSourceProfile] =
+    useState<LinkProfileSource | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [historyBookings, setHistoryBookings] = useState<
     {
@@ -564,12 +549,11 @@ const VendorDirectory = () => {
         return;
       }
 
-      setVendors(MOCK_VENDORS);
+      const data = await getVendors({ isDeleted: false });
+      setVendors(data.map(mapVendorToRow));
     } catch (err) {
       console.error("Failed to fetch vendors:", err);
-      if (activeTab !== "Deleted") {
-        setVendors(MOCK_VENDORS);
-      }
+      setVendors([]);
     }
   };
 
@@ -658,6 +642,51 @@ const VendorDirectory = () => {
       onClick: async () => {
         await handleDeleteVendor(row._id);
         fetchVendors();
+      },
+    },
+    {
+      label: "Link",
+      icon: (
+        <Image
+          src="/icons/link-icon.svg"
+          alt="Link"
+          width={14}
+          height={14}
+          className="object-contain"
+        />
+      ),
+      color: "text-[#419836]",
+      onClick: () => {
+        setLinkSourceProfile({
+          profileType: "Vendor",
+          id: row.vendorID,
+          name: row.name,
+          ...(row.subtitle ? { nickname: row.subtitle } : {}),
+          tier: row.tier,
+        });
+        setIsLinkModalOpen(true);
+      },
+    },
+    {
+      label: "Duplicate",
+      icon: <FiCopy size={14} />,
+      color: "text-[#818181]",
+      confirmDuplicateId: row.vendorID,
+      onClick: async () => {
+        try {
+          const vendor = await getVendorById(row._id);
+          const res = await CustomIdApi.generate("vendor");
+          setGeneratedVendorCode(res?.customId || "");
+          setSelectedVendor({
+            ...vendor,
+            _id: undefined,
+            customId: res?.customId || "",
+          });
+          setMode("create");
+          setIsSideSheetOpen(true);
+        } catch (e) {
+          console.error("Failed to duplicate vendor:", e);
+        }
       },
     },
   ];
@@ -778,7 +807,7 @@ const VendorDirectory = () => {
       }));
   }, [vendors, selectedVendors]);
 
-  const totalCount = activeTab === "Deleted" ? vendors.length : 78;
+  const totalCount = vendors.length;
 
   const tableSharedProps = {
     columnIconMap,
@@ -1031,6 +1060,17 @@ const VendorDirectory = () => {
             onSuccess={fetchVendors}
           />
         </BookingProvider>
+      )}
+
+      {isLinkModalOpen && (
+        <LinkProfilesModal
+          isOpen={isLinkModalOpen}
+          onClose={() => {
+            setIsLinkModalOpen(false);
+            setLinkSourceProfile(null);
+          }}
+          sourceProfile={linkSourceProfile}
+        />
       )}
 
       {isHistoryOpen && (

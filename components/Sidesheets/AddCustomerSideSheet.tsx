@@ -28,6 +28,10 @@ import {
 } from "@/utils/inputValidators";
 import { isValidEmail } from "@/utils/inputValidators";
 import {
+  mapApiSourceToUiDropdown,
+  mapUiSourceToApi,
+} from "@/utils/directoryApiMappers";
+import {
   getPhoneNumberMaxLength,
   splitPhoneWithDialCode,
 } from "@/utils/phoneUtils";
@@ -156,6 +160,19 @@ type AddCustomerSideSheetProps = {
   formRef?: React.RefObject<HTMLFormElement | null>;
   onSuccess?: () => void;
   customerCode?: string;
+};
+
+const getCustomerErrorMessage = (error: unknown): string => {
+  const raw =
+    (error as { message?: string; error?: string })?.message ||
+    (error as { message?: string; error?: string })?.error ||
+    "Something went wrong";
+
+  if (raw.includes("E11000") && raw.toLowerCase().includes("email")) {
+    return "A customer with this email already exists.";
+  }
+
+  return raw;
 };
 
 type UserOption = {
@@ -435,7 +452,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         tier: data.tier || "",
         alternatePhone: trimmedAlternate || "",
         customerType: data.customerType || "",
-        source: data.source || "",
+        source: mapApiSourceToUiDropdown(data.source || ""),
       };
       setFormData(nextFormData);
 
@@ -448,7 +465,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         : "";
       const nextBalanceType = data.balanceType || "debit";
       const nextCustomerType = data.customerType || "";
-      const nextSource = data.source || "";
+      const nextSource = mapApiSourceToUiDropdown(data.source || "");
       setTier(nextTier);
       setBalanceAmount(nextBalanceAmount);
       setBalanceType(nextBalanceType);
@@ -706,7 +723,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       formDataToSend.append("remarks", formData.remarks || "");
       formDataToSend.append("tier", tier || "");
       formDataToSend.append("customerType", customerType || "");
-      formDataToSend.append("source", source || "");
+      formDataToSend.append(
+        "source",
+        mapUiSourceToApi(
+          source,
+          SOURCE_OPTIONS.find((option) => option.value === source)?.label,
+        ),
+      );
       formDataToSend.append(
         "ownerId",
         String(formData.ownerId || ownerId || ownerIdFromAuth || ""),
@@ -738,8 +761,10 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       }
 
       onCancel();
-    } catch (error: any) {
-      console.error("Error creating customer:", error.message || error);
+    } catch (error: unknown) {
+      const message = getCustomerErrorMessage(error);
+      showErrorToast(message);
+      console.error("Error creating customer:", message);
     }
   };
 
@@ -805,7 +830,11 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         balanceType: balanceType,
         tier: tier || undefined,
         customerType: customerType || undefined,
-        source: source || undefined,
+        source:
+          mapUiSourceToApi(
+            source,
+            SOURCE_OPTIONS.find((option) => option.value === source)?.label,
+          ) || undefined,
         remarks: formData.remarks || undefined,
         ownerId: formData.ownerId || ownerId || undefined,
 
@@ -816,8 +845,10 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       console.log("Customer updated:", updated);
       onSuccess?.();
       onCancel(); // close sheet
-    } catch (error) {
-      console.error("Update error:", error);
+    } catch (error: unknown) {
+      const message = getCustomerErrorMessage(error);
+      showErrorToast(message);
+      console.error("Update error:", message);
     }
   };
 

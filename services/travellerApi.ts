@@ -47,7 +47,7 @@ export const updateTraveller = async (id: string, travellerData: any) => {
 // Soft Delete Traveller
 export const deleteTraveller = async (id: string) => {
   try {
-    const response = await apiClient.put(`/traveller/delete-traveller/${id}`);
+    const response = await apiClient.delete(`/traveller/delete-traveller/${id}`);
     return response.data;
   } catch (error: any) {
     console.error("Failed to delete traveller:", error);
@@ -58,7 +58,7 @@ export const deleteTraveller = async (id: string) => {
 // Restore Traveller
 export const restoreTraveller = async (id: string) => {
   try {
-    const response = await apiClient.put(`/traveller/restore-traveller/${id}`);
+    const response = await apiClient.patch(`/traveller/restore-traveller/${id}`);
     return response.data.traveller;
   } catch (error: any) {
     console.error("Failed to restore traveller:", error);

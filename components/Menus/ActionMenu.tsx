@@ -2,6 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { PiDotsThreeBold } from "react-icons/pi";
 import DeleteConfirmModal from "../popups/DeleteConfirmModal";
+import DuplicateConfirmModal from "../popups/DuplicateConfirmModal";
 
 type MenuAction = {
   label: string;
@@ -10,6 +11,8 @@ type MenuAction = {
   onClick: () => void;
   /** When set, clicking this action opens a centered delete confirmation modal. */
   confirmDeleteId?: string;
+  /** When set, clicking this action opens a centered duplicate confirmation modal. */
+  confirmDuplicateId?: string;
 };
 
 interface ActionMenuProps {
@@ -36,6 +39,10 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
     itemId: string;
     onConfirm: () => void;
   } | null>(null);
+  const [pendingDuplicate, setPendingDuplicate] = useState<{
+    itemId: string;
+    onConfirm: () => void;
+  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const menuWidthClass = width ?? "min-w-[7.5rem]";
@@ -46,7 +53,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (pendingDelete) return;
+      if (pendingDelete || pendingDuplicate) return;
 
       if (
         containerRef.current &&
@@ -61,7 +68,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
     }
 
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isOpen, pendingDelete]);
+  }, [isOpen, pendingDelete, pendingDuplicate]);
 
   const closeMenu = () => {
     setIsOpen(false);
@@ -69,6 +76,10 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
 
   const closeDeleteModal = () => {
     setPendingDelete(null);
+  };
+
+  const closeDuplicateModal = () => {
+    setPendingDuplicate(null);
   };
 
   return (
@@ -114,6 +125,14 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
                       closeMenu();
                       return;
                     }
+                    if (action.confirmDuplicateId) {
+                      setPendingDuplicate({
+                        itemId: action.confirmDuplicateId,
+                        onConfirm: action.onClick,
+                      });
+                      closeMenu();
+                      return;
+                    }
                     action.onClick();
                     closeMenu();
                   }}
@@ -139,6 +158,16 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
         onConfirm={() => {
           pendingDelete?.onConfirm();
           closeDeleteModal();
+        }}
+      />
+
+      <DuplicateConfirmModal
+        isOpen={Boolean(pendingDuplicate)}
+        itemId={pendingDuplicate?.itemId ?? ""}
+        onCancel={closeDuplicateModal}
+        onConfirm={() => {
+          pendingDuplicate?.onConfirm();
+          closeDuplicateModal();
         }}
       />
     </>

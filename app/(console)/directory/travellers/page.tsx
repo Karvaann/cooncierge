@@ -10,10 +10,13 @@ import { TbArrowsUpDown } from "react-icons/tb";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { IoEllipsisHorizontal } from "react-icons/io5";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
+import { FiCopy } from "react-icons/fi";
 import {
   getTravellers,
   deleteTraveller,
   getTravellerById,
+  getTravellerBookingHistory,
+  restoreTraveller,
 } from "@/services/travellerApi";
 import type { JSX } from "react";
 import { BookingProvider } from "@/context/BookingContext";
@@ -21,9 +24,13 @@ import AddNewTravellerForm from "@/components/forms/AddNewForms/AddNewTravellerF
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
 import DownloadMergeMenu from "@/components/Menus/DownloadMergeMenu";
 import type { DeletableItem } from "@/components/Modals/DeleteModal";
+import LinkProfilesModal, {
+  type LinkProfileSource,
+} from "@/components/Modals/LinkProfilesModal";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import { MdHistory } from "react-icons/md";
 import Image from "next/image";
+import generateCustomId from "@/utils/helper";
 import DirectoryPeopleTabs, {
   TRAVELLER_PAGE_TABS,
 } from "@/components/directory/DirectoryPeopleTabs";
@@ -39,7 +46,12 @@ import {
   passesMultiSelectFilter,
   useMultiSelectFilter,
 } from "@/hooks/useMultiSelectFilter";
-import { MOCK_BOOKING_HISTORY, MOCK_TRAVELLERS } from "@/mock-data/directory";
+import { MOCK_BOOKING_HISTORY } from "@/mock-data/directory";
+import {
+  formatDirectoryDisplayDate,
+  mapApiSourceToUi,
+  mapTierToNumber,
+} from "@/utils/directoryApiMappers";
 import {
   getNextTriSortState,
   type TriSortState,
@@ -121,7 +133,6 @@ const resolveTravellerType = (row: {
 
 const mapTravellerToRow = (t: any, index: number): TravellerRow => {
   const subtitle = t.subtitle || t.alias;
-  const sourceRaw = t.source;
 
   return {
     _id: t._id || "",
@@ -130,12 +141,9 @@ const mapTravellerToRow = (t: any, index: number): TravellerRow => {
     name: t.name || "—",
     subtitle,
     travellerType: resolveTravellerType({ subtitle }),
-    source:
-      sourceRaw && typeof sourceRaw === "object"
-        ? sourceRaw
-        : { type: "none", label: "—" },
-    tier: t.tier ? Number(String(t.tier).replace("tier", "")) : 2,
-    dateModified: t.dateCreated || t.dateModified || "—",
+    source: mapApiSourceToUi(t.source),
+    tier: mapTierToNumber(t.tier),
+    dateModified: formatDirectoryDisplayDate(t.updatedAt || t.createdAt),
     createdAt: t.createdAt,
     actions: "⋮",
   };
@@ -206,7 +214,7 @@ const TravellerDirectory = () => {
     width: number;
     height: number;
   } | null>(null);
-  const [travellers, setTravellers] = useState<TravellerRow[]>(MOCK_TRAVELLERS);
+  const [travellers, setTravellers] = useState<TravellerRow[]>([]);
   const [sortState, setSortState] = useState<TriSortState<string>>({
     key: null,
     direction: "none",
@@ -230,6 +238,10 @@ const TravellerDirectory = () => {
   const [selectedTravellerFull, setSelectedTravellerFull] = useState<
     any | null
   >(null);
+  const [generatedTravellerCode, setGeneratedTravellerCode] = useState("");
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkSourceProfile, setLinkSourceProfile] =
+    useState<LinkProfileSource | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [bookingHistory, setBookingHistory] = useState<
     {
@@ -240,6 +252,56 @@ const TravellerDirectory = () => {
       amount: string;
     }[]
   >([]);
+
+  const mapStatusForModal = (status?: string) => {
+    switch ((status || "").toLowerCase()) {
+      case "confirmed":
+        return "Confirmed" as const;
+      case "cancelled":
+        return "Cancelled" as const;
+      case "draft":
+      default:
+        return "In Progress" as const;
+    }
+  };
+
+  const mapQuotationsToModal = (qs: any[]) =>
+    qs.map((q: any) => ({
+      id: q.customId || q._id,
+      bookingDate: q.createdAt
+        ? new Date(q.createdAt).toLocaleDateString("en-IN")
+        : "—",
+      travelDate: q.travelDate ? String(q.travelDate) : "",
+      status: mapStatusForModal(q.status),
+      amount: q.totalAmount != null ? String(q.totalAmount) : "0",
+    }));
+
+  const openHistoryForTraveller = async (row: TravellerRow) => {
+    try {
+      setSelectedTravellerRow(row);
+      const resp = await getTravellerBookingHistory(row._id, {
+        sortBy: "createdAt",
+        sortOrder: "desc",
+        page: 1,
+        limit: 10,
+      });
+      setBookingHistory(mapQuotationsToModal(resp?.quotations || []));
+      setIsHistoryOpen(true);
+    } catch (e) {
+      console.error("Failed to open traveller history:", e);
+      setSelectedTravellerRow(row);
+      setBookingHistory(
+        MOCK_BOOKING_HISTORY.map((q) => ({
+          id: q.customId,
+          bookingDate: "—",
+          travelDate: q.travelDate,
+          status: mapStatusForModal(q.status),
+          amount: String(q.totalAmount),
+        })),
+      );
+      setIsHistoryOpen(true);
+    }
+  };
 
   useEffect(() => {
     if (!activeHeaderFilter) return;
@@ -513,18 +575,15 @@ const TravellerDirectory = () => {
     try {
       if (activeTab === "Deleted") {
         const data = await getTravellers({ isDeleted: true });
-        setTravellers(
-          data.length > 0 ? data.map(mapTravellerToRow) : [],
-        );
+        setTravellers(data.map(mapTravellerToRow));
         return;
       }
 
-      setTravellers(MOCK_TRAVELLERS);
+      const data = await getTravellers({ isDeleted: false });
+      setTravellers(data.map(mapTravellerToRow));
     } catch (err) {
       console.error("Failed to fetch travellers:", err);
-      if (activeTab !== "Deleted") {
-        setTravellers(MOCK_TRAVELLERS);
-      }
+      setTravellers([]);
     }
   };
 
@@ -577,6 +636,52 @@ const TravellerDirectory = () => {
         fetchTravellers();
       },
     },
+    {
+      label: "Link",
+      icon: (
+        <Image
+          src="/icons/link-icon.svg"
+          alt="Link"
+          width={14}
+          height={14}
+          className="object-contain"
+        />
+      ),
+      color: "text-[#419836]",
+      onClick: () => {
+        setLinkSourceProfile({
+          profileType: "Traveller",
+          id: row.travellerID,
+          name: row.name,
+          ...(row.subtitle ? { nickname: row.subtitle } : {}),
+          tier: row.tier,
+        });
+        setIsLinkModalOpen(true);
+      },
+    },
+    {
+      label: "Duplicate",
+      icon: <FiCopy size={14} />,
+      color: "text-[#818181]",
+      confirmDuplicateId: row.travellerID,
+      onClick: async () => {
+        try {
+          const traveller = await getTravellerById(row._id);
+          const newCustomId = generateCustomId("traveller");
+          setGeneratedTravellerCode(newCustomId);
+          setSelectedTravellerFull({
+            ...traveller,
+            _id: undefined,
+            customId: newCustomId,
+          });
+          setSelectedTravellerRow(row);
+          setTravellerMode("create");
+          setIsTravellerSheetOpen(true);
+        } catch (e) {
+          console.error("Failed to duplicate traveller:", e);
+        }
+      },
+    },
   ];
 
   const deletedTravellersAction = (row: TravellerRow) => [
@@ -584,8 +689,9 @@ const TravellerDirectory = () => {
       label: "Resolve",
       icon: <FaRegEdit size={14} />,
       color: "text-[#126ACB]",
-      onClick: () => {
-        console.log(row);
+      onClick: async () => {
+        await restoreTraveller(row._id);
+        fetchTravellers();
       },
     },
   ];
@@ -649,17 +755,7 @@ const TravellerDirectory = () => {
                     className={`inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-[8px] border border-[#F0E4C8] bg-[#FFF1C2] px-3 py-1.5 font-[500] text-[#414141] hover:bg-[#FFE9A8] ${ROW_HOVER_ACTION_CLASS}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedTravellerRow(row);
-                      setBookingHistory(
-                        MOCK_BOOKING_HISTORY.map((q) => ({
-                          id: q.customId,
-                          bookingDate: "—",
-                          travelDate: q.travelDate,
-                          status: "In Progress" as const,
-                          amount: String(q.totalAmount),
-                        })),
-                      );
-                      setIsHistoryOpen(true);
+                      void openHistoryForTraveller(row);
                     }}
                   >
                     <MdHistory size={14} />
@@ -705,7 +801,7 @@ const TravellerDirectory = () => {
       }));
   }, [travellers, selectedTravellers]);
 
-  const totalCount = activeTab === "Deleted" ? travellers.length : 78;
+  const totalCount = travellers.length;
 
   const tableSharedProps = {
     columnIconMap,
@@ -953,11 +1049,25 @@ const TravellerDirectory = () => {
               setSelectedTravellerFull(null);
               setSelectedTravellerRow(null);
               setTravellerMode("create");
+              setGeneratedTravellerCode("");
+              fetchTravellers();
             }}
             mode={travellerMode}
             data={selectedTravellerFull}
+            travellerCode={generatedTravellerCode}
           />
         </BookingProvider>
+      )}
+
+      {isLinkModalOpen && (
+        <LinkProfilesModal
+          isOpen={isLinkModalOpen}
+          onClose={() => {
+            setIsLinkModalOpen(false);
+            setLinkSourceProfile(null);
+          }}
+          sourceProfile={linkSourceProfile}
+        />
       )}
 
       {isHistoryOpen && (

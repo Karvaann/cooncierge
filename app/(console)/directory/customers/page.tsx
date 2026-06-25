@@ -15,6 +15,7 @@ import {
   getCustomers,
   deleteCustomer,
   getCustomerById,
+  getBookingHistoryByCustomer,
 } from "@/services/customerApi";
 import type { JSX } from "react";
 import LinkProfilesModal, {
@@ -28,9 +29,13 @@ import MergeModal from "@/components/Modals/MergeModal";
 import type { DeletableItem } from "@/components/Modals/DeleteModal";
 import {
   MOCK_BOOKING_HISTORY,
-  MOCK_CUSTOMERS,
   MOCK_DRAFT_CUSTOMERS,
 } from "@/mock-data/directory";
+import {
+  formatDirectoryDisplayDate,
+  mapApiSourceToUi,
+  mapTierToNumber,
+} from "@/utils/directoryApiMappers";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import { MdHistory } from "react-icons/md";
 import Image from "next/image";
@@ -177,13 +182,6 @@ function renderSelectCheckbox(
   );
 }
 
-const formatDMY = (dateString: string) => {
-  const date = new Date(dateString);
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}-${month}-${year}`;
-};
 
 const mapCustomerToRow = (c: any, index: number): CustomerRow => {
   const subtitle = c.alias || (c.gstin ? `GSTIN: ${c.gstin}` : undefined);
@@ -197,13 +195,13 @@ const mapCustomerToRow = (c: any, index: number): CustomerRow => {
       customerType: c.customerType,
       subtitle,
     }),
-    source: { type: "none", label: "—" },
+    source: mapApiSourceToUi(c.source),
     owner:
       typeof c.ownerId === "object" && c.ownerId !== null
         ? c.ownerId.name
         : c.ownerId || "—",
-    tier: c.tier ? Number(String(c.tier).replace("tier", "")) : 2,
-    dateCreated: formatDMY(c.createdAt),
+    tier: mapTierToNumber(c.tier),
+    dateCreated: formatDirectoryDisplayDate(c.updatedAt || c.createdAt),
     createdAt: c.createdAt,
     actions: "⋮",
   };
@@ -250,7 +248,7 @@ const CustomerDirectory = () => {
     width: number;
     height: number;
   } | null>(null);
-  const [customers, setCustomers] = useState<CustomerRow[]>(MOCK_CUSTOMERS);
+  const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [sortState, setSortState] = useState<TriSortState<string>>({
     key: null,
     direction: "none",
@@ -612,6 +610,25 @@ const CustomerDirectory = () => {
     }
   };
 
+  const openHistoryForCustomer = async (row: CustomerRow) => {
+    try {
+      setSelectedCustomer(row);
+      const resp = await getBookingHistoryByCustomer(row._id, {
+        sortBy: "createdAt",
+        sortOrder: "desc",
+        page: 1,
+        limit: 10,
+      });
+      setBookingHistory(mapQuotationsToModal(resp?.quotations || []));
+      setIsHistoryOpen(true);
+    } catch (e) {
+      console.error("Failed to open customer history:", e);
+      setSelectedCustomer(row);
+      setBookingHistory(mapQuotationsToModal(MOCK_BOOKING_HISTORY));
+      setIsHistoryOpen(true);
+    }
+  };
+
   const fetchData = async () => {
     try {
       if (activeTab === "Deleted") {
@@ -621,18 +638,19 @@ const CustomerDirectory = () => {
       }
 
       if (activeTab === "Draft") {
-        const drafts = await getCustomers({ isDraft: true, isDeleted: false });
-        setCustomers(
-          drafts.length > 0
-            ? drafts.map(mapCustomerToRow)
-            : MOCK_DRAFT_CUSTOMERS,
-        );
+        setCustomers(MOCK_DRAFT_CUSTOMERS);
         return;
       }
 
-      setCustomers(MOCK_CUSTOMERS);
+      const data = await getCustomers({ isDeleted: false });
+      setCustomers(data.map(mapCustomerToRow));
     } catch (err) {
       console.error("Failed to fetch:", err);
+      if (activeTab === "Draft") {
+        setCustomers(MOCK_DRAFT_CUSTOMERS);
+      } else {
+        setCustomers([]);
+      }
     }
   };
 
@@ -693,6 +711,7 @@ const CustomerDirectory = () => {
       label: "Duplicate",
       icon: <FiCopy size={14} />,
       color: "text-[#818181]",
+      confirmDuplicateId: row.customerID,
       onClick: async () => {
         try {
           const customer = await getCustomerById(row._id);
@@ -807,9 +826,7 @@ const CustomerDirectory = () => {
                     className={`inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-[8px] border border-[#F0E4C8] bg-[#FFF1C2] px-3 py-1.5 font-[500] text-[#414141] hover:bg-[#FFE9A8] ${ROW_HOVER_ACTION_CLASS}`}
                     onClick={(e) => {
                       e.stopPropagation();
-                      setSelectedCustomer(row);
-                      setBookingHistory(MOCK_BOOKING_HISTORY);
-                      setIsHistoryOpen(true);
+                      void openHistoryForCustomer(row);
                     }}
                   >
                     <MdHistory size={14} />
@@ -867,10 +884,7 @@ const CustomerDirectory = () => {
     [buildCustomerDeletables],
   );
 
-  const totalCount =
-    activeTab === "Deleted" || activeTab === "Draft"
-      ? customers.length
-      : 78;
+  const totalCount = customers.length;
 
   return (
     <div className="console-page-viewport overflow-hidden bg-[#F9F9F9] px-7 py-0">
@@ -1081,7 +1095,7 @@ const CustomerDirectory = () => {
                 categoryName="Customers"
                 initialRowsPerPage={8}
                 maxRowsPerPageOptions={[8, 16, 24, 48]}
-                externalTotalRows={78}
+                externalTotalRows={customers.length}
                 headerClassName="bg-[#F3F3F3]"
                 headerRowTextClassName="text-[#818181]"
                 headerAlign={{

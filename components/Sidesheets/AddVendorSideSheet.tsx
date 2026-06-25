@@ -31,6 +31,10 @@ import {
   splitPhoneWithDialCode,
 } from "@/utils/phoneUtils";
 import { getStoredCurrencySymbol } from "@/utils/helper";
+import {
+  mapApiSourceToUiDropdown,
+  mapUiSourceToApi,
+} from "@/utils/directoryApiMappers";
 
 type VendorData = {
   _id?: string;
@@ -323,7 +327,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         remarks: data.remarks || "",
         tier: data.tier || "",
         vendorType: data.vendorType || "",
-        source: data.source || "",
+        source: mapApiSourceToUiDropdown(data.source || ""),
         countryCode: parsed.dialCode || "+91",
       };
 
@@ -334,7 +338,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         : "";
       const nextBalanceType = data.balanceType || "credit";
       const nextVendorType = data.vendorType || "";
-      const nextSource = data.source || "";
+      const nextSource = mapApiSourceToUiDropdown(data.source || "");
 
       setFormData(nextFormData);
       setPhoneCode(parsed.dialCode || "+91");
@@ -539,7 +543,13 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       formDataToSend.append("balanceType", balanceType);
       formDataToSend.append("tier", tier || "");
       formDataToSend.append("vendorType", vendorType || "");
-      formDataToSend.append("source", source || "");
+      formDataToSend.append(
+        "source",
+        mapUiSourceToApi(
+          source,
+          SOURCE_OPTIONS.find((option) => option.value === source)?.label,
+        ),
+      );
       formDataToSend.append("remarks", formData.remarks || "");
       formDataToSend.append("countryCode", phoneCode || "+91");
       formDataToSend.append("customId", vendorCode || "");
@@ -604,7 +614,11 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
           : undefined,
         tier: tier || undefined,
         vendorType: vendorType || undefined,
-        source: source || undefined,
+        source:
+          mapUiSourceToApi(
+            source,
+            SOURCE_OPTIONS.find((option) => option.value === source)?.label,
+          ) || undefined,
         remarks: formData.remarks || undefined,
         documents: existingDocuments,
       };

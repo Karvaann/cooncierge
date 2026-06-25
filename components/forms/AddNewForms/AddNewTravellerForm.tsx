@@ -19,6 +19,10 @@ import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
 import { HiOutlineInformationCircle } from "react-icons/hi";
 import {
+  mapApiSourceToUiDropdown,
+  mapUiSourceToApi,
+} from "@/utils/directoryApiMappers";
+import {
   allowOnlyDigitsWithMax,
   allowOnlyText,
   isValidEmail,
@@ -51,6 +55,7 @@ interface AddNewTravellerFormProps {
   onClose?: () => void;
   mode?: "create" | "edit" | "view";
   data?: any;
+  travellerCode?: string;
 }
 
 const SOURCE_OPTIONS = [
@@ -135,6 +140,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
   onClose,
   mode = "create",
   data,
+  travellerCode: travellerCodeProp,
 }) => {
   const [formData, setFormData] = useState<TravellerFormData>(emptyFormData());
   const [phoneCode, setPhoneCode] = useState<string>("+91");
@@ -159,11 +165,11 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
   useEffect(() => {
     if (mode === "create") {
-      setTravellerCode(generateCustomId("traveller"));
+      setTravellerCode(travellerCodeProp || generateCustomId("traveller"));
     } else {
       setTravellerCode(data?.customId || data?.travellerID || data?._id || "");
     }
-  }, [mode, data]);
+  }, [mode, data, travellerCodeProp]);
 
   useEffect(() => {
     if (!data) return;
@@ -200,9 +206,11 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
     setAlternatePhoneCode(parsedAlternatePhone.dialCode || "+91");
     setTier(data.tier || "");
     setSource(
-      typeof data.source === "string"
-        ? data.source
-        : data.source?.type || "",
+      mapApiSourceToUiDropdown(
+        typeof data.source === "string"
+          ? data.source
+          : data.source?.type || "",
+      ),
     );
   }, [data]);
 
@@ -271,7 +279,10 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
       pinCode: formData.pinCode || undefined,
       country: formData.country || undefined,
       tier: tier || undefined,
-      source: source || undefined,
+      source: mapUiSourceToApi(
+        source,
+        SOURCE_OPTIONS.find((option) => option.value === source)?.label,
+      ) || undefined,
       remarks: formData.remarks || undefined,
       ownerId,
       customId: travellerCode,
