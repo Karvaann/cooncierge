@@ -1,37 +1,44 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import FilterTrigger from "@/components/FilterTrigger";
-import type { FilterCardOption } from "@/components/FilterCard";
-import { useMemo, useState, useEffect, useCallback } from "react";
-import { BookingApiService } from "@/services/bookingApi";
-import { CustomIdApi } from "@/services/customIdApi";
-import ConfirmationModal from "@/components/popups/ConfirmationModal";
-import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
-import TableSkeleton from "@/components/skeletons/TableSkeleton";
-import SidesheetSkeleton from "@/components/skeletons/SidesheetSkeleton";
-import ActionMenu from "@/components/Menus/ActionMenu";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import type { JSX } from "react";
-import {
-  formatServiceType,
-  formatNumberByStoredCurrency,
-  getStoredCurrencySymbol,
-} from "@/utils/helper";
-import { FaRegTrashAlt } from "react-icons/fa";
-import { MdOutlineEdit } from "react-icons/md";
+import Image from "next/image";
+import { format } from "date-fns";
 import { CiFilter } from "react-icons/ci";
 import { TbArrowsUpDown } from "react-icons/tb";
-import Image from "next/image";
+import { MdOutlineKeyboardArrowDown } from "react-icons/md";
+import { FaRegCalendar } from "react-icons/fa";
+import { IoChevronDown } from "react-icons/io5";
+import { LuDownload } from "react-icons/lu";
+import { FiCheck, FiX } from "react-icons/fi";
+import { RiRefreshLine } from "react-icons/ri";
+import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
+import TableSkeleton from "@/components/skeletons/TableSkeleton";
+import ActionMenu from "@/components/Menus/ActionMenu";
+import DropDown from "@/components/DropDown";
 import AvatarTooltip from "@/components/AvatarToolTip";
 import TaskButton from "@/components/TaskButton";
+import UnderlineTabs from "@/components/UnderlineTabs";
+import BookingsPageViewport from "@/components/bookings/BookingsPageViewport";
 import RecordPaymentSidesheet from "@/components/Sidesheets/RecordPaymentSidesheet";
-import ErrorToast from "@/components/ErrorToast";
-import { useAuth } from "@/context/AuthContext";
+import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
+import FinanceSummaryPills from "@/components/finance/FinanceSummaryPills";
+import {
+  formatNumberByStoredCurrency,
+  formatServiceType,
+  getStoredCurrencySymbol,
+} from "@/utils/helper";
 import {
   getNextTriSortState,
-  type TriSortState,
   getItemTimestamp,
+  type TriSortState,
 } from "@/utils/sorting";
+import {
+  FINANCE_BOOKINGS_MOCK,
+  type FinanceBookingRow,
+  type FinancePaymentStatus,
+} from "@/mock-data/finance";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -43,38 +50,11 @@ const Table = dynamic(() => import("@/components/Table"), {
   ssr: false,
 });
 
-
-const BookingFormSidesheet = dynamic(
-  () => import("@/components/BookingFormSidesheet"),
-  {
-    loading: () => <SidesheetSkeleton />,
-    ssr: false,
-  },
-);
-
-type BookingStatus = "Confirmed" | "draft" | "Cancelled";
-
-type BookingService = {
-  id: string;
-  title: string;
-  image: string;
-  category:
-    | "travel"
-    | "accommodation"
-    | "activity"
-    | "transport-land"
-    | "transport-maritime"
-    | "tickets"
-    | "travel insurance"
-    | "visas"
-    | "others";
-  description?: string;
-};
-
 type FilterPayload = {
   serviceType: string | string[];
   status: string;
   owner: string | string[];
+  bookingType: string;
   search: string;
   searchBy: string;
   bookingStartDate: string;
@@ -85,124 +65,174 @@ type FilterPayload = {
   secondaryOwners?: string[];
 };
 
-// API Data Types
-interface QuotationData {
-  customId: string;
-  _id: string;
-  quotationType: string;
-  channel: string;
-  partyId: string;
-  customerId: {
-    _id: string;
-    name: string;
-    email: string;
-    phone: string;
-  };
-  formFields: {
-    customer?: string;
-    destination?: string;
-    departureDate?: string;
-    budget?: number;
-    traveller1?: string;
-    [key: string]: unknown;
-  };
-  // Optional fields present on some responses / normalized objects
-  travelDate?: string;
-  serviceStatus?: string;
-  owner?: Array<{ name?: string }>;
-  primaryOwner?: { name?: string };
-  secondaryOwner?: Array<{ name?: string }>;
-  totalAmount: number;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
+const TAB_OPTIONS = ["Bookings", "Deleted", "Waiting for Approval"] as const;
 
+const BOOKING_SCOPE_OPTIONS = [
+  { value: "", label: "All" },
+  { value: "os", label: "OS" },
+  { value: "limitless", label: "Limitless" },
+];
 
-interface Owner {
-  short: string;
-  full: string;
-  color: string;
-}
+const PAYMENT_STATUS_SORT_ORDER: Record<FinancePaymentStatus, number> = {
+  paid: 0,
+  partially_paid: 1,
+  pending: 2,
+};
 
+const toFilterArray = (value: string | string[]) =>
+  Array.isArray(value) ? value : value ? [value] : [];
 
-const getStatusBadgeClass = (status: string): string => {
+const VOUCHER_MENU_OPTIONS = [
+  "Booking Voucher",
+  "Customer Invoice(s)",
+  "Vendor Voucher(s)",
+  "Vendor Invoice(s)",
+];
+
+const OWNER_COLOR_FALLBACK = "border-pink-700 text-pink-700";
+
+const getPaymentStatusLabel = (status: FinancePaymentStatus): string => {
   switch (status) {
-    case "Confirmed":
-      return "px-2 py-1 text-[0.70rem] border border-green-100 font-semibold rounded-full bg-[#F0FDF4] text-[#15803D]";
-    case "Draft":
-      return "px-2 py-1 text-[0.70rem] border border-yellow-200 font-semibold rounded-full bg-yellow-100 text-yellow-700";
-    case "Deleted":
+    case "paid":
+      return "Paid";
+    case "partially_paid":
+      return "Partially Paid";
+    case "pending":
+      return "Pending";
     default:
-      return "px-2 py-1 text-[0.75rem] border border-red-100 font-semibold rounded-full bg-[#FEE2E2] text-[#991B1B]";
+      return "Pending";
   }
 };
 
+const getPaymentStatusBadgeClass = (status: FinancePaymentStatus): string => {
+  switch (status) {
+    case "paid":
+      return "px-2 py-1 text-[12px] border border-[#DCFCE7] font-[500] rounded-full bg-[#F0FDF4] text-[#15803D]";
+    case "partially_paid":
+      return "px-2 py-1 text-[12px] border border-[#FEF9C3] font-[500] rounded-full bg-[#FEFCE8] text-[#854D0E]";
+    case "pending":
+    default:
+      return "px-2 py-1 text-[12px] border border-[#FFEDD5] font-[500] rounded-full bg-[#FFF7ED] text-[#C2410C]";
+  }
+};
+
+const formatTravelDate = (dateString: string) => {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "--";
+  return format(date, "dd MMM ''yy");
+};
+
+const isWithinRange = (
+  rawDate: string | undefined,
+  start: string,
+  end: string,
+) => {
+  if (!rawDate) return false;
+  const dt = new Date(rawDate);
+  if (Number.isNaN(dt.getTime())) return false;
+  if (start && dt < new Date(start)) return false;
+  if (end) {
+    const e = new Date(end);
+    e.setHours(23, 59, 59, 999);
+    if (dt > e) return false;
+  }
+  return true;
+};
+
+const getServiceIcon = (quotationType: string): JSX.Element | string => {
+  const normalized = quotationType.toLowerCase().trim();
+  const iconMap: Record<string, JSX.Element | string> = {
+    flight: (
+      <Image
+        src="/icons/service-icons/flight.svg"
+        alt="Flight"
+        width={16}
+        height={16}
+        className="object-contain"
+      />
+    ),
+    accommodation: (
+      <Image
+        src="/icons/service-icons/accommodation.svg"
+        alt="Accommodation"
+        width={14}
+        height={14}
+        className="object-contain"
+      />
+    ),
+    activity: (
+      <Image
+        src="/icons/service-icons/activity.svg"
+        alt="Activity"
+        width={9}
+        height={9}
+        className="object-contain"
+      />
+    ),
+    transportation: (
+      <Image
+        src="/icons/service-icons/land-icon.svg"
+        alt="Transportation"
+        width={11}
+        height={11}
+        className="object-contain"
+      />
+    ),
+    ticket: (
+      <Image
+        src="/icons/service-icons/ticket.svg"
+        alt="Ticket"
+        width={14}
+        height={14}
+        className="object-contain"
+      />
+    ),
+    "travel insurance": (
+      <Image
+        src="/icons/service-icons/insurance.svg"
+        alt="Insurance"
+        width={14}
+        height={14}
+        className="object-contain"
+      />
+    ),
+    visa: (
+      <Image
+        src="/icons/service-icons/visa-icon-final.svg"
+        alt="Visa"
+        width={12}
+        height={12}
+        className="object-contain"
+      />
+    ),
+  };
+
+  return iconMap[normalized] || formatServiceType(quotationType);
+};
+
 const FinanceBookingsPage = () => {
-  // UI State
-  const [generatedBookingCode, setGeneratedBookingCode] = useState<
-    string | null
+  const [activeTab, setActiveTab] = useState<string>(TAB_OPTIONS[0]);
+  const [bookingScope, setBookingScope] = useState("");
+  const [showIncompleteOnly, setShowIncompleteOnly] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedBookingIds, setSelectedBookingIds] = useState<string[]>([]);
+  const [activeHeaderFilter, setActiveHeaderFilter] = useState<
+    "Travel Date" | "Service" | null
   >(null);
-  const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
-  const [selectedQuotation, setSelectedQuotation] = useState<any>(null);
-  const [selectedService, setSelectedService] = useState<BookingService | null>(
-    null,
-  );
-  const [generatedCustomerCode, setGeneratedCustomerCode] = useState<
-    string | null
-  >(null);
-  const [generatedVendorCode, setGeneratedVendorCode] = useState<string | null>(
-    null,
-  );
-  const [sideSheetMode, setSideSheetMode] = useState<"view" | "edit">("edit");
-
-  const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
-  const [selectedPaymentBooking, setSelectedPaymentBooking] =
-    useState<any>(null);
-
-  // Toast state for toasts coming from sidesheets
-  const [toastVisible, setToastVisible] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastBgClass, setToastBgClass] = useState("bg-red-50");
-  const [toastMessageColor, setToastMessageColor] = useState("text-red-600");
-  const [toastBorderClass, setToastBorderClass] = useState("border-red-200");
-  const [toastCloseBtnClass, setToastCloseBtnClass] = useState(
-    "text-red-400 hover:text-red-600",
-  );
-  const [toastShowLabel, setToastShowLabel] = useState(true);
-
-  const showError = (msg: string) => {
-    setToastMessage(String(msg));
-    setToastBgClass("bg-red-50");
-    setToastMessageColor("text-red-600");
-    setToastBorderClass("border-red-200");
-    setToastCloseBtnClass("text-red-400 hover:text-red-600");
-    setToastShowLabel(true);
-    setToastVisible(true);
-  };
-
-  const showSuccess = (msg: string) => {
-    setToastMessage(String(msg));
-    setToastBgClass("bg-green-50");
-    setToastMessageColor("text-green-800");
-    setToastBorderClass("border-green-200");
-    setToastCloseBtnClass("text-green-600 hover:text-green-800");
-    setToastShowLabel(false);
-    setToastVisible(true);
-  };
-
-  const { user } = useAuth();
-
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
-  const [searchValue, setSearchValue] = useState("");
-  // Filters state
+  const [pendingServiceTypes, setPendingServiceTypes] = useState<string[]>([]);
+  const [pendingDateField, setPendingDateField] = useState<
+    "travelDate" | "bookingDate"
+  >("travelDate");
+  const [travelDateField, setTravelDateField] = useState<
+    "travelDate" | "bookingDate"
+  >("travelDate");
   const [filters, setFilters] = useState<FilterPayload>({
     serviceType: "",
     status: "",
     owner: "",
+    bookingType: "",
     search: "",
-    searchBy: "customerId",
+    searchBy: "bookingId",
     bookingStartDate: "",
     bookingEndDate: "",
     tripStartDate: "",
@@ -210,1019 +240,1059 @@ const FinanceBookingsPage = () => {
     primaryOwner: "",
     secondaryOwners: [],
   });
-
-  // Data State
-  const [quotations, setQuotations] = useState<QuotationData[]>([]);
-  const [drafts, setDrafts] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const [sortState, setSortState] = useState<TriSortState<string>>({
     key: null,
     direction: "none",
   });
-  // Owners list built dynamically from quotations data
-  const [ownersList, setOwnersList] = useState<Owner[]>([]);
+  const [activeVoucherRowId, setActiveVoucherRowId] = useState<string | null>(
+    null,
+  );
+  const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
+  const [selectedPaymentBooking, setSelectedPaymentBooking] =
+    useState<FinanceBookingRow | null>(null);
+  const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false);
+  const moreActionsRef = useRef<HTMLDivElement | null>(null);
 
-  const [statusColumnLabel, setStatusColumnLabel] =
-    useState<string>("Booking Status");
+  const { summary, totalCount, bookings } = FINANCE_BOOKINGS_MOCK;
 
-  const columns: string[] = [
-    "Booking ID",
-    "Lead Pax",
-    "Travel Date",
-    "Service",
-    statusColumnLabel,
-    "Amount",
-    "Owners",
-    "Tasks",
-    "Actions",
-  ];
+  function renderSelectCheckbox(
+    inputId: string,
+    checked: boolean,
+    onToggle: () => void,
+    indeterminate = false,
+  ) {
+    const isActive = checked || indeterminate;
 
-  const computeInitials = (name: string) => {
-    const parts = name.trim().split(/\s+/);
-    const first = parts[0]?.[0] || "";
-    const last = parts.length > 1 ? parts[parts.length - 1]?.[0] || "" : "";
-    return (first + last).toUpperCase();
-  };
+    return (
+      <div className="flex items-center justify-center">
+        <input
+          type="checkbox"
+          id={inputId}
+          className="sr-only"
+          checked={checked}
+          onClick={(e) => e.stopPropagation()}
+          onChange={onToggle}
+        />
+        <label
+          htmlFor={inputId}
+          onClick={(e) => e.stopPropagation()}
+          className={`flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-[5px] border transition ${
+            isActive
+              ? "border-[#7135AD] bg-[#7135AD]"
+              : "border-[#D1D5DB] bg-white"
+          }`}
+        >
+          {checked && (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="10"
+              height="8"
+              viewBox="0 0 12 11"
+              fill="none"
+              aria-hidden
+            >
+              <path
+                d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+                stroke="#FFFFFF"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          )}
+          {indeterminate && !checked && (
+            <span
+              className="block h-[2px] w-[10px] rounded-full bg-white"
+              aria-hidden
+            />
+          )}
+        </label>
+      </div>
+    );
+  }
 
-  const colorPalette = [
-    "border-pink-700 text-pink-700",
-    "border-[#AF52DE] text-[#AF52DE]",
-    "border-[#5856D6] text-[#5856D6]",
-    "border-cyan-700 text-cyan-700",
-    "border-emerald-700 text-emerald-700",
-    "border-amber-700 text-amber-700",
-  ];
+  const columns = useMemo(
+    () => [
+      "Booking ID",
+      "Lead Pax",
+      travelDateField === "bookingDate" ? "Booking Date" : "Travel Date",
+      "Service",
+      "Payment Status",
+      "Amount",
+      "Owner",
+      "Voucher",
+      "Tasks",
+      "Actions",
+    ],
+    [travelDateField],
+  );
 
-  // Build owners list from quotations data
+  const dateColumnLabel =
+    travelDateField === "bookingDate" ? "Booking Date" : "Travel Date";
+
   useEffect(() => {
-    if (quotations.length === 0) return;
+    if (!activeHeaderFilter) return;
 
-    const uniqueOwnerNames = new Set<string>();
-    quotations.forEach((q: any) => {
-      const ownerArray = ([] as any[])
-        .concat(q?.secondaryOwner || [], [q?.primaryOwner])
-        .filter(Boolean);
-      ownerArray.forEach((o: any) => {
-        if (o?.name) uniqueOwnerNames.add(o.name);
-      });
-    });
+    const handleOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.closest("[data-header-filter-trigger]") ||
+        target?.closest("[data-header-filter-dropdown]")
+      ) {
+        return;
+      }
+      setActiveHeaderFilter(null);
+    };
 
-    const list: Owner[] = Array.from(uniqueOwnerNames).map((name, idx) => ({
-      short: computeInitials(name),
-      full: name,
-      color: colorPalette[idx % colorPalette.length] as string,
-    }));
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [activeHeaderFilter]);
 
-    setOwnersList(list);
-  }, [quotations]);
-
-  const handleSort = (column: string) => {
-    // Only "Travel Date" is sortable on this table right now.
-    if (column !== "Travel Date") return;
-    setSortState((prev) => getNextTriSortState(prev, column));
-  };
-
-  // Helper for date range checks
-  const isWithinRange = (
-    rawDate: string | undefined,
-    start: string,
-    end: string,
-  ) => {
-    if (!rawDate) return false;
-    const dt = new Date(rawDate);
-    if (isNaN(dt.getTime())) return false;
-    if (start) {
-      const s = new Date(start);
-      if (dt < s) return false;
+  useEffect(() => {
+    if (activeHeaderFilter === "Service") {
+      setPendingServiceTypes(toFilterArray(filters.serviceType));
     }
-    if (end) {
-      const e = new Date(end);
-      e.setHours(23, 59, 59, 999);
-      if (dt > e) return false;
+    if (activeHeaderFilter === "Travel Date") {
+      setPendingDateField(travelDateField);
     }
-    return true;
-  };
+  }, [activeHeaderFilter, filters.serviceType, travelDateField]);
 
-  const handleViewBooking = (item: any) => {
-    const quotationType = item.quotationType || "";
-    const category = mapQuotationTypeToCategory(quotationType);
-    const title = formatServiceType(quotationType);
+  useEffect(() => {
+    if (!activeVoucherRowId) return;
 
-    setSelectedQuotation(item);
-    setSelectedService({
-      id: item._id,
-      title,
-      image: "",
-      category,
-      description: "",
-    });
+    const handleOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.closest("[data-voucher-menu]") ||
+        target?.closest("[data-voucher-trigger]")
+      ) {
+        return;
+      }
+      setActiveVoucherRowId(null);
+    };
 
-    setSideSheetMode("view");
-    setIsSideSheetOpen(true);
-  };
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [activeVoucherRowId]);
 
-  // Apply all filters client-side (search, booking date, travel date, owner)
-  const filteredQuotations = useMemo(() => {
-    return quotations.filter((q, idx) => {
-      if (filters.search.trim()) {
-        const s = filters.search.toLowerCase();
-        const ownerNames = ([] as Array<{ name?: string }>).concat(
-          q.secondaryOwner || [],
-          q.primaryOwner ? [q.primaryOwner] : [],
-          q.owner || [],
-        )
-          .map((owner) => owner?.name || "")
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        const matchesSearch =
-          filters.searchBy === "customerName"
-            ? ((q.customerId?.name || q.formFields.customer || "").toLowerCase().includes(s))
-            : filters.searchBy === "owner"
-              ? ownerNames.includes(s)
-              : (q.customerId?._id || "").toLowerCase().includes(s);
-        if (!matchesSearch) return false;
+  useEffect(() => {
+    if (!isMoreActionsOpen) return;
+
+    const handleOutside = (event: MouseEvent) => {
+      if (
+        moreActionsRef.current &&
+        !moreActionsRef.current.contains(event.target as Node)
+      ) {
+        setIsMoreActionsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [isMoreActionsOpen]);
+
+  const ownerOptions = useMemo(() => {
+    const names = new Set<string>();
+    bookings.forEach((row) =>
+      row.owners.forEach((owner) => names.add(owner.name)),
+    );
+    return Array.from(names).map((name) => ({ value: name, label: name }));
+  }, [bookings]);
+
+  const filterOptions = useMemo(
+    () => ({
+      serviceTypes: [
+        { value: "flight", label: "Flight" },
+        { value: "accommodation", label: "Accommodation" },
+        { value: "transportation", label: "Transportation" },
+        { value: "activity", label: "Activity" },
+        { value: "ticket", label: "Ticket (Attraction)" },
+        { value: "travel insurance", label: "Travel Insurance" },
+        { value: "visa", label: "Visa" },
+      ],
+      statuses: [
+        { value: "paid", label: "Paid" },
+        { value: "partially_paid", label: "Partially Paid" },
+        { value: "pending", label: "Pending" },
+      ],
+      owners: ownerOptions,
+    }),
+    [ownerOptions],
+  );
+
+  const filteredBookings = useMemo(() => {
+    return bookings.filter((row) => {
+      if (activeTab === "Deleted") {
+        if (!row.isDeleted) return false;
+      } else if (activeTab === "Waiting for Approval") {
+        if (!row.isWaitingForApproval || row.isDeleted) return false;
+      } else if (row.isDeleted || row.isWaitingForApproval) {
+        return false;
       }
 
-      // Booking date range (createdAt)
+      if (bookingScope === "os" && !row.customId.startsWith("OS")) {
+        return false;
+      }
+      if (bookingScope === "limitless" && !row.customId.startsWith("LI")) {
+        return false;
+      }
+
+      if (showIncompleteOnly && !row.isIncomplete) {
+        return false;
+      }
+
+      if (filters.search.trim()) {
+        const search = filters.search.toLowerCase();
+        const matches =
+          filters.searchBy === "leadPax"
+            ? row.leadPax.toLowerCase().includes(search)
+            : filters.searchBy === "amount"
+              ? String(row.amount).includes(search.replace(/[^\d]/g, ""))
+              : row.customId.toLowerCase().includes(search);
+        if (!matches) return false;
+      }
+
       if (filters.bookingStartDate || filters.bookingEndDate) {
         if (
           !isWithinRange(
-            q.createdAt,
+            row.bookingDate,
             filters.bookingStartDate,
             filters.bookingEndDate,
           )
-        )
+        ) {
           return false;
+        }
       }
 
-      // Travel date range (departureDate)
       if (filters.tripStartDate || filters.tripEndDate) {
         if (
           !isWithinRange(
-            q.formFields?.departureDate as string,
+            row.travelDate,
             filters.tripStartDate,
             filters.tripEndDate,
           )
-        )
+        ) {
           return false;
+        }
       }
 
-      
-      const selectedPrimaryOwners: string[] = Array.isArray(
-        filters.primaryOwner,
-      )
-        ? filters.primaryOwner
-        : filters.primaryOwner
-          ? [filters.primaryOwner]
+      const selectedOwners = Array.isArray(filters.owner)
+        ? filters.owner
+        : filters.owner
+          ? [filters.owner]
           : [];
-      const selectedSecondaryOwners: string[] = filters.secondaryOwners || [];
 
-      const isAdvancedSearch =
-        selectedPrimaryOwners.length > 0 || selectedSecondaryOwners.length > 0;
-
-      if (isAdvancedSearch) {
-        // Advanced search: match primary owner with primaryOwner field, secondary with secondaryOwner array
-        let primaryMatch = true;
-        let secondaryMatch = true;
-
-        if (selectedPrimaryOwners.length > 0) {
-          const quotationPrimaryOwner = q.primaryOwner?.name || "";
-          primaryMatch = selectedPrimaryOwners.includes(quotationPrimaryOwner);
-        }
-
-        if (selectedSecondaryOwners.length > 0) {
-          const quotationSecondaryOwners = Array.isArray(q.secondaryOwner)
-            ? q.secondaryOwner.map((o: any) => o?.name || "").filter(Boolean)
-            : [];
-          // if all selected secondary owners are in the quotation's secondary owners
-          secondaryMatch = selectedSecondaryOwners.every((selectedSecondary) =>
-            quotationSecondaryOwners.includes(selectedSecondary),
-          );
-        }
-
-        // Both conditions must be satisfied
-        if (!primaryMatch || !secondaryMatch) {
+      if (selectedOwners.length > 0) {
+        const rowOwnerNames = row.owners.map((owner) => owner.name);
+        if (!rowOwnerNames.some((name) => selectedOwners.includes(name))) {
           return false;
         }
+      }
 
-        // Store owners for display
-        const ownerArray = ([] as any[]).concat(
-          q.secondaryOwner || [],
-          q.primaryOwner ? [q.primaryOwner] : [],
-        );
-        const rowOwners: string[] = Array.isArray(ownerArray)
-          ? ownerArray.map((o: any) => o?.name || "").filter(Boolean)
-          : [];
-        (q as any).__owners = rowOwners;
-      } else {
-        // Regular owner filtering: check against all owners (primary + secondary combined)
-        const selectedOwners: string[] = Array.isArray(filters.owner)
-          ? filters.owner
-          : filters.owner
-            ? [filters.owner]
-            : [];
-
-        // Extract owner names from the API response
-        const ownerArray = ([] as any[]).concat(
-          q.secondaryOwner || [],
-          q.primaryOwner ? [q.primaryOwner] : [],
-        );
-        const rowOwners: string[] = Array.isArray(ownerArray)
-          ? ownerArray.map((o: any) => o?.name || "").filter(Boolean)
+      const selectedServices = Array.isArray(filters.serviceType)
+        ? filters.serviceType
+        : filters.serviceType
+          ? [filters.serviceType]
           : [];
 
-        (q as any).__owners = rowOwners;
+      if (selectedServices.length > 0) {
+        if (!selectedServices.includes(row.quotationType)) return false;
+      }
 
-        // Filter by selected owners if any are selected
-        if (selectedOwners.length) {
-          const intersects = rowOwners.some((ownerName) =>
-            selectedOwners.includes(ownerName),
-          );
-          if (!intersects) return false;
+      if (filters.status) {
+        const normalized = filters.status.toLowerCase();
+        if (row.paymentStatus !== normalized.replace(/\s+/g, "_")) {
+          return false;
         }
       }
 
       return true;
     });
-  }, [quotations, filters]);
+  }, [activeTab, bookingScope, bookings, filters, showIncompleteOnly]);
 
-  // Load quotations from backend
-  const loadQuotations = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const apiParams: {
-        bookingStartDate?: string;
-        bookingEndDate?: string;
-        travelStartDate?: string;
-        travelEndDate?: string;
-        owner?: string | string[];
-      } = {};
+  const isAllSelected = useMemo(() => {
+    if (!selectMode) return false;
+    if (filteredBookings.length === 0) return false;
+    return filteredBookings.every((row) => selectedBookingIds.includes(row.id));
+  }, [filteredBookings, selectMode, selectedBookingIds]);
 
-      if (filters.bookingStartDate)
-        apiParams.bookingStartDate = filters.bookingStartDate;
-      if (filters.bookingEndDate)
-        apiParams.bookingEndDate = filters.bookingEndDate;
-      if (filters.tripStartDate)
-        apiParams.travelStartDate = filters.tripStartDate;
-      if (filters.tripEndDate) apiParams.travelEndDate = filters.tripEndDate;
-      // loading quotations
-      // Owner filtering is done client-side since API returns owner objects with names
+  const isSomeSelected = useMemo(() => {
+    if (!selectMode) return false;
+    if (selectedBookingIds.length === 0) return false;
+    return !isAllSelected;
+  }, [isAllSelected, selectMode, selectedBookingIds.length]);
 
-      const response = await BookingApiService.getAllQuotations({
-        ...apiParams,
-        activeTab: "All",
-      });
-
-      if (response.success && response.data) {
-        const raw: any = response.data;
-        const allQuotations =
-          (raw?.quotations as any[]) || (raw as any[]) || [];
-
-        setQuotations(allQuotations);
-        // calculateSummaryData(response.data?.quotations);
-      } else {
-        throw new Error(response.message || "Failed to load quotations");
-      }
-    } catch (err) {
-      console.error("Error loading quotations:", err);
-      setError(err instanceof Error ? err.message : "Failed to load bookings");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [
-    filters.bookingStartDate,
-    filters.bookingEndDate,
-    filters.tripStartDate,
-    filters.tripEndDate,
-  ]);
-
-  // Load quotations on component mount and filter changes
-  useEffect(() => {
-    loadQuotations();
-  }, [
-    loadQuotations,
-    filters.bookingStartDate,
-    filters.bookingEndDate,
-    filters.tripStartDate,
-    filters.tripEndDate,
-    filters.owner,
-  ]);
-
-  const handleServiceSelect = (service: BookingService) => {
-    setSelectedQuotation(null);
-    setSelectedService(service);
-    setSideSheetMode("edit");
-    setIsSideSheetOpen(true);
-  };
-
-  // Handle booking completion (refresh data)
-  const handleBookingComplete = useCallback(async () => {
-    await loadQuotations();
-    setIsSideSheetOpen(false);
-    setSelectedQuotation(null);
-  }, [loadQuotations]);
-
-  const getServiceIcon = (
-    quotationType: string,
-  ): React.ReactElement | string => {
-    if (!quotationType) return "Visa";
-
-    const normalized = quotationType.toLowerCase().trim();
-
-    // Use the same logic as formatServiceType for consistency
-    const typeMap: Record<string, string> = {
-      flight: "flight",
-      flights: "flight",
-      travel: "flight",
-
-      hotel: "accommodation",
-      accommodation: "accommodation",
-
-      maritime: "maritime",
-      "transport-maritime": "maritime",
-      "maritime transportation": "maritime",
-      "maritime-transportation": "maritime",
-      maritime_transportation: "maritime",
-      car: "land",
-      "land transportation": "land",
-      "land-transportation": "land",
-      land_transportation: "land",
-      transportation: "land",
-      land: "land",
-      "transport-land": "land",
-
-      package: "package",
-
-      "travel insurance": "insurance",
-
-      activity: "activity",
-      activities: "activity",
-
-      insurance: "insurance",
-
-      visa: "visa",
-      visas: "visa",
-
-      ticket: "ticket",
-      tickets: "ticket",
-    };
-
-    const key = typeMap[normalized] || normalized;
-
-    const iconMap: Record<string, JSX.Element | string> = {
-      flight: (
-        <Image
-          src="/icons/service-icons/flight.svg"
-          alt="Flight"
-          width={16}
-          height={16}
-          className="object-contain"
-        />
-      ),
-      accommodation: (
-        <Image
-          src="/icons/service-icons/accommodation.svg"
-          alt="Accommodation"
-          width={14}
-          height={14}
-          className="object-contain"
-        />
-      ),
-      activity: (
-        <Image
-          src="/icons/service-icons/activity.svg"
-          alt="Activity"
-          width={9}
-          height={9}
-          className="object-contain"
-        />
-      ),
-      insurance: (
-        <Image
-          src="/icons/service-icons/insurance.svg"
-          alt="Insurance"
-          width={14}
-          height={14}
-          className="object-contain"
-        />
-      ),
-      ticket: (
-        <Image
-          src="/icons/service-icons/ticket.svg"
-          alt="Tickets"
-          width={14}
-          height={14}
-          className="object-contain"
-        />
-      ),
-      tickets: (
-        <Image
-          src="/icons/service-icons/ticket.svg"
-          alt="Tickets"
-          width={14}
-          height={14}
-          className="object-contain"
-        />
-      ),
-      land: (
-        <Image
-          src="/icons/service-icons/land-icon.svg"
-          alt="Land Transport"
-          width={11}
-          height={11}
-          className="object-contain"
-        />
-      ),
-      visa: (
-        <Image
-          src="/icons/service-icons/visa-icon-final.svg"
-          alt="visa"
-          width={12}
-          height={12}
-          className="object-contain"
-        />
-      ),
-      package: "Package", // optional: add a package icon later
-    };
-
-    return iconMap[key] || "📋"; // fallback
-  };
-
-  const mapStatus = (status: string): string => {
-    const statusMap: Record<string, string> = {
-      confirmed: "Confirmed",
-      cancelled: "Cancelled",
-    };
-    return statusMap[status?.toLowerCase()] || "Confirmed";
-  };
-
-  const handleDeleteClick = (quotationId: string) => {
-    setSelectedDeleteId(quotationId);
-    setIsDeleteModalOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!selectedDeleteId) return;
-
-    try {
-      const response =
-        await BookingApiService.deleteQuotation(selectedDeleteId);
-
-      if (response.success) {
-        // Remove from UI
-        setQuotations((prev) => prev.filter((q) => q._id !== selectedDeleteId));
-      }
-    } catch (err) {
-      console.error("Delete failed:", err);
-    }
-
-    setIsDeleteModalOpen(false);
-    setSelectedDeleteId(null);
-  };
-
-  // Map various quotationType values to the service category used by sidesheet
-  const mapQuotationTypeToCategory = (qt?: string) => {
-    const v = (qt || "").toLowerCase().trim();
-    const map: Record<string, string> = {
-      flight: "travel",
-      flights: "travel",
-      travel: "travel",
-      hotel: "accommodation",
-      accommodation: "accommodation",
-      car: "transport-land",
-      "transport-land": "transport-land",
-      "land-transport": "transport-land",
-      land: "transport-land",
-      transportation: "transport-land",
-      maritime: "transport-maritime",
-      "transport-maritime": "transport-maritime",
-      ticket: "tickets",
-      tickets: "tickets",
-      activity: "activity",
-      activities: "activity",
-      insurance: "travel insurance",
-      "travel insurance": "travel insurance",
-      visa: "visas",
-      visas: "visas",
-      others: "others",
-      package: "others",
-    };
-
-    return (map[v] as any) || "others";
-  };
-
-  // fetch new booking custom id, clone quotation and open sidesheet
-  const handleDuplicate = async (item: any) => {
-    try {
-      // fetch custom id for booking
-      const resp = await CustomIdApi.generate("booking");
-      const newId = resp?.customId || resp?.customid || null;
-      if (!newId) {
-        console.error("Failed to generate booking custom id", resp);
-        return;
-      }
-
-      // prepare cloned data for editing as a new quotation
-      const clone = JSON.parse(JSON.stringify(item || {}));
-      // remove database id
-      delete clone._id;
-      // ensure customId is blank
-      clone.customId = null;
-
-      // determine and set service object expected by sidesheet
-      const quotationType = clone.quotationType || clone.serviceType || "";
-      const category = mapQuotationTypeToCategory(quotationType);
-      const title = formatServiceType(quotationType || "others");
-
-      setGeneratedBookingCode(newId);
-      setSelectedQuotation(clone);
-      setSelectedService({
-        id: newId,
-        title,
-        image: "",
-        category,
-        description: "",
-      });
-
-      // open sidesheet only after id was fetched and state set
-      setIsSideSheetOpen(true);
-    } catch (err) {
-      console.error("Error duplicating quotation:", err);
-    }
-  };
-
-  const getActionsForTab = (tab: string, row: any) => {
-    // Accept both, the table "row metadata" shape
-    const id =
-      row?._id ||
-      row?.id ||
-      (row.isReal
-        ? quotations?.[row.originalIndex]?._id
-        : finalQuotations?.[row.originalIndex]?.id);
-
-    const baseActions = [
-      {
-        label: "Edit",
-        icon: <MdOutlineEdit />,
-        color: "text-blue-600",
-        onClick: () => {
-          setIsSideSheetOpen(true);
-          setSideSheetMode("edit");
-          setSelectedQuotation(row);
+  const selectAllHeaderCheckbox = useMemo(
+    () =>
+      renderSelectCheckbox(
+        "finance-bookings-select-all",
+        isAllSelected,
+        () => {
+          if (isAllSelected) {
+            setSelectedBookingIds([]);
+          } else {
+            setSelectedBookingIds(filteredBookings.map((r) => r.id));
+          }
         },
-      },
-      {
-        label: "Delete",
-        icon: <FaRegTrashAlt />,
-        color: "text-red-600",
-        onClick: () => {
-          if (id) handleDeleteClick(id);
-        },
-      },
-    ];
+        isSomeSelected,
+      ),
+    [filteredBookings, isAllSelected, isSomeSelected],
+  );
 
-    // Only expose Edit and Delete in finance view
-    return baseActions;
-  };
-
-  const formatDMY = (dateString: string) => {
-    const date = new Date(dateString);
-
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-
-    return `${day}-${month}-${year}`;
-  };
-
-  const normalizeDraft = (draft: any) => {
-    // Backend drafts are quotations with serviceStatus = 'draft'
-
-    return {
-      _id: draft._id,
-      customId: draft.customId || null,
-      quotationType: draft.quotationType || "others",
-      formFields: draft.formFields || {},
-      totalAmount: draft.totalAmount || 0,
-      status: "draft",
-      serviceStatus: draft.serviceStatus,
-      createdAt: draft.createdAt || null,
-      travelDate: draft.travelDate || null,
-      isDraft: true,
-      customerId: draft.customerId,
-      vendorId: draft.vendorId,
-      owner: draft.owner || [],
-      travelers: draft.travelers || [],
-      adultTravlers: draft.adultTravlers || 0,
-      childTravlers: draft.childTravlers || 0,
-      remarks: draft.remarks || "",
-    };
-  };
-
-  // Combine filtered quotations and backend drafts to show all bookings
-  const finalQuotations = useMemo(() => {
-    const normalizedDrafts = drafts
-      .map(normalizeDraft)
-      .filter((draft: any) => {
-        if (!filters.search.trim()) return true;
-        const s = filters.search.toLowerCase();
-        const ownerNames = ([] as Array<{ name?: string }>).concat(
-          draft.owner || [],
-          draft.secondaryOwner || [],
-          draft.primaryOwner ? [draft.primaryOwner] : [],
-        )
-          .map((owner) => owner?.name || "")
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-        const customerName = (
-          draft.customerId?.name ||
-          draft.formFields?.customer ||
-          ""
-        ).toLowerCase();
-
-        if (filters.searchBy === "customerName") return customerName.includes(s);
-        if (filters.searchBy === "owner") return ownerNames.includes(s);
-        return (draft.customerId?._id || "").toLowerCase().includes(s);
-      });
-
-    const combined = [...filteredQuotations, ...normalizedDrafts];
-
-    // Deduplicate by _id when present
-    const seen = new Set<string>();
-    const result: any[] = [];
-    for (const item of combined) {
-      const id = item?._id || item?.customId || JSON.stringify(item);
-      if (!seen.has(id)) {
-        seen.add(id);
-        result.push(item);
-      }
+  const sortedBookings = useMemo(() => {
+    if (!sortState.key || sortState.direction === "none") {
+      return filteredBookings;
     }
 
-    return result;
-  }, [drafts, filteredQuotations, filters.search, filters.searchBy]) as any[];
-
-  // Use shared timestamp extractor from utils/sorting.ts
-
-  const sortedQuotationsForTable = useMemo(() => {
-    if (sortState.key !== "Travel Date" || sortState.direction === "none") {
-      return finalQuotations;
-    }
-
-    // Stable sort: keep original order for ties.
-    const withIndex = finalQuotations.map((item, originalIndex) => ({
+    const withIndex = filteredBookings.map((item, originalIndex) => ({
       item,
       originalIndex,
     }));
 
     withIndex.sort((a, b) => {
-      const at = getItemTimestamp(a.item);
-      const bt = getItemTimestamp(b.item);
-
-      // Always keep missing/invalid dates at the bottom.
-      if (at === null && bt === null) return a.originalIndex - b.originalIndex;
-      if (at === null) return 1;
-      if (bt === null) return -1;
-
-      const diff = at - bt;
-      if (diff !== 0) return sortState.direction === "asc" ? diff : -diff;
-      return a.originalIndex - b.originalIndex;
+      let cmp = 0;
+      if (sortState.key === "Travel Date" || sortState.key === "Booking Date") {
+        const dateKey =
+          travelDateField === "bookingDate" ? "bookingDate" : "travelDate";
+        const ta = getItemTimestamp({ createdAt: a.item[dateKey] }) ?? 0;
+        const tb = getItemTimestamp({ createdAt: b.item[dateKey] }) ?? 0;
+        cmp = ta - tb;
+      } else if (sortState.key === "Lead Pax") {
+        cmp = a.item.leadPax.localeCompare(b.item.leadPax);
+      } else if (sortState.key === "Payment Status") {
+        cmp =
+          PAYMENT_STATUS_SORT_ORDER[a.item.paymentStatus] -
+          PAYMENT_STATUS_SORT_ORDER[b.item.paymentStatus];
+      } else if (sortState.key === "Amount") {
+        cmp = a.item.amount - b.item.amount;
+      }
+      if (cmp === 0) return a.originalIndex - b.originalIndex;
+      return sortState.direction === "asc" ? cmp : -cmp;
     });
 
-    return withIndex.map((x) => x.item);
-  }, [finalQuotations, sortState.direction, sortState.key]);
+    return withIndex.map((entry) => entry.item);
+  }, [filteredBookings, sortState.direction, sortState.key, travelDateField]);
 
-  const tableData = useMemo<JSX.Element[][]>(() => {
-    const rows = sortedQuotationsForTable.map((item, index) => [
-      <td
-        key={`id-${index}`}
-        onClick={() => handleViewBooking(item)}
-        className="px-4 py-3 text-center text-[#020202]  font-medium align-middle h-[3rem] cursor-pointer"
-      >
-        <button
-          onClick={() => handleViewBooking(item)}
-          className="text-[#114958] hover:underline font-semibold"
-        >
-          {item.customId || item._id}
-        </button>
-      </td>,
-      <td
-        key={`lead-${index}`}
-        onClick={() => handleViewBooking(item)}
-        className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
-      >
-        {item.customerId?.name || item.formFields?.customer || "--"}
-      </td>,
-      <td
-        key={`date-${index}`}
-        onClick={() => handleViewBooking(item)}
-        className="px-4 py-3 text-center align-middle h-[3rem] cursor-pointer"
-      >
-        {item.travelDate
-          ? formatDMY(item.travelDate)
-          : item.formFields?.departureDate
-            ? formatDMY(item.formFields.departureDate)
-            : item.createdAt
-              ? formatDMY(item.createdAt)
-              : "--"}
-      </td>,
-      <td
-        key={`service-${index}`}
-        onClick={() => handleViewBooking(item)}
-        className="px-4 py-3 text-center text-[14px] text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
-      >
-        <div className="flex items-center justify-center gap-2">
-          <div className="w-4 h-4 flex items-center justify-center">
-            {getServiceIcon(item.quotationType || "draft")}
-          </div>
-          <span className="text-center leading-tight">
-            {formatServiceType(item.quotationType || "draft")}
-          </span>
-        </div>
-      </td>,
-      <td
-        key={`status-${index}`}
-        onClick={() => handleViewBooking(item)}
-        className="px-4 py-3 text-center align-middle text-[14px] h-[3rem] cursor-pointer"
-      >
-        <span className={getStatusBadgeClass(mapStatus(item.status))}>
-          {mapStatus(item.status)}
-        </span>
-      </td>,
-      <td
-        key={`amount-${index}`}
-        onClick={() => handleViewBooking(item)}
-        className="px-4 py-3 text-center text-[#020202] font-normal align-middle h-[3rem] cursor-pointer"
-      >
-        {item.totalAmount
-          ? `${getStoredCurrencySymbol()} ${formatNumberByStoredCurrency(item.totalAmount)}`
-          : item.formFields?.budget
-            ? `${getStoredCurrencySymbol()} ${formatNumberByStoredCurrency(item.formFields.budget)}`
-            : "--"}
-      </td>,
-      <td
-        key={`owners-${index}`}
-        onClick={() => handleViewBooking(item)}
-        className="px-4 py-3 text-center align-middle h-[3rem] cursor-pointer"
-      >
-        <div className="flex items-center justify-center">
-          {/* PRIMARY OWNER */}
-          {item.primaryOwner?.name &&
-            (() => {
-              const name = item.primaryOwner.name;
-              const ownerMeta = ownersList.find((o) => o.full === name) || {
-                short: computeInitials(name),
-                full: name,
-                color: colorPalette[0] ?? "",
-              };
+  const handleSort = useCallback((column: string) => {
+    const sortableColumns = [
+      "Travel Date",
+      "Booking Date",
+      "Lead Pax",
+      "Payment Status",
+      "Amount",
+    ];
+    if (!sortableColumns.includes(column)) return;
+    setSortState((prev) => getNextTriSortState(prev, column));
+  }, []);
 
-              return (
-                <div className="mr-2">
-                  {" "}
-                  {/* 👈 GAP AFTER PRIMARY */}
-                  <AvatarTooltip
-                    short={ownerMeta.short}
-                    full={ownerMeta.full}
-                    color={ownerMeta.color}
-                  />
-                </div>
-              );
-            })()}
+  const handleFilterChange = useCallback((next: FilterPayload) => {
+    setFilters(next);
+  }, []);
 
-          {/* SECONDARY OWNERS */}
-          <div className="flex items-center">
-            {Array.isArray(item.secondaryOwner) &&
-              item.secondaryOwner.map((o: any, i: number) => {
-                if (!o?.name) return null;
-
-                const ownerMeta = ownersList.find((x) => x.full === o.name) || {
-                  short: computeInitials(o.name),
-                  full: o.name,
-                  color:
-                    colorPalette[(i + 1) % colorPalette.length] ??
-                    colorPalette[0] ??
-                    "",
-                };
-
-                return (
-                  <AvatarTooltip
-                    key={i}
-                    short={ownerMeta.short}
-                    full={ownerMeta.full}
-                    color={ownerMeta.color}
-                  />
-                );
-              })}
-          </div>
-        </div>
-      </td>,
-      <td
-        key={`tasks-${index}`}
-        className="px-4 py-3 text-center align-middle h-[3rem]"
-      >
-        <div
-          className="flex justify-center"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <TaskButton count={0} bookingId={item._id} />
-        </div>
-      </td>,
-
-      // ACTIONS COLUMN
-      <td
-        key={`actions-${index}`}
-        className="px-4 py-3 text-center align-middle h-[3rem]"
-      >
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="flex items-center justify-center gap-2 transition-all duration-200 opacity-0 pointer-events-none group-[.row-actions-active]:opacity-100 group-[.row-actions-active]:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
-        >
-          {/* Currency Button */}
-          <button
-            className="w-8 h-8 rounded-md bg-blue-100 text-blue-700
-                 flex items-center justify-center hover:bg-blue-200"
-            onClick={() => {
-              setSelectedPaymentBooking(item);
-              setIsRecordPaymentOpen(true);
-            }}
-          >
-            {getStoredCurrencySymbol()}
-          </button>
-
-          <ActionMenu
-            actions={getActionsForTab("All", item)}
-            right="right-15"
-          />
-        </div>
-      </td>,
-    ]);
-    return rows;
-  }, [sortedQuotationsForTable, ownersList]);
-
-  const filterOptions = useMemo(
-    () => ({
-      serviceTypes: [
-        { value: "flight", label: "✈️ Flight" },
-        { value: "hotel", label: "🏨 Hotel" },
-        { value: "car", label: "🚗 Car Rental" },
-        { value: "package", label: "🎫 Package" },
-      ],
-      statuses: [
-        { value: "successful", label: "Successful" },
-        { value: "pending", label: "Pending" },
-        { value: "failed", label: "Failed" },
-      ],
-      owners: ownersList.map((o) => ({ value: o.full, label: o.full })),
-    }),
-    [ownersList],
-  );
-
-  const statusFilterOptions = useMemo<FilterCardOption[]>(
+  const travelDateFieldOptions = useMemo(
     () => [
-      { value: "payment", label: "Payment Status" },
-      { value: "booking", label: "Booking Status" },
+      { value: "travelDate", label: "Travel Date" },
+      { value: "bookingDate", label: "Booking Date" },
     ],
     [],
   );
 
-  const columnIconMap = useMemo(() => {
-    const trigger = (
-      <FilterTrigger
-        options={statusFilterOptions}
-        mode="single"
-        align="left"
-        onApply={(vals) => {
-          if (!vals || vals.length === 0) {
-            setStatusColumnLabel("Booking Status");
-            return;
-          }
-          const sel = vals[0];
-          if (sel === "payment") setStatusColumnLabel("Payment Status");
-          else if (sel === "booking") setStatusColumnLabel("Booking Status");
-          else setStatusColumnLabel("Booking Status");
-        }}
+  const renderSingleSelectDropdown = useCallback(
+    (
+      value: string,
+      options: Array<{ value: string; label: string }>,
+      onSelect: (nextValue: string) => void,
+      onReset: () => void,
+      onApply: () => void,
+    ) => (
+      <div
+        data-header-filter-dropdown="Travel Date"
+        className="flex max-h-[340px] w-[200px] flex-col overflow-hidden rounded-[14px] border border-[#E2E1E1] bg-white shadow-[0_12px_30px_rgba(0,0,0,0.14)]"
       >
-        <CiFilter className="inline w-3 h-3 text-white stroke-[1.5]" />
-      </FilterTrigger>
+        <div className="overflow-y-auto">
+          {options.map((opt, idx) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onSelect(opt.value)}
+              className={`flex w-full items-center gap-[8px] p-[12px] text-left font-[400] text-[13px] text-[#414141] ${idx === 0 ? "border-t border-[#E1E1E1]" : ""} border-b border-[#E1E1E1] last:border-b-0`}
+            >
+              <span
+                className={`inline-flex h-5 w-5 items-center justify-center rounded-[6px] border ${
+                  value === opt.value
+                    ? "border-[#7135AD] bg-[#7135AD] text-white"
+                    : "border-[#D3D3D3] bg-white text-transparent"
+                }`}
+              >
+                <FiCheck className="h-3 w-3" />
+              </span>
+              <span>{opt.label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="sticky bottom-0 flex items-center justify-between border-t border-[#D7D7D7] bg-white px-4 py-3">
+          <button
+            type="button"
+            onClick={onReset}
+            className="rounded-[8px] border border-[#D7D7D7] p-2 text-[13px] text-[#6A6A6A]"
+          >
+            <RiRefreshLine size={12} />
+          </button>
+          <button
+            type="button"
+            onClick={onApply}
+            className="rounded-[10px] bg-[#7135AD] px-5 py-1.5 text-[13px] font-[600] text-white"
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+    ),
+    [],
+  );
+
+  const renderMultiSelectDropdown = useCallback(
+    (
+      options: Array<{ value: string; label: string }>,
+      pendingValues: string[],
+      onToggle: (value: string) => void,
+      onReset: () => void,
+      onApply: () => void,
+    ) => (
+      <div
+        data-header-filter-dropdown="Service"
+        className="flex max-h-[320px] w-[220px] flex-col overflow-hidden rounded-[18px] border border-[#D7D7D7] bg-white shadow-[0_12px_30px_rgba(0,0,0,0.14)]"
+      >
+        <div className="overflow-y-auto">
+          {options.map((opt, idx) => {
+            const checked = pendingValues.includes(opt.value);
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onToggle(opt.value)}
+                className={`flex w-full items-center gap-[8px] p-[10px] text-left font-[400] text-[12px] text-[#020202] ${
+                  idx < options.length - 1 ? "border-b border-[#D7D7D7]" : ""
+                }`}
+              >
+                <span
+                  className={`inline-flex h-5 w-5 items-center justify-center rounded-[6px] border text-[15px] ${
+                    checked
+                      ? "border-[#7135AD] bg-[#7135AD] text-white"
+                      : "border-[#D3D3D3] bg-white text-transparent"
+                  }`}
+                >
+                  <FiCheck className="h-3 w-3" />
+                </span>
+                <span className="text-[#4A4A4A]">{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="sticky bottom-0 flex items-center justify-between border-t border-[#D7D7D7] bg-white px-5 py-4">
+          <button
+            type="button"
+            onClick={onReset}
+            className="rounded-[8px] border border-[#D7D7D7] p-2 text-[14px] text-[#6A6A6A]"
+          >
+            <RiRefreshLine size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={onApply}
+            className="rounded-[12px] bg-[#7135AD] px-6 py-2 text-[14px] font-[600] text-white"
+          >
+            Apply
+          </button>
+        </div>
+      </div>
+    ),
+    [],
+  );
+
+  const columnIconMap = useMemo(() => {
+    const sortButton = (column: string) => (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleSort(column);
+        }}
+        className="inline-flex items-center"
+      >
+        <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+      </button>
     );
 
     return {
+      "Lead Pax": sortButton("Lead Pax"),
       "Travel Date": (
-        <TbArrowsUpDown className="inline w-3 h-3 text-white stroke-[1.5]" />
+        <span className="inline-flex items-center gap-2">
+          <button
+            type="button"
+            data-header-filter-trigger="Travel Date"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveHeaderFilter((prev) =>
+                prev === "Travel Date" ? null : "Travel Date",
+              );
+            }}
+            className="inline-flex items-center"
+          >
+            <CiFilter
+              className={`inline h-3 w-3 stroke-[2] ${
+                activeHeaderFilter === "Travel Date"
+                  ? "text-[#7C3AED]"
+                  : "text-[#818181] hover:text-[#7135AD]"
+              }`}
+            />
+          </button>
+          {sortButton(dateColumnLabel)}
+        </span>
       ),
-      "Service Status": trigger,
-      "Payment Status": trigger,
-      "Booking Status": trigger,
+      "Booking Date": (
+        <span className="inline-flex items-center gap-2">
+          <button
+            type="button"
+            data-header-filter-trigger="Travel Date"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveHeaderFilter((prev) =>
+                prev === "Travel Date" ? null : "Travel Date",
+              );
+            }}
+            className="inline-flex items-center"
+          >
+            <CiFilter
+              className={`inline h-3 w-3 stroke-[2] ${
+                activeHeaderFilter === "Travel Date"
+                  ? "text-[#7C3AED]"
+                  : "text-[#818181] hover:text-[#7135AD]"
+              }`}
+            />
+          </button>
+          {sortButton(dateColumnLabel)}
+        </span>
+      ),
+      Service: (
+        <CiFilter
+          className={`inline h-3 w-3 stroke-[2] ${
+            activeHeaderFilter === "Service"
+              ? "text-[#7C3AED]"
+              : "text-[#818181] hover:text-[#7135AD]"
+          }`}
+        />
+      ),
+      "Payment Status": sortButton("Payment Status"),
+      Amount: sortButton("Amount"),
     } as Record<string, JSX.Element>;
-  }, [statusFilterOptions]);
+  }, [activeHeaderFilter, dateColumnLabel, handleSort]);
 
-  const handleFilterChange = (next: FilterPayload) => {
-    setFilters(next);
-    setSearchValue(next.search);
-  };
+  const headerDropdownMap = useMemo(
+    () => ({
+      "Travel Date": {
+        isOpen: activeHeaderFilter === "Travel Date",
+        align: "center" as const,
+        content: renderSingleSelectDropdown(
+          pendingDateField,
+          travelDateFieldOptions,
+          (nextValue) => {
+            if (nextValue === "travelDate" || nextValue === "bookingDate") {
+              setPendingDateField(nextValue);
+            }
+          },
+          () => setPendingDateField("travelDate"),
+          () => {
+            setTravelDateField(pendingDateField);
+            setActiveHeaderFilter(null);
+          },
+        ),
+      },
+      "Booking Date": {
+        isOpen: activeHeaderFilter === "Travel Date",
+        align: "center" as const,
+        content: renderSingleSelectDropdown(
+          pendingDateField,
+          travelDateFieldOptions,
+          (nextValue) => {
+            if (nextValue === "travelDate" || nextValue === "bookingDate") {
+              setPendingDateField(nextValue);
+            }
+          },
+          () => setPendingDateField("travelDate"),
+          () => {
+            setTravelDateField(pendingDateField);
+            setActiveHeaderFilter(null);
+          },
+        ),
+      },
+      Service: {
+        isOpen: activeHeaderFilter === "Service",
+        align: "center" as const,
+        content: renderMultiSelectDropdown(
+          filterOptions.serviceTypes,
+          pendingServiceTypes,
+          (value) =>
+            setPendingServiceTypes((prev) =>
+              prev.includes(value)
+                ? prev.filter((v) => v !== value)
+                : [...prev, value],
+            ),
+          () => setPendingServiceTypes([]),
+          () => {
+            setFilters((prev) => ({
+              ...prev,
+              serviceType: pendingServiceTypes,
+            }));
+            setActiveHeaderFilter(null);
+          },
+        ),
+      },
+    }),
+    [
+      activeHeaderFilter,
+      filterOptions.serviceTypes,
+      pendingDateField,
+      pendingServiceTypes,
+      renderMultiSelectDropdown,
+      renderSingleSelectDropdown,
+      travelDateFieldOptions,
+    ],
+  );
 
-  return (
-    <div className="px-[20px] pb-[24px] bg-[#F3F3F3]">
-      <div className="bg-[#F3F3F3]">
-        <div className="min-h-screen">
-          <ErrorToast
-            visible={toastVisible}
-            message={toastMessage}
-            onClose={() => setToastVisible(false)}
-            bgColorClass={toastBgClass}
-            messageColorClass={toastMessageColor}
-            borderColorClass={toastBorderClass}
-            closeButtonClass={toastCloseBtnClass}
-            showLabel={toastShowLabel}
-          />
+  const handleHeaderIconClick = useCallback((column: string) => {
+    if (column !== "Service") return;
+    setActiveHeaderFilter((prev) => (prev === "Service" ? null : "Service"));
+  }, []);
 
-          <Filter
-            onFilterChange={handleFilterChange}
-            onSearchChange={(value) => setSearchValue(value)}
-            serviceTypes={filterOptions.serviceTypes}
-            statuses={filterOptions.statuses}
-            owners={filterOptions.owners}
-            searchOptions={[
+  const tableData = useMemo<JSX.Element[][]>(() => {
+    return sortedBookings.map((row, index) => {
+      const cells: JSX.Element[] = [];
+
+      if (selectMode) {
+        const isSelected = selectedBookingIds.includes(row.id);
+        cells.push(
+          <td key={`select-${index}`} className="px-4 py-3 text-center">
+            {renderSelectCheckbox(`finance-booking-${row.id}`, isSelected, () => {
+              setSelectedBookingIds((prev) =>
+                isSelected
+                  ? prev.filter((id) => id !== row.id)
+                  : [...prev, row.id],
+              );
+            })}
+          </td>,
+        );
+      }
+
+      cells.push(
+        <td
+          key={`id-${index}`}
+          className="h-[3rem] cursor-pointer px-4 py-3 text-center align-middle font-[500] text-[13px]"
+        >
+          {row.customId}
+        </td>,
+      <td
+        key={`lead-${index}`}
+        className="h-[3rem] cursor-pointer px-4 py-3 text-center align-middle text-[13px] font-[400]"
+      >
+        {row.leadPax}
+      </td>,
+      <td
+        key={`date-${index}`}
+        className="h-[3rem] cursor-pointer px-4 py-3 text-center align-middle text-[13px] font-[400]"
+      >
+        {formatTravelDate(
+          travelDateField === "bookingDate" ? row.bookingDate : row.travelDate,
+        )}
+      </td>,
+      <td
+        key={`service-${index}`}
+        className="h-[3rem] cursor-pointer px-4 py-3 text-center align-middle text-[13px] font-[400]"
+      >
+        {row.serviceDisplayVariant === "pill" ? (
+          <span className="inline-flex rounded-full border border-[#E9D5FF] bg-[#F5F0FF] px-3 py-1 text-[12px] font-[500] text-[#7135AD]">
+            {row.serviceLabel}
+          </span>
+        ) : (
+          <div className="flex flex-col items-center justify-center gap-2">
+            <div className="flex h-4 w-4 items-center justify-center">
+              {getServiceIcon(row.quotationType)}
+            </div>
+            <span className="text-center leading-tight">{row.serviceLabel}</span>
+          </div>
+        )}
+      </td>,
+      <td
+        key={`status-${index}`}
+        className="h-[3rem] cursor-pointer px-4 py-3 text-center align-middle text-[13px]"
+      >
+        <span className={getPaymentStatusBadgeClass(row.paymentStatus)}>
+          {getPaymentStatusLabel(row.paymentStatus)}
+        </span>
+      </td>,
+      <td
+        key={`amount-${index}`}
+        className="h-[3rem] cursor-pointer px-4 py-3 text-center align-middle text-[13px] font-[400] text-[#020202]"
+      >
+        {getStoredCurrencySymbol()}{" "}
+        {formatNumberByStoredCurrency(row.amount)}
+      </td>,
+      <td
+        key={`owners-${index}`}
+        className="h-[3rem] cursor-pointer px-4 py-3 text-center align-middle"
+      >
+        <div className="flex items-center justify-center">
+          {row.owners.map((owner, ownerIndex) => (
+            <AvatarTooltip
+              key={`${owner.initials}-${ownerIndex}`}
+              short={owner.initials}
+              full={owner.name}
+              color={owner.color || OWNER_COLOR_FALLBACK}
+            />
+          ))}
+        </div>
+      </td>,
+      <td key={`voucher-${index}`} className="h-[3rem] px-4 py-3 text-center align-middle">
+        <div className="relative flex items-center justify-center">
+          <div className="inline-flex overflow-hidden rounded-[7px] border border-[#E2E1E1] bg-[#FFF] hover:bg-[#F7F7F7]">
+            <span className="flex items-center justify-center border-r border-[#E2E1E1] p-[6px]">
+              <Image
+                src="/icons/voucher-icon.svg"
+                alt="Voucher"
+                width={20}
+                height={20}
+                className="object-contain"
+              />
+            </span>
+            <button
+              type="button"
+              data-voucher-trigger
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveVoucherRowId((prev) =>
+                  prev === row.id ? null : row.id,
+                );
+              }}
+              className="flex items-center justify-center p-[6px]"
+            >
+              <IoChevronDown className="h-[14px] w-[14px] text-[#8A8A8A]" />
+            </button>
+          </div>
+
+          {activeVoucherRowId === row.id && (
+            <div
+              data-voucher-menu
+              className="absolute left-1/2 top-[48px] z-[140] w-[180px] -translate-x-1/2 overflow-hidden rounded-[12px] border border-[#D6D6D6] bg-white shadow-[0_12px_24px_rgba(0,0,0,0.14)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {VOUCHER_MENU_OPTIONS.map((label, optionIndex) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => setActiveVoucherRowId(null)}
+                  className={`flex w-full items-center gap-[6px] px-[16px] py-[10px] text-left text-[12px] font-[400] text-[#3E3E3E] hover:bg-[#FAF7FF] ${
+                    optionIndex < VOUCHER_MENU_OPTIONS.length - 1
+                      ? "border-b border-[#DCDCDC]"
+                      : ""
+                  }`}
+                >
+                  <LuDownload className="h-[15px] w-[15px] text-[#7C3AED]" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </td>,
+      <td key={`tasks-${index}`} className="h-[3rem] px-4 py-3 text-center align-middle">
+        <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+          <TaskButton count={row.taskCount} bookingId={row.id} />
+        </div>
+      </td>,
+      <td key={`actions-${index}`} className="h-[4rem] px-4 py-3 text-center align-middle">
+        <div
+          className="mx-auto flex w-fit items-center gap-[8px] opacity-0 pointer-events-none transition-opacity duration-300 ease-in-out [.row-actions-active_&]:opacity-100 [.row-actions-active_&]:pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {activeTab === "Waiting for Approval" &&
+          row.requiresApprovalAction ? (
+            <>
+              <button
+                type="button"
+                aria-label="Approve booking"
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+              >
+                <FiCheck className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="Reject booking"
+                className="flex h-9 w-9 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+              >
+                <FiX className="h-4 w-4" />
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="rounded-[6px] border border-[#E2E1E1] bg-[#FFF] px-[11px] py-1.5 text-[14px] font-[400] text-[#414141] hover:text-[#7135AD]"
+              onClick={() => {
+                setSelectedPaymentBooking(row);
+                setIsRecordPaymentOpen(true);
+              }}
+            >
+              {getStoredCurrencySymbol()}
+            </button>
+          )}
+          <ActionMenu
+            actions={[
               {
-                value: "customerId",
-                label: "Customer ID",
-                placeholder: "Search by Customer ID",
+                label: "Record Payment",
+                onClick: () => {
+                  setSelectedPaymentBooking(row);
+                  setIsRecordPaymentOpen(true);
+                },
               },
               {
-                value: "customerName",
-                label: "Customer Name",
-                placeholder: "Search by Customer Name",
-              },
-              {
-                value: "owner",
-                label: "Owner",
-                placeholder: "Search by Owner",
+                label: "View Booking",
+                onClick: () => {},
               },
             ]}
-            showCreateButton={false}
-            totalCount={finalQuotations.length}
-            showBookingType={true}
-            allowAdvanceOwnerSearch={true}
+            right="right-10"
+          />
+        </div>
+      </td>,
+      );
+
+      return cells;
+    });
+  }, [
+    activeTab,
+    activeVoucherRowId,
+    sortedBookings,
+    selectMode,
+    selectedBookingIds,
+    travelDateField,
+  ]);
+
+
+  const handleSelectClick = useCallback(() => {
+    setSelectMode(true);
+    setSelectedBookingIds([]);
+    setIsMoreActionsOpen(false);
+  }, []);
+
+  const handleCancelSelectMode = useCallback(() => {
+    setSelectMode(false);
+    setSelectedBookingIds([]);
+    setIsMoreActionsOpen(false);
+  }, []);
+
+  const handleSelectAllToggle = useCallback(() => {
+    if (isAllSelected) {
+      setSelectedBookingIds([]);
+    } else {
+      setSelectedBookingIds(filteredBookings.map((r) => r.id));
+    }
+  }, [filteredBookings, isAllSelected]);
+
+  return (
+    <BookingsPageViewport>
+      <div className="flex h-full min-h-0 w-full max-w-full min-w-0 flex-col overflow-x-hidden bg-[#F9F9F9]">
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <FinanceSummaryPills
+            net={summary.net}
+            youGive={summary.youGive}
+            youGet={summary.youGet}
           />
 
-          <div className="bg-white rounded-2xl shadow mt-4 pt-5 pb-3 px-3 relative">
-            {/* Header row removed: tabs and inline total moved into Filter */}
-            <div className="p-2 mt-2">
-              {isLoading ? (
-                <TableSkeleton />
-              ) : (
-                <Table
-                  data={tableData}
-                  columns={columns}
-                  columnIconMap={columnIconMap}
-                  onSort={handleSort}
-                  categoryName="Bookings"
-                  headerAlign={{ "Booking ID": "center" }}
-                  enableRowHoverActions
+          <div className="flex items-center gap-3">
+            {selectMode ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleCancelSelectMode}
+                  className="inline-flex h-10 cursor-pointer items-center rounded-[14px] border border-[#E2E1E1] bg-white px-5 text-[14px] font-medium text-[#414141] transition-colors hover:bg-[#FAFAFA]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSelectAllToggle}
+                  className="inline-flex h-10 cursor-pointer items-center rounded-[14px] border border-[#E2E1E1] bg-white px-5 text-[14px] font-medium text-[#414141] transition-colors hover:bg-[#FAFAFA]"
+                >
+                  {isAllSelected ? "Deselect all" : "Select all"}
+                </button>
+              </div>
+            ) : (
+              <div className="relative inline-flex" ref={moreActionsRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsMoreActionsOpen((prev) => !prev)}
+                  className={`inline-flex cursor-pointer items-stretch overflow-hidden border border-[#7135AD66] bg-white text-[14px] font-[600] text-[#414141] transition-colors hover:bg-[#FAFAFA] ${
+                    isMoreActionsOpen
+                      ? "rounded-t-[14px] rounded-b-none"
+                      : "rounded-[14px]"
+                  }`}
+                >
+                  <span className="flex items-center px-[14px] py-[8px]">
+                    More Actions
+                  </span>
+                  <span className="flex items-center border-l border-[#7135AD66] px-[10px] py-[8px]">
+                    <MdOutlineKeyboardArrowDown className="text-[18px] text-[#414141]" />
+                  </span>
+                </button>
+
+                <SelectUploadMenu
+                  isOpen={isMoreActionsOpen}
+                  onClose={() => setIsMoreActionsOpen(false)}
+                  onSelect={handleSelectClick}
+                  entity="booking"
+                  rootRef={moreActionsRef}
                 />
-              )}
-            </div>
+              </div>
+            )}
+
+            <button
+              type="button"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] border border-[#E2E1E1] bg-white text-[#414141] transition-colors hover:bg-[#FAFAFA]"
+              aria-label="Calendar view"
+            >
+              <FaRegCalendar className="h-[18px] w-[18px]" />
+            </button>
           </div>
         </div>
 
-        <ConfirmationModal
-          isOpen={isDeleteModalOpen}
-          onClose={() => setIsDeleteModalOpen(false)}
-          title="Do you want to delete this quotation?"
-          confirmText="Yes, Delete"
-          cancelText="Cancel"
-          confirmButtonColor="bg-red-600"
-          onConfirm={confirmDelete}
+        <Filter
+          onFilterChange={handleFilterChange}
+          onSearchChange={(value) =>
+            setFilters((prev) => ({ ...prev, search: value }))
+          }
+          serviceTypes={filterOptions.serviceTypes}
+          statuses={filterOptions.statuses}
+          owners={filterOptions.owners}
+          searchOptions={[
+            {
+              value: "bookingId",
+              label: "Booking ID",
+              placeholder: "Search by Booking ID",
+              minChars: 2,
+            },
+            {
+              value: "leadPax",
+              label: "Lead Pax",
+              placeholder: "Search by Lead Pax",
+              minChars: 2,
+            },
+            {
+              value: "amount",
+              label: "Amount",
+              placeholder: "Search by Amount",
+              minChars: 2,
+            },
+          ]}
+          showCreateButton={false}
+          showBookingType={true}
+          allowAdvanceOwnerSearch={true}
         />
 
-        <BookingFormSidesheet
-          key={selectedQuotation?._id || "create"}
-          isOpen={isSideSheetOpen}
-          onClose={handleBookingComplete}
-          selectedService={selectedService}
-          initialData={selectedQuotation}
-          bookingCode={generatedBookingCode ?? ""}
-          customerCode={generatedCustomerCode ?? ""}
-          vendorCode={generatedVendorCode ?? ""}
-          mode={sideSheetMode}
-        />
+        <div className="relative mt-4 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
+          <div className="flex items-center justify-between border-b border-[#E5E7EB]">
+            <div className="flex min-w-0 flex-1 items-end">
+              <UnderlineTabs
+                tabs={[...TAB_OPTIONS]}
+                activeTab={activeTab}
+                onChange={setActiveTab}
+                totalCount={filteredBookings.length}
+                className="!border-b-0"
+              />
+              <div className="mb-[10px] ml-2 shrink-0">
+                <DropDown
+                  options={BOOKING_SCOPE_OPTIONS}
+                  value={bookingScope}
+                  onChange={setBookingScope}
+                  customWidth="w-[88px]"
+                  customHeight="py-[6px]"
+                  buttonClassName="!rounded-[10px] !border-[#E2E1E1] !bg-white !text-[13px] !font-[500] !text-[#414141]"
+                  menuWidth="w-[120px]"
+                />
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-[20px] px-4">
+              <div className="flex items-center gap-[6px]">
+                <button
+                  type="button"
+                  onClick={() => setShowIncompleteOnly((prev) => !prev)}
+                  className={`relative inline-flex h-5 w-8 cursor-pointer items-center rounded-full transition-colors ${
+                    showIncompleteOnly ? "bg-[#7135AD]" : "bg-[#C9CCCE]"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      showIncompleteOnly
+                        ? "translate-x-3.5"
+                        : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+                <span className="whitespace-nowrap text-[12px] font-[400] text-[#414141]">
+                  Show Incomplete Bookings
+                </span>
+              </div>
 
-        <RecordPaymentSidesheet
-          isOpen={isRecordPaymentOpen}
-          booking={selectedPaymentBooking}
-          onClose={() => {
-            setIsRecordPaymentOpen(false);
-            setSelectedPaymentBooking(null);
-          }}
-          onError={showError}
-          onSuccess={showSuccess}
-        />
+              <div className="rounded-full border border-[#F5E6C3] bg-[#FFF1C2] px-[14px] py-[6px] text-[12px] font-[500] text-[#414141]">
+                Total{" "}
+                <span className="font-[600]">{totalCount}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 min-h-0 flex-1 overflow-auto px-5 py-[4px]">
+            <Table
+              data={tableData}
+              columns={columns}
+              columnIconMap={columnIconMap}
+              onHeaderIconClick={handleHeaderIconClick}
+              headerIconClickableColumns={["Service"]}
+              headerDropdownMap={headerDropdownMap}
+              onSort={handleSort}
+              categoryName="Bookings"
+              headerAlign={{ "Booking ID": "center" }}
+              enableRowHoverActions
+              showCheckboxColumn={selectMode}
+              headerCheckbox={selectMode ? selectAllHeaderCheckbox : undefined}
+              columnWidthClassMap={{
+                "Booking ID": "w-[8rem]",
+                Voucher: "w-[9rem]",
+                Tasks: "w-[7.5rem]",
+                Actions: "w-[7.5rem]",
+              }}
+              initialRowsPerPage={6}
+              externalTotalRows={totalCount}
+            />
+          </div>
+        </div>
       </div>
-    </div>
+
+      <RecordPaymentSidesheet
+        isOpen={isRecordPaymentOpen}
+        booking={
+          selectedPaymentBooking
+            ? {
+                _id: selectedPaymentBooking.id,
+                customId: selectedPaymentBooking.customId,
+                formFields: { customer: selectedPaymentBooking.leadPax },
+              }
+            : null
+        }
+        onClose={() => {
+          setIsRecordPaymentOpen(false);
+          setSelectedPaymentBooking(null);
+        }}
+        onError={() => {}}
+        onSuccess={() => {}}
+      />
+
+    </BookingsPageViewport>
   );
 };
 

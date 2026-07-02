@@ -2,8 +2,10 @@ import axios from "axios";
 import { clearAuthStorage, getAuthToken } from "@/services/storage/authStorage";
 import { pushToast } from "@/utils/toastService";
 
+const DEFAULT_API_BASE_URL = "https://api.ciergo.co";
+
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080",
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_API_BASE_URL,
   timeout: 30000,
   headers: {
     "Content-Type": "application/json",

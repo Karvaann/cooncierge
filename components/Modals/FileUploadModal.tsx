@@ -208,7 +208,7 @@ interface FileUploadProps {
   onUpload?: (files: File[]) => void;
   acceptedTypes?: string[];
   maxFiles?: number;
-  entity?: "customer" | "vendor" | "team";
+  entity?: "customer" | "vendor" | "team" | "booking";
 }
 
 const FileUploadModal: React.FC<FileUploadProps> = ({
@@ -245,6 +245,11 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
     setUploadError(null);
 
     try {
+      if (entity === "booking") {
+        setUploadError("Upload API is not available for bookings yet.");
+        setIsUploading(false);
+        return;
+      }
       const result =
         entity === "vendor"
           ? await uploadBulkVendors(firstFile)
@@ -272,6 +277,11 @@ const FileUploadModal: React.FC<FileUploadProps> = ({
 
     if (format === "pdf" || format === "docx") {
       alert("Only CSV or XLSX templates available.");
+      return;
+    }
+
+    if (entity === "booking") {
+      alert("Template is not available for bookings yet.");
       return;
     }
 

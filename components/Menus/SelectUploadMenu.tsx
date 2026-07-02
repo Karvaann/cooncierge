@@ -7,7 +7,11 @@ type SelectUploadMenuProps = {
   isOpen: boolean;
   onClose: () => void;
   onSelect?: () => void;
-  entity?: "customer" | "vendor" | "team";
+  /** If provided, clicking Upload calls this instead of opening FileUploadModal. */
+  onUpload?: () => void;
+  entity?: "customer" | "vendor" | "team" | "booking";
+  /** When false, hide the Upload option (Select only). */
+  showUpload?: boolean;
   /** When provided, click-outside detection includes the trigger button wrapper */
   rootRef?: React.RefObject<HTMLDivElement | null>;
 };
@@ -16,7 +20,9 @@ const SelectUploadMenu: React.FC<SelectUploadMenuProps> = ({
   isOpen,
   onClose,
   onSelect,
+  onUpload,
   entity = "customer",
+  showUpload = true,
   rootRef,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -40,6 +46,11 @@ const SelectUploadMenu: React.FC<SelectUploadMenuProps> = ({
   }, [isOpen, onClose, rootRef]);
 
   const handleUploadClick = () => {
+    if (onUpload) {
+      onUpload();
+      onClose();
+      return;
+    }
     setIsFileUploadModalOpen(true);
     onClose();
   };
@@ -71,23 +82,28 @@ const SelectUploadMenu: React.FC<SelectUploadMenuProps> = ({
               <span>Select</span>
             </button>
 
-            <hr className={dividerClassName} />
-
-            <button
-              type="button"
-              onClick={handleUploadClick}
-              className={itemClassName}
-            >
-              <MdOutlineFileUpload size={16} className="shrink-0 text-[#818181]" />
-              <span>Upload</span>
-            </button>
+            {showUpload && (
+              <>
+                <hr className={dividerClassName} />
+                <button
+                  type="button"
+                  onClick={handleUploadClick}
+                  className={itemClassName}
+                >
+                  <MdOutlineFileUpload size={16} className="shrink-0 text-[#818181]" />
+                  <span>Upload</span>
+                </button>
+              </>
+            )}
           </div>
         )}
-        <FileUploadModal
-          isOpen={isFileUploadModalOpen}
-          onClose={() => setIsFileUploadModalOpen(false)}
-          entity={entity}
-        />
+        {!onUpload && (
+          <FileUploadModal
+            isOpen={isFileUploadModalOpen}
+            onClose={() => setIsFileUploadModalOpen(false)}
+            entity={entity}
+          />
+        )}
       </>
     );
   }
@@ -103,23 +119,28 @@ const SelectUploadMenu: React.FC<SelectUploadMenuProps> = ({
             <span className="text-gray-800 text-[0.72rem] font-medium">Select</span>
           </button>
 
-          <hr className={dividerClassName} />
-
-          <button
-            type="button"
-            onClick={handleUploadClick}
-            className={`${itemClassName} mb-1 gap-1`}
-          >
-            <MdOutlineFileUpload size={16} className="text-[#5856D6]" />
-            <span className="text-[#5856D6] text-[0.70rem] font-medium">Upload</span>
-          </button>
+          {showUpload && (
+            <>
+              <hr className={dividerClassName} />
+              <button
+                type="button"
+                onClick={handleUploadClick}
+                className={`${itemClassName} mb-1 gap-1`}
+              >
+                <MdOutlineFileUpload size={16} className="text-[#5856D6]" />
+                <span className="text-[#5856D6] text-[0.70rem] font-medium">Upload</span>
+              </button>
+            </>
+          )}
         </div>
       )}
-      <FileUploadModal
-        isOpen={isFileUploadModalOpen}
-        onClose={() => setIsFileUploadModalOpen(false)}
-        entity={entity}
-      />
+      {!onUpload && (
+        <FileUploadModal
+          isOpen={isFileUploadModalOpen}
+          onClose={() => setIsFileUploadModalOpen(false)}
+          entity={entity}
+        />
+      )}
     </div>
   );
 };

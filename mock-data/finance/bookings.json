@@ -1,0 +1,239 @@
+{
+  "summary": {
+    "net": 4870,
+    "youGive": 70580,
+    "youGet": 75450
+  },
+  "totalCount": 78,
+  "bookings": [
+    {
+      "id": "fb-001",
+      "customId": "OS-ABC12",
+      "leadPax": "Anand Mishra",
+      "travelDate": "2026-03-05",
+      "bookingDate": "2026-02-10",
+      "quotationType": "flight",
+      "serviceLabel": "Flight",
+      "paymentStatus": "paid",
+      "amount": 24580,
+      "owners": [
+        { "name": "Abhay Sharma", "initials": "AS", "color": "border-pink-700 text-pink-700" },
+        { "name": "Amit Kumar", "initials": "AK", "color": "border-[#AF52DE] text-[#AF52DE]" },
+        { "name": "Sahil Rana", "initials": "SR", "color": "border-[#5856D6] text-[#5856D6]" },
+        { "name": "Vikram Gupta", "initials": "VG", "color": "border-cyan-700 text-cyan-700" }
+      ],
+      "taskCount": 0,
+      "isDeleted": false,
+      "isIncomplete": false,
+      "isWaitingForApproval": true
+    },
+    {
+      "id": "fb-002",
+      "customId": "LI-ABC12",
+      "leadPax": "Sumit Jha",
+      "travelDate": "2026-04-12",
+      "bookingDate": "2026-02-18",
+      "quotationType": "flight",
+      "serviceLabel": "Flight",
+      "paymentStatus": "partially_paid",
+      "amount": 75220,
+      "owners": [
+        { "name": "Abhay Sharma", "initials": "AS", "color": "border-pink-700 text-pink-700" },
+        { "name": "Amit Kumar", "initials": "AK", "color": "border-[#AF52DE] text-[#AF52DE]" },
+        { "name": "Sahil Rana", "initials": "SR", "color": "border-[#5856D6] text-[#5856D6]" },
+        { "name": "Vikram Gupta", "initials": "VG", "color": "border-cyan-700 text-cyan-700" }
+      ],
+      "taskCount": 1,
+      "isDeleted": false,
+      "isIncomplete": false,
+      "isWaitingForApproval": true
+    },
+    {
+      "id": "fb-003",
+      "customId": "OS-ABC12",
+      "leadPax": "Sumit Jha",
+      "travelDate": "2026-03-31",
+      "bookingDate": "2026-02-22",
+      "quotationType": "activity",
+      "serviceLabel": "UAE / Explore UAE",
+      "serviceDisplayVariant": "pill",
+      "paymentStatus": "pending",
+      "amount": 14000,
+      "owners": [
+        { "name": "Abhay Sharma", "initials": "AS", "color": "border-pink-700 text-pink-700" },
+        { "name": "Amit Kumar", "initials": "AK", "color": "border-[#AF52DE] text-[#AF52DE]" },
+        { "name": "Sahil Rana", "initials": "SR", "color": "border-[#5856D6] text-[#5856D6]" },
+        { "name": "Vikram Gupta", "initials": "VG", "color": "border-cyan-700 text-cyan-700" }
+      ],
+      "taskCount": 0,
+      "isDeleted": false,
+      "isIncomplete": true,
+      "isWaitingForApproval": true,
+      "requiresApprovalAction": true
+    },
+    {
+      "id": "fb-004",
+      "customId": "OS-ABC12",
+      "leadPax": "Vinod Kumar",
+      "travelDate": "2026-09-18",
+      "bookingDate": "2026-03-01",
+      "quotationType": "flight",
+      "serviceLabel": "Flight",
+      "paymentStatus": "paid",
+      "amount": 48500,
+      "owners": [
+        { "name": "Abhay Sharma", "initials": "AS", "color": "border-pink-700 text-pink-700" },
+        { "name": "Amit Kumar", "initials": "AK", "color": "border-[#AF52DE] text-[#AF52DE]" },
+        { "name": "Sahil Rana", "initials": "SR", "color": "border-[#5856D6] text-[#5856D6]" },
+        { "name": "Vikram Gupta", "initials": "VG", "color": "border-cyan-700 text-cyan-700" }
+      ],
+      "taskCount": 0,
+      "isDeleted": false,
+      "isIncomplete": false
+    },
+    {
+      "id": "fb-005",
+      "customId": "LI-ABC12",
+      "leadPax": "Anand Mishra",
+      "travelDate": "2026-05-06",
+      "bookingDate": "2026-03-04",
+      "quotationType": "activity",
+      "serviceLabel": "UAE / Explore UAE",
+      "serviceDisplayVariant": "pill",
+      "paymentStatus": "paid",
+      "amount": 50000,
+      "owners": [
+        { "name": "Abhay Sharma", "initials": "AS", "color": "border-pink-700 text-pink-700" },
+        { "name": "Amit Kumar", "initials": "AK", "color": "border-[#AF52DE] text-[#AF52DE]" },
+        { "name": "Sahil Rana", "initials": "SR", "color": "border-[#5856D6] text-[#5856D6]" },
+        { "name": "Vikram Gupta", "initials": "VG", "color": "border-cyan-700 text-cyan-700" }
+      ],
+      "taskCount": 0,
+      "isDeleted": false,
+      "isIncomplete": false
+    },
+    {
+      "id": "fb-006",
+      "customId": "LI-ABC12",
+      "leadPax": "Sumit Jha",
+      "travelDate": "2026-06-01",
+      "bookingDate": "2026-03-08",
+      "quotationType": "transportation",
+      "serviceLabel": "Transportation",
+      "paymentStatus": "pending",
+      "amount": 10000,
+      "owners": [
+        { "name": "Abhay Sharma", "initials": "AS", "color": "border-pink-700 text-pink-700" },
+        { "name": "Amit Kumar", "initials": "AK", "color": "border-[#AF52DE] text-[#AF52DE]" },
+        { "name": "Sahil Rana", "initials": "SR", "color": "border-[#5856D6] text-[#5856D6]" },
+        { "name": "Vikram Gupta", "initials": "VG", "color": "border-cyan-700 text-cyan-700" }
+      ],
+      "taskCount": 0,
+      "isDeleted": false,
+      "isIncomplete": false
+    },
+    {
+      "id": "fb-007",
+      "customId": "OS-DEF34",
+      "leadPax": "Priya Sharma",
+      "travelDate": "2026-07-15",
+      "bookingDate": "2026-03-12",
+      "quotationType": "visa",
+      "serviceLabel": "Visa",
+      "paymentStatus": "partially_paid",
+      "amount": 8200,
+      "owners": [
+        { "name": "Neha Verma", "initials": "NV", "color": "border-emerald-700 text-emerald-700" }
+      ],
+      "taskCount": 2,
+      "isDeleted": false,
+      "isIncomplete": false
+    },
+    {
+      "id": "fb-008",
+      "customId": "OS-GHI56",
+      "leadPax": "Rajesh Kumar",
+      "travelDate": "2026-08-20",
+      "bookingDate": "2026-03-15",
+      "quotationType": "accommodation",
+      "serviceLabel": "Accommodation",
+      "paymentStatus": "paid",
+      "amount": 32100,
+      "owners": [
+        { "name": "Abhay Sharma", "initials": "AS", "color": "border-pink-700 text-pink-700" }
+      ],
+      "taskCount": 0,
+      "isDeleted": false,
+      "isIncomplete": false
+    },
+    {
+      "id": "fb-009",
+      "customId": "LI-JKL78",
+      "leadPax": "Meera Singh",
+      "travelDate": "2026-04-28",
+      "bookingDate": "2026-01-20",
+      "quotationType": "flight",
+      "serviceLabel": "Flight",
+      "paymentStatus": "pending",
+      "amount": 18900,
+      "owners": [
+        { "name": "Amit Kumar", "initials": "AK", "color": "border-[#AF52DE] text-[#AF52DE]" }
+      ],
+      "taskCount": 0,
+      "isDeleted": true,
+      "isIncomplete": false
+    },
+    {
+      "id": "fb-010",
+      "customId": "OS-MNO90",
+      "leadPax": "Karan Mehta",
+      "travelDate": "2026-10-02",
+      "bookingDate": "2026-03-18",
+      "quotationType": "ticket",
+      "serviceLabel": "Ticket (Attraction)",
+      "paymentStatus": "paid",
+      "amount": 5600,
+      "owners": [
+        { "name": "Sahil Rana", "initials": "SR", "color": "border-[#5856D6] text-[#5856D6]" }
+      ],
+      "taskCount": 0,
+      "isDeleted": false,
+      "isIncomplete": true
+    },
+    {
+      "id": "fb-011",
+      "customId": "LI-PQR12",
+      "leadPax": "Divya Nair",
+      "travelDate": "2026-11-11",
+      "bookingDate": "2026-03-20",
+      "quotationType": "travel insurance",
+      "serviceLabel": "Travel Insurance",
+      "paymentStatus": "partially_paid",
+      "amount": 4200,
+      "owners": [
+        { "name": "Vikram Gupta", "initials": "VG", "color": "border-cyan-700 text-cyan-700" }
+      ],
+      "taskCount": 1,
+      "isDeleted": false,
+      "isIncomplete": false
+    },
+    {
+      "id": "fb-012",
+      "customId": "OS-STU34",
+      "leadPax": "Arjun Patel",
+      "travelDate": "2026-12-24",
+      "bookingDate": "2026-03-22",
+      "quotationType": "transportation",
+      "serviceLabel": "Transportation",
+      "paymentStatus": "paid",
+      "amount": 11200,
+      "owners": [
+        { "name": "Abhay Sharma", "initials": "AS", "color": "border-pink-700 text-pink-700" },
+        { "name": "Neha Verma", "initials": "NV", "color": "border-emerald-700 text-emerald-700" }
+      ],
+      "taskCount": 0,
+      "isDeleted": true,
+      "isIncomplete": false
+    }
+  ]
+}
