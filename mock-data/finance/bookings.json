@@ -25,7 +25,8 @@
       "taskCount": 0,
       "isDeleted": false,
       "isIncomplete": false,
-      "isWaitingForApproval": true
+      "isWaitingForApproval": true,
+      "approvalStatus": "approved"
     },
     {
       "id": "fb-002",
@@ -46,7 +47,8 @@
       "taskCount": 1,
       "isDeleted": false,
       "isIncomplete": false,
-      "isWaitingForApproval": true
+      "isWaitingForApproval": true,
+      "approvalStatus": "pending"
     },
     {
       "id": "fb-003",
@@ -69,7 +71,8 @@
       "isDeleted": false,
       "isIncomplete": true,
       "isWaitingForApproval": true,
-      "requiresApprovalAction": true
+      "requiresApprovalAction": true,
+      "approvalStatus": "pending"
     },
     {
       "id": "fb-004",
@@ -181,7 +184,8 @@
       ],
       "taskCount": 0,
       "isDeleted": true,
-      "isIncomplete": false
+      "isIncomplete": false,
+      "approvalStatus": "rejected"
     },
     {
       "id": "fb-010",

@@ -24,6 +24,7 @@ import BookingsPageViewport from "@/components/bookings/BookingsPageViewport";
 import RecordPaymentSidesheet from "@/components/Sidesheets/RecordPaymentSidesheet";
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
 import FinanceSummaryPills from "@/components/finance/FinanceSummaryPills";
+import FinanceBookingsCalendar from "@/components/finance/FinanceBookingsCalendar";
 import {
   formatNumberByStoredCurrency,
   formatServiceType,
@@ -38,6 +39,7 @@ import {
   FINANCE_BOOKINGS_MOCK,
   type FinanceBookingRow,
   type FinancePaymentStatus,
+  type FinanceApprovalStatus,
 } from "@/mock-data/finance";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
@@ -67,11 +69,12 @@ type FilterPayload = {
 
 const TAB_OPTIONS = ["Bookings", "Deleted", "Waiting for Approval"] as const;
 
-const BOOKING_SCOPE_OPTIONS = [
+const APPROVAL_FILTER_OPTIONS = [
   { value: "", label: "All" },
-  { value: "os", label: "OS" },
-  { value: "limitless", label: "Limitless" },
-];
+  { value: "approved", label: "Approved" },
+  { value: "pending", label: "Pending" },
+  { value: "rejected", label: "Rejected" },
+] as const;
 
 const PAYMENT_STATUS_SORT_ORDER: Record<FinancePaymentStatus, number> = {
   paid: 0,
@@ -88,6 +91,10 @@ const VOUCHER_MENU_OPTIONS = [
   "Vendor Voucher(s)",
   "Vendor Invoice(s)",
 ];
+
+const getApprovalStatus = (row: FinanceBookingRow): FinanceApprovalStatus =>
+  row.approvalStatus ??
+  (row.isWaitingForApproval ? "pending" : "approved");
 
 const OWNER_COLOR_FALLBACK = "border-pink-700 text-pink-700";
 
@@ -251,6 +258,7 @@ const FinanceBookingsPage = () => {
   const [selectedPaymentBooking, setSelectedPaymentBooking] =
     useState<FinanceBookingRow | null>(null);
   const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const moreActionsRef = useRef<HTMLDivElement | null>(null);
 
   const { summary, totalCount, bookings } = FINANCE_BOOKINGS_MOCK;
@@ -429,10 +437,14 @@ const FinanceBookingsPage = () => {
         return false;
       }
 
-      if (bookingScope === "os" && !row.customId.startsWith("OS")) {
+      if (bookingScope && getApprovalStatus(row) !== bookingScope) {
         return false;
       }
-      if (bookingScope === "limitless" && !row.customId.startsWith("LI")) {
+
+      if (filters.bookingType === "os" && !row.customId.startsWith("OS")) {
+        return false;
+      }
+      if (filters.bookingType === "limitless" && !row.customId.startsWith("LI")) {
         return false;
       }
 
@@ -1076,6 +1088,7 @@ const FinanceBookingsPage = () => {
 
 
   const handleSelectClick = useCallback(() => {
+    setViewMode("table");
     setSelectMode(true);
     setSelectedBookingIds([]);
     setIsMoreActionsOpen(false);
@@ -1154,8 +1167,16 @@ const FinanceBookingsPage = () => {
 
             <button
               type="button"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-[14px] border border-[#E2E1E1] bg-white text-[#414141] transition-colors hover:bg-[#FAFAFA]"
+              onClick={() =>
+                setViewMode((prev) => (prev === "calendar" ? "table" : "calendar"))
+              }
+              className={`inline-flex h-10 w-10 items-center justify-center rounded-[14px] border transition-colors ${
+                viewMode === "calendar"
+                  ? "border-[#7135AD] bg-[#7135AD] text-white hover:bg-[#5F2D96]"
+                  : "border-[#E2E1E1] bg-white text-[#414141] hover:bg-[#FAFAFA]"
+              }`}
               aria-label="Calendar view"
+              aria-pressed={viewMode === "calendar"}
             >
               <FaRegCalendar className="h-[18px] w-[18px]" />
             </button>
@@ -1195,6 +1216,9 @@ const FinanceBookingsPage = () => {
           allowAdvanceOwnerSearch={true}
         />
 
+        {viewMode === "calendar" ? (
+          <FinanceBookingsCalendar />
+        ) : (
         <div className="relative mt-4 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
           <div className="flex items-center justify-between border-b border-[#E5E7EB]">
             <div className="flex min-w-0 flex-1 items-end">
@@ -1207,13 +1231,27 @@ const FinanceBookingsPage = () => {
               />
               <div className="mb-[10px] ml-2 shrink-0">
                 <DropDown
-                  options={BOOKING_SCOPE_OPTIONS}
+                  options={APPROVAL_FILTER_OPTIONS.map((opt) => ({
+                    value: opt.value,
+                    label: (
+                      <span
+                        className={
+                          bookingScope === opt.value
+                            ? "font-[500] text-[#7135AD]"
+                            : "text-[#414141]"
+                        }
+                      >
+                        {opt.label}
+                      </span>
+                    ),
+                  }))}
                   value={bookingScope}
                   onChange={setBookingScope}
-                  customWidth="w-[88px]"
+                  customWidth="w-[100px]"
                   customHeight="py-[6px]"
                   buttonClassName="!rounded-[10px] !border-[#E2E1E1] !bg-white !text-[13px] !font-[500] !text-[#414141]"
-                  menuWidth="w-[120px]"
+                  menuWidth="w-[132px]"
+                  menuClassName="!rounded-[12px] !border-[#E2E1E1]"
                 />
               </div>
             </div>
@@ -1246,7 +1284,7 @@ const FinanceBookingsPage = () => {
             </div>
           </div>
 
-          <div className="mt-4 min-h-0 flex-1 overflow-auto px-5 py-[4px]">
+          <div className="mt-4 flex min-h-0 flex-1 flex-col px-5 pb-4 pt-[4px]">
             <Table
               data={tableData}
               columns={columns}
@@ -1266,11 +1304,16 @@ const FinanceBookingsPage = () => {
                 Tasks: "w-[7.5rem]",
                 Actions: "w-[7.5rem]",
               }}
-              initialRowsPerPage={6}
-              externalTotalRows={totalCount}
+              initialRowsPerPage={8}
+              maxRowsPerPageOptions={[8, 16, 24, 48]}
+              headerClassName="bg-[#F3F3F3]"
+              headerRowTextClassName="text-[#818181]"
+              headerCellTextClassName="text-[#818181]"
             />
           </div>
         </div>
+        )}
+
       </div>
 
       <RecordPaymentSidesheet

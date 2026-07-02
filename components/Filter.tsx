@@ -408,9 +408,9 @@ const Filter: React.FC<FilterProps> = ({
   const bookingTypeValue = (filters as any).bookingType;
   const bookingTypeLabel =
     bookingTypeValue === "os"
-      ? "Bookings - OS"
+      ? "Other Services"
       : bookingTypeValue === "limitless"
-        ? "Bookings - Limitless"
+        ? "Limitless"
         : "All Bookings";
 
   const handleReset = useCallback(() => {
@@ -685,23 +685,33 @@ const Filter: React.FC<FilterProps> = ({
                       zIndex: 9999,
                       minHeight: 32,
                     }}
-                    className="bg-white border border-gray-200 rounded-md shadow-xl max-h-48 overflow-y-auto"
+                    className="max-h-48 overflow-y-auto rounded-[12px] border border-[#E2E1E1] bg-white shadow-xl"
                   >
                     {[
                       { value: "", label: "All Bookings" },
-                      { value: "os", label: "Bookings - OS" },
-                      { value: "limitless", label: "Bookings - Limitless" },
-                    ].map((opt) => (
+                      { value: "os", label: "Other Services" },
+                      { value: "limitless", label: "Limitless" },
+                    ].map((opt, index, options) => (
                       <label
                         key={opt.value}
-                        className="flex items-center gap-2 px-2 py-2  hover:bg-gray-50 cursor-pointer border-b border-gray-200"
+                        className={`flex cursor-pointer items-center gap-2 px-3 py-2.5 hover:bg-[#FAFAFA] ${
+                          index < options.length - 1
+                            ? "border-b border-[#E2E1E1]"
+                            : ""
+                        }`}
                         onClick={(e) => {
                           e.stopPropagation();
                           updateFilter("bookingType" as any, opt.value);
                           setBookingTypeOpen(false);
                         }}
                       >
-                        <span className={`${bookingTypeLabel === opt.label ? "text-[#7135AD]" : "text-[#020202]"} font-[400] text-[13px]`}>
+                        <span
+                          className={`font-[400] text-[13px] ${
+                            bookingTypeValue === opt.value
+                              ? "text-[#7135AD]"
+                              : "text-[#020202]"
+                          }`}
+                        >
                           {opt.label}
                         </span>
                       </label>

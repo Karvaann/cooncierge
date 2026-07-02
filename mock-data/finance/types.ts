@@ -1,5 +1,7 @@
 export type FinancePaymentStatus = "paid" | "partially_paid" | "pending";
 
+export type FinanceApprovalStatus = "approved" | "pending" | "rejected";
+
 export type FinanceBookingOwner = {
   name: string;
   initials: string;
@@ -23,6 +25,7 @@ export type FinanceBookingRow = {
   isIncomplete: boolean;
   isWaitingForApproval?: boolean;
   requiresApprovalAction?: boolean;
+  approvalStatus?: FinanceApprovalStatus;
 };
 
 export type FinanceBookingsMockData = {
