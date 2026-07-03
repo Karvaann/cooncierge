@@ -4,13 +4,13 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
 const OWL_SIZE = { width: 66, height: 92 };
-const OPEN_EYE = { left: 47, top: 39, size: 14 };
+const OPEN_EYE = { left: 47, top: 41, size: 14 };
 const CLOSED_EYE = { left: 26, top: 33, width: 40, height: 41 };
 const EYE_TRAVEL = {
   left: -8,
   right: 2,
-  up: -4,
-  down: 4,
+  up: -2,
+  down: 5,
 };
 
 interface OwlLogoProps {

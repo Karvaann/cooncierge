@@ -13,15 +13,13 @@ import { usePathname } from "next/navigation";
 import { HiOutlineHandRaised } from "react-icons/hi2";
 import { SlSettings } from "react-icons/sl";
 import { CiSearch } from "react-icons/ci";
+import Image from "next/image";
 import RaiseRequestModal from "./Modals/RaiseRequestModal";
 import { MdKeyboardArrowDown } from "react-icons/md";
 import { useAuth } from "@/context/AuthContext";
-import Image from "next/image";
-import { TbLayoutSidebarLeftExpand } from "react-icons/tb";
 
 interface HeaderProps {
-  isSidebarOpen: boolean;
-  onSidebarExpand: () => void;
+  isSidebarOpen?: boolean;
 }
 type PieceMapKey =
   | "other-services"
@@ -92,7 +90,7 @@ const PIECE_MAP: Record<PieceMapKey, string> = {
 
 const PROFILE_IMAGE_SRC = "/images/profile/profile-img.png";
 
-const Header: React.FC<HeaderProps> = ({ isSidebarOpen, onSidebarExpand }) => {
+const Header: React.FC<HeaderProps> = ({ isSidebarOpen = true }) => {
   const [isDropDownOpen, setIsDropDownOpen] = useState<boolean>(false);
   const [isRaiseRequestModalOpen, setIsRaiseRequestModalOpen] =
     useState<boolean>(false);
@@ -197,32 +195,14 @@ const Header: React.FC<HeaderProps> = ({ isSidebarOpen, onSidebarExpand }) => {
     <>
       <header className="sticky top-0 z-30">
         {/* Header Main Row */}
-        <div
-          className={`flex items-center justify-between py-6 ${
-            isSidebarOpen ? "px-7" : "pl-[14px] pr-7"
-          }`}
-        >
+        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-7 py-6">
           <div className="flex min-w-0 items-center gap-[22px]">
-            {!isSidebarOpen && (
-              <div className="sidebar-logo-collapsed flex shrink-0 items-center gap-2 rounded-[12px] border border-[#F0F0F0] bg-white px-3 py-2 shadow-[0_2px_8px_rgba(0,0,0,0.06)]">
-                <Image
-                  src="/full_logo.svg"
-                  alt="ciergo"
-                  width={90}
-                  height={28}
-                  className="h-7 w-auto object-contain"
-                  unoptimized
-                />
-                <button
-                  type="button"
-                  onClick={onSidebarExpand}
-                  className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#818181] transition-colors hover:bg-[#F5F5F5] hover:text-[#414141]"
-                  aria-label="Expand sidebar"
-                >
-                  <TbLayoutSidebarLeftExpand size={18} />
-                </button>
-              </div>
-            )}
+            <div
+              className={`sidebar-header-spacer shrink-0 ${
+                isSidebarOpen ? "" : "is-collapsed"
+              }`}
+              aria-hidden
+            />
 
             {pathname !== "/settings" && (
               <div className="flex min-w-0 items-center gap-[3px]">
@@ -232,9 +212,8 @@ const Header: React.FC<HeaderProps> = ({ isSidebarOpen, onSidebarExpand }) => {
             )}
           </div>
 
-          {/* Here the text box will come   */}
-          <div className="mx-10 hidden flex-1 items-center justify-center xl:flex">
-            <div className="flex w-full px-[13px] py-[8px] max-w-[420px] items-center rounded-[14px] border border-[#F0F0F0] bg-white shadow-[0_2px_8px_0_rgba(0,0,0,0.06)]">
+          <div className="hidden justify-center xl:flex">
+            <div className="flex w-[420px] max-w-[420px] items-center rounded-[14px] border border-[#F0F0F0] bg-white px-[13px] py-[8px] shadow-[0_2px_8px_0_rgba(0,0,0,0.06)]">
               <Image src="/icons/header/search.svg" alt="search" width={20} height={20} className="text-[#9CA3AF]" />
               <input
                 type="text"
@@ -250,8 +229,7 @@ const Header: React.FC<HeaderProps> = ({ isSidebarOpen, onSidebarExpand }) => {
             </div>
           </div>
 
-          {/* Right: Notification, Profile Avatar, Profile Settings */}
-          <div className="flex items-center gap-[22px]">
+          <div className="flex items-center justify-self-end gap-[22px]">
             {/* Notification Bell with red dot */}
             <div className="relative">
               <button

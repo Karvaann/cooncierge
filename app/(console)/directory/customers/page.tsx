@@ -38,6 +38,7 @@ import {
 } from "@/utils/directoryApiMappers";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import { MdHistory } from "react-icons/md";
+import { BOOKING_HISTORY_ACTION_BUTTON_CLASS } from "@/components/table/bookingHistoryActionStyles";
 import Image from "next/image";
 import CustomIdApi from "@/services/customIdApi";
 import DirectoryPeopleTabs, {
@@ -823,7 +824,7 @@ const CustomerDirectory = () => {
                 {activeTab !== "Draft" && (
                   <button
                     type="button"
-                    className={`inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-[8px] border border-[#F0E4C8] bg-[#FFF1C2] px-3 py-1.5 font-[500] text-[#414141] hover:bg-[#FFE9A8] ${ROW_HOVER_ACTION_CLASS}`}
+                    className={`${BOOKING_HISTORY_ACTION_BUTTON_CLASS} ${ROW_HOVER_ACTION_CLASS}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       void openHistoryForCustomer(row);

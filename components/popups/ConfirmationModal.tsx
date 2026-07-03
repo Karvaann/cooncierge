@@ -31,6 +31,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       showCloseButton={false} // 🔥 custom close button only
       closeOnOverlayClick={true}
       closeOnEscape={true}
+      noBodyPadding
       className="p-0"
       zIndexClass="z-[1200]"
       disableOverlayClick={false}

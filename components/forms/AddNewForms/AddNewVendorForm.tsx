@@ -294,13 +294,13 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
           min={min}
           disabled={isSubmitting || isValidatingField}
           className={`
-            w-full border rounded-md px-3 py-2 pr-10 text-sm transition-colors
+            modal-field-input w-full px-3 py-2 pr-10 text-sm transition-colors
             ${
               hasError
-                ? "border-red-300 focus:ring-red-200"
+                ? "border-red-300 modal-field-input--error"
                 : isValid && touched[name]
-                ? "border-green-300 focus:ring-green-200"
-                : "border-gray-200 focus:ring-blue-200"
+                ? "border-green-300"
+                : ""
             }
             ${
               isSubmitting || isValidatingField
@@ -621,7 +621,7 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
                 value="debit"
                 checked={balanceType === "debit"}
                 onChange={() => setBalanceType("debit")}
-                className="w-3 h-3 text-red-600"
+                className="modal-radio"
               />
               <span className="text-[0.75rem] font-medium text-gray-700">
                 Debit
@@ -635,7 +635,7 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
                 value="credit"
                 checked={balanceType === "credit"}
                 onChange={() => setBalanceType("credit")}
-                className="w-3 h-3 text-red-600"
+                className="modal-radio"
               />
               <span className="text-[0.75rem] font-medium text-gray-700">
                 Credit
@@ -687,7 +687,7 @@ const AddNewVendorForm: React.FC<AddNewVendorFormProps> = ({
             onBlur={handleBlur}
             placeholder="Enter Your Remarks Here"
             disabled={isSubmitting}
-            className={`w-full border border-gray-200 rounded-md px-3 py-2 text-[0.75rem] mt-2 transition-colors focus:ring focus:ring-blue-200 ${
+            className={`modal-field-input w-full px-3 py-2 text-[0.75rem] mt-2 transition-colors ${
               isSubmitting ? "opacity-50 cursor-not-allowed" : ""
             }`}
           />

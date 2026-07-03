@@ -11,6 +11,10 @@ import {
   uploadBulkTeams,
   downloadBulkTeamTemplate,
 } from "@/services/uploadApi";
+import {
+  overlayTransitionClass,
+  useOverlayAnimation,
+} from "@/hooks/useOverlayAnimation";
 
 interface ModalProps {
   isOpen: boolean;
@@ -35,6 +39,8 @@ const Modal: React.FC<ModalProps> = ({
   showCloseButton = true,
   className = "",
 }) => {
+  const { shouldRender, isVisible } = useOverlayAnimation(isOpen);
+
   const handleEscape = useCallback(
     (event: KeyboardEvent) => {
       if (event.key === "Escape" && closeOnEscape) {
@@ -67,18 +73,24 @@ const Modal: React.FC<ModalProps> = ({
     return cleanup;
   }, [isOpen, closeOnEscape, handleEscape]);
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 transition-opacity duration-300"
+      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 ${overlayTransitionClass} ${
+        isVisible ? "opacity-100" : "opacity-0"
+      }`}
       onClick={handleOverlayClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? "modal-title" : undefined}
     >
       <div
-        className={`flex w-[min(700px,calc(100vw-2rem))] max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-[24px] border border-[#E2E1E1] bg-white p-6 shadow-xl transition-all duration-300 md:h-[495px] md:w-[700px] md:max-h-[495px] ${className}`}
+        className={`flex w-[min(700px,calc(100vw-2rem))] max-h-[calc(100vh-2rem)] flex-col overflow-hidden rounded-[24px] border border-[#E2E1E1] bg-white p-6 shadow-xl md:h-[495px] md:w-[700px] md:max-h-[495px] ${overlayTransitionClass} ${className} ${
+          isVisible
+            ? "translate-y-0 scale-100 opacity-100"
+            : "translate-y-2 scale-[0.98] opacity-0"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative shrink-0">

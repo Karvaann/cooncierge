@@ -701,13 +701,14 @@ export default function CancellationModal({
       customWidth="max-w-6xl w-[1000px]"
       zIndexClass="z-[1000]"
       headerLeft={
-        <div className="flex items-center gap-2 text-[0.95rem]">
-          <div className="font-medium text-[#020202]">Amount</div>
-          <div className="text-gray-300">|</div>
-          <div className="font-medium text-[#020202]">{recordLabel}</div>
-          <div className="text-gray-300">|</div>
-          <div className="text-[#020202]">{statusLabel}</div>
-          <div className="absolute top-11 left-6 right-6 z-10 border-b border-gray-200"></div>
+        <div className="border-b border-gray-200 pb-4">
+          <div className="flex items-center gap-2 text-[0.95rem]">
+            <div className="font-medium text-[#020202]">Amount</div>
+            <div className="text-gray-300">|</div>
+            <div className="font-medium text-[#020202]">{recordLabel}</div>
+            <div className="text-gray-300">|</div>
+            <div className="text-[#020202]">{statusLabel}</div>
+          </div>
         </div>
       }
     >

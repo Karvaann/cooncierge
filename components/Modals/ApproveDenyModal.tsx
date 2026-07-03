@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Modal from "../Modal";
+import { MODAL_FIELD_INPUT_CLASS } from "../atoms/modalFieldStyles";
 
 interface ApproveDenyModalProps {
   isOpen: boolean;
@@ -58,8 +59,9 @@ const ApproveDenyModal: React.FC<ApproveDenyModalProps> = ({
       size="sm"
       showCloseButton={false}
       customWidth="w-[480px]"
+      noBodyPadding
     >
-      <div className="p-1 -mt-6">
+      <div className="px-5 py-5">
         <div className="mb-3 text-left">
           <h3 className="text-[13px] md:text-[15px] font-semibold text-[#414141]">
             {headerText}
@@ -74,7 +76,7 @@ const ApproveDenyModal: React.FC<ApproveDenyModalProps> = ({
               if (e.target.value.trim()) setShowNote(false);
             }}
             placeholder="Enter your comments here..."
-            className="w-full h-22 md:h-26 p-3 border border-gray-200 rounded-md resize-none text-sm placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-green-500"
+            className={`${MODAL_FIELD_INPUT_CLASS} h-22 md:h-26 resize-none text-sm placeholder:text-gray-400`}
           />
 
           {showNote || !reason.trim() ? (

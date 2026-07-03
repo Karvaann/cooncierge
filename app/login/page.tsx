@@ -30,8 +30,8 @@ export default function SignIn() {
           <LoginBackground compact />
         </div>
 
-        <div className="flex w-full flex-1 items-start justify-center overflow-x-hidden">
-          <div className="auth-ui-scale w-full max-w-[430px]">
+        <div className="flex w-full min-h-0 flex-1 items-start justify-center overflow-visible">
+          <div className="auth-ui-scale flex h-full w-full max-w-[430px] flex-col">
             <LoginAuthCard
             mode={flow.mode}
             otpPurpose={flow.otpPurpose}

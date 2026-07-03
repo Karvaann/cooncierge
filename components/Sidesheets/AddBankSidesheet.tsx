@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import SideSheet from "@/components/SideSheet";
 import Button from "@/components/Button";
 import BankApi from "@/services/bankApi";
+import { MODAL_FIELD_INPUT_CLASS } from "@/components/atoms/modalFieldStyles";
 
 export type BankPayload = {
   name: string;
@@ -112,7 +113,7 @@ const AddBankSidesheet: React.FC<AddBankSidesheetProps> = ({
                   value={bankName}
                   onChange={(e) => setBankName(e.target.value)}
                   placeholder="Enter bank name"
-                  className="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                  className={`${MODAL_FIELD_INPUT_CLASS} px-4 text-[13px]`}
                 />
               </div>
 
@@ -124,7 +125,7 @@ const AddBankSidesheet: React.FC<AddBankSidesheetProps> = ({
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
                   placeholder="Enter account number"
-                  className="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                  className={`${MODAL_FIELD_INPUT_CLASS} px-4 text-[13px]`}
                 />
               </div>
 
@@ -136,7 +137,7 @@ const AddBankSidesheet: React.FC<AddBankSidesheetProps> = ({
                   value={ifscCode}
                   onChange={(e) => setIfscCode(e.target.value)}
                   placeholder="Enter IFSC code"
-                  className="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                  className={`${MODAL_FIELD_INPUT_CLASS} px-4 text-[13px]`}
                 />
               </div>
 
@@ -149,7 +150,7 @@ const AddBankSidesheet: React.FC<AddBankSidesheetProps> = ({
                   onChange={(e) =>
                     setAccountType(e.target.value as "savings" | "current")
                   }
-                  className="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                  className={`${MODAL_FIELD_INPUT_CLASS} px-4 text-[13px]`}
                 >
                   <option value="savings">Savings</option>
                   <option value="current">Current</option>

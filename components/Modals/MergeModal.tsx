@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useLayoutEffect } from "react"
 import { unstable_batchedUpdates } from "react-dom";
 import Image from "next/image";
 import { MdHistory } from "react-icons/md";
+import { BOOKING_HISTORY_ACTION_BUTTON_CLASS } from "@/components/table/bookingHistoryActionStyles";
 import { TbArrowsUpDown } from "react-icons/tb";
 import { CiFilter } from "react-icons/ci";
 import { LuMenu } from "react-icons/lu";
@@ -395,7 +396,7 @@ const MergeModal: React.FC<MergeModalProps> = ({
         <td key="history" className="h-[4rem] px-4 py-3 text-center align-middle">
           <button
             type="button"
-            className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-[8px] border border-[#F0E4C8] bg-[#FFF1C2] px-3 py-1.5 font-[500] text-[#414141] hover:bg-[#FFE9A8]"
+            className={BOOKING_HISTORY_ACTION_BUTTON_CLASS}
             onClick={() => void handleOpenBookingHistory(item)}
           >
             <MdHistory size={14} />
@@ -436,7 +437,7 @@ const MergeModal: React.FC<MergeModalProps> = ({
       <td key="history" className="h-[4rem] px-4 py-3 text-center align-middle">
         <button
           type="button"
-          className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap rounded-[8px] border border-[#F0E4C8] bg-[#FFF1C2] px-3 py-1.5 font-[500] text-[#414141] hover:bg-[#FFE9A8]"
+          className={BOOKING_HISTORY_ACTION_BUTTON_CLASS}
           onClick={() => void handleOpenBookingHistory(item)}
         >
           <MdHistory size={14} />
@@ -617,14 +618,14 @@ const MergeModal: React.FC<MergeModalProps> = ({
       customeHeight="h-fit"
       zIndexClass="z-[9999]"
     >
-      <div className="-mt-2 px-6 pb-2 text-center">
+      <div className="pb-2 text-center">
         <p className="font-[Poppins,sans-serif] text-[13px] text-[#DD1425]">
           Note : This action cannot be undone
         </p>
       </div>
 
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="space-y-6 px-6 pb-6">
+        <div className="space-y-6">
           <div>
             <h3 className="mb-3 font-[Poppins,sans-serif] text-[14px] font-medium text-[#020202]">
               Merge Into

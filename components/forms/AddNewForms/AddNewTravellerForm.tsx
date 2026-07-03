@@ -14,6 +14,14 @@ import ActionMenu from "@/components/Menus/ActionMenu";
 import RemarksField from "@/components/forms/components/RemarksField";
 import DirectoryFormFooter from "@/components/directory/DirectoryFormFooter";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
+import LinkProfilesModal, {
+  type LinkProfileSource,
+} from "@/components/Modals/LinkProfilesModal";
+import {
+  MODAL_FIELD_INPUT_CLASS,
+  MODAL_FIELD_INPUT_GROUP_CLASS,
+  MODAL_FIELD_INPUT_GROUP_INNER_CLASS,
+} from "@/components/atoms/modalFieldStyles";
 import { FaRegFolder } from "react-icons/fa";
 import { MdOutlineFileUpload } from "react-icons/md";
 import { FiTrash2 } from "react-icons/fi";
@@ -21,6 +29,7 @@ import { HiOutlineInformationCircle } from "react-icons/hi";
 import {
   mapApiSourceToUiDropdown,
   mapUiSourceToApi,
+  mapTierToNumber,
 } from "@/utils/directoryApiMappers";
 import {
   allowOnlyDigitsWithMax,
@@ -116,8 +125,7 @@ const TIER_OPTIONS = [
   },
 ];
 
-const inputClassName =
-  "w-full rounded-md border border-gray-300 px-3 py-2 text-[13px] hover:border-[#7135AD33] focus:border-[#7135AD] focus:outline-none focus:ring-1 focus:ring-[#7135AD] disabled:bg-gray-100 disabled:text-gray-700";
+const inputClassName = MODAL_FIELD_INPUT_CLASS;
 
 const emptyFormData = (): TravellerFormData => ({
   name: "",
@@ -150,6 +158,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
   const [submitting, setSubmitting] = useState(false);
   const [travellerCode, setTravellerCode] = useState("");
   const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [isDeleteLinkageOpen, setIsDeleteLinkageOpen] = useState(false);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const nameRef = useRef<HTMLInputElement | null>(null);
@@ -395,6 +405,30 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
     );
   }, [mode, travellerCode]);
 
+  const linkSourceProfile = useMemo((): LinkProfileSource => {
+    return {
+      profileType: "Traveller",
+      id: travellerCode || "—",
+      name: formData.name || "New Traveller",
+      ...(formData.alias ? { nickname: formData.alias } : {}),
+      tier: mapTierToNumber(tier),
+    };
+  }, [formData.alias, formData.name, tier, travellerCode]);
+
+  const openLinkTravellerModal = useCallback(() => {
+    setIsLinkModalOpen(true);
+  }, []);
+
+  const linkMenuIcon = (
+    <Image
+      src="/icons/link-icon.svg"
+      alt=""
+      width={14}
+      height={14}
+      className="object-contain"
+    />
+  );
+
   const headerRight = useMemo(
     () => (
       <div className="flex items-center gap-2">
@@ -425,18 +459,28 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           Vendor 1
         </button>
         <ActionMenu
-          width="w-36"
+          width="w-[10.5rem]"
           right="right-0"
+          placement="below"
           actions={[
             {
-              label: "Reset Form",
-              onClick: resetForm,
+              label: "Link Traveller",
+              icon: linkMenuIcon,
+              color: "text-[#126ACB]",
+              onClick: openLinkTravellerModal,
+              showDividerAfter: true,
+            },
+            {
+              label: "Delete Linkage",
+              icon: <FiTrash2 size={14} />,
+              color: "text-red-500",
+              onClick: () => setIsDeleteLinkageOpen(true),
             },
           ]}
         />
       </div>
     ),
-    [resetForm],
+    [openLinkTravellerModal],
   );
 
   const sourceDropdownOptions = useMemo(
@@ -525,16 +569,19 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   <label className="block text-[13px] font-medium text-gray-700">
                     Contact Number
                   </label>
-                  <div className="flex items-center">
+                  <div className={MODAL_FIELD_INPUT_GROUP_CLASS}>
                     <PhoneCodeSelect
                       value={phoneCode}
                       onChange={setPhoneCode}
                       disabled={readOnly}
                       customWidth="w-[88px]"
                       menuWidth="w-[18rem]"
-                      className="flex-shrink-0 rounded-l-md"
+                      className="flex-shrink-0"
                       customHeight="h-9"
+                      noBorder
+                      noButtonRadius
                     />
+                    <div className="modal-field-input-group__divider" aria-hidden />
                     <input
                       name="phone"
                       type="text"
@@ -543,7 +590,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                       maxLength={phoneMaxLength}
                       placeholder="Enter Contact Number"
                       disabled={readOnly}
-                      className={`${inputClassName} rounded-l-none`}
+                      className={MODAL_FIELD_INPUT_GROUP_INNER_CLASS}
                     />
                   </div>
                 </div>
@@ -551,16 +598,19 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   <label className="block text-[13px] font-medium text-gray-700">
                     Alternate Contact Number
                   </label>
-                  <div className="flex items-center">
+                  <div className={MODAL_FIELD_INPUT_GROUP_CLASS}>
                     <PhoneCodeSelect
                       value={alternatePhoneCode}
                       onChange={setAlternatePhoneCode}
                       disabled={readOnly}
                       customWidth="w-[88px]"
                       menuWidth="w-[18rem]"
-                      className="flex-shrink-0 rounded-l-md"
+                      className="flex-shrink-0"
                       customHeight="h-9"
+                      noBorder
+                      noButtonRadius
                     />
+                    <div className="modal-field-input-group__divider" aria-hidden />
                     <input
                       name="alternatePhone"
                       type="text"
@@ -569,7 +619,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                       maxLength={alternatePhoneMaxLength}
                       placeholder="Enter Contact Number"
                       disabled={readOnly}
-                      className={`${inputClassName} rounded-l-none`}
+                      className={MODAL_FIELD_INPUT_GROUP_INNER_CLASS}
                     />
                   </div>
                 </div>
@@ -808,6 +858,26 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           onConfirm={() => {
             setIsCloseConfirmOpen(false);
             handleClose();
+          }}
+        />
+      )}
+      {isLinkModalOpen && (
+        <LinkProfilesModal
+          isOpen={isLinkModalOpen}
+          onClose={() => setIsLinkModalOpen(false)}
+          sourceProfile={linkSourceProfile}
+        />
+      )}
+      {isDeleteLinkageOpen && (
+        <ConfirmationModal
+          isOpen={isDeleteLinkageOpen}
+          onClose={() => setIsDeleteLinkageOpen(false)}
+          title="Are you sure you want to delete this linkage?"
+          confirmText="Delete"
+          cancelText="Cancel"
+          confirmButtonColor="bg-red-600"
+          onConfirm={() => {
+            setIsDeleteLinkageOpen(false);
           }}
         />
       )}

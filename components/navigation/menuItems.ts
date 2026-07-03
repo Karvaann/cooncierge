@@ -62,7 +62,6 @@ export const menuItems: MenuItem[] = [
     label: "Directory",
     icon: "/icons/sidebar-icons/directory.svg",
     subMenu: [
-      { label: "Travellers", href: "/directory/travellers" },
       { label: "Customers", href: "/directory/customers" },
       { label: "Vendors", href: "/directory/vendors" },
       { label: "Team", href: "/directory/team" },

@@ -17,6 +17,7 @@ import type { DeletableItem } from "@/components/Modals/DeleteModal";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import ConfirmationModal from "@/components/popups/ConfirmationModal";
 import { MdHistory } from "react-icons/md";
+import { BOOKING_HISTORY_ACTION_BUTTON_CLASS } from "@/components/table/bookingHistoryActionStyles";
 import { getBookingHistoryByTeamMember } from "@/services/teamsApi";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import CustomIdApi from "@/services/customIdApi";
@@ -346,13 +347,13 @@ const TeamDirectory = () => {
             <div className="flex items-center justify-center gap-2">
               <button
                 type="button"
-                className="bg-[#E9ECF0] text-gray-800 px-3 py-1.5 rounded-md text-[0.75rem] font-medium border border-gray-200 hover:bg-gray-200"
+                className={BOOKING_HISTORY_ACTION_BUTTON_CLASS}
                 onClick={() => {
                   setSelectedTeam(row);
                   handleOpenBookingHistory(row.ID);
                 }}
               >
-                <MdHistory className="inline mr-1" size={14} />
+                <MdHistory size={14} />
                 Booking History
               </button>
               <ActionMenu

@@ -20,6 +20,16 @@ import RemarksField from "../forms/components/RemarksField";
 import { FaRegFolder } from "react-icons/fa";
 import ErrorToast from "../ErrorToast";
 import ConfirmationModal from "../popups/ConfirmationModal";
+import LinkProfilesModal, {
+  type LinkProfileSource,
+} from "../Modals/LinkProfilesModal";
+import {
+  MODAL_FIELD_INPUT_CLASS,
+  MODAL_FIELD_INPUT_GROUP_CLASS,
+  MODAL_FIELD_INPUT_GROUP_INNER_CLASS,
+  MODAL_FIELD_INPUT_GROUP_INNER_PLAIN_CLASS,
+  MODAL_FIELD_DROPDOWN_BUTTON_CLASS,
+} from "../atoms/modalFieldStyles";
 import {
   allowOnlyText,
   allowOnlyDigitsWithMax,
@@ -34,6 +44,7 @@ import { getStoredCurrencySymbol } from "@/utils/helper";
 import {
   mapApiSourceToUiDropdown,
   mapUiSourceToApi,
+  mapTierToNumber,
 } from "@/utils/directoryApiMappers";
 
 type VendorData = {
@@ -77,8 +88,6 @@ type AddVendorSideSheetProps = {
 const VENDOR_TYPE_OPTIONS = [
   { value: "individual", label: "Individual" },
   { value: "corporate", label: "Corporate" },
-  { value: "agent", label: "Agent" },
-  { value: "service-provider", label: "Service Provider" },
 ];
 
 const SOURCE_OPTIONS = [
@@ -139,8 +148,7 @@ const TIER_OPTIONS = [
   },
 ];
 
-const inputClassName =
-  "w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 focus:ring-[#7135AD] focus:border-[#7135AD] hover:border-[#7135AD33] disabled:bg-gray-100 disabled:text-gray-700";
+const inputClassName = MODAL_FIELD_INPUT_CLASS;
 
 const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
   data,
@@ -171,6 +179,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
   const [vendorCode, setVendorCode] = useState("");
   const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [isDeleteLinkageOpen, setIsDeleteLinkageOpen] = useState(false);
   const initialSnapshotRef = useRef<string>("");
 
   const [balanceType, setBalanceType] = useState<"debit" | "credit">("credit");
@@ -650,6 +660,30 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
     );
   }, [mode, vendorCode]);
 
+  const linkSourceProfile = useMemo((): LinkProfileSource => {
+    return {
+      profileType: "Vendor",
+      id: vendorCode || data?.customId || "—",
+      name: formData.name || "New Vendor",
+      ...(formData.alias ? { nickname: formData.alias } : {}),
+      tier: mapTierToNumber(tier),
+    };
+  }, [vendorCode, data?.customId, formData.alias, formData.name, tier]);
+
+  const openLinkTravellerModal = useCallback(() => {
+    setIsLinkModalOpen(true);
+  }, []);
+
+  const linkMenuIcon = (
+    <Image
+      src="/icons/link-icon.svg"
+      alt=""
+      width={14}
+      height={14}
+      className="object-contain"
+    />
+  );
+
   const headerRight = useMemo(
     () => (
       <div className="flex items-center gap-2">
@@ -680,18 +714,28 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
           Traveller 1
         </button>
         <ActionMenu
-          width="w-36"
+          width="w-[10.5rem]"
           right="right-0"
+          placement="below"
           actions={[
             {
-              label: "Reset Form",
-              onClick: resetForm,
+              label: "Link Traveller",
+              icon: linkMenuIcon,
+              color: "text-[#126ACB]",
+              onClick: openLinkTravellerModal,
+              showDividerAfter: true,
+            },
+            {
+              label: "Delete Linkage",
+              icon: <FiTrash2 size={14} />,
+              color: "text-red-500",
+              onClick: () => setIsDeleteLinkageOpen(true),
             },
           ]}
         />
       </div>
     ),
-    [resetForm],
+    [openLinkTravellerModal],
   );
 
   const sourceDropdownOptions = useMemo(
@@ -784,16 +828,19 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   <label className="block text-[13px] font-medium text-gray-700">
                     Contact Number
                   </label>
-                  <div className="flex items-center">
+                  <div className={MODAL_FIELD_INPUT_GROUP_CLASS}>
                     <PhoneCodeSelect
                       value={phoneCode}
                       onChange={setPhoneCode}
                       disabled={readOnly}
                       customWidth="w-[88px]"
                       menuWidth="w-[18rem]"
-                      className="flex-shrink-0 rounded-l-md"
+                      className="flex-shrink-0"
                       customHeight="h-9"
+                      noBorder
+                      noButtonRadius
                     />
+                    <div className="modal-field-input-group__divider" aria-hidden />
                     <input
                       name="phone"
                       type="text"
@@ -802,7 +849,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       maxLength={phoneMaxLength}
                       placeholder="Enter Contact Number"
                       disabled={readOnly}
-                      className={`${inputClassName} rounded-l-none`}
+                      className={MODAL_FIELD_INPUT_GROUP_INNER_CLASS}
                     />
                   </div>
                 </div>
@@ -810,16 +857,19 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   <label className="block text-[13px] font-medium text-gray-700">
                     Alternate Contact Number
                   </label>
-                  <div className="flex items-center">
+                  <div className={MODAL_FIELD_INPUT_GROUP_CLASS}>
                     <PhoneCodeSelect
                       value={alternatePhoneCode}
                       onChange={setAlternatePhoneCode}
                       disabled={readOnly}
                       customWidth="w-[88px]"
                       menuWidth="w-[18rem]"
-                      className="flex-shrink-0 rounded-l-md"
+                      className="flex-shrink-0"
                       customHeight="h-9"
+                      noBorder
+                      noButtonRadius
                     />
+                    <div className="modal-field-input-group__divider" aria-hidden />
                     <input
                       name="alternatePhone"
                       type="text"
@@ -828,7 +878,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       maxLength={alternatePhoneMaxLength}
                       placeholder="Enter Contact Number"
                       disabled={readOnly}
-                      className={`${inputClassName} rounded-l-none`}
+                      className={MODAL_FIELD_INPUT_GROUP_INNER_CLASS}
                     />
                   </div>
                 </div>
@@ -857,30 +907,35 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
               </h2>
               <hr className="mb-3 mt-1 border-t border-gray-200" />
 
-              <div className="flex flex-col gap-1">
-                <label className="block text-[13px] font-medium text-gray-700">
-                  Vendor Type <span className="text-red-500">*</span>
-                </label>
-                <DropDown
-                  options={vendorTypeDropdownOptions}
-                  value={vendorType}
-                  onChange={(v) => {
-                    setVendorType(v);
-                    if (invalidField === "vendorType") {
-                      setInvalidField(null);
-                    }
-                  }}
-                  placeholder="Select Vendor Type"
-                  disabled={readOnly}
-                  customWidth="w-full"
-                  menuWidth="w-full"
-                  focusRingClass="focus:ring-1 focus:ring-[#7135AD]"
-                  className={
-                    invalidField === "vendorType"
-                      ? "rounded-md border border-red-300"
-                      : ""
-                  }
-                />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Vendor Type <span className="text-red-500">*</span>
+                  </label>
+                  <DropDown
+                    options={vendorTypeDropdownOptions}
+                    value={vendorType}
+                    onChange={(v) => {
+                      setVendorType(v);
+                      if (invalidField === "vendorType") {
+                        setInvalidField(null);
+                      }
+                    }}
+                    placeholder="Select Vendor Type"
+                    disabled={readOnly}
+                    customWidth="w-full"
+                    menuWidth="w-full"
+                    className="w-full"
+                    buttonClassName={`${MODAL_FIELD_DROPDOWN_BUTTON_CLASS} ${
+                      invalidField === "vendorType"
+                        ? "border-red-300 modal-field-input--error"
+                        : ""
+                    }`}
+                    noButtonRadius
+                    noBorder
+                    focusRingClass=""
+                  />
+                </div>
               </div>
             </div>
 
@@ -897,10 +952,10 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     value="debit"
                     checked={balanceType === "debit"}
                     onChange={() => setBalanceType("debit")}
-                    className="h-4 w-4 border-gray-300 text-[#7135AD] focus:ring-[#7135AD]"
+                    className="modal-radio"
                     disabled={readOnly}
                   />
-                  <span className="text-gray-700">Debit</span>
+                  <span className="text-[#414141]">Debit</span>
                 </label>
 
                 <label className="flex cursor-pointer items-center gap-2 text-[13px]">
@@ -910,16 +965,18 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     value="credit"
                     checked={balanceType === "credit"}
                     onChange={() => setBalanceType("credit")}
-                    className="h-4 w-4 border-gray-300 text-[#7135AD] focus:ring-[#7135AD]"
+                    className="modal-radio"
                     disabled={readOnly}
                   />
-                  <span className="text-gray-700">Credit</span>
+                  <span className="text-[#414141]">Credit</span>
                 </label>
               </div>
 
               <div className="relative mb-3">
-                <div className="flex items-center rounded-lg border border-gray-300 px-3 py-2 focus-within:border-[#7135AD] focus-within:ring-1 focus-within:ring-[#7135AD]">
-                  <span className="mr-2 text-[13px] text-gray-500">
+                <div
+                  className={`${MODAL_FIELD_INPUT_GROUP_CLASS} items-center py-2 pl-3 pr-44`}
+                >
+                  <span className="mr-2 shrink-0 text-[13px] text-gray-500">
                     {getStoredCurrencySymbol()}
                   </span>
                   <input
@@ -937,18 +994,18 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                         : "Enter Credit Amount"
                     }
                     disabled={readOnly}
-                    className="flex-1 pr-44 text-[13px] text-gray-700 outline-none disabled:bg-gray-100 disabled:text-gray-700"
+                    className={MODAL_FIELD_INPUT_GROUP_INNER_PLAIN_CLASS}
                   />
-                  <span
-                    className={`absolute right-3 whitespace-nowrap text-[12px] font-medium ${
-                      balanceType === "debit" ? "text-[#419836]" : "text-red-500"
-                    }`}
-                  >
-                    {balanceType === "debit"
-                      ? `Customer pays you ${getStoredCurrencySymbol()}`
-                      : `You pay the customer ${getStoredCurrencySymbol()}`}
-                  </span>
                 </div>
+                <span
+                  className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 whitespace-nowrap text-[12px] font-medium ${
+                    balanceType === "debit" ? "text-[#419836]" : "text-red-500"
+                  }`}
+                >
+                  {balanceType === "debit"
+                    ? `Customer pays you ${getStoredCurrencySymbol()}`
+                    : `You pay the customer ${getStoredCurrencySymbol()}`}
+                </span>
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -964,7 +1021,11 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     disabled={readOnly}
                     customWidth="w-full"
                     menuWidth="w-full"
-                    focusRingClass="focus:ring-1 focus:ring-[#7135AD]"
+                    className="w-full"
+                    buttonClassName={MODAL_FIELD_DROPDOWN_BUTTON_CLASS}
+                    noButtonRadius
+                    noBorder
+                    focusRingClass=""
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -979,7 +1040,11 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                     disabled={readOnly}
                     customWidth="w-full"
                     menuWidth="w-full"
-                    focusRingClass="focus:ring-1 focus:ring-[#7135AD]"
+                    className="w-full"
+                    buttonClassName={MODAL_FIELD_DROPDOWN_BUTTON_CLASS}
+                    noButtonRadius
+                    noBorder
+                    focusRingClass=""
                   />
                 </div>
               </div>
@@ -1140,6 +1205,27 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
           onConfirm={() => {
             setIsCloseConfirmOpen(false);
             onCancel();
+          }}
+        />
+      )}
+      {isLinkModalOpen && (
+        <LinkProfilesModal
+          isOpen={isLinkModalOpen}
+          onClose={() => setIsLinkModalOpen(false)}
+          sourceProfile={linkSourceProfile}
+          initialTargetProfileType="Traveller"
+        />
+      )}
+      {isDeleteLinkageOpen && (
+        <ConfirmationModal
+          isOpen={isDeleteLinkageOpen}
+          onClose={() => setIsDeleteLinkageOpen(false)}
+          title="Are you sure you want to delete this linkage?"
+          confirmText="Delete"
+          cancelText="Cancel"
+          confirmButtonColor="bg-red-600"
+          onConfirm={() => {
+            setIsDeleteLinkageOpen(false);
           }}
         />
       )}

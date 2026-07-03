@@ -18,6 +18,7 @@ interface LinkProfilesModalProps {
   isOpen: boolean;
   onClose: () => void;
   sourceProfile?: LinkProfileSource | null;
+  initialTargetProfileType?: "Customer" | "Vendor" | "Traveller";
 }
 
 const TIER_LABELS: Record<number, string> = {
@@ -42,6 +43,7 @@ const LinkProfilesModal: React.FC<LinkProfilesModalProps> = ({
   isOpen,
   onClose,
   sourceProfile,
+  initialTargetProfileType,
 }) => {
   const [targetProfileType, setTargetProfileType] = useState("");
   const [targetNameId, setTargetNameId] = useState("");
@@ -50,8 +52,13 @@ const LinkProfilesModal: React.FC<LinkProfilesModalProps> = ({
     if (!isOpen) {
       setTargetProfileType("");
       setTargetNameId("");
+      return;
     }
-  }, [isOpen]);
+
+    if (initialTargetProfileType) {
+      setTargetProfileType(initialTargetProfileType);
+    }
+  }, [isOpen, initialTargetProfileType]);
 
   const handleLink = () => {
     console.log("Linking profiles:", {
@@ -77,7 +84,7 @@ const LinkProfilesModal: React.FC<LinkProfilesModalProps> = ({
       showCloseButton={true}
       zIndexClass="z-[1200]"
     >
-      <div className="border-t border-[#ECECEC] px-6 pb-6 pt-5">
+      <div className="border-t border-[#ECECEC] pt-5">
         <div className="relative grid grid-cols-1 gap-8 md:grid-cols-2">
           {/* Source profile */}
           <div className="space-y-4">

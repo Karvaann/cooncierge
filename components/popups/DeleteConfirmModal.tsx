@@ -27,7 +27,8 @@ const DeleteConfirmModal: React.FC<DeleteConfirmModalProps> = ({
       showCloseButton={false}
       closeOnOverlayClick={true}
       closeOnEscape={true}
-      className="!rounded-[16px] p-0 [&>div:first-child]:hidden"
+      noBodyPadding
+      className="!rounded-[16px]"
       zIndexClass="z-[1200]"
     >
       <div className="px-5 py-5">

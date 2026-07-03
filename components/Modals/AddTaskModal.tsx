@@ -10,6 +10,7 @@ import { getAuthUser } from "@/services/storage/authStorage";
 import Button from "../Button";
 import DropDown from "../DropDown";
 import SingleCalendar from "../SingleCalendar";
+import { MODAL_FIELD_INPUT_CLASS } from "../atoms/modalFieldStyles";
 
 interface AddTaskModalProps {
   isOpen: boolean;
@@ -326,10 +327,10 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
       customWidth="w-[50vw]"
       customeHeight="h-fit"
     >
-      <div className="p-2 -mt-2">
-        <div className="flex flex-col md:flex-row gap-4 p-3 rounded-lg border border-gray-200">
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 rounded-lg border border-gray-200 p-3 md:flex-row">
           {/* Left Section */}
-          <div className="flex-1 bg-white rounded-lg p-3 w-[50%] flex flex-col gap-4">
+          <div className="flex w-full flex-col gap-4 md:w-[50%]">
             {/* Category */}
             <div className="mb-3">
               <label className="block text-[0.75rem] text-gray-700 mb-1">
@@ -363,7 +364,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 Category ID
               </label>
               <input
-                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
+                className={`${MODAL_FIELD_INPUT_CLASS} px-2 py-1.5 text-[0.75rem]`}
                 placeholder="Enter Category ID"
                 value={nature}
                 onChange={(e) => setNature(e.target.value)}
@@ -396,7 +397,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 Description
               </label>
               <textarea
-                className="w-full h-[4.8rem] px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem] resize-none"
+                className={`${MODAL_FIELD_INPUT_CLASS} h-[4.8rem] px-2 py-1.5 text-[0.75rem] resize-none`}
                 placeholder="Enter description here..."
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
@@ -421,7 +422,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
           </div>
 
           {/* Right Section */}
-          <div className="w-[50%] h-fit bg-[#F9F9F9] rounded-lg p-3 flex flex-col gap-3">
+          <div className="flex h-fit w-full flex-col gap-3 rounded-lg bg-[#F9F9F9] p-3 md:w-[50%]">
             {/* Priority */}
             <div>
               <label className="block text-[0.75rem] text-gray-700 mb-1">
@@ -447,7 +448,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
               </label>
 
               <div
-                className="w-full border border-gray-300 rounded-md px-2 py-1.5 min-h-[2.2rem] flex items-center flex-wrap gap-1 cursor-pointer relative"
+                className={`${MODAL_FIELD_INPUT_CLASS} px-2 py-1.5 min-h-[2.2rem] flex items-center flex-wrap gap-1 cursor-pointer relative`}
                 onClick={() => setDropdownOpen((prev) => !prev)}
               >
                 {selectedAssignees.length > 0 ? (
@@ -534,7 +535,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 Assigned By
               </label>
               <select
-                className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-[0.75rem]"
+                className={`${MODAL_FIELD_INPUT_CLASS} px-2 py-1.5 text-[0.75rem]`}
                 value={assignedBy}
                 onChange={(e) => setAssignedBy(e.target.value)}
               >
@@ -564,7 +565,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
 
               <div className="flex items-center gap-2">
                 {/* Hours */}
-                <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-md px-2 py-1">
+                <div className={`flex items-center gap-1 bg-white ${MODAL_FIELD_INPUT_CLASS} px-2 py-1`}>
                   <input
                     type="text"
                     value={dueHours.toString().padStart(2, "0")}
@@ -589,7 +590,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
                 </span>
 
                 {/* Minutes */}
-                <div className="flex items-center gap-1 bg-white border border-gray-300 rounded-md px-2 py-1">
+                <div className={`flex items-center gap-1 bg-white ${MODAL_FIELD_INPUT_CLASS} px-2 py-1`}>
                   <input
                     type="text"
                     value={dueMinutes.toString().padStart(2, "0")}
@@ -614,7 +615,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 mt-2 mr-2">
+        <div className="flex items-center justify-end gap-3">
           {editWarning && (
             <span className="text-[0.7rem] text-orange-600">{editWarning}</span>
           )}

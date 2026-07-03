@@ -27,17 +27,26 @@ export default function AuthTextInput({
           {label}
         </span>
       ) : null}
-      <input
-        {...props}
+      <div
         key={shouldShake ? `input-shake-${errorShakeKey}` : "input-stable"}
-        aria-invalid={hasError}
-        className={getAuthInputClassName(hasError, [
-          className,
-          shouldShake ? "animate-auth-validation-error" : "",
+        className={[
+          "auth-validation-shake-slot",
+          shouldShake ? "animate-auth-validation-error-shake" : "",
         ]
           .filter(Boolean)
-          .join(" "))}
-      />
+          .join(" ")}
+      >
+        <input
+          {...props}
+          aria-invalid={hasError}
+          className={getAuthInputClassName(hasError, [
+            className,
+            shouldShake ? "animate-auth-validation-error-border" : "",
+          ]
+            .filter(Boolean)
+            .join(" "))}
+        />
+      </div>
       {error ? <AuthFieldError message={error} shakeKey={errorShakeKey} /> : null}
     </label>
   );

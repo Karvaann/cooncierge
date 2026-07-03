@@ -10,6 +10,7 @@ import BankApi from "@/services/bankApi";
 import { FiEye, FiTrash2 } from "react-icons/fi";
 import { TbNotes } from "react-icons/tb";
 import SideSheet from "@/components/SideSheet";
+import { MODAL_FIELD_INPUT_CLASS } from "@/components/atoms/modalFieldStyles";
 import SingleCalendar from "@/components/SingleCalendar";
 import Button from "@/components/Button";
 import { FaRegFolder } from "react-icons/fa";
@@ -254,8 +255,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
   const noteBtn =
     "w-9 h-9 rounded-md bg-[#FFF2D6] hover:bg-[#FFE8B7] transition flex items-center justify-center";
 
-  const inputBase =
-    "w-full border border-gray-200 rounded-md px-3 py-2 text-[0.78rem] text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-green-600";
+  const inputBase = `${MODAL_FIELD_INPUT_CLASS} text-[0.78rem] text-gray-700 placeholder:text-gray-400`;
 
   const computeInr = (amount: string, roe: string) => {
     const a = Number(String(amount).replace(/,/g, ""));
@@ -1322,7 +1322,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                 </div>
               ) : (
                 <div className="flex items-center gap-6">
-                  <label className="flex items-center cursor-pointer">
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
                       name="partyType"
@@ -1331,48 +1331,22 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                       onChange={(e) =>
                         setPartyType(e.target.value as "Customer")
                       }
-                      className="sr-only"
+                      className="modal-radio"
                     />
-                    <span
-                      className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
-                        partyType === "Customer"
-                          ? "border-blue-600"
-                          : "border-gray-300"
-                      } bg-white`}
-                    >
-                      {partyType === "Customer" && (
-                        <span className="w-2 h-2 rounded-full bg-blue-600" />
-                      )}
-                    </span>
-                    <span className="ml-2 text-[13px] text-gray-700">
-                      Customer
-                    </span>
+                    <span className="text-[13px] text-[#414141]">Customer</span>
                   </label>
 
-                  <label className="flex items-center cursor-pointer">
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
                       name="partyType"
                       value="Vendor"
                       checked={partyType === "Vendor"}
                       onChange={(e) => setPartyType(e.target.value as "Vendor")}
-                      className="sr-only"
+                      className="modal-radio"
                       disabled={mode === "edit"}
                     />
-                    <span
-                      className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
-                        partyType === "Vendor"
-                          ? "border-blue-600"
-                          : "border-gray-300"
-                      } bg-white`}
-                    >
-                      {partyType === "Vendor" && (
-                        <span className="w-2 h-2 rounded-full bg-blue-600" />
-                      )}
-                    </span>
-                    <span className="ml-2 text-[13px] text-gray-700">
-                      Vendor
-                    </span>
+                    <span className="text-[13px] text-[#414141]">Vendor</span>
                   </label>
                 </div>
               )}
@@ -1482,7 +1456,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                           value="auto"
                           checked={settlePendingMode === "auto"}
                           onChange={() => setSettlePendingMode("auto")}
-                          className="w-4 h-4 text-blue-600 border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                          className="modal-radio"
                         />
                         <span className="text-[13px] text-gray-800">Auto</span>
                       </label>
@@ -1494,7 +1468,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
                           value="manual"
                           checked={settlePendingMode === "manual"}
                           onChange={() => setSettlePendingMode("manual")}
-                          className="w-4 h-4 text-blue-600 border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                          className="modal-radio"
                         />
                         <span className="text-[13px] text-gray-800">
                           Manual
@@ -2097,7 +2071,7 @@ const AddPaymentSidesheet: React.FC<AddPaymentSidesheetProps> = ({
               onChange={(e) => setInternalNotes(e.target.value)}
               placeholder="Enter your notes..."
               rows={3}
-              className="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300 resize-none"
+              className={`${MODAL_FIELD_INPUT_CLASS} px-4 resize-none`}
             />
           </div>
         </div>

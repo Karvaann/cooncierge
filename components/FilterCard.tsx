@@ -144,7 +144,11 @@ const FilterCard: React.FC<FilterCardProps> = ({
                       if (opt.disabled) return;
                       toggle(opt.value);
                     }}
-                    className="h-4 w-4 rounded border-gray-300 text-[#0D4B37] focus:ring-[#0D4B37]"
+                    className={
+                      mode === "single"
+                        ? "modal-radio"
+                        : "h-4 w-4 rounded border-gray-300 text-[#0D4B37] focus:ring-[#0D4B37]"
+                    }
                   />
 
                   <span className="text-[13px] text-gray-800 flex-1">

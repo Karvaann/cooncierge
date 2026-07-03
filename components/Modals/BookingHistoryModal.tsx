@@ -356,8 +356,8 @@ const BookingHistoryModal: React.FC<BookingHistoryModalProps> = ({
       zIndexClass="z-[9999]"
       disableOverlayClick={false}
     >
-      <div className="px-6 pb-6" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-[#ECECEC] pb-4 pt-1">
+      <div onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-[#ECECEC] pb-4">
           <div className="flex min-w-0 flex-wrap items-center gap-3">
             <h2 className="font-[Poppins,sans-serif] text-[18px] font-[600] text-[#020202]">
               Booking History

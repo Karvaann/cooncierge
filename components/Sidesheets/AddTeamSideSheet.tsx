@@ -13,6 +13,7 @@ import Button from "../Button";
 import SingleCalendar from "../SingleCalendar";
 import DropDown from "../DropDown";
 import PhoneCodeSelect from "../PhoneCodeSelect";
+import { MODAL_FIELD_INPUT_CLASS } from "../atoms/modalFieldStyles";
 import { FaRegFolder } from "react-icons/fa";
 import ErrorToast from "../ErrorToast";
 import { MdOutlineFileUpload } from "react-icons/md";
@@ -466,7 +467,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                 className=""
               />
             ) : (
-              <div className="w-[13rem] border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 bg-gray-100 cursor-default">
+              <div className={`w-[13rem] ${MODAL_FIELD_INPUT_CLASS} text-gray-700 bg-gray-100 cursor-default`}>
                 {formData.status || "Select Status"}
               </div>
             )}
@@ -495,10 +496,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   }}
                   placeholder="Enter First Name"
                   disabled={readOnly}
-                  className={`w-full rounded-md px-3 py-2 text-[13px] hover:border-green-400 text-gray-700 disabled:bg-gray-100 disabled:text-gray-700 ${
+                  className={`${MODAL_FIELD_INPUT_CLASS} text-gray-700 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
                     invalidField === "firstname"
-                      ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
-                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
+                      ? "border-red-300 modal-field-input--error ring-1 ring-red-200 focus:ring-red-200"
+                      : ""
                   }`}
                 />
               </div>
@@ -520,10 +521,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                       setInvalidField(null);
                   }}
                   disabled={readOnly}
-                  className={`w-full rounded-md px-3 py-2 text-[13px] text-gray-700 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
+                  className={`${MODAL_FIELD_INPUT_CLASS} text-gray-700 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
                     invalidField === "lastname"
-                      ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
-                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
+                      ? "border-red-300 modal-field-input--error ring-1 ring-red-200 focus:ring-red-200"
+                      : ""
                   }`}
                 />
               </div>
@@ -562,7 +563,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     className=""
                   />
                 ) : (
-                  <div className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 bg-gray-100 cursor-default">
+                  <div className={`w-full ${MODAL_FIELD_INPUT_CLASS} text-gray-700 bg-gray-100 cursor-default`}>
                     {(() => {
                       const opt = [
                         { value: "male", label: "Male" },
@@ -609,7 +610,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     required
                     disabled={readOnly}
                     maxLength={phoneMaxLength}
-                    className="w-[41%] border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className={`w-[41%] ${MODAL_FIELD_INPUT_CLASS} text-gray-700 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700`}
                   />
                 </div>
               </div>
@@ -635,7 +636,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   }
                   placeholder="Enter Alias"
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  className={`${MODAL_FIELD_INPUT_CLASS} text-gray-700 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700`}
                 />
               </div>
 
@@ -672,7 +673,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     required
                     disabled={readOnly}
                     maxLength={phoneMaxLength}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400 focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                    className={`${MODAL_FIELD_INPUT_CLASS} text-gray-700 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700`}
                   />
                 </div>
               </div>
@@ -694,10 +695,10 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   }}
                   placeholder="Enter Email ID"
                   disabled={readOnly}
-                  className={`w-full rounded-md px-3 py-2 text-[13px] text-gray-700 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
+                  className={`${MODAL_FIELD_INPUT_CLASS} text-gray-700 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700 ${
                     invalidField === "workEmail"
-                      ? "border border-red-300 ring-1 ring-red-200 focus:outline-none focus:ring-1 focus:ring-red-200"
-                      : "border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-400"
+                      ? "border-red-300 modal-field-input--error ring-1 ring-red-200 focus:ring-red-200"
+                      : ""
                   }`}
                 />
               </div>
@@ -716,7 +717,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                   placeholder="Enter Designation"
                   required
                   disabled={readOnly}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] text-gray-700 focus:outline-none focus:ring-1 hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+                  className={`${MODAL_FIELD_INPUT_CLASS} text-gray-700 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700`}
                 />
               </div>
 
@@ -827,7 +828,7 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
               rows={5}
               placeholder="Enter Your Remarks Here"
               disabled={readOnly}
-              className="w-full border border-gray-200 rounded-md px-3 py-2 text-[13px] mt-2 transition-colors focus:ring hover:border-green-400  focus:ring-green-400 disabled:bg-gray-100 disabled:text-gray-700"
+              className={`${MODAL_FIELD_INPUT_CLASS} mt-2 text-gray-700 hover:border-green-400 disabled:bg-gray-100 disabled:text-gray-700`}
             />
           </div>
 

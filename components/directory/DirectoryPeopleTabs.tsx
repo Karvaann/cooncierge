@@ -23,6 +23,19 @@ export default function DirectoryPeopleTabs({
   const router = useRouter();
 
   const handleChange = (tab: string) => {
+    const isTravellersPage = tabs.includes("Travellers");
+
+    if (onLocalTabChange && tabs.includes(tab)) {
+      // On travellers page, "Customers" switches to the customers directory route.
+      if (tab === "Customers" && isTravellersPage) {
+        router.push("/directory/customers");
+        return;
+      }
+
+      onLocalTabChange(tab);
+      return;
+    }
+
     if (tab === "Travellers") {
       router.push("/directory/travellers");
       return;
@@ -30,11 +43,6 @@ export default function DirectoryPeopleTabs({
 
     if (tab === "Customers") {
       router.push("/directory/customers");
-      return;
-    }
-
-    if (tab === "Draft" || tab === "Deleted") {
-      onLocalTabChange?.(tab);
     }
   };
 

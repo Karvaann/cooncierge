@@ -5,6 +5,7 @@ import Modal from "../Modal";
 import DropDown from "../DropDown";
 import AddRolesSidesheet from "../Sidesheets/AddRolesSidesheet";
 import { AuthApi } from "@/services/authApi";
+import { MODAL_FIELD_INPUT_CLASS } from "../atoms/modalFieldStyles";
 
 interface CreateRoleModalProps {
   isOpen: boolean;
@@ -92,17 +93,15 @@ const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
         customWidth="w-[730px]"
         showCloseButton
       >
-        <div className="p-2 -mt-4">
-          {/* Radio choices */}
-          <div className="flex gap-6 items-start mb-4">
-            <label className="flex items-start gap-2 cursor-pointer">
+        <div className="space-y-4">
+          <div className="flex flex-wrap items-start gap-6">
+            <label className="flex cursor-pointer items-start gap-2">
               <input
                 type="radio"
                 name="create-role-mode"
                 checked={mode === "existing"}
                 onChange={() => setMode("existing")}
-                className="mt-1"
-                style={{ accentColor: "#126ACB" }}
+                className="modal-radio mt-1"
               />
               <div>
                 <div className="text-sm font-semibold">
@@ -114,14 +113,13 @@ const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
               </div>
             </label>
 
-            <label className="flex items-start gap-2 cursor-pointer">
+            <label className="flex cursor-pointer items-start gap-2">
               <input
                 type="radio"
                 name="create-role-mode"
                 checked={mode === "scratch"}
                 onChange={() => setMode("scratch")}
-                className="mt-1"
-                style={{ accentColor: "#126ACB" }}
+                className="modal-radio mt-1"
               />
               <div>
                 <div className="text-sm font-semibold">Start from Scratch</div>
@@ -132,7 +130,6 @@ const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
             </label>
           </div>
 
-          {/* Form */}
           <div className="space-y-4">
             {mode === "existing" ? (
               <>
@@ -159,7 +156,7 @@ const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
                     value={roleName}
                     onChange={(e) => setRoleName(e.target.value)}
                     placeholder="Enter Role Name"
-                    className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-green-300"
+                    className={`mt-1 ${MODAL_FIELD_INPUT_CLASS} text-sm`}
                   />
                 </div>
               </>
@@ -172,7 +169,7 @@ const CreateRoleModal: React.FC<CreateRoleModalProps> = ({
                   value={roleName}
                   onChange={(e) => setRoleName(e.target.value)}
                   placeholder="Enter Role Name"
-                  className="mt-1 w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-green-300"
+                  className={`mt-1 ${MODAL_FIELD_INPUT_CLASS} text-sm`}
                 />
               </div>
             )}

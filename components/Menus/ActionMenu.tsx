@@ -13,6 +13,8 @@ type MenuAction = {
   confirmDeleteId?: string;
   /** When set, clicking this action opens a centered duplicate confirmation modal. */
   confirmDuplicateId?: string;
+  /** Renders a divider below this action */
+  showDividerAfter?: boolean;
 };
 
 interface ActionMenuProps {
@@ -23,6 +25,8 @@ interface ActionMenuProps {
   right?: string;
   /** Opens menu to the left or right of the trigger */
   align?: "left" | "right";
+  /** Menu placement relative to the trigger */
+  placement?: "beside" | "below";
   /** Show only when parent row has `.row-actions-active` */
   revealClassName?: string;
 }
@@ -32,6 +36,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
   width,
   right,
   align = "right",
+  placement = "beside",
   revealClassName,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -47,9 +52,11 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
 
   const menuWidthClass = width ?? "min-w-[7.5rem]";
   const menuPositionClass =
-    align === "left"
-      ? "right-full mr-2 top-1/2 -translate-y-1/2"
-      : `${right ?? "right-10"} top-1/2 -translate-y-1/2`;
+    placement === "below"
+      ? `${right ?? "right-0"} top-full mt-1.5`
+      : align === "left"
+        ? "right-full mr-2 top-1/2 -translate-y-1/2"
+        : `${right ?? "right-10"} top-1/2 -translate-y-1/2`;
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -108,43 +115,47 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
 
         {isOpen && (
           <div
-            className={`absolute ${menuPositionClass} z-50 overflow-hidden rounded-[12px] border border-[#E2E1E1] bg-white py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.08)] ${menuWidthClass}`}
+            className={`absolute ${menuPositionClass} z-50 overflow-hidden rounded-[16px] border border-[#E2E1E1] bg-white py-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.08)] ${menuWidthClass}`}
           >
             <div className="flex flex-col px-1">
               {actions.map((action, index) => (
-                <button
-                  key={index}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (action.confirmDeleteId) {
-                      setPendingDelete({
-                        itemId: action.confirmDeleteId,
-                        onConfirm: action.onClick,
-                      });
+                <React.Fragment key={index}>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (action.confirmDeleteId) {
+                        setPendingDelete({
+                          itemId: action.confirmDeleteId,
+                          onConfirm: action.onClick,
+                        });
+                        closeMenu();
+                        return;
+                      }
+                      if (action.confirmDuplicateId) {
+                        setPendingDuplicate({
+                          itemId: action.confirmDuplicateId,
+                          onConfirm: action.onClick,
+                        });
+                        closeMenu();
+                        return;
+                      }
+                      action.onClick();
                       closeMenu();
-                      return;
-                    }
-                    if (action.confirmDuplicateId) {
-                      setPendingDuplicate({
-                        itemId: action.confirmDuplicateId,
-                        onConfirm: action.onClick,
-                      });
-                      closeMenu();
-                      return;
-                    }
-                    action.onClick();
-                    closeMenu();
-                  }}
-                  className={`flex w-full items-center gap-2 whitespace-nowrap rounded-[8px] px-2.5 py-2 text-left text-[13px] font-medium transition-colors hover:bg-[#FAFAFA] ${action.color ?? "text-gray-700"}`}
-                >
-                  {action.icon && (
-                    <span className="flex h-4 w-4 shrink-0 items-center justify-center">
-                      {action.icon}
-                    </span>
-                  )}
-                  {action.label}
-                </button>
+                    }}
+                    className={`flex w-full items-center gap-2 whitespace-nowrap rounded-[8px] px-2.5 py-2 text-left text-[13px] font-medium transition-colors hover:bg-[#FAFAFA] ${action.color ?? "text-gray-700"}`}
+                  >
+                    {action.icon && (
+                      <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                        {action.icon}
+                      </span>
+                    )}
+                    {action.label}
+                  </button>
+                  {action.showDividerAfter && index < actions.length - 1 ? (
+                    <div className="my-1 border-t border-[#ECECEC]" />
+                  ) : null}
+                </React.Fragment>
               ))}
             </div>
           </div>

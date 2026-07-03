@@ -3,6 +3,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import DropDown from "./DropDown";
+import { TABLE_ROW_HOVER_CLASS } from "./table/tableRowStyles";
 // Type definitions
 interface TableProps {
   data: React.ReactNode[][];
@@ -326,7 +327,7 @@ const Table: React.FC<TableProps> = ({
                           className={`
     table-body-text
     ${idx % 2 === 0 ? "bg-white" : "bg-[#F8F8F8]"}
-    hover:bg-gray-100 transition-colors h-[3rem]
+    ${TABLE_ROW_HOVER_CLASS} transition-colors h-[3rem]
     ${onRowClick ? "cursor-pointer" : ""}
     ${enableRowHoverActions ? "group" : ""}
     ${
@@ -377,7 +378,7 @@ const Table: React.FC<TableProps> = ({
                     className={`
     table-body-text
     ${idx % 2 === 0 ? "bg-white" : "bg-[#F8F8F8]"}
-    hover:bg-gray-100 transition-colors
+    ${TABLE_ROW_HOVER_CLASS} transition-colors
     ${onRowClick ? "cursor-pointer" : ""}
     ${enableRowHoverActions ? "group" : ""}
     ${

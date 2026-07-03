@@ -37,7 +37,7 @@ export default function AuthPasswordInput({
       <div
         key={shouldShake ? `password-shake-${errorShakeKey}` : "password-stable"}
         className={[
-          "relative",
+          "auth-validation-shake-slot relative",
           shouldShake ? "animate-auth-validation-error-shake" : "",
         ]
           .filter(Boolean)

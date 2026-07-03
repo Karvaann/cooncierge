@@ -1,5 +1,11 @@
+"use client";
+
 import { useEffect, useMemo, useState } from "react";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
+import {
+  overlayTransitionClass,
+  useOverlayAnimation,
+} from "@/hooks/useOverlayAnimation";
 import {
   exportCSV,
   exportPDF,
@@ -7,6 +13,7 @@ import {
   exportXLSX,
 } from "@/utils/exportUtils";
 import { DeletableItem } from "./DeleteModal";
+import { MODAL_FIELD_INPUT_CLASS } from "../atoms/modalFieldStyles";
 
 interface DownloadModalProps {
   isOpen: boolean;
@@ -28,6 +35,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
   items,
   entity,
 }) => {
+  const { shouldRender, isVisible } = useOverlayAnimation(isOpen);
   const [fileName, setFileName] = useState("");
   const [fileType, setFileType] = useState("");
 
@@ -99,18 +107,24 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
     onClose();
   };
 
-  if (!isOpen) return null;
+  if (!shouldRender) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 transition-opacity duration-300"
+      className={`fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 ${overlayTransitionClass} ${
+        isVisible ? "opacity-100" : "opacity-0"
+      }`}
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="download-modal-title"
     >
       <div
-        className="w-[min(480px,calc(100vw-2rem))] rounded-[24px] border border-[#E2E1E1] bg-white p-6 shadow-xl"
+        className={`w-[min(480px,calc(100vw-2rem))] rounded-[24px] border border-[#E2E1E1] bg-white p-6 shadow-xl ${overlayTransitionClass} ${
+          isVisible
+            ? "translate-y-0 scale-100 opacity-100"
+            : "translate-y-2 scale-[0.98] opacity-0"
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative mb-6">
@@ -160,7 +174,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
               value={fileName}
               onChange={(e) => setFileName(e.target.value)}
               placeholder="Enter file name"
-              className="h-11 w-full rounded-[12px] border border-[#E2E1E1] px-4 font-[Poppins,sans-serif] text-[14px] text-[#020202] placeholder:text-[#818181] focus:border-[#7135AD] focus:outline-none focus:ring-1 focus:ring-[#7135AD]"
+              className={`h-11 ${MODAL_FIELD_INPUT_CLASS} px-4 font-[Poppins,sans-serif] text-[14px] text-[#020202] placeholder:text-[#818181]`}
             />
           </div>
 
@@ -176,7 +190,7 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
                 id="download-file-type"
                 value={fileType}
                 onChange={(e) => setFileType(e.target.value)}
-                className={`h-11 w-full appearance-none rounded-[12px] border border-[#E2E1E1] bg-white px-4 pr-10 font-[Poppins,sans-serif] text-[14px] focus:border-[#7135AD] focus:outline-none focus:ring-1 focus:ring-[#7135AD] ${
+                className={`h-11 ${MODAL_FIELD_INPUT_CLASS} appearance-none px-4 pr-10 font-[Poppins,sans-serif] text-[14px] ${
                   fileType ? "text-[#020202]" : "text-[#818181]"
                 }`}
               >

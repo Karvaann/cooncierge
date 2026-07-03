@@ -84,7 +84,7 @@ const DeletePaymentModal: React.FC<DeletePaymentModalProps> = ({
       closeOnEscape={true}
       zIndexClass="z-[990]"
     >
-      <div className="px-6 py-4">
+      <div className="py-2">
         <h2 className="text-center text-[18px] font-semibold text-gray-900">
           Are you sure you want to delete?
         </h2>

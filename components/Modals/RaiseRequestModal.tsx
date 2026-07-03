@@ -38,8 +38,8 @@ const RaiseRequest: React.FC<RaiseRequestProps> = ({
       size="sm"
       customWidth="w-[700px]"
     >
-      <div className="px-4 -mt-5 p-2">
-        <p className="text-gray-500 text-sm mb-6 text-center">
+      <div>
+        <p className="mb-6 text-center text-sm text-gray-500">
           Enter your request details in the fields below
         </p>
 

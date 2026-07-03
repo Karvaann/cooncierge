@@ -13,6 +13,7 @@ import ErrorToast from "../ErrorToast";
 import { createMakerCheckerGroup } from "@/services/makerCheckerApi";
 import { pushToast } from "@/utils/toastService";
 import { getUsers } from "@/services/userApi";
+import { MODAL_FIELD_INPUT_CLASS } from "../atoms/modalFieldStyles";
 
 interface CreateTeamSidesheetProps {
   isOpen: boolean;
@@ -234,7 +235,7 @@ export default function CreateTeamSidesheet({
                   value={teamName}
                   onChange={(e) => setTeamName(e.target.value)}
                   placeholder="Enter Team Name"
-                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className={`mt-1 ${MODAL_FIELD_INPUT_CLASS}`}
                 />
               </div>
 
@@ -244,7 +245,7 @@ export default function CreateTeamSidesheet({
                 </label>
                 <div className="relative" ref={checkersRef}>
                   <div
-                    className="mt-1 w-full min-h-[2.2rem] border border-gray-300 rounded-md px-2.5 py-2 flex items-center flex-wrap gap-1 cursor-pointer"
+                    className={`mt-1 ${MODAL_FIELD_INPUT_CLASS} min-h-[2.2rem] px-2.5 flex items-center flex-wrap gap-1 cursor-pointer`}
                     onClick={(e) => {
                       e.stopPropagation();
                       const rect = checkersRef.current?.getBoundingClientRect();
@@ -351,7 +352,7 @@ export default function CreateTeamSidesheet({
                 </label>
                 <div className="relative" ref={makersRef}>
                   <div
-                    className="mt-1 w-full min-h-[2.2rem] border border-gray-300 rounded-md px-2.5 py-2 flex items-center flex-wrap gap-1 cursor-pointer"
+                    className={`mt-1 ${MODAL_FIELD_INPUT_CLASS} min-h-[2.2rem] px-2.5 flex items-center flex-wrap gap-1 cursor-pointer`}
                     onClick={(e) => {
                       e.stopPropagation();
                       const rect = makersRef.current?.getBoundingClientRect();

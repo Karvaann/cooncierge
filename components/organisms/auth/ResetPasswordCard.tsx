@@ -7,6 +7,7 @@ import AuthPasswordInput from "@/components/atoms/auth/AuthPasswordInput";
 import PasswordRules, { allPasswordRulesMet } from "@/components/molecules/auth/PasswordRules";
 import OwlLogo from "@/components/organisms/auth/OwlLogo";
 import { AuthFieldErrorSlot } from "@/components/atoms/auth/AuthFieldError";
+import AuthFooterLinks from "@/components/atoms/auth/AuthFooterLinks";
 import type { PasswordChecks } from "@/app/login/types";
 
 interface ResetPasswordCardProps {
@@ -124,11 +125,7 @@ export default function ResetPasswordCard(props: ResetPasswordCardProps) {
 
       <div className="mt-[40px] w-full">{form}</div>
 
-      <footer className="mt-auto flex justify-center gap-8 pt-8 text-[12px] text-[#818181]">
-        <span>Privacy Policy</span>
-        <span>Terms of Use</span>
-        <span>FAQs</span>
-      </footer>
+      <AuthFooterLinks />
     </div>
   );
 }

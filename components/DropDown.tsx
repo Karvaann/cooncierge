@@ -195,9 +195,15 @@ const DropDown: React.FC<DropdownProps> = ({
   useEffect(() => {
     if (!isOpen || !dropdownRef.current) return;
 
+    const shouldMatchTriggerWidth = !menuWidth || menuWidth === "w-full";
+
     const computePlacement = () => {
       if (!dropdownRef.current) return;
-      const rect = dropdownRef.current.getBoundingClientRect();
+      const triggerEl =
+        dropdownRef.current.querySelector("button") ??
+        dropdownRef.current.firstElementChild ??
+        dropdownRef.current;
+      const rect = triggerEl.getBoundingClientRect();
       const optionHeight = itemHeight || 36; // estimated option height in px (can be overridden by prop)
       const menuHeight = Math.min(filteredOptions.length * optionHeight, 400);
       const availableBelow = window.innerHeight - rect.bottom;
@@ -229,7 +235,21 @@ const DropDown: React.FC<DropdownProps> = ({
           });
         }
       } else {
-        const left = Math.max(8, rect.left);
+        let left = rect.left;
+        const viewportPadding = 8;
+
+        if (shouldMatchTriggerWidth) {
+          if (left + width > window.innerWidth - viewportPadding) {
+            left = Math.max(
+              viewportPadding,
+              window.innerWidth - width - viewportPadding,
+            );
+          }
+          left = Math.max(viewportPadding, left);
+        } else {
+          left = Math.max(viewportPadding, left);
+        }
+
         if (shouldOpenUp) {
           const bottom = window.innerHeight - rect.top;
           setMenuPos({ left, bottom, width, openUpwards: true });
@@ -250,7 +270,7 @@ const DropDown: React.FC<DropdownProps> = ({
       window.removeEventListener("scroll", computePlacement, true);
       setMenuPos(null);
     };
-  }, [isOpen, filteredOptions.length, menuCentered]);
+  }, [isOpen, filteredOptions.length, itemHeight, menuCentered, menuWidth]);
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -285,11 +305,20 @@ const DropDown: React.FC<DropdownProps> = ({
   }, [isOpen, readOnly]);
 
   const inputWidthClass = customWidth ? customWidth : "w-[12rem]";
-  const menuWidthClass = menuWidth ? menuWidth : inputWidthClass;
+  const matchTriggerMenuWidth = !menuWidth || menuWidth === "w-full";
+  const menuWidthClass = matchTriggerMenuWidth
+    ? ""
+    : menuWidth
+      ? menuWidth
+      : inputWidthClass;
+  const wrapperWidthClass = customWidth === "w-full" ? "w-full min-w-0" : "";
   const hasCustomBg = /\bbg-/.test(buttonClassName);
   const hasCustomHoverBorder = /\bhover:border-/.test(buttonClassName);
   return (
-    <div ref={dropdownRef} className={`relative ${className}`}>
+    <div
+      ref={dropdownRef}
+      className={`relative ${wrapperWidthClass} ${className}`}
+    >
       {/* Dropdown Trigger */}
       {typeable ? (
         <div
@@ -423,8 +452,7 @@ const DropDown: React.FC<DropdownProps> = ({
                     position: "fixed",
                   } as React.CSSProperties;
                   if (menuPos.centered) base.transform = "translateX(-50%)";
-                  // Only set an explicit pixel width when menuWidth is NOT provided
-                  if (!menuWidth) {
+                  if (matchTriggerMenuWidth) {
                     return { ...base, width: menuPos.width };
                   }
                   return base;

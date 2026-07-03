@@ -19,6 +19,7 @@ import {
   getPhoneNumberMaxLength,
   isSupportedDialCode,
 } from "@/utils/phoneUtils";
+import { MODAL_FIELD_INPUT_CLASS } from "../atoms/modalFieldStyles";
 
 interface AddUserSidesheetProps {
   isOpen: boolean;
@@ -324,9 +325,7 @@ export default function AddUserSidesheet({
                   value={fullName}
                   onChange={(e) => setFullName(allowOnlyText(e.target.value))}
                   placeholder="Enter Full Name"
-                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md hover:border-green-300 focus:outline-none
-    focus:ring-2 focus:ring-green-400
-    focus:ring-offset-0"
+                  className={`mt-1 ${MODAL_FIELD_INPUT_CLASS}`}
                 />
               </div>
 
@@ -338,7 +337,7 @@ export default function AddUserSidesheet({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter Email"
-                  className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className={`mt-1 ${MODAL_FIELD_INPUT_CLASS}`}
                   type="email"
                 />
               </div>
@@ -366,7 +365,7 @@ export default function AddUserSidesheet({
                       )
                     }
                     placeholder="Enter Contact Number"
-                    className="mt-6 -ml-2.5 w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className={`mt-6 -ml-2.5 ${MODAL_FIELD_INPUT_CLASS}`}
                     maxLength={phoneMaxLength}
                   />
                 </div>
@@ -460,7 +459,7 @@ export default function AddUserSidesheet({
                           onChange={(e) => setPassword(e.target.value)}
                           placeholder="Enter Password"
                           type={showPassword ? "text" : "password"}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                          className={MODAL_FIELD_INPUT_CLASS}
                         />
                         <button
                           type="button"

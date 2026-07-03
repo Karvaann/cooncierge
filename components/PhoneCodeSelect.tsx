@@ -14,6 +14,8 @@ type PhoneCodeSelectProps = {
   menuWidth?: string;
   className?: string;
   buttonClassName?: string;
+  noBorder?: boolean;
+  noButtonRadius?: boolean;
 };
 
 const preferredIso2ByDialCode: Record<string, string> = {
@@ -36,6 +38,8 @@ const PhoneCodeSelect: React.FC<PhoneCodeSelectProps> = ({
   menuWidth = "w-[18rem]",
   className,
   buttonClassName,
+  noBorder = false,
+  noButtonRadius = false,
 }) => {
   const options = useMemo(
     () =>
@@ -106,6 +110,8 @@ const PhoneCodeSelect: React.FC<PhoneCodeSelectProps> = ({
       menuWidth={menuWidth}
       className={className}
       buttonClassName={buttonClassName}
+      noBorder={noBorder}
+      noButtonRadius={noButtonRadius}
       searchable
       searchPlaceholder="Search country or code..."
       getOptionSearchValue={(opt) => opt.searchLabel || ""}

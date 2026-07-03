@@ -1180,7 +1180,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                         value="entire"
                         checked={villaType === "entire"}
                         onChange={() => setVillaType("entire")}
-                        className="w-3 h-3 accent-blue-600"
+                        className="modal-radio"
                       />
                       <span className="text-[13px] text-gray-700 font-medium">
                         Entire Villa
@@ -1194,7 +1194,7 @@ const AccommodationServiceInfoForm: React.FC<AccommodationInfoFormProps> = ({
                         value="shared"
                         checked={villaType === "shared"}
                         onChange={() => setVillaType("shared")}
-                        className="w-3 h-3 accent-blue-600"
+                        className="modal-radio"
                       />
                       <span className="text-[13px] text-gray-700 font-medium">
                         Shared Villa

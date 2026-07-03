@@ -13,6 +13,7 @@ import { MdOutlineFileUpload } from "react-icons/md";
 import { FaRegFolder } from "react-icons/fa";
 import { FiPlusCircle, FiTrash2 } from "react-icons/fi";
 import PaymentsApi from "@/services/paymentsApi";
+import { MODAL_FIELD_INPUT_CLASS } from "@/components/atoms/modalFieldStyles";
 import CustomIdApi from "@/services/customIdApi";
 import Button from "@/components/Button";
 import MultiCurrencyInput from "@/components/multiCurrencyUI";
@@ -893,52 +894,28 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
             </span>
 
             <div className="flex items-center gap-6">
-              {/* Customer */}
-              <label className="flex items-center cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
                   name="partyType"
                   value="Customer"
                   checked={partyType === "Customer"}
                   onChange={() => setPartyType("Customer")}
-                  className="sr-only"
+                  className="modal-radio"
                 />
-                <span
-                  className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
-                    partyType === "Customer"
-                      ? "border-blue-600"
-                      : "border-gray-300"
-                  } bg-white`}
-                >
-                  {partyType === "Customer" && (
-                    <span className="w-2 h-2 rounded-full bg-blue-600" />
-                  )}
-                </span>
-                <span className="ml-2 text-[13px] text-gray-700">Customer</span>
+                <span className="text-[13px] text-[#414141]">Customer</span>
               </label>
 
-              {/* Vendor */}
-              <label className="flex items-center cursor-pointer">
+              <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="radio"
                   name="partyType"
                   value="Vendor"
                   checked={partyType === "Vendor"}
                   onChange={() => setPartyType("Vendor")}
-                  className="sr-only"
+                  className="modal-radio"
                 />
-                <span
-                  className={`w-5 h-5 rounded-full flex items-center justify-center border-2 ${
-                    partyType === "Vendor"
-                      ? "border-blue-600"
-                      : "border-gray-300"
-                  } bg-white`}
-                >
-                  {partyType === "Vendor" && (
-                    <span className="w-2 h-2 rounded-full bg-blue-600" />
-                  )}
-                </span>
-                <span className="ml-2 text-[13px] text-gray-700">Vendor</span>
+                <span className="text-[13px] text-[#414141]">Vendor</span>
               </label>
             </div>
           </div>
@@ -1131,7 +1108,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
                       onToggleNotes={() => setShowNotes((s) => !s)}
                       businessCurrency={businessCurrency}
                       requiresRoe={requiresRoe}
-                      inputClassName="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                      inputClassName={`${MODAL_FIELD_INPUT_CLASS} px-4`}
                     />
                   </div>
                 </div>
@@ -1193,7 +1170,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
                         onToggleNotes={() => setShowBankChargesNotes((s) => !s)}
                         businessCurrency={businessCurrency}
                         requiresRoe={requiresRoe}
-                        inputClassName="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                        inputClassName={`${MODAL_FIELD_INPUT_CLASS} px-4`}
                         useWhiteDropdown={true}
                       />
                     </div>
@@ -1252,7 +1229,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
                         onToggleNotes={() => setShowCashbackNotes((s) => !s)}
                         businessCurrency={businessCurrency}
                         requiresRoe={requiresRoe}
-                        inputClassName="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300"
+                        inputClassName={`${MODAL_FIELD_INPUT_CLASS} px-4`}
                         useWhiteDropdown={true}
                       />
                     </div>
@@ -1417,7 +1394,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
                     onChange={(e) => setRemarks(e.target.value)}
                     placeholder="Enter your remarks..."
                     rows={3}
-                    className="w-full px-4 py-2 text-[13px] border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-green-300 focus:border-green-300 resize-none"
+                    className={`${MODAL_FIELD_INPUT_CLASS} px-4 resize-none`}
                   />
                 </div>
               </div>

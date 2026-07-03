@@ -985,7 +985,7 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         headerLeft={headerLeft}
       >
         <div
-          className="p-2 -mt-4 relative flex flex-col max-h-[75vh]"
+          className="relative flex max-h-[75vh] flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {isRefreshing && (

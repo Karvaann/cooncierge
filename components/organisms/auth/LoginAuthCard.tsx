@@ -2,11 +2,12 @@ import { IoMdArrowBack } from "react-icons/io";
 import AuthPrimaryButton from "@/components/atoms/auth/AuthPrimaryButton";
 import AuthTextInput from "@/components/atoms/auth/AuthTextInput";
 import AuthPasswordInput from "@/components/atoms/auth/AuthPasswordInput";
-import OtpField from "@/components/molecules/auth/OtpField";
+import OtpField, { OTP_ROW_WIDTH_PX } from "@/components/molecules/auth/OtpField";
 import OwlLogo from "@/components/organisms/auth/OwlLogo";
 import type { OtpMessage, OtpPurpose, PasswordChecks, ResetEmailFlow, SignInErrorState } from "@/app/login/types";
 import { AuthFieldErrorSlot } from "@/components/atoms/auth/AuthFieldError";
 import ResetPasswordCard from "@/components/organisms/auth/ResetPasswordCard";
+import AuthFooterLinks from "@/components/atoms/auth/AuthFooterLinks";
 
 interface LoginAuthCardProps {
   mode: "signin" | "otp" | "forgot" | "reset-password";
@@ -89,7 +90,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
     props.showPassword || props.showNewPassword || props.showConfirmPassword;
 
   return (
-    <div className="z-10 flex h-full w-full flex-col items-center bg-white">
+    <div className="z-10 flex min-h-full w-full flex-1 flex-col bg-white">
       <div className="flex w-full justify-center">
         <OwlLogo passwordVisible={isAnyPasswordVisible} />
       </div>
@@ -138,7 +139,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
             </div>
 
             <div className="flex mt-[8px] mb-[16px] items-center justify-between">
-              <label className="group mb-1 mt-1 flex cursor-pointer items-center gap-2 text-[12px] font-[300] text-[#414141]">
+              <label className="group mb-1 mt-1 flex cursor-pointer items-center gap-2 font-[Poppins,sans-serif] text-[14px] font-[400] leading-[20px] text-[#414141]">
                 <input
                   type="checkbox"
                   checked={props.checked}
@@ -172,7 +173,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
               <button
                 type="button"
                 onClick={props.goToForgotPassword}
-                className="ui-text-sm cursor-pointer text-right align-middle font-normal tracking-[0] text-[#818181] no-underline transition-colors hover:text-[#777575] hover:underline"
+                className="cursor-pointer text-right font-[Poppins,sans-serif] text-[14px] font-[400] leading-[20px] text-[#414141] no-underline transition-colors hover:underline"
               >
                 Forgot Password?
               </button>
@@ -189,8 +190,8 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
       ) : null}
 
       {props.mode === "otp" ? (
-        <div className="mt-[40px] flex w-full max-w-[390px] flex-col items-center px-0">
-          <div className="mt-[23px] flex w-full items-center">
+        <div className="mt-[40px] flex w-full flex-col items-center px-0">
+          <div className="mt-[23px] flex w-full max-w-[390px] items-center">
             <button
               type="button"
               onClick={props.otpPurpose === "forgot" ? props.goToForgotPassword : props.goToSignIn}
@@ -199,11 +200,11 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
             >
               <IoMdArrowBack size={15} />
             </button>
-            <div className="flex flex-col items-center w-full">
+            <div className="flex w-full flex-col items-center">
               <h2 className="text-[15px] font-[500] text-[#414141]">
                 {props.otpPurpose === "forgot" ? "Enter password reset OTP" : "Enter OTP"}
               </h2>
-              <p className="mt-2 text-[12px] font-[400] text-[#818181]">
+              <p className="mt-2 text-center text-[12px] font-[400] text-[#818181]">
                 OTP has been sent to{" "}
                 <span className="underline">{props.email}</span>.
               </p>
@@ -211,7 +212,10 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
           </div>
 
           <div className="my-[24px] flex w-full justify-center">
-            <div className="flex flex-col items-start">
+            <div
+              className="flex flex-col items-stretch"
+              style={{ width: `${OTP_ROW_WIDTH_PX}px`, minWidth: `${OTP_ROW_WIDTH_PX}px` }}
+            >
               <OtpField
                 value={props.otp}
                 onChange={(value) => {
@@ -225,34 +229,34 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
                 message={props.otpMessage?.tone === "error" ? props.otpMessage.text : null}
                 jiggleKey={props.otpMessage?.tone === "error" ? props.validationErrorTick : 0}
               />
+
+              <AuthPrimaryButton
+                onClick={props.handleOtpSubmit}
+                label={props.isOtpSubmitting ? "Verifying..." : "Verify OTP"}
+                disabled={props.isOtpSubmitting || props.otp.length < 6}
+                className="mt-[24px] !w-full min-w-full self-stretch"
+              />
+
+              <div className="mt-4 flex w-full items-center justify-between gap-4">
+                <div className="font-[Roboto,sans-serif] text-[14px] font-[400] leading-[20px] text-[#414141]">
+                  (00:{props.timer > 9 ? props.timer : `0${props.timer}`})
+                </div>
+                <p className="text-right font-[Roboto,sans-serif] text-[14px] font-[400] leading-[20px] text-[#414141]">
+                  Didn&apos;t get the code?{" "}
+                  {!props.canResend ? (
+                    <span className="text-[#006FE7] opacity-60">Resend OTP</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={props.handleResendOtp}
+                      className="cursor-pointer text-[#006FE7] no-underline transition-opacity hover:underline hover:opacity-80"
+                    >
+                      Resend OTP
+                    </button>
+                  )}
+                </p>
+              </div>
             </div>
-          </div>
-
-          <AuthPrimaryButton
-            onClick={props.handleOtpSubmit}
-            label={props.isOtpSubmitting ? "Verifying..." : "Verify OTP"}
-            disabled={props.isOtpSubmitting || props.otp.length < 6}
-          />
-
-          <div className="mt-4 flex w-full justify-between">
-            <div className="text-[12px] font-normal text-[#414141]">(00:{props.timer > 9 ? props.timer : `0${props.timer}`})</div>
-            {!props.canResend ? (
-              <button
-                type="button"
-                disabled
-                className="ui-text-sm cursor-not-allowed text-right align-middle font-[Roboto,sans-serif] font-normal tracking-[0] text-[#0D4B37] opacity-60"
-              >
-                Resend OTP
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={props.handleResendOtp}
-                className="ui-text-sm cursor-pointer text-right align-middle font-[Roboto,sans-serif] font-normal tracking-[0] text-[#0D4B37] no-underline transition-colors hover:text-[#0a3b2b]"
-              >
-                Resend OTP
-              </button>
-            )}
           </div>
         </div>
       ) : null}
@@ -281,7 +285,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
               >
                 <p
                   key={props.resetEmailFlow === "otp" || props.resetEmailFlow === "admin_request" ? props.resetEmailFlow : "default"}
-                  className="mb-[18px] mt-[18px] text-justify text-[14px] font-normal text-[#414141] transition-colors duration-300 ease-out animate-auth-cta-label"
+                  className="mb-[18px] mt-[18px] text-center text-[14px] font-normal text-[#414141] transition-colors duration-300 ease-out animate-auth-cta-label"
                 >
                   {getForgotPasswordHelperText(props.resetEmailFlow)}
                 </p>
@@ -372,11 +376,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
         />
       ) : null}
 
-      <footer className="mt-auto flex justify-center gap-8 pt-8 text-[12px] text-[#818181]">
-        <span>Privacy Policy</span>
-        <span>Terms of Use</span>
-        <span>FAQs</span>
-      </footer>
+      <AuthFooterLinks />
     </div>
   );
 }

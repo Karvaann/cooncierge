@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Image from "next/image";
 import SideSheet from "../SideSheet";
 import SingleCalendar from "../SingleCalendar";
@@ -20,6 +20,16 @@ import RemarksField from "../forms/components/RemarksField";
 import generateCustomId, { getStoredCurrencySymbol } from "@/utils/helper";
 import ErrorToast from "../ErrorToast";
 import ConfirmationModal from "../popups/ConfirmationModal";
+import LinkProfilesModal, {
+  type LinkProfileSource,
+} from "../Modals/LinkProfilesModal";
+import {
+  MODAL_FIELD_INPUT_CLASS,
+  MODAL_FIELD_INPUT_GROUP_CLASS,
+  MODAL_FIELD_INPUT_GROUP_INNER_CLASS,
+  MODAL_FIELD_INPUT_GROUP_INNER_PLAIN_CLASS,
+  MODAL_FIELD_DROPDOWN_BUTTON_CLASS,
+} from "../atoms/modalFieldStyles";
 import {
   allowOnlyText,
   allowOnlyNumbers,
@@ -30,6 +40,7 @@ import { isValidEmail } from "@/utils/inputValidators";
 import {
   mapApiSourceToUiDropdown,
   mapUiSourceToApi,
+  mapTierToNumber,
 } from "@/utils/directoryApiMappers";
 import {
   getPhoneNumberMaxLength,
@@ -72,8 +83,6 @@ type CustomerData = {
 const CUSTOMER_TYPE_OPTIONS = [
   { value: "individual", label: "Individual" },
   { value: "corporate", label: "Corporate" },
-  { value: "agent", label: "Agent" },
-  { value: "travel-agent", label: "Travel Agent" },
 ];
 
 const SOURCE_OPTIONS = [
@@ -222,8 +231,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     source: "",
   });
 
-  const inputClassName =
-    "w-full border border-gray-300 rounded-md px-3 py-2 text-[13px] focus:outline-none focus:ring-1 focus:ring-[#7135AD] focus:border-[#7135AD] hover:border-[#7135AD33] disabled:bg-gray-100 disabled:text-gray-700";
+  const inputClassName = MODAL_FIELD_INPUT_CLASS;
 
   // Validation helpers / UI state for required fields
   const nameRef = useRef<HTMLInputElement | null>(null);
@@ -235,6 +243,10 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
   const [customerCode, setCustomerCode] = useState("");
   const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkTargetType, setLinkTargetType] = useState<
+    "Vendor" | "Traveller" | ""
+  >("");
   const initialSnapshotRef = useRef<string>("");
 
   // Users for Owner select
@@ -871,6 +883,31 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     );
   }, [mode, customerCode]);
 
+  const linkSourceProfile = useMemo((): LinkProfileSource => {
+    return {
+      profileType: "Customer",
+      id: customerCode || data?.customId || "—",
+      name: formData.name || "New Customer",
+      ...(formData.alias ? { nickname: formData.alias } : {}),
+      tier: mapTierToNumber(tier),
+    };
+  }, [customerCode, data?.customId, formData.alias, formData.name, tier]);
+
+  const openLinkModal = useCallback((target: "Vendor" | "Traveller") => {
+    setLinkTargetType(target);
+    setIsLinkModalOpen(true);
+  }, []);
+
+  const linkMenuIcon = (
+    <Image
+      src="/icons/link-icon.svg"
+      alt=""
+      width={14}
+      height={14}
+      className="object-contain"
+    />
+  );
+
   const headerRight = useMemo(
     () => (
       <div className="flex items-center gap-2">
@@ -901,42 +938,28 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
           Traveller 0
         </button>
         <ActionMenu
-          width="w-36"
+          width="w-[10.5rem]"
           right="right-0"
+          placement="below"
           actions={[
             {
-              label: "Reset Form",
-              onClick: () => {
-                setFormData({
-                  name: "",
-                  alias: "",
-                  phone: "",
-                  email: "",
-                  dateOfBirth: "",
-                  gstin: "",
-                  companyName: "",
-                  address: "",
-                  remarks: "",
-                  tier: "",
-                  alternatePhone: "",
-                  customerType: "",
-                  source: "",
-                });
-                setPhoneCode("+91");
-                setAlternatePhoneCode("+91");
-                setCustomerType("");
-                setSource("");
-                setTier("");
-                setBalanceAmount("");
-                setBalanceType("debit");
-                setAttachedFiles([]);
-              },
+              label: "Link Vendor",
+              icon: linkMenuIcon,
+              color: "text-[#414141]",
+              onClick: () => openLinkModal("Vendor"),
+              showDividerAfter: true,
+            },
+            {
+              label: "Link Traveller",
+              icon: linkMenuIcon,
+              color: "text-[#414141]",
+              onClick: () => openLinkModal("Traveller"),
             },
           ]}
         />
       </div>
     ),
-    [],
+    [openLinkModal],
   );
 
   const sourceDropdownOptions = useMemo(
@@ -1068,16 +1091,19 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   <label className="block text-[13px] font-medium text-gray-700">
                     Contact Number
                   </label>
-                  <div className="flex items-center">
+                  <div className={MODAL_FIELD_INPUT_GROUP_CLASS}>
                     <PhoneCodeSelect
                       value={phoneCode}
                       onChange={(v) => setPhoneCode(v)}
                       disabled={readOnly}
                       customWidth="w-[88px]"
                       menuWidth="w-[18rem]"
-                      className="flex-shrink-0 rounded-l-md"
+                      className="flex-shrink-0"
                       customHeight="h-9"
+                      noBorder
+                      noButtonRadius
                     />
+                    <div className="modal-field-input-group__divider" aria-hidden />
                     <input
                       name="phone"
                       type="text"
@@ -1086,7 +1112,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       maxLength={phoneMaxLength}
                       placeholder="Enter Contact Number"
                       disabled={readOnly}
-                      className={`${inputClassName} rounded-l-none`}
+                      className={MODAL_FIELD_INPUT_GROUP_INNER_CLASS}
                     />
                   </div>
                 </div>
@@ -1094,16 +1120,19 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   <label className="block text-[13px] font-medium text-gray-700">
                     Alternate Contact Number
                   </label>
-                  <div className="flex items-center">
+                  <div className={MODAL_FIELD_INPUT_GROUP_CLASS}>
                     <PhoneCodeSelect
                       value={alternatePhoneCode}
                       onChange={(v) => setAlternatePhoneCode(v)}
                       disabled={readOnly}
                       customWidth="w-[88px]"
                       menuWidth="w-[18rem]"
-                      className="flex-shrink-0 rounded-l-md"
+                      className="flex-shrink-0"
                       customHeight="h-9"
+                      noBorder
+                      noButtonRadius
                     />
+                    <div className="modal-field-input-group__divider" aria-hidden />
                     <input
                       name="alternatePhone"
                       type="text"
@@ -1112,7 +1141,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       maxLength={alternatePhoneMaxLength}
                       placeholder="Enter Contact Number"
                       disabled={readOnly}
-                      className={`${inputClassName} rounded-l-none`}
+                      className={MODAL_FIELD_INPUT_GROUP_INNER_CLASS}
                     />
                   </div>
                 </div>
@@ -1157,30 +1186,35 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
               </h2>
               <hr className="mt-1 mb-3 border-t border-gray-200" />
 
-              <div className="flex flex-col gap-1">
-                <label className="block text-[13px] font-medium text-gray-700">
-                  Customer Type <span className="text-red-500">*</span>
-                </label>
-                <DropDown
-                  options={customerTypeDropdownOptions}
-                  value={customerType}
-                  onChange={(v) => {
-                    setCustomerType(v);
-                    if (invalidField === "customerType") {
-                      setInvalidField(null);
-                    }
-                  }}
-                  placeholder="Select Customer Type"
-                  disabled={readOnly}
-                  customWidth="w-full"
-                  menuWidth="w-full"
-                  focusRingClass="focus:ring-1 focus:ring-[#7135AD]"
-                  className={
-                    invalidField === "customerType"
-                      ? "border border-red-300 rounded-md"
-                      : ""
-                  }
-                />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="flex flex-col gap-1">
+                  <label className="block text-[13px] font-medium text-gray-700">
+                    Customer Type <span className="text-red-500">*</span>
+                  </label>
+                  <DropDown
+                    options={customerTypeDropdownOptions}
+                    value={customerType}
+                    onChange={(v) => {
+                      setCustomerType(v);
+                      if (invalidField === "customerType") {
+                        setInvalidField(null);
+                      }
+                    }}
+                    placeholder="Select Customer Type"
+                    disabled={readOnly}
+                    customWidth="w-full"
+                    menuWidth="w-full"
+                    className="w-full"
+                    buttonClassName={`${MODAL_FIELD_DROPDOWN_BUTTON_CLASS} ${
+                      invalidField === "customerType"
+                        ? "border-red-300 modal-field-input--error"
+                        : ""
+                    }`}
+                    noButtonRadius
+                    noBorder
+                    focusRingClass=""
+                  />
+                </div>
               </div>
             </div>
 
@@ -1197,10 +1231,10 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     value="debit"
                     checked={balanceType === "debit"}
                     onChange={() => setBalanceType("debit")}
-                    className="w-4 h-4 text-[#7135AD] border-gray-300 focus:ring-[#7135AD]"
+                    className="modal-radio"
                     disabled={readOnly}
                   />
-                  <span className="text-gray-700">Debit</span>
+                  <span className="text-[#414141]">Debit</span>
                 </label>
 
                 <label className="flex items-center gap-2 cursor-pointer text-[13px]">
@@ -1210,16 +1244,18 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     value="credit"
                     checked={balanceType === "credit"}
                     onChange={() => setBalanceType("credit")}
-                    className="w-4 h-4 text-[#7135AD] border-gray-300 focus:ring-[#7135AD]"
+                    className="modal-radio"
                     disabled={readOnly}
                   />
-                  <span className="text-gray-700">Credit</span>
+                  <span className="text-[#414141]">Credit</span>
                 </label>
               </div>
 
               <div className="relative mb-3">
-                <div className="flex items-center border border-gray-300 rounded-lg px-3 py-2 focus-within:ring-1 focus-within:ring-[#7135AD] focus-within:border-[#7135AD]">
-                  <span className="text-gray-500 mr-2 text-[13px]">
+                <div
+                  className={`${MODAL_FIELD_INPUT_GROUP_CLASS} items-center py-2 pl-3 pr-44`}
+                >
+                  <span className="mr-2 shrink-0 text-[13px] text-gray-500">
                     {getStoredCurrencySymbol()}
                   </span>
                   <input
@@ -1237,18 +1273,18 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                         : "Enter Credit Amount"
                     }
                     disabled={readOnly}
-                    className="flex-1 outline-none text-gray-700 text-[13px] disabled:bg-gray-100 disabled:text-gray-700 pr-44"
+                    className={MODAL_FIELD_INPUT_GROUP_INNER_PLAIN_CLASS}
                   />
-                  <span
-                    className={`absolute right-3 whitespace-nowrap text-[12px] font-medium ${
-                      balanceType === "debit" ? "text-[#419836]" : "text-red-500"
-                    }`}
-                  >
-                    {balanceType === "debit"
-                      ? `Customer pays you ${getStoredCurrencySymbol()}`
-                      : `You pay the customer ${getStoredCurrencySymbol()}`}
-                  </span>
                 </div>
+                <span
+                  className={`pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 whitespace-nowrap text-[12px] font-medium ${
+                    balanceType === "debit" ? "text-[#419836]" : "text-red-500"
+                  }`}
+                >
+                  {balanceType === "debit"
+                    ? `Customer pays you ${getStoredCurrencySymbol()}`
+                    : `You pay the customer ${getStoredCurrencySymbol()}`}
+                </span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1264,7 +1300,11 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     disabled={readOnly}
                     customWidth="w-full"
                     menuWidth="w-full"
-                    focusRingClass="focus:ring-1 focus:ring-[#7135AD]"
+                    className="w-full"
+                    buttonClassName={MODAL_FIELD_DROPDOWN_BUTTON_CLASS}
+                    noButtonRadius
+                    noBorder
+                    focusRingClass=""
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -1279,7 +1319,11 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                     disabled={readOnly}
                     customWidth="w-full"
                     menuWidth="w-full"
-                    focusRingClass="focus:ring-1 focus:ring-[#7135AD]"
+                    className="w-full"
+                    buttonClassName={MODAL_FIELD_DROPDOWN_BUTTON_CLASS}
+                    noButtonRadius
+                    noBorder
+                    focusRingClass=""
                   />
                 </div>
               </div>
@@ -1450,6 +1494,19 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
             setIsCloseConfirmOpen(false);
             onCancel();
           }}
+        />
+      )}
+      {isLinkModalOpen && (
+        <LinkProfilesModal
+          isOpen={isLinkModalOpen}
+          onClose={() => {
+            setIsLinkModalOpen(false);
+            setLinkTargetType("");
+          }}
+          sourceProfile={linkSourceProfile}
+          initialTargetProfileType={
+            linkTargetType || undefined
+          }
         />
       )}
     </>

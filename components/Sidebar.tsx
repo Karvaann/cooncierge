@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { IoChevronForward } from "react-icons/io5";
-import { TbLayoutSidebarLeftCollapse } from "react-icons/tb";
 import SidebarNavIcon from "@/components/navigation/SidebarNavIcon";
 import {
   menuItems,
@@ -40,9 +39,10 @@ function getSubLabelClassName(isActive: boolean) {
   ].join(" ");
 }
 
-function getMenuItemClassName(isHighlighted: boolean) {
+function getMenuItemClassName(isHighlighted: boolean, isOpen: boolean) {
   return [
-    "group flex w-full items-center gap-3 rounded-[10px] px-3 py-2 transition-colors duration-200 outline-none",
+    "group flex w-full items-center rounded-[10px] py-2 transition-colors duration-200 outline-none",
+    isOpen ? "gap-3 px-3" : "justify-center px-0",
     "focus-visible:bg-[#F5F5F5]",
     isHighlighted
       ? "bg-[#F5F5F5] text-[#7135AD]"
@@ -90,13 +90,19 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     }
   }, [pathname, itemsToRender]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setOpenSubMenuIndex(null);
+    }
+  }, [isOpen]);
+
   const renderMenuItem = (item: MenuItem, index: number) => {
     const isRouteSelected = isItemActive(pathname, item);
     const isExpanded = openSubMenuIndex === index;
     const showSubMenu = Boolean(item.subMenu?.length);
     const isLabelActive = isRouteSelected || isExpanded;
     const isHighlighted = isRouteSelected || isExpanded;
-    const itemClasses = getMenuItemClassName(isHighlighted);
+    const itemClasses = getMenuItemClassName(isHighlighted, isOpen);
 
     const content = (
       <>
@@ -138,7 +144,9 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
               type="button"
               className={
                 isExpanded
-                  ? "group flex w-full items-center gap-3 px-3 py-2 text-[#7135AD] transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#7135AD]/30"
+                  ? `group flex w-full items-center py-2 text-[#7135AD] transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-[#7135AD]/30 ${
+                      isOpen ? "gap-3 px-3" : "justify-center px-0"
+                    }`
                   : itemClasses
               }
               onClick={() => setOpenSubMenuIndex(isExpanded ? null : index)}
@@ -190,41 +198,37 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   };
 
   return (
-    <aside aria-label="Primary navigation">
-      {!isOpen ? null : (
+    <aside aria-label="Primary navigation" aria-hidden={!isOpen}>
       <div
-        className="sidebar-shell fixed left-0 top-0 z-50 flex h-screen flex-col overflow-hidden border-r border-[#F0F0F0] bg-white transition-[width] duration-300 ease-out"
-        style={{ width: SIDEBAR_WIDTH_OPEN }}
+        className={`sidebar-shell fixed left-0 top-0 z-50 h-screen overflow-hidden border-[#F0F0F0] bg-white transition-[width,border-width] duration-[450ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
+          isOpen ? "" : "pointer-events-none"
+        }`}
+        style={{
+          width: isOpen ? SIDEBAR_WIDTH_OPEN : 0,
+          borderRightWidth: isOpen ? 1 : 0,
+        }}
       >
-        <div className="flex shrink-0 items-center justify-between border-b border-[#F0F0F0] px-4 py-5">
-          <span className="font-[Poppins,sans-serif] text-[22px] font-semibold leading-none text-[#7135AD]">
-            ciergo
-          </span>
-
-          <button
-            type="button"
-            onClick={() => setIsOpen(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-[8px] text-[#818181] transition-colors hover:bg-[#F5F5F5] hover:text-[#414141]"
-            aria-label="Collapse sidebar"
-          >
-            <TbLayoutSidebarLeftCollapse size={18} />
-          </button>
-        </div>
-
-        <nav
-          aria-label="Sidebar"
-          className="flex min-h-0 flex-1 flex-col justify-between overflow-y-auto px-3 py-4"
+        <div
+          className="flex h-full flex-col"
+          style={{ width: SIDEBAR_WIDTH_OPEN }}
         >
-          <ul className="flex flex-col gap-1">{primaryItems.map(renderMenuItem)}</ul>
+          <div className="h-[72px] shrink-0 border-b border-[#F0F0F0]" />
 
-          {settingsItem ? (
-            <ul className="mt-4 flex flex-col gap-1 border-t border-[#F0F0F0] pt-4">
-              {renderMenuItem(settingsItem, primaryItems.length)}
-            </ul>
-          ) : null}
-        </nav>
+          <nav
+            aria-label="Sidebar"
+            aria-hidden={!isOpen}
+            className="flex min-h-0 flex-1 flex-col justify-between overflow-y-auto px-3 py-4"
+          >
+            <ul className="flex flex-col gap-1">{primaryItems.map(renderMenuItem)}</ul>
+
+            {settingsItem ? (
+              <ul className="mt-4 flex flex-col gap-1 border-t border-[#F0F0F0] pt-4">
+                {renderMenuItem(settingsItem, primaryItems.length)}
+              </ul>
+            ) : null}
+          </nav>
+        </div>
       </div>
-      )}
     </aside>
   );
 }

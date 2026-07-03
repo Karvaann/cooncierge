@@ -34,7 +34,7 @@ export default function ConsoleLayout({ children }: ConsoleLayoutProps) {
     return (
       <div className="min-h-screen w-full bg-slate-100 text-slate-900">
         <RoutePrefetcher />
-        <Header isSidebarOpen={false} onSidebarExpand={() => {}} />
+        <Header />
         <ConsoleMainSurface>
           {children}
         </ConsoleMainSurface>
