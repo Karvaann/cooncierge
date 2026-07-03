@@ -39,12 +39,12 @@ import {
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import { MdHistory } from "react-icons/md";
 import { BOOKING_HISTORY_ACTION_BUTTON_CLASS } from "@/components/table/bookingHistoryActionStyles";
+import TotalCountPill from "@/components/table/TotalCountPill";
 import Image from "next/image";
 import CustomIdApi from "@/services/customIdApi";
 import DirectoryPeopleTabs, {
   CUSTOMER_PAGE_TABS,
 } from "@/components/directory/DirectoryPeopleTabs";
-import DirectoryTravellersToggle from "@/components/directory/DirectoryTravellersToggle";
 import CustomerNameTypeFilterDropdown, {
   DEFAULT_CUSTOMER_NAME_TYPE_FILTER,
 } from "@/components/Filters/CustomerNameTypeFilterDropdown";
@@ -1070,14 +1070,7 @@ const CustomerDirectory = () => {
             </div>
 
             <div className="flex shrink-0 items-center gap-[20px]">
-              {activeTab === "Customers" && (
-                <DirectoryTravellersToggle isTravellersView={false} />
-              )}
-
-              <div className="flex items-center rounded-full border border-[#C6B2DE] px-[14px] py-[6px] align-middle font-[Poppins,sans-serif] text-[12px] leading-[20px] tracking-[0] text-[#4B4B4B]">
-                <span className="font-normal italic">Total : </span>
-                <span className="font-normal not-italic text-[#7135AD]">{totalCount}</span>
-              </div>
+              <TotalCountPill count={totalCount} />
             </div>
           </div>
 

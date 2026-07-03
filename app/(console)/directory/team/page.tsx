@@ -22,6 +22,7 @@ import { getBookingHistoryByTeamMember } from "@/services/teamsApi";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import CustomIdApi from "@/services/customIdApi";
 import SlidingTabs from "@/components/organisms/navigation/SlidingTabs";
+import TotalCountPill from "@/components/table/TotalCountPill";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -413,14 +414,7 @@ const TeamDirectory = () => {
 
         {/*  Total Count + Add Button */}
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
-            <span className="text-gray-600 text-[0.85rem] font-medium">
-              Total
-            </span>
-            <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
-              {teams.length}
-            </span>
-          </div>
+          <TotalCountPill count={teams.length} />
           <button
             onClick={async () => {
               try {

@@ -18,6 +18,7 @@ import {
   formatNumberByStoredCurrency,
   getStoredCurrencySymbol,
 } from "@/utils/helper";
+import TotalCountPill from "@/components/table/TotalCountPill";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -405,14 +406,7 @@ const FinanceJournalsPage = () => {
               ))}
             </div>
 
-            <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
-              <span className="text-gray-600 text-[14px] font-medium">
-                Total
-              </span>
-              <span className="bg-gray-100 text-black font-semibold text-[14px] px-2 mr-1 rounded-lg shadow-sm">
-                {filteredJournals.length}
-              </span>
-            </div>
+            <TotalCountPill count={filteredJournals.length} />
           </div>
 
           <div className="p-2 mt-2">

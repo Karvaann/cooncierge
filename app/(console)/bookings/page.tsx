@@ -53,6 +53,7 @@ import { getNextTriSortState, type TriSortState } from "@/utils/sorting";
 import UnderlineTabs from "@/components/UnderlineTabs";
 import { RiRefreshLine } from "react-icons/ri";
 import BookingsPageViewport from "@/components/bookings/BookingsPageViewport";
+import TotalCountPill from "@/components/table/TotalCountPill";
 
 const Filter = dynamic(() => import("@/components/Filter"), {
   loading: () => <FilterSkeleton />,
@@ -2800,12 +2801,7 @@ const OSBookingsPage = () => {
                     </span>
                   </div>
 
-                  <div className="rounded-full border border-[#C6B2DE] px-[14px] py-[6px] text-[12px] font-[500] text-[#4B4B4B]">
-                    Total :{" "}
-                    <span className="font-[500] text-[#7135AD]">
-                      {serverTotalCount}
-                    </span>
-                  </div>
+                  <TotalCountPill count={serverTotalCount} />
                 </div>
               </div>
               <div className="mt-4 flex-1 min-h-0 overflow-auto px-5 py-[4px]">

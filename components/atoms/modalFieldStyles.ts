@@ -4,7 +4,7 @@ export const MODAL_FIELD_INPUT_CLASS =
 
 /** DropDown trigger button — matches modal input width and styling */
 export const MODAL_FIELD_DROPDOWN_BUTTON_CLASS =
-  "modal-field-input w-full min-h-[42px] px-3 py-2 text-[13px] disabled:bg-gray-100 disabled:text-gray-700 disabled:cursor-not-allowed";
+  "modal-field-input w-full min-h-[42px] px-3 py-2 text-[12px] disabled:bg-gray-100 disabled:text-gray-700 disabled:cursor-not-allowed";
 
 /** Wrapper for compound fields (phone code + number, currency amount, etc.) */
 export const MODAL_FIELD_INPUT_GROUP_CLASS = "modal-field-input-group";

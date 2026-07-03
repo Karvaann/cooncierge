@@ -31,6 +31,7 @@ import {
 import SlidingTabs from "@/components/organisms/navigation/SlidingTabs";
 import { MdOutlineRemoveRedEye } from "react-icons/md";
 import DateRangeInputBeta from "@/components/DateRangeInputBeta";
+import TotalCountPill from "@/components/table/TotalCountPill";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
@@ -682,14 +683,7 @@ const PaymentsPage = () => {
 
           {/* Total + Action Buttons */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-white w-[5.5rem] border border-gray-200 rounded-xl px-2 py-1.5 mr-2">
-              <span className="text-gray-600 text-[0.85rem] font-medium">
-                Total
-              </span>
-              <span className="bg-gray-100 text-black font-semibold text-[0.85rem] px-2 mr-1 rounded-lg shadow-sm">
-                {totalCount}
-              </span>
-            </div>
+            <TotalCountPill count={totalCount} />
 
             <button
               className="flex items-center gap-2 px-4 py-2 rounded-md bg-red-600 text-white font-medium"

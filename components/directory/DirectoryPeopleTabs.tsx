@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import TableTabs from "@/components/TableTabs";
 
 export const TRAVELLER_PAGE_TABS = ["Travellers", "Customers", "Deleted"] as const;
-export const CUSTOMER_PAGE_TABS = ["Customers", "Draft", "Deleted"] as const;
+export const CUSTOMER_PAGE_TABS = ["Customers", "Travellers", "Deleted"] as const;
 
 type DirectoryPeopleTabsProps = {
   tabs: readonly string[];
@@ -25,6 +25,11 @@ export default function DirectoryPeopleTabs({
   const handleChange = (tab: string) => {
     const isTravellersPage = tabs.includes("Travellers");
 
+    if (tab === "Travellers" && activeTab !== "Travellers") {
+      router.push("/directory/travellers");
+      return;
+    }
+
     if (onLocalTabChange && tabs.includes(tab)) {
       // On travellers page, "Customers" switches to the customers directory route.
       if (tab === "Customers" && isTravellersPage) {
@@ -33,11 +38,6 @@ export default function DirectoryPeopleTabs({
       }
 
       onLocalTabChange(tab);
-      return;
-    }
-
-    if (tab === "Travellers") {
-      router.push("/directory/travellers");
       return;
     }
 

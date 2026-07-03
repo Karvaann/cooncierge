@@ -11,7 +11,7 @@ import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { FaRegCalendar } from "react-icons/fa";
 import { IoChevronDown } from "react-icons/io5";
 import { LuDownload } from "react-icons/lu";
-import { FiCheck, FiX } from "react-icons/fi";
+import { FiCheck, FiCopy, FiEdit2, FiLink, FiTrash2, FiX } from "react-icons/fi";
 import { RiRefreshLine } from "react-icons/ri";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
@@ -25,6 +25,7 @@ import RecordPaymentSidesheet from "@/components/Sidesheets/RecordPaymentSideshe
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
 import FinanceSummaryPills from "@/components/finance/FinanceSummaryPills";
 import FinanceBookingsCalendar from "@/components/finance/FinanceBookingsCalendar";
+import TotalCountPill from "@/components/table/TotalCountPill";
 import {
   formatNumberByStoredCurrency,
   formatServiceType,
@@ -729,16 +730,16 @@ const FinanceBookingsPage = () => {
           e.stopPropagation();
           handleSort(column);
         }}
-        className="inline-flex items-center"
+        className="inline-flex items-center rounded-sm text-[#818181] transition-colors hover:text-[#7135AD]"
       >
-        <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+        <TbArrowsUpDown className="inline h-[13px] w-[13px] stroke-[2]" />
       </button>
     );
 
     return {
       "Lead Pax": sortButton("Lead Pax"),
       "Travel Date": (
-        <span className="inline-flex items-center gap-2">
+        <span className="inline-flex items-center gap-1.5">
           <button
             type="button"
             data-header-filter-trigger="Travel Date"
@@ -748,10 +749,10 @@ const FinanceBookingsPage = () => {
                 prev === "Travel Date" ? null : "Travel Date",
               );
             }}
-            className="inline-flex items-center"
+            className="inline-flex items-center rounded-sm transition-colors"
           >
             <CiFilter
-              className={`inline h-3 w-3 stroke-[2] ${
+              className={`inline h-[13px] w-[13px] stroke-[2] ${
                 activeHeaderFilter === "Travel Date"
                   ? "text-[#7C3AED]"
                   : "text-[#818181] hover:text-[#7135AD]"
@@ -762,7 +763,7 @@ const FinanceBookingsPage = () => {
         </span>
       ),
       "Booking Date": (
-        <span className="inline-flex items-center gap-2">
+        <span className="inline-flex items-center gap-1.5">
           <button
             type="button"
             data-header-filter-trigger="Travel Date"
@@ -772,10 +773,10 @@ const FinanceBookingsPage = () => {
                 prev === "Travel Date" ? null : "Travel Date",
               );
             }}
-            className="inline-flex items-center"
+            className="inline-flex items-center rounded-sm transition-colors"
           >
             <CiFilter
-              className={`inline h-3 w-3 stroke-[2] ${
+              className={`inline h-[13px] w-[13px] stroke-[2] ${
                 activeHeaderFilter === "Travel Date"
                   ? "text-[#7C3AED]"
                   : "text-[#818181] hover:text-[#7135AD]"
@@ -787,7 +788,7 @@ const FinanceBookingsPage = () => {
       ),
       Service: (
         <CiFilter
-          className={`inline h-3 w-3 stroke-[2] ${
+          className={`inline h-[13px] w-[13px] stroke-[2] ${
             activeHeaderFilter === "Service"
               ? "text-[#7C3AED]"
               : "text-[#818181] hover:text-[#7135AD]"
@@ -879,6 +880,8 @@ const FinanceBookingsPage = () => {
   const tableData = useMemo<JSX.Element[][]>(() => {
     return sortedBookings.map((row, index) => {
       const cells: JSX.Element[] = [];
+      const showApprovalActions =
+        row.paymentStatus === "pending" || row.requiresApprovalAction;
 
       if (selectMode) {
         const isSelected = selectedBookingIds.includes(row.id);
@@ -1022,25 +1025,24 @@ const FinanceBookingsPage = () => {
       </td>,
       <td key={`actions-${index}`} className="h-[4rem] px-4 py-3 text-center align-middle">
         <div
-          className="mx-auto flex w-fit items-center gap-[8px] opacity-0 pointer-events-none transition-opacity duration-300 ease-in-out [.row-actions-active_&]:opacity-100 [.row-actions-active_&]:pointer-events-auto"
+          className="mx-auto flex w-fit items-center gap-[8px]"
           onClick={(e) => e.stopPropagation()}
         >
-          {activeTab === "Waiting for Approval" &&
-          row.requiresApprovalAction ? (
+          {showApprovalActions ? (
             <>
               <button
                 type="button"
                 aria-label="Approve booking"
-                className="flex h-9 w-9 items-center justify-center rounded-md border border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                className="flex h-7 w-7 items-center justify-center rounded-[6px] border border-[#A5D6A7] bg-white text-[#3FA34D] transition-colors hover:bg-[#F0FDF4]"
               >
-                <FiCheck className="h-4 w-4" />
+                <FiCheck className="h-[15px] w-[15px]" />
               </button>
               <button
                 type="button"
                 aria-label="Reject booking"
-                className="flex h-9 w-9 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+                className="flex h-7 w-7 items-center justify-center rounded-[6px] border border-[#F4B4B4] bg-white text-[#DD1425] transition-colors hover:bg-[#FFF5F5]"
               >
-                <FiX className="h-4 w-4" />
+                <FiX className="h-[15px] w-[15px]" />
               </button>
             </>
           ) : (
@@ -1058,17 +1060,37 @@ const FinanceBookingsPage = () => {
           <ActionMenu
             actions={[
               {
-                label: "Record Payment",
+                label: "Edit",
+                icon: <FiEdit2 size={16} />,
+                color: "text-[#006FE7]",
                 onClick: () => {
                   setSelectedPaymentBooking(row);
                   setIsRecordPaymentOpen(true);
                 },
+                showDividerAfter: true,
               },
               {
-                label: "View Booking",
+                label: "Delete",
+                icon: <FiTrash2 size={16} />,
+                color: "text-[#DD1425]",
+                onClick: () => {},
+                showDividerAfter: true,
+              },
+              {
+                label: "Link",
+                icon: <FiLink size={16} />,
+                color: "text-[#3FA34D]",
+                onClick: () => {},
+                showDividerAfter: true,
+              },
+              {
+                label: "Duplicate",
+                icon: <FiCopy size={16} />,
+                color: "text-[#818181]",
                 onClick: () => {},
               },
             ]}
+            width="w-[13rem]"
             right="right-10"
           />
         </div>
@@ -1172,7 +1194,7 @@ const FinanceBookingsPage = () => {
               }
               className={`inline-flex h-10 w-10 items-center justify-center rounded-[14px] border transition-colors ${
                 viewMode === "calendar"
-                  ? "border-[#7135AD] bg-[#7135AD] text-white hover:bg-[#5F2D96]"
+                  ? "border-[#7135AD] bg-white text-[#7135AD] hover:bg-[#7135AD0D]"
                   : "border-[#E2E1E1] bg-white text-[#414141] hover:bg-[#FAFAFA]"
               }`}
               aria-label="Calendar view"
@@ -1220,16 +1242,16 @@ const FinanceBookingsPage = () => {
           <FinanceBookingsCalendar />
         ) : (
         <div className="relative mt-4 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
-          <div className="flex items-center justify-between border-b border-[#E5E7EB]">
-            <div className="flex min-w-0 flex-1 items-end">
+          <div className="flex min-h-[44px] items-center justify-between border-b border-[#E5E7EB] px-4">
+            <div className="flex min-w-0 flex-1 items-center">
               <UnderlineTabs
                 tabs={[...TAB_OPTIONS]}
                 activeTab={activeTab}
                 onChange={setActiveTab}
                 totalCount={filteredBookings.length}
-                className="!border-b-0"
+                className="-ml-4 !border-b-0"
               />
-              <div className="mb-[10px] ml-2 shrink-0">
+              <div className="ml-2 shrink-0">
                 <DropDown
                   options={APPROVAL_FILTER_OPTIONS.map((opt) => ({
                     value: opt.value,
@@ -1247,15 +1269,16 @@ const FinanceBookingsPage = () => {
                   }))}
                   value={bookingScope}
                   onChange={setBookingScope}
-                  customWidth="w-[100px]"
-                  customHeight="py-[6px]"
-                  buttonClassName="!rounded-[10px] !border-[#E2E1E1] !bg-white !text-[13px] !font-[500] !text-[#414141]"
-                  menuWidth="w-[132px]"
-                  menuClassName="!rounded-[12px] !border-[#E2E1E1]"
+                  customWidth="w-[132px]"
+                  customHeight="py-[5px]"
+                  buttonClassName="!rounded-[10px] !border-[#E2E1E1] !bg-white !text-[13px] !font-[500] !leading-[20px] !text-[#414141]"
+                  menuWidth="w-full"
+                  menuClassName="!rounded-[8px] !border-[#E2E1E1] !shadow-[0_8px_16px_rgba(0,0,0,0.06)]"
+                  optionClassName="!px-3 !py-1.5 !text-[12px] !leading-[20px] [&_*]:!text-[12px] [&_*]:!leading-[20px]"
                 />
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-[20px] px-4">
+            <div className="flex shrink-0 items-center gap-[20px]">
               <div className="flex items-center gap-[6px]">
                 <button
                   type="button"
@@ -1277,10 +1300,7 @@ const FinanceBookingsPage = () => {
                 </span>
               </div>
 
-              <div className="rounded-full border border-[#F5E6C3] bg-[#FFF1C2] px-[14px] py-[6px] text-[12px] font-[500] text-[#414141]">
-                Total{" "}
-                <span className="font-[600]">{totalCount}</span>
-              </div>
+              <TotalCountPill count={totalCount} />
             </div>
           </div>
 

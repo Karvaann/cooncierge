@@ -332,7 +332,7 @@ const DropDown: React.FC<DropdownProps> = ({
                 : "bg-white"
           } ${noButtonRadius ? "" : "rounded-[15px]"} ${
             noBorder ? "border border-transparent" : "border border-gray-300"
-          } ${hasCustomHoverBorder ? "" : "hover:border-[#C6AEDE]"} transition-colors text-[13px] ${focusRingClass} ${buttonClassName}`}
+          } ${hasCustomHoverBorder ? "" : "hover:border-[#C6AEDE]"} transition-colors text-[12px] ${focusRingClass} ${buttonClassName}`}
         >
           <input
             ref={typeableInputRef}
@@ -360,7 +360,7 @@ const DropDown: React.FC<DropdownProps> = ({
             }}
             disabled={disabled}
             readOnly={readOnly}
-            className={`flex-1 min-w-0 bg-transparent outline-none text-[13px]${readOnly ? " cursor-not-allowed" : ""}`}
+            className={`flex-1 min-w-0 bg-transparent outline-none text-[12px]${readOnly ? " cursor-not-allowed" : ""}`}
           />
           <svg
             onClick={(e) => {
@@ -402,11 +402,11 @@ const DropDown: React.FC<DropdownProps> = ({
                 : "bg-white"
           } ${noButtonRadius ? "" : "rounded-md"} ${
             noBorder ? "border border-transparent" : "border border-gray-300"
-          } ${hasCustomHoverBorder ? "" : "hover:border-[#C6AEDE]"} transition-colors text-left text-[13px] focus:outline-none ${focusRingClass} ${buttonClassName}`}
+          } ${hasCustomHoverBorder ? "" : "hover:border-[#C6AEDE]"} transition-colors text-left text-[12px] focus:outline-none ${focusRingClass} ${buttonClassName}`}
         >
           {!iconOnly && (
             <span
-              className={`${selectedValue ? "text-black" : "text-gray-400"}`}
+              className={`${selectedValue ? "text-black" : "text-gray-400"} [&_*]:!text-[12px]`}
             >
               {displayText}
             </span>
@@ -457,10 +457,10 @@ const DropDown: React.FC<DropdownProps> = ({
                   }
                   return base;
                 })()}
-                className={`${menuWidthClass} bg-white ${menuClassName || "rounded-md"} border border-gray-300 shadow-lg overflow-auto max-h-[240px] z-[1100]`}
+                className={`${menuWidthClass} bg-white ${menuClassName || "rounded-[16px]"} border border-[#E2E1E1] shadow-[0_8px_20px_rgba(0,0,0,0.04)] overflow-hidden overflow-y-auto max-h-[240px] z-[1100]`}
               >
                 {searchable && (
-                  <div className="sticky top-0 bg-white z-10 border-b border-gray-200 p-2">
+                  <div className="sticky top-0 bg-white z-10 border-b border-[#E2E1E1] p-2">
                     <input
                       type="text"
                       value={searchQuery}
@@ -478,10 +478,10 @@ const DropDown: React.FC<DropdownProps> = ({
                     data-idx={idx}
                     onMouseEnter={() => typeable && setHighlightIdx(idx)}
                     onClick={() => handleSelect(option.value)}
-                    className={`w-full block px-2 py-1.5 text-left text-[13px] transition-colors border-b border-gray-100 last:border-b-0 ${
+                    className={`w-full block px-4 py-2.5 text-left text-[12px] transition-colors border-b border-[#E2E1E1] last:border-b-0 [&_*]:!text-[12px] ${
                       typeable && idx === highlightIdx
-                        ? "bg-green-50 text-black"
-                        : "text-black hover:bg-gray-50"
+                        ? "bg-[#F2F2F2] text-[#414141]"
+                        : "text-[#414141] hover:bg-[#F2F2F2]"
                     } ${optionClassName}`}
                   >
                     {option.label}
@@ -492,7 +492,7 @@ const DropDown: React.FC<DropdownProps> = ({
                   <button
                     type="button"
                     onClick={handleFooterClick}
-                    className={`w-full px-3 py-2 text-[13px] text-[#126ACB] font-semibold flex items-center justify-center gap-2 hover:bg-gray-50 border-t border-gray-200 ${
+                    className={`w-full px-3 py-2 text-[12px] text-[#126ACB] font-semibold flex items-center justify-center gap-2 hover:bg-[#F2F2F2] border-t border-[#E2E1E1] ${
                       footerAction.className || ""
                     }`}
                   >

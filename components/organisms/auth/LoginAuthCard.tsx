@@ -265,19 +265,20 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
         <div className="mt-[40px] w-full">
           {!props.success ? (
             <div className="space-y-4">
-              <div className="mt-[20px] flex items-center">
+              <div className="relative mt-[20px] flex w-full items-center justify-center">
                 <button
                   type="button"
                   onClick={props.goToSignIn}
-                  className="rounded-full p-1 transition-colors hover:bg-gray-200"
+                  className="absolute left-0 rounded-full p-1 transition-colors hover:bg-gray-200"
                   aria-label="Back"
                 >
                   <IoMdArrowBack size={20} />
                 </button>
-                <h2 className="w-[85%] text-center text-[17px] font-semibold text-[#020202]">Forgot Password</h2>
+                <h2 className="w-full text-center text-[17px] font-semibold text-[#020202]">Forgot Password</h2>
               </div>
 
               <form
+                className="w-full"
                 onSubmit={(event) => {
                   event.preventDefault();
                   void props.handlePasswordResetRequest();
@@ -285,7 +286,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
               >
                 <p
                   key={props.resetEmailFlow === "otp" || props.resetEmailFlow === "admin_request" ? props.resetEmailFlow : "default"}
-                  className="mb-[18px] mt-[18px] text-center text-[14px] font-normal text-[#414141] transition-colors duration-300 ease-out animate-auth-cta-label"
+                  className="mx-auto mb-[18px] mt-[18px] w-full text-center text-[14px] font-normal text-[#414141] transition-colors duration-300 ease-out animate-auth-cta-label"
                 >
                   {getForgotPasswordHelperText(props.resetEmailFlow)}
                 </p>

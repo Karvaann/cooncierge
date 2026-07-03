@@ -1263,7 +1263,7 @@ const RecordPaymentSidesheet: React.FC<RecordPaymentSidesheetProps> = ({
                     value={selectedBank}
                     onChange={(val) => setSelectedBank(val)}
                     customWidth="w-full"
-                    buttonClassName="text-[13px]"
+                    buttonClassName="text-[12px]"
                     footerAction={{
                       label: "Add New Bank",
                       icon: <FiPlusCircle size={16} />,
