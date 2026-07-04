@@ -648,7 +648,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                       setFormData((prev) => ({ ...prev, dateOfBirth: iso }))
                     }
                     placeholder="Select Date"
-                    customWidth="w-full mt-1.5 py-2"
+                    customWidth="w-full mt-1.5"
+                    inputStyleClass={`${MODAL_FIELD_INPUT_CLASS} px-3 py-2 pr-8 text-[13px]`}
                     showCalendarIcon
                     readOnly={readOnly}
                     maxDate={new Date().toISOString()}
@@ -838,7 +839,6 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
           <DirectoryFormFooter
             mode={mode}
             onClose={handleRequestClose}
-            onSaveDraft={handleSaveAsDraft}
             onUpdate={handleUpdate}
             updateLabel="Update Traveller"
             isSubmitting={isSubmitting || submitting}

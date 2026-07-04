@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Image from "next/image";
 import SideSheet from "../SideSheet";
+import SingleCalendar from "../SingleCalendar";
 import {
   createVendor,
   updateVendor,
@@ -41,6 +42,7 @@ import {
   splitPhoneWithDialCode,
 } from "@/utils/phoneUtils";
 import { getStoredCurrencySymbol } from "@/utils/helper";
+import { countryDialCodes } from "@/utils/countryDialCodes";
 import {
   mapApiSourceToUiDropdown,
   mapUiSourceToApi,
@@ -57,6 +59,14 @@ type VendorData = {
   phone: string;
   alternatePhone?: string;
   companyName?: string;
+  gstin?: string;
+  panNumber?: string;
+  passportNumber?: string;
+  passportExpiry?: string;
+  address?: string;
+  city?: string;
+  pinCode?: string;
+  country?: string;
   openingBalance?: string;
   balanceType?: "credit" | "debit";
   remarks?: string;
@@ -194,6 +204,14 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
     phone: "",
     alternatePhone: "",
     companyName: "",
+    gstin: "",
+    panNumber: "",
+    passportNumber: "",
+    passportExpiry: "",
+    address: "",
+    city: "",
+    pinCode: "",
+    country: "",
     remarks: "",
     tier: "",
     vendorType: "",
@@ -223,6 +241,15 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         phone: snapshot.formData.phone || "",
         alternatePhone: snapshot.formData.alternatePhone || "",
         email: snapshot.formData.email || "",
+        companyName: snapshot.formData.companyName || "",
+        gstin: snapshot.formData.gstin || "",
+        panNumber: snapshot.formData.panNumber || "",
+        passportNumber: snapshot.formData.passportNumber || "",
+        passportExpiry: snapshot.formData.passportExpiry || "",
+        address: snapshot.formData.address || "",
+        city: snapshot.formData.city || "",
+        pinCode: snapshot.formData.pinCode || "",
+        country: snapshot.formData.country || "",
         remarks: snapshot.formData.remarks || "",
         vendorType: snapshot.formData.vendorType || "",
         source: snapshot.formData.source || "",
@@ -261,6 +288,14 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
     const newValue =
       name === "name"
         ? allowOnlyText(value)
+        : name === "gstin" ||
+            name === "panNumber" ||
+            name === "passportNumber"
+          ? allowTextAndNumbers(value)
+          : name === "city"
+            ? allowOnlyText(value)
+            : name === "pinCode"
+              ? allowOnlyDigitsWithMax(value, 6)
         : name === "phone"
           ? allowOnlyDigitsWithMax(value, phoneMaxLength)
           : name === "alternatePhone"
@@ -334,6 +369,14 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         phone: trimmed || "",
         alternatePhone: trimmedAlternate || "",
         companyName: data.companyName || "",
+        gstin: data.gstin || "",
+        panNumber: data.panNumber || "",
+        passportNumber: data.passportNumber || "",
+        passportExpiry: data.passportExpiry || "",
+        address: data.address || "",
+        city: data.city || "",
+        pinCode: data.pinCode || "",
+        country: data.country || "",
         remarks: data.remarks || "",
         tier: data.tier || "",
         vendorType: data.vendorType || "",
@@ -381,6 +424,14 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         phone: "",
         alternatePhone: "",
         companyName: "",
+        gstin: "",
+        panNumber: "",
+        passportNumber: "",
+        passportExpiry: "",
+        address: "",
+        city: "",
+        pinCode: "",
+        country: "",
         remarks: "",
         tier: "",
         vendorType: "",
@@ -489,6 +540,14 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       phone: "",
       alternatePhone: "",
       companyName: "",
+      gstin: "",
+      panNumber: "",
+      passportNumber: "",
+      passportExpiry: "",
+      address: "",
+      city: "",
+      pinCode: "",
+      country: "",
       remarks: "",
       tier: "",
       vendorType: "",
@@ -539,6 +598,14 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       const companyName = formData.companyName || contactName;
 
       formDataToSend.append("companyName", companyName);
+      formDataToSend.append("gstin", formData.gstin || "");
+      formDataToSend.append("panNumber", formData.panNumber || "");
+      formDataToSend.append("passportNumber", formData.passportNumber || "");
+      formDataToSend.append("passportExpiry", formData.passportExpiry || "");
+      formDataToSend.append("address", formData.address || "");
+      formDataToSend.append("city", formData.city || "");
+      formDataToSend.append("pinCode", formData.pinCode || "");
+      formDataToSend.append("country", formData.country || "");
       formDataToSend.append("contactPerson", contactName);
       formDataToSend.append("alias", formData.alias || "");
       formDataToSend.append("email", formData.email || "");
@@ -613,6 +680,14 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
       const contactName = String(formData.name || "").trim();
       const vendorData = {
         companyName: formData.companyName || contactName,
+        gstin: formData.gstin || undefined,
+        panNumber: formData.panNumber || undefined,
+        passportNumber: formData.passportNumber || undefined,
+        passportExpiry: formData.passportExpiry || undefined,
+        address: formData.address || undefined,
+        city: formData.city || undefined,
+        pinCode: formData.pinCode || undefined,
+        country: formData.country || undefined,
         contactPerson: contactName,
         alias: formData.alias || undefined,
         openingBalance: balanceAmount ? Number(balanceAmount) : undefined,
@@ -759,6 +834,16 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         value: option.value,
         label: <span className="text-[13px]">{option.label}</span>,
         searchLabel: option.label,
+      })),
+    [],
+  );
+
+  const countryDropdownOptions = useMemo(
+    () =>
+      countryDialCodes.map((country) => ({
+        value: country.name,
+        label: <span className="text-[13px]">{country.name}</span>,
+        searchLabel: country.name,
       })),
     [],
   );
@@ -937,6 +1022,181 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                   />
                 </div>
               </div>
+
+              {vendorType === "individual" ? (
+                <div className="mt-3 space-y-3">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="block text-[13px] font-medium text-gray-700">
+                        PAN Number
+                      </label>
+                      <input
+                        name="panNumber"
+                        type="text"
+                        value={formData.panNumber || ""}
+                        onChange={handleChange}
+                        placeholder="Enter PAN Number"
+                        disabled={readOnly}
+                        className={inputClassName}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="block text-[13px] font-medium text-gray-700">
+                        Passport Number
+                      </label>
+                      <input
+                        name="passportNumber"
+                        type="text"
+                        value={formData.passportNumber || ""}
+                        onChange={handleChange}
+                        placeholder="Enter Passport Number"
+                        disabled={readOnly}
+                        className={inputClassName}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <SingleCalendar
+                        label="Passport Expiry"
+                        value={formData.passportExpiry || ""}
+                        onChange={(iso) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            passportExpiry: iso,
+                          }))
+                        }
+                        placeholder="DD-MM-YYYY"
+                        customWidth="w-full mt-1.5"
+                        inputStyleClass={`${MODAL_FIELD_INPUT_CLASS} px-3 py-2 pr-8 text-[13px]`}
+                        showCalendarIcon
+                        readOnly={readOnly}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {vendorType === "corporate" ? (
+                <div className="mt-3 space-y-3">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="block text-[13px] font-medium text-gray-700">
+                        GST Number
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          name="gstin"
+                          type="text"
+                          value={formData.gstin || ""}
+                          onChange={handleChange}
+                          placeholder="Enter GST Number"
+                          disabled={readOnly}
+                          className={inputClassName}
+                        />
+                        <button
+                          type="button"
+                          disabled={readOnly}
+                          className="h-[42px] shrink-0 rounded-[10px] bg-[#006FE7] px-5 text-[13px] font-[600] text-white transition-colors hover:bg-[#005FCC] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Fetch
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="block text-[13px] font-medium text-gray-700">
+                      Company Name
+                    </label>
+                    <input
+                      name="companyName"
+                      type="text"
+                      value={formData.companyName || ""}
+                      onChange={handleChange}
+                      placeholder="Enter Company Name"
+                      disabled={readOnly}
+                      className={inputClassName}
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              {vendorType ? (
+                <div className="mt-3 space-y-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="block text-[13px] font-medium text-gray-700">
+                      Address
+                    </label>
+                    <textarea
+                      name="address"
+                      value={formData.address || ""}
+                      onChange={handleChange}
+                      placeholder="Enter Address"
+                      rows={2}
+                      disabled={readOnly}
+                      className={`${inputClassName} resize-none`}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="block text-[13px] font-medium text-gray-700">
+                        City
+                      </label>
+                      <input
+                        name="city"
+                        type="text"
+                        value={formData.city || ""}
+                        onChange={handleChange}
+                        placeholder="Enter City"
+                        disabled={readOnly}
+                        className={inputClassName}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="block text-[13px] font-medium text-gray-700">
+                        PIN Code
+                      </label>
+                      <input
+                        name="pinCode"
+                        type="text"
+                        value={formData.pinCode || ""}
+                        onChange={handleChange}
+                        placeholder="Enter PIN Code"
+                        maxLength={6}
+                        disabled={readOnly}
+                        className={inputClassName}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="block text-[13px] font-medium text-gray-700">
+                      Country
+                    </label>
+                    <DropDown
+                      options={countryDropdownOptions}
+                      value={formData.country || ""}
+                      onChange={(value) =>
+                        setFormData((prev) => ({ ...prev, country: value }))
+                      }
+                      placeholder="Search Country"
+                      disabled={readOnly}
+                      searchable
+                      searchPlaceholder="Search country..."
+                      customWidth="w-full"
+                      menuWidth="w-full"
+                      className="w-full"
+                      buttonClassName={MODAL_FIELD_DROPDOWN_BUTTON_CLASS}
+                      noButtonRadius
+                      noBorder
+                      focusRingClass=""
+                    />
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {/* Opening Balance + Source & Tier */}

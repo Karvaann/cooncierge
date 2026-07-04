@@ -102,9 +102,13 @@ const Table: React.FC<TableProps> = ({
     [externalTotalRows, data.length],
   );
   const totalPages = useMemo(
-    () => Math.ceil(totalRows / rowsPerPage),
+    () => Math.max(1, Math.ceil(totalRows / rowsPerPage)),
     [totalRows, rowsPerPage],
   );
+
+  useEffect(() => {
+    setPage((prev) => Math.min(Math.max(prev, 1), totalPages));
+  }, [totalPages]);
 
   const paginatedRows = useMemo(
     () =>
@@ -150,6 +154,9 @@ const Table: React.FC<TableProps> = ({
 
   // Memoized display text
   const displayText = useMemo(() => {
+    if (totalRows === 0) {
+      return `Showing 0-0 of 0 ${categoryName || "entries"}`;
+    }
     const start = (page - 1) * rowsPerPage + 1;
     const end = Math.min(page * rowsPerPage, totalRows);
     return `Showing ${start}-${end} of ${totalRows} ${

@@ -7,6 +7,8 @@ type UnderlineTabsProps = {
   totalCount: number;
   totalLabel?: string;
   className?: string;
+  tabClassName?: string;
+  indicatorClassName?: string;
 };
 
 export default function UnderlineTabs({
@@ -14,6 +16,8 @@ export default function UnderlineTabs({
   activeTab,
   onChange,
   className = "",
+  tabClassName = "",
+  indicatorClassName = "",
 }: UnderlineTabsProps) {
   return (
     <div
@@ -27,7 +31,7 @@ export default function UnderlineTabs({
             key={tab}
             type="button"
             onClick={() => onChange(tab)}
-            className={`relative shrink-0 py-[12px] px-6 text-[13.5px] font-[500] transition-colors duration-200 ${
+            className={`relative shrink-0 px-6 py-[12px] text-[13.5px] font-[500] transition-colors duration-200 ${tabClassName} ${
               isActive
                 ? "text-[#7135AD]"
                 : "text-[#818181] hover:text-[#5F5F5F]"
@@ -36,7 +40,7 @@ export default function UnderlineTabs({
             {tab}
             <span
               aria-hidden="true"
-              className={`absolute bottom-0 left-0 right-0 z-10 h-[2px] bg-[#7C3AED] transition-opacity duration-200 ${
+              className={`absolute bottom-[-1px] left-0 right-0 z-10 h-[2px] bg-[#7C3AED] transition-opacity duration-200 ${indicatorClassName} ${
                 isActive ? "opacity-100" : "opacity-0"
               }`}
             />

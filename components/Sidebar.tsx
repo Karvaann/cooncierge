@@ -156,7 +156,11 @@ export default function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
             </button>
 
             {isOpen && isExpanded ? (
-              <ul className="ml-8 flex flex-col gap-0.5 border-l border-[#E8E8E8] pb-1.5 pl-2">
+              <ul className="relative ml-8 flex flex-col gap-0.5 pl-2">
+                <span
+                  aria-hidden
+                  className="absolute bottom-[13px] left-0 top-[13px] w-px bg-[#E8E8E8]"
+                />
                 {item.subMenu?.map((sub) => {
                   const isSubActive = isSubItemActive(pathname, sub.href);
 

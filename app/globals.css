@@ -685,6 +685,20 @@ select.modal-field-input {
   border-color: #7135ad;
 }
 
+.dropdown-field-text,
+.dropdown-field-text * {
+  font-size: 13px !important;
+  font-weight: 400 !important;
+  line-height: 20px !important;
+}
+
+.dropdown-menu-text,
+.dropdown-menu-text * {
+  font-size: calc(12px * var(--console-ui-scale, 1)) !important;
+  font-weight: 400 !important;
+  line-height: calc(18px * var(--console-ui-scale, 1)) !important;
+}
+
 .modal-field-input-group {
   display: flex;
   align-items: stretch;

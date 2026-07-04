@@ -8,7 +8,6 @@ type DirectoryFormMode = "create" | "edit" | "view";
 interface DirectoryFormFooterProps {
   mode: DirectoryFormMode;
   onClose: () => void;
-  onSaveDraft?: () => void;
   onUpdate?: () => void;
   updateLabel?: string;
   isSubmitting?: boolean;
@@ -18,7 +17,6 @@ interface DirectoryFormFooterProps {
 const DirectoryFormFooter: React.FC<DirectoryFormFooterProps> = ({
   mode,
   onClose,
-  onSaveDraft,
   onUpdate,
   updateLabel = "Update",
   isSubmitting = false,
@@ -55,14 +53,6 @@ const DirectoryFormFooter: React.FC<DirectoryFormFooterProps> = ({
           </>
         ) : (
           <>
-            <Button
-              text="Save as Draft"
-              onClick={onSaveDraft ?? (() => {})}
-              disabled={isSubmitting}
-              bgColor="bg-white border border-[#7135AD]"
-              textColor="text-[#7135AD]"
-              className="rounded-[15px] px-4 py-2 hover:bg-[#7135AD0D]"
-            />
             <Button
               text={isSubmitting ? submittingLabel : "Save Details"}
               type="submit"

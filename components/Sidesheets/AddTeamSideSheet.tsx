@@ -539,7 +539,8 @@ const AddTeamSideSheet: React.FC<AddTeamSideSheetProps> = ({
                     setFormData((prev) => ({ ...prev, dateOfBirth: iso }))
                   }
                   placeholder="DD-MM-YYYY"
-                  customWidth="w-full mt-1.5 py-2"
+                  customWidth="w-full mt-1.5"
+                  inputStyleClass={`${MODAL_FIELD_INPUT_CLASS} px-3 py-2 pr-8 text-[13px]`}
                   readOnly={readOnly}
                   maxDate={new Date().toISOString()}
                 />

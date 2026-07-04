@@ -49,6 +49,9 @@ interface DropdownProps {
   menuClassName?: string;
 }
 
+const FIELD_TEXT_CLASS = "text-[13px] font-[400] leading-[20px]";
+const MENU_TEXT_CLASS = "text-[12px] font-[400] leading-[18px]";
+
 /* ── Fuzzy-match: every query char must appear in order in the target ── */
 function fuzzyMatch(query: string, target: string): boolean {
   const q = query.toLowerCase();
@@ -204,7 +207,7 @@ const DropDown: React.FC<DropdownProps> = ({
         dropdownRef.current.firstElementChild ??
         dropdownRef.current;
       const rect = triggerEl.getBoundingClientRect();
-      const optionHeight = itemHeight || 36; // estimated option height in px (can be overridden by prop)
+      const optionHeight = itemHeight || 30; // estimated option height in px (can be overridden by prop)
       const menuHeight = Math.min(filteredOptions.length * optionHeight, 400);
       const availableBelow = window.innerHeight - rect.bottom;
       const availableAbove = rect.top;
@@ -332,7 +335,7 @@ const DropDown: React.FC<DropdownProps> = ({
                 : "bg-white"
           } ${noButtonRadius ? "" : "rounded-[15px]"} ${
             noBorder ? "border border-transparent" : "border border-gray-300"
-          } ${hasCustomHoverBorder ? "" : "hover:border-[#C6AEDE]"} transition-colors text-[12px] ${focusRingClass} ${buttonClassName}`}
+          } ${hasCustomHoverBorder ? "" : "hover:border-[#C6AEDE]"} dropdown-field-text transition-colors ${FIELD_TEXT_CLASS} ${focusRingClass} ${buttonClassName}`}
         >
           <input
             ref={typeableInputRef}
@@ -360,7 +363,7 @@ const DropDown: React.FC<DropdownProps> = ({
             }}
             disabled={disabled}
             readOnly={readOnly}
-            className={`flex-1 min-w-0 bg-transparent outline-none text-[12px]${readOnly ? " cursor-not-allowed" : ""}`}
+            className={`dropdown-field-text flex-1 min-w-0 bg-transparent outline-none ${FIELD_TEXT_CLASS}${readOnly ? " cursor-not-allowed" : ""}`}
           />
           <svg
             onClick={(e) => {
@@ -402,11 +405,11 @@ const DropDown: React.FC<DropdownProps> = ({
                 : "bg-white"
           } ${noButtonRadius ? "" : "rounded-md"} ${
             noBorder ? "border border-transparent" : "border border-gray-300"
-          } ${hasCustomHoverBorder ? "" : "hover:border-[#C6AEDE]"} transition-colors text-left text-[12px] focus:outline-none ${focusRingClass} ${buttonClassName}`}
+          } ${hasCustomHoverBorder ? "" : "hover:border-[#C6AEDE]"} dropdown-field-text text-left ${FIELD_TEXT_CLASS} transition-colors focus:outline-none ${focusRingClass} ${buttonClassName}`}
         >
           {!iconOnly && (
             <span
-              className={`${selectedValue ? "text-black" : "text-gray-400"} [&_*]:!text-[12px]`}
+              className={`dropdown-field-text ${selectedValue ? "text-black" : "text-gray-400"}`}
             >
               {displayText}
             </span>
@@ -457,7 +460,7 @@ const DropDown: React.FC<DropdownProps> = ({
                   }
                   return base;
                 })()}
-                className={`${menuWidthClass} bg-white ${menuClassName || "rounded-[16px]"} border border-[#E2E1E1] shadow-[0_8px_20px_rgba(0,0,0,0.04)] overflow-hidden overflow-y-auto max-h-[240px] z-[1100]`}
+                className={`dropdown-menu-text ${menuWidthClass} bg-white ${menuClassName || "rounded-[16px]"} z-[1100] max-h-[220px] overflow-hidden overflow-y-auto border border-[#E2E1E1] shadow-[0_8px_20px_rgba(0,0,0,0.04)]`}
               >
                 {searchable && (
                   <div className="sticky top-0 bg-white z-10 border-b border-[#E2E1E1] p-2">
@@ -466,7 +469,7 @@ const DropDown: React.FC<DropdownProps> = ({
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder={searchPlaceholder}
-                      className="w-full border border-gray-200 rounded-md px-2 py-1 text-[12px] focus:outline-none focus:ring-1 focus:ring-green-400"
+                      className={`dropdown-menu-text w-full rounded-md border border-gray-200 px-2 py-1 focus:outline-none focus:ring-1 focus:ring-green-400`}
                       autoFocus
                     />
                   </div>
@@ -478,7 +481,7 @@ const DropDown: React.FC<DropdownProps> = ({
                     data-idx={idx}
                     onMouseEnter={() => typeable && setHighlightIdx(idx)}
                     onClick={() => handleSelect(option.value)}
-                    className={`w-full block px-4 py-2.5 text-left text-[12px] transition-colors border-b border-[#E2E1E1] last:border-b-0 [&_*]:!text-[12px] ${
+                    className={`dropdown-menu-text block w-full border-b border-[#E2E1E1] px-3 py-2 text-left ${MENU_TEXT_CLASS} transition-colors last:border-b-0 ${
                       typeable && idx === highlightIdx
                         ? "bg-[#F2F2F2] text-[#414141]"
                         : "text-[#414141] hover:bg-[#F2F2F2]"
@@ -492,7 +495,7 @@ const DropDown: React.FC<DropdownProps> = ({
                   <button
                     type="button"
                     onClick={handleFooterClick}
-                    className={`w-full px-3 py-2 text-[12px] text-[#126ACB] font-semibold flex items-center justify-center gap-2 hover:bg-[#F2F2F2] border-t border-[#E2E1E1] ${
+                    className={`dropdown-menu-text flex w-full items-center justify-center gap-2 border-t border-[#E2E1E1] px-3 py-2 ${MENU_TEXT_CLASS} font-semibold text-[#126ACB] hover:bg-[#F2F2F2] ${
                       footerAction.className || ""
                     }`}
                   >
@@ -506,7 +509,7 @@ const DropDown: React.FC<DropdownProps> = ({
                 )}
 
                 {(searchable || typeable) && filteredOptions.length === 0 && (
-                  <div className="px-3 py-2 text-[12px] text-gray-500">
+                  <div className={`dropdown-menu-text px-3 py-2 ${MENU_TEXT_CLASS} text-gray-500`}>
                     No results
                   </div>
                 )}

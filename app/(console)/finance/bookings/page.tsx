@@ -6,16 +6,16 @@ import type { JSX } from "react";
 import Image from "next/image";
 import { format } from "date-fns";
 import { CiFilter } from "react-icons/ci";
-import { TbArrowsUpDown } from "react-icons/tb";
-import { MdOutlineKeyboardArrowDown } from "react-icons/md";
+import { TbArrowsExchange, TbArrowsUpDown } from "react-icons/tb";
 import { FaRegCalendar } from "react-icons/fa";
 import { IoChevronDown } from "react-icons/io5";
-import { LuDownload } from "react-icons/lu";
+import { LuDownload, LuSend } from "react-icons/lu";
 import { FiCheck, FiCopy, FiEdit2, FiLink, FiTrash2, FiX } from "react-icons/fi";
 import { RiRefreshLine } from "react-icons/ri";
 import FilterSkeleton from "@/components/skeletons/FilterSkeleton";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
+import Modal from "@/components/Modal";
 import DropDown from "@/components/DropDown";
 import AvatarTooltip from "@/components/AvatarToolTip";
 import TaskButton from "@/components/TaskButton";
@@ -26,6 +26,7 @@ import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
 import FinanceSummaryPills from "@/components/finance/FinanceSummaryPills";
 import FinanceBookingsCalendar from "@/components/finance/FinanceBookingsCalendar";
 import TotalCountPill from "@/components/table/TotalCountPill";
+import TableHeaderActions from "@/components/table/TableHeaderActions";
 import {
   formatNumberByStoredCurrency,
   formatServiceType,
@@ -179,10 +180,10 @@ const getServiceIcon = (quotationType: string): JSX.Element | string => {
     ),
     transportation: (
       <Image
-        src="/icons/service-icons/land-icon.svg"
+        src="/icons/service-icons/transport.svg"
         alt="Transportation"
-        width={11}
-        height={11}
+        width={15}
+        height={14}
         className="object-contain"
       />
     ),
@@ -258,6 +259,10 @@ const FinanceBookingsPage = () => {
   const [isRecordPaymentOpen, setIsRecordPaymentOpen] = useState(false);
   const [selectedPaymentBooking, setSelectedPaymentBooking] =
     useState<FinanceBookingRow | null>(null);
+  const [approvalConfirm, setApprovalConfirm] = useState<{
+    action: "approve" | "reject";
+    booking: FinanceBookingRow;
+  } | null>(null);
   const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const moreActionsRef = useRef<HTMLDivElement | null>(null);
@@ -414,8 +419,6 @@ const FinanceBookingsPage = () => {
         { value: "accommodation", label: "Accommodation" },
         { value: "transportation", label: "Transportation" },
         { value: "activity", label: "Activity" },
-        { value: "ticket", label: "Ticket (Attraction)" },
-        { value: "travel insurance", label: "Travel Insurance" },
         { value: "visa", label: "Visa" },
       ],
       statuses: [
@@ -434,7 +437,7 @@ const FinanceBookingsPage = () => {
         if (!row.isDeleted) return false;
       } else if (activeTab === "Waiting for Approval") {
         if (!row.isWaitingForApproval || row.isDeleted) return false;
-      } else if (row.isDeleted || row.isWaitingForApproval) {
+      } else if (row.isDeleted) {
         return false;
       }
 
@@ -735,9 +738,21 @@ const FinanceBookingsPage = () => {
         <TbArrowsUpDown className="inline h-[13px] w-[13px] stroke-[2]" />
       </button>
     );
+    const swapSortButton = (column: string) => (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleSort(column);
+        }}
+        className="inline-flex items-center rounded-sm text-[#818181] transition-colors hover:text-[#7135AD]"
+      >
+        <TbArrowsExchange className="inline h-[14px] w-[14px] stroke-[2]" />
+      </button>
+    );
 
     return {
-      "Lead Pax": sortButton("Lead Pax"),
+      "Lead Pax": swapSortButton("Lead Pax"),
       "Travel Date": (
         <span className="inline-flex items-center gap-1.5">
           <button
@@ -795,7 +810,7 @@ const FinanceBookingsPage = () => {
           }`}
         />
       ),
-      "Payment Status": sortButton("Payment Status"),
+      "Payment Status": swapSortButton("Payment Status"),
       Amount: sortButton("Amount"),
     } as Record<string, JSX.Element>;
   }, [activeHeaderFilter, dateColumnLabel, handleSort]);
@@ -880,8 +895,7 @@ const FinanceBookingsPage = () => {
   const tableData = useMemo<JSX.Element[][]>(() => {
     return sortedBookings.map((row, index) => {
       const cells: JSX.Element[] = [];
-      const showApprovalActions =
-        row.paymentStatus === "pending" || row.requiresApprovalAction;
+      const showApprovalActions = Boolean(row.requiresApprovalAction);
 
       if (selectMode) {
         const isSelected = selectedBookingIds.includes(row.id);
@@ -924,9 +938,14 @@ const FinanceBookingsPage = () => {
         className="h-[3rem] cursor-pointer px-4 py-3 text-center align-middle text-[13px] font-[400]"
       >
         {row.serviceDisplayVariant === "pill" ? (
-          <span className="inline-flex rounded-full border border-[#E9D5FF] bg-[#F5F0FF] px-3 py-1 text-[12px] font-[500] text-[#7135AD]">
-            {row.serviceLabel}
-          </span>
+          <div className="flex flex-col items-center justify-center gap-1">
+            <span className="text-[13px] font-[500] leading-[16px] text-[#020202]">
+              {row.serviceLabel.split("/")[0]?.trim() || row.serviceLabel}
+            </span>
+            <span className="inline-flex rounded-full bg-[#F3E8FF] px-3 py-1 text-[12px] font-[500] leading-[14px] text-[#7135AD]">
+              {row.serviceLabel.split("/")[1]?.trim() || row.serviceLabel}
+            </span>
+          </div>
         ) : (
           <div className="flex flex-col items-center justify-center gap-2">
             <div className="flex h-4 w-4 items-center justify-center">
@@ -940,8 +959,26 @@ const FinanceBookingsPage = () => {
         key={`status-${index}`}
         className="h-[3rem] cursor-pointer px-4 py-3 text-center align-middle text-[13px]"
       >
-        <span className={getPaymentStatusBadgeClass(row.paymentStatus)}>
-          {getPaymentStatusLabel(row.paymentStatus)}
+        <span className="group/status relative inline-flex">
+          <span className={getPaymentStatusBadgeClass(row.paymentStatus)}>
+            {getPaymentStatusLabel(row.paymentStatus)}
+          </span>
+          {row.paymentStatus === "pending" ? (
+            <span className="pointer-events-none absolute bottom-[calc(100%+10px)] left-1/2 z-[160] hidden w-max -translate-x-1/2 rounded-[10px] bg-[#202020] px-4 py-3 text-left font-[Poppins,sans-serif] text-[11px] font-[600] leading-[18px] text-white shadow-[0_10px_24px_rgba(0,0,0,0.22)] group-hover/status:block">
+              <span className="block text-[10px] font-[700] uppercase tracking-[0.4px]">
+                Pending Amount
+              </span>
+              <span className="mt-1 block whitespace-nowrap">
+                CUSTOMER : {getStoredCurrencySymbol()}{" "}
+                {formatNumberByStoredCurrency(row.amount)}
+              </span>
+              <span className="block whitespace-nowrap">
+                VENDOR : {getStoredCurrencySymbol()}{" "}
+                {formatNumberByStoredCurrency(row.amount)}
+              </span>
+              <span className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-x-[6px] border-t-[6px] border-x-transparent border-t-[#202020]" />
+            </span>
+          ) : null}
         </span>
       </td>,
       <td
@@ -967,60 +1004,68 @@ const FinanceBookingsPage = () => {
         </div>
       </td>,
       <td key={`voucher-${index}`} className="h-[3rem] px-4 py-3 text-center align-middle">
-        <div className="relative flex items-center justify-center">
-          <div className="inline-flex overflow-hidden rounded-[7px] border border-[#E2E1E1] bg-[#FFF] hover:bg-[#F7F7F7]">
-            <span className="flex items-center justify-center border-r border-[#E2E1E1] p-[6px]">
-              <Image
-                src="/icons/voucher-icon.svg"
-                alt="Voucher"
-                width={20}
-                height={20}
-                className="object-contain"
-              />
-            </span>
-            <button
-              type="button"
-              data-voucher-trigger
-              onClick={(e) => {
-                e.stopPropagation();
-                setActiveVoucherRowId((prev) =>
-                  prev === row.id ? null : row.id,
-                );
-              }}
-              className="flex items-center justify-center p-[6px]"
-            >
-              <IoChevronDown className="h-[14px] w-[14px] text-[#8A8A8A]" />
-            </button>
-          </div>
-
-          {activeVoucherRowId === row.id && (
-            <div
-              data-voucher-menu
-              className="absolute left-1/2 top-[48px] z-[140] w-[180px] -translate-x-1/2 overflow-hidden rounded-[12px] border border-[#D6D6D6] bg-white shadow-[0_12px_24px_rgba(0,0,0,0.14)]"
-              onClick={(e) => e.stopPropagation()}
-            >
-              {VOUCHER_MENU_OPTIONS.map((label, optionIndex) => (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => setActiveVoucherRowId(null)}
-                  className={`flex w-full items-center gap-[6px] px-[16px] py-[10px] text-left text-[12px] font-[400] text-[#3E3E3E] hover:bg-[#FAF7FF] ${
-                    optionIndex < VOUCHER_MENU_OPTIONS.length - 1
-                      ? "border-b border-[#DCDCDC]"
-                      : ""
-                  }`}
-                >
-                  <LuDownload className="h-[15px] w-[15px] text-[#7C3AED]" />
-                  {label}
-                </button>
-              ))}
+        {row.hasVoucher === false ? (
+          <span className="text-[18px] font-[400] leading-none text-[#020202]">--</span>
+        ) : (
+          <div className="relative flex items-center justify-center">
+            <div className="inline-flex overflow-hidden rounded-[7px] border border-[#E2E1E1] bg-[#FFF] hover:bg-[#F7F7F7]">
+              <span className="flex items-center justify-center border-r border-[#E2E1E1] p-[6px]">
+                <Image
+                  src="/icons/voucher-icon.svg"
+                  alt="Voucher"
+                  width={20}
+                  height={20}
+                  className="object-contain"
+                />
+              </span>
+              <button
+                type="button"
+                data-voucher-trigger
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveVoucherRowId((prev) =>
+                    prev === row.id ? null : row.id,
+                  );
+                }}
+                className="flex items-center justify-center p-[6px]"
+              >
+                <IoChevronDown className="h-[14px] w-[14px] text-[#8A8A8A]" />
+              </button>
             </div>
-          )}
-        </div>
+
+            {activeVoucherRowId === row.id && (
+              <div
+                data-voucher-menu
+                className="absolute left-1/2 top-[48px] z-[140] w-[180px] -translate-x-1/2 overflow-hidden rounded-[12px] border border-[#D6D6D6] bg-white shadow-[0_12px_24px_rgba(0,0,0,0.14)]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {VOUCHER_MENU_OPTIONS.map((label, optionIndex) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => setActiveVoucherRowId(null)}
+                    className={`flex w-full items-center gap-[6px] px-[16px] py-[10px] text-left text-[12px] font-[400] text-[#3E3E3E] hover:bg-[#FAF7FF] ${
+                      optionIndex < VOUCHER_MENU_OPTIONS.length - 1
+                        ? "border-b border-[#DCDCDC]"
+                        : ""
+                    }`}
+                  >
+                    <LuDownload className="h-[15px] w-[15px] text-[#7C3AED]" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </td>,
       <td key={`tasks-${index}`} className="h-[3rem] px-4 py-3 text-center align-middle">
         <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
-          <TaskButton count={row.taskCount} bookingId={row.id} />
+          {row.hasVoucher === false && row.taskCount === 0 ? (
+            <span className="text-[18px] font-[400] leading-none text-[#020202]">--</span>
+          ) : (
+            <TaskButton count={row.taskCount} bookingId={row.id} />
+          )}
         </div>
       </td>,
       <td key={`actions-${index}`} className="h-[4rem] px-4 py-3 text-center align-middle">
@@ -1033,16 +1078,22 @@ const FinanceBookingsPage = () => {
               <button
                 type="button"
                 aria-label="Approve booking"
-                className="flex h-7 w-7 items-center justify-center rounded-[6px] border border-[#A5D6A7] bg-white text-[#3FA34D] transition-colors hover:bg-[#F0FDF4]"
+                onClick={() =>
+                  setApprovalConfirm({ action: "approve", booking: row })
+                }
+                className="flex h-11 w-11 items-center justify-center rounded-[9px] border border-[#3FA34D] bg-white text-[#3FA34D] transition-colors hover:bg-[#F0FDF4]"
               >
-                <FiCheck className="h-[15px] w-[15px]" />
+                <FiCheck className="h-[22px] w-[22px] stroke-[3]" />
               </button>
               <button
                 type="button"
                 aria-label="Reject booking"
-                className="flex h-7 w-7 items-center justify-center rounded-[6px] border border-[#F4B4B4] bg-white text-[#DD1425] transition-colors hover:bg-[#FFF5F5]"
+                onClick={() =>
+                  setApprovalConfirm({ action: "reject", booking: row })
+                }
+                className="flex h-11 w-11 items-center justify-center rounded-[9px] border border-[#DD1425] bg-white text-[#DD1425] transition-colors hover:bg-[#FFF5F5]"
               >
-                <FiX className="h-[15px] w-[15px]" />
+                <FiX className="h-[22px] w-[22px] stroke-[3]" />
               </button>
             </>
           ) : (
@@ -1058,39 +1109,64 @@ const FinanceBookingsPage = () => {
             </button>
           )}
           <ActionMenu
-            actions={[
-              {
-                label: "Edit",
-                icon: <FiEdit2 size={16} />,
-                color: "text-[#006FE7]",
-                onClick: () => {
-                  setSelectedPaymentBooking(row);
-                  setIsRecordPaymentOpen(true);
-                },
-                showDividerAfter: true,
-              },
-              {
-                label: "Delete",
-                icon: <FiTrash2 size={16} />,
-                color: "text-[#DD1425]",
-                onClick: () => {},
-                showDividerAfter: true,
-              },
-              {
-                label: "Link",
-                icon: <FiLink size={16} />,
-                color: "text-[#3FA34D]",
-                onClick: () => {},
-                showDividerAfter: true,
-              },
-              {
-                label: "Duplicate",
-                icon: <FiCopy size={16} />,
-                color: "text-[#818181]",
-                onClick: () => {},
-              },
-            ]}
-            width="w-[13rem]"
+            actions={
+              row.paymentStatus === "pending"
+                ? [
+                    {
+                      label: "Send for Approval",
+                      icon: <LuSend size={18} />,
+                      color: "text-[#414141]",
+                      onClick: () => {},
+                      showDividerAfter: true,
+                    },
+                    {
+                      label: "Delete",
+                      icon: <FiTrash2 size={18} />,
+                      color: "text-[#DD1425]",
+                      onClick: () => {},
+                      showDividerAfter: true,
+                    },
+                    {
+                      label: "Duplicate",
+                      icon: <FiCopy size={18} />,
+                      color: "text-[#414141]",
+                      onClick: () => {},
+                    },
+                  ]
+                : [
+                    {
+                      label: "Edit",
+                      icon: <FiEdit2 size={16} />,
+                      color: "text-[#006FE7]",
+                      onClick: () => {
+                        setSelectedPaymentBooking(row);
+                        setIsRecordPaymentOpen(true);
+                      },
+                      showDividerAfter: true,
+                    },
+                    {
+                      label: "Delete",
+                      icon: <FiTrash2 size={16} />,
+                      color: "text-[#DD1425]",
+                      onClick: () => {},
+                      showDividerAfter: true,
+                    },
+                    {
+                      label: "Link",
+                      icon: <FiLink size={16} />,
+                      color: "text-[#3FA34D]",
+                      onClick: () => {},
+                      showDividerAfter: true,
+                    },
+                    {
+                      label: "Duplicate",
+                      icon: <FiCopy size={16} />,
+                      color: "text-[#818181]",
+                      onClick: () => {},
+                    },
+                  ]
+            }
+            width={row.paymentStatus === "pending" ? "w-[17.25rem]" : "w-[13rem]"}
             right="right-10"
           />
         </div>
@@ -1140,43 +1216,15 @@ const FinanceBookingsPage = () => {
             youGet={summary.youGet}
           />
 
-          <div className="flex items-center gap-3">
-            {selectMode ? (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleCancelSelectMode}
-                  className="inline-flex h-10 cursor-pointer items-center rounded-[14px] border border-[#E2E1E1] bg-white px-5 text-[14px] font-medium text-[#414141] transition-colors hover:bg-[#FAFAFA]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSelectAllToggle}
-                  className="inline-flex h-10 cursor-pointer items-center rounded-[14px] border border-[#E2E1E1] bg-white px-5 text-[14px] font-medium text-[#414141] transition-colors hover:bg-[#FAFAFA]"
-                >
-                  {isAllSelected ? "Deselect all" : "Select all"}
-                </button>
-              </div>
-            ) : (
-              <div className="relative inline-flex" ref={moreActionsRef}>
-                <button
-                  type="button"
-                  onClick={() => setIsMoreActionsOpen((prev) => !prev)}
-                  className={`inline-flex cursor-pointer items-stretch overflow-hidden border border-[#7135AD66] bg-white text-[14px] font-[600] text-[#414141] transition-colors hover:bg-[#FAFAFA] ${
-                    isMoreActionsOpen
-                      ? "rounded-t-[14px] rounded-b-none"
-                      : "rounded-[14px]"
-                  }`}
-                >
-                  <span className="flex items-center px-[14px] py-[8px]">
-                    More Actions
-                  </span>
-                  <span className="flex items-center border-l border-[#7135AD66] px-[10px] py-[8px]">
-                    <MdOutlineKeyboardArrowDown className="text-[18px] text-[#414141]" />
-                  </span>
-                </button>
-
+          <div ref={moreActionsRef}>
+            <TableHeaderActions
+              selectMode={selectMode}
+              isAllSelected={isAllSelected}
+              isMenuOpen={isMoreActionsOpen}
+              onMenuToggle={() => setIsMoreActionsOpen((prev) => !prev)}
+              onCancelSelect={handleCancelSelectMode}
+              onSelectAllToggle={handleSelectAllToggle}
+              menu={
                 <SelectUploadMenu
                   isOpen={isMoreActionsOpen}
                   onClose={() => setIsMoreActionsOpen(false)}
@@ -1184,24 +1232,27 @@ const FinanceBookingsPage = () => {
                   entity="booking"
                   rootRef={moreActionsRef}
                 />
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={() =>
-                setViewMode((prev) => (prev === "calendar" ? "table" : "calendar"))
               }
-              className={`inline-flex h-10 w-10 items-center justify-center rounded-[14px] border transition-colors ${
-                viewMode === "calendar"
-                  ? "border-[#7135AD] bg-white text-[#7135AD] hover:bg-[#7135AD0D]"
-                  : "border-[#E2E1E1] bg-white text-[#414141] hover:bg-[#FAFAFA]"
-              }`}
-              aria-label="Calendar view"
-              aria-pressed={viewMode === "calendar"}
-            >
-              <FaRegCalendar className="h-[18px] w-[18px]" />
-            </button>
+              extraAction={
+                <button
+                  type="button"
+                  onClick={() =>
+                    setViewMode((prev) =>
+                      prev === "calendar" ? "table" : "calendar",
+                    )
+                  }
+                  className={`inline-flex h-10 w-10 items-center justify-center rounded-[14px] border transition-colors ${
+                    viewMode === "calendar"
+                      ? "border-[#7135AD] bg-white text-[#7135AD] hover:bg-[#7135AD0D]"
+                      : "border-[#E2E1E1] bg-white text-[#414141] hover:bg-[#FAFAFA]"
+                  }`}
+                  aria-label="Calendar view"
+                  aria-pressed={viewMode === "calendar"}
+                >
+                  <FaRegCalendar className="h-[18px] w-[18px]" />
+                </button>
+              }
+            />
           </div>
         </div>
 
@@ -1242,14 +1293,15 @@ const FinanceBookingsPage = () => {
           <FinanceBookingsCalendar />
         ) : (
         <div className="relative mt-4 flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
-          <div className="flex min-h-[44px] items-center justify-between border-b border-[#E5E7EB] px-4">
+          <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[#E5E7EB] px-5 py-4">
             <div className="flex min-w-0 flex-1 items-center">
               <UnderlineTabs
                 tabs={[...TAB_OPTIONS]}
                 activeTab={activeTab}
                 onChange={setActiveTab}
                 totalCount={filteredBookings.length}
-                className="-ml-4 !border-b-0"
+                className="!border-b-0"
+                indicatorClassName="!bottom-[-18px]"
               />
               <div className="ml-2 shrink-0">
                 <DropDown
@@ -1270,8 +1322,8 @@ const FinanceBookingsPage = () => {
                   value={bookingScope}
                   onChange={setBookingScope}
                   customWidth="w-[132px]"
-                  customHeight="py-[5px]"
-                  buttonClassName="!rounded-[10px] !border-[#E2E1E1] !bg-white !text-[13px] !font-[500] !leading-[20px] !text-[#414141]"
+                  customHeight="py-[6px]"
+                  buttonClassName="!rounded-[10px] !border-[#E2E1E1] !bg-white !px-3 !text-[13px] !font-[500] !leading-[20px] !text-[#414141]"
                   menuWidth="w-full"
                   menuClassName="!rounded-[8px] !border-[#E2E1E1] !shadow-[0_8px_16px_rgba(0,0,0,0.06)]"
                   optionClassName="!px-3 !py-1.5 !text-[12px] !leading-[20px] [&_*]:!text-[12px] [&_*]:!leading-[20px]"
@@ -1322,7 +1374,7 @@ const FinanceBookingsPage = () => {
                 "Booking ID": "w-[8rem]",
                 Voucher: "w-[9rem]",
                 Tasks: "w-[7.5rem]",
-                Actions: "w-[7.5rem]",
+                Actions: "w-[10rem]",
               }}
               initialRowsPerPage={8}
               maxRowsPerPageOptions={[8, 16, 24, 48]}
@@ -1354,6 +1406,55 @@ const FinanceBookingsPage = () => {
         onError={() => {}}
         onSuccess={() => {}}
       />
+
+      {approvalConfirm ? (
+        <Modal
+          isOpen={Boolean(approvalConfirm)}
+          onClose={() => setApprovalConfirm(null)}
+          title=""
+          customWidth="w-[330px]"
+          customeHeight="h-fit"
+          showCloseButton={false}
+          zIndexClass="z-[1200]"
+          noBodyPadding
+          className="!rounded-[14px]"
+        >
+          <div className="px-5 py-4 font-[Poppins,sans-serif]">
+            <p className="text-[12px] font-[400] leading-[18px] text-[#414141]">
+              Are you sure you want to{" "}
+              {approvalConfirm.action === "approve" ? "approve" : "reject"} this
+              booking with ID{" "}
+              <span className="font-[600]">
+                &apos;{approvalConfirm.booking.customId}&apos;
+              </span>
+              ?
+            </p>
+
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setApprovalConfirm(null)}
+                className="rounded-[8px] border border-[#E2E1E1] bg-white px-4 py-1.5 text-[12px] font-[500] text-[#414141] transition-colors hover:bg-[#F2F2F2]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => setApprovalConfirm(null)}
+                className={`rounded-[8px] px-4 py-1.5 text-[12px] font-[600] text-white transition-opacity hover:opacity-90 ${
+                  approvalConfirm.action === "approve"
+                    ? "bg-[#3FA34D]"
+                    : "bg-[#DD1425]"
+                }`}
+              >
+                {approvalConfirm.action === "approve"
+                  ? "Yes, Approve"
+                  : "Yes, Reject"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
 
     </BookingsPageViewport>
   );

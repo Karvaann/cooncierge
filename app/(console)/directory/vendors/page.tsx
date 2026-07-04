@@ -820,8 +820,8 @@ const VendorDirectory = () => {
     headerCheckbox: selectMode ? selectAllHeaderCheckbox : undefined,
     onSort: handleSort,
     categoryName: "Vendors" as const,
-    initialRowsPerPage: 8,
-    maxRowsPerPageOptions: [8, 16, 24, 48],
+    initialRowsPerPage: 10,
+    maxRowsPerPageOptions: [10, 20, 50, 100],
     headerClassName: "bg-[#F3F3F3]",
     headerRowTextClassName: "text-[#818181]",
     headerCellTextClassName: "text-[#818181]",
@@ -1025,7 +1025,6 @@ const VendorDirectory = () => {
             <Table
               data={tableData}
               columns={columns}
-              externalTotalRows={totalCount}
               {...tableSharedProps}
               {...(selectMode
                 ? {}

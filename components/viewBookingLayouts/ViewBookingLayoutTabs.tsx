@@ -575,19 +575,7 @@ export default function ViewBookingLayoutTabs({
           </button>
         </div>
 
-        {/* Save actions */}
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              console.log("Save as Draft clicked");
-              // TODO: draft save logic
-            }}
-            className="px-3 py-1.5 text-[13px] rounded-md border border-[#0D4B37] text-[#0D4B37] font-medium hover:bg-emerald-50 transition"
-          >
-            Save as Draft
-          </button>
-
           <button
             type="button"
             onClick={() => {

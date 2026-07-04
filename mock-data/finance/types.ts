@@ -21,6 +21,7 @@ export type FinanceBookingRow = {
   amount: number;
   owners: FinanceBookingOwner[];
   taskCount: number;
+  hasVoucher?: boolean;
   isDeleted: boolean;
   isIncomplete: boolean;
   isWaitingForApproval?: boolean;

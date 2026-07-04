@@ -47,6 +47,7 @@ import {
   splitPhoneWithDialCode,
 } from "@/utils/phoneUtils";
 import { getUsers } from "@/services/userApi";
+import { countryDialCodes } from "@/utils/countryDialCodes";
 
 type CustomerData = {
   customId?: string;
@@ -68,9 +69,15 @@ type CustomerData = {
   ownerId?: string;
   email: string;
   dateOfBirth: "" | string;
-  gstin: number | "";
+  gstin: string;
   companyName: string;
   address: string | number;
+  panNumber?: string;
+  passportNumber?: string;
+  passportExpiry?: string;
+  city?: string;
+  pinCode?: string;
+  country?: string;
   remarks: string;
   tier?: string;
   openingBalance?: string;
@@ -224,6 +231,12 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
     gstin: "",
     companyName: "",
     address: "",
+    panNumber: "",
+    passportNumber: "",
+    passportExpiry: "",
+    city: "",
+    pinCode: "",
+    country: "",
     remarks: "",
     tier: "",
     alternatePhone: "",
@@ -286,6 +299,12 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         gstin: snapshot.formData.gstin || "",
         companyName: snapshot.formData.companyName || "",
         address: snapshot.formData.address || "",
+        panNumber: snapshot.formData.panNumber || "",
+        passportNumber: snapshot.formData.passportNumber || "",
+        passportExpiry: snapshot.formData.passportExpiry || "",
+        city: snapshot.formData.city || "",
+        pinCode: snapshot.formData.pinCode || "",
+        country: snapshot.formData.country || "",
         remarks: snapshot.formData.remarks || "",
         alternatePhone: snapshot.formData.alternatePhone || "",
         customerType: snapshot.formData.customerType || "",
@@ -342,7 +361,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       name === "name"
         ? allowOnlyText(value)
         : name === "gstin"
-          ? allowOnlyNumbers(value)
+          ? allowTextAndNumbers(value)
+          : name === "panNumber" || name === "passportNumber"
+          ? allowTextAndNumbers(value)
+          : name === "city"
+            ? allowOnlyText(value)
+            : name === "pinCode"
+              ? allowOnlyDigitsWithMax(value, 6)
           : name === "phone"
             ? allowOnlyDigitsWithMax(value, phoneMaxLength)
             : name === "alternatePhone"
@@ -460,6 +485,12 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         gstin: data.gstin || "",
         companyName: data.companyName || "",
         address: data.address || "",
+        panNumber: data.panNumber || "",
+        passportNumber: data.passportNumber || "",
+        passportExpiry: data.passportExpiry || "",
+        city: data.city || "",
+        pinCode: data.pinCode || "",
+        country: data.country || "",
         remarks: data.remarks || "",
         tier: data.tier || "",
         alternatePhone: trimmedAlternate || "",
@@ -506,6 +537,12 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         gstin: "",
         companyName: "",
         address: "",
+        panNumber: "",
+        passportNumber: "",
+        passportExpiry: "",
+        city: "",
+        pinCode: "",
+        country: "",
         remarks: "",
         tier: "",
         alternatePhone: "",
@@ -732,6 +769,12 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       formDataToSend.append("gstin", String(formData.gstin || ""));
       formDataToSend.append("companyName", formData.companyName || "");
       formDataToSend.append("address", String(formData.address || ""));
+      formDataToSend.append("panNumber", formData.panNumber || "");
+      formDataToSend.append("passportNumber", formData.passportNumber || "");
+      formDataToSend.append("passportExpiry", formData.passportExpiry || "");
+      formDataToSend.append("city", formData.city || "");
+      formDataToSend.append("pinCode", formData.pinCode || "");
+      formDataToSend.append("country", formData.country || "");
       formDataToSend.append("remarks", formData.remarks || "");
       formDataToSend.append("tier", tier || "");
       formDataToSend.append("customerType", customerType || "");
@@ -838,6 +881,12 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         gstin: formData.gstin ? String(formData.gstin) : undefined,
         companyName: formData.companyName || undefined,
         address: formData.address || undefined,
+        panNumber: formData.panNumber || undefined,
+        passportNumber: formData.passportNumber || undefined,
+        passportExpiry: formData.passportExpiry || undefined,
+        city: formData.city || undefined,
+        pinCode: formData.pinCode || undefined,
+        country: formData.country || undefined,
         openingBalance: balanceAmount ? Number(balanceAmount) : undefined,
         balanceType: balanceType,
         tier: tier || undefined,
@@ -983,6 +1032,16 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         value: option.value,
         label: <span className="text-[13px]">{option.label}</span>,
         searchLabel: option.label,
+      })),
+    [],
+  );
+
+  const countryDropdownOptions = useMemo(
+    () =>
+      countryDialCodes.map((country) => ({
+        value: country.name,
+        label: <span className="text-[13px]">{country.name}</span>,
+        searchLabel: country.name,
       })),
     [],
   );
@@ -1170,7 +1229,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       setFormData((prev) => ({ ...prev, dateOfBirth: iso }))
                     }
                     placeholder="Select Date"
-                    customWidth="w-full mt-1.5 py-2"
+                    customWidth="w-full mt-1.5"
+                    inputStyleClass={`${MODAL_FIELD_INPUT_CLASS} px-3 py-2 pr-8 text-[13px]`}
                     showCalendarIcon={true}
                     readOnly={readOnly}
                     maxDate={new Date().toISOString()}
@@ -1216,6 +1276,181 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                   />
                 </div>
               </div>
+
+              {customerType === "individual" ? (
+                <div className="mt-3 space-y-3">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="block text-[13px] font-medium text-gray-700">
+                        PAN Number
+                      </label>
+                      <input
+                        name="panNumber"
+                        type="text"
+                        value={formData.panNumber || ""}
+                        onChange={handleChange}
+                        placeholder="Enter PAN Number"
+                        disabled={readOnly}
+                        className={inputClassName}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="block text-[13px] font-medium text-gray-700">
+                        Passport Number
+                      </label>
+                      <input
+                        name="passportNumber"
+                        type="text"
+                        value={formData.passportNumber || ""}
+                        onChange={handleChange}
+                        placeholder="Enter Passport Number"
+                        disabled={readOnly}
+                        className={inputClassName}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <SingleCalendar
+                        label="Passport Expiry"
+                        value={formData.passportExpiry || ""}
+                        onChange={(iso) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            passportExpiry: iso,
+                          }))
+                        }
+                        placeholder="DD-MM-YYYY"
+                        customWidth="w-full mt-1.5"
+                        inputStyleClass={`${MODAL_FIELD_INPUT_CLASS} px-3 py-2 pr-8 text-[13px]`}
+                        showCalendarIcon
+                        readOnly={readOnly}
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {customerType === "corporate" ? (
+                <div className="mt-3 space-y-3">
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="block text-[13px] font-medium text-gray-700">
+                        GST Number
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          name="gstin"
+                          type="text"
+                          value={formData.gstin || ""}
+                          onChange={handleChange}
+                          placeholder="Enter GST Number"
+                          disabled={readOnly}
+                          className={inputClassName}
+                        />
+                        <button
+                          type="button"
+                          disabled={readOnly}
+                          className="h-[42px] shrink-0 rounded-[10px] bg-[#006FE7] px-5 text-[13px] font-[600] text-white transition-colors hover:bg-[#005FCC] disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Fetch
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="block text-[13px] font-medium text-gray-700">
+                      Company Name
+                    </label>
+                    <input
+                      name="companyName"
+                      type="text"
+                      value={formData.companyName || ""}
+                      onChange={handleChange}
+                      placeholder="Enter Company Name"
+                      disabled={readOnly}
+                      className={inputClassName}
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              {customerType ? (
+                <div className="mt-3 space-y-3">
+                  <div className="flex flex-col gap-1">
+                    <label className="block text-[13px] font-medium text-gray-700">
+                      Address
+                    </label>
+                    <textarea
+                      name="address"
+                      value={String(formData.address || "")}
+                      onChange={handleChange}
+                      placeholder="Enter Address"
+                      rows={2}
+                      disabled={readOnly}
+                      className={`${inputClassName} resize-none`}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div className="flex flex-col gap-1">
+                      <label className="block text-[13px] font-medium text-gray-700">
+                        City
+                      </label>
+                      <input
+                        name="city"
+                        type="text"
+                        value={formData.city || ""}
+                        onChange={handleChange}
+                        placeholder="Enter City"
+                        disabled={readOnly}
+                        className={inputClassName}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="block text-[13px] font-medium text-gray-700">
+                        PIN Code
+                      </label>
+                      <input
+                        name="pinCode"
+                        type="text"
+                        value={formData.pinCode || ""}
+                        onChange={handleChange}
+                        placeholder="Enter PIN Code"
+                        maxLength={6}
+                        disabled={readOnly}
+                        className={inputClassName}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label className="block text-[13px] font-medium text-gray-700">
+                      Country
+                    </label>
+                    <DropDown
+                      options={countryDropdownOptions}
+                      value={formData.country || ""}
+                      onChange={(value) =>
+                        setFormData((prev) => ({ ...prev, country: value }))
+                      }
+                      placeholder="Search Country"
+                      disabled={readOnly}
+                      searchable
+                      searchPlaceholder="Search country..."
+                      customWidth="w-full"
+                      menuWidth="w-full"
+                      className="w-full"
+                      buttonClassName={MODAL_FIELD_DROPDOWN_BUTTON_CLASS}
+                      noButtonRadius
+                      noBorder
+                      focusRingClass=""
+                    />
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {/* ================= OPENING BALANCE ================ */}
@@ -1457,13 +1692,6 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                 </>
               ) : (
                 <>
-                  <Button
-                    text="Save as Draft"
-                    onClick={handleSaveAsDraft}
-                    bgColor="bg-white border border-[#7135AD]"
-                    textColor="text-[#7135AD]"
-                    className="hover:bg-[#7135AD0D] rounded-[15px] px-4 py-2"
-                  />
                   <Button
                     text="Save Details"
                     type="submit"

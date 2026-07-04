@@ -1897,18 +1897,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
                   {/* EDIT MODE */}
                   {mode !== "view" && (
                     <>
-                      {(activeTab === "general" ||
-                        (activeTab == "service" && !isEditingExisting)) && (
-                        <Button
-                          text="Save As Draft"
-                          onClick={handleDraftSubmit}
-                          bgColor="bg-white"
-                          textColor="text-[#7135AD] font-[600]"
-                          className="hover:cursor-pointer px-2 py-2 border border-[#7135AD] rounded-[15px]"
-                          disabled={isSubmitting}
-                        />
-                      )}
-
                       {(activeTab === "general" || activeTab === "service") && (
                         <Button
                           text="Next"
@@ -1946,17 +1934,6 @@ const BookingFormSidesheetContent: React.FC<BookingFormSidesheetProps> = ({
 
                       {activeTab === "price" && (
                         <>
-                          {!isEditingExisting && (
-                            <Button
-                              text="Save as Draft"
-                              onClick={handleDraftSubmit}
-                              bgColor="bg-white border border-[#7135AD]"
-                              textColor="text-[#7135AD]"
-                              disabled={isSubmitting}
-                              className="rounded-[15px] px-2 py-2"
-                            />
-                          )}
-
                           <Button
                             text={
                               isLimitlessBooking

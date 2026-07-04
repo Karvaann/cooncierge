@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import TableTabs from "@/components/TableTabs";
 
-export const TRAVELLER_PAGE_TABS = ["Travellers", "Customers", "Deleted"] as const;
 export const CUSTOMER_PAGE_TABS = ["Customers", "Travellers", "Deleted"] as const;
+export const TRAVELLER_PAGE_TABS = CUSTOMER_PAGE_TABS;
+const ROUTE_TAB_ANIMATION_DELAY_MS = 160;
 
 type DirectoryPeopleTabsProps = {
   tabs: readonly string[];
@@ -21,19 +23,48 @@ export default function DirectoryPeopleTabs({
   onLocalTabChange,
 }: DirectoryPeopleTabsProps) {
   const router = useRouter();
+  const [displayActiveTab, setDisplayActiveTab] = useState(activeTab);
+  const routeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setDisplayActiveTab(activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    router.prefetch("/directory/customers");
+    router.prefetch("/directory/travellers");
+
+    return () => {
+      if (routeTimeoutRef.current) {
+        clearTimeout(routeTimeoutRef.current);
+      }
+    };
+  }, [router]);
+
+  const pushAfterTabMoves = (href: string) => {
+    if (routeTimeoutRef.current) {
+      clearTimeout(routeTimeoutRef.current);
+    }
+
+    routeTimeoutRef.current = setTimeout(() => {
+      router.push(href);
+      routeTimeoutRef.current = null;
+    }, ROUTE_TAB_ANIMATION_DELAY_MS);
+  };
 
   const handleChange = (tab: string) => {
-    const isTravellersPage = tabs.includes("Travellers");
+    const isTravellersPage = activeTab === "Travellers";
+    setDisplayActiveTab(tab);
 
     if (tab === "Travellers" && activeTab !== "Travellers") {
-      router.push("/directory/travellers");
+      pushAfterTabMoves("/directory/travellers");
       return;
     }
 
     if (onLocalTabChange && tabs.includes(tab)) {
       // On travellers page, "Customers" switches to the customers directory route.
       if (tab === "Customers" && isTravellersPage) {
-        router.push("/directory/customers");
+        pushAfterTabMoves("/directory/customers");
         return;
       }
 
@@ -42,14 +73,14 @@ export default function DirectoryPeopleTabs({
     }
 
     if (tab === "Customers") {
-      router.push("/directory/customers");
+      pushAfterTabMoves("/directory/customers");
     }
   };
 
   return (
     <TableTabs
       tabs={[...tabs]}
-      activeTab={activeTab}
+      activeTab={displayActiveTab}
       onChange={handleChange}
       totalCount={totalCount}
     />

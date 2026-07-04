@@ -1087,9 +1087,8 @@ const CustomerDirectory = () => {
                 headerCheckbox={selectMode ? selectAllHeaderCheckbox : undefined}
                 onSort={handleSort}
                 categoryName="Customers"
-                initialRowsPerPage={8}
-                maxRowsPerPageOptions={[8, 16, 24, 48]}
-                externalTotalRows={customers.length}
+                initialRowsPerPage={10}
+                maxRowsPerPageOptions={[10, 20, 50, 100]}
                 headerClassName="bg-[#F3F3F3]"
                 headerRowTextClassName="text-[#818181]"
                 headerAlign={{
@@ -1134,9 +1133,8 @@ const CustomerDirectory = () => {
                 headerCheckbox={selectMode ? selectAllHeaderCheckbox : undefined}
                 onSort={handleSort}
                 categoryName="Customers"
-                initialRowsPerPage={8}
-                maxRowsPerPageOptions={[8, 16, 24, 48]}
-                externalTotalRows={customers.length}
+                initialRowsPerPage={10}
+                maxRowsPerPageOptions={[10, 20, 50, 100]}
                 headerClassName="bg-[#F3F3F3]"
                 headerRowTextClassName="text-[#818181]"
                 headerAlign={{
