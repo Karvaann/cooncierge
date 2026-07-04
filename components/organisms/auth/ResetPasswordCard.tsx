@@ -40,7 +40,7 @@ export default function ResetPasswordCard(props: ResetPasswordCardProps) {
         <button
           type="button"
           onClick={props.onBack}
-          className="rounded-full p-1 transition-colors hover:bg-gray-200"
+          className="auth-back-button hover:!bg-[#F2F2F2]"
           aria-label="Back"
         >
           <IoMdArrowBack size={18} />

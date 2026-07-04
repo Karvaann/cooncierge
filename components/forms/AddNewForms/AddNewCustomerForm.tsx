@@ -3,6 +3,7 @@
 
 import React, { useState, useCallback, useMemo } from "react";
 import { validateCustomerForm } from "@/services/bookingApi";
+import { allowGstNumber } from "@/utils/inputValidators";
 import { CiCirclePlus } from "react-icons/ci";
 import { MdOutlineFileUpload } from "react-icons/md";
 import SideSheet from "@/components/SideSheet";
@@ -199,7 +200,11 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
   ) => {
     const { name, value, type } = e.target;
     const processedValue =
-      type === "number" && value !== "" ? Number(value) : value;
+      name === "gstin"
+        ? allowGstNumber(value)
+        : type === "number" && value !== ""
+          ? Number(value)
+          : value;
 
     setFormData((prev) => ({ ...prev, [name]: processedValue }));
 
@@ -476,7 +481,7 @@ const AddNewCustomerForm: React.FC<AddNewCustomerFormProps> = ({
                   value={formData.gstin}
                   onChange={handleChange}
                   placeholder="Please Provide Your GST No."
-                  className="w-[18rem] text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-[18rem] text-[0.75rem] py-2 border border-gray-300 rounded-md px-3 uppercase focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
 
                 {/* <button

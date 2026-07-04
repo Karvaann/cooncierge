@@ -34,6 +34,8 @@ import {
   allowOnlyText,
   allowOnlyNumbers,
   allowOnlyDigitsWithMax,
+  allowGstNumber,
+  allowPinCode,
   allowTextAndNumbers,
 } from "@/utils/inputValidators";
 import { isValidEmail } from "@/utils/inputValidators";
@@ -47,7 +49,7 @@ import {
   splitPhoneWithDialCode,
 } from "@/utils/phoneUtils";
 import { getUsers } from "@/services/userApi";
-import { countryDialCodes } from "@/utils/countryDialCodes";
+import { getUniqueCountries } from "@/utils/countryDialCodes";
 
 type CustomerData = {
   customId?: string;
@@ -125,8 +127,8 @@ const TIER_OPTIONS = [
     value: "tier1",
     label: (
       <div className="flex items-center gap-2">
-        <img src="/icons/tier-1.svg" alt="Tier 1" className="w-5 h-5" />
-        <span className="text-[13px] font-medium">1</span>
+        <img src="/icons/tier-1.svg" alt="Tier I" className="w-5 h-5" />
+        <span className="text-[13px] font-medium">Tier I</span>
       </div>
     ),
   },
@@ -134,8 +136,8 @@ const TIER_OPTIONS = [
     value: "tier2",
     label: (
       <div className="flex items-center gap-2">
-        <img src="/icons/tier-2.svg" alt="Tier 2" className="w-5 h-5" />
-        <span className="text-[13px] font-medium">2</span>
+        <img src="/icons/tier-2.svg" alt="Tier II" className="w-5 h-5" />
+        <span className="text-[13px] font-medium">Tier II</span>
       </div>
     ),
   },
@@ -143,26 +145,8 @@ const TIER_OPTIONS = [
     value: "tier3",
     label: (
       <div className="flex items-center gap-2">
-        <img src="/icons/tier-3.svg" alt="Tier 3" className="w-5 h-5" />
-        <span className="text-[13px] font-medium">3</span>
-      </div>
-    ),
-  },
-  {
-    value: "tier4",
-    label: (
-      <div className="flex items-center gap-2">
-        <img src="/icons/tier-4.svg" alt="Tier 4" className="w-5 h-5" />
-        <span className="text-[13px] font-medium">4</span>
-      </div>
-    ),
-  },
-  {
-    value: "tier5",
-    label: (
-      <div className="flex items-center gap-2">
-        <img src="/icons/tier-5.svg" alt="Tier 5" className="w-5 h-5" />
-        <span className="text-[13px] font-medium">5</span>
+        <img src="/icons/tier-3.svg" alt="Tier III" className="w-5 h-5" />
+        <span className="text-[13px] font-medium">Tier III</span>
       </div>
     ),
   },
@@ -361,13 +345,13 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
       name === "name"
         ? allowOnlyText(value)
         : name === "gstin"
-          ? allowTextAndNumbers(value)
+          ? allowGstNumber(value)
           : name === "panNumber" || name === "passportNumber"
           ? allowTextAndNumbers(value)
           : name === "city"
             ? allowOnlyText(value)
             : name === "pinCode"
-              ? allowOnlyDigitsWithMax(value, 6)
+              ? allowPinCode(value)
           : name === "phone"
             ? allowOnlyDigitsWithMax(value, phoneMaxLength)
             : name === "alternatePhone"
@@ -482,14 +466,14 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
         dateOfBirth: data.dateOfBirth
           ? String(data.dateOfBirth).slice(0, 10)
           : "",
-        gstin: data.gstin || "",
+        gstin: allowGstNumber(String(data.gstin || "")),
         companyName: data.companyName || "",
         address: data.address || "",
         panNumber: data.panNumber || "",
         passportNumber: data.passportNumber || "",
         passportExpiry: data.passportExpiry || "",
         city: data.city || "",
-        pinCode: data.pinCode || "",
+        pinCode: allowPinCode(String(data.pinCode || "")),
         country: data.country || "",
         remarks: data.remarks || "",
         tier: data.tier || "",
@@ -1038,7 +1022,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
 
   const countryDropdownOptions = useMemo(
     () =>
-      countryDialCodes.map((country) => ({
+      getUniqueCountries().map((country) => ({
         value: country.name,
         label: <span className="text-[13px]">{country.name}</span>,
         searchLabel: country.name,
@@ -1347,7 +1331,7 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                           onChange={handleChange}
                           placeholder="Enter GST Number"
                           disabled={readOnly}
-                          className={inputClassName}
+                          className={`${inputClassName} uppercase`}
                         />
                         <button
                           type="button"
@@ -1416,6 +1400,8 @@ const AddCustomerSideSheet: React.FC<AddCustomerSideSheetProps> = ({
                       <input
                         name="pinCode"
                         type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={formData.pinCode || ""}
                         onChange={handleChange}
                         placeholder="Enter PIN Code"

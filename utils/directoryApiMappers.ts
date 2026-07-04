@@ -95,23 +95,23 @@ export function mapApiSourceToUiDropdown(apiSource: string): string {
 }
 
 export function mapTierToNumber(tier: unknown, fallback = 2): number {
-  if (typeof tier === "number" && Number.isFinite(tier)) {
-    return tier;
-  }
+  let value = fallback;
 
-  if (typeof tier === "string") {
+  if (typeof tier === "number" && Number.isFinite(tier)) {
+    value = tier;
+  } else if (typeof tier === "string") {
     const tierMatch = tier.match(/tier(\d+)/i);
     if (tierMatch?.[1]) {
-      return Number(tierMatch[1]);
-    }
-
-    const parsed = Number(tier);
-    if (Number.isFinite(parsed)) {
-      return parsed;
+      value = Number(tierMatch[1]);
+    } else {
+      const parsed = Number(tier);
+      if (Number.isFinite(parsed)) {
+        value = parsed;
+      }
     }
   }
 
-  return fallback;
+  return Math.min(Math.max(Math.round(value), 1), 3);
 }
 
 export function formatDirectoryDisplayDate(dateString?: string): string {

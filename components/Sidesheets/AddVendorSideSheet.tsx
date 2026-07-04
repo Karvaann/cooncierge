@@ -34,6 +34,8 @@ import {
 import {
   allowOnlyText,
   allowOnlyDigitsWithMax,
+  allowGstNumber,
+  allowPinCode,
   allowTextAndNumbers,
   isValidEmail,
 } from "@/utils/inputValidators";
@@ -42,7 +44,7 @@ import {
   splitPhoneWithDialCode,
 } from "@/utils/phoneUtils";
 import { getStoredCurrencySymbol } from "@/utils/helper";
-import { countryDialCodes } from "@/utils/countryDialCodes";
+import { getUniqueCountries } from "@/utils/countryDialCodes";
 import {
   mapApiSourceToUiDropdown,
   mapUiSourceToApi,
@@ -288,14 +290,15 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
     const newValue =
       name === "name"
         ? allowOnlyText(value)
-        : name === "gstin" ||
-            name === "panNumber" ||
+        : name === "gstin"
+          ? allowGstNumber(value)
+          : name === "panNumber" ||
             name === "passportNumber"
           ? allowTextAndNumbers(value)
           : name === "city"
             ? allowOnlyText(value)
             : name === "pinCode"
-              ? allowOnlyDigitsWithMax(value, 6)
+              ? allowPinCode(value)
         : name === "phone"
           ? allowOnlyDigitsWithMax(value, phoneMaxLength)
           : name === "alternatePhone"
@@ -369,13 +372,13 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
         phone: trimmed || "",
         alternatePhone: trimmedAlternate || "",
         companyName: data.companyName || "",
-        gstin: data.gstin || "",
+        gstin: allowGstNumber(String(data.gstin || "")),
         panNumber: data.panNumber || "",
         passportNumber: data.passportNumber || "",
         passportExpiry: data.passportExpiry || "",
         address: data.address || "",
         city: data.city || "",
-        pinCode: data.pinCode || "",
+        pinCode: allowPinCode(String(data.pinCode || "")),
         country: data.country || "",
         remarks: data.remarks || "",
         tier: data.tier || "",
@@ -840,7 +843,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
 
   const countryDropdownOptions = useMemo(
     () =>
-      countryDialCodes.map((country) => ({
+      getUniqueCountries().map((country) => ({
         value: country.name,
         label: <span className="text-[13px]">{country.name}</span>,
         searchLabel: country.name,
@@ -1093,7 +1096,7 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                           onChange={handleChange}
                           placeholder="Enter GST Number"
                           disabled={readOnly}
-                          className={inputClassName}
+                          className={`${inputClassName} uppercase`}
                         />
                         <button
                           type="button"
@@ -1162,6 +1165,8 @@ const AddVendorSideSheet: React.FC<AddVendorSideSheetProps> = ({
                       <input
                         name="pinCode"
                         type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={formData.pinCode || ""}
                         onChange={handleChange}
                         placeholder="Enter PIN Code"

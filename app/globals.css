@@ -586,6 +586,12 @@ select:-webkit-autofill {
 .auth-otp-input {
   border: 1px solid #e2e1e1;
   transition: border-color 0.2s ease;
+  color: var(--Colors-Grey-Grey_Dark, #020202);
+  font-family: Poppins, sans-serif;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
 }
 
 .auth-input:not(.auth-input-error):hover {
@@ -631,6 +637,24 @@ select:-webkit-autofill {
 
 .auth-otp-input-error {
   border-color: #eb382b;
+}
+
+.auth-back-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  padding: 6px;
+  background-color: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.auth-back-button:hover,
+.auth-back-button:focus-visible {
+  background-color: #f2f2f2 !important;
 }
 
 .modal-radio {
@@ -986,7 +1010,7 @@ select.modal-field-input {
 /* Console table pages — compensate for shell zoom on smaller screens */
 .console-page-viewport,
 .bookings-page-viewport {
-  height: 83vh;
+  height: 87vh;
   width: 100%;
   max-width: 100%;
   overflow: hidden;
@@ -996,7 +1020,7 @@ select.modal-field-input {
 @media (max-width: 1727px) {
   .console-page-viewport,
   .bookings-page-viewport {
-    height: calc(83vh / var(--console-ui-scale));
+    height: calc(87vh / var(--console-ui-scale));
   }
 }
 

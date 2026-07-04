@@ -77,6 +77,23 @@ export const allowOnlyDigitsWithMax = (
 };
 
 /**
+ * GST number — uppercase letters and digits only (max 15).
+ */
+export const allowGstNumber = (value: string): string => {
+  return value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "")
+    .slice(0, 15);
+};
+
+/**
+ * PIN / postal code — digits only.
+ */
+export const allowPinCode = (value: string, maxLength = 6): string => {
+  return allowOnlyDigitsWithMax(value, maxLength);
+};
+
+/**
  * Blocks special characters (keeps letters, numbers, and spaces).
  * Example: "John Doe 123" -> "John Doe 123"
  * Example: "John@Doe#1" -> "JohnDoe1"

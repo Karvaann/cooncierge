@@ -1356,7 +1356,7 @@ const FinanceBookingsPage = () => {
             </div>
           </div>
 
-          <div className="mt-4 flex min-h-0 flex-1 flex-col px-5 pb-4 pt-[4px]">
+          <div className="mt-4 flex min-h-0 flex-1 flex-col px-5 pb-0 pt-[4px]">
             <Table
               data={tableData}
               columns={columns}

@@ -242,25 +242,29 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
         ? ratingString.match(/⭐️/g)?.length || Number(ratingString)
         : Number(ratingString);
 
-    const rating = Math.min(Math.max(Math.round(ratingRaw), 1), 5);
+    const rating = Math.min(Math.max(Math.round(ratingRaw), 1), 3);
 
     const tierIcon = `/icons/tier-${rating}.svg`;
+    const tierLabels: Record<number, string> = {
+      1: "Tier I",
+      2: "Tier II",
+      3: "Tier III",
+    };
 
     return (
       <div className="flex items-center gap-2 justify-center">
-        {/* Your custom tier icon */}
         <div className="w-6 h-6 relative">
           <Image
             src={tierIcon}
-            alt={`Tier ${rating}`}
+            alt={tierLabels[rating] ?? `Tier ${rating}`}
             width={20}
             height={20}
             className="object-contain"
-            unoptimized // Important for local PNGs served from /public
+            unoptimized
           />
         </div>
         <span className="text-[0.75rem] font-semibold text-gray-700">
-          {rating}
+          {tierLabels[rating] ?? `Tier ${rating}`}
         </span>
       </div>
     );

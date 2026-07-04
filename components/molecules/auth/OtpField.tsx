@@ -3,7 +3,7 @@ import { allowOnlyNumbers } from "@/utils/inputValidators";
 import { shouldPlayValidationShake } from "@/components/atoms/auth/useValidationShake";
 
 const OTP_INPUT_SIZE = 40;
-const OTP_INPUT_GAP = 5;
+const OTP_INPUT_GAP = 10;
 const OTP_INPUT_COUNT = 6;
 
 export const OTP_ROW_WIDTH_PX =
@@ -52,6 +52,8 @@ export default function OtpField({ value, onChange, hasError, errorShakeKey = 0 
         skipDefaultStyles
         containerStyle={{
           display: "flex",
+          justifyContent: "center",
+          alignItems: "flex-start",
           gap: `${OTP_INPUT_GAP}px`,
           width: `${OTP_ROW_WIDTH_PX}px`,
         }}
@@ -60,12 +62,15 @@ export default function OtpField({ value, onChange, hasError, errorShakeKey = 0 
           height: `${OTP_INPUT_SIZE}px`,
           boxSizing: "border-box",
           flexShrink: 0,
-          fontSize: "15px",
-          fontWeight: "400",
+          color: "var(--Colors-Grey-Grey_Dark, #020202)",
+          fontFamily: "Poppins, sans-serif",
+          fontSize: "14px",
+          fontStyle: "normal",
+          fontWeight: 400,
+          lineHeight: "24px",
           borderRadius: "6px",
           textAlign: "center",
           background: "#FFF",
-          lineHeight: "24px",
           padding: 0,
         }}
         renderInput={(props) => (

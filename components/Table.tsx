@@ -274,7 +274,7 @@ const Table: React.FC<TableProps> = ({
     ));
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
+    <div className="flex h-full min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-gray-100">
         <table
           style={{ tableLayout: "fixed" }}
@@ -413,7 +413,7 @@ const Table: React.FC<TableProps> = ({
 
       {/* Pagination Controls */}
       <div
-        className={`mt-4 flex shrink-0 items-center justify-between gap-4 flex-wrap ${
+        className={`mt-3 flex shrink-0 items-center justify-between gap-4 flex-wrap px-2 py-3 ${
           hideRowsPerPage ? "justify-between" : ""
         }`}
       >

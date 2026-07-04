@@ -5,7 +5,7 @@ const AUTH_FOOTER_LINKS = [
 ] as const;
 
 const footerLinkClassName =
-  "font-[Poppins,sans-serif] text-[14px] font-[400] leading-[20px] text-[#414141] no-underline transition-colors hover:underline";
+  "font-[Poppins,sans-serif] text-[14px] font-[400] leading-[20px] text-[#818181] no-underline transition-colors hover:underline";
 
 export default function AuthFooterLinks() {
   return (

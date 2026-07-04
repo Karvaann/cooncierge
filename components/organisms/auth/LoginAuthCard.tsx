@@ -191,24 +191,24 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
 
       {props.mode === "otp" ? (
         <div className="mt-[40px] flex w-full flex-col items-center px-0">
-          <div className="mt-[23px] flex w-full max-w-[390px] items-center">
-            <button
-              type="button"
-              onClick={props.otpPurpose === "forgot" ? props.goToForgotPassword : props.goToSignIn}
-              className="rounded-full p-1 transition-colors hover:bg-gray-200"
-              aria-label="Back"
-            >
-              <IoMdArrowBack size={15} />
-            </button>
-            <div className="flex w-full flex-col items-center">
-              <h2 className="text-[15px] font-[500] text-[#414141]">
+          <div className="mt-[23px] w-full max-w-[390px]">
+            <div className="relative flex w-full items-center justify-center">
+              <button
+                type="button"
+                onClick={props.otpPurpose === "forgot" ? props.goToForgotPassword : props.goToSignIn}
+                className="auth-back-button absolute left-0 hover:!bg-[#F2F2F2]"
+                aria-label="Back"
+              >
+                <IoMdArrowBack size={15} />
+              </button>
+              <h2 className="w-full text-center text-[15px] font-[500] text-[#414141]">
                 {props.otpPurpose === "forgot" ? "Enter password reset OTP" : "Enter OTP"}
               </h2>
-              <p className="mt-2 text-center text-[12px] font-[400] text-[#818181]">
-                OTP has been sent to{" "}
-                <span className="underline">{props.email}</span>.
-              </p>
             </div>
+            <p className="mt-2 text-center text-[12px] font-[400] text-[#818181]">
+              OTP has been sent to{" "}
+              <span className="underline">{props.email}</span>.
+            </p>
           </div>
 
           <div className="my-[24px] flex w-full justify-center">
@@ -269,7 +269,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
                 <button
                   type="button"
                   onClick={props.goToSignIn}
-                  className="absolute left-0 rounded-full p-1 transition-colors hover:bg-gray-200"
+                  className="auth-back-button absolute left-0 hover:!bg-[#F2F2F2]"
                   aria-label="Back"
                 >
                   <IoMdArrowBack size={20} />

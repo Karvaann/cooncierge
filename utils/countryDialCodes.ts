@@ -254,6 +254,19 @@ export const countryDialCodes: CountryDialCode[] = [
   { name: "Saba", iso2: "BQ", dialCode: "+599" }
 ];
 
+export function getUniqueCountries(): Array<Pick<CountryDialCode, "name" | "iso2">> {
+  const seen = new Set<string>();
+  const unique: Array<Pick<CountryDialCode, "name" | "iso2">> = [];
+
+  for (const country of countryDialCodes) {
+    if (seen.has(country.iso2)) continue;
+    seen.add(country.iso2);
+    unique.push({ name: country.name, iso2: country.iso2 });
+  }
+
+  return unique;
+}
+
 export const phoneLengthByDialCode: Record<string, number> = {
   "+1": 10,
   "+7": 10,

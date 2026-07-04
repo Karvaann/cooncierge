@@ -33,6 +33,8 @@ import {
 } from "@/utils/directoryApiMappers";
 import {
   allowOnlyDigitsWithMax,
+  allowGstNumber,
+  allowPinCode,
   allowOnlyText,
   isValidEmail,
 } from "@/utils/inputValidators";
@@ -40,7 +42,7 @@ import {
   getPhoneNumberMaxLength,
   splitPhoneWithDialCode,
 } from "@/utils/phoneUtils";
-import { countryDialCodes } from "@/utils/countryDialCodes";
+import { getUniqueCountries } from "@/utils/countryDialCodes";
 
 interface TravellerFormData {
   name: string;
@@ -208,7 +210,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
       dateOfBirth: data.dateOfBirth || data.dateofbirth || "",
       address: data.address || "",
       city: data.city || "",
-      pinCode: data.pinCode || data.pincode || "",
+      pinCode: allowPinCode(String(data.pinCode || data.pincode || "")),
       country: data.country || "",
       remarks: data.remarks || "",
     });
@@ -249,7 +251,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
     } else if (name === "alternatePhone") {
       nextValue = allowOnlyDigitsWithMax(value, alternatePhoneMaxLength);
     } else if (name === "pinCode") {
-      nextValue = allowOnlyDigitsWithMax(value, 6);
+      nextValue = allowPinCode(value);
     }
 
     setFormData((prev) => ({ ...prev, [name]: nextValue }));
@@ -500,7 +502,7 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
 
   const countryDropdownOptions = useMemo(
     () =>
-      countryDialCodes.map((country) => ({
+      getUniqueCountries().map((country) => ({
         value: country.name,
         label: <span className="text-[13px]">{country.name}</span>,
         searchLabel: country.name,
@@ -700,6 +702,8 @@ const AddNewTravellerForm: React.FC<AddNewTravellerFormProps> = ({
                   <input
                     name="pinCode"
                     type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     value={formData.pinCode}
                     onChange={handleChange}
                     placeholder="Enter PIN Code"
