@@ -9,6 +9,8 @@ type TableHeaderActionsProps = {
   onCancelSelect: () => void;
   onSelectAllToggle: () => void;
   menu: ReactNode;
+  /** Bulk actions menu (three dots) shown only in select mode */
+  selectModeMenu?: ReactNode;
   extraAction?: ReactNode;
 };
 
@@ -20,6 +22,7 @@ export default function TableHeaderActions({
   onCancelSelect,
   onSelectAllToggle,
   menu,
+  selectModeMenu,
   extraAction,
 }: TableHeaderActionsProps) {
   return (
@@ -40,6 +43,7 @@ export default function TableHeaderActions({
           >
             {isAllSelected ? "Deselect all" : "Select all"}
           </button>
+          {selectModeMenu}
         </div>
       ) : (
         <div className="relative inline-flex">

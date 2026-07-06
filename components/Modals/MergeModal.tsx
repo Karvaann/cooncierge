@@ -28,7 +28,7 @@ interface MergeModalProps {
   isOpen: boolean;
   onClose: () => void;
   items?: DeletableItem[];
-  mode: "customer" | "vendor";
+  mode: "customer" | "vendor" | "booking";
 }
 
 const TIER_LABELS: Record<number, string> = {
@@ -66,6 +66,8 @@ const VENDOR_COLUMNS = [
   "Booking History",
   "",
 ];
+
+const BOOKING_COLUMNS = ["", "Booking ID", "Lead Pax", ""];
 
 const CUSTOMER_COLUMN_ICONS: Record<string, React.ReactNode> = {
   Name: (
@@ -119,7 +121,12 @@ const MergeModal: React.FC<MergeModalProps> = ({
   items = [],
   mode,
 }) => {
-  const columns = mode === "vendor" ? VENDOR_COLUMNS : CUSTOMER_COLUMNS;
+  const columns =
+    mode === "vendor"
+      ? VENDOR_COLUMNS
+      : mode === "booking"
+        ? BOOKING_COLUMNS
+        : CUSTOMER_COLUMNS;
 
   const [isConfirmationModalOpen, setIsConfirmationModalOpen] = useState(false);
   const [isMerging, setIsMerging] = useState(false);
@@ -333,7 +340,9 @@ const MergeModal: React.FC<MergeModalProps> = ({
             <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181]" />
           ),
         }
-      : CUSTOMER_COLUMN_ICONS;
+      : mode === "booking"
+        ? {}
+        : CUSTOMER_COLUMN_ICONS;
 
   const renderRemoveButton = (list: "into" | "from", item: DeletableItem) => (
     <button
@@ -360,6 +369,26 @@ const MergeModal: React.FC<MergeModalProps> = ({
   );
 
   const toRow = (item: DeletableItem, list: "into" | "from") => {
+    if (mode === "booking") {
+      return [
+        <td key="drag" className="h-[4rem] px-3 py-3 text-center align-middle">
+          <DragHandle />
+        </td>,
+        <td
+          key="id"
+          className="h-[4rem] px-4 py-3 text-center align-middle font-medium text-[#020202]"
+        >
+          {item.id}
+        </td>,
+        <td key="name" className="h-[4rem] px-4 py-3 text-center align-middle">
+          {renderNameCell(item)}
+        </td>,
+        <td key="remove" className="h-[4rem] px-3 py-3 text-center align-middle">
+          {renderRemoveButton(list, item)}
+        </td>,
+      ];
+    }
+
     if (mode === "vendor") {
       const displayName = item.vendorName || item.name || "—";
       const displayPOC = item.poc || item.owner || "—";
@@ -612,7 +641,13 @@ const MergeModal: React.FC<MergeModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={mode === "customer" ? "Merge Customers" : "Merge Vendors"}
+      title={
+        mode === "customer"
+          ? "Merge Customers"
+          : mode === "vendor"
+            ? "Merge Vendors"
+            : "Merge Bookings"
+      }
       size="xl"
       customWidth="w-[min(1100px,calc(100vw-2rem))]"
       customeHeight="h-fit"
@@ -639,16 +674,24 @@ const MergeModal: React.FC<MergeModalProps> = ({
               enableDragAndDrop={true}
               rowIds={mergeIntoRowIds}
               droppableId="into"
-              categoryName={mode === "customer" ? "Customers" : "Vendors"}
+              categoryName={
+                mode === "customer"
+                  ? "Customers"
+                  : mode === "vendor"
+                    ? "Vendors"
+                    : "Bookings"
+              }
               onPaginationChange={(page, rowsPerPage) => {
                 setMergeIntoPage(page);
                 setMergeIntoRowsPerPage(rowsPerPage);
               }}
-              {...(mode === "customer" ? TABLE_HEADER_PROPS : {
-                headerClassName: "bg-[#F3F3F3]",
-                headerRowTextClassName: "text-[#818181]",
-                headerCellTextClassName: "text-[#818181]",
-              })}
+              {...(mode === "customer"
+                ? TABLE_HEADER_PROPS
+                : {
+                    headerClassName: "bg-[#F3F3F3]",
+                    headerRowTextClassName: "text-[#818181]",
+                    headerCellTextClassName: "text-[#818181]",
+                  })}
             />
           </div>
 
@@ -666,7 +709,13 @@ const MergeModal: React.FC<MergeModalProps> = ({
               enableDragAndDrop={true}
               rowIds={mergeFromRowIds}
               droppableId="from"
-              categoryName={mode === "customer" ? "Customers" : "Vendors"}
+              categoryName={
+                mode === "customer"
+                  ? "Customers"
+                  : mode === "vendor"
+                    ? "Vendors"
+                    : "Bookings"
+              }
               onPaginationChange={(page, rowsPerPage) => {
                 setMergeFromPage(page);
                 setMergeFromRowsPerPage(rowsPerPage);
@@ -710,7 +759,9 @@ const MergeModal: React.FC<MergeModalProps> = ({
                 .join(", ")} into ${primaryItem.name || primaryItem.id}?`
             : mode === "customer"
               ? "Select at least two customers to merge"
-              : "Select at least two vendors to merge"
+              : mode === "vendor"
+                ? "Select at least two vendors to merge"
+                : "Select at least two bookings to merge"
         }
         cancelText="Cancel"
         confirmButtonColor="bg-[#3B8132]"
@@ -739,6 +790,13 @@ const MergeModal: React.FC<MergeModalProps> = ({
                 secondaryVendorsId: secondaryIds,
               });
               console.log("Vendors merged successfully");
+            }
+
+            if (mode === "booking") {
+              console.log("Bookings merged successfully", {
+                primaryId,
+                secondaryIds,
+              });
             }
 
             setIsConfirmationModalOpen(false);

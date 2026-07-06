@@ -19,7 +19,7 @@ interface DownloadModalProps {
   isOpen: boolean;
   onClose: () => void;
   items: DeletableItem[];
-  entity: "customer" | "vendor" | "team" | "traveller";
+  entity: "customer" | "vendor" | "team" | "traveller" | "booking";
 }
 
 const ENTITY_LABELS: Record<DownloadModalProps["entity"], string> = {
@@ -27,6 +27,7 @@ const ENTITY_LABELS: Record<DownloadModalProps["entity"], string> = {
   traveller: "travellers",
   vendor: "vendors",
   team: "team",
+  booking: "bookings",
 };
 
 const DownloadModal: React.FC<DownloadModalProps> = ({
@@ -88,6 +89,13 @@ const DownloadModal: React.FC<DownloadModalProps> = ({
         Alias: item.alias,
         "User Status": item.userStatus,
         "Joining Date": item.joiningDate,
+      }));
+    }
+
+    if (entity === "booking") {
+      return items.map((item) => ({
+        "Booking ID": item.id,
+        "Lead Pax": item.name,
       }));
     }
 

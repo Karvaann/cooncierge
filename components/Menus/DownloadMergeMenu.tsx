@@ -8,7 +8,7 @@ import DeleteModal, { DeletableItem } from "../Modals/DeleteModal";
 type DownloadMergeMenuProps = {
   isOpen: boolean;
   onClose: () => void;
-  entity?: "customer" | "vendor" | "team" | "traveller";
+  entity?: "customer" | "vendor" | "team" | "traveller" | "booking";
   items?: DeletableItem[];
   callback: () => void;
   rootRef?: React.RefObject<HTMLDivElement | null>;
@@ -261,7 +261,13 @@ const DownloadMergeMenu: React.FC<DownloadMergeMenuProps> = ({
             setMergeModalItems([]);
           }}
           items={mergeModalItems}
-          mode={entity === "vendor" ? "vendor" : "customer"}
+          mode={
+            entity === "vendor"
+              ? "vendor"
+              : entity === "booking"
+                ? "booking"
+                : "customer"
+          }
         />
       )}
       <DownloadModal

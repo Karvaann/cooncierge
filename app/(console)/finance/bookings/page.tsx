@@ -7,8 +7,8 @@ import Image from "next/image";
 import { format } from "date-fns";
 import { CiFilter } from "react-icons/ci";
 import { TbArrowsExchange, TbArrowsUpDown } from "react-icons/tb";
-import { FaRegCalendar } from "react-icons/fa";
 import { IoChevronDown } from "react-icons/io5";
+import { IoEllipsisHorizontal } from "react-icons/io5";
 import { LuDownload, LuSend } from "react-icons/lu";
 import { FiCheck, FiCopy, FiEdit2, FiLink, FiTrash2, FiX } from "react-icons/fi";
 import { RiRefreshLine } from "react-icons/ri";
@@ -23,6 +23,8 @@ import UnderlineTabs from "@/components/UnderlineTabs";
 import BookingsPageViewport from "@/components/bookings/BookingsPageViewport";
 import RecordPaymentSidesheet from "@/components/Sidesheets/RecordPaymentSidesheet";
 import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
+import DownloadMergeMenu from "@/components/Menus/DownloadMergeMenu";
+import type { DeletableItem } from "@/components/Modals/DeleteModal";
 import FinanceSummaryPills from "@/components/finance/FinanceSummaryPills";
 import FinanceBookingsCalendar from "@/components/finance/FinanceBookingsCalendar";
 import TotalCountPill from "@/components/table/TotalCountPill";
@@ -266,6 +268,7 @@ const FinanceBookingsPage = () => {
   const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false);
   const [viewMode, setViewMode] = useState<"table" | "calendar">("table");
   const moreActionsRef = useRef<HTMLDivElement | null>(null);
+  const selectActionsRef = useRef<HTMLDivElement | null>(null);
 
   const { summary, totalCount, bookings } = FINANCE_BOOKINGS_MOCK;
 
@@ -536,6 +539,19 @@ const FinanceBookingsPage = () => {
     if (selectedBookingIds.length === 0) return false;
     return !isAllSelected;
   }, [isAllSelected, selectMode, selectedBookingIds.length]);
+
+  const selectedDeletables = useMemo((): DeletableItem[] => {
+    const rowById = new Map(filteredBookings.map((row) => [row.id, row]));
+
+    return selectedBookingIds
+      .map((id) => rowById.get(id))
+      .filter((row): row is FinanceBookingRow => Boolean(row))
+      .map((row) => ({
+        id: row.customId,
+        mongoId: row.id,
+        name: row.leadPax,
+      }));
+  }, [filteredBookings, selectedBookingIds]);
 
   const selectAllHeaderCheckbox = useMemo(
     () =>
@@ -1224,6 +1240,30 @@ const FinanceBookingsPage = () => {
               onMenuToggle={() => setIsMoreActionsOpen((prev) => !prev)}
               onCancelSelect={handleCancelSelectMode}
               onSelectAllToggle={handleSelectAllToggle}
+              selectModeMenu={
+                <div className="relative inline-flex items-center" ref={selectActionsRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsMoreActionsOpen((prev) => !prev)}
+                    className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-[14px] text-[#414141] transition-colors hover:bg-[#F3F3F3]"
+                    aria-label="More actions"
+                    aria-expanded={isMoreActionsOpen}
+                  >
+                    <IoEllipsisHorizontal className="text-[22px]" />
+                  </button>
+                  <DownloadMergeMenu
+                    isOpen={isMoreActionsOpen}
+                    onClose={() => setIsMoreActionsOpen(false)}
+                    callback={() => {
+                      setSelectedBookingIds([]);
+                    }}
+                    entity="booking"
+                    items={selectedDeletables}
+                    rootRef={selectActionsRef}
+                    menuVariant="dropdown"
+                  />
+                </div>
+              }
               menu={
                 <SelectUploadMenu
                   isOpen={isMoreActionsOpen}
@@ -1249,7 +1289,23 @@ const FinanceBookingsPage = () => {
                   aria-label="Calendar view"
                   aria-pressed={viewMode === "calendar"}
                 >
-                  <FaRegCalendar className="h-[18px] w-[18px]" />
+                  <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-[18px] w-[18px]"
+                    aria-hidden
+                  >
+                    <path
+                      d="M13.334 2.5V5.83333M6.66732 2.5V5.83333M3.33398 9.16667H16.6673M5.00065 4.16667H15.0007C15.9211 4.16667 16.6673 4.91286 16.6673 5.83333V15.8333C16.6673 16.7538 15.9211 17.5 15.0007 17.5H5.00065C4.08018 17.5 3.33398 16.7538 3.33398 15.8333V5.83333C3.33398 4.91286 4.08018 4.16667 5.00065 4.16667ZM6.66732 12.5H8.33398V14.1667H6.66732V12.5Z"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
                 </button>
               }
             />

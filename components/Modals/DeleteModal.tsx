@@ -33,7 +33,7 @@ import { HiArrowsUpDown } from "react-icons/hi2";
 import type { JSX } from "react";
 import Image from "next/image";
 
-type EntityType = "customer" | "vendor" | "team" | "traveller";
+type EntityType = "customer" | "vendor" | "team" | "traveller" | "booking";
 
 export interface DeletableItem {
   id: string;
@@ -212,6 +212,8 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
             return deleteTeam(item.id);
           case "traveller":
             return deleteTraveller(item.mongoId);
+          case "booking":
+            return Promise.resolve();
           default:
             return Promise.resolve();
         }
@@ -356,6 +358,9 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
     }
     if (entity === "traveller") {
       return ["ID", "Name", "Owner", "Date Created", "Actions"];
+    }
+    if (entity === "booking") {
+      return ["Booking ID", "Lead Pax"];
     }
     return [
       "ID",
@@ -523,6 +528,22 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
           actionsCell,
         ];
       }
+      if (entity === "booking") {
+        return [
+          <td
+            key={`${item.id}-id`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {item.id}
+          </td>,
+          <td
+            key={`${item.id}-name`}
+            className="px-3 py-1.5 text-center text-[0.75rem]"
+          >
+            {item.name || "—"}
+          </td>,
+        ];
+      }
       // team
       return [
         <td
@@ -587,7 +608,9 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
               ? "Delete Vendors"
               : entity === "traveller"
                 ? "Delete Travellers"
-                : "Delete Team Members"
+                : entity === "booking"
+                  ? "Delete Bookings"
+                  : "Delete Team Members"
         }
         customWidth="w-[60vw]"
         customeHeight="h-fit"
@@ -619,7 +642,9 @@ const DeleteModal: React.FC<DeleteModalProps> = ({
                       ? "vendors"
                       : entity === "traveller"
                         ? "travellers"
-                        : "teams"
+                        : entity === "booking"
+                          ? "bookings"
+                          : "teams"
                 }
               />
             </div>
