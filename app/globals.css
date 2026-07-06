@@ -605,7 +605,7 @@ select:-webkit-autofill {
 
 .auth-input:not(.auth-input-error):focus,
 .auth-input:not(.auth-input-error):focus-visible {
-  border: 3px solid #7135ad !important;
+  border: 3px solid rgba(113, 53, 173, 0.4) !important;
   box-shadow: none !important;
   outline: none !important;
   padding-left: 10px;
@@ -623,7 +623,7 @@ select:-webkit-autofill {
 
 .auth-otp-input:focus,
 .auth-otp-input:focus-visible {
-  border: 3px solid #7135ad !important;
+  border: 3px solid rgba(113, 53, 173, 0.4) !important;
   box-shadow: none !important;
   outline: none !important;
 }
