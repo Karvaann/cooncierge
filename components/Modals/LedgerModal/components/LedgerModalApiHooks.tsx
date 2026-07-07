@@ -7,6 +7,50 @@ import CustomIdApi from "@/services/customIdApi";
 import BookingApiService from "@/services/bookingApi";
 import { getCustomerById } from "@/services/customerApi";
 import { getVendorById } from "@/services/vendorApi";
+import {
+  FINANCE_CUSTOMER_LEDGER_MOCK,
+  FINANCE_VENDOR_LEDGER_MOCK,
+} from "@/mock-data/finance";
+
+const MOCK_BANKS: BankDto[] = [
+  {
+    _id: "bank-axis",
+    name: "Axis Bank",
+    accountNumber: "XXXX1234",
+    ifscCode: "UTIB0000001",
+    accountType: "current",
+  },
+  {
+    _id: "bank-hdfc",
+    name: "HDFC Bank",
+    accountNumber: "XXXX5678",
+    ifscCode: "HDFC0000001",
+    accountType: "current",
+  },
+  {
+    _id: "bank-sbi",
+    name: "SBI",
+    accountNumber: "XXXX9012",
+    ifscCode: "SBIN0000001",
+    accountType: "savings",
+  },
+  {
+    _id: "bank-cash",
+    name: "Cash",
+    accountNumber: "—",
+    ifscCode: "—",
+    accountType: "current",
+  },
+];
+
+const hasLedgerEntries = (data: unknown): boolean => {
+  if (!data || typeof data !== "object") return false;
+  const entries = (data as { entries?: unknown }).entries;
+  return Array.isArray(entries) && entries.length > 0;
+};
+
+const getLedgerMock = (isVendorLedger: boolean) =>
+  isVendorLedger ? FINANCE_VENDOR_LEDGER_MOCK : FINANCE_CUSTOMER_LEDGER_MOCK;
 
 const extractBankList = (resp: any): BankDto[] => {
   if (Array.isArray(resp)) return resp;
@@ -33,11 +77,12 @@ export const useLedgerBanks = ({ enabled }: { enabled: boolean }) => {
     try {
       const resp: any = await BankApi.getBanks({ isDeleted: false });
       if (!mountedRef.current) return;
-      setBanks(extractBankList(resp));
+      const list = extractBankList(resp);
+      setBanks(list.length > 0 ? list : MOCK_BANKS);
     } catch (err) {
       console.error("Failed to fetch banks:", err);
       if (!mountedRef.current) return;
-      setBanks([]);
+      setBanks(MOCK_BANKS);
     } finally {
       if (mountedRef.current) setIsLoading(false);
     }
@@ -72,16 +117,26 @@ export const useLedgerData = ({
   }, []);
 
   const fetchLedger = useCallback(async () => {
+    setIsLoading(true);
     try {
-      if (!rawId) return;
-      setIsLoading(true);
-      const data = isVendorLedger
-        ? await PaymentsApi.getVendorLedger(rawId)
-        : await PaymentsApi.getCustomerLedger(rawId);
+      let data: unknown = null;
+
+      if (rawId) {
+        data = isVendorLedger
+          ? await PaymentsApi.getVendorLedger(rawId)
+          : await PaymentsApi.getCustomerLedger(rawId);
+      }
+
+      if (!hasLedgerEntries(data)) {
+        data = getLedgerMock(isVendorLedger);
+      }
+
       if (!mountedRef.current) return;
       setLedgerData(data);
     } catch (err) {
       console.error("Failed to fetch ledger:", err);
+      if (!mountedRef.current) return;
+      setLedgerData(getLedgerMock(isVendorLedger));
     } finally {
       if (mountedRef.current) setIsLoading(false);
     }

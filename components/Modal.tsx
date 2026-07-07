@@ -27,6 +27,8 @@ interface ModalProps {
   noBodyPadding?: boolean;
   /** Override default body padding classes */
   bodyClassName?: string;
+  /** When false, modal body does not scroll; inner content manages overflow */
+  scrollableBody?: boolean;
 }
 
 type ModalSize = {
@@ -51,6 +53,7 @@ const Modal: React.FC<ModalProps> = ({
   headerLeft,
   noBodyPadding = false,
   bodyClassName,
+  scrollableBody = true,
 }) => {
   const { shouldRender, isVisible } = useOverlayAnimation(isOpen);
 
@@ -192,7 +195,11 @@ const Modal: React.FC<ModalProps> = ({
         )}
 
         <div
-          className={`min-h-0 flex-1 overflow-y-auto overscroll-y-contain ${bodyPaddingClass}`}
+          className={`min-h-0 flex-1 ${
+            scrollableBody
+              ? "overflow-y-auto overscroll-y-contain"
+              : "overflow-hidden"
+          } ${bodyPaddingClass}`}
         >
           {children}
         </div>

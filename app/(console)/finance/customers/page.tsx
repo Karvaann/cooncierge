@@ -1,28 +1,34 @@
 "use client";
 
-import { useMemo, useState, useEffect, useCallback } from "react";
-import { FiSearch } from "react-icons/fi";
-import type { JSX } from "react";
+import {
+  useMemo,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type JSX,
+} from "react";
+import { createPortal } from "react-dom";
+import Image from "next/image";
 import dynamic from "next/dynamic";
-import { MdOutlineRemoveRedEye } from "react-icons/md";
-import TableSkeleton from "@/components/skeletons/TableSkeleton";
-import FullScreenLoader from "@/components/FullScreenLoader";
-import ActionMenu from "@/components/Menus/ActionMenu";
+import { MdOutlineRemoveRedEye, MdOutlineKeyboardArrowDown } from "react-icons/md";
+import { IoEllipsisHorizontal } from "react-icons/io5";
+import { CiSearch, CiFilter } from "react-icons/ci";
+import { TbArrowsUpDown, TbCircleArrowDownLeft, TbCircleArrowUpRight } from "react-icons/tb";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
-import DropDown from "@/components/DropDown";
-import AvatarTooltip from "@/components/AvatarToolTip";
-import { CiFilter } from "react-icons/ci";
-import type { FilterCardOption } from "@/components/FilterCard";
+import { FiCopy } from "react-icons/fi";
+import TableSkeleton from "@/components/skeletons/TableSkeleton";
+import ActionMenu from "@/components/Menus/ActionMenu";
 import FilterTrigger from "@/components/FilterTrigger";
-import { getUsers } from "@/services/userApi";
 import PaymentsApi from "@/services/paymentsApi";
-import { deleteCustomer, getCustomers } from "@/services/customerApi";
-import ConfirmationModal from "@/components/popups/ConfirmationModal";
+import { deleteCustomer, getCustomerById } from "@/services/customerApi";
+import CustomIdApi from "@/services/customIdApi";
 import LedgerModal from "@/components/Modals/LedgerModal/LedgerModal";
+import LinkProfilesModal, {
+  type LinkProfileSource,
+} from "@/components/Modals/LinkProfilesModal";
 import AddCustomerSideSheet from "@/components/Sidesheets/AddCustomerSideSheet";
 import { BookingProvider } from "@/context/BookingContext";
-import { PiArrowCircleUpRight } from "react-icons/pi";
-import { PiArrowCircleDownLeft } from "react-icons/pi";
 import {
   allowNoSpecialCharacters,
   allowOnlyText,
@@ -31,80 +37,106 @@ import {
   formatNumberByStoredCurrency,
   getStoredCurrencySymbol,
 } from "@/utils/helper";
+import { formatDirectoryDisplayDate, mapTierToNumber } from "@/utils/directoryApiMappers";
+import BookingsPageViewport from "@/components/bookings/BookingsPageViewport";
+import FinanceSummaryPills from "@/components/finance/FinanceSummaryPills";
+import TotalCountPill from "@/components/table/TotalCountPill";
+import TableHeaderActions from "@/components/table/TableHeaderActions";
+import SelectUploadMenu from "@/components/Menus/SelectUploadMenu";
+import DownloadMergeMenu from "@/components/Menus/DownloadMergeMenu";
+import { BOOKING_HISTORY_ACTION_BUTTON_CLASS } from "@/components/table/bookingHistoryActionStyles";
+import type { DeletableItem } from "@/components/Modals/DeleteModal";
 
 const Table = dynamic(() => import("@/components/Table"), {
   loading: () => <TableSkeleton />,
   ssr: false,
 });
 
-// Column definitions
 const columns: string[] = [
   "Customer ID",
   "Name",
-  "Owner",
+  "Last Modified",
   "Closing Balance",
   "Actions",
 ];
 
-// Dummy customer data
 type CustomerRow = {
   customerId: string;
   rawId: string;
-  customId?: string;
   name: string;
-  owner: {
-    _id?: string;
-    name?: string;
-    email?: string;
-  } | null;
+  subtitle?: string;
+  lastModified: string;
+  lastModifiedRaw?: string;
   closingBalance: number;
-  balanceType: "debit" | "credit"; // debit = you give (red), credit = you get (green)
+  balanceType: "debit" | "credit";
   raw?: any;
 };
-// No initial dummy customers — will load from API
 
-// Color palette for owner avatars
-const colorPalette = [
-  "border-pink-700 text-pink-700",
-  "border-[#AF52DE] text-[#AF52DE]",
-  "border-[#5856D6] text-[#5856D6]",
-  "border-cyan-700 text-cyan-700",
-  "border-emerald-700 text-emerald-700",
-  "border-amber-700 text-amber-700",
-];
+function renderSelectCheckbox(
+  inputId: string,
+  checked: boolean,
+  onToggle: () => void,
+  indeterminate = false,
+) {
+  const isActive = checked || indeterminate;
 
-// Helper function to compute initials from full name
-const computeInitials = (name: string) => {
-  const parts = name.trim().split(/\s+/);
-  const first = parts[0]?.[0] || "";
-  const last = parts.length > 1 ? parts[parts.length - 1]?.[0] || "" : "";
-  return (first + last).toUpperCase();
-};
-
-// Helper function to get dynamic color for owner
-const getOwnerColor = (index: number): string => {
-  if (colorPalette.length === 0) return "";
-  const idx = index % colorPalette.length;
-  return colorPalette[idx] ?? "";
-};
+  return (
+    <div className="flex items-center justify-center">
+      <input
+        type="checkbox"
+        id={inputId}
+        className="sr-only"
+        checked={checked}
+        onClick={(e) => e.stopPropagation()}
+        onChange={onToggle}
+      />
+      <label
+        htmlFor={inputId}
+        onClick={(e) => e.stopPropagation()}
+        className={`flex h-[18px] w-[18px] cursor-pointer items-center justify-center rounded-[5px] border transition ${
+          isActive
+            ? "border-[#7135AD] bg-[#7135AD]"
+            : "border-[#D1D5DB] bg-white"
+        }`}
+      >
+        {checked && (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="10"
+            height="8"
+            viewBox="0 0 12 11"
+            fill="none"
+            aria-hidden
+          >
+            <path
+              d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
+              stroke="#FFFFFF"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
+          </svg>
+        )}
+        {indeterminate && !checked && (
+          <span
+            className="block h-[2px] w-[10px] rounded-full bg-white"
+            aria-hidden
+          />
+        )}
+      </label>
+    </div>
+  );
+}
 
 const FinanceCustomersPage = () => {
-  const [userOptions, setUserOptions] = useState<FilterCardOption[]>([]);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [ownerFilterIds, setOwnerFilterIds] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [ledgerOpen, setLedgerOpen] = useState(false);
   const [ledgerCustomerName, setLedgerCustomerName] = useState<string | null>(
     null,
   );
   const [ledgerCustomerId, setLedgerCustomerId] = useState<string | null>(null);
   const [ledgerRawId, setLedgerRawId] = useState<string | null>(null);
-
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedDeleteId, setSelectedDeleteId] = useState<string | null>(null);
-  const [selectedDeleteCustomId, setSelectedDeleteCustomId] = useState<
-    string | null
-  >(null);
+  const [ledgerCustomerData, setLedgerCustomerData] = useState<any | null>(null);
 
   const [amountFilter, setAmountFilter] = useState<("in" | "out")[]>([]);
   const [customerViewOpen, setCustomerViewOpen] = useState(false);
@@ -113,90 +145,92 @@ const FinanceCustomersPage = () => {
   );
   const [editCustomerOpen, setEditCustomerOpen] = useState(false);
   const [editCustomerData, setEditCustomerData] = useState<any | null>(null);
+  const [addCustomerOpen, setAddCustomerOpen] = useState(false);
+  const [duplicateCustomerData, setDuplicateCustomerData] = useState<any | null>(
+    null,
+  );
+  const [generatedCustomerCode, setGeneratedCustomerCode] = useState<
+    string | null
+  >(null);
+  const [isGeneratingCode, setIsGeneratingCode] = useState(false);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [linkSourceProfile, setLinkSourceProfile] =
+    useState<LinkProfileSource | null>(null);
 
-  // Fetch users on mount to populate Owner filter options
-  useEffect(() => {
-    let mounted = true;
-    const fetch = async () => {
-      try {
-        const res = await getUsers();
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<string[]>([]);
+  const [isMoreActionsOpen, setIsMoreActionsOpen] = useState(false);
+  const moreActionsRef = useRef<HTMLDivElement | null>(null);
+  const selectActionsRef = useRef<HTMLDivElement | null>(null);
 
-        let list: any[] = [];
-        if (Array.isArray(res)) list = res;
-        else if (Array.isArray(res?.users)) list = res.users;
-        else if (Array.isArray(res?.data)) list = res.data;
+  const [searchValue, setSearchValue] = useState("");
+  const [searchBy, setSearchBy] = useState<"customerId" | "name">("customerId");
+  const [searchByOpen, setSearchByOpen] = useState(false);
+  const searchByRef = useRef<HTMLButtonElement | null>(null);
+  const [searchByPos, setSearchByPos] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
-        const opts: FilterCardOption[] = list.map((u) => ({
-          value: u._id ?? u.id ?? u.userId ?? String(u?.email ?? u?.name ?? u),
-          label: u.name ?? u.fullName ?? u.email ?? String(u),
-        }));
+  const [sortState, setSortState] = useState<{
+    key: string;
+    direction: "asc" | "desc" | "none";
+  }>({ key: "", direction: "none" });
 
-        if (mounted) setUserOptions(opts);
-      } catch (e) {
-        console.error("Failed to load users for Owner filter", e);
-      }
-    };
-
-    fetch();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  // Fetch customer closing balances and map to CustomerRow
   const fetchBalances = useCallback(async () => {
     setIsLoading(true);
     try {
       const res = await PaymentsApi.listCustomerClosingBalances();
 
-      let list: any[] = [];
+      let list: Record<string, unknown>[] = [];
       if (Array.isArray(res)) list = res;
       else if (Array.isArray(res?.customers)) list = res.customers;
       else if (Array.isArray(res?.data)) list = res.data;
       else if (Array.isArray(res?.closingBalances)) list = res.closingBalances;
 
-      const mapped: CustomerRow[] = (list || []).map((it: any) => {
-        const rawCustomer = it.customer ?? it;
-        const rawId = rawCustomer?._id ?? rawCustomer?.id ?? "";
-        const customerId =
-          it?.customer?.customId ??
-          it.customId ??
-          it._id ??
-          it.id ??
-          it.customer?.id ??
-          String(it?.customerId ?? "");
-        const name =
-          it.name ?? it.fullName ?? it.customerName ?? it.customer?.name ?? "";
+      const mapped: CustomerRow[] = (list || []).map((it) => {
+        const rawCustomer = (it.customer ?? it) as Record<string, unknown>;
+        const rawId = String(rawCustomer?._id ?? rawCustomer?.id ?? "");
+        const customerId = String(
+          (it as { customer?: { customId?: string } })?.customer?.customId ??
+            it.customId ??
+            it._id ??
+            it.id ??
+            (it as { customer?: { id?: string } }).customer?.id ??
+            it.customerId ??
+            "",
+        );
+        const name = String(
+          it.name ??
+            it.fullName ??
+            it.customerName ??
+            rawCustomer?.name ??
+            "",
+        );
 
-        const ownerVal =
-          rawCustomer?.ownerId ?? it.ownerId ?? it.customer?.ownerId ?? null;
-        let owner: { _id?: string; name?: string; email?: string } | null =
-          null;
-        if (ownerVal) {
-          if (typeof ownerVal === "string") {
-            owner = { _id: ownerVal, name: ownerVal, email: "" };
-          } else if (typeof ownerVal === "object") {
-            owner = {
-              _id: String(ownerVal._id ?? ownerVal.id ?? ""),
-              name:
-                ownerVal.name ??
-                ownerVal.fullName ??
-                ownerVal.email ??
-                String(ownerVal._id ?? ownerVal.id ?? ""),
-              email: ownerVal.email ?? "",
-            };
-          }
-        }
+        const alias = String(rawCustomer?.alias ?? it.alias ?? "").trim();
+        const gstin = String(rawCustomer?.gstin ?? it.gstin ?? "").trim();
+        const subtitle =
+          alias || (gstin ? `GSTIN : ${gstin}` : undefined);
+
+        const updatedAt = String(
+          rawCustomer?.updatedAt ?? it.updatedAt ?? rawCustomer?.createdAt ?? it.createdAt ?? "",
+        );
 
         const rawBalance =
-          it.closingBalance?.amount ??
-          it.closing_balance?.amount ??
+          (it as { closingBalance?: { amount?: number } }).closingBalance
+            ?.amount ??
+          (it as { closing_balance?: { amount?: number } }).closing_balance
+            ?.amount ??
           it.balance ??
           it.amount ??
-          it.closingBalance ??
+          (it as { closingBalance?: number }).closingBalance ??
           0;
         const closingBalance = Number(rawBalance);
-        const balanceType = (it.closingBalance?.balanceType ??
+        const balanceType = ((it as { closingBalance?: { balanceType?: string } })
+          .closingBalance?.balanceType ??
           it.balanceType ??
           it.type ??
           (Number(rawBalance) < 0 ? "debit" : "credit")) as "debit" | "credit";
@@ -205,7 +239,9 @@ const FinanceCustomersPage = () => {
           customerId,
           rawId,
           name,
-          owner,
+          ...(subtitle ? { subtitle } : {}),
+          lastModified: formatDirectoryDisplayDate(updatedAt),
+          lastModifiedRaw: updatedAt,
           closingBalance: Math.abs(closingBalance),
           balanceType,
           raw: rawCustomer,
@@ -221,186 +257,315 @@ const FinanceCustomersPage = () => {
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      await fetchBalances();
-      if (cancelled) return;
-    })();
-    return () => {
-      cancelled = true;
-    };
+    void fetchBalances();
   }, [fetchBalances]);
 
-  // Map column names to header icons/components
-  const columnIconMap: Record<string, JSX.Element | null> = useMemo(() => {
-    return {
-      Owner: (
-        <FilterTrigger
-          options={userOptions}
-          onApply={(selected) => setOwnerFilterIds(selected as string[])}
-        >
-          <CiFilter className="text-white stroke-[1.5]" />
-        </FilterTrigger>
+  useEffect(() => {
+    if (!searchByOpen) return;
+
+    const handleOutside = (event: MouseEvent) => {
+      if (
+        searchByRef.current &&
+        !searchByRef.current.contains(event.target as Node)
+      ) {
+        setSearchByOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [searchByOpen]);
+
+  const columnIconMap = useMemo<Record<string, JSX.Element>>(
+    () => ({
+      Name: (
+        <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+      ),
+      "Last Modified": (
+        <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
       ),
       "Closing Balance": (
-        <FilterTrigger
-          ariaLabel="Filter Amount"
-          options={[
-            { value: "in", label: "Payment In" },
-            { value: "out", label: "Payment Out" },
-          ]}
-          onApply={(selected) => {
-            setAmountFilter(selected as ("in" | "out")[]);
-          }}
-        >
-          <CiFilter className="text-white stroke-[1.5]" />
-        </FilterTrigger>
+        <span className="inline-flex items-center gap-2">
+          <FilterTrigger
+            ariaLabel="Filter Amount"
+            options={[
+              { value: "in", label: "Payment In" },
+              { value: "out", label: "Payment Out" },
+            ]}
+            onApply={(selected) => {
+              setAmountFilter(selected as ("in" | "out")[]);
+            }}
+          >
+            <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+          </FilterTrigger>
+          <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+        </span>
       ),
-    };
-  }, [userOptions]);
-
-  // Calculate totals (defaults to totals for visible / filtered customers below)
-  const { youGet, youGive } = { youGet: 0, youGive: 0 };
-
-  // Search state
-  const [searchValue, setSearchValue] = useState("");
-  const [searchFilter, setSearchFilter] = useState<
-    "owner" | "customerId" | "customerName"
-  >("owner");
-  // effectiveSearch matches bookings Filter behavior: only apply when empty or >=3 chars
-  const [effectiveSearch, setEffectiveSearch] = useState("");
-
-  // Filter options for dropdown
-  const filterOptions = useMemo(
-    () => [
-      { value: "owner", label: "Owner" },
-      { value: "customerId", label: "Customer ID" },
-      { value: "customerName", label: "Customer Name" },
-    ],
+    }),
     [],
   );
 
-  // Dynamic placeholder based on selected filter
-  const searchPlaceholder = useMemo(() => {
-    switch (searchFilter) {
-      case "owner":
-        return "Search by Owner";
-      case "customerId":
-        return "Search by Customer ID";
-      case "customerName":
-        return "Search by Customer Name";
-      default:
-        return "Search...";
-    }
-  }, [searchFilter]);
-
-  // Convert customers to table data
-  const visibleCustomers = useMemo(() => {
-    const q =
-      effectiveSearch && effectiveSearch.length >= 3
-        ? effectiveSearch.toLowerCase()
-        : "";
-
+  const filteredCustomers = useMemo(() => {
     return customers.filter((c) => {
-      /* Search filter */
-      if (q) {
-        if (searchFilter === "owner") {
-          if (
-            !c.owner ||
-            !c.owner.name ||
-            !c.owner.name.toLowerCase().includes(q)
-          ) {
-            return false;
-          }
-        }
-
-        if (searchFilter === "customerId") {
-          if (!c.customerId.toLowerCase().includes(q)) return false;
-        }
-
-        if (searchFilter === "customerName") {
-          if (!c.name.toLowerCase().includes(q)) return false;
-        }
-      }
-
-      /* Closing Balance filter */
-      if (amountFilter.length > 0) {
-        const balanceDirection = c.balanceType === "credit" ? "in" : "out";
-
-        if (!amountFilter.includes(balanceDirection)) {
+      if (searchValue.trim()) {
+        const search = searchValue.toLowerCase();
+        if (searchBy === "customerId") {
+          if (!c.customerId.toLowerCase().includes(search)) return false;
+        } else if (!c.name.toLowerCase().includes(search)) {
           return false;
         }
       }
 
-      /* Owner filter (by selected owner ids) */
-      if (ownerFilterIds.length > 0) {
-        if (!c.owner || !c.owner._id) return false;
-        if (!ownerFilterIds.includes(String(c.owner._id))) return false;
+      if (amountFilter.length > 0) {
+        const balanceDirection = c.balanceType === "credit" ? "in" : "out";
+        if (!amountFilter.includes(balanceDirection)) return false;
       }
 
       return true;
     });
-  }, [customers, effectiveSearch, searchFilter, amountFilter, ownerFilterIds]);
+  }, [customers, searchValue, searchBy, amountFilter]);
+
+  const sortedCustomers = useMemo(() => {
+    if (!sortState.key || sortState.direction === "none") {
+      return filteredCustomers;
+    }
+
+    const sorted = [...filteredCustomers];
+    const direction = sortState.direction === "asc" ? 1 : -1;
+
+    sorted.sort((a, b) => {
+      if (sortState.key === "Name") {
+        return a.name.localeCompare(b.name) * direction;
+      }
+      if (sortState.key === "Last Modified") {
+        const ta = a.lastModifiedRaw
+          ? new Date(a.lastModifiedRaw).getTime()
+          : 0;
+        const tb = b.lastModifiedRaw
+          ? new Date(b.lastModifiedRaw).getTime()
+          : 0;
+        return (ta - tb) * direction;
+      }
+      if (sortState.key === "Closing Balance") {
+        return (a.closingBalance - b.closingBalance) * direction;
+      }
+      return 0;
+    });
+
+    return sorted;
+  }, [filteredCustomers, sortState]);
+
+  const summary = useMemo(() => {
+    const youGet = filteredCustomers
+      .filter((c) => c.balanceType === "credit")
+      .reduce((sum, c) => sum + c.closingBalance, 0);
+    const youGive = filteredCustomers
+      .filter((c) => c.balanceType === "debit")
+      .reduce((sum, c) => sum + c.closingBalance, 0);
+    return { youGet, youGive, net: youGet - youGive };
+  }, [filteredCustomers]);
+
+  const isAllSelected =
+    sortedCustomers.length > 0 &&
+    selectedCustomerIds.length === sortedCustomers.length;
+  const isSomeSelected =
+    selectedCustomerIds.length > 0 && !isAllSelected;
+
+  const selectedDeletables = useMemo((): DeletableItem[] => {
+    const rowById = new Map(customers.map((c) => [c.customerId, c]));
+    return selectedCustomerIds
+      .map((id) => rowById.get(id))
+      .filter((c): c is CustomerRow => Boolean(c))
+      .map((c) => ({
+        id: c.customerId,
+        mongoId: c.rawId,
+        name: c.name,
+        ...(c.subtitle ? { subtitle: c.subtitle } : {}),
+        dateModified: c.lastModified,
+      }));
+  }, [customers, selectedCustomerIds]);
+
+  const selectAllHeaderCheckbox = useMemo(
+    () =>
+      renderSelectCheckbox(
+        "finance-customers-select-all",
+        isAllSelected,
+        () => {
+          if (isAllSelected) {
+            setSelectedCustomerIds([]);
+          } else {
+            setSelectedCustomerIds(sortedCustomers.map((c) => c.customerId));
+          }
+        },
+        isSomeSelected,
+      ),
+    [isAllSelected, isSomeSelected, sortedCustomers],
+  );
+
+  const renderNameCell = (row: { name: string; subtitle?: string }) => (
+    <div className="mx-auto w-fit text-center">
+      <div className="font-[500] text-[#020202]">{row.name}</div>
+      {row.subtitle ? (
+        <div className="table-cell-subtext mt-0.5 text-[#818181]">
+          {row.subtitle}
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const openCustomerView = useCallback((customer: CustomerRow) => {
+    setSelectedCustomerData(
+      customer.raw ?? {
+        name: customer.name,
+        customId: customer.customerId,
+      },
+    );
+    setCustomerViewOpen(true);
+  }, []);
+
+  const buildCustomerActions = useCallback(
+    (row: CustomerRow) => [
+      {
+        label: "Edit",
+        icon: <FaRegEdit size={14} />,
+        color: "text-[#126ACB]",
+        onClick: async () => {
+          try {
+            const customer = row.rawId
+              ? await getCustomerById(row.rawId)
+              : row.raw ?? { name: row.name, customId: row.customerId };
+            setEditCustomerData(customer);
+            setEditCustomerOpen(true);
+          } catch (e) {
+            console.error("Failed to fetch customer for edit:", e);
+          }
+        },
+      },
+      {
+        label: "Delete",
+        icon: <FaRegTrashAlt size={14} />,
+        color: "text-red-600",
+        confirmDeleteId: row.customerId,
+        onClick: async () => {
+          if (!row.rawId) return;
+          await deleteCustomer(row.rawId);
+          await fetchBalances();
+        },
+      },
+      {
+        label: "Link",
+        icon: (
+          <Image
+            src="/icons/link-icon.svg"
+            alt="Link"
+            width={14}
+            height={14}
+            className="object-contain"
+          />
+        ),
+        color: "text-[#419836]",
+        onClick: () => {
+          setLinkSourceProfile({
+            profileType: "Customer",
+            id: row.customerId,
+            name: row.name,
+            ...(row.subtitle ? { nickname: row.subtitle } : {}),
+            tier: mapTierToNumber(row.raw?.tier),
+          });
+          setIsLinkModalOpen(true);
+        },
+      },
+      {
+        label: "Duplicate",
+        icon: <FiCopy size={14} />,
+        color: "text-[#818181]",
+        confirmDuplicateId: row.customerId,
+        onClick: async () => {
+          try {
+            const customer = row.rawId
+              ? await getCustomerById(row.rawId)
+              : row.raw;
+            const res = await CustomIdApi.generate("customer");
+            setGeneratedCustomerCode(res?.customId || "");
+            setDuplicateCustomerData({
+              ...customer,
+              _id: undefined,
+              customId: res?.customId || "",
+            });
+            setAddCustomerOpen(true);
+          } catch (e) {
+            console.error("Failed to duplicate customer:", e);
+          }
+        },
+      },
+    ],
+    [fetchBalances],
+  );
 
   const tableData = useMemo<JSX.Element[][]>(() => {
-    return visibleCustomers.map((customer, index) => {
+    return sortedCustomers.map((customer, index) => {
       const cells: JSX.Element[] = [];
+
+      if (selectMode) {
+        const isSelected = selectedCustomerIds.includes(customer.customerId);
+        cells.push(
+          <td key={`select-${index}`} className="px-4 py-3 text-center">
+            {renderSelectCheckbox(
+              `finance-customer-${customer.customerId}`,
+              isSelected,
+              () => {
+                setSelectedCustomerIds((prev) =>
+                  isSelected
+                    ? prev.filter((id) => id !== customer.customerId)
+                    : [...prev, customer.customerId],
+                );
+              },
+            )}
+          </td>,
+        );
+      }
 
       cells.push(
         <td
           key={`customerId-${index}`}
-          className="px-4 py-3  font-[500] text-[14px] text-center"
+          className="h-[4rem] px-4 py-3 text-center align-middle font-[500] text-[#020202]"
         >
           {customer.customerId}
         </td>,
-        <td key={`name-${index}`} className="px-4 py-3 text-[14px] text-center">
+        <td
+          key={`name-${index}`}
+          className="h-[4rem] px-4 py-3 text-center align-middle"
+        >
           <button
             type="button"
-            onClick={() => {
-              setSelectedCustomerData(
-                customer.raw ?? {
-                  name: customer.name,
-                  customId: customer.customerId,
-                },
-              );
-              setCustomerViewOpen(true);
-            }}
-            className="p-0 m-0 bg-transparent border-0 hover:underline font-medium"
+            onClick={() => openCustomerView(customer)}
+            className="m-0 border-0 bg-transparent p-0"
             aria-label={`View ${customer.name}`}
           >
-            {customer.name}
+            {renderNameCell(customer)}
           </button>
         </td>,
-        <td key={`owner-${index}`} className="px-4 py-3 text-center">
-          <div className="flex items-center justify-center">
-            {customer.owner && (
-              <>
-                <div className="mr-2">
-                  <AvatarTooltip
-                    short={computeInitials(customer.owner.name ?? "")}
-                    full={customer.owner.name ?? ""}
-                    color={getOwnerColor(0)}
-                  />
-                </div>
-              </>
-            )}
-          </div>
+        <td
+          key={`lastModified-${index}`}
+          className="h-[4rem] px-4 py-3 text-center align-middle text-[#414141]"
+        >
+          {customer.lastModified}
         </td>,
         <td
           key={`balance-${index}`}
-          className="px-4 py-3 text-center text-[14px]"
+          className="h-[4rem] px-4 py-3 text-center align-middle text-[14px]"
         >
           <span
             className={`inline-flex items-center justify-center gap-2 font-medium ${
               customer.balanceType === "debit"
-                ? "text-[#EB382B]"
-                : "text-[#4CA640]"
+                ? "text-[#C85542]"
+                : "text-[#5E9D5A]"
             }`}
           >
             {customer.balanceType === "debit" ? (
-              <PiArrowCircleUpRight className="text-red-600" size={16} />
+              <TbCircleArrowUpRight className="text-[18px]" />
             ) : (
-              <PiArrowCircleDownLeft className="text-green-600" size={16} />
+              <TbCircleArrowDownLeft className="text-[18px]" />
             )}
             <span>
               {getStoredCurrencySymbol()}{" "}
@@ -410,210 +575,320 @@ const FinanceCustomersPage = () => {
         </td>,
         <td
           key={`actions-${index}`}
-          className="px-4 py-3 text-center text-[14px] align-middle h-[4rem]"
+          className="h-[4rem] px-4 py-3 text-center align-middle text-[14px]"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center justify-center gap-2 transition-all duration-200 opacity-0 pointer-events-none group-[.row-actions-active]:opacity-100 group-[.row-actions-active]:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+            className="mx-auto grid w-[12rem] grid-cols-[1fr_2rem] items-center gap-2"
           >
-            <button
-              type="button"
-              onClick={() => {
-                console.log(customer);
-                setLedgerCustomerName(customer.name);
-                setLedgerCustomerId(customer.customerId);
-                setLedgerRawId(customer.rawId);
-                setLedgerOpen(true);
-              }}
-              className="bg-[#FFF1C2] text-[#414141] px-3 py-1.5 rounded-md text-[0.75rem] font-semibold border border-[#F5E6C3] hover:bg-[#FDF1D5]"
-            >
-              <span className="flex items-center gap-1">
-                <MdOutlineRemoveRedEye size={12} className="text-[#414141]" />{" "}
-                View ledger
-              </span>
-            </button>
-
-            <ActionMenu
-              actions={[
-                {
-                  label: "Edit",
-                  icon: <FaRegEdit />,
-                  color: "text-blue-600",
-                  onClick: () => {
-                    setEditCustomerData(
-                      customer.raw ?? {
-                        name: customer.name,
-                        customId: customer.customerId,
-                      },
-                    );
-                    setEditCustomerOpen(true);
-                  },
-                },
-                {
-                  label: "Delete",
-                  icon: <FaRegTrashAlt />,
-                  color: "text-red-600",
-                  onClick: () => {
-                    setSelectedDeleteId(
-                      customer.rawId || customer.customerId || null,
-                    );
-                    setSelectedDeleteCustomId(customer.customerId || null);
-                    setIsDeleteModalOpen(true);
-                  },
-                },
-              ]}
-              width="w-22"
-            />
+            <div className="flex min-h-[34px] items-center justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setLedgerCustomerName(customer.name);
+                  setLedgerCustomerId(customer.customerId);
+                  setLedgerRawId(customer.rawId);
+                  setLedgerCustomerData(
+                    customer.raw ?? {
+                      name: customer.name,
+                      customId: customer.customerId,
+                      _id: customer.rawId,
+                    },
+                  );
+                  setLedgerOpen(true);
+                }}
+                className={BOOKING_HISTORY_ACTION_BUTTON_CLASS}
+              >
+                <MdOutlineRemoveRedEye size={14} />
+                Ledger
+              </button>
+            </div>
+            <div className="flex items-center justify-center">
+              <ActionMenu
+                actions={buildCustomerActions(customer)}
+                align="left"
+                width="min-w-[7.5rem]"
+              />
+            </div>
           </div>
         </td>,
       );
 
       return cells;
     });
-  }, [visibleCustomers]);
+  }, [
+    buildCustomerActions,
+    openCustomerView,
+    selectMode,
+    selectedCustomerIds,
+    sortedCustomers,
+  ]);
 
-  // Recompute totals based on currently visible (filtered) customers
-  const totalsForVisible = useMemo(() => {
-    const get = visibleCustomers
-      .filter((c) => c.balanceType === "credit")
-      .reduce((sum, c) => sum + c.closingBalance, 0);
-    const give = visibleCustomers
-      .filter((c) => c.balanceType === "debit")
-      .reduce((sum, c) => sum + c.closingBalance, 0);
-    return { youGet: get, youGive: give };
-  }, [visibleCustomers]);
+  const handleSort = useCallback((column: string) => {
+    setSortState((prev) => {
+      if (prev.key !== column) {
+        return { key: column, direction: "asc" };
+      }
+      if (prev.direction === "asc") {
+        return { key: column, direction: "desc" };
+      }
+      return { key: "", direction: "none" };
+    });
+  }, []);
 
-  // use totalsForVisible in render
-  const youGetVisible = totalsForVisible.youGet;
-  const youGiveVisible = totalsForVisible.youGive;
+  const handleSelectClick = useCallback(() => {
+    setSelectMode(true);
+    setSelectedCustomerIds([]);
+    setIsMoreActionsOpen(false);
+  }, []);
 
-  // Ledger modal handlers
+  const handleCancelSelectMode = useCallback(() => {
+    setSelectMode(false);
+    setSelectedCustomerIds([]);
+    setIsMoreActionsOpen(false);
+  }, []);
+
+  const handleSelectAllToggle = useCallback(() => {
+    if (isAllSelected) {
+      setSelectedCustomerIds([]);
+    } else {
+      setSelectedCustomerIds(sortedCustomers.map((c) => c.customerId));
+    }
+  }, [isAllSelected, sortedCustomers]);
+
   const closeLedger = () => {
     setLedgerOpen(false);
     setLedgerCustomerName(null);
     setLedgerCustomerId(null);
+    setLedgerRawId(null);
+    setLedgerCustomerData(null);
   };
 
-  const handleConfirmDelete = async () => {
-    if (!selectedDeleteId) return;
+  const handleAddCustomer = async () => {
     try {
-      await deleteCustomer(selectedDeleteId);
-      setIsDeleteModalOpen(false);
-      setSelectedDeleteId(null);
-      setSelectedDeleteCustomId(null);
-      await fetchBalances();
-    } catch (e) {
-      console.error("Failed to delete customer", e);
-      setIsDeleteModalOpen(false);
-      setSelectedDeleteId(null);
-      setSelectedDeleteCustomId(null);
+      setIsGeneratingCode(true);
+      setDuplicateCustomerData(null);
+      const res = await CustomIdApi.generate("customer");
+      setGeneratedCustomerCode(res?.customId || null);
+      setAddCustomerOpen(true);
+    } catch (err) {
+      console.error("Failed to generate customer code", err);
+    } finally {
+      setIsGeneratingCode(false);
     }
   };
 
+  const totalCount = customers.length;
+
   return (
     <>
-      {isLoading ? (
-        <FullScreenLoader />
-      ) : (
-        <div className="bg-white rounded-2xl shadow px-3 py-2 mb-5 w-full">
-          <div className="flex items-center justify-between rounded-2xl px-4 py-3">
-            {/* Summary Pills (You Get / You Give) */}
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-4">
-                <div className="bg-[#E0F2E9] rounded-full px-4 py-2">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[#414141] text-[13px] font-medium">
-                      You Get
-                    </span>
-                    <span className="text-[#4CA640] text-[14px] font-semibold">
-                      {getStoredCurrencySymbol()}{" "}
-                      {formatNumberByStoredCurrency(youGetVisible)}
-                    </span>
-                  </div>
-                </div>
+      <BookingsPageViewport>
+        <div className="flex h-full min-h-0 w-full max-w-full min-w-0 flex-col overflow-x-hidden">
+          <div className="mb-6 flex items-center justify-between gap-4">
+            <FinanceSummaryPills
+              net={summary.net}
+              youGive={summary.youGive}
+              youGet={summary.youGet}
+            />
 
-                <div className="bg-[#FCE8E8] rounded-full px-4 py-2 ">
-                  <div className="flex items-center gap-3">
-                    <span className="text-[#414141] text-[13px] font-medium">
-                      You Give
-                    </span>
-                    <span className="text-[#C30010] text-[14px] font-semibold">
-                      {getStoredCurrencySymbol()}{" "}
-                      {formatNumberByStoredCurrency(youGiveVisible)}
-                    </span>
+            <div ref={moreActionsRef}>
+              <TableHeaderActions
+                selectMode={selectMode}
+                isAllSelected={isAllSelected}
+                isMenuOpen={isMoreActionsOpen}
+                onMenuToggle={() => setIsMoreActionsOpen((prev) => !prev)}
+                onCancelSelect={handleCancelSelectMode}
+                onSelectAllToggle={handleSelectAllToggle}
+                selectModeMenu={
+                  <div
+                    className="relative inline-flex items-center"
+                    ref={selectActionsRef}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setIsMoreActionsOpen((prev) => !prev)}
+                      className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-[14px] text-[#414141] transition-colors hover:bg-[#F3F3F3]"
+                      aria-label="More actions"
+                      aria-expanded={isMoreActionsOpen}
+                    >
+                      <IoEllipsisHorizontal className="text-[22px]" />
+                    </button>
+                    <DownloadMergeMenu
+                      isOpen={isMoreActionsOpen}
+                      onClose={() => setIsMoreActionsOpen(false)}
+                      callback={() => {
+                        setSelectedCustomerIds([]);
+                        void fetchBalances();
+                      }}
+                      entity="customer"
+                      items={selectedDeletables}
+                      rootRef={selectActionsRef}
+                      menuVariant="dropdown"
+                    />
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Search with Filter Dropdown */}
-            <div className="flex items-center gap-0 max-w-xl">
-              <div className="relative z-10">
-                <DropDown
-                  options={filterOptions}
-                  value={searchFilter}
-                  onChange={(val) =>
-                    setSearchFilter(
-                      val as "owner" | "customerId" | "customerName",
-                    )
-                  }
-                  buttonClassName="!rounded-l-md !rounded-r-none border bg-gray-50 text-[13px] font-normal text-gray-500 gap-2"
-                  customWidth="w-fit"
-                  customHeight="py-2.5"
-                  noBorder={false}
-                  menuWidth="w-35"
-                />
-              </div>
-              <div className="relative flex-1">
-                <input
-                  type="text"
-                  value={searchValue}
-                  onChange={(e) => {
-                    const raw = e.target.value;
-                    const value =
-                      searchFilter === "customerId"
-                        ? allowNoSpecialCharacters(raw)
-                        : allowOnlyText(raw);
-                    setSearchValue(value);
-                    if (value.length === 0) setEffectiveSearch("");
-                    else if (value.length >= 3) setEffectiveSearch(value);
-                  }}
-                  placeholder={searchPlaceholder}
-                  className="w-[350px] text-[14px] py-2.5 pl-4 pr-10 rounded-r-md border border-gray-200 border-l-0 focus:outline-none focus:ring-2 focus:ring-[#0D4B37] hover:border-green-300 text-gray-700 bg-white"
-                />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                  <FiSearch />
-                </span>
-              </div>
+                }
+                menu={
+                  <SelectUploadMenu
+                    isOpen={isMoreActionsOpen}
+                    onClose={() => setIsMoreActionsOpen(false)}
+                    onSelect={handleSelectClick}
+                    entity="customer"
+                    rootRef={moreActionsRef}
+                  />
+                }
+                extraAction={
+                  <button
+                    type="button"
+                    onClick={() => void handleAddCustomer()}
+                    disabled={isGeneratingCode}
+                    className="cursor-pointer rounded-[14px] bg-[#7135AD] px-[14px] py-[8px] text-[14px] font-[500] text-white disabled:opacity-60"
+                  >
+                    + Add Customer
+                  </button>
+                }
+              />
             </div>
           </div>
 
-          <div className="min-h-[200px] mt-2 px-2">
-            <Table
-              data={tableData}
-              columns={columns}
-              // columnIconMap={columnIconMap}
-              categoryName="Customers"
-              enableRowHoverActions={true}
-              rowIds={visibleCustomers.map((c) => c.customerId)}
-            />
+          <div className="relative flex min-h-0 min-w-0 w-full max-w-full flex-1 flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
+            <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[#E5E7EB] px-5 py-4">
+              <div className="min-w-0 flex-1">
+                <div className="flex h-[44px] max-w-[34rem] items-stretch overflow-hidden rounded-[14px] border border-[#E2E1E1] bg-white">
+                  <button
+                    ref={searchByRef}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const rect = searchByRef.current?.getBoundingClientRect();
+                      if (rect) {
+                        setSearchByPos({
+                          left: rect.left,
+                          top: rect.top,
+                          width: rect.width,
+                          height: rect.height,
+                        });
+                      }
+                      setSearchByOpen((prev) => !prev);
+                    }}
+                    className="flex h-full shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap px-3 text-[12px] font-[400] text-[#020202]"
+                  >
+                    <span>
+                      {searchBy === "name" ? "Name" : "Customer ID"}
+                    </span>
+                    <MdOutlineKeyboardArrowDown className="text-[20px] text-[#7A7A7A]" />
+                  </button>
+
+                  <div className="flex min-w-0 flex-1 items-center border-l border-[#D9D9D9]">
+                    <input
+                      type="text"
+                      placeholder="Type here"
+                      value={searchValue}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const value =
+                          searchBy === "customerId"
+                            ? allowNoSpecialCharacters(raw)
+                            : allowOnlyText(raw);
+                        setSearchValue(value);
+                      }}
+                      className="h-full min-w-0 flex-1 bg-transparent pl-3 pr-3 text-[12px] font-normal text-[#111111] outline-none placeholder:text-[#A0A9BA]"
+                    />
+                    <CiSearch
+                      className="mr-4 shrink-0 text-[#808080]"
+                      size={22}
+                    />
+                  </div>
+                </div>
+
+                {searchByOpen &&
+                  searchByPos &&
+                  createPortal(
+                    <div
+                      style={{
+                        position: "fixed",
+                        left: searchByPos.left,
+                        top: searchByPos.top + searchByPos.height + 4,
+                        minWidth: searchByPos.width,
+                        zIndex: 9999,
+                      }}
+                      className="overflow-hidden rounded-[16px] border border-[#D9D9D9] bg-white shadow-[0_10px_25px_rgba(0,0,0,0.10)]"
+                    >
+                      {[
+                        { value: "customerId", label: "Customer ID" },
+                        { value: "name", label: "Name" },
+                      ].map((option, index, arr) => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => {
+                            setSearchBy(option.value as "customerId" | "name");
+                            setSearchByOpen(false);
+                          }}
+                          className={`block w-full cursor-pointer whitespace-nowrap px-3 py-2 text-left text-[12px] ${
+                            searchBy === option.value
+                              ? "text-[#7C3AED]"
+                              : "text-[#444444]"
+                          } ${index < arr.length - 1 ? "border-b border-[#D9D9D9]" : ""}`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>,
+                    document.body,
+                  )}
+              </div>
+
+              <div className="flex shrink-0 items-center gap-[20px]">
+                <TotalCountPill count={totalCount} />
+              </div>
+            </div>
+
+            <div className="mt-4 flex min-h-0 flex-1 flex-col px-5 pb-0 pt-[4px]">
+              {isLoading ? (
+                <TableSkeleton />
+              ) : (
+                <Table
+                  data={tableData}
+                  columns={columns}
+                  columnIconMap={columnIconMap}
+                  onSort={handleSort}
+                  categoryName="Customers"
+                  initialRowsPerPage={10}
+                  maxRowsPerPageOptions={[10, 20, 50, 100]}
+                  headerClassName="bg-[#F3F3F3]"
+                  headerRowTextClassName="text-[#818181]"
+                  headerAlign={{
+                    "Customer ID": "center",
+                    Name: "center",
+                    "Last Modified": "center",
+                    "Closing Balance": "center",
+                    Actions: "center",
+                  }}
+                  headerCellTextClassName="text-[#818181]"
+                  columnWidthClassMap={{
+                    "Customer ID": "w-[8rem]",
+                    Name: "w-[12rem]",
+                    "Last Modified": "w-[9rem]",
+                    "Closing Balance": "w-[10rem]",
+                    Actions: "w-[14rem]",
+                  }}
+                  showCheckboxColumn={selectMode}
+                  headerCheckbox={selectMode ? selectAllHeaderCheckbox : undefined}
+                  rowIds={sortedCustomers.map((c) => c.customerId)}
+                  {...(selectMode
+                    ? {}
+                    : {
+                        onRowClick: (index: number) => {
+                          const row = sortedCustomers[index];
+                          if (row) openCustomerView(row);
+                        },
+                      })}
+                />
+              )}
+            </div>
           </div>
         </div>
-      )}
-
-      {/* Ledger Modal */}
-      <ConfirmationModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => {
-          setIsDeleteModalOpen(false);
-          setSelectedDeleteId(null);
-        }}
-        onConfirm={handleConfirmDelete}
-        title={`Do you want to Delete ${selectedDeleteCustomId || "customer"}?`}
-        confirmText="Yes, Delete"
-        cancelText="Cancel"
-        confirmButtonColor="bg-red-600"
-      />
+      </BookingsPageViewport>
 
       <LedgerModal
         isOpen={ledgerOpen}
@@ -621,9 +896,23 @@ const FinanceCustomersPage = () => {
         customerName={ledgerCustomerName ?? null}
         customerId={ledgerCustomerId ?? null}
         rawId={ledgerRawId ?? null}
+        onViewCustomer={() => {
+          setSelectedCustomerData(ledgerCustomerData);
+          setCustomerViewOpen(true);
+        }}
+        onEditCustomer={async () => {
+          try {
+            const customer = ledgerRawId
+              ? await getCustomerById(ledgerRawId)
+              : ledgerCustomerData;
+            setEditCustomerData(customer);
+            setEditCustomerOpen(true);
+          } catch (e) {
+            console.error("Failed to fetch customer for edit:", e);
+          }
+        }}
       />
 
-      {/* Customer View SideSheet (read-only) */}
       <BookingProvider>
         <AddCustomerSideSheet
           data={selectedCustomerData}
@@ -633,9 +922,7 @@ const FinanceCustomersPage = () => {
             setSelectedCustomerData(null);
           }}
           mode="view"
-          customerCode={
-            selectedCustomerData?.customId ?? selectedCustomerData?._id
-          }
+          customerCode={selectedCustomerData?.customId ?? selectedCustomerData?._id}
         />
       </BookingProvider>
 
@@ -648,9 +935,41 @@ const FinanceCustomersPage = () => {
             setEditCustomerData(null);
           }}
           mode="edit"
+          onSuccess={() => void fetchBalances()}
           customerCode={editCustomerData?.customId ?? editCustomerData?._id}
         />
       </BookingProvider>
+
+      <BookingProvider>
+        <AddCustomerSideSheet
+          data={duplicateCustomerData}
+          isOpen={addCustomerOpen}
+          onCancel={() => {
+            setAddCustomerOpen(false);
+            setGeneratedCustomerCode(null);
+            setDuplicateCustomerData(null);
+          }}
+          mode="create"
+          onSuccess={() => {
+            setAddCustomerOpen(false);
+            setGeneratedCustomerCode(null);
+            setDuplicateCustomerData(null);
+            void fetchBalances();
+          }}
+          {...(generatedCustomerCode ? { customerCode: generatedCustomerCode } : {})}
+        />
+      </BookingProvider>
+
+      {isLinkModalOpen && (
+        <LinkProfilesModal
+          isOpen={isLinkModalOpen}
+          onClose={() => {
+            setIsLinkModalOpen(false);
+            setLinkSourceProfile(null);
+          }}
+          sourceProfile={linkSourceProfile}
+        />
+      )}
     </>
   );
 };

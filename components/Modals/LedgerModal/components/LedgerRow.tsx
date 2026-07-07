@@ -1,49 +1,19 @@
 "use client";
 
 import React from "react";
+import Image from "next/image";
 import { FiEye } from "react-icons/fi";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
+import { TbCircleArrowDownLeft, TbCircleArrowUpRight } from "react-icons/tb";
 import ActionMenu from "@/components/Menus/ActionMenu";
-import { getStoredCurrencySymbol } from "@/utils/helper";
+import { BOOKING_HISTORY_ACTION_BUTTON_CLASS } from "@/components/table/bookingHistoryActionStyles";
+import { formatDirectoryDisplayDate } from "@/utils/directoryApiMappers";
+import {
+  formatNumberByStoredCurrency,
+  getStoredCurrencySymbol,
+} from "@/utils/helper";
 
 type LedgerStatus = "paid" | "none" | "partial";
-
-const statusPillClasses: Record<LedgerStatus, string> = {
-  paid: "bg-green-100 text-green-700 border border-green-200",
-  none: "bg-yellow-100 text-yellow-800 border border-yellow-200",
-  partial: "bg-orange-100 text-orange-700 border border-orange-200",
-};
-
-const formatMoney = (value: number) => {
-  try {
-    return value.toLocaleString(undefined, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  } catch {
-    return String(value);
-  }
-};
-
-const formatDate = (dateString: string) => {
-  const date = new Date(dateString).toLocaleDateString("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-  return date;
-};
-
-type Props = {
-  entry: any;
-  dateColumnLabel: string;
-  isVendorLedger: boolean;
-  bankNameById: Map<string, string>;
-  onEditPayment: (entry: any) => void;
-  onDeletePayment: (entry: any) => void;
-  onEditQuotation: (entry: any) => void;
-  onDeleteQuotation: (entry: any) => void;
-};
 
 const mapQuotationTypeToCategory = (qt?: string) => {
   const v = (qt || "").toLowerCase().trim();
@@ -55,21 +25,14 @@ const mapQuotationTypeToCategory = (qt?: string) => {
     accommodation: "accommodation",
     car: "transport-land",
     "transport-land": "transport-land",
-    "land-transport": "transport-land",
-    land: "transport-land",
     transportation: "transport-land",
+    transport: "transport-land",
     maritime: "transport-maritime",
-    "transport-maritime": "transport-maritime",
     ticket: "tickets",
-    tickets: "tickets",
     activity: "activity",
-    activities: "activity",
     insurance: "travel insurance",
-    "travel insurance": "travel insurance",
     visa: "visas",
-    visas: "visas",
     others: "others",
-    package: "others",
   };
   return map[v] || "others";
 };
@@ -79,7 +42,7 @@ const getQuotationDisplayLabel = (rawType?: string) => {
   const labelMap: Record<string, string> = {
     travel: "Flight",
     accommodation: "Accommodation",
-    "transport-land": "Land Transport",
+    "transport-land": "Transportation",
     activity: "Activity",
     "transport-maritime": "Maritime",
     tickets: "Tickets",
@@ -91,6 +54,29 @@ const getQuotationDisplayLabel = (rawType?: string) => {
     labelMap[cat] ||
     String(rawType || "-").replace(/\b\w/g, (c) => c.toUpperCase())
   );
+};
+
+const getServiceIconSrc = (rawType?: string, entryType?: string, customId?: string) => {
+  if (entryType === "payment") {
+    const id = String(customId || "").toUpperCase();
+    if (id.startsWith("PI-")) return "/icons/service-icons/others.svg";
+    if (id.startsWith("PO-")) return "/icons/service-icons/others.svg";
+    return "/icons/service-icons/others.svg";
+  }
+
+  const cat = mapQuotationTypeToCategory(rawType);
+  const iconMap: Record<string, string> = {
+    travel: "/icons/service-icons/flight.svg",
+    accommodation: "/icons/service-icons/accommodation.svg",
+    "transport-land": "/icons/service-icons/transport.svg",
+    activity: "/icons/service-icons/activity.svg",
+    "transport-maritime": "/icons/service-icons/transportation.svg",
+    tickets: "/icons/service-icons/ticket.svg",
+    "travel insurance": "/icons/service-icons/insurance.svg",
+    visas: "/icons/service-icons/visa-icon-final.svg",
+    others: "/icons/service-icons/others.svg",
+  };
+  return iconMap[cat] || iconMap.others!;
 };
 
 const extractQuotationTypeFromEntry = (entry: any) => {
@@ -123,11 +109,46 @@ const resolveBankNameFromEntry = (
   return bankNameById.get(String(bank)) || "—";
 };
 
+const getPaymentStatusLabel = (status?: LedgerStatus) => {
+  if (status === "none") return "Pending";
+  if (status === "partial") return "Partially Paid";
+  return "Paid";
+};
+
+const getPaymentStatusPillClass = (status?: LedgerStatus) => {
+  if (status === "none") {
+    return "rounded-full bg-[#FFF1C2] px-2.5 py-0.5 text-[11px] font-[500] text-[#414141]";
+  }
+  if (status === "partial") {
+    return "rounded-full bg-[#FFE8D6] px-2.5 py-0.5 text-[11px] font-[500] text-[#D97706]";
+  }
+  return "rounded-full bg-[#E8F8E6] px-2.5 py-0.5 text-[11px] font-[500] text-[#419836]";
+};
+
+const getModePillClass = () =>
+  "rounded-full border border-[#126ACB] bg-white px-2.5 py-0.5 text-[11px] font-[500] text-[#126ACB]";
+
+const formatLedgerDate = (dateString?: string) => {
+  if (!dateString) return "—";
+  return formatDirectoryDisplayDate(dateString);
+};
+
+type Props = {
+  entry: any;
+  isVendorLedger: boolean;
+  bankNameById: Map<string, string>;
+  onViewEntry: (entry: any) => void;
+  onEditPayment: (entry: any) => void;
+  onDeletePayment: (entry: any) => void;
+  onEditQuotation: (entry: any) => void;
+  onDeleteQuotation: (entry: any) => void;
+};
+
 const LedgerRow: React.FC<Props> = ({
   entry: r,
-  dateColumnLabel,
   isVendorLedger,
   bankNameById,
+  onViewEntry,
   onEditPayment,
   onDeletePayment,
   onEditQuotation,
@@ -138,13 +159,13 @@ const LedgerRow: React.FC<Props> = ({
       return [
         {
           label: "Edit",
-          icon: <FaRegEdit />,
-          color: "text-blue-600",
+          icon: <FaRegEdit size={14} />,
+          color: "text-[#126ACB]",
           onClick: () => onEditPayment(r),
         },
         {
           label: "Delete",
-          icon: <FaRegTrashAlt />,
+          icon: <FaRegTrashAlt size={14} />,
           color: "text-red-600",
           onClick: () => onDeletePayment(r),
         },
@@ -155,13 +176,13 @@ const LedgerRow: React.FC<Props> = ({
       return [
         {
           label: "Edit",
-          icon: <FaRegEdit />,
-          color: "text-blue-600",
+          icon: <FaRegEdit size={14} />,
+          color: "text-[#126ACB]",
           onClick: () => onEditQuotation(r),
         },
         {
           label: "Delete",
-          icon: <FaRegTrashAlt />,
+          icon: <FaRegTrashAlt size={14} />,
           color: "text-red-600",
           onClick: () => onDeleteQuotation(r),
         },
@@ -173,42 +194,31 @@ const LedgerRow: React.FC<Props> = ({
 
   const displayedDate = (() => {
     if (r.type === "payment") {
-      return r.paymentDate || r.date;
-    }
-
-    if (dateColumnLabel === "Travel Date") {
-      return (
-        r.travelDate || r.data?.travelDate || r.data?.formFields?.traveldate
+      return formatLedgerDate(
+        r.paymentDate ||
+          r.date ||
+          r.data?.paymentDate ||
+          r.data?.formFields?.paymentDate,
       );
     }
 
-    return r.data?.formFields?.bookingdate || r.date;
+    return formatLedgerDate(
+      r.data?.formFields?.bookingdate || r.date || r.data?.bookingDate,
+    );
   })();
-
-  const amountBgClass = isVendorLedger
-    ? // Vendor ledger: payments are red, bookings/base are green, incentive rows should be red
-      r._vendorSplit === "incentive"
-      ? "bg-red-50"
-      : r.type === "payment"
-        ? "bg-red-50"
-        : "bg-green-50"
-    : r.type === "payment"
-      ? "bg-green-50"
-      : "bg-red-50";
-
-  const amountTextClass = isVendorLedger
-    ? // Vendor ledger: ensure incentive rows use red text
-      r._vendorSplit === "incentive"
-      ? "text-red-500"
-      : r.type === "payment"
-        ? "text-red-500"
-        : "text-green-600"
-    : r.type === "payment"
-      ? "text-green-600"
-      : "text-red-500";
 
   const displayAmount =
     typeof r?._displayAmount === "number" ? r._displayAmount : r.amount;
+
+  const isPaymentRow = r.type === "payment";
+  const amountPrefix = isPaymentRow ? "+" : "-";
+  const amountTextClass = isVendorLedger
+    ? isPaymentRow
+      ? "text-[#C85542]"
+      : "text-[#5E9D5A]"
+    : isPaymentRow
+      ? "text-[#5E9D5A]"
+      : "text-[#C85542]";
 
   const bankName = resolveBankNameFromEntry(r, bankNameById);
   const paymentTypeLabel =
@@ -216,113 +226,175 @@ const LedgerRow: React.FC<Props> = ({
     r?.data?.payment?.paymentType ||
     r?.data?.paymentType ||
     r?.data?.payment?.type ||
-    "-";
+    "";
+
+  const serviceLabel = (() => {
+    if (r.type === "opening") return "Opening Balance";
+    if (r.type === "payment") {
+      const id = String(r.customId || "").toUpperCase();
+      if (id.startsWith("PI-")) return "Pay In";
+      if (id.startsWith("PO-")) return "Pay Out";
+      return "Payment";
+    }
+    return getQuotationDisplayLabel(extractQuotationTypeFromEntry(r));
+  })();
+
+  const serviceIconSrc = getServiceIconSrc(
+    extractQuotationTypeFromEntry(r),
+    r.type,
+    r.customId,
+  );
+
+  const invoiceSubLabel =
+    r?.invoiceCustomId ||
+    r?.data?.invoiceCustomId ||
+    r?.data?.invoiceId ||
+    r?.data?.formFields?.invoiceId ||
+    null;
+
+  const secondaryStatus = (() => {
+    const raw =
+      r?.data?.serviceStatus ||
+      r?.data?.status ||
+      r?.data?.formFields?.status ||
+      r?.data?.formFields?.bookingStatus ||
+      "";
+    if (!raw) return null;
+    const normalized = String(raw).toLowerCase();
+    if (normalized.includes("cancel")) return "Cancelled";
+    if (normalized.includes("resched")) return "Rescheduled";
+    if (normalized.includes("confirm")) return "Confirmed";
+    return String(raw).replace(/\b\w/g, (c) => c.toUpperCase());
+  })();
+
+  const closingBalanceAmount = Number(r?.closingBalance?.amount ?? 0);
+  const closingBalanceType = r?.closingBalance?.balanceType;
+  const isClosingDebit = closingBalanceType === "debit";
+  const closingTextClass = isClosingDebit ? "text-[#C85542]" : "text-[#5E9D5A]";
 
   return (
     <>
-      <td className="px-4 py-3 text-center font-[600] text-[14px]">
+      <td className="h-[4rem] px-4 py-3 text-center align-middle">
         {r.type === "opening" ? (
-          "Opening Balance"
-        ) : r.type === "quotation" ? (
-          <div className="relative inline-flex flex-col items-center justify-center">
-            <span className="peer cursor-default leading-5">
-              {r.customId || "NA"}
+          <span className="text-[13px] font-[600] text-[#020202]">
+            Opening Balance
+          </span>
+        ) : (
+          <div className="mx-auto flex w-fit flex-col items-center">
+            <span className="text-[13px] font-[600] text-[#020202]">
+              {r.customId || "—"}
             </span>
-            {r._displayIdSubLabel ? (
-              <span className="text-[12px] font-[500] text-gray-500 leading-4 mt-1">
-                {String(r._displayIdSubLabel)}
+            {r._displayIdSubLabel || invoiceSubLabel ? (
+              <span className="mt-0.5 text-[12px] font-[400] text-[#818181]">
+                {String(r._displayIdSubLabel || invoiceSubLabel)}
               </span>
             ) : null}
-
-            <div
-              className="absolute -top-8 left-1/2 z-50 px-2 py-1 text-[0.75rem] text-white bg-gray-800 rounded-md shadow-lg pointer-events-none -translate-x-1/2 transition-opacity duration-150 ease-in-out opacity-0 invisible whitespace-nowrap peer-hover:opacity-100 peer-hover:visible"
-              role="tooltip"
-            >
-              {getQuotationDisplayLabel(extractQuotationTypeFromEntry(r))}
-              <div
-                className="absolute left-1/2 -bottom-1 w-2.5 h-2.5 bg-gray-800"
-                style={{
-                  transform: "translateX(-50%) rotate(45deg)",
-                  WebkitTransform: "translateX(-50%) rotate(45deg)",
-                }}
-              />
-            </div>
           </div>
-        ) : (
-          r.customId || "NA"
         )}
       </td>
 
-      <td className="px-4 py-3 text-center text-[14px]">
-        {formatDate(displayedDate)}
-      </td>
-
-      <td className="px-4 py-3 text-center text-[14px]">
-        <span
-          className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-[12px] font-semibold ${
-            statusPillClasses[r.paymentStatus as LedgerStatus]
-          }`}
-        >
-          {r.type === "opening" || r.type === "payment"
-            ? ""
-            : r.paymentStatus === "none"
-              ? "Pending"
-              : r.paymentStatus === "partial"
-                ? "Partially Paid"
-                : "Paid"}
-        </span>
-      </td>
-
-      <td className="px-4 py-3 text-center text-[14px]">
-        <div className="relative inline-flex items-center justify-center">
-          <span className="peer cursor-default">{bankName}</span>
-
-          <div
-            className="absolute -top-8 left-1/2 z-50 px-2 py-1 text-[0.75rem] text-white bg-gray-800 rounded-md shadow-lg pointer-events-none -translate-x-1/2 transition-opacity duration-150 ease-in-out opacity-0 invisible whitespace-nowrap peer-hover:opacity-100 peer-hover:visible"
-            role="tooltip"
-          >
-            {paymentTypeLabel}
-            <div
-              className="absolute left-1/2 -bottom-1 w-2.5 h-2.5 bg-gray-800"
-              style={{
-                transform: "translateX(-50%) rotate(45deg)",
-                WebkitTransform: "translateX(-50%) rotate(45deg)",
-              }}
+      <td className="h-[4rem] px-4 py-3 text-center align-middle">
+        {r.type === "opening" ? (
+          <span className="text-[13px] text-[#818181]">—</span>
+        ) : (
+          <div className="mx-auto flex w-fit items-center justify-center gap-2">
+            <Image
+              src={serviceIconSrc}
+              alt={serviceLabel}
+              width={18}
+              height={18}
+              className="h-[18px] w-[18px] object-contain"
+              unoptimized
             />
+            <span className="text-[13px] font-[400] text-[#414141]">
+              {serviceLabel}
+            </span>
           </div>
-        </div>
+        )}
       </td>
 
-      <td className={`px-4 py-3 text-center text-[14px] ${amountBgClass}`}>
-        <span className="font-semibold">{getStoredCurrencySymbol()} {formatMoney(displayAmount)}</span>
+      <td className="h-[4rem] px-4 py-3 text-center align-middle text-[13px] text-[#414141]">
+        {displayedDate}
       </td>
 
-      <td className={`px-4 py-3 text-center text-[14px] ${amountBgClass}`}>
-        <span className={`${amountTextClass} font-semibold`}>
-          {getStoredCurrencySymbol()} {formatMoney(r.closingBalance.amount)}
+      <td className="h-[4rem] px-4 py-3 text-center align-middle">
+        {r.type === "opening" ? (
+          <span className="text-[13px] text-[#818181]">—</span>
+        ) : r.type === "payment" ? (
+          <div className="mx-auto flex w-fit flex-col items-center gap-1">
+            {paymentTypeLabel ? (
+              <span className={getModePillClass()}>{paymentTypeLabel}</span>
+            ) : (
+              <span className="text-[13px] text-[#818181]">—</span>
+            )}
+          </div>
+        ) : (
+          <div className="mx-auto flex w-fit flex-col items-center gap-1">
+            <span className={getPaymentStatusPillClass(r.paymentStatus)}>
+              {getPaymentStatusLabel(r.paymentStatus)}
+            </span>
+            {secondaryStatus ? (
+              <span className="text-[12px] text-[#818181]">{secondaryStatus}</span>
+            ) : null}
+          </div>
+        )}
+      </td>
+
+      <td className="h-[4rem] px-4 py-3 text-center align-middle text-[13px] text-[#414141]">
+        {bankName}
+      </td>
+
+      <td className="h-[4rem] px-4 py-3 text-center align-middle">
+        <span className={`text-[13px] font-[500] ${amountTextClass}`}>
+          {amountPrefix} {getStoredCurrencySymbol()}{" "}
+          {formatNumberByStoredCurrency(Math.abs(displayAmount))}
         </span>
       </td>
 
-      <td className="px-4 py-3 text-center text-[14px]">
-        <div
-          className="flex items-center justify-center gap-2"
-          onClick={(e) => e.stopPropagation()}
+      <td className="h-[4rem] px-4 py-3 text-center align-middle">
+        <span
+          className={`inline-flex items-center justify-center gap-1.5 text-[13px] font-[500] ${closingTextClass}`}
         >
-          <button
-            type="button"
-            className="p-2 rounded-md bg-[#FEF7E7] hover:bg-[#FDF1D5] transition border border-[#F5E6C3]"
-            aria-label="View"
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-          >
-            <FiEye className="text-[#8B6914]" size={16} />
-          </button>
+          {isClosingDebit ? (
+            <TbCircleArrowUpRight className="text-[16px]" />
+          ) : (
+            <TbCircleArrowDownLeft className="text-[16px]" />
+          )}
+          {getStoredCurrencySymbol()}{" "}
+          {formatNumberByStoredCurrency(Math.abs(closingBalanceAmount))}
+        </span>
+      </td>
 
-          {rowActions.length > 0 ? (
-            <ActionMenu width="w-24" actions={rowActions} />
-          ) : null}
-        </div>
+      <td className="h-[4rem] px-4 py-3 text-center align-middle">
+        {r.type === "opening" ? null : (
+          <div
+            className="mx-auto grid w-[5.5rem] grid-cols-[1fr_2rem] items-center gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-end">
+              <button
+                type="button"
+                className={BOOKING_HISTORY_ACTION_BUTTON_CLASS}
+                aria-label="View"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewEntry(r);
+                }}
+              >
+                <FiEye size={14} />
+              </button>
+            </div>
+            <div className="flex items-center justify-center">
+              {rowActions.length > 0 ? (
+                <ActionMenu
+                  width="min-w-[7.5rem]"
+                  align="left"
+                  actions={rowActions}
+                />
+              ) : null}
+            </div>
+          </div>
+        )}
       </td>
     </>
   );

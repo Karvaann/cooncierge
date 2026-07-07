@@ -4,17 +4,17 @@ import React, { useCallback, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { CiFilter } from "react-icons/ci";
 import { HiArrowsUpDown } from "react-icons/hi2";
-import { IoChevronDownOutline } from "react-icons/io5";
+import { IoShareOutline } from "react-icons/io5";
 import { LuRefreshCcw } from "react-icons/lu";
+import { FiEye, FiEdit, FiPlus } from "react-icons/fi";
+import { TbCircleArrowDownLeft, TbCircleArrowUpRight } from "react-icons/tb";
+import { MdOutlineFileDownload } from "react-icons/md";
 import Modal from "../../Modal";
 import Table from "../../Table";
 import FilterTrigger from "../../FilterTrigger";
 import type { FilterCardOption } from "../../FilterCard";
 import ConfirmationModal from "../../popups/ConfirmationModal";
 import DeletePaymentModal from "../DeletePaymentModal";
-import { PiArrowCircleUpRight } from "react-icons/pi";
-import { PiArrowCircleDownLeft } from "react-icons/pi";
-import { MdOutlineFileDownload } from "react-icons/md";
 import DropDown from "../../DropDown";
 import { exportPDF, exportXLSX } from "@/utils/exportUtils";
 import {
@@ -74,7 +74,9 @@ interface LedgerModalProps {
   rawId?: string | null;
   onRefresh?: () => void;
   onViewPdf?: () => void;
-  isVendorLedger?: boolean; // If true, inverts the color scheme
+  onViewCustomer?: () => void;
+  onEditCustomer?: () => void;
+  isVendorLedger?: boolean;
 }
 
 const isEmptyScalar = (value: unknown): boolean => {
@@ -89,6 +91,8 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   customerId = "CU-AB001",
   onRefresh,
   onViewPdf,
+  onViewCustomer,
+  onEditCustomer,
   isVendorLedger = false,
 }) => {
   const [paymentSidesheetOpen, setPaymentSidesheetOpen] = useState(false);
@@ -215,8 +219,10 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
   const [deleteTargetEntry, setDeleteTargetEntry] = useState<any | null>(null);
   const [paymentDeleteOpen, setPaymentDeleteOpen] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<any | null>(null);
-  const [startDate, setStartDate] = useState<string>("");
-  const [endDate, setEndDate] = useState<string>("");
+  const [bookingStartDate, setBookingStartDate] = useState<string>("");
+  const [bookingEndDate, setBookingEndDate] = useState<string>("");
+  const [travelStartDate, setTravelStartDate] = useState<string>("");
+  const [travelEndDate, setTravelEndDate] = useState<string>("");
   const [pendingOnly, setPendingOnly] = useState(false);
   const [downloadType, setDownloadType] = useState<"pdf" | "excel">("pdf");
 
@@ -236,17 +242,6 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
       null
     );
   };
-
-  // Date column label and filter options (Booking Date <-> Travel Date)
-  const [dateColumnLabel, setDateColumnLabel] =
-    useState<string>("Booking Date");
-  const dateFilterOptions: FilterCardOption[] = useMemo(
-    () => [
-      { value: "travel", label: "Travel Date" },
-      { value: "booking", label: "Booking Date" },
-    ],
-    [],
-  );
 
   const resolveQuotationIdFromEntry = useCallback((entry: any): string => {
     try {
@@ -559,26 +554,22 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     [],
   );
 
-  // Map column names to header icons/components
   const columnIconMap: Record<string, React.ReactNode | null> = useMemo(() => {
     return {
-      [dateColumnLabel]: (
-        <>
-          <HiArrowsUpDown className="inline w-3 h-3 text-gray-600 font-semibold stroke-[2]" />
-          <FilterTrigger
-            ariaLabel="Filter Date Type"
-            options={dateFilterOptions}
-            onApply={(sel) => {
-              const val =
-                Array.isArray(sel) && sel.length > 0 ? sel[0] : "booking";
-              setDateColumnLabel(
-                val === "travel" ? "Travel Date" : "Booking Date",
-              );
-            }}
-          >
-            <CiFilter className="inline w-3 h-3 text-gray-600 stroke-[1.5] ml-2" />
-          </FilterTrigger>
-        </>
+      Service: (
+        <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+      ),
+      "Booking / Payment Date": (
+        <HiArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+      ),
+      "Status / Mode": (
+        <FilterTrigger
+          ariaLabel="Filter Status"
+          options={statusOptions}
+          onApply={(sel) => console.log("Status filter applied:", sel)}
+        >
+          <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+        </FilterTrigger>
       ),
       Account: (
         <FilterTrigger
@@ -588,32 +579,28 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
             setSelectedBankIds(Array.isArray(sel) ? sel : []);
           }}
         >
-          <CiFilter className="inline w-3 h-3 text-gray-600 stroke-[1.5]" />
+          <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
         </FilterTrigger>
       ),
-      Status: (
-        <FilterTrigger
-          ariaLabel="Filter Status"
-          options={statusOptions}
-          onApply={(sel) => console.log("Status filter applied:", sel)}
-        >
-          <CiFilter className="inline w-3 h-3 text-gray-600 stroke-[1.5]" />
-        </FilterTrigger>
+      Amount: (
+        <HiArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+      ),
+      "Closing Balance": (
+        <HiArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
       ),
     };
-  }, [accountOptions, statusOptions, dateColumnLabel, dateFilterOptions]);
+  }, [accountOptions, statusOptions]);
 
-  const columns = useMemo(() => {
-    return [
-      "ID",
-      dateColumnLabel,
-      "Status",
-      "Account",
-      "Amount",
-      "Closing Balance",
-      "Actions",
-    ];
-  }, [dateColumnLabel]);
+  const columns = [
+    "ID",
+    "Service",
+    "Booking / Payment Date",
+    "Status / Mode",
+    "Account",
+    "Amount",
+    "Closing Balance",
+    "Actions",
+  ];
 
   const expandedLedgerEntries = useMemo(() => {
     const entries = ledgerData?.entries;
@@ -742,38 +729,63 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         }
       }
 
-      let entryDate: string = "";
-      if (entry.type === "payment") {
-        entryDate =
-          entry.paymentDate ||
-          entry.date ||
-          entry.data?.paymentDate ||
-          entry.data?.formFields?.paymentDate ||
-          "";
-      } else if (dateColumnLabel === "Travel Date") {
-        entryDate =
-          entry.travelDate ||
-          entry.data?.travelDate ||
-          entry.data?.formFields?.traveldate ||
-          entry.date ||
-          "";
-      } else {
-        entryDate = entry.data?.formFields?.bookingdate || entry.date || "";
+      const bookingDate =
+        entry.type === "payment"
+          ? entry.paymentDate ||
+            entry.date ||
+            entry.data?.paymentDate ||
+            entry.data?.formFields?.paymentDate ||
+            ""
+          : entry.data?.formFields?.bookingdate || entry.date || "";
+
+      const travelDate =
+        entry.travelDate ||
+        entry.data?.travelDate ||
+        entry.data?.formFields?.traveldate ||
+        "";
+
+      if (
+        bookingStartDate &&
+        bookingEndDate &&
+        !isWithinDateRange(bookingDate, bookingStartDate, bookingEndDate)
+      ) {
+        return false;
       }
 
-      if (!isWithinDateRange(entryDate, startDate, endDate)) return false;
+      if (
+        travelStartDate &&
+        travelEndDate &&
+        entry.type !== "payment" &&
+        !isWithinDateRange(travelDate, travelStartDate, travelEndDate)
+      ) {
+        return false;
+      }
 
       return true;
     });
   }, [
     expandedLedgerEntries,
     pendingOnly,
-    startDate,
-    endDate,
-    dateColumnLabel,
+    bookingStartDate,
+    bookingEndDate,
+    travelStartDate,
+    travelEndDate,
     selectedBankIds,
-    resolveBankFromEntry,
   ]);
+
+  const handleViewEntry = useCallback(
+    (entry: any) => {
+      if (entry?.type === "payment") {
+        setSelectedLedgerRow(normalizeEntryToPayment(entry));
+        setIsViewPaymentOpen(true);
+        return;
+      }
+      if (entry?.type === "quotation") {
+        void openEditBookingFromLedgerEntry(entry);
+      }
+    },
+    [normalizeEntryToPayment, openEditBookingFromLedgerEntry],
+  );
 
   const tableData = useMemo<React.ReactNode[][]>(() => {
     return filteredEntries.map((entry: any, idx: number) => {
@@ -786,9 +798,9 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         <LedgerRow
           key={stableKey}
           entry={entry}
-          dateColumnLabel={dateColumnLabel}
           isVendorLedger={isVendorLedger}
           bankNameById={bankNameById}
+          onViewEntry={handleViewEntry}
           onEditPayment={handleEditPaymentRow}
           onDeletePayment={handleDeletePaymentRow}
           onEditQuotation={handleEditQuotationRow}
@@ -798,25 +810,14 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     });
   }, [
     filteredEntries,
-    dateColumnLabel,
     isVendorLedger,
     bankNameById,
+    handleViewEntry,
     handleEditPaymentRow,
     handleDeletePaymentRow,
     handleEditQuotationRow,
     handleDeleteQuotationRow,
   ]);
-
-  const handleOpenViewPaymentByRowIndex = (rowIndex: number) => {
-    const row = filteredEntries?.[rowIndex];
-    if (!row) return;
-    // Only open view payment sidesheet for payment records
-    if (row.type === "payment") {
-      const payment = normalizeEntryToPayment(row);
-      setSelectedLedgerRow(payment);
-      setIsViewPaymentOpen(true);
-    }
-  };
 
   const handleEditFromViewPayment = (paymentData: any) => {
     if (!paymentData) return;
@@ -895,78 +896,78 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
     }
   };
 
-  const headerLeft = (
-    <div className="flex items-center gap-3">
-      <h2 className="text-[1rem] md:text-[1.15rem] font-semibold text-black">
-        Ledger
-      </h2>
-      <div className="w-px h-6 bg-gray-300" />
-      <span className="text-[0.95rem] font-semibold text-gray-900">
-        {customerName ?? "—"}
-      </span>
-      <div className="w-px h-6 bg-gray-300" />
-      <span className="text-[0.95rem] font-semibold text-gray-900">
-        {customerId ?? "—"}
-      </span>
-    </div>
-  );
+  const { computedInitialCustomer, computedInitialVendor } = React.useMemo(() => {
+    try {
+      let initialCustomer: any = null;
+      let initialVendor: any = null;
 
-  // Compute initial customer/vendor safely for create/edit flows
-  const { computedInitialCustomer, computedInitialVendor } =
-    React.useMemo(() => {
-      try {
-        let initialCustomer: any = null;
-        let initialVendor: any = null;
-
-        if (paymentSidesheetMode === "edit" && selectedLedgerRow) {
-          if (selectedLedgerRow.party === "Customer") {
-            initialCustomer = {
-              _id: selectedLedgerRow.partyId || "",
-              name: selectedLedgerRow.partyName || "",
-            };
-          } else if (selectedLedgerRow.party === "Vendor") {
-            initialVendor = {
-              _id: selectedLedgerRow.partyId || "",
-              name: selectedLedgerRow.partyName || "",
-            };
-          }
-        } else {
-          // create mode: prefer ledger owner; if ledger is vendor type, pass vendor
-          if (isVendorLedger) {
-            if (rawId || customerName) {
-              initialVendor = {
-                _id: rawId ?? "",
-                name: customerName ?? "",
-                ...(customerId ? { customId: customerId } : {}),
-              };
-            }
-          } else {
-            if (rawId || customerName) {
-              initialCustomer = {
-                _id: rawId ?? "",
-                name: customerName ?? "",
-                ...(customerId ? { customId: customerId } : {}),
-              };
-            }
-          }
+      if (paymentSidesheetMode === "edit" && selectedLedgerRow) {
+        if (selectedLedgerRow.party === "Customer") {
+          initialCustomer = {
+            _id: selectedLedgerRow.partyId || "",
+            name: selectedLedgerRow.partyName || "",
+          };
+        } else if (selectedLedgerRow.party === "Vendor") {
+          initialVendor = {
+            _id: selectedLedgerRow.partyId || "",
+            name: selectedLedgerRow.partyName || "",
+          };
         }
-
-        return {
-          computedInitialCustomer: initialCustomer,
-          computedInitialVendor: initialVendor,
+      } else if (isVendorLedger) {
+        if (rawId || customerName) {
+          initialVendor = {
+            _id: rawId ?? "",
+            name: customerName ?? "",
+            ...(customerId ? { customId: customerId } : {}),
+          };
+        }
+      } else if (rawId || customerName) {
+        initialCustomer = {
+          _id: rawId ?? "",
+          name: customerName ?? "",
+          ...(customerId ? { customId: customerId } : {}),
         };
-      } catch (err) {
-        console.error("Failed to compute initial party:", err);
-        return { computedInitialCustomer: null, computedInitialVendor: null };
       }
-    }, [
-      paymentSidesheetMode,
-      selectedLedgerRow,
-      rawId,
-      customerName,
-      customerId,
-      isVendorLedger,
-    ]);
+
+      return {
+        computedInitialCustomer: initialCustomer,
+        computedInitialVendor: initialVendor,
+      };
+    } catch (err) {
+      console.error("Failed to compute initial party:", err);
+      return { computedInitialCustomer: null, computedInitialVendor: null };
+    }
+  }, [
+    paymentSidesheetMode,
+    selectedLedgerRow,
+    rawId,
+    customerName,
+    customerId,
+    isVendorLedger,
+  ]);
+
+  const collectLabel =
+    ledgerData?.closingBalance?.balanceType === "credit"
+      ? "You Collect"
+      : "You Pay";
+  const collectAmount = Math.abs(ledgerData?.closingBalance?.amount ?? 0);
+  const isCollectCredit = ledgerData?.closingBalance?.balanceType === "credit";
+
+  const handleShare = async () => {
+    const shareText = `${collectLabel}: ${getStoredCurrencySymbol()} ${formatMoney(collectAmount)} for ${customerName ?? "customer"}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `Ledger ${customerName ?? ""}`,
+          text: shareText,
+        });
+        return;
+      }
+      await navigator.clipboard.writeText(shareText);
+    } catch (err) {
+      console.error("Share failed:", err);
+    }
+  };
 
   return (
     <>
@@ -975,24 +976,60 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
         isOpen={isOpen}
         onClose={onClose}
         size="xl"
-        customWidth="w-[1100px]"
-        customeHeight="h-fit"
-        className="pb-2"
+        customWidth="w-[min(1600px,calc(100vw-2rem))]"
+        customeHeight="h-[94dvh]"
+        className="!max-h-[94dvh]"
+        bodyClassName="flex h-full min-h-0 flex-col overflow-hidden pt-6 pr-7 pb-6 pl-6"
+        scrollableBody={false}
         closeOnOverlayClick={true}
         closeOnEscape={true}
-        zIndexClass="z-[200]"
+        zIndexClass="z-[9999]"
         disableOverlayClick={false}
-        headerLeft={headerLeft}
+        showCloseButton={true}
       >
         <div
-          className="relative flex max-h-[75vh] flex-col"
+          className="relative flex h-full min-h-0 w-full flex-col items-start overflow-hidden"
           onClick={(e) => e.stopPropagation()}
         >
+          <div className="flex w-full shrink-0 items-center justify-between border-b border-[#ECECEC] pb-4">
+            <div className="flex min-w-0 flex-wrap items-center gap-3">
+              <h2 className="font-[Poppins,sans-serif] text-[18px] font-[600] text-[#020202]">
+                Ledger
+              </h2>
+              <span className="text-[#D1D5DB]">|</span>
+              <span className="font-[Poppins,sans-serif] text-[14px] font-[500] text-[#020202]">
+                {customerName ?? "—"}
+              </span>
+              <span className="text-[#D1D5DB]">|</span>
+              <span className="font-[Poppins,sans-serif] text-[14px] text-[#818181]">
+                {customerId ?? "—"}
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onViewCustomer}
+                  className="rounded-[8px] bg-[#FFF1C2] p-2 transition-colors hover:bg-[#FFE9A8]"
+                  aria-label="View customer"
+                >
+                  <FiEye className="text-[#414141]" size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={onEditCustomer}
+                  className="rounded-[8px] bg-[#E8F2FF] p-2 transition-colors hover:bg-[#D6E8FF]"
+                  aria-label="Edit customer"
+                >
+                  <FiEdit className="text-[#126ACB]" size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+
           {isRefreshing && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm">
-              <div className="inline-flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-md shadow">
+              <div className="inline-flex items-center gap-3 rounded-md border border-gray-200 bg-white p-3 shadow">
                 <svg
-                  className="animate-spin h-6 w-6 text-gray-700"
+                  className="h-6 w-6 animate-spin text-gray-700"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -1011,41 +1048,39 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                     d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
                   />
                 </svg>
-                <span className="text-sm text-gray-700 font-medium">
+                <span className="text-sm font-medium text-gray-700">
                   Refreshing ledger...
                 </span>
               </div>
             </div>
           )}
-          <div className="border border-gray-200 rounded-xl p-3 flex flex-col flex-1 min-h-0">
-            {/* Top actions row */}
-            <div className="flex items-center justify-between gap-3 flex-wrap">
+
+          <div className="mt-4 flex min-h-0 w-full flex-1 flex-col items-start overflow-hidden rounded-[16px] border border-[#ECECEC] p-4">
+            <div className="flex w-full shrink-0 flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <div className="rounded-lg px-4 py-3 bg-[#F9F9F9]">
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-600 text-[14px] font-medium">
-                      {ledgerData?.closingBalance?.balanceType === "credit"
-                        ? "You Collect"
-                        : "You Pay"}
-                    </span>
-                    <span
-                      className={`text-[14px] font-semibold ${
-                        ledgerData?.closingBalance?.balanceType === "credit"
-                          ? "text-green-600"
-                          : "text-red-500"
-                      }`}
-                    >
-                      {getStoredCurrencySymbol()} {" "}
-                      {formatMoney(
-                        Math.abs(ledgerData?.closingBalance?.amount),
-                      )}
-                    </span>
-                  </div>
+                <div
+                  className={`inline-flex items-center gap-3 rounded-[12px] border px-4 py-2.5 ${
+                    isCollectCredit
+                      ? "border-[#F5D0CD] bg-[#FFF0EE]"
+                      : "border-[#ECECEC] bg-[#F9F9F9]"
+                  }`}
+                >
+                  {isCollectCredit ? (
+                    <TbCircleArrowDownLeft className="text-[20px] text-[#C85542]" />
+                  ) : (
+                    <TbCircleArrowUpRight className="text-[20px] text-[#C85542]" />
+                  )}
+                  <span className="text-[14px] font-[500] text-[#414141]">
+                    {collectLabel}
+                  </span>
+                  <span className="text-[14px] font-[600] text-[#C85542]">
+                    {getStoredCurrencySymbol()} {formatMoney(collectAmount)}
+                  </span>
                 </div>
 
                 <button
                   type="button"
-                  className="p-2 rounded-md text-gray-500 hover:bg-gray-50 transition"
+                  className="rounded-[8px] p-2 text-[#126ACB] transition hover:bg-[#F3F7FF]"
                   aria-label="Refresh"
                   onClick={async () => {
                     setIsRefreshing(true);
@@ -1063,119 +1098,128 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                 </button>
               </div>
 
-              <div className="flex items-center">
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-stretch overflow-hidden rounded-[10px] border border-[#D6E8FF] bg-[#F3F8FF]">
+                  <button
+                    type="button"
+                    onClick={handleDownload}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-[500] text-[#126ACB] transition hover:bg-[#E8F2FF]"
+                  >
+                    <MdOutlineFileDownload size={16} />
+                    View PDF
+                  </button>
+                  <div className="border-l border-[#D6E8FF]">
+                    <DropDown
+                      options={[
+                        {
+                          value: "pdf",
+                          label: (
+                            <span className="flex items-center gap-2">
+                              <MdOutlineFileDownload size={16} />
+                              View PDF
+                            </span>
+                          ),
+                        },
+                        {
+                          value: "excel",
+                          label: (
+                            <span className="flex items-center gap-2">
+                              <MdOutlineFileDownload size={16} />
+                              Download Excel
+                            </span>
+                          ),
+                        },
+                      ]}
+                      value={downloadType}
+                      onChange={(val) => setDownloadType(val as "pdf" | "excel")}
+                      iconOnly
+                      noBorder
+                      noButtonRadius
+                      buttonClassName="px-3 py-2 text-[#126ACB] hover:bg-[#E8F2FF]"
+                      customWidth="w-auto"
+                      customHeight="h-auto"
+                      menuWidth="w-[150px]"
+                    />
+                  </div>
+                </div>
+
                 <button
                   type="button"
-                  onClick={handleDownload}
-                  className="flex items-center gap-2 border border-gray-200 rounded-l-md px-4 py-2 bg-[#F8FAFC] hover:bg-gray-50 text-gray-700 text-[13px] font-medium"
+                  onClick={() => void handleShare()}
+                  className="inline-flex items-center gap-2 rounded-[10px] border border-[#126ACB] bg-white px-4 py-2 text-[13px] font-[500] text-[#126ACB] transition hover:bg-[#F3F8FF]"
                 >
-                  <MdOutlineFileDownload size={16} />
-                  {downloadType === "pdf" ? "View PDF" : "Download Excel"}
+                  <IoShareOutline size={16} />
+                  Share
                 </button>
-                <div className="border border-l-0 border-gray-200 rounded-r-md bg-[#F8FAFC] hover:bg-gray-50">
-                  <DropDown
-                    options={[
-                      {
-                        value: "pdf",
-                        label: (
-                          <span className="flex items-center gap-2">
-                            <MdOutlineFileDownload size={16} />
-                            View PDF
-                          </span>
-                        ),
-                      },
-                      {
-                        value: "excel",
-                        label: (
-                          <span className="flex items-center gap-2">
-                            <MdOutlineFileDownload size={16} />
-                            Download Excel
-                          </span>
-                        ),
-                      },
-                    ]}
-                    value={downloadType}
-                    onChange={(val) => setDownloadType(val as "pdf" | "excel")}
-                    iconOnly
-                    noBorder
-                    noButtonRadius
-                    buttonClassName="px-3 py-2.5 bg-[#F8FAFC] hover:bg-gray-50 text-gray-700"
-                    customWidth="w-auto"
-                    customHeight="h-auto"
-                    menuWidth="w-[150px]"
-                  />
-                </div>
               </div>
             </div>
 
-            {/* Filters row */}
-            <div className="mt-4 flex items-center justify-between gap-4 flex-wrap">
-              <DateRangeInputBeta
-                startDate={startDate}
-                endDate={endDate}
-                onChange={(s, e) => {
-                  setStartDate(s);
-                  setEndDate(e);
-                }}
-              />
+            <div className="mt-4 flex w-full shrink-0 flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <DateRangeInputBeta
+                  label="Booking Date"
+                  startDate={bookingStartDate}
+                  endDate={bookingEndDate}
+                  onChange={(s, e) => {
+                    setBookingStartDate(s);
+                    setBookingEndDate(e);
+                  }}
+                />
+                <DateRangeInputBeta
+                  label="Travel Date"
+                  startDate={travelStartDate}
+                  endDate={travelEndDate}
+                  onChange={(s, e) => {
+                    setTravelStartDate(s);
+                    setTravelEndDate(e);
+                  }}
+                />
+              </div>
 
-              <label
-                className="flex items-center gap-2 cursor-pointer select-none"
-                onClick={() => setPendingOnly((prev) => !prev)}
-              >
-                <div className="mt-0.5 w-5 h-5 border border-gray-300 rounded-md flex items-center justify-center bg-white">
-                  {pendingOnly && (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="12"
-                      height="11"
-                      viewBox="0 0 12 11"
-                      fill="none"
-                    >
-                      <path
-                        d="M0.75 5.5L4.49268 9.25L10.4927 0.75"
-                        stroke="#0D4B37"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  )}
-                </div>
-                <span className="text-[13px] text-gray-700 mt-1">
-                  Show bookings with amount pending
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPendingOnly((prev) => !prev)}
+                  className={`relative inline-flex h-5 w-8 cursor-pointer items-center rounded-full transition-colors ${
+                    pendingOnly ? "bg-[#7135AD]" : "bg-[#C9CCCE]"
+                  }`}
+                  aria-pressed={pendingOnly}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      pendingOnly ? "translate-x-3.5" : "translate-x-0.5"
+                    }`}
+                  />
+                </button>
+                <span className="text-[12px] font-[400] text-[#414141]">
+                  Show bookings with pending invoices
                 </span>
-              </label>
+              </div>
             </div>
 
-            {/* Table (scrolls inside modal) */}
-            <div className="mt-4 flex-1 overflow-auto min-h-0">
-              {ledgerData?.entries && (
-                <Table
+            <div className="mt-4 min-h-0 w-full flex-1 overflow-hidden">
+              {ledgerData?.entries ? (
+                <div className="flex h-full min-h-0 flex-col overflow-hidden">
+                  <Table
                   data={tableData}
                   columns={columns}
                   columnIconMap={columnIconMap}
-                  initialRowsPerPage={2}
+                  initialRowsPerPage={10}
                   hideRowsPerPage={false}
-                  categoryName="entries"
+                  categoryName="Entries"
                   hideEntriesText={false}
-                  headerClassName="bg-gray-100"
-                  headerRowTextClassName="text-[#414141]"
-                  headerCellTextClassName="text-[#414141]"
-                  sortableHeaderHoverClass="bg-gray-50"
-                  onRowClick={(rowIndex) => {
-                    const row = filteredEntries[rowIndex];
-                    if (row?.type === "payment") {
-                      setSelectedLedgerRow(normalizeEntryToPayment(row));
-                      setIsViewPaymentOpen(true);
-                    }
-                  }}
-                />
-              )}
+                  headerClassName="bg-[#F3F3F3]"
+                  headerRowTextClassName="text-[#818181]"
+                  headerCellTextClassName="text-[#818181]"
+                  sortableHeaderHoverClass="bg-[#FAFAFA]"
+                  onRowClick={(rowIndex) => handleViewEntry(filteredEntries[rowIndex])}
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
 
-          {/* Bottom summary buttons */}
-          <div className="flex-none -mx-4 px-4 pt-4 pb-2 bg-white border-t border-gray-100">
+          <div className="w-full shrink-0 border-t border-[#ECECEC] pt-4">
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -1183,21 +1227,13 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                   setPaymentSidesheetMode("create");
                   setPaymentInitial(null);
                   setPaymentSidesheetTitle("Payment Out");
-                  setPaymentCustomId(
-                    await generatePaymentCustomId("paymentOut"),
-                  );
+                  setPaymentCustomId(await generatePaymentCustomId("paymentOut"));
                   setPaymentSidesheetOpen(true);
                 }}
-                className="bg-[#EB382B] hover:bg-[#DC2626] text-white px-4 py-2.5 rounded-md text-[14px] font-semibold"
+                className="inline-flex items-center gap-2 rounded-[10px] bg-[#EB382B] px-4 py-2.5 text-[14px] font-[600] text-white transition hover:bg-[#DC2626]"
               >
-                <span className="flex items-center gap-2">
-                  <PiArrowCircleUpRight
-                    size={18}
-                    height="bold"
-                    strokeWidth={4}
-                  />
-                  You Gave
-                </span>
+                <FiPlus size={16} />
+                You Gave
               </button>
               <button
                 type="button"
@@ -1205,22 +1241,13 @@ const LedgerModal: React.FC<LedgerModalProps> = ({
                   setPaymentSidesheetMode("create");
                   setPaymentInitial(null);
                   setPaymentSidesheetTitle("Payment In");
-                  setPaymentCustomId(
-                    await generatePaymentCustomId("paymentIn"),
-                  );
+                  setPaymentCustomId(await generatePaymentCustomId("paymentIn"));
                   setPaymentSidesheetOpen(true);
                 }}
-                className="bg-[#4CA640] hover:bg-[#16A34A] text-white px-4 py-2.5 rounded-md text-[14px] font-semibold"
+                className="inline-flex items-center gap-2 rounded-[10px] bg-[#4CA640] px-4 py-2.5 text-[14px] font-[600] text-white transition hover:bg-[#16A34A]"
               >
-                <span className="text-sm flex items-center gap-1">
-                  {" "}
-                  <PiArrowCircleDownLeft
-                    size={18}
-                    height="bold"
-                    strokeWidth={4}
-                  />
-                  You Got
-                </span>
+                <FiPlus size={16} />
+                You Got
               </button>
             </div>
           </div>
