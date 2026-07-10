@@ -592,6 +592,8 @@ select:-webkit-autofill {
   font-style: normal;
   font-weight: 400;
   line-height: 24px;
+  letter-spacing: 0;
+  vertical-align: middle;
 }
 
 .auth-input:not(.auth-input-error):hover {
@@ -600,16 +602,36 @@ select:-webkit-autofill {
 }
 
 .auth-input {
+  font-family: Poppins, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 14px;
+  line-height: 24px;
+  letter-spacing: 0;
+  vertical-align: middle;
+  color: #020202;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, padding 0.2s ease;
 }
 
-.auth-input:not(.auth-input-error):focus,
-.auth-input:not(.auth-input-error):focus-visible {
+.auth-input::placeholder {
+  font-family: Poppins, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 14px;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: #9ca3af;
+}
+
+.auth-input:not(.auth-input-error):not(.auth-input-with-trailing-icon):focus,
+.auth-input:not(.auth-input-error):not(.auth-input-with-trailing-icon):focus-visible {
   border: 3px solid rgba(113, 53, 173, 0.4) !important;
   box-shadow: none !important;
   outline: none !important;
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-top: 13px;
+  padding-right: 14px;
+  padding-bottom: 13px;
+  padding-left: 14px;
 }
 
 .auth-input.auth-input-error:focus,
@@ -617,8 +639,41 @@ select:-webkit-autofill {
   border: 3px solid #eb382b !important;
   box-shadow: none !important;
   outline: none !important;
-  padding-left: 10px;
-  padding-right: 10px;
+  padding-top: 13px;
+  padding-right: 14px;
+  padding-bottom: 13px;
+  padding-left: 14px;
+}
+
+.auth-input-with-trailing-icon {
+  padding-right: 48px;
+}
+
+.auth-input.auth-input-with-trailing-icon:focus,
+.auth-input.auth-input-with-trailing-icon:focus-visible,
+.auth-input.auth-input-with-trailing-icon.auth-input-error:focus,
+.auth-input.auth-input-with-trailing-icon.auth-input-error:focus-visible {
+  padding-right: 46px;
+}
+
+.auth-password-input[type="password"]:not(:placeholder-shown) {
+  font-family: Poppins, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 14px;
+  line-height: 24px;
+  letter-spacing: 0;
+  vertical-align: middle;
+}
+
+.auth-password-input::placeholder {
+  font-family: Poppins, sans-serif;
+  font-weight: 400;
+  font-style: normal;
+  font-size: 14px;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: #9ca3af;
 }
 
 .auth-otp-input:focus,

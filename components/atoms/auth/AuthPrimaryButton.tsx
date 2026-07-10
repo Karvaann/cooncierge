@@ -18,7 +18,7 @@ export default function AuthPrimaryButton({
     <button
       {...props}
       className={[
-        "group flex h-[40px] cursor-pointer w-full items-center justify-center gap-2 rounded-[14px] bg-[#7135AD] px-4 text-[12px] font-[500] text-white shadow-[0_12px_24px_rgba(13,75,55,0.18)]",
+        "group flex h-[40px] cursor-pointer w-full items-center justify-center gap-2 rounded-[14px] bg-[#7135AD] px-4 text-[12px] font-[500] text-white shadow-[0_12px_24px_rgba(13,75,55,0.18)] lg:text-[14px]",
         "transition-colors duration-200 ease-in-out hover:bg-[#662B9F]",
         "disabled:cursor-not-allowed disabled:opacity-60",
         className,

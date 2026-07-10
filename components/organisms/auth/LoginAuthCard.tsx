@@ -98,8 +98,8 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
       {props.mode === "signin" ? (
         <div className="mt-[40px] w-full">
           <div className="mb-[32px] text-center">
-            <h2 className="text-[20px] font-[500] text-[#414141]">Welcome</h2>
-            <p className="mt-[4px] text-[12px] font-[400] text-[#818181]">Please sign in to continue</p>
+            <h2 className="auth-welcome-title text-[20px] font-[500] text-[#414141] lg:text-[20px]">Welcome</h2>
+            <p className="mt-[4px] text-[12px] font-[400] text-[#818181] lg:text-[14px]">Please sign in to continue</p>
           </div>
           <form className="w-full space-y-[16px]" onSubmit={props.handleSignIn}>
             <AuthTextInput
@@ -191,21 +191,21 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
 
       {props.mode === "otp" ? (
         <div className="mt-[40px] flex w-full flex-col items-center px-0">
-          <div className="mt-[23px] w-full max-w-[390px]">
+          <div className="mt-[23px] w-full">
             <div className="relative flex w-full items-center justify-center">
               <button
                 type="button"
                 onClick={props.otpPurpose === "forgot" ? props.goToForgotPassword : props.goToSignIn}
-                className="auth-back-button absolute left-0 hover:!bg-[#F2F2F2]"
+                className="auth-back-button absolute -left-2 hover:!bg-[#F2F2F2]"
                 aria-label="Back"
               >
-                <IoMdArrowBack size={15} />
+                <IoMdArrowBack size={20} />
               </button>
-              <h2 className="w-full text-center text-[15px] font-[500] text-[#414141]">
+              <h2 className="w-full text-center text-[18px] font-[500] text-[#414141]">
                 {props.otpPurpose === "forgot" ? "Enter password reset OTP" : "Enter OTP"}
               </h2>
             </div>
-            <p className="mt-2 text-center text-[12px] font-[400] text-[#818181]">
+            <p className="mt-2 text-center text-[14px] font-[400] text-[#818181]">
               OTP has been sent to{" "}
               <span className="underline">{props.email}</span>.
             </p>
@@ -241,15 +241,15 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
                 <div className="font-[Roboto,sans-serif] text-[14px] font-[400] leading-[20px] text-[#414141]">
                   (00:{props.timer > 9 ? props.timer : `0${props.timer}`})
                 </div>
-                <p className="text-right font-[Roboto,sans-serif] text-[14px] font-[400] leading-[20px] text-[#414141]">
-                  Didn&apos;t get the code?{" "}
+                <p className="text-right font-[Roboto,sans-serif] text-[14px] font-[400] leading-[20px]">
+                  <span className="text-[#414141]">Didn&apos;t get the code? </span>
                   {!props.canResend ? (
                     <span className="text-[#006FE7] opacity-60">Resend OTP</span>
                   ) : (
                     <button
                       type="button"
                       onClick={props.handleResendOtp}
-                      className="cursor-pointer text-[#006FE7] no-underline transition-opacity hover:underline hover:opacity-80"
+                      className="cursor-pointer text-[#006FE7] no-underline transition-colors hover:underline"
                     >
                       Resend OTP
                     </button>
@@ -274,7 +274,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
                 >
                   <IoMdArrowBack size={20} />
                 </button>
-                <h2 className="w-full text-center text-[17px] font-semibold text-[#020202]">Forgot Password</h2>
+                <h2 className="w-full text-center text-[17px] font-semibold text-[#020202] lg:text-[14px] lg:font-[500]">Forgot Password</h2>
               </div>
 
               <form
@@ -340,7 +340,7 @@ export default function LoginAuthCard(props: LoginAuthCardProps) {
                 }}
               />
 
-              <p className="mb-3 text-center text-black">
+              <p className="mb-3 text-center text-[12px] text-black lg:text-[14px]">
                 Hurrah! Password reset link has been sent to your admin email.
               </p>
 

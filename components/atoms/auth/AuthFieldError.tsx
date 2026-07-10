@@ -13,7 +13,7 @@ export function AuthFieldError({ message, className = "", shakeKey = 0 }: AuthFi
   return (
     <p
       className={[
-        "mt-[6px] flex items-center gap-[6px] text-[12px] font-[400] leading-[14px] text-[#EB382B]",
+        "mt-[6px] flex items-center gap-[6px] text-[12px] font-[400] leading-[14px] text-[#EB382B] lg:text-[14px] lg:leading-[20px]",
         shakeClass,
         className,
       ].join(" ")}
@@ -54,9 +54,12 @@ export function AuthFieldErrorSlot({
 
 export function getAuthInputClassName(hasError: boolean, className = "") {
   return [
-    "auth-input box-border h-[40px] w-full rounded-[13px] border px-[12px] text-[12px] font-normal",
+    "auth-input box-border h-[40px] w-full rounded-[13px] border py-[15px] px-[16px]",
     hasError ? "auth-input-error border-[#EB382B]" : "border border-[#E2E1E1]",
     "placeholder:text-[#9CA3AF]",
     className,
   ].join(" ");
 }
+
+export const authFieldLabelClassName =
+  "mb-1 block text-left font-[Poppins,sans-serif] text-[12px] font-[500] leading-[16px] tracking-[0px] text-[#414141] lg:text-[14px] lg:font-[400] lg:leading-[20px]";

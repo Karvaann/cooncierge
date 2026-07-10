@@ -1,5 +1,5 @@
 import type { InputHTMLAttributes } from "react";
-import { AuthFieldError, getAuthInputClassName } from "@/components/atoms/auth/AuthFieldError";
+import { AuthFieldError, authFieldLabelClassName, getAuthInputClassName } from "@/components/atoms/auth/AuthFieldError";
 import { shouldPlayValidationShake } from "@/components/atoms/auth/useValidationShake";
 
 interface AuthTextInputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -23,7 +23,7 @@ export default function AuthTextInput({
   return (
     <label className="block w-full">
       {label ? (
-        <span className="mb-1 block text-left text-[12px] font-[500] text-[#414141]">
+        <span className={authFieldLabelClassName}>
           {label}
         </span>
       ) : null}

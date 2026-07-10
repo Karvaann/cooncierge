@@ -5,11 +5,11 @@ const AUTH_FOOTER_LINKS = [
 ] as const;
 
 const footerLinkClassName =
-  "font-[Poppins,sans-serif] text-[14px] font-[400] leading-[20px] text-[#818181] no-underline transition-colors hover:underline";
+  "align-middle font-[Poppins,sans-serif] text-[14px] font-[400] not-italic leading-[20px] tracking-[0px] text-[#818181] no-underline transition-colors hover:underline";
 
 export default function AuthFooterLinks() {
   return (
-    <footer className="mt-auto flex w-full justify-center gap-8 pt-10">
+    <footer className="mt-auto flex w-full items-center justify-center gap-8 pt-10">
       {AUTH_FOOTER_LINKS.map((link) => (
         <a key={link.href} href={link.href} className={footerLinkClassName}>
           {link.label}

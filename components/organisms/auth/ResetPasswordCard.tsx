@@ -46,8 +46,8 @@ export default function ResetPasswordCard(props: ResetPasswordCardProps) {
           <IoMdArrowBack size={18} />
         </button>
         <div className="flex w-full flex-col items-center pr-6">
-          <h2 className="text-[16px] font-[600] text-[#020202]">Set your own Password</h2>
-          <p className="mt-[4px] text-center text-[12px] font-[400] text-[#818181]">
+          <h2 className="text-[16px] font-[600] text-[#020202] lg:text-[14px] lg:font-[500]">Set your own Password</h2>
+          <p className="mt-[4px] text-center text-[12px] font-[400] text-[#818181] lg:text-[14px]">
             Set your own password to enhance account protection
           </p>
         </div>

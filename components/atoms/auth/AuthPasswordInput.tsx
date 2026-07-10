@@ -1,5 +1,5 @@
 import type { InputHTMLAttributes } from "react";
-import { AuthFieldError, getAuthInputClassName } from "@/components/atoms/auth/AuthFieldError";
+import { AuthFieldError, authFieldLabelClassName, getAuthInputClassName } from "@/components/atoms/auth/AuthFieldError";
 import { shouldPlayValidationShake } from "@/components/atoms/auth/useValidationShake";
 import PasswordVisibilityIcon from "@/components/atoms/auth/PasswordVisibilityIcon";
 
@@ -31,7 +31,7 @@ export default function AuthPasswordInput({
 
   return (
     <label className="block w-full">
-      <span className="mb-1 block text-left text-[12px] font-[500] text-[#414141]">
+      <span className={authFieldLabelClassName}>
         {label}
       </span>
       <div
@@ -56,7 +56,8 @@ export default function AuthPasswordInput({
           }}
           className={getAuthInputClassName(hasError, [
             className,
-            "pr-10",
+            "auth-password-input",
+            "auth-input-with-trailing-icon",
             shouldShake ? "animate-auth-validation-error-border" : "",
           ]
             .filter(Boolean)
@@ -65,7 +66,7 @@ export default function AuthPasswordInput({
         <button
           type="button"
           onClick={onToggleVisible}
-          className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full cursor-pointer text-gray-500 hover:text-gray-700"
+          className="absolute right-5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full cursor-pointer text-gray-500 hover:text-gray-700"
           aria-label={visible ? "Hide password" : "Show password"}
         >
           <PasswordVisibilityIcon visible={visible} />

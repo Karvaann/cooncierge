@@ -72,7 +72,7 @@ function RuleItem({ met, label }: { met: boolean; label: string }) {
   return (
     <p
       className={[
-        "flex items-center gap-2 text-[12px] font-[300]",
+        "flex items-center gap-2 text-[12px] font-[300] lg:text-[14px]",
         met ? "text-[#22C55E]" : "text-[#818181]",
       ].join(" ")}
     >
@@ -93,7 +93,7 @@ function SecurityMeter({
 
   return (
     <div className="flex items-center justify-between gap-3 py-[2px]">
-      <span className={`text-[12px] font-[500] ${security.text}`}>{security.label}</span>
+      <span className={`text-[12px] font-[500] lg:text-[14px] ${security.text}`}>{security.label}</span>
       <div className="flex items-center gap-[4px]">
         {Array.from({ length: 10 }).map((_, index) => {
           const filled = index < filledSegments;

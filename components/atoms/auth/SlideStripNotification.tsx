@@ -94,7 +94,7 @@ export default function SlideStripNotification({
         role="status"
         aria-live="polite"
         className={[
-          "auth-notification-scale pointer-events-auto inline-flex w-fit max-w-[calc(100%-2rem)] items-center gap-2 rounded-[10px] border px-3.5 py-2 text-[12px] font-normal leading-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.08)]",
+          "auth-notification-scale pointer-events-auto inline-flex w-fit max-w-[calc(100%-2rem)] items-center gap-2 rounded-[10px] border px-3.5 py-2 text-[12px] font-normal leading-[18px] shadow-[0_4px_12px_rgba(0,0,0,0.08)] lg:text-[14px] lg:leading-[20px]",
           toneClasses[tone],
           isExiting ? "animate-slide-strip-out" : "animate-slide-strip-in",
         ].join(" ")}

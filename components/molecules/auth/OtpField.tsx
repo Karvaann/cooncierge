@@ -68,6 +68,8 @@ export default function OtpField({ value, onChange, hasError, errorShakeKey = 0 
           fontStyle: "normal",
           fontWeight: 400,
           lineHeight: "24px",
+          letterSpacing: "0px",
+          verticalAlign: "middle",
           borderRadius: "6px",
           textAlign: "center",
           background: "#FFF",
