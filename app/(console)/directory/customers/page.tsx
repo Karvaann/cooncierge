@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
-import { CiFilter, CiSearch } from "react-icons/ci";
+import { CiSearch } from "react-icons/ci";
 import { TbArrowsUpDown } from "react-icons/tb";
 import { MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { IoEllipsisHorizontal } from "react-icons/io5";
@@ -40,6 +40,7 @@ import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import { MdHistory } from "react-icons/md";
 import { BOOKING_HISTORY_ACTION_BUTTON_CLASS } from "@/components/table/bookingHistoryActionStyles";
 import TotalCountPill from "@/components/table/TotalCountPill";
+import TableFilterIcon from "@/components/table/TableFilterIcon";
 import Image from "next/image";
 import CustomIdApi from "@/services/customIdApi";
 import DirectoryPeopleTabs, {
@@ -535,19 +536,45 @@ const CustomerDirectory = () => {
   const columnIconMap = useMemo<Record<string, JSX.Element>>(
     () => ({
       Name: (
-        <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+        <TableFilterIcon
+          isActive={
+            nameTypeFilter.isActive ||
+            activeHeaderFilter === "Name" ||
+            nameTypeFilter.isPendingActive
+          }
+        />
       ),
       Source: (
-        <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+        <TableFilterIcon
+          isActive={
+            sourceFilter.isActive ||
+            activeHeaderFilter === "Source" ||
+            sourceFilter.isPendingActive
+          }
+        />
       ),
       Tier: (
-        <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+        <TableFilterIcon
+          isActive={
+            tierFilter.isActive ||
+            activeHeaderFilter === "Tier" ||
+            tierFilter.isPendingActive
+          }
+        />
       ),
       "Last Modified": (
         <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
       ),
     }),
-    [],
+    [
+      activeHeaderFilter,
+      nameTypeFilter.isActive,
+      nameTypeFilter.isPendingActive,
+      sourceFilter.isActive,
+      sourceFilter.isPendingActive,
+      tierFilter.isActive,
+      tierFilter.isPendingActive,
+    ],
   );
 
   const columnSortIconMap = useMemo<Record<string, JSX.Element>>(

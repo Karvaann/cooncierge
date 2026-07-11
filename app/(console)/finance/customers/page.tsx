@@ -13,7 +13,8 @@ import Image from "next/image";
 import dynamic from "next/dynamic";
 import { MdOutlineRemoveRedEye, MdOutlineKeyboardArrowDown } from "react-icons/md";
 import { IoEllipsisHorizontal } from "react-icons/io5";
-import { CiSearch, CiFilter } from "react-icons/ci";
+import { CiSearch } from "react-icons/ci";
+import TableFilterIcon from "@/components/table/TableFilterIcon";
 import { TbArrowsUpDown, TbCircleArrowDownLeft, TbCircleArrowUpRight } from "react-icons/tb";
 import { FaRegEdit, FaRegTrashAlt } from "react-icons/fa";
 import { FiCopy } from "react-icons/fi";
@@ -278,9 +279,7 @@ const FinanceCustomersPage = () => {
 
   const columnIconMap = useMemo<Record<string, JSX.Element>>(
     () => ({
-      Name: (
-        <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
-      ),
+      Name: <TableFilterIcon isActive={false} />,
       "Last Modified": (
         <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
       ),
@@ -296,13 +295,13 @@ const FinanceCustomersPage = () => {
               setAmountFilter(selected as ("in" | "out")[]);
             }}
           >
-            <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+            <TableFilterIcon isActive={amountFilter.length > 0} />
           </FilterTrigger>
           <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
         </span>
       ),
     }),
-    [],
+    [amountFilter],
   );
 
   const filteredCustomers = useMemo(() => {

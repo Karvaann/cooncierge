@@ -250,7 +250,7 @@ const Table: React.FC<TableProps> = ({
                   onHeaderIconClick(col);
                 }}
                 data-header-filter-trigger={col}
-                className="inline-flex items-center"
+                className="inline-flex items-center text-inherit"
                 aria-label={`Filter ${col}`}
               >
                 {columnIconMap[col]}

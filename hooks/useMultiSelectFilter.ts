@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+
+function isNarrowedSelection<T extends string>(
+  values: readonly T[],
+  allValues: readonly T[],
+) {
+  if (values.length !== allValues.length) return true;
+  return !allValues.every((value) => values.includes(value));
+}
 
 /**
  * Manages pending vs applied state for multi-select column filters.
@@ -13,6 +21,8 @@ export function useMultiSelectFilter<T extends string>(
 
   const [applied, setApplied] = useState<T[]>(() => [...defaultValues] as T[]);
   const [pending, setPending] = useState<T[]>(() => [...defaultValues] as T[]);
+  const pendingRef = useRef(pending);
+  pendingRef.current = pending;
 
   const togglePending = useCallback((value: T) => {
     setPending((prev) =>
@@ -34,17 +44,31 @@ export function useMultiSelectFilter<T extends string>(
   }, [applied]);
 
   const applyPending = useCallback(() => {
-    setApplied(pending);
-  }, [pending]);
+    setApplied([...pendingRef.current]);
+  }, []);
 
   const syncPendingFromApplied = useCallback(() => {
     setPending(applied);
   }, [applied]);
 
+  /** True when applied selection differs from “all selected”. */
+  const isActive = useMemo(
+    () => isNarrowedSelection(applied, allValues),
+    [applied, allValues],
+  );
+
+  /** True when pending (in-dropdown) selection differs from “all selected”. */
+  const isPendingActive = useMemo(
+    () => isNarrowedSelection(pending, allValues),
+    [pending, allValues],
+  );
+
   return {
     allValues,
     applied,
     pending,
+    isActive,
+    isPendingActive,
     setApplied,
     setPending,
     togglePending,
@@ -65,4 +89,11 @@ export function passesMultiSelectFilter<T extends string>(
   if (applied.length === 0) return false;
   if (applied.length >= allValues.length) return true;
   return applied.includes(itemValue);
+}
+
+/** @deprecated Prefer TableFilterIcon — kept for call sites that only need a class string. */
+export function getTableFilterIconClassName(isActive: boolean) {
+  return isActive
+    ? "inline h-3 w-3 shrink-0 !text-[#7135AD]"
+    : "inline h-3 w-3 shrink-0 !text-[#818181] hover:!text-[#7135AD]";
 }
