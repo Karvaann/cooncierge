@@ -40,6 +40,10 @@ import CustomerSourceFilterDropdown, {
   DEFAULT_SOURCE_FILTER,
   resolveSourceFilterValue,
 } from "@/components/Filters/CustomerSourceFilterDropdown";
+import CustomerTierFilterDropdown, {
+  DEFAULT_TIER_FILTER,
+  resolveTierFilterValue,
+} from "@/components/Filters/CustomerTierFilterDropdown";
 import {
   passesMultiSelectFilter,
   useMultiSelectFilter,
@@ -232,10 +236,11 @@ const VendorDirectory = () => {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
   const [activeHeaderFilter, setActiveHeaderFilter] = useState<
-    "Name" | "Source" | null
+    "Name" | "Source" | "Tier" | null
   >(null);
   const nameTypeFilter = useMultiSelectFilter(DEFAULT_CUSTOMER_NAME_TYPE_FILTER);
   const sourceFilter = useMultiSelectFilter(DEFAULT_SOURCE_FILTER);
+  const tierFilter = useMultiSelectFilter(DEFAULT_TIER_FILTER);
 
   const [generatedVendorCode, setGeneratedVendorCode] = useState("");
   const [selectedVendor, setSelectedVendor] = useState<any | null>(null);
@@ -292,14 +297,18 @@ const VendorDirectory = () => {
     if (activeHeaderFilter === "Source") {
       sourceFilter.syncPendingFromApplied();
     }
+    if (activeHeaderFilter === "Tier") {
+      tierFilter.syncPendingFromApplied();
+    }
   }, [
     activeHeaderFilter,
     nameTypeFilter.syncPendingFromApplied,
     sourceFilter.syncPendingFromApplied,
+    tierFilter.syncPendingFromApplied,
   ]);
 
   const handleHeaderIconClick = useCallback((column: string) => {
-    if (column !== "Name" && column !== "Source") return;
+    if (column !== "Name" && column !== "Source" && column !== "Tier") return;
     setActiveHeaderFilter((prev) => (prev === column ? null : column));
   }, []);
 
@@ -312,6 +321,7 @@ const VendorDirectory = () => {
           <CustomerNameTypeFilterDropdown
             pendingValues={nameTypeFilter.pending}
             onToggle={nameTypeFilter.togglePending}
+            onSelectAll={nameTypeFilter.selectAllPending}
             onDeselectAll={nameTypeFilter.deselectAllPending}
             onReset={nameTypeFilter.resetPending}
             onApply={() => {
@@ -328,6 +338,7 @@ const VendorDirectory = () => {
           <CustomerSourceFilterDropdown
             pendingValues={sourceFilter.pending}
             onToggle={sourceFilter.togglePending}
+            onSelectAll={sourceFilter.selectAllPending}
             onDeselectAll={sourceFilter.deselectAllPending}
             onReset={sourceFilter.resetPending}
             onApply={() => {
@@ -337,8 +348,25 @@ const VendorDirectory = () => {
           />
         ),
       },
+      Tier: {
+        isOpen: activeHeaderFilter === "Tier",
+        align: "center" as const,
+        content: (
+          <CustomerTierFilterDropdown
+            pendingValues={tierFilter.pending}
+            onToggle={tierFilter.togglePending}
+            onSelectAll={tierFilter.selectAllPending}
+            onDeselectAll={tierFilter.deselectAllPending}
+            onReset={tierFilter.resetPending}
+            onApply={() => {
+              tierFilter.applyPending();
+              setActiveHeaderFilter(null);
+            }}
+          />
+        ),
+      },
     }),
-    [activeHeaderFilter, nameTypeFilter, sourceFilter],
+    [activeHeaderFilter, nameTypeFilter, sourceFilter, tierFilter],
   );
 
   const filteredVendors = useMemo(() => {
@@ -357,6 +385,14 @@ const VendorDirectory = () => {
         sourceFilter.applied,
         DEFAULT_SOURCE_FILTER,
         resolveSourceFilterValue(vendor.source),
+      ),
+    );
+
+    list = list.filter((vendor) =>
+      passesMultiSelectFilter(
+        tierFilter.applied,
+        DEFAULT_TIER_FILTER,
+        resolveTierFilterValue(vendor.tier),
       ),
     );
 
@@ -405,6 +441,7 @@ const VendorDirectory = () => {
     sortState,
     nameTypeFilter.applied,
     sourceFilter.applied,
+    tierFilter.applied,
   ]);
 
   const handleSort = (column: string) => {
@@ -504,7 +541,7 @@ const VendorDirectory = () => {
 
   const renderNameCell = (row: { name: string; subtitle?: string }) => (
     <div className="mx-auto w-fit text-center">
-      <div className="font-[500] text-[#020202]">{row.name}</div>
+      <div className="font-[500] text-[#020202] min-[1728px]:font-[400]">{row.name}</div>
       {row.subtitle ? (
         <div className="table-cell-subtext mt-0.5 text-[#818181]">
           {row.subtitle}
@@ -522,12 +559,18 @@ const VendorDirectory = () => {
         <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
       ),
       Tier: (
-        <span className="inline-flex items-center gap-2">
-          <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
-          <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
-        </span>
+        <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
       ),
       "Last Modified": (
+        <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+      ),
+    }),
+    [],
+  );
+
+  const columnSortIconMap = useMemo<Record<string, JSX.Element>>(
+    () => ({
+      Tier: (
         <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
       ),
     }),
@@ -813,8 +856,9 @@ const VendorDirectory = () => {
 
   const tableSharedProps = {
     columnIconMap,
+    columnSortIconMap,
     onHeaderIconClick: handleHeaderIconClick,
-    headerIconClickableColumns: ["Name", "Source"] as string[],
+    headerIconClickableColumns: ["Name", "Source", "Tier"] as string[],
     headerDropdownMap,
     showCheckboxColumn: selectMode,
     headerCheckbox: selectMode ? selectAllHeaderCheckbox : undefined,
@@ -922,23 +966,25 @@ const VendorDirectory = () => {
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const res = await CustomIdApi.generate("vendor");
-                  setGeneratedVendorCode(res?.customId || "");
-                  setSelectedVendor(null);
-                  setMode("create");
-                  setIsSideSheetOpen(true);
-                } catch (err) {
-                  console.error("Failed to generate vendor code", err);
-                }
-              }}
-              className="cursor-pointer rounded-[14px] bg-[#7135AD] px-[14px] py-[8px] text-[14px] font-[500] text-white"
-            >
-              + Add Vendor
-            </button>
+            {activeTab === "Vendors" && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const res = await CustomIdApi.generate("vendor");
+                    setGeneratedVendorCode(res?.customId || "");
+                    setSelectedVendor(null);
+                    setMode("create");
+                    setIsSideSheetOpen(true);
+                  } catch (err) {
+                    console.error("Failed to generate vendor code", err);
+                  }
+                }}
+                className="cursor-pointer rounded-[14px] bg-[#7135AD] px-[14px] py-[8px] text-[14px] font-[500] text-white"
+              >
+                + Add Vendor
+              </button>
+            )}
           </div>
         </div>
 

@@ -22,6 +22,7 @@ type MultiSelectFilterDropdownProps<T extends string = string> = {
   options: MultiSelectFilterOption<T>[];
   pendingValues: T[];
   onToggle: (value: T) => void;
+  onSelectAll: () => void;
   onDeselectAll: () => void;
   onReset: () => void;
   onApply: () => void;
@@ -34,6 +35,7 @@ function MultiSelectFilterDropdown<T extends string = string>({
   options,
   pendingValues,
   onToggle,
+  onSelectAll,
   onDeselectAll,
   onReset,
   onApply,
@@ -41,6 +43,10 @@ function MultiSelectFilterDropdown<T extends string = string>({
   maxListHeightClassName = "max-h-[320px]",
   footerAction,
 }: MultiSelectFilterDropdownProps<T>) {
+  const allSelected =
+    options.length > 0 &&
+    options.every((opt) => pendingValues.includes(opt.value));
+
   const renderLeadingIcon = (opt: MultiSelectFilterOption<T>): ReactNode => {
     if (opt.icon) {
       const Icon = opt.icon;
@@ -116,10 +122,10 @@ function MultiSelectFilterDropdown<T extends string = string>({
       <div className="flex items-center justify-between gap-2 border-t border-[#ECECEC] px-3 py-3">
         <button
           type="button"
-          onClick={onDeselectAll}
+          onClick={allSelected ? onDeselectAll : onSelectAll}
           className="shrink-0 whitespace-nowrap rounded-[8px] border border-[#E2E1E1] px-3 py-1.5 font-[Poppins,sans-serif] text-[12px] font-medium text-[#818181] transition-colors hover:bg-[#FAFAFA]"
         >
-          Deselect All
+          {allSelected ? "Deselect All" : "Select All"}
         </button>
         <button
           type="button"

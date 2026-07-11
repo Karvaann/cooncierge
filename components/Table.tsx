@@ -11,6 +11,8 @@ interface TableProps {
   initialRowsPerPage?: number;
   maxRowsPerPageOptions?: number[];
   columnIconMap?: Record<string, React.ReactNode>;
+  /** Optional sort-only icons rendered next to filter icons (e.g. Tier). */
+  columnSortIconMap?: Record<string, React.ReactNode>;
   columnWidthClassMap?: Record<string, string>;
   headerAlign?: Record<string, "left" | "center" | "right">;
   onSort?: (column: string) => void;
@@ -52,6 +54,7 @@ const Table: React.FC<TableProps> = ({
   initialRowsPerPage = 10,
   maxRowsPerPageOptions = [10, 20, 50, 100],
   columnIconMap,
+  columnSortIconMap,
   columnWidthClassMap = {},
   onSort,
   hideRowsPerPage,
@@ -198,7 +201,7 @@ const Table: React.FC<TableProps> = ({
             onSort(col);
           }
         }}
-        className={`sticky top-0 z-10 overflow-visible px-[18px] py-[18px] ${headerCellTextClassName} font-[500] leading-4 tracking-[0.6px] text-[13px] ${
+        className={`sticky top-0 z-10 overflow-visible px-[18px] py-[18px] ${headerCellTextClassName} font-[500] leading-4 tracking-[0.6px] text-[13px] min-[1728px]:font-[400] min-[1728px]:text-[14px] ${
           columnWidthClassMap[col] || ""
         }
         ${headerClassName || "bg-[#F3F3F3]"}
@@ -211,7 +214,7 @@ const Table: React.FC<TableProps> = ({
           col === "Date Created" ||
           col === "Travel Date" ||
           col === "Joining Date"
-            ? `cursor-pointer ${sortableHeaderHoverClass || "hover:bg-[#ECECEC]"}`
+            ? `cursor-pointer${sortableHeaderHoverClass ? ` ${sortableHeaderHoverClass}` : ""}`
             : ""
         }`}
       >
@@ -248,12 +251,28 @@ const Table: React.FC<TableProps> = ({
                 }}
                 data-header-filter-trigger={col}
                 className="inline-flex items-center"
+                aria-label={`Filter ${col}`}
               >
                 {columnIconMap[col]}
               </button>
             ) : (
               columnIconMap[col]
             )
+          ) : null}
+          {columnSortIconMap?.[col] && onSort ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onSort(col);
+              }}
+              className="inline-flex items-center"
+              aria-label={`Sort ${col}`}
+            >
+              {columnSortIconMap[col]}
+            </button>
+          ) : columnSortIconMap?.[col] ? (
+            columnSortIconMap[col]
           ) : null}
         </div>
         {headerDropdownMap[col]?.isOpen && (

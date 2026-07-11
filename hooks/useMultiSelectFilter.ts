@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 /**
  * Manages pending vs applied state for multi-select column filters.
@@ -9,10 +9,10 @@ import { useCallback, useState } from "react";
 export function useMultiSelectFilter<T extends string>(
   defaultValues: readonly T[],
 ) {
-  const allValues = [...defaultValues] as T[];
+  const allValues = useMemo(() => [...defaultValues] as T[], [defaultValues]);
 
-  const [applied, setApplied] = useState<T[]>(allValues);
-  const [pending, setPending] = useState<T[]>(allValues);
+  const [applied, setApplied] = useState<T[]>(() => [...defaultValues] as T[]);
+  const [pending, setPending] = useState<T[]>(() => [...defaultValues] as T[]);
 
   const togglePending = useCallback((value: T) => {
     setPending((prev) =>
@@ -21,6 +21,11 @@ export function useMultiSelectFilter<T extends string>(
         : [...prev, value],
     );
   }, []);
+
+  const selectAllPending = useCallback(
+    () => setPending([...allValues]),
+    [allValues],
+  );
 
   const deselectAllPending = useCallback(() => setPending([]), []);
 
@@ -43,6 +48,7 @@ export function useMultiSelectFilter<T extends string>(
     setApplied,
     setPending,
     togglePending,
+    selectAllPending,
     deselectAllPending,
     resetPending,
     applyPending,

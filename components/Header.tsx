@@ -142,14 +142,22 @@ const Header: React.FC<HeaderProps> = ({ isSidebarOpen = true }) => {
       viewBookingIndex !== -1 &&
       bookingsIndex < viewBookingIndex
     ) {
-      return ["bookings", "view-booking"].map((piece, index) => (
-        <div key={`${piece}-${index}`} className="flex gap-[5px] items-center">
-          <div className="text-[#414141] text-[14px] mx-1">/</div>
-          <div className="text-[#7135AD] text-[14px] mr-1">
-            {PIECE_MAP[piece as PieceMapKey] || piece}
+      const viewBookingPieces = ["bookings", "view-booking"];
+      return viewBookingPieces.map((piece, index) => {
+        const isCurrent = index === viewBookingPieces.length - 1;
+        return (
+          <div key={`${piece}-${index}`} className="flex gap-[5px] items-center">
+            <div className="text-[#414141] text-[14px] mx-1">/</div>
+            <div
+              className={`text-[14px] mr-1 ${
+                isCurrent ? "text-[#7135AD]" : "text-[#414141]"
+              }`}
+            >
+              {PIECE_MAP[piece as PieceMapKey] || piece}
+            </div>
           </div>
-        </div>
-      ));
+        );
+      });
     }
 
     // For view-booking pages, hide the intermediate service segment
@@ -164,14 +172,21 @@ const Header: React.FC<HeaderProps> = ({ isSidebarOpen = true }) => {
       return !isBetweenBookingsAndViewBooking;
     });
 
-    return filteredPieces.map((piece, index) => (
-      <div key={`${piece}-${index}`} className="flex gap-[5px] items-baseline">
-        <div className="text-[#414141] text-[14px] mx-1">/</div>
-        <div className="text-[#7135AD] text-[14px] mr-1">
-          {PIECE_MAP[piece as PieceMapKey] || piece}
+    return filteredPieces.map((piece, index) => {
+      const isCurrent = index === filteredPieces.length - 1;
+      return (
+        <div key={`${piece}-${index}`} className="flex gap-[5px] items-baseline">
+          <div className="text-[#414141] text-[14px] mx-1">/</div>
+          <div
+            className={`text-[14px] mr-1 ${
+              isCurrent ? "text-[#7135AD]" : "text-[#414141]"
+            }`}
+          >
+            {PIECE_MAP[piece as PieceMapKey] || piece}
+          </div>
         </div>
-      </div>
-    ));
+      );
+    });
   }, [pathname]);
 
   // Memoized header title
@@ -213,7 +228,7 @@ const Header: React.FC<HeaderProps> = ({ isSidebarOpen = true }) => {
           </div>
 
           <div className="hidden justify-center xl:flex">
-            <div className="flex w-[420px] max-w-[420px] items-center rounded-[14px] border border-[#F0F0F0] bg-white px-[13px] py-[8px] shadow-[0_2px_8px_0_rgba(0,0,0,0.06)]">
+            <div className="box-border flex h-[50px] w-[450px] max-w-[450px] items-center rounded-[16px] border-[0.5px] border-[#F0F0F0] bg-white px-[16px] py-[15px] shadow-[0_2px_8px_0_rgba(0,0,0,0.06)]">
               <Image src="/icons/header/search.svg" alt="search" width={20} height={20} className="text-[#9CA3AF]" />
               <input
                 type="text"

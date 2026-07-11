@@ -415,26 +415,28 @@ const TeamDirectory = () => {
         {/*  Total Count + Add Button */}
         <div className="flex items-center gap-2">
           <TotalCountPill count={teams.length} />
-          <button
-            onClick={async () => {
-              try {
-                const res = await CustomIdApi.generate("team");
+          {activeTab === "Current" && (
+            <button
+              onClick={async () => {
+                try {
+                  const res = await CustomIdApi.generate("team");
 
-                // IMPORTANT: backend field name
-                setGeneratedTeamCode(res?.customId);
+                  // IMPORTANT: backend field name
+                  setGeneratedTeamCode(res?.customId);
 
-                setSelectedTeam(null);
-                setMode("create");
-                setIsSideSheetOpen(true);
-              } catch (err) {
-                console.error("Failed to generate team code", err);
-              }
-            }}
-            className="flex items-center text-[14px] cursor-pointer gap-[8px] px-[16px] py-[7px] rounded-[6px] bg-[#0D4B37] text-white font-[500]"
-            type="button"
-          >
-            + Add Team Member
-          </button>
+                  setSelectedTeam(null);
+                  setMode("create");
+                  setIsSideSheetOpen(true);
+                } catch (err) {
+                  console.error("Failed to generate team code", err);
+                }
+              }}
+              className="flex items-center text-[14px] cursor-pointer gap-[8px] px-[16px] py-[7px] rounded-[6px] bg-[#0D4B37] text-white font-[500]"
+              type="button"
+            >
+              + Add Team Member
+            </button>
+          )}
         </div>
       </div>
 

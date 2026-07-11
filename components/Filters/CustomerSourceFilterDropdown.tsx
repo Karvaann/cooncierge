@@ -61,6 +61,7 @@ const SOURCE_FILTER_OPTIONS: MultiSelectFilterOption<CustomerSourceFilterValue>[
 type CustomerSourceFilterDropdownProps = {
   pendingValues: CustomerSourceFilterValue[];
   onToggle: (value: CustomerSourceFilterValue) => void;
+  onSelectAll: () => void;
   onDeselectAll: () => void;
   onReset: () => void;
   onApply: () => void;

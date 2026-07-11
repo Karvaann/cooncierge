@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import TableTabs from "@/components/TableTabs";
 
 export const CUSTOMER_PAGE_TABS = ["Customers", "Travellers", "Deleted"] as const;
@@ -23,8 +23,12 @@ export default function DirectoryPeopleTabs({
   onLocalTabChange,
 }: DirectoryPeopleTabsProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [displayActiveTab, setDisplayActiveTab] = useState(activeTab);
   const routeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isTravellersPage = pathname?.startsWith("/directory/travellers") ?? false;
+  const isCustomersPage = pathname?.startsWith("/directory/customers") ?? false;
 
   useEffect(() => {
     setDisplayActiveTab(activeTab);
@@ -53,27 +57,31 @@ export default function DirectoryPeopleTabs({
   };
 
   const handleChange = (tab: string) => {
-    const isTravellersPage = activeTab === "Travellers";
     setDisplayActiveTab(tab);
 
-    if (tab === "Travellers" && activeTab !== "Travellers") {
+    // Travellers: stay local when already on travellers page (e.g. Deleted → Travellers)
+    if (tab === "Travellers") {
+      if (isTravellersPage) {
+        onLocalTabChange?.(tab);
+        return;
+      }
       pushAfterTabMoves("/directory/travellers");
       return;
     }
 
-    if (onLocalTabChange && tabs.includes(tab)) {
-      // On travellers page, "Customers" switches to the customers directory route.
-      if (tab === "Customers" && isTravellersPage) {
-        pushAfterTabMoves("/directory/customers");
+    // Customers: stay local when already on customers page (e.g. Deleted → Customers)
+    if (tab === "Customers") {
+      if (isCustomersPage) {
+        onLocalTabChange?.(tab);
         return;
       }
-
-      onLocalTabChange(tab);
+      pushAfterTabMoves("/directory/customers");
       return;
     }
 
-    if (tab === "Customers") {
-      pushAfterTabMoves("/directory/customers");
+    // Local-only tabs on the current page (Deleted, Draft, etc.)
+    if (onLocalTabChange && tabs.includes(tab)) {
+      onLocalTabChange(tab);
     }
   };
 

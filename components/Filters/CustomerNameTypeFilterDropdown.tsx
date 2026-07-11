@@ -20,6 +20,7 @@ export const CUSTOMER_NAME_TYPE_FILTER_OPTIONS: MultiSelectFilterOption<Customer
 type CustomerNameTypeFilterDropdownProps = {
   pendingValues: CustomerNameTypeFilterValue[];
   onToggle: (value: CustomerNameTypeFilterValue) => void;
+  onSelectAll: () => void;
   onDeselectAll: () => void;
   onReset: () => void;
   onApply: () => void;

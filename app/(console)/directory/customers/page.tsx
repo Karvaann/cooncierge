@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
-import { createPortal } from "react-dom";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import { CiFilter, CiSearch } from "react-icons/ci";
@@ -52,6 +51,10 @@ import CustomerSourceFilterDropdown, {
   DEFAULT_SOURCE_FILTER,
   resolveSourceFilterValue,
 } from "@/components/Filters/CustomerSourceFilterDropdown";
+import CustomerTierFilterDropdown, {
+  DEFAULT_TIER_FILTER,
+  resolveTierFilterValue,
+} from "@/components/Filters/CustomerTierFilterDropdown";
 import {
   passesMultiSelectFilter,
   useMultiSelectFilter,
@@ -184,6 +187,50 @@ function renderSelectCheckbox(
 }
 
 
+const matchesCustomerSearch = (customer: CustomerRow, query: string) => {
+  const trimmed = query.trim();
+  if (!trimmed) return true;
+
+  const letters = trimmed.replace(/[^a-zA-Z]/g, "").toLowerCase();
+  const digits = trimmed.replace(/\D/g, "");
+
+  // Only filter once a name or ID threshold is met
+  if (letters.length < 3 && digits.length < 2) return true;
+
+  const matchesName =
+    letters.length >= 3 &&
+    (() => {
+      const parts = (customer.name || "")
+        .trim()
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean);
+      if (parts.length === 0) return false;
+
+      const firstName = parts[0] ?? "";
+      const lastName = parts.length > 1 ? (parts[parts.length - 1] ?? "") : "";
+
+      return firstName.includes(letters) || lastName.includes(letters);
+    })();
+
+  const matchesId =
+    digits.length >= 2 &&
+    (() => {
+      const idDigits = (customer.customerID || "").replace(/\D/g, "");
+      if (!idDigits) return false;
+
+      const remaining = idDigits.split("");
+      for (const digit of digits) {
+        const index = remaining.indexOf(digit);
+        if (index === -1) return false;
+        remaining.splice(index, 1);
+      }
+      return true;
+    })();
+
+  return matchesName || matchesId;
+};
+
 const mapCustomerToRow = (c: any, index: number): CustomerRow => {
   const subtitle = c.alias || (c.gstin ? `GSTIN: ${c.gstin}` : undefined);
 
@@ -217,38 +264,11 @@ const columns: string[] = [
   "Actions",
 ];
 
-const tableHeaderIconMap: Record<string, JSX.Element> = {
-  Name: (
-    <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
-  ),
-  Source: (
-    <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
-  ),
-  Tier: (
-    <span className="inline-flex items-center gap-2">
-      <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
-      <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
-    </span>
-  ),
-  "Last Modified": (
-    <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
-  ),
-};
-
 const CustomerDirectory = () => {
   const [isSideSheetOpen, setIsSideSheetOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("Customers");
   const [searchValue, setSearchValue] = useState("");
-  const [searchBy, setSearchBy] = useState("customerId");
-  const [searchByOpen, setSearchByOpen] = useState(false);
-  const searchByRef = useRef<HTMLButtonElement | null>(null);
   const moreActionsRef = useRef<HTMLDivElement | null>(null);
-  const [searchByPos, setSearchByPos] = useState<{
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  } | null>(null);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [sortState, setSortState] = useState<TriSortState<string>>({
     key: null,
@@ -262,10 +282,11 @@ const CustomerDirectory = () => {
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
   const [mergeModalItems, setMergeModalItems] = useState<DeletableItem[]>([]);
   const [activeHeaderFilter, setActiveHeaderFilter] = useState<
-    "Name" | "Source" | null
+    "Name" | "Source" | "Tier" | null
   >(null);
   const nameTypeFilter = useMultiSelectFilter(DEFAULT_CUSTOMER_NAME_TYPE_FILTER);
   const sourceFilter = useMultiSelectFilter(DEFAULT_SOURCE_FILTER);
+  const tierFilter = useMultiSelectFilter(DEFAULT_TIER_FILTER);
 
   const [generatedCustomerCode, setGeneratedCustomerCode] =
     useState<string>("");
@@ -332,14 +353,18 @@ const CustomerDirectory = () => {
     if (activeHeaderFilter === "Source") {
       sourceFilter.syncPendingFromApplied();
     }
+    if (activeHeaderFilter === "Tier") {
+      tierFilter.syncPendingFromApplied();
+    }
   }, [
     activeHeaderFilter,
     nameTypeFilter.syncPendingFromApplied,
     sourceFilter.syncPendingFromApplied,
+    tierFilter.syncPendingFromApplied,
   ]);
 
   const handleHeaderIconClick = useCallback((column: string) => {
-    if (column !== "Name" && column !== "Source") return;
+    if (column !== "Name" && column !== "Source" && column !== "Tier") return;
 
     setActiveHeaderFilter((prev) => (prev === column ? null : column));
   }, []);
@@ -353,6 +378,7 @@ const CustomerDirectory = () => {
           <CustomerNameTypeFilterDropdown
             pendingValues={nameTypeFilter.pending}
             onToggle={nameTypeFilter.togglePending}
+            onSelectAll={nameTypeFilter.selectAllPending}
             onDeselectAll={nameTypeFilter.deselectAllPending}
             onReset={nameTypeFilter.resetPending}
             onApply={() => {
@@ -369,6 +395,7 @@ const CustomerDirectory = () => {
           <CustomerSourceFilterDropdown
             pendingValues={sourceFilter.pending}
             onToggle={sourceFilter.togglePending}
+            onSelectAll={sourceFilter.selectAllPending}
             onDeselectAll={sourceFilter.deselectAllPending}
             onReset={sourceFilter.resetPending}
             onApply={() => {
@@ -378,8 +405,25 @@ const CustomerDirectory = () => {
           />
         ),
       },
+      Tier: {
+        isOpen: activeHeaderFilter === "Tier",
+        align: "center" as const,
+        content: (
+          <CustomerTierFilterDropdown
+            pendingValues={tierFilter.pending}
+            onToggle={tierFilter.togglePending}
+            onSelectAll={tierFilter.selectAllPending}
+            onDeselectAll={tierFilter.deselectAllPending}
+            onReset={tierFilter.resetPending}
+            onApply={() => {
+              tierFilter.applyPending();
+              setActiveHeaderFilter(null);
+            }}
+          />
+        ),
+      },
     }),
-    [activeHeaderFilter, nameTypeFilter, sourceFilter],
+    [activeHeaderFilter, nameTypeFilter, sourceFilter, tierFilter],
   );
 
   const filteredCustomers = useMemo(() => {
@@ -398,6 +442,14 @@ const CustomerDirectory = () => {
         sourceFilter.applied,
         DEFAULT_SOURCE_FILTER,
         resolveSourceFilterValue(customer.source),
+      ),
+    );
+
+    list = list.filter((customer) =>
+      passesMultiSelectFilter(
+        tierFilter.applied,
+        DEFAULT_TIER_FILTER,
+        resolveTierFilterValue(customer.tier),
       ),
     );
 
@@ -431,24 +483,14 @@ const CustomerDirectory = () => {
 
     if (!searchValue.trim()) return sorted;
 
-    const search = searchValue.toLowerCase();
-
-    return sorted.filter((c) => {
-      if (searchBy === "name") {
-        return (c.name || "").toLowerCase().includes(search);
-      }
-      return (
-        (c.customerID || "").toLowerCase().includes(search) ||
-        (c.name || "").toLowerCase().includes(search)
-      );
-    });
+    return sorted.filter((c) => matchesCustomerSearch(c, searchValue));
   }, [
     customers,
     searchValue,
-    searchBy,
     sortState,
     nameTypeFilter.applied,
     sourceFilter.applied,
+    tierFilter.applied,
   ]);
 
   const handleSort = (column: string) => {
@@ -522,7 +564,7 @@ const CustomerDirectory = () => {
 
   const renderNameCell = (row: { name: string; subtitle?: string }) => (
     <div className="mx-auto w-fit text-center">
-      <div className="font-[500] text-[#020202]">{row.name}</div>
+      <div className="font-[500] text-[#020202] min-[1728px]:font-[400]">{row.name}</div>
       {row.subtitle ? (
         <div className="table-cell-subtext mt-0.5 text-[#818181]">
           {row.subtitle}
@@ -540,12 +582,18 @@ const CustomerDirectory = () => {
         <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
       ),
       Tier: (
-        <span className="inline-flex items-center gap-2">
-          <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
-          <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
-        </span>
+        <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
       ),
       "Last Modified": (
+        <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+      ),
+    }),
+    [],
+  );
+
+  const columnSortIconMap = useMemo<Record<string, JSX.Element>>(
+    () => ({
+      Tier: (
         <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
       ),
     }),
@@ -970,26 +1018,28 @@ const CustomerDirectory = () => {
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  setIsGeneratingCode(true);
-                  const res = await CustomIdApi.generate("customer");
-                  setGeneratedCustomerCode(res?.customId || null);
-                  setMode("create");
-                  setSelectedCustomer(null);
-                  setIsSideSheetOpen(true);
-                } catch (err) {
-                  console.error("Failed to generate customer code", err);
-                } finally {
-                  setIsGeneratingCode(false);
-                }
-              }}
-              className="cursor-pointer rounded-[14px] bg-[#7135AD] px-[14px] py-[8px] text-[14px] font-[500] text-white"
-            >
-              + Add Customer
-            </button>
+            {activeTab === "Customers" && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    setIsGeneratingCode(true);
+                    const res = await CustomIdApi.generate("customer");
+                    setGeneratedCustomerCode(res?.customId || null);
+                    setMode("create");
+                    setSelectedCustomer(null);
+                    setIsSideSheetOpen(true);
+                  } catch (err) {
+                    console.error("Failed to generate customer code", err);
+                  } finally {
+                    setIsGeneratingCode(false);
+                  }
+                }}
+                className="cursor-pointer rounded-[14px] bg-[#7135AD] px-[14px] py-[8px] text-[14px] font-[500] text-white"
+              >
+                + Add Customer
+              </button>
+            )}
           </div>
         </div>
 
@@ -997,76 +1047,17 @@ const CustomerDirectory = () => {
           <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[#E5E7EB] px-5 py-4">
             <div className="min-w-0 flex-1">
               <div className="flex h-[44px] max-w-[34rem] items-stretch overflow-hidden rounded-[14px] border border-[#E2E1E1] bg-white">
-                <button
-                  ref={searchByRef}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const rect = searchByRef.current?.getBoundingClientRect();
-                    if (rect) {
-                      setSearchByPos({
-                        left: rect.left,
-                        top: rect.top,
-                        width: rect.width,
-                        height: rect.height,
-                      });
-                    }
-                    setSearchByOpen((prev) => !prev);
-                  }}
-                  className="flex h-full shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap px-3 text-[12px] font-[400] text-[#020202]"
-                >
-                  <span>{searchBy === "name" ? "Name" : "Customer ID"}</span>
-                  <MdOutlineKeyboardArrowDown className="text-[20px] text-[#7A7A7A]" />
-                </button>
-
-                <div className="flex min-w-0 flex-1 items-center border-l border-[#D9D9D9]">
+                <div className="flex min-w-0 flex-1 items-center">
                   <input
                     type="text"
-                    placeholder="Type here"
+                    placeholder="Search by Customer's Name or ID"
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
-                    className="h-full min-w-0 flex-1 bg-transparent pl-3 pr-3 text-[12px] font-normal text-[#111111] outline-none placeholder:text-[#A0A9BA]"
+                    className="h-full min-w-0 flex-1 bg-transparent pl-4 pr-3 text-[12px] font-normal text-[#111111] outline-none placeholder:text-[#A0A9BA]"
                   />
                   <CiSearch className="mr-4 shrink-0 text-[#808080]" size={22} />
                 </div>
               </div>
-
-              {searchByOpen &&
-                searchByPos &&
-                createPortal(
-                  <div
-                    style={{
-                      position: "fixed",
-                      left: searchByPos.left,
-                      top: searchByPos.top + searchByPos.height + 4,
-                      minWidth: searchByPos.width,
-                      zIndex: 9999,
-                    }}
-                    className="overflow-hidden rounded-[16px] border border-[#D9D9D9] bg-white shadow-[0_10px_25px_rgba(0,0,0,0.10)]"
-                  >
-                    {[
-                      { value: "customerId", label: "Customer ID" },
-                      { value: "name", label: "Name" },
-                    ].map((option, index, arr) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => {
-                          setSearchBy(option.value);
-                          setSearchByOpen(false);
-                        }}
-                        className={`block w-full cursor-pointer whitespace-nowrap px-3 py-2 text-left text-[12px] ${
-                          searchBy === option.value
-                            ? "text-[#7C3AED]"
-                            : "text-[#444444]"
-                        } ${index < arr.length - 1 ? "border-b border-[#D9D9D9]" : ""}`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>,
-                  document.body,
-                )}
             </div>
 
             <div className="flex shrink-0 items-center gap-[20px]">
@@ -1080,8 +1071,9 @@ const CustomerDirectory = () => {
                 data={tableData}
                 columns={columns}
                 columnIconMap={columnIconMap}
+                columnSortIconMap={columnSortIconMap}
                 onHeaderIconClick={handleHeaderIconClick}
-                headerIconClickableColumns={["Name", "Source"]}
+                headerIconClickableColumns={["Name", "Source", "Tier"]}
                 headerDropdownMap={headerDropdownMap}
                 showCheckboxColumn={selectMode}
                 headerCheckbox={selectMode ? selectAllHeaderCheckbox : undefined}
@@ -1126,8 +1118,9 @@ const CustomerDirectory = () => {
                 data={tableData}
                 columns={columns}
                 columnIconMap={columnIconMap}
+                columnSortIconMap={columnSortIconMap}
                 onHeaderIconClick={handleHeaderIconClick}
-                headerIconClickableColumns={["Name", "Source"]}
+                headerIconClickableColumns={["Name", "Source", "Tier"]}
                 headerDropdownMap={headerDropdownMap}
                 showCheckboxColumn={selectMode}
                 headerCheckbox={selectMode ? selectAllHeaderCheckbox : undefined}
@@ -1172,8 +1165,9 @@ const CustomerDirectory = () => {
                 data={tableData}
                 columns={columns}
                 columnIconMap={columnIconMap}
+                columnSortIconMap={columnSortIconMap}
                 onHeaderIconClick={handleHeaderIconClick}
-                headerIconClickableColumns={["Name", "Source"]}
+                headerIconClickableColumns={["Name", "Source", "Tier"]}
                 headerDropdownMap={headerDropdownMap}
                 showCheckboxColumn={selectMode}
                 headerCheckbox={selectMode ? selectAllHeaderCheckbox : undefined}

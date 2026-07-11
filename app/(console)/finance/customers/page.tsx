@@ -404,7 +404,7 @@ const FinanceCustomersPage = () => {
 
   const renderNameCell = (row: { name: string; subtitle?: string }) => (
     <div className="mx-auto w-fit text-center">
-      <div className="font-[500] text-[#020202]">{row.name}</div>
+      <div className="font-[500] text-[#020202] min-[1728px]:font-[400]">{row.name}</div>
       {row.subtitle ? (
         <div className="table-cell-subtext mt-0.5 text-[#818181]">
           {row.subtitle}
@@ -528,7 +528,7 @@ const FinanceCustomersPage = () => {
       cells.push(
         <td
           key={`customerId-${index}`}
-          className="h-[4rem] px-4 py-3 text-center align-middle font-[500] text-[#020202]"
+          className="h-[4rem] px-4 py-3 text-center align-middle font-[500] text-[#020202] min-[1728px]:font-[400]"
         >
           {customer.customerId}
         </td>,

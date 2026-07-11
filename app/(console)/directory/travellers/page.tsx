@@ -44,6 +44,10 @@ import CustomerSourceFilterDropdown, {
   DEFAULT_SOURCE_FILTER,
   resolveSourceFilterValue,
 } from "@/components/Filters/CustomerSourceFilterDropdown";
+import CustomerTierFilterDropdown, {
+  DEFAULT_TIER_FILTER,
+  resolveTierFilterValue,
+} from "@/components/Filters/CustomerTierFilterDropdown";
 import {
   passesMultiSelectFilter,
   useMultiSelectFilter,
@@ -225,10 +229,11 @@ const TravellerDirectory = () => {
   const [selectMode, setSelectMode] = useState(false);
   const [selectedTravellers, setSelectedTravellers] = useState<string[]>([]);
   const [activeHeaderFilter, setActiveHeaderFilter] = useState<
-    "Name" | "Source" | null
+    "Name" | "Source" | "Tier" | null
   >(null);
   const nameTypeFilter = useMultiSelectFilter(DEFAULT_CUSTOMER_NAME_TYPE_FILTER);
   const sourceFilter = useMultiSelectFilter(DEFAULT_SOURCE_FILTER);
+  const tierFilter = useMultiSelectFilter(DEFAULT_TIER_FILTER);
 
   const [isTravellerSheetOpen, setIsTravellerSheetOpen] = useState(false);
   const [travellerMode, setTravellerMode] = useState<
@@ -331,14 +336,18 @@ const TravellerDirectory = () => {
     if (activeHeaderFilter === "Source") {
       sourceFilter.syncPendingFromApplied();
     }
+    if (activeHeaderFilter === "Tier") {
+      tierFilter.syncPendingFromApplied();
+    }
   }, [
     activeHeaderFilter,
     nameTypeFilter.syncPendingFromApplied,
     sourceFilter.syncPendingFromApplied,
+    tierFilter.syncPendingFromApplied,
   ]);
 
   const handleHeaderIconClick = useCallback((column: string) => {
-    if (column !== "Name" && column !== "Source") return;
+    if (column !== "Name" && column !== "Source" && column !== "Tier") return;
     setActiveHeaderFilter((prev) => (prev === column ? null : column));
   }, []);
 
@@ -351,6 +360,7 @@ const TravellerDirectory = () => {
           <CustomerNameTypeFilterDropdown
             pendingValues={nameTypeFilter.pending}
             onToggle={nameTypeFilter.togglePending}
+            onSelectAll={nameTypeFilter.selectAllPending}
             onDeselectAll={nameTypeFilter.deselectAllPending}
             onReset={nameTypeFilter.resetPending}
             onApply={() => {
@@ -367,6 +377,7 @@ const TravellerDirectory = () => {
           <CustomerSourceFilterDropdown
             pendingValues={sourceFilter.pending}
             onToggle={sourceFilter.togglePending}
+            onSelectAll={sourceFilter.selectAllPending}
             onDeselectAll={sourceFilter.deselectAllPending}
             onReset={sourceFilter.resetPending}
             onApply={() => {
@@ -376,8 +387,25 @@ const TravellerDirectory = () => {
           />
         ),
       },
+      Tier: {
+        isOpen: activeHeaderFilter === "Tier",
+        align: "center" as const,
+        content: (
+          <CustomerTierFilterDropdown
+            pendingValues={tierFilter.pending}
+            onToggle={tierFilter.togglePending}
+            onSelectAll={tierFilter.selectAllPending}
+            onDeselectAll={tierFilter.deselectAllPending}
+            onReset={tierFilter.resetPending}
+            onApply={() => {
+              tierFilter.applyPending();
+              setActiveHeaderFilter(null);
+            }}
+          />
+        ),
+      },
     }),
-    [activeHeaderFilter, nameTypeFilter, sourceFilter],
+    [activeHeaderFilter, nameTypeFilter, sourceFilter, tierFilter],
   );
 
   const filteredTravellers = useMemo(() => {
@@ -396,6 +424,14 @@ const TravellerDirectory = () => {
         sourceFilter.applied,
         DEFAULT_SOURCE_FILTER,
         resolveSourceFilterValue(traveller.source),
+      ),
+    );
+
+    list = list.filter((traveller) =>
+      passesMultiSelectFilter(
+        tierFilter.applied,
+        DEFAULT_TIER_FILTER,
+        resolveTierFilterValue(traveller.tier),
       ),
     );
 
@@ -444,6 +480,7 @@ const TravellerDirectory = () => {
     sortState,
     nameTypeFilter.applied,
     sourceFilter.applied,
+    tierFilter.applied,
   ]);
 
   const handleSort = (column: string) => {
@@ -543,7 +580,7 @@ const TravellerDirectory = () => {
 
   const renderNameCell = (row: { name: string; subtitle?: string }) => (
     <div className="mx-auto w-fit text-center">
-      <div className="font-[500] text-[#020202]">{row.name}</div>
+      <div className="font-[500] text-[#020202] min-[1728px]:font-[400]">{row.name}</div>
       {row.subtitle ? (
         <div className="table-cell-subtext mt-0.5 text-[#818181]">
           {row.subtitle}
@@ -561,12 +598,18 @@ const TravellerDirectory = () => {
         <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
       ),
       Tier: (
-        <span className="inline-flex items-center gap-2">
-          <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
-          <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
-        </span>
+        <CiFilter className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
       ),
       "Last Modified": (
+        <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
+      ),
+    }),
+    [],
+  );
+
+  const columnSortIconMap = useMemo<Record<string, JSX.Element>>(
+    () => ({
+      Tier: (
         <TbArrowsUpDown className="inline h-3 w-3 stroke-[2] text-[#818181] hover:text-[#7135AD]" />
       ),
     }),
@@ -807,8 +850,9 @@ const TravellerDirectory = () => {
 
   const tableSharedProps = {
     columnIconMap,
+    columnSortIconMap,
     onHeaderIconClick: handleHeaderIconClick,
-    headerIconClickableColumns: ["Name", "Source"] as string[],
+    headerIconClickableColumns: ["Name", "Source", "Tier"] as string[],
     headerDropdownMap,
     showCheckboxColumn: selectMode,
     headerCheckbox: selectMode ? selectAllHeaderCheckbox : undefined,

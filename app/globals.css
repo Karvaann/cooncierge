@@ -1045,7 +1045,7 @@ select.modal-field-input {
   min-width: 0;
 }
 
-/* Table body data text — 14px / 20px (scales with console-ui zoom on ~13") */
+/* Table body data text — medium on smaller screens, regular on large */
 .table-body-text td {
   font-family: Poppins, sans-serif;
   font-weight: 500;
@@ -1060,6 +1060,12 @@ select.modal-field-input {
   font-weight: 400;
   font-size: 12px;
   line-height: 18px;
+}
+
+@media (min-width: 1728px) {
+  .table-body-text td {
+    font-weight: 400;
+  }
 }
 
 /* Console table pages — compensate for shell zoom on smaller screens */
