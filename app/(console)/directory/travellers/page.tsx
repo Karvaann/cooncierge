@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
-import { createPortal } from "react-dom";
 import TableSkeleton from "@/components/skeletons/TableSkeleton";
 import ActionMenu from "@/components/Menus/ActionMenu";
 import { CiFilter, CiSearch } from "react-icons/ci";
@@ -58,6 +57,7 @@ import {
   mapApiSourceToUi,
   mapTierToNumber,
 } from "@/utils/directoryApiMappers";
+import { matchesDirectoryNameOrIdSearch } from "@/utils/directoryNameIdSearch";
 import {
   getNextTriSortState,
   type TriSortState,
@@ -210,16 +210,7 @@ function renderSelectCheckbox(
 const TravellerDirectory = () => {
   const [activeTab, setActiveTab] = useState("Travellers");
   const [searchValue, setSearchValue] = useState("");
-  const [searchBy, setSearchBy] = useState("travellerId");
-  const [searchByOpen, setSearchByOpen] = useState(false);
-  const searchByRef = useRef<HTMLButtonElement | null>(null);
   const moreActionsRef = useRef<HTMLDivElement | null>(null);
-  const [searchByPos, setSearchByPos] = useState<{
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-  } | null>(null);
   const [travellers, setTravellers] = useState<TravellerRow[]>([]);
   const [sortState, setSortState] = useState<TriSortState<string>>({
     key: null,
@@ -462,21 +453,12 @@ const TravellerDirectory = () => {
 
     if (!searchValue.trim()) return sorted;
 
-    const search = searchValue.toLowerCase();
-
-    return sorted.filter((t) => {
-      if (searchBy === "name") {
-        return (
-          (t.name || "").toLowerCase().includes(search) ||
-          (t.subtitle || "").toLowerCase().includes(search)
-        );
-      }
-      return (t.travellerID || "").toLowerCase().includes(search);
-    });
+    return sorted.filter((t) =>
+      matchesDirectoryNameOrIdSearch(t.name, t.travellerID, searchValue),
+    );
   }, [
     travellers,
     searchValue,
-    searchBy,
     sortState,
     nameTypeFilter.applied,
     sourceFilter.applied,
@@ -980,76 +962,17 @@ const TravellerDirectory = () => {
           <div className="flex shrink-0 items-center justify-between gap-4 border-b border-[#E5E7EB] px-5 py-4">
             <div className="min-w-0 flex-1">
               <div className="flex h-[44px] max-w-[34rem] items-stretch overflow-hidden rounded-[14px] border border-[#E2E1E1] bg-white">
-                <button
-                  ref={searchByRef}
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const rect = searchByRef.current?.getBoundingClientRect();
-                    if (rect) {
-                      setSearchByPos({
-                        left: rect.left,
-                        top: rect.top,
-                        width: rect.width,
-                        height: rect.height,
-                      });
-                    }
-                    setSearchByOpen((prev) => !prev);
-                  }}
-                  className="flex h-full shrink-0 cursor-pointer items-center gap-2 whitespace-nowrap px-3 text-[12px] font-[400] text-[#020202]"
-                >
-                  <span>{searchBy === "name" ? "Name" : "Traveller ID"}</span>
-                  <MdOutlineKeyboardArrowDown className="text-[20px] text-[#7A7A7A]" />
-                </button>
-
-                <div className="flex min-w-0 flex-1 items-center border-l border-[#D9D9D9]">
+                <div className="flex min-w-0 flex-1 items-center">
                   <input
                     type="text"
-                    placeholder="Type here"
+                    placeholder="Search by Traveller's Name or ID"
                     value={searchValue}
                     onChange={(e) => setSearchValue(e.target.value)}
-                    className="h-full min-w-0 flex-1 bg-transparent pl-3 pr-3 text-[12px] font-normal text-[#111111] outline-none placeholder:text-[#A0A9BA]"
+                    className="h-full min-w-0 flex-1 bg-transparent pl-4 pr-3 text-[12px] font-normal text-[#111111] outline-none placeholder:text-[#A0A9BA]"
                   />
                   <CiSearch className="mr-4 shrink-0 text-[#808080]" size={22} />
                 </div>
               </div>
-
-              {searchByOpen &&
-                searchByPos &&
-                createPortal(
-                  <div
-                    style={{
-                      position: "fixed",
-                      left: searchByPos.left,
-                      top: searchByPos.top + searchByPos.height + 4,
-                      minWidth: searchByPos.width,
-                      zIndex: 9999,
-                    }}
-                    className="overflow-hidden rounded-[16px] border border-[#D9D9D9] bg-white shadow-[0_10px_25px_rgba(0,0,0,0.10)]"
-                  >
-                    {[
-                      { value: "travellerId", label: "Traveller ID" },
-                      { value: "name", label: "Name" },
-                    ].map((option, index, arr) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => {
-                          setSearchBy(option.value);
-                          setSearchByOpen(false);
-                        }}
-                        className={`block w-full cursor-pointer whitespace-nowrap px-3 py-2 text-left text-[12px] ${
-                          searchBy === option.value
-                            ? "text-[#7C3AED]"
-                            : "text-[#444444]"
-                        } ${index < arr.length - 1 ? "border-b border-[#D9D9D9]" : ""}`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>,
-                  document.body,
-                )}
             </div>
 
             <div className="flex shrink-0 items-center gap-[20px]">

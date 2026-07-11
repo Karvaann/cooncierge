@@ -35,6 +35,7 @@ import {
   mapApiSourceToUi,
   mapTierToNumber,
 } from "@/utils/directoryApiMappers";
+import { matchesDirectoryNameOrIdSearch } from "@/utils/directoryNameIdSearch";
 import BookingHistoryModal from "@/components/Modals/BookingHistoryModal";
 import { MdHistory } from "react-icons/md";
 import { BOOKING_HISTORY_ACTION_BUTTON_CLASS } from "@/components/table/bookingHistoryActionStyles";
@@ -186,50 +187,6 @@ function renderSelectCheckbox(
   );
 }
 
-
-const matchesCustomerSearch = (customer: CustomerRow, query: string) => {
-  const trimmed = query.trim();
-  if (!trimmed) return true;
-
-  const letters = trimmed.replace(/[^a-zA-Z]/g, "").toLowerCase();
-  const digits = trimmed.replace(/\D/g, "");
-
-  // Only filter once a name or ID threshold is met
-  if (letters.length < 3 && digits.length < 2) return true;
-
-  const matchesName =
-    letters.length >= 3 &&
-    (() => {
-      const parts = (customer.name || "")
-        .trim()
-        .toLowerCase()
-        .split(/\s+/)
-        .filter(Boolean);
-      if (parts.length === 0) return false;
-
-      const firstName = parts[0] ?? "";
-      const lastName = parts.length > 1 ? (parts[parts.length - 1] ?? "") : "";
-
-      return firstName.includes(letters) || lastName.includes(letters);
-    })();
-
-  const matchesId =
-    digits.length >= 2 &&
-    (() => {
-      const idDigits = (customer.customerID || "").replace(/\D/g, "");
-      if (!idDigits) return false;
-
-      const remaining = idDigits.split("");
-      for (const digit of digits) {
-        const index = remaining.indexOf(digit);
-        if (index === -1) return false;
-        remaining.splice(index, 1);
-      }
-      return true;
-    })();
-
-  return matchesName || matchesId;
-};
 
 const mapCustomerToRow = (c: any, index: number): CustomerRow => {
   const subtitle = c.alias || (c.gstin ? `GSTIN: ${c.gstin}` : undefined);
@@ -483,7 +440,9 @@ const CustomerDirectory = () => {
 
     if (!searchValue.trim()) return sorted;
 
-    return sorted.filter((c) => matchesCustomerSearch(c, searchValue));
+    return sorted.filter((c) =>
+      matchesDirectoryNameOrIdSearch(c.name, c.customerID, searchValue),
+    );
   }, [
     customers,
     searchValue,
